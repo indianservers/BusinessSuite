@@ -185,7 +185,7 @@ class EmployeeBase(BaseModel):
     position_id: Optional[int] = None
     reporting_manager_id: Optional[int] = None
     employment_type: str = "Full-time"
-    worker_type: str = "Employee"
+    worker_type: Optional[str] = "Employee"
     status: str = "Active"
     work_location: str = "Office"
     shift_id: Optional[int] = None

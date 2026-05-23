@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ProductWorkflowCenter } from "@/components/product/ProductWorkflowCenter";
 import { attendanceApi, documentsApi, employeeApi, engagementApi, leaveApi, payrollApi, reportsApi } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -179,6 +178,19 @@ export default function DashboardPage() {
       sum + Number(row.available ?? row.balance ?? 0),
     0
   );
+
+  const totalEmployees = headcount?.total ?? dashboard?.headcount?.total ?? 0;
+  const activeEmployees = headcount?.active ?? dashboard?.headcount?.active ?? 0;
+  const presentToday = todaySummary?.present ?? dashboard?.attendance?.present_today ?? 0;
+  const absentToday = todaySummary?.absent ?? dashboard?.attendance?.absent_today ?? 0;
+  const attendanceBase = presentToday + absentToday;
+  const attendanceRate = attendanceBase ? Math.round((presentToday / attendanceBase) * 100) : 0;
+  const pendingApprovals = pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0;
+  const payrollGrossYtd = (payrollData || []).reduce((sum: number, row: { gross?: number | string }) => sum + Number(row.gross ?? 0), 0);
+  const payrollNetYtd = (payrollData || []).reduce((sum: number, row: { net?: number | string }) => sum + Number(row.net ?? 0), 0);
+  const departmentCount = deptData?.length ?? 0;
+  const certificateCount = certificates?.length ?? 0;
+  const recognitionCount = recognitions?.length ?? 0;
 
   if (roleKey === "employee") {
     return (
@@ -528,7 +540,144 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <ProductWorkflowCenter product="hrms" />
+      <DashboardStatistics
+        totalEmployees={totalEmployees}
+        activeEmployees={activeEmployees}
+        presentToday={presentToday}
+        absentToday={absentToday}
+        attendanceRate={attendanceRate}
+        pendingApprovals={pendingApprovals}
+        leaveBalance={totalLeaveBalance}
+        payrollGrossYtd={payrollGrossYtd}
+        payrollNetYtd={payrollNetYtd}
+        departmentCount={departmentCount}
+        certificateCount={certificateCount}
+        recognitionCount={recognitionCount}
+        lastPayroll={lastRun ? `${String(lastRun.month).padStart(2, "0")}/${lastRun.year}` : "No run"}
+      />
     </div>
+  );
+}
+
+function DashboardStatistics({
+  totalEmployees,
+  activeEmployees,
+  presentToday,
+  absentToday,
+  attendanceRate,
+  pendingApprovals,
+  leaveBalance,
+  payrollGrossYtd,
+  payrollNetYtd,
+  departmentCount,
+  certificateCount,
+  recognitionCount,
+  lastPayroll,
+}: {
+  totalEmployees: number;
+  activeEmployees: number;
+  presentToday: number;
+  absentToday: number;
+  attendanceRate: number;
+  pendingApprovals: number;
+  leaveBalance: number;
+  payrollGrossYtd: number;
+  payrollNetYtd: number;
+  departmentCount: number;
+  certificateCount: number;
+  recognitionCount: number;
+  lastPayroll: string;
+}) {
+  const workforceRows = [
+    { label: "Active employees", value: activeEmployees, max: Math.max(totalEmployees, 1), tone: "bg-blue-500" },
+    { label: "Present today", value: presentToday, max: Math.max(presentToday + absentToday, 1), tone: "bg-emerald-500" },
+    { label: "Absent today", value: absentToday, max: Math.max(presentToday + absentToday, 1), tone: "bg-red-500" },
+    { label: "Pending approvals", value: pendingApprovals, max: Math.max(pendingApprovals + presentToday, 1), tone: "bg-amber-500" },
+  ];
+  const cards = [
+    { label: "Attendance rate", value: `${attendanceRate}%`, detail: `${presentToday} present / ${absentToday} absent`, Icon: CheckCircle2 },
+    { label: "Leave liability", value: leaveBalance, detail: "Available leave days across current balances", Icon: CalendarDays },
+    { label: "Payroll YTD", value: formatCurrency(payrollNetYtd), detail: `${formatCurrency(payrollGrossYtd)} gross`, Icon: DollarSign },
+    { label: "Last payroll", value: lastPayroll, detail: "Most recent payroll run", Icon: Briefcase },
+  ];
+  const operatingRows = [
+    { label: "Departments", value: departmentCount, note: "Active workforce groups" },
+    { label: "Certificates", value: certificateCount, note: "Employee documents tracked" },
+    { label: "Recognitions", value: recognitionCount, note: "Culture moments recorded" },
+  ];
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold tracking-tight">Dashboard Statistics</h2>
+        <p className="text-sm text-muted-foreground">Live HRMS indicators calculated from workforce, attendance, leave, payroll, and document data.</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {cards.map(({ label, value, detail, Icon }) => (
+          <Card key={label}>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-lg bg-blue-500/10 p-2 text-blue-700">
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-semibold">{value}</p>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="text-xs text-muted-foreground">{detail}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Workforce pulse</CardTitle>
+            <CardDescription>Operational counts for today</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {workforceRows.map((row) => {
+              const width = row.value > 0 ? Math.max(6, Math.round((row.value / row.max) * 100)) : 0;
+              return (
+                <div key={row.label} className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium">{row.label}</span>
+                    <span className="text-muted-foreground">{row.value}</span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                    <div className={`h-full rounded-full ${row.tone}`} style={{ width: `${width}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>HR operations</CardTitle>
+            <CardDescription>Coverage and governance signals</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {operatingRows.map((row) => (
+              <div key={row.label} className="rounded-md border bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">{row.label}</span>
+                  <span className="text-lg font-semibold">{row.value}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{row.note}</p>
+              </div>
+            ))}
+            {pendingApprovals > 0 ? (
+              <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <AlertCircle className="h-4 w-4" />
+                {pendingApprovals} approval{pendingApprovals === 1 ? "" : "s"} need review.
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+    </section>
   );
 }

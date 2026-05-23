@@ -53,7 +53,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ProductWorkflowCenter } from "@/components/product/ProductWorkflowCenter";
 import { exportRows } from "@/lib/export";
 import { formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import { crmApi, type CRMApiRecord, type CRMApiValue, type CRMApprovalRequest, type CRMApprovalWorkflow, type CRMCalendarEvent, type CRMDuplicateGroup, type CRMWinLossReport } from "./api";
@@ -347,6 +346,16 @@ function CRMDashboard() {
   const pipelineValue = crmDeals.filter((deal) => !["Won", "Lost"].includes(deal.stage)).reduce((sum, deal) => sum + deal.amount, 0);
   const weighted = crmDeals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
   const overdueFollowUps = crmLeads.filter((lead) => lead.nextFollowUp && new Date(lead.nextFollowUp) < new Date() && lead.status !== "Converted").length;
+  const openDeals = crmDeals.filter((deal) => !["Won", "Lost"].includes(deal.stage)).length;
+  const wonDeals = crmDeals.filter((deal) => deal.stage === "Won").length;
+  const lostDeals = crmDeals.filter((deal) => deal.stage === "Lost").length;
+  const convertedLeads = crmLeads.filter((lead) => lead.status === "Converted").length;
+  const hotLeads = crmLeads.filter((lead) => lead.rating === "Hot" || lead.scoreLabel === "Hot").length;
+  const averageDealSize = crmDeals.length ? crmDeals.reduce((sum, deal) => sum + deal.amount, 0) / crmDeals.length : 0;
+  const winRate = wonDeals + lostDeals ? Math.round((wonDeals / (wonDeals + lostDeals)) * 100) : 0;
+  const conversionRate = crmLeads.length ? Math.round((convertedLeads / crmLeads.length) * 100) : 0;
+  const weightedCoverage = pipelineValue ? Math.round((weighted / pipelineValue) * 100) : 0;
+  const staleOpenDeals = crmDeals.filter((deal) => deal.closeDate && new Date(deal.closeDate) < new Date() && !["Won", "Lost"].includes(deal.stage)).length;
   const chartData = stageNames.map((stage) => ({
     stage,
     value: crmDeals.filter((deal) => deal.stage === stage).reduce((sum, deal) => sum + deal.amount, 0),
@@ -448,8 +457,143 @@ function CRMDashboard() {
         </Card>
       </div>
 
-      <ProductWorkflowCenter product="crm" />
+      <DashboardStatistics
+        leads={crmLeads.length}
+        hotLeads={hotLeads}
+        convertedLeads={convertedLeads}
+        openDeals={openDeals}
+        wonDeals={wonDeals}
+        lostDeals={lostDeals}
+        pipelineValue={pipelineValue}
+        weighted={weighted}
+        wonRevenue={wonRevenue}
+        averageDealSize={averageDealSize}
+        conversionRate={conversionRate}
+        winRate={winRate}
+        weightedCoverage={weightedCoverage}
+        overdueFollowUps={overdueFollowUps}
+        staleOpenDeals={staleOpenDeals}
+      />
     </div>
+  );
+}
+
+function DashboardStatistics({
+  leads,
+  hotLeads,
+  convertedLeads,
+  openDeals,
+  wonDeals,
+  lostDeals,
+  pipelineValue,
+  weighted,
+  wonRevenue,
+  averageDealSize,
+  conversionRate,
+  winRate,
+  weightedCoverage,
+  overdueFollowUps,
+  staleOpenDeals,
+}: {
+  leads: number;
+  hotLeads: number;
+  convertedLeads: number;
+  openDeals: number;
+  wonDeals: number;
+  lostDeals: number;
+  pipelineValue: number;
+  weighted: number;
+  wonRevenue: number;
+  averageDealSize: number;
+  conversionRate: number;
+  winRate: number;
+  weightedCoverage: number;
+  overdueFollowUps: number;
+  staleOpenDeals: number;
+}) {
+  const funnelRows = [
+    { label: "Total leads", value: leads, max: Math.max(leads, 1), tone: "bg-emerald-500" },
+    { label: "Hot leads", value: hotLeads, max: Math.max(leads, 1), tone: "bg-amber-500" },
+    { label: "Converted leads", value: convertedLeads, max: Math.max(leads, 1), tone: "bg-blue-500" },
+    { label: "Open deals", value: openDeals, max: Math.max(openDeals + wonDeals + lostDeals, 1), tone: "bg-violet-500" },
+  ];
+  const cards = [
+    { label: "Lead conversion", value: `${conversionRate}%`, detail: `${convertedLeads} converted from ${leads}`, Icon: Target },
+    { label: "Win rate", value: `${winRate}%`, detail: `${wonDeals} won / ${lostDeals} lost`, Icon: CheckCircle2 },
+    { label: "Weighted coverage", value: `${weightedCoverage}%`, detail: `${formatCurrency(weighted)} weighted`, Icon: BarChart3 },
+    { label: "Average deal size", value: formatCurrency(averageDealSize), detail: `${formatCurrency(wonRevenue)} won revenue`, Icon: IndianRupee },
+  ];
+  const hygieneRows = [
+    { label: "Overdue follow-ups", value: overdueFollowUps, note: "Leads needing action" },
+    { label: "Past close date", value: staleOpenDeals, note: "Open deals to review" },
+    { label: "Active pipeline", value: formatCurrency(pipelineValue), note: "Open deal value" },
+  ];
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold tracking-tight">Dashboard Statistics</h2>
+        <p className="text-sm text-muted-foreground">Live CRM performance calculated from leads, deals, stage movement, and follow-up data.</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {cards.map(({ label, value, detail, Icon }) => (
+          <Card key={label}>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-700">
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-semibold">{value}</p>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="text-xs text-muted-foreground">{detail}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Lead-to-revenue funnel</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {funnelRows.map((row) => {
+              const width = row.value > 0 ? Math.max(6, Math.round((row.value / row.max) * 100)) : 0;
+              return (
+                <div key={row.label} className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium">{row.label}</span>
+                    <span className="text-muted-foreground">{row.value}</span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                    <div className={`h-full rounded-full ${row.tone}`} style={{ width: `${width}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pipeline hygiene</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {hygieneRows.map((row) => (
+              <div key={row.label} className="rounded-md border bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">{row.label}</span>
+                  <span className="text-lg font-semibold">{row.value}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{row.note}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </section>
   );
 }
 

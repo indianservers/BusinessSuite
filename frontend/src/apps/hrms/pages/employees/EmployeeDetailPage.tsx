@@ -101,7 +101,7 @@ export default function EmployeeDetailPage() {
   const editing = params.get("edit") === "true";
   usePageTitle("Employee Details");
 
-  const { data: emp, isLoading } = useQuery({
+  const { data: emp, isLoading, error: employeeError } = useQuery({
     queryKey: ["employee", id],
     queryFn: () => employeeApi.get(Number(id)).then((r) => r.data),
     enabled: !!id,
@@ -248,7 +248,39 @@ export default function EmployeeDetailPage() {
     );
   }
 
-  if (!emp) return null;
+  if (employeeError) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-start gap-3 p-6">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Employees
+          </Button>
+          <div>
+            <h2 className="text-xl font-semibold">Employee profile could not be loaded</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{getApiErrorMessage(employeeError)}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!emp) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-start gap-3 p-6">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Employees
+          </Button>
+          <div>
+            <h2 className="text-xl font-semibold">Employee not found</h2>
+            <p className="mt-1 text-sm text-muted-foreground">This profile may have been removed or you may not have access.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const initials = getInitials(`${emp.first_name} ${emp.last_name}`);
   const linkedUser = (userOptions.data || []).find((user) => user.id === emp.user_id);
