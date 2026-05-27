@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
+from app.common.services.identity import SharedIdentityService
 from app.core.security import get_password_hash
+from app.module_registry import is_app_enabled
 from app.models.user import Permission, Role, User
 
 
@@ -48,14 +50,31 @@ def init_common_db(db: Session) -> None:
     role = db.query(Role).filter(Role.name == "super_admin").first()
     user = db.query(User).filter(User.email == "admin@platform.local").first()
     if not user and role:
-        db.add(
-            User(
-                email="admin@platform.local",
-                hashed_password=get_password_hash("Admin@123456"),
-                is_active=True,
-                is_superuser=True,
-                role_id=role.id,
-            )
+        user = User(
+            email="admin@platform.local",
+            hashed_password=get_password_hash("Admin@123456"),
+            is_active=True,
+            is_superuser=True,
+            role_id=role.id,
         )
+        db.add(user)
+        db.flush()
+
+    if user:
+        SharedIdentityService.ensure_person_for_user(
+            db,
+            user,
+            display_name="Platform Admin",
+            source_module="common",
+            source_record_type="user",
+            source_record_id=user.id,
+        )
+
+    if is_app_enabled("hrms"):
+        from app.models.employee import Employee
+
+        employees = db.query(Employee).filter(Employee.user_id.isnot(None), Employee.deleted_at.is_(None)).limit(1000).all()
+        for employee in employees:
+            SharedIdentityService.sync_from_employee(db, employee)
 
     db.commit()

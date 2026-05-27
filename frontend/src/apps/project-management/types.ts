@@ -77,6 +77,42 @@ export interface CreateProjectInput {
   budget_amount?: number;
 }
 
+export interface PMSProjectIntake {
+  id: number;
+  organization_id?: number;
+  requester_user_id?: number;
+  title: string;
+  description?: string;
+  requester_name?: string;
+  requester_email?: string;
+  client_id?: number;
+  client_name?: string;
+  priority: ProjectPriority | string;
+  desired_start_date?: string;
+  desired_due_date?: string;
+  budget_amount?: number;
+  status: string;
+  review_notes?: string;
+  reviewed_by_user_id?: number;
+  reviewed_at?: string;
+  created_project_id?: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CreateProjectIntakeInput {
+  title: string;
+  description?: string;
+  requester_name?: string;
+  requester_email?: string;
+  client_id?: number;
+  client_name?: string;
+  priority?: ProjectPriority | string;
+  desired_start_date?: string;
+  desired_due_date?: string;
+  budget_amount?: number;
+}
+
 // ============= TASK TYPES =============
 export interface PMSChecklistItem {
   id: number;

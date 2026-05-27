@@ -3,9 +3,11 @@ import type { FrontendRoute } from "@/appRegistry";
 
 const CRMWorkspacePage = React.lazy(() => import("./CRMWorkspacePage"));
 const CRMRecordDetailPage = React.lazy(() => import("./CRMRecordDetailPage"));
+const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
 export const crmRoutes: FrontendRoute[] = [
   { path: "crm", element: <CRMWorkspacePage kind="dashboard" /> },
+  { path: "crm/profile", element: <ModuleProfilePage /> },
   { path: "crm/leads", element: <CRMWorkspacePage kind="leads" /> },
   { path: "crm/leads/:id", element: <CRMRecordDetailPage kind="leads" /> },
   { path: "crm/contacts", element: <CRMWorkspacePage kind="contacts" /> },

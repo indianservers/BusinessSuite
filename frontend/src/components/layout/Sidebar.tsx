@@ -24,9 +24,9 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
   const profilePath = location.pathname.startsWith("/hrms")
     ? "/hrms/profile"
     : location.pathname.startsWith("/crm")
-      ? "/crm"
+      ? "/crm/profile"
       : location.pathname.startsWith("/pms")
-        ? "/pms"
+        ? "/pms/profile"
         : "/";
   const handleLogout = () => {
     logout();
@@ -100,7 +100,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-1 px-2">
+          <ul className={cn("px-2", collapsed ? "space-y-0.5" : "space-y-1")}>
             {navItems.map((item, index) => {
               const showGroup = !collapsed && item.group && item.group !== navItems[index - 1]?.group;
               return (
@@ -171,7 +171,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
           <button
             onClick={handleLogout}
             className={cn(
-              "nav-link nav-link-inactive w-full mt-1 text-red-400 hover:bg-red-900/20 hover:text-red-300",
+              "nav-link nav-link-inactive mt-1 w-full text-red-500 hover:bg-red-100 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300",
               collapsed && "justify-center px-2"
             )}
           >

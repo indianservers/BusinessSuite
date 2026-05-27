@@ -168,6 +168,21 @@ def list_candidates(
     return q.order_by(Candidate.applied_at.desc()).offset((page-1)*per_page).limit(per_page).all()
 
 
+@router.get("/applications", response_model=List[CandidateSchema])
+def list_applications(
+    job_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("recruitment_view")),
+):
+    query = db.query(Candidate)
+    if job_id:
+        query = query.filter(Candidate.job_id == job_id)
+    if status:
+        query = query.filter(Candidate.status == status)
+    return query.order_by(Candidate.applied_at.desc()).limit(300).all()
+
+
 @router.post("/candidates", response_model=CandidateSchema, status_code=201)
 def create_candidate(
     data: CandidateCreate,
@@ -179,6 +194,15 @@ def create_candidate(
     db.commit()
     db.refresh(candidate)
     return candidate
+
+
+@router.post("/applications", response_model=CandidateSchema, status_code=201)
+def create_application(
+    data: CandidateCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("recruitment_manage")),
+):
+    return create_candidate(data, db, current_user)
 
 
 @router.get("/candidates/{candidate_id}", response_model=CandidateSchema)

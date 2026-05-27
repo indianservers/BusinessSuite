@@ -49,3 +49,18 @@ class HelpdeskEscalationRuleSchema(HelpdeskEscalationRuleCreate):
 class HelpdeskTicketEscalation(BaseModel):
     escalated_to: Optional[int] = None
     escalation_reason: str
+
+
+class HelpdeskTicketCreate(BaseModel):
+    subject: str
+    description: str
+    category_id: Optional[int] = None
+    priority: str = "Medium"
+
+
+class HelpdeskTicketStatusUpdate(BaseModel):
+    status: str
+
+
+class HelpdeskTicketAssign(BaseModel):
+    assign_to_user_id: int

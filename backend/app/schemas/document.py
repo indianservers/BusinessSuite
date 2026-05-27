@@ -61,6 +61,12 @@ class GeneratedDocumentCreate(BaseModel):
     file_url: Optional[str] = None
 
 
+class TemplateGenerateRequest(BaseModel):
+    employee_id: int
+    document_name: Optional[str] = None
+    variables: dict[str, str | int | float | None] = {}
+
+
 class GeneratedDocumentSchema(GeneratedDocumentCreate):
     id: int
     is_signed: bool = False

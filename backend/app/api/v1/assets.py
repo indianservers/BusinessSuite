@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from app.core.deps import get_db, RequirePermission
+from app.core.deps import get_current_user, get_db, RequirePermission
 from app.models.asset import Asset, AssetAssignment, AssetCategory
 from app.models.user import User
 from app.schemas.asset import (
@@ -47,6 +47,16 @@ def list_assets(
     return query.order_by(Asset.created_at.desc()).limit(200).all()
 
 
+@router.get("/my", response_model=list[AssetAssignmentSchema])
+def my_asset_assignments(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.employee:
+        raise HTTPException(status_code=400, detail="Employee profile is required")
+    return db.query(AssetAssignment).filter(
+        AssetAssignment.employee_id == current_user.employee.id,
+        AssetAssignment.is_active == True,
+    ).order_by(AssetAssignment.assigned_date.desc()).all()
+
+
 @router.post("/", response_model=AssetSchema, status_code=status.HTTP_201_CREATED)
 def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("asset_manage"))):
     asset = Asset(**data.model_dump())
@@ -76,6 +86,19 @@ def assign_asset(data: AssetAssignmentCreate, db: Session = Depends(get_db), cur
         raise HTTPException(status_code=404, detail="Asset not found")
     asset.status = "Assigned"
     db.add(assignment)
+    db.commit()
+    db.refresh(assignment)
+    return assignment
+
+
+@router.put("/assignments/{assignment_id}/acknowledge", response_model=AssetAssignmentSchema)
+def acknowledge_asset_assignment(assignment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    assignment = db.get(AssetAssignment, assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    if not current_user.is_superuser and (not current_user.employee or assignment.employee_id != current_user.employee.id):
+        raise HTTPException(status_code=403, detail="Only the assigned employee can acknowledge this asset")
+    assignment.acknowledgement_signed = True
     db.commit()
     db.refresh(assignment)
     return assignment

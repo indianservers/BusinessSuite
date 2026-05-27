@@ -143,6 +143,42 @@ def create_company(
     return company
 
 
+@router.get("/settings", response_model=CompanySchema)
+def get_company_settings(
+    company_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("company_view")),
+):
+    query = db.query(Company).filter(Company.is_active == True)
+    if company_id:
+        query = query.filter(Company.id == company_id)
+    company = query.order_by(Company.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company settings not found")
+    return company
+
+
+@router.put("/settings", response_model=CompanySchema)
+def update_company_settings(
+    data: CompanyUpdate,
+    company_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("company_manage")),
+):
+    query = db.query(Company).filter(Company.is_active == True)
+    if company_id:
+        query = query.filter(Company.id == company_id)
+    company = query.order_by(Company.id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company settings not found")
+    _ensure_company_unique(db, data, exclude_id=company.id)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(company, key, value)
+    db.commit()
+    db.refresh(company)
+    return company
+
+
 # ── Branch ───────────────────────────────────────────────────────────────────
 
 @router.get("/branches/", response_model=List[BranchSchema])

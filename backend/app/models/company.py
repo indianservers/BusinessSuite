@@ -11,6 +11,7 @@ class Company(Base):
     name = Column(String(150), nullable=False, index=True)
     legal_name = Column(String(200))
     registration_number = Column(String(100))
+    cin_number = Column(String(30))
     pan_number = Column(String(20))
     tan_number = Column(String(20))
     gstin = Column(String(20))
@@ -23,12 +24,16 @@ class Company(Base):
     country = Column(String(100), default="India")
     pincode = Column(String(20))
     logo_url = Column(String(500))
+    working_days_per_week = Column(Integer, default=5)
+    fiscal_year_start_month = Column(Integer, default=4)
+    default_timezone = Column(String(80), default="Asia/Kolkata")
+    default_currency = Column(String(10), default="INR")
     is_active = Column(Boolean, default=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    branches = relationship("Branch", back_populates="company", cascade="all, delete-orphan")
+    branches = relationship("Branch", back_populates="company", cascade="all, delete-orphan", foreign_keys="Branch.company_id")
 
 
 class Branch(Base):
@@ -38,6 +43,8 @@ class Branch(Base):
     name = Column(String(150), nullable=False, index=True)
     code = Column(String(20))
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    description = Column(Text)
     address = Column(Text)
     city = Column(String(100))
     state = Column(String(100))
@@ -49,8 +56,9 @@ class Branch(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    company = relationship("Company", back_populates="branches")
+    company = relationship("Company", back_populates="branches", foreign_keys=[company_id])
     departments = relationship("Department", back_populates="branch", cascade="all, delete-orphan")
     employees = relationship("Employee", back_populates="branch")
 
@@ -62,13 +70,16 @@ class BusinessUnit(Base):
     name = Column(String(150), nullable=False, index=True)
     code = Column(String(40), nullable=False, unique=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     parent_id = Column(Integer, ForeignKey("business_units.id", ondelete="SET NULL"), nullable=True)
     head_employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True), nullable=True)
     description = Column(Text)
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    company = relationship("Company")
+    company = relationship("Company", foreign_keys=[company_id])
     parent = relationship("BusinessUnit", remote_side=[id])
 
 
@@ -79,13 +90,17 @@ class CostCenter(Base):
     name = Column(String(150), nullable=False, index=True)
     code = Column(String(40), nullable=False, unique=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     business_unit_id = Column(Integer, ForeignKey("business_units.id", ondelete="SET NULL"), nullable=True, index=True)
     owner_employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True), nullable=True)
     budget_amount = Column(Numeric(14, 2), default=0)
+    description = Column(Text)
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    company = relationship("Company")
+    company = relationship("Company", foreign_keys=[company_id])
     business_unit = relationship("BusinessUnit")
 
 
@@ -96,19 +111,23 @@ class WorkLocation(Base):
     name = Column(String(150), nullable=False, index=True)
     code = Column(String(40), nullable=False, unique=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     branch_id = Column(Integer, ForeignKey("branches.id", ondelete="SET NULL"), nullable=True, index=True)
     location_type = Column(String(50), default="Office")
     address = Column(Text)
     city = Column(String(100))
     state = Column(String(100))
     country = Column(String(100), default="India")
+    description = Column(Text)
     latitude = Column(Numeric(10, 7))
     longitude = Column(Numeric(10, 7))
     radius_meters = Column(Integer, default=200)
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    company = relationship("Company")
+    company = relationship("Company", foreign_keys=[company_id])
     branch = relationship("Branch")
 
 
@@ -116,14 +135,18 @@ class GradeBand(Base):
     __tablename__ = "grade_bands"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(120), nullable=False, index=True)
     code = Column(String(40), nullable=False, unique=True, index=True)
+    description = Column(Text)
     level = Column(Integer, default=1)
     min_ctc = Column(Numeric(14, 2))
     max_ctc = Column(Numeric(14, 2))
     currency = Column(String(10), default="INR")
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
 
 class JobFamily(Base):
@@ -162,6 +185,8 @@ class Position(Base):
     position_code = Column(String(50), nullable=False, unique=True, index=True)
     title = Column(String(150), nullable=False)
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    description = Column(Text)
     business_unit_id = Column(Integer, ForeignKey("business_units.id", ondelete="SET NULL"), nullable=True, index=True)
     cost_center_id = Column(Integer, ForeignKey("cost_centers.id", ondelete="SET NULL"), nullable=True, index=True)
     location_id = Column(Integer, ForeignKey("work_locations.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -177,8 +202,10 @@ class Position(Base):
     effective_to = Column(Date)
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    company = relationship("Company")
+    company = relationship("Company", foreign_keys=[company_id])
     business_unit = relationship("BusinessUnit")
     cost_center = relationship("CostCenter")
     location = relationship("WorkLocation")
@@ -212,6 +239,7 @@ class Department(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False, index=True)
     code = Column(String(20))
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     branch_id = Column(Integer, ForeignKey("branches.id", ondelete="CASCADE"), nullable=False)
     head_employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True), nullable=True)
     description = Column(Text)
@@ -219,6 +247,7 @@ class Department(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     branch = relationship("Branch", back_populates="departments")
     designations = relationship("Designation", back_populates="department", cascade="all, delete-orphan")
@@ -231,6 +260,7 @@ class Designation(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False, index=True)
     code = Column(String(20))
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     department_id = Column(Integer, ForeignKey("departments.id", ondelete="CASCADE"), nullable=False)
     grade = Column(String(20))
     level = Column(Integer, default=1)
@@ -239,6 +269,7 @@ class Designation(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     department = relationship("Department", back_populates="designations")
     employees = relationship("Employee", back_populates="designation")

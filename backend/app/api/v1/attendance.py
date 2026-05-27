@@ -1,13 +1,18 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 import json
 import math
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.deps import get_db, get_current_user, RequirePermission
 from app.crud.crud_attendance import crud_attendance, crud_holiday
+from app.schemas.notification import NotificationCreate
+from app.services.notifications import create_notification
 from app.models.user import User
 from app.models.attendance import (
     Shift, ShiftRosterAssignment, ShiftWeeklyOff, AttendanceRegularization, Holiday,
@@ -24,7 +29,7 @@ from app.schemas.attendance import (
     AttendancePunchCreate, AttendancePunchSchema, AttendanceMonthLockCreate, AttendanceMonthLockSchema,
     BiometricDeviceCreate, BiometricDeviceSchema, BiometricImportRequest, BiometricImportBatchSchema,
     GeoAttendancePolicyCreate, GeoAttendancePolicySchema, GeoPunchRequest, AttendancePunchProofSchema,
-    AttendanceSchema, RegularizationRequest,
+    AttendanceSchema, PunchRequest, RegularizationRequest,
     RegularizationApproval, RegularizationSchema,
 )
 from app.schemas.attendance import ShiftCreate as ShiftUpdate
@@ -39,6 +44,69 @@ def _locked_month(db: Session, value: date) -> bool:
         AttendanceMonthLock.year == value.year,
         AttendanceMonthLock.status == "Locked",
     ).first() is not None
+
+
+def _user_permissions(user: User) -> set[str]:
+    return {permission.name for permission in (user.role.permissions if user.role else [])}
+
+
+def _can_view_all_attendance(user: User) -> bool:
+    return user.is_superuser or bool(_user_permissions(user).intersection({"attendance_view", "attendance_manage", "hr_admin"}))
+
+
+def _can_view_employee_attendance(db: Session, user: User, employee_id: int) -> bool:
+    if _can_view_all_attendance(user):
+        return True
+    if user.employee and user.employee.id == employee_id:
+        return True
+    if user.employee:
+        return db.query(Employee.id).filter(
+            Employee.id == employee_id,
+            Employee.reporting_manager_id == user.employee.id,
+            Employee.deleted_at.is_(None),
+        ).first() is not None
+    return False
+
+
+def _employee_or_400(user: User) -> Employee:
+    if not user.employee:
+        raise HTTPException(status_code=400, detail="No employee profile linked to this user")
+    return user.employee
+
+
+def compute_attendance_summary(employee_id: int, work_date: date, db: Session) -> Attendance:
+    return crud_attendance.compute_day(db, employee_id, work_date)
+
+
+def _attendance_timezone():
+    try:
+        return ZoneInfo(settings.CELERY_TIMEZONE)
+    except ZoneInfoNotFoundError:
+        return timezone.utc
+
+
+def _business_date(value: datetime | None = None) -> date:
+    value = value or datetime.now(timezone.utc)
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(_attendance_timezone()).date()
+
+
+def _utc_day_bounds(work_date: date) -> tuple[datetime, datetime]:
+    tz = _attendance_timezone()
+    start = datetime.combine(work_date, time.min, tzinfo=tz).astimezone(timezone.utc)
+    end = datetime.combine(work_date, time.max, tzinfo=tz).astimezone(timezone.utc)
+    return start, end
+
+
+def _attendance_payload(record: Attendance | None) -> dict | None:
+    if not record:
+        return None
+    return jsonable_encoder(AttendanceSchema.model_validate(record))
+
+
+def _punch_payload(punch: AttendancePunch) -> dict:
+    return jsonable_encoder(AttendancePunchSchema.model_validate(punch))
 
 
 def _distance_meters(lat1: Decimal, lon1: Decimal, lat2: Decimal, lon2: Decimal) -> float:
@@ -307,6 +375,39 @@ def create_raw_punch(
     return punch
 
 
+@router.post("/punch", status_code=201)
+def punch_attendance(
+    data: PunchRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    employee = _employee_or_400(current_user)
+    now = datetime.now(timezone.utc)
+    work_date = _business_date(now)
+    if _locked_month(db, work_date):
+        raise HTTPException(status_code=400, detail="Attendance month is locked")
+
+    punch = AttendancePunch(
+        employee_id=employee.id,
+        punch_time=now,
+        punch_type=data.punch_type,
+        source=data.source.title(),
+        ip_address=request.client.host if request.client else None,
+        latitude=data.latitude,
+        longitude=data.longitude,
+        location_text=data.location_text,
+    )
+    db.add(punch)
+    db.commit()
+    db.refresh(punch)
+    attendance = compute_attendance_summary(employee.id, work_date, db)
+    return {
+        "attendance": _attendance_payload(attendance),
+        "punch": _punch_payload(punch),
+    }
+
+
 @router.post("/biometric/devices", response_model=BiometricDeviceSchema, status_code=201)
 def create_biometric_device(
     data: BiometricDeviceCreate,
@@ -519,24 +620,54 @@ def get_today_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not current_user.employee:
-        raise HTTPException(status_code=400, detail="No employee profile")
-    record = crud_attendance.get_today(db, current_user.employee.id)
-    return record
+    employee = _employee_or_400(current_user)
+    today = _business_date()
+    day_start, day_end = _utc_day_bounds(today)
+    record = compute_attendance_summary(employee.id, today, db)
+    punches = (
+        db.query(AttendancePunch)
+        .filter(
+            AttendancePunch.employee_id == employee.id,
+            AttendancePunch.punch_time >= day_start,
+            AttendancePunch.punch_time <= day_end,
+        )
+        .order_by(AttendancePunch.punch_time.asc())
+        .all()
+    )
+    attendance_payload = _attendance_payload(record)
+    payload = {
+        "attendance": attendance_payload,
+        "punches": [_punch_payload(punch) for punch in punches],
+    }
+    if attendance_payload:
+        payload.update(attendance_payload)
+    return payload
 
 
 # ── Employee Attendance History ───────────────────────────────────────────────
 
-@router.get("/my", response_model=List[AttendanceSchema])
+@router.get("/my")
 def my_attendance(
     from_date: date = Query(...),
     to_date: date = Query(...),
+    page: int | None = Query(None, ge=1),
+    page_size: int | None = Query(None, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not current_user.employee:
-        raise HTTPException(status_code=400, detail="No employee profile")
-    return crud_attendance.get_employee_attendance(db, current_user.employee.id, from_date, to_date)
+    employee = _employee_or_400(current_user)
+    query = db.query(Attendance).filter(
+        Attendance.employee_id == employee.id,
+        Attendance.attendance_date >= from_date,
+        Attendance.attendance_date <= to_date,
+    ).order_by(Attendance.attendance_date.desc())
+    if page is None and page_size is None:
+        return query.all()
+    effective_page = page or 1
+    effective_page_size = page_size or 50
+    total = query.count()
+    items = query.offset((effective_page - 1) * effective_page_size).limit(effective_page_size).all()
+    return {"items": items, "total": total, "page": effective_page, "page_size": effective_page_size}
 
 
 @router.get("/employee/{employee_id}", response_model=List[AttendanceSchema])
@@ -584,16 +715,54 @@ def request_regularization(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not current_user.employee:
-        raise HTTPException(status_code=400, detail="No employee profile")
+    employee = _employee_or_400(current_user)
+    requested_check_in = data.requested_check_in or data.expected_check_in
+    requested_check_out = data.requested_check_out or data.expected_check_out
+    attendance_id = data.attendance_id
+    if attendance_id:
+        attendance = db.query(Attendance).filter(
+            Attendance.id == attendance_id,
+            Attendance.employee_id == employee.id,
+        ).first()
+        if not attendance:
+            raise HTTPException(status_code=404, detail="Attendance record not found")
+    else:
+        if not data.date:
+            raise HTTPException(status_code=422, detail="date is required when attendance_id is not provided")
+        attendance = db.query(Attendance).filter(
+            Attendance.employee_id == employee.id,
+            Attendance.attendance_date == data.date,
+        ).first()
+        if not attendance:
+            attendance = Attendance(employee_id=employee.id, attendance_date=data.date, status="Absent")
+            db.add(attendance)
+            db.flush()
+        attendance_id = attendance.id
+    attendance.is_regularized = True
     reg = AttendanceRegularization(
-        attendance_id=data.attendance_id,
-        employee_id=current_user.employee.id,
-        requested_check_in=data.requested_check_in,
-        requested_check_out=data.requested_check_out,
+        attendance_id=attendance_id,
+        employee_id=employee.id,
+        requested_check_in=requested_check_in,
+        requested_check_out=requested_check_out,
         reason=data.reason,
     )
     db.add(reg)
+    manager = db.query(Employee).filter(Employee.id == employee.reporting_manager_id, Employee.deleted_at.is_(None)).first() if employee.reporting_manager_id else None
+    if manager and manager.user_id:
+        db.flush()
+        create_notification(db, NotificationCreate(
+            user_id=manager.user_id,
+            title="Attendance regularization requested",
+            message=f"{employee.first_name} {employee.last_name} requested attendance correction for {attendance.attendance_date}.",
+            module="HRMS",
+            event_type="attendance_regularization_requested",
+            related_entity_type="attendance_regularization",
+            related_entity_id=reg.id,
+            action_url="/hrms/attendance",
+            priority="normal",
+        ))
+    else:
+        db.commit()
     db.commit()
     db.refresh(reg)
     return reg
@@ -637,3 +806,63 @@ def approve_regularization(
 
     db.commit()
     return {"message": f"Regularization {data.status}"}
+
+
+@router.get("/team")
+def team_attendance(
+    from_date: Optional[date] = Query(None),
+    to_date: date | None = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from_date = from_date or date.today()
+    end_date = to_date or from_date
+    if end_date < from_date:
+        raise HTTPException(status_code=400, detail="to_date cannot be before from_date")
+
+    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+    if _can_view_all_attendance(current_user):
+        employees = query.order_by(Employee.first_name, Employee.last_name).all()
+    else:
+        employee = _employee_or_400(current_user)
+        employees = query.filter(Employee.reporting_manager_id == employee.id).order_by(Employee.first_name, Employee.last_name).all()
+
+    employee_ids = [item.id for item in employees]
+    attendance_rows = db.query(Attendance).filter(
+        Attendance.employee_id.in_(employee_ids or [0]),
+        Attendance.attendance_date >= from_date,
+        Attendance.attendance_date <= end_date,
+    ).all()
+    by_key = {(item.employee_id, item.attendance_date): item for item in attendance_rows}
+    items = []
+    cursor = from_date
+    while cursor <= end_date:
+        for employee in employees:
+            attendance = by_key.get((employee.id, cursor))
+            items.append({
+                "employee_id": employee.id,
+                "employee_code": employee.employee_id,
+                "employee_name": f"{employee.first_name} {employee.last_name}",
+                "attendance_date": cursor,
+                "status": attendance.status if attendance else "Absent",
+                "check_in": attendance.check_in if attendance else None,
+                "check_out": attendance.check_out if attendance else None,
+                "total_hours": attendance.total_hours if attendance else None,
+                "is_late": attendance.is_late if attendance else False,
+                "is_early_exit": attendance.is_early_exit if attendance else False,
+            })
+        cursor += timedelta(days=1)
+    return {"items": items, "from_date": from_date, "to_date": end_date, "total": len(items)}
+
+
+@router.get("/{employee_id}", response_model=List[AttendanceSchema])
+def employee_attendance_by_id(
+    employee_id: int,
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not _can_view_employee_attendance(db, current_user, employee_id):
+        raise HTTPException(status_code=403, detail="Not authorized to view this employee's attendance")
+    return crud_attendance.get_employee_attendance(db, employee_id, from_date, to_date)

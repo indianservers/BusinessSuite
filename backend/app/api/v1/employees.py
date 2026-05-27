@@ -15,7 +15,7 @@ from app.crud.crud_employee import crud_employee
 from app.models.audit import AuditLog
 from app.models.user import Role, User
 from app.models.employee import Employee, EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeChangeRequest
-from app.api.v1.notifications import create_notification
+from app.services.notifications import create_notification
 from app.schemas.notification import NotificationCreate
 from app.schemas.employee import (
     EmployeeCreate, EmployeeUpdate, EmployeeSchema, EmployeeListSchema,
@@ -819,7 +819,7 @@ def create_employee(
         raise HTTPException(status_code=400, detail="Employee ID already exists")
     if data.create_user_account and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Only admin can create login users")
-    return crud_employee.create_with_user(db, obj_in=data)
+    return crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
 
 
 @router.get("/stats")

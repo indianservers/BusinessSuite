@@ -191,6 +191,9 @@ export const crmApi = {
   related: <T = CRMApiRecord>(entity: string, id: number) => api.get<T>(`/crm/${entity}/${id}/related`),
   create: <T = CRMApiRecord>(entity: string, data: CRMApiRecord) => api.post<T>(`/crm/${entity}`, data),
   createPipelineStage: <T = CRMApiRecord>(pipelineId: number, data: CRMApiRecord) => api.post<T>(`/crm/pipelines/${pipelineId}/stages`, data),
+  convertLead: <T = CRMApiRecord>(leadId: number, data: CRMApiRecord) => api.post<T>(`/crm/leads/${leadId}/convert`, data),
+  importRows: <T = CRMApiRecord>(entity: string, rows: CRMApiRecord[]) => api.post<T>(`/crm/${entity}/import`, { rows }),
+  exportEntity: (entity: string) => api.get<Blob>(`/crm/${entity}/export`, { responseType: "blob" }),
   recalculateLeadScore: <T = CRMApiRecord>(leadId: number) => api.post<T>(`/crm/leads/${leadId}/recalculate-score`),
   recalculateLeadScores: () => api.post<{ updated: number; total: number }>("/crm/leads/recalculate-scores"),
   update: <T = CRMApiRecord>(entity: string, id: number, data: CRMApiRecord) =>

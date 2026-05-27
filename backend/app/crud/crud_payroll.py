@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -9,8 +9,10 @@ from app.models.payroll import (
     PayrollVarianceItem, PayrollPeriod, PayrollAttendanceInput,
     OvertimePayLine, LeaveEncashmentLine, LeaveEncashmentRequest, PayrollLWPEntry,
     EmployeeStatutoryProfile, PayrollStatutoryContributionLine,
-    PFRule, ESIRule, ProfessionalTaxSlab, LWFSlab,
+    PFRule, ESIRule, ProfessionalTaxSlab, LWFSlab, SalaryAdvance, PayrollExchangeRate,
+    PayrollCalculationSnapshot, PayrollPreRunCheck,
 )
+from app.models.expense import ExpenseClaim
 
 
 PAYROLL_RUN_STATUS_DRAFT = "draft"
@@ -271,7 +273,15 @@ def get_prorated_salary_for_period(
     return _money(monthly_ctc), _money(basic), _money(hra)
 
 
-def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> PayrollRun:
+def _find_exchange_rate(db: Session, from_currency: str, to_currency: str, on_date: date) -> Optional[PayrollExchangeRate]:
+    return db.query(PayrollExchangeRate).filter(
+        PayrollExchangeRate.from_currency == from_currency.upper(),
+        PayrollExchangeRate.to_currency == to_currency.upper(),
+        PayrollExchangeRate.effective_date <= on_date,
+    ).order_by(PayrollExchangeRate.effective_date.desc(), PayrollExchangeRate.id.desc()).first()
+
+
+def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_run: bool = False) -> PayrollRun:
     from app.models.employee import Employee
     from app.models.attendance import Attendance
     import calendar
@@ -308,9 +318,10 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
     if payroll_run.status == PAYROLL_RUN_STATUS_DRAFT:
         transition_payroll_run_status(payroll_run, PAYROLL_RUN_STATUS_INPUTS_PENDING)
 
-    # Get all active employees
+    # Get all employees who were employed for at least one day in this payroll period.
     employees = db.query(Employee).filter(
-        Employee.status == "Active",
+        Employee.date_of_joining <= period_end,
+        or_(Employee.date_of_exit.is_(None), Employee.date_of_exit >= period_start),
         Employee.deleted_at.is_(None),
     ).all()
     total_working_days = sum(1 for d in range(1, calendar.monthrange(year, month)[1] + 1)
@@ -319,8 +330,44 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
     total_gross = Decimal("0")
     total_deductions = Decimal("0")
     total_net = Decimal("0")
+    missing_exchange_employee_ids: set[int] = set()
+
+    db.query(PayrollPreRunCheck).filter(
+        PayrollPreRunCheck.payroll_run_id == payroll_run.id,
+        PayrollPreRunCheck.check_type == "currency_exchange_rate",
+    ).delete(synchronize_session=False)
+    db.flush()
 
     for emp in employees:
+        salary = get_active_salary(db, emp.id)
+        salary_currency = (emp.salary_currency or "INR").upper()
+        if not salary or salary_currency == "INR":
+            continue
+        if not _find_exchange_rate(db, salary_currency, "INR", period_start):
+            missing_exchange_employee_ids.add(emp.id)
+            action = "Employee will be skipped because force_run is enabled." if force_run else "Payroll run is blocked."
+            db.add(PayrollPreRunCheck(
+                payroll_run_id=payroll_run.id,
+                check_type="currency_exchange_rate",
+                status="Failed",
+                severity="Critical",
+                affected_employee_id=emp.id,
+                message=(
+                    f"Missing {salary_currency}->INR exchange rate effective on or before "
+                    f"{period_start.isoformat()} for employee {getattr(emp, 'employee_id', emp.id)}. {action}"
+                ),
+            ))
+
+    if missing_exchange_employee_ids and not force_run:
+        db.commit()
+        raise ValueError(
+            "Missing exchange rate for non-INR salary employees. Configure exchange rates or rerun with force_run=true to skip affected employees."
+        )
+
+    for emp in employees:
+        if emp.id in missing_exchange_employee_ids:
+            continue
+
         salary = get_active_salary(db, emp.id)
         if not salary:
             continue
@@ -343,6 +390,14 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
         raw_attendance_days = attendance_query.count()
         raw_present_days = attendance_query.filter(Attendance.status.in_(["Present", "WFH", "Half-day"])).count()
 
+        employment_start = max(emp.date_of_joining or period_start, period_start)
+        employment_end = min(emp.date_of_exit or period_end, period_end)
+        payable_calendar_days = max(0, (employment_end - employment_start).days + 1)
+        period_calendar_days = max(1, (period_end - period_start).days + 1)
+        employment_ratio = Decimal(str(payable_calendar_days)) / Decimal(str(period_calendar_days))
+        if payable_calendar_days <= 0:
+            continue
+
         if attendance_input:
             total_working_days = int(attendance_input.working_days or total_working_days)
             paid_days = Decimal(attendance_input.payable_days or 0)
@@ -351,16 +406,37 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
         else:
             # If attendance has not been captured for the period, treat the employee as payable.
             # Once attendance rows exist, the present/WFH/Half-day count drives LOP.
-            present_days = Decimal(str(raw_present_days if raw_attendance_days else total_working_days))
-            paid_days = min(present_days, Decimal(str(total_working_days)))
-            lop_days = max(Decimal("0"), Decimal(str(total_working_days)) - paid_days)
+            employable_working_days = sum(
+                1 for d in range(employment_start.day, employment_end.day + 1)
+                if date(year, month, d).weekday() < 5
+            )
+            present_days = Decimal(str(raw_present_days if raw_attendance_days else employable_working_days))
+            paid_days = min(present_days, Decimal(str(employable_working_days)))
+            lop_days = max(Decimal("0"), Decimal(str(employable_working_days)) - paid_days)
 
+        salary_currency = (emp.salary_currency or "INR").upper()
+        exchange_rate = Decimal("1")
+        converted_currency = "INR"
         monthly_ctc, basic, hra = get_prorated_salary_for_period(db, emp.id, period_start, period_end)
         if monthly_ctc == Decimal("0"):
             ctc = salary.ctc
             monthly_ctc = ctc / Decimal("12")
             basic = salary.basic or (monthly_ctc * Decimal("0.4"))
             hra = salary.hra or (basic * Decimal("0.5"))
+        original_monthly_ctc = _money(monthly_ctc)
+        original_basic = _money(basic)
+        original_hra = _money(hra)
+        if salary_currency != "INR":
+            rate = _find_exchange_rate(db, salary_currency, "INR", period_start)
+            if not rate:
+                continue
+            exchange_rate = Decimal(rate.rate)
+            monthly_ctc = _money(monthly_ctc * exchange_rate)
+            basic = _money(basic * exchange_rate)
+            hra = _money(hra * exchange_rate)
+        monthly_ctc = _money(monthly_ctc * employment_ratio)
+        basic = _money(basic * employment_ratio)
+        hra = _money(hra * employment_ratio)
         other_allowances = monthly_ctc - basic - hra
 
         per_day_salary = monthly_ctc / Decimal(str(total_working_days or 1))
@@ -378,6 +454,14 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
             )
         ).all()
         reimbursement_total = sum((item.amount or Decimal("0")) for item in approved_reimbursements)
+        approved_advances = db.query(SalaryAdvance).filter(
+            SalaryAdvance.employee_id == emp.id,
+            SalaryAdvance.status == "Approved",
+            SalaryAdvance.requested_deduction_month == month,
+            SalaryAdvance.requested_deduction_year == year,
+            SalaryAdvance.payroll_record_id.is_(None),
+        ).all()
+        salary_advance_total = sum((item.approved_amount or item.requested_amount or Decimal("0")) for item in approved_advances)
         period = attendance_input.period if attendance_input else db.query(PayrollPeriod).filter(
             PayrollPeriod.month == month,
             PayrollPeriod.year == year,
@@ -418,7 +502,7 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
         pt = statutory_amounts["professional_tax"]
         lwf_employee = statutory_amounts["lwf_employee"]
         lwf_employer = statutory_amounts["lwf_employer"]
-        total_ded = pf_employee + esi_employee + pt + lwf_employee
+        total_ded = pf_employee + esi_employee + pt + lwf_employee + salary_advance_total
         net = gross - total_ded + reimbursement_total
 
         # AI anomaly detection placeholder
@@ -461,15 +545,44 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
             esi_employer=esi_employer,
             professional_tax=pt,
             tds=Decimal("0"),
-            other_deductions=lwf_employee,
+            other_deductions=lwf_employee + salary_advance_total,
             total_deductions=total_ded,
             reimbursements=reimbursement_total,
             net_salary=net,
+            salary_currency=salary_currency,
+            exchange_rate=exchange_rate,
+            converted_currency=converted_currency,
             is_anomaly=is_anomaly,
             anomaly_reason=anomaly_reason,
         )
         db.add(record)
         db.flush()
+
+        db.add(PayrollCalculationSnapshot(
+            payroll_run_id=payroll_run.id,
+            employee_id=emp.id,
+            snapshot_type="PayrollRun",
+            attendance_input_json={
+                "attendance_input_id": attendance_input.id if attendance_input else None,
+                "paid_days": str(paid_days),
+                "lop_days": str(lop_days),
+                "employment_ratio": str(employment_ratio),
+            },
+            result_json={
+                "salary_currency": salary_currency,
+                "exchange_rate": str(exchange_rate),
+                "converted_currency": converted_currency,
+                "original_monthly_ctc": str(original_monthly_ctc),
+                "original_basic": str(original_basic),
+                "original_hra": str(original_hra),
+                "converted_monthly_ctc": str(monthly_ctc),
+                "converted_basic": str(basic),
+                "converted_hra": str(hra),
+                "gross_salary": str(gross),
+                "net_salary": str(net),
+            },
+            created_by=run_by_user_id,
+        ))
 
         payroll_lines = [
             ("Basic", "Earning", basic),
@@ -480,6 +593,7 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
             ("ESI Employee", "Deduction", esi_employee),
             ("Professional Tax", "Deduction", pt),
             ("Labour Welfare Fund", "Deduction", lwf_employee),
+            ("Salary Advance Recovery", "Deduction", salary_advance_total),
             ("PF Employer", "Employer Contribution", pf_employer),
             ("ESI Employer", "Employer Contribution", esi_employer),
             ("LWF Employer", "Employer Contribution", lwf_employer),
@@ -519,6 +633,19 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int) -> Payr
         for reimbursement in approved_reimbursements:
             reimbursement.payroll_record_id = record.id
             reimbursement.status = "Paid"
+            db.query(ExpenseClaim).filter(
+                ExpenseClaim.payroll_reimbursement_id == reimbursement.id,
+            ).update(
+                {
+                    "payroll_run_id": payroll_run.id,
+                    "reimbursed_at": datetime.now(timezone.utc),
+                    "status": "reimbursed",
+                },
+                synchronize_session=False,
+            )
+        for advance in approved_advances:
+            advance.payroll_record_id = record.id
+            advance.status = "Recovered"
         for line in overtime_lines:
             line.payroll_record_id = record.id
             line.status = "Paid"
@@ -721,6 +848,15 @@ def build_payslip_payload(db: Session, record: PayrollRecord) -> dict:
         "gross_salary": record.gross_salary,
         "total_deductions": record.total_deductions,
         "net_salary": record.net_salary,
+        "currency": record.converted_currency or "INR",
+        "salary_currency": record.salary_currency or "INR",
+        "exchange_rate": record.exchange_rate,
+        "converted_currency": record.converted_currency or "INR",
+        "currency_note": (
+            f"Salary converted from {record.salary_currency} to {record.converted_currency or 'INR'} at {record.exchange_rate}"
+            if (record.salary_currency or "INR") != (record.converted_currency or "INR")
+            else "Salary processed in INR"
+        ),
         "status": record.status,
         "is_anomaly": record.is_anomaly,
         "anomaly_reason": record.anomaly_reason,

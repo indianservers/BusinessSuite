@@ -1,5 +1,6 @@
 from datetime import date, datetime, timezone
 import os
+import re
 import shutil
 import uuid
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
@@ -29,6 +30,7 @@ from app.schemas.document import (
     EmployeeCertificateSchema,
     GeneratedDocumentCreate,
     GeneratedDocumentSchema,
+    TemplateGenerateRequest,
 )
 
 router = APIRouter(prefix="/documents", tags=["Documents & Policies"])
@@ -67,6 +69,15 @@ def _parse_date(value: str | None) -> date | None:
     return date.fromisoformat(value)
 
 
+def _render_template(content: str, variables: dict) -> str:
+    def replace(match: re.Match[str]) -> str:
+        key = match.group(1).strip()
+        value = variables.get(key)
+        return "" if value is None else str(value)
+
+    return re.sub(r"\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}", replace, content or "")
+
+
 @router.get("/templates", response_model=list[DocumentTemplateSchema])
 def list_templates(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("company_view"))):
     return db.query(DocumentTemplate).order_by(DocumentTemplate.created_at.desc()).all()
@@ -79,6 +90,53 @@ def create_template(data: DocumentTemplateCreate, db: Session = Depends(get_db),
     db.commit()
     db.refresh(template)
     return template
+
+
+@router.post("/templates/{template_id}/generate", response_model=GeneratedDocumentSchema, status_code=status.HTTP_201_CREATED)
+def generate_from_template(
+    template_id: int,
+    data: TemplateGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("employee_update")),
+):
+    template = db.query(DocumentTemplate).filter(DocumentTemplate.id == template_id, DocumentTemplate.is_active == True).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Document template not found")
+    employee = db.query(Employee).filter(Employee.id == data.employee_id, Employee.deleted_at.is_(None)).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    variables = {
+        "employee_id": employee.employee_id,
+        "employee_name": f"{employee.first_name} {employee.last_name}",
+        "first_name": employee.first_name,
+        "last_name": employee.last_name,
+        "designation": employee.designation.name if employee.designation else "",
+        "department": employee.department.name if employee.department else "",
+        "date_of_joining": employee.date_of_joining.isoformat() if employee.date_of_joining else "",
+        "work_email": employee.work_email or "",
+        "today": date.today().isoformat(),
+        **data.variables,
+    }
+    rendered = _render_template(template.content or "", variables)
+    folder = f"generated/{employee.id}"
+    upload_path = os.path.join(settings.UPLOAD_DIR, folder)
+    os.makedirs(upload_path, exist_ok=True)
+    filename = f"{template.template_type or 'letter'}_{uuid.uuid4().hex}.html"
+    file_path = os.path.join(upload_path, filename)
+    with open(file_path, "w", encoding="utf-8") as handle:
+        handle.write(rendered)
+    document = GeneratedDocument(
+        template_id=template.id,
+        employee_id=employee.id,
+        document_type=template.template_type,
+        document_name=data.document_name or template.name,
+        file_url=f"/uploads/{folder}/{filename}",
+        generated_by=current_user.id,
+    )
+    db.add(document)
+    db.commit()
+    db.refresh(document)
+    return document
 
 
 @router.get("/policies", response_model=list[CompanyPolicySchema])

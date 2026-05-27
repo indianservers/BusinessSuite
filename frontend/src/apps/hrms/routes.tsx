@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 
 const DashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/DashboardPage"));
+const RoleWorkspacePage = React.lazy(() => import("@/apps/hrms/pages/dashboard/RoleWorkspacePage"));
 const ManagerDashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/ManagerDashboardPage"));
 const EmployeesPage = React.lazy(() => import("@/apps/hrms/pages/employees/EmployeesPage"));
 const EmployeeDirectoryPage = React.lazy(() => import("@/apps/hrms/pages/employees/EmployeeDirectoryPage"));
@@ -46,6 +47,10 @@ const EnterprisePage = React.lazy(() => import("@/apps/hrms/pages/platform/Enter
 
 const moduleRoutes: FrontendRoute[] = [
   { path: "dashboard", element: <DashboardPage /> },
+  { path: "role-home", element: <RoleWorkspacePage /> },
+  { path: "admin-home", element: <RoleWorkspacePage /> },
+  { path: "hr-home", element: <RoleWorkspacePage /> },
+  { path: "executive-home", element: <RoleWorkspacePage /> },
   { path: "manager-dashboard", element: <ManagerDashboardPage /> },
   { path: "ess", element: <ESSPortalPage /> },
   { path: "employee-directory", element: <EmployeeDirectoryPage /> },

@@ -8,6 +8,7 @@ class CompanyBase(BaseModel):
     name: str
     legal_name: Optional[str] = None
     registration_number: Optional[str] = None
+    cin_number: Optional[str] = None
     pan_number: Optional[str] = None
     tan_number: Optional[str] = None
     gstin: Optional[str] = None
@@ -20,6 +21,10 @@ class CompanyBase(BaseModel):
     country: str = "India"
     pincode: Optional[str] = None
     logo_url: Optional[str] = None
+    working_days_per_week: int = 5
+    fiscal_year_start_month: int = 4
+    default_timezone: str = "Asia/Kolkata"
+    default_currency: str = "INR"
 
 
 class CompanyCreate(CompanyBase):

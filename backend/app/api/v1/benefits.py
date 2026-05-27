@@ -4,8 +4,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.core.deps import RequirePermission, get_db
+from app.core.deps import get_current_user
 from app.models.benefits import (
     BenefitClaim,
+    BenefitDependent,
+    BenefitEnrollmentWindow,
     BenefitPayrollDeduction,
     BenefitPlan,
     ESOPGrant,
@@ -20,6 +23,10 @@ from app.schemas.benefits import (
     BenefitClaimCreate,
     BenefitClaimReview,
     BenefitClaimSchema,
+    BenefitDependentCreate,
+    BenefitDependentSchema,
+    BenefitEnrollmentWindowCreate,
+    BenefitEnrollmentWindowSchema,
     BenefitPayrollDeductionCreate,
     BenefitPayrollDeductionSchema,
     BenefitPlanCreate,
@@ -38,6 +45,10 @@ from app.schemas.benefits import (
 )
 
 router = APIRouter(prefix="/benefits", tags=["Benefits Administration"])
+
+
+def _has_permission(user: User, permission: str) -> bool:
+    return user.is_superuser or permission in {item.name for item in (user.role.permissions if user.role else [])}
 
 
 @router.post("/plans", response_model=BenefitPlanSchema, status_code=201)
@@ -80,6 +91,89 @@ def list_enrollments(employee_id: Optional[int] = Query(None), db: Session = Dep
     if employee_id:
         query = query.filter(EmployeeBenefitEnrollment.employee_id == employee_id)
     return query.order_by(EmployeeBenefitEnrollment.id.desc()).all()
+
+
+@router.post("/enrollments/self", response_model=EmployeeBenefitEnrollmentSchema, status_code=201)
+def self_enroll(data: EmployeeBenefitEnrollmentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.employee:
+        raise HTTPException(status_code=400, detail="Employee profile is required")
+    if data.employee_id != current_user.employee.id:
+        raise HTTPException(status_code=403, detail="Employees can enroll only themselves")
+    plan = db.query(BenefitPlan).filter(BenefitPlan.id == data.benefit_plan_id, BenefitPlan.is_active == True).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Benefit plan not found")
+    today = datetime.now(timezone.utc).date()
+    open_window = db.query(BenefitEnrollmentWindow).filter(
+        BenefitEnrollmentWindow.status == "Open",
+        BenefitEnrollmentWindow.start_date <= today,
+        BenefitEnrollmentWindow.end_date >= today,
+        (BenefitEnrollmentWindow.plan_type.is_(None)) | (BenefitEnrollmentWindow.plan_type == plan.plan_type),
+    ).first()
+    if not open_window and not _has_permission(current_user, "payroll_run"):
+        raise HTTPException(status_code=400, detail="No active enrollment window for this benefit plan")
+    enrollment = EmployeeBenefitEnrollment(**data.model_dump(), status="Pending")
+    db.add(enrollment)
+    db.commit()
+    db.refresh(enrollment)
+    return enrollment
+
+
+@router.post("/enrollment-windows", response_model=BenefitEnrollmentWindowSchema, status_code=201)
+def create_enrollment_window(
+    data: BenefitEnrollmentWindowCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("payroll_run")),
+):
+    if data.end_date < data.start_date:
+        raise HTTPException(status_code=400, detail="end_date must be on or after start_date")
+    window = BenefitEnrollmentWindow(**data.model_dump(), created_by=current_user.id)
+    db.add(window)
+    db.commit()
+    db.refresh(window)
+    return window
+
+
+@router.get("/enrollment-windows", response_model=List[BenefitEnrollmentWindowSchema])
+def list_enrollment_windows(
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(BenefitEnrollmentWindow)
+    if status:
+        query = query.filter(BenefitEnrollmentWindow.status == status)
+    return query.order_by(BenefitEnrollmentWindow.start_date.desc()).limit(100).all()
+
+
+@router.post("/dependants", response_model=BenefitDependentSchema, status_code=201)
+def add_dependent(data: BenefitDependentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    employee_id = data.employee_id or (current_user.employee.id if current_user.employee else None)
+    if not employee_id:
+        raise HTTPException(status_code=400, detail="Employee profile is required")
+    if employee_id != (current_user.employee.id if current_user.employee else None) and not _has_permission(current_user, "payroll_run"):
+        raise HTTPException(status_code=403, detail="Cannot add dependant for another employee")
+    dependent = BenefitDependent(**data.model_dump(exclude={"employee_id"}), employee_id=employee_id)
+    db.add(dependent)
+    db.commit()
+    db.refresh(dependent)
+    return dependent
+
+
+@router.get("/dependants", response_model=List[BenefitDependentSchema])
+def list_dependents(
+    employee_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    scoped_employee_id = employee_id
+    if not _has_permission(current_user, "payroll_view"):
+        if not current_user.employee:
+            raise HTTPException(status_code=400, detail="Employee profile is required")
+        scoped_employee_id = current_user.employee.id
+    query = db.query(BenefitDependent).filter(BenefitDependent.is_active == True)
+    if scoped_employee_id:
+        query = query.filter(BenefitDependent.employee_id == scoped_employee_id)
+    return query.order_by(BenefitDependent.full_name).all()
 
 
 @router.post("/flexi-policies", response_model=FlexiBenefitPolicySchema, status_code=201)

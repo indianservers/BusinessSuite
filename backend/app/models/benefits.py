@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Date, Numeric, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship as orm_relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
 
@@ -41,8 +41,40 @@ class EmployeeBenefitEnrollment(Base):
     remarks = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    employee = relationship("Employee")
-    plan = relationship("BenefitPlan")
+    employee = orm_relationship("Employee")
+    plan = orm_relationship("BenefitPlan")
+
+
+class BenefitEnrollmentWindow(Base):
+    __tablename__ = "benefit_enrollment_windows"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(150), nullable=False)
+    start_date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date, nullable=False, index=True)
+    plan_type = Column(String(50), nullable=True, index=True)
+    description = Column(Text)
+    status = Column(String(30), default="Open", index=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BenefitDependent(Base):
+    __tablename__ = "benefit_dependents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    enrollment_id = Column(Integer, ForeignKey("employee_benefit_enrollments.id", ondelete="SET NULL"), nullable=True, index=True)
+    full_name = Column(String(150), nullable=False)
+    relationship = Column(String(50), nullable=False)
+    date_of_birth = Column(Date)
+    gender = Column(String(20))
+    identity_number = Column(String(80))
+    is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    employee = orm_relationship("Employee")
+    enrollment = orm_relationship("EmployeeBenefitEnrollment")
 
 
 class FlexiBenefitPolicy(Base):
@@ -75,8 +107,8 @@ class EmployeeFlexiBenefitAllocation(Base):
     status = Column(String(30), default="Active", index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    employee = relationship("Employee")
-    policy = relationship("FlexiBenefitPolicy")
+    employee = orm_relationship("Employee")
+    policy = orm_relationship("FlexiBenefitPolicy")
 
 
 class BenefitPayrollDeduction(Base):
@@ -93,8 +125,8 @@ class BenefitPayrollDeduction(Base):
     status = Column(String(30), default="Pending", index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    enrollment = relationship("EmployeeBenefitEnrollment")
-    employee = relationship("Employee")
+    enrollment = orm_relationship("EmployeeBenefitEnrollment")
+    employee = orm_relationship("Employee")
 
 
 class BenefitClaim(Base):
@@ -119,9 +151,9 @@ class BenefitClaim(Base):
     payroll_record_id = Column(Integer, ForeignKey("payroll_records.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    employee = relationship("Employee")
-    plan = relationship("BenefitPlan")
-    policy = relationship("FlexiBenefitPolicy")
+    employee = orm_relationship("Employee")
+    plan = orm_relationship("BenefitPlan")
+    policy = orm_relationship("FlexiBenefitPolicy")
 
 
 class ESOPPlan(Base):
@@ -155,8 +187,8 @@ class ESOPGrant(Base):
     remarks = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    plan = relationship("ESOPPlan")
-    employee = relationship("Employee")
+    plan = orm_relationship("ESOPPlan")
+    employee = orm_relationship("Employee")
 
 
 class ESOPVestingSchedule(Base):
@@ -170,4 +202,4 @@ class ESOPVestingSchedule(Base):
     vested_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    grant = relationship("ESOPGrant")
+    grant = orm_relationship("ESOPGrant")

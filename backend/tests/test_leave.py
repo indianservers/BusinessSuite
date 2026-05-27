@@ -297,6 +297,162 @@ def test_leave_calendar_scopes_manager_team_and_holidays(client, db):
     assert first_day["employees_on_leave"][0]["employee"]["employee_id"] == report_emp.employee_id
 
 
+def test_team_leave_calendar_scopes_manager_employee_and_hr(client, db, superuser_headers):
+    from app.core.security import get_password_hash
+    from app.models.company import Branch, Company, Department
+    from app.models.employee import Employee
+    from app.models.leave import LeaveRequest, LeaveType
+    from app.models.user import Role, User
+
+    suffix = id(db)
+    company = Company(name=f"Calendar Co {suffix}")
+    db.add(company)
+    db.flush()
+    branch = Branch(name=f"Calendar Branch {suffix}", code=f"CB{suffix}", company_id=company.id)
+    db.add(branch)
+    db.flush()
+    department = Department(name=f"Engineering {suffix}", code=f"ENG{suffix}", branch_id=branch.id)
+    other_department = Department(name=f"Finance {suffix}", code=f"FIN{suffix}", branch_id=branch.id)
+    db.add_all([department, other_department])
+    db.flush()
+
+    role = Role(name=f"leave_calendar_role_{suffix}", description="Leave calendar role")
+    db.add(role)
+    db.flush()
+
+    def make_user_employee(email, code, first, department_id, manager_id=None):
+        user = User(
+            email=email,
+            hashed_password=get_password_hash("Test@123"),
+            is_active=True,
+            role_id=role.id,
+        )
+        db.add(user)
+        db.flush()
+        employee = Employee(
+            employee_id=code,
+            first_name=first,
+            last_name="Calendar",
+            date_of_joining=date(2023, 1, 1),
+            user_id=user.id,
+            branch_id=branch.id,
+            department_id=department_id,
+            reporting_manager_id=manager_id,
+            profile_photo_url=f"https://example.test/{code}.png",
+        )
+        db.add(employee)
+        db.flush()
+        return user, employee
+
+    manager_user, manager_emp = make_user_employee(
+        f"team_calendar_manager_{suffix}@test.com", f"TCM{suffix}", "Manager", department.id
+    )
+    _, reportee_emp = make_user_employee(
+        f"team_calendar_reportee_{suffix}@test.com", f"TCR{suffix}", "Reportee", department.id, manager_emp.id
+    )
+    employee_user, employee_emp = make_user_employee(
+        f"team_calendar_employee_{suffix}@test.com", f"TCE{suffix}", "Employee", department.id
+    )
+    _, teammate_emp = make_user_employee(
+        f"team_calendar_teammate_{suffix}@test.com", f"TCT{suffix}", "Teammate", department.id
+    )
+    _, outsider_emp = make_user_employee(
+        f"team_calendar_outsider_{suffix}@test.com", f"TCO{suffix}", "Outsider", other_department.id
+    )
+    leave_type = LeaveType(name=f"Casual Leave {suffix}", code=f"CL{suffix}", days_allowed=Decimal("12"))
+    db.add(leave_type)
+    db.flush()
+    leave_day = date.today().replace(day=1)
+    db.add_all([
+        LeaveRequest(employee_id=reportee_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day, days_count=Decimal("1"), status="Approved"),
+        LeaveRequest(employee_id=teammate_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day + timedelta(days=1), days_count=Decimal("2"), status="Approved", is_half_day=False),
+        LeaveRequest(employee_id=outsider_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day, days_count=Decimal("1"), status="Approved"),
+    ])
+    db.commit()
+
+    manager_login = client.post("/api/v1/auth/login", json={"email": manager_user.email, "password": "Test@123"})
+    manager_headers = {"Authorization": f"Bearer {manager_login.json()['access_token']}"}
+    manager_response = client.get(
+        "/api/v1/leave/team-calendar",
+        params={"year": leave_day.year, "month": leave_day.month},
+        headers=manager_headers,
+    )
+    assert manager_response.status_code == 200
+    assert [item["employee_id"] for item in manager_response.json()] == [reportee_emp.id]
+    assert manager_response.json()[0]["department_name"] == department.name
+    assert manager_response.json()[0]["leaves"][0]["leave_type_name"] == leave_type.name
+
+    employee_login = client.post("/api/v1/auth/login", json={"email": employee_user.email, "password": "Test@123"})
+    employee_headers = {"Authorization": f"Bearer {employee_login.json()['access_token']}"}
+    employee_response = client.get(
+        "/api/v1/leave/team-calendar",
+        params={"year": leave_day.year, "month": leave_day.month},
+        headers=employee_headers,
+    )
+    assert employee_response.status_code == 200
+    assert {item["employee_id"] for item in employee_response.json()} == {reportee_emp.id, teammate_emp.id}
+
+    hr_response = client.get(
+        "/api/v1/leave/team-calendar",
+        params={"year": leave_day.year, "month": leave_day.month, "department_id": str(other_department.id)},
+        headers=superuser_headers,
+    )
+    assert hr_response.status_code == 200
+    assert [item["employee_id"] for item in hr_response.json()] == [outsider_emp.id]
+
+
+def test_department_calendar_and_today_absences(client, db):
+    from app.core.security import get_password_hash
+    from app.models.company import Branch, Company, Department
+    from app.models.employee import Employee
+    from app.models.leave import LeaveRequest, LeaveType
+    from app.models.user import Role, User
+
+    suffix = id(db)
+    company = Company(name=f"Absence Co {suffix}")
+    db.add(company)
+    db.flush()
+    branch = Branch(name=f"Absence Branch {suffix}", code=f"AB{suffix}", company_id=company.id)
+    db.add(branch)
+    db.flush()
+    department = Department(name=f"Operations {suffix}", code=f"OPS{suffix}", branch_id=branch.id)
+    db.add(department)
+    db.flush()
+    role = Role(name=f"absence_role_{suffix}", description="Absence role")
+    db.add(role)
+    db.flush()
+
+    user = User(email=f"absence_employee_{suffix}@test.com", hashed_password=get_password_hash("Test@123"), is_active=True, role_id=role.id)
+    teammate_user = User(email=f"absence_teammate_{suffix}@test.com", hashed_password=get_password_hash("Test@123"), is_active=True, role_id=role.id)
+    db.add_all([user, teammate_user])
+    db.flush()
+    employee = Employee(employee_id=f"ABSE{suffix}", first_name="Absence", last_name="Employee", date_of_joining=date(2023, 1, 1), user_id=user.id, branch_id=branch.id, department_id=department.id)
+    teammate = Employee(employee_id=f"ABST{suffix}", first_name="Absent", last_name="Teammate", date_of_joining=date(2023, 1, 1), user_id=teammate_user.id, branch_id=branch.id, department_id=department.id)
+    db.add_all([employee, teammate])
+    db.flush()
+    leave_type = LeaveType(name=f"Sick Leave {suffix}", code=f"SL{suffix}", days_allowed=Decimal("10"))
+    db.add(leave_type)
+    db.flush()
+    db.add(LeaveRequest(employee_id=teammate.id, leave_type_id=leave_type.id, from_date=date.today(), to_date=date.today(), days_count=Decimal("1"), status="Approved", is_half_day=True))
+    db.commit()
+
+    login = client.post("/api/v1/auth/login", json={"email": user.email, "password": "Test@123"})
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    department_response = client.get(
+        "/api/v1/leave/department-calendar",
+        params={"department_id": str(department.id), "from_date": str(date.today()), "to_date": str(date.today())},
+        headers=headers,
+    )
+    assert department_response.status_code == 200
+    assert department_response.json()[0]["employee_id"] == teammate.id
+    assert department_response.json()[0]["leaves"][0]["is_half_day"] is True
+
+    today_response = client.get("/api/v1/leave/today-absences", headers=headers)
+    assert today_response.status_code == 200
+    assert [item["employee_id"] for item in today_response.json()] == [teammate.id]
+
+
 def test_leave_request_blocks_overlap(client, db):
     emp, lt, user = _create_employee_with_leave(db, client, {})
 

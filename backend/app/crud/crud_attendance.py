@@ -1,10 +1,26 @@
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional, Tuple
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
+from app.core.config import settings
 from app.crud.base import CRUDBase
-from app.models.attendance import Attendance, AttendanceRegularization, Holiday, Shift, ShiftRoster, ShiftRosterAssignment, ShiftWeeklyOff, OvertimeRequest
+from app.models.attendance import Attendance, AttendancePunch, AttendanceRegularization, Holiday, Shift, ShiftRoster, ShiftRosterAssignment, ShiftWeeklyOff, OvertimeRequest
+
+
+def _attendance_timezone():
+    try:
+        return ZoneInfo(settings.CELERY_TIMEZONE)
+    except ZoneInfoNotFoundError:
+        return timezone.utc
+
+
+def _utc_day_bounds(work_date: date) -> tuple[datetime, datetime]:
+    tz = _attendance_timezone()
+    start = datetime.combine(work_date, time.min, tzinfo=tz).astimezone(timezone.utc)
+    end = datetime.combine(work_date, time.max, tzinfo=tz).astimezone(timezone.utc)
+    return start, end
 
 
 class CRUDAttendance(CRUDBase):
@@ -71,6 +87,14 @@ class CRUDAttendance(CRUDBase):
         shift = self.get_shift_for_day(db, employee_id, work_date)
         record.shift_id = shift.id if shift else None
 
+        on_leave = self._is_on_leave(db, employee_id, work_date)
+        if on_leave:
+            record.status = "On Leave"
+            record.computed_at = datetime.now(timezone.utc)
+            db.commit()
+            db.refresh(record)
+            return record
+
         if crud_holiday.is_holiday(db, work_date):
             record.status = "Holiday"
             record.computed_at = datetime.now(timezone.utc)
@@ -93,8 +117,33 @@ class CRUDAttendance(CRUDBase):
         record.is_short_hours = False
         record.overtime_hours = Decimal("0")
 
+        day_start, day_end = _utc_day_bounds(work_date)
+        punches = (
+            db.query(AttendancePunch)
+            .filter(
+                AttendancePunch.employee_id == employee_id,
+                AttendancePunch.punch_time >= day_start,
+                AttendancePunch.punch_time <= day_end,
+            )
+            .order_by(AttendancePunch.punch_time.asc())
+            .all()
+        )
+        in_punches = [item for item in punches if item.punch_type == "IN"]
+        out_punches = [item for item in punches if item.punch_type == "OUT"]
+        if in_punches:
+            record.check_in = in_punches[0].punch_time
+            record.check_in_location = in_punches[0].location_text
+            record.check_in_ip = in_punches[0].ip_address
+            record.source = in_punches[0].source or record.source or "Web"
+        if out_punches:
+            record.check_out = out_punches[-1].punch_time
+            record.check_out_location = out_punches[-1].location_text
+            record.check_out_ip = out_punches[-1].ip_address
+            record.source = out_punches[-1].source or record.source or "Web"
+
         if not record.check_in:
             record.status = "Absent"
+            record.total_hours = Decimal("0")
             record.computed_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(record)
@@ -110,9 +159,10 @@ class CRUDAttendance(CRUDBase):
             total_hours = record.total_hours or Decimal("0")
 
         if shift:
-            start_dt = datetime.combine(work_date, shift.start_time, tzinfo=timezone.utc)
+            tz = _attendance_timezone()
+            start_dt = datetime.combine(work_date, shift.start_time, tzinfo=tz).astimezone(timezone.utc)
             end_date = work_date + timedelta(days=1) if shift.is_night_shift or shift.end_time <= shift.start_time else work_date
-            end_dt = datetime.combine(end_date, shift.end_time, tzinfo=timezone.utc)
+            end_dt = datetime.combine(end_date, shift.end_time, tzinfo=tz).astimezone(timezone.utc)
             late_threshold = start_dt + timedelta(minutes=shift.grace_minutes or 0)
             early_threshold = end_dt - timedelta(minutes=shift.grace_minutes or 0)
 
@@ -141,6 +191,22 @@ class CRUDAttendance(CRUDBase):
         db.commit()
         db.refresh(record)
         return record
+
+    def _is_on_leave(self, db: Session, employee_id: int, work_date: date) -> bool:
+        from app.models.leave import LeaveRequest
+
+        return (
+            db.query(LeaveRequest)
+            .filter(
+                LeaveRequest.employee_id == employee_id,
+                LeaveRequest.status == "Approved",
+                LeaveRequest.deleted_at.is_(None),
+                LeaveRequest.from_date <= work_date,
+                LeaveRequest.to_date >= work_date,
+            )
+            .first()
+            is not None
+        )
 
     def _ensure_defaults(self, record: Attendance) -> None:
         if record.source is None:

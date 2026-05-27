@@ -1,14 +1,17 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AppraisalCycleCreate(BaseModel):
+    organization_id: Optional[int] = None
     name: str
     cycle_type: Optional[str] = None
-    start_date: date
-    end_date: date
+    review_period_start: Optional[date] = None
+    review_period_end: Optional[date] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     self_review_deadline: Optional[date] = None
     manager_review_deadline: Optional[date] = None
     description: Optional[str] = None
@@ -17,22 +20,35 @@ class AppraisalCycleCreate(BaseModel):
 class AppraisalCycleSchema(AppraisalCycleCreate):
     id: int
     status: str
+    created_by: Optional[int] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
 class PerformanceGoalCreate(BaseModel):
+    employee_id: Optional[int] = None
     cycle_id: int
     title: str
     description: Optional[str] = None
+    category: str = "individual"
     goal_type: str = "KRA"
     weightage: Decimal = Decimal("100")
+    target_value: Optional[Any] = None
+    achieved_value: Optional[Any] = None
     target: Optional[str] = None
     target_date: Optional[date] = None
 
 
 class PerformanceGoalUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    weightage: Optional[Decimal] = None
+    target_value: Optional[Any] = None
+    achieved_value: Optional[Any] = None
+    target: Optional[str] = None
     achievement: Optional[str] = None
     self_rating: Optional[Decimal] = None
     status: Optional[str] = None
@@ -45,6 +61,25 @@ class PerformanceGoalSchema(PerformanceGoalCreate):
     self_rating: Optional[Decimal] = None
     manager_rating: Optional[Decimal] = None
     status: str
+    set_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PerformanceRatingCriteriaCreate(BaseModel):
+    criteria_name: str
+    criteria_category: Optional[str] = None
+    rating: Decimal = Field(ge=1, le=5)
+    comments: Optional[str] = None
+    weightage: Decimal = Decimal("0")
+
+
+class PerformanceRatingCriteriaSchema(PerformanceRatingCriteriaCreate):
+    id: int
+    review_id: int
 
     class Config:
         from_attributes = True
@@ -54,10 +89,11 @@ class PerformanceReviewCreate(BaseModel):
     employee_id: Optional[int] = None
     cycle_id: Optional[int] = None
     review_type: str = "Self"
-    overall_rating: Optional[Decimal] = None
+    overall_rating: Optional[Decimal] = Field(default=None, ge=1, le=5)
     strengths: Optional[str] = None
     improvements: Optional[str] = None
     comments: Optional[str] = None
+    rating_criteria: list[PerformanceRatingCriteriaCreate] = Field(default_factory=list)
 
 
 class PerformanceReviewSchema(PerformanceReviewCreate):
@@ -65,6 +101,8 @@ class PerformanceReviewSchema(PerformanceReviewCreate):
     reviewer_id: int
     status: str
     submitted_at: Optional[datetime] = None
+    acknowledged_at: Optional[datetime] = None
+    rating_criteria: list[PerformanceRatingCriteriaSchema] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

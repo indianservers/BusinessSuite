@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,13 +8,24 @@ import {
   createColumnHelper,
 } from "@tanstack/react-table";
 import {
-  Plus, Search, Filter, Download, RefreshCw,
+  Plus, Search, Download, RefreshCw,
   Eye, Edit, UserX, Camera, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { employeeApi } from "@/services/api";
 import { assetUrl, formatDate, statusColor, getInitials } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -36,18 +47,30 @@ interface Employee {
 }
 const columnHelper = createColumnHelper<Employee>();
 
+function useDebouncedValue(value: string, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
 export default function EmployeesPage() {
   usePageTitle("Employees");
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [pendingTermination, setPendingTermination] = useState<Employee | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["employees", search, page, statusFilter],
+    queryKey: ["employees", debouncedSearch, page, statusFilter],
     queryFn: () =>
       employeeApi
-        .list({ search: search || undefined, page, per_page: 20, status: statusFilter || undefined })
+        .list({ search: debouncedSearch || undefined, page, per_page: 20, status: statusFilter || undefined })
         .then((r) => r.data),
   });
 
@@ -165,25 +188,27 @@ export default function EmployeesPage() {
     }),
     columnHelper.display({
       id: "actions",
+      header: "Actions",
       cell: (info) => (
         <div className="flex items-center gap-1">
-          <Link to={`/hrms/employees/${info.row.original.id}`}>
+          <Link to={`/hrms/employees/${info.row.original.id}`} onClick={(event) => event.stopPropagation()}>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Eye className="h-3.5 w-3.5" />
             </Button>
           </Link>
-          <Link to={`/hrms/employees/${info.row.original.id}?edit=true`}>
+          <Link to={`/hrms/employees/${info.row.original.id}?edit=true`} onClick={(event) => event.stopPropagation()}>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Edit className="h-3.5 w-3.5" />
             </Button>
           </Link>
-          <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md hover:bg-muted">
+          <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md hover:bg-muted" onClick={(event) => event.stopPropagation()}>
             <Camera className="h-3.5 w-3.5" />
             <input
               type="file"
               accept="image/png,image/jpeg"
               className="hidden"
               onChange={(event) => {
+                event.stopPropagation();
                 const file = event.target.files?.[0];
                 if (file) photoMutation.mutate({ employeeId: info.row.original.id, file });
                 event.currentTarget.value = "";
@@ -196,7 +221,10 @@ export default function EmployeesPage() {
             className="h-8 w-8 text-destructive"
             title="Terminate employee"
             aria-label="Terminate employee"
-            onClick={() => window.confirm("Terminate this employee?") && deleteMutation.mutate(info.row.original.id)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setPendingTermination(info.row.original);
+            }}
           >
             <UserX className="h-3.5 w-3.5" />
           </Button>
@@ -212,6 +240,7 @@ export default function EmployeesPage() {
     manualPagination: true,
     pageCount: data?.pages ?? 0,
   });
+  const colSpan = columns.length;
 
   return (
     <div className="space-y-6">
@@ -264,22 +293,19 @@ export default function EmployeesPage() {
               className="pl-9"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-          >
-            <option value="">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Probation">Probation</option>
-            <option value="On Leave">On Leave</option>
-            <option value="Resigned">Resigned</option>
-            <option value="Terminated">Terminated</option>
-          </select>
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            More Filters
-          </Button>
+          <Select value={statusFilter || "__all__"} onValueChange={(value) => { setStatusFilter(value === "__all__" ? "" : value); setPage(1); }}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All Status</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Probation">Probation</SelectItem>
+              <SelectItem value="On Leave">On Leave</SelectItem>
+              <SelectItem value="Resigned">Resigned</SelectItem>
+              <SelectItem value="Terminated">Terminated</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
@@ -305,7 +331,7 @@ export default function EmployeesPage() {
               {isLoading ? (
                 Array.from({ length: 10 }).map((_, i) => (
                   <tr key={i} className="border-b">
-                    <td className="px-4 py-3" colSpan={7}>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 skeleton rounded-full" />
                         <div className="space-y-1">
@@ -314,11 +340,17 @@ export default function EmployeesPage() {
                         </div>
                       </div>
                     </td>
+                    <td className="px-4 py-3"><div className="h-4 w-40 skeleton rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-4 w-28 skeleton rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-6 w-20 skeleton rounded-full" /></td>
+                    <td className="px-4 py-3"><div className="h-4 w-24 skeleton rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-6 w-24 skeleton rounded-full" /></td>
+                    <td className="px-4 py-3"><div className="ml-auto h-8 w-28 skeleton rounded" /></td>
                   </tr>
                 ))
               ) : table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={colSpan} className="px-4 py-12 text-center text-muted-foreground">
                     <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
                     <p>No employees found</p>
                     <Link to="/hrms/employees/new">
@@ -328,7 +360,11 @@ export default function EmployeesPage() {
                 </tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-b hover:bg-muted/30 transition-colors">
+                  <tr
+                    key={row.id}
+                    className="cursor-pointer border-b transition-colors hover:bg-muted/30"
+                    onClick={() => navigate(`/hrms/employees/${row.original.id}`)}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className="px-4 py-3">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -345,7 +381,7 @@ export default function EmployeesPage() {
         {data && data.pages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <p className="text-xs text-muted-foreground">
-              Showing {(page - 1) * 20 + 1}Ã¢â‚¬â€œ{Math.min(page * 20, data.total)} of {data.total}
+              Showing {(page - 1) * 20 + 1}&ndash;{Math.min(page * 20, data.total)} of {data.total}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -371,6 +407,32 @@ export default function EmployeesPage() {
           </div>
         )}
       </Card>
+
+      <AlertDialog open={Boolean(pendingTermination)} onOpenChange={(open) => { if (!open) setPendingTermination(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminate employee?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingTermination ? `This will mark ${pendingTermination.first_name} ${pendingTermination.last_name} as terminated.` : "This action will terminate the selected employee."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!pendingTermination || deleteMutation.isPending}
+              onClick={() => {
+                if (!pendingTermination) return;
+                deleteMutation.mutate(pendingTermination.id, {
+                  onSettled: () => setPendingTermination(null),
+                });
+              }}
+            >
+              Terminate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

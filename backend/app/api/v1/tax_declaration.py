@@ -168,6 +168,17 @@ def _serialize_declaration(declaration: EmployeeTaxDeclaration) -> dict[str, Any
     }
 
 
+def _form12bb_section(code: str | None, section: str | None) -> str:
+    key = (code or section or "").upper()
+    if key == "HRA":
+        return "House Rent Allowance"
+    if key in {"80C", "80D", "NPS", "HOME_LOAN_INTEREST"} or "80" in key or "24" in key:
+        return "Deductions under Chapter VI-A"
+    if "LTA" in key:
+        return "Leave Travel Allowance"
+    return "Other declarations"
+
+
 def _seed_default_categories(db: Session, financial_year: str, organization_id: int | None = None) -> None:
     existing_count = (
         db.query(func.count(TaxDeclarationCategory.id))
@@ -327,6 +338,43 @@ def create_tax_declaration(
     db.commit()
     db.refresh(declaration)
     return _serialize_declaration(_load_declaration(db, declaration.id))
+
+
+@router.get("/hrms/tax-declarations/{declaration_id}/form12bb")
+def get_form12bb(
+    declaration_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    declaration = _load_declaration(db, declaration_id)
+    _enforce_declaration_access(declaration, current_user)
+    employee = declaration.employee
+    sections: dict[str, list[dict[str, Any]]] = {}
+    for item in declaration.items:
+        category = item.category
+        section = _form12bb_section(category.code if category else None, category.section if category else None)
+        sections.setdefault(section, []).append({
+            "particular": category.name if category else "Declaration",
+            "section": category.section if category else None,
+            "declared_amount": float(_money(item.declared_amount)),
+            "approved_amount": float(_money(item.approved_amount)),
+            "proof_count": len(item.proofs),
+            "status": item.status,
+        })
+    return {
+        "form": "12BB",
+        "financial_year": declaration.financial_year,
+        "employee": {
+            "id": employee.id if employee else declaration.employee_id,
+            "employee_code": employee.employee_id if employee else None,
+            "name": " ".join(part for part in [employee.first_name if employee else "", employee.last_name if employee else ""] if part).strip(),
+            "pan": employee.pan_number if employee else None,
+        },
+        "status": declaration.status,
+        "sections": [{"name": name, "items": items, "total": sum(item["declared_amount"] for item in items)} for name, items in sections.items()],
+        "declared_total": float(sum(_money(item.declared_amount) for item in declaration.items)),
+        "approved_total": float(sum(_money(item.approved_amount) for item in declaration.items)),
+    }
 
 
 @router.patch("/hrms/tax-declarations/{declaration_id}")

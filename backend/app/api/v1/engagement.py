@@ -4,10 +4,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.core.deps import RequirePermission, get_current_user, get_db
 from app.models.employee import Employee
-from app.models.engagement import Announcement, EngagementSurvey, EngagementSurveyResponse, Recognition, RecognitionReaction
+from app.models.engagement import Announcement, AnnouncementAcknowledgement, EngagementSurvey, EngagementSurveyResponse, Recognition, RecognitionReaction
 from app.models.user import User
 from app.schemas.engagement import (
-    AnnouncementCreate, AnnouncementSchema, EngagementSurveyCreate, EngagementSurveyResponseCreate,
+    AnnouncementAcknowledgementSchema, AnnouncementCreate, AnnouncementSchema, EngagementSurveyCreate, EngagementSurveyResponseCreate,
     EngagementSurveyResponseSchema, EngagementSurveySchema, RecognitionCreate, RecognitionReactionCreate, RecognitionSchema,
 )
 
@@ -30,7 +30,43 @@ def list_announcements(published_only: bool = Query(True), db: Session = Depends
     query = db.query(Announcement)
     if published_only:
         query = query.filter(Announcement.is_published == True)
+    now = datetime.now(timezone.utc)
+    query = query.filter((Announcement.expires_at.is_(None)) | (Announcement.expires_at >= now))
+    if current_user.employee:
+        employee = current_user.employee
+        query = query.filter(
+            (Announcement.audience.in_(["All", "all"])) |
+            (Announcement.target_department_id.is_(None)) |
+            (Announcement.target_department_id == employee.department_id)
+        ).filter(
+            (Announcement.target_location_id.is_(None)) |
+            (Announcement.target_location_id == employee.location_id)
+        )
     return query.order_by(Announcement.created_at.desc()).limit(100).all()
+
+
+@router.post("/announcements/{announcement_id}/acknowledge", response_model=AnnouncementAcknowledgementSchema, status_code=201)
+def acknowledge_announcement(
+    announcement_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.employee:
+        raise HTTPException(status_code=400, detail="Employee profile is required")
+    announcement = db.get(Announcement, announcement_id)
+    if not announcement or not announcement.is_published:
+        raise HTTPException(status_code=404, detail="Announcement not found")
+    existing = db.query(AnnouncementAcknowledgement).filter(
+        AnnouncementAcknowledgement.announcement_id == announcement_id,
+        AnnouncementAcknowledgement.employee_id == current_user.employee.id,
+    ).first()
+    if existing:
+        return existing
+    acknowledgement = AnnouncementAcknowledgement(announcement_id=announcement_id, employee_id=current_user.employee.id)
+    db.add(acknowledgement)
+    db.commit()
+    db.refresh(acknowledgement)
+    return acknowledgement
 
 
 @router.post("/surveys", response_model=EngagementSurveySchema, status_code=201)

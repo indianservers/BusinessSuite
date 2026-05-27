@@ -440,6 +440,7 @@ class PayrollRunCreate(BaseModel):
     company_id: Optional[int] = None
     pay_period_start: Optional[date_type] = None
     pay_period_end: Optional[date_type] = None
+    force_run: bool = False
 
 
 class PayrollRunApproval(BaseModel):
@@ -481,6 +482,9 @@ class PayrollRecordSchema(BaseModel):
     gross_salary: Decimal
     total_deductions: Decimal
     net_salary: Decimal
+    salary_currency: Optional[str] = "INR"
+    exchange_rate: Optional[Decimal] = None
+    converted_currency: Optional[str] = "INR"
     is_anomaly: bool
     anomaly_reason: Optional[str] = None
     status: str
@@ -528,6 +532,7 @@ class PayrollBankAdviceGenerateRequest(BaseModel):
     export_type: str = "pdf"
     bank_name: Optional[str] = None
     bank_format_id: Optional[int] = None
+    payment_mode: str = "NEFT"
 
 
 class PayrollBankAdviceRowSchema(BaseModel):
@@ -553,6 +558,7 @@ class PayrollBankAdvicePreviewSchema(BaseModel):
     total_employees: int
     total_amount: Decimal
     validation_errors: List[str] = []
+    bank_file_validation: Optional[dict[str, Any]] = None
     rows: List[PayrollBankAdviceRowSchema]
 
 

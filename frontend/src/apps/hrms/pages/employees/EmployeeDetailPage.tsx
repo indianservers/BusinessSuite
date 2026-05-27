@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
-import { employeeApi } from "@/services/api";
-import { assetUrl, formatDate, getInitials, statusColor } from "@/lib/utils";
+import { employeeApi, payrollApi } from "@/services/api";
+import { assetUrl, formatCurrency, formatDate, getInitials, statusColor } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ const TABS = [
   { id: "experience", label: "Experience", icon: Briefcase },
   { id: "skills", label: "Skills", icon: Star },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "payroll", label: "Payroll", icon: Banknote },
   { id: "account", label: "Account", icon: Link2 },
   { id: "family", label: "Family", icon: Users },
   { id: "health", label: "Health", icon: HeartPulse },
@@ -97,6 +98,13 @@ export default function EmployeeDetailPage() {
   const [educationForm, setEducationForm] = useState<Record<string, any>>({});
   const [experienceForm, setExperienceForm] = useState<Record<string, any>>({});
   const [skillForm, setSkillForm] = useState<Record<string, any>>({});
+  const [salaryForm, setSalaryForm] = useState<Record<string, any>>({
+    structure_id: "",
+    ctc: "",
+    basic: "",
+    hra: "",
+    effective_from: "",
+  });
   const [selectedUserId, setSelectedUserId] = useState("");
   const editing = params.get("edit") === "true";
   usePageTitle("Employee Details");
@@ -114,6 +122,17 @@ export default function EmployeeDetailPage() {
         .userOptions({ include_employee_id: Number(id) })
         .then((r) => r.data as Array<{ id: number; email: string; role?: string | null; employee_id?: number | null; employee_code?: string | null; employee_name?: string | null }>),
     enabled: !!id,
+  });
+
+  const salaryHistory = useQuery({
+    queryKey: ["employee-salary-history", id],
+    queryFn: () => payrollApi.salaryHistory(Number(id)).then((r) => r.data as EmployeeSalaryRow[]),
+    enabled: !!id,
+  });
+
+  const salaryStructures = useQuery({
+    queryKey: ["salary-structures"],
+    queryFn: () => payrollApi.structures().then((r) => r.data as SalaryStructureOption[]),
   });
 
   const updateMutation = useMutation({
@@ -190,6 +209,20 @@ export default function EmployeeDetailPage() {
     },
     onError: (err: unknown) => toast({
       title: "Could not update user mapping",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
+  const salaryMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => payrollApi.setEmployeeSalary(payload),
+    onSuccess: () => {
+      toast({ title: "Salary assigned" });
+      setSalaryForm({ structure_id: "", ctc: "", basic: "", hra: "", effective_from: "" });
+      qc.invalidateQueries({ queryKey: ["employee-salary-history", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not assign salary",
       description: getApiErrorMessage(err),
       variant: "destructive",
     }),
@@ -484,6 +517,12 @@ export default function EmployeeDetailPage() {
             {activeTab === "account" && (
               <p className="text-sm text-muted-foreground">
                 User login mapping can be managed from the Account tab below.
+              </p>
+            )}
+
+            {activeTab === "payroll" && (
+              <p className="text-sm text-muted-foreground">
+                Salary assignment is managed from the Payroll tab below.
               </p>
             )}
           </CardContent>
@@ -802,9 +841,151 @@ export default function EmployeeDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {activeTab === "payroll" && (
+        <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
+          <Card>
+            <CardHeader><CardTitle>Assign Salary</CardTitle></CardHeader>
+            <CardContent>
+              <form
+                className="grid gap-4 sm:grid-cols-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const ctc = Number(salaryForm.ctc);
+                  if (!salaryForm.effective_from || !Number.isFinite(ctc) || ctc <= 0) {
+                    toast({
+                      title: "CTC and effective date are required",
+                      description: "Enter annual CTC and the date from which this salary applies.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  const payload: Record<string, any> = {
+                    employee_id: Number(id),
+                    ctc: salaryForm.ctc,
+                    effective_from: salaryForm.effective_from,
+                  };
+                  if (salaryForm.structure_id) payload.structure_id = Number(salaryForm.structure_id);
+                  if (salaryForm.basic) payload.basic = salaryForm.basic;
+                  if (salaryForm.hra) payload.hra = salaryForm.hra;
+                  salaryMutation.mutate(payload);
+                }}
+              >
+                <div className="space-y-2">
+                  <Label>Salary Structure</Label>
+                  <select
+                    value={salaryForm.structure_id}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, structure_id: event.target.value }))}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">No structure</option>
+                    {(salaryStructures.data || []).map((structure) => (
+                      <option key={structure.id} value={structure.id}>
+                        {structure.name}{structure.version ? ` v${structure.version}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Annual CTC *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={salaryForm.ctc}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, ctc: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Monthly Basic</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={salaryForm.basic}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, basic: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Monthly HRA</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={salaryForm.hra}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, hra: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Effective From *</Label>
+                  <Input
+                    type="date"
+                    value={salaryForm.effective_from}
+                    onChange={(event) => setSalaryForm((form) => ({ ...form, effective_from: event.target.value }))}
+                  />
+                </div>
+                <div className="flex items-end justify-end sm:col-span-2">
+                  <Button type="submit" disabled={salaryMutation.isPending}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {salaryMutation.isPending ? "Saving..." : "Save Salary"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Salary History</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {salaryHistory.isLoading ? (
+                <div className="h-24 skeleton rounded" />
+              ) : salaryHistory.data?.length ? (
+                salaryHistory.data.map((salary) => (
+                  <div key={salary.id} className="rounded-lg border p-3 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{formatCurrency(Number(salary.ctc || 0), emp.salary_currency || "INR")}</p>
+                        <p className="text-xs text-muted-foreground">From {formatDate(salary.effective_from)}</p>
+                      </div>
+                      <Badge variant={salary.is_active ? "success" : "secondary"}>{salary.is_active ? "Active" : "Closed"}</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Basic</p>
+                        <p className="font-medium">{salary.basic ? formatCurrency(Number(salary.basic), emp.salary_currency || "INR") : "Auto"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">HRA</p>
+                        <p className="font-medium">{salary.hra ? formatCurrency(Number(salary.hra), emp.salary_currency || "INR") : "Auto"}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No salary assignment yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
+
+type EmployeeSalaryRow = {
+  id: number;
+  ctc: number | string;
+  basic?: number | string | null;
+  hra?: number | string | null;
+  effective_from: string;
+  is_active: boolean;
+};
+
+type SalaryStructureOption = {
+  id: number;
+  name: string;
+  version?: string | null;
+};
 
 type Employee360Event = {
   area: string;

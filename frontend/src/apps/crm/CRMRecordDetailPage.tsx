@@ -176,6 +176,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   const [messageOpen, setMessageOpen] = useState(false);
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [leadConverting, setLeadConverting] = useState(false);
 
   const loadRecord = () => {
     setLoading(true);
@@ -275,6 +276,27 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       .finally(() => setSaving(false));
   };
 
+  const convertLead = () => {
+    if (kind !== "leads") return;
+    setLeadConverting(true);
+    setError(null);
+    crmApi
+      .convertLead<{ lead: DetailRecord; contact?: CRMApiRecord | null; company?: CRMApiRecord | null; deal?: CRMApiRecord | null }>(recordId, {
+        createContact: true,
+        createCompany: true,
+        createDeal: true,
+      })
+      .then((response) => {
+        setRecord(response.data.lead);
+        const dealId = response.data.deal?.id;
+        const contactId = response.data.contact?.id;
+        if (dealId) navigate(`/crm/deals/${dealId}`);
+        else if (contactId) navigate(`/crm/contacts/${contactId}`);
+      })
+      .catch((err) => setError(err?.response?.data?.detail || "Lead could not be converted."))
+      .finally(() => setLeadConverting(false));
+  };
+
   const submitApproval = () => {
     if (!record || !["deals", "quotations"].includes(kind)) return;
     setApprovalSubmitting(true);
@@ -359,6 +381,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
                 {["leads", "contacts", "deals"].includes(kind) ? <Button variant="outline" onClick={() => setMessageOpen(true)}><MessageSquare className="h-4 w-4" />Send SMS/WhatsApp</Button> : null}
                 {["leads", "contacts"].includes(kind) ? <Button variant="outline" onClick={() => setEnrichmentOpen(true)}><Sparkles className="h-4 w-4" />Enrich Contact</Button> : null}
                 {kind === "leads" ? <Button variant="outline" onClick={recalculateScore} disabled={saving}><CheckCircle2 className="h-4 w-4" />Recalculate Score</Button> : null}
+                {kind === "leads" ? <Button variant="outline" onClick={convertLead} disabled={leadConverting || Boolean(record.is_converted)}><FileCheck2 className="h-4 w-4" />{leadConverting ? "Converting..." : "Convert Lead"}</Button> : null}
                 {["deals", "quotations"].includes(kind) ? <Button variant="outline" onClick={submitApproval} disabled={approvalSubmitting || approvalStatus === "pending"}><FileCheck2 className="h-4 w-4" />{approvalSubmitting ? "Submitting..." : "Submit Approval"}</Button> : null}
                 {kind === "quotations" ? <Button variant="outline" onClick={() => openQuotationPdf(false)} disabled={pdfGenerating}><FileText className="h-4 w-4" />{pdfGenerating ? "Generating..." : "Generate PDF"}</Button> : null}
                 {kind === "quotations" ? <Button variant="outline" onClick={() => openQuotationPdf(true)} disabled={pdfGenerating}><Download className="h-4 w-4" />Download PDF</Button> : null}

@@ -1,10 +1,12 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Union
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
 
 
 def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -25,7 +27,10 @@ def verify_token(token: str, secret_key: str) -> Optional[dict]:
     try:
         payload = jwt.decode(token, secret_key, algorithms=[settings.ALGORITHM])
         return payload
-    except JWTError:
+    except ExpiredSignatureError:
+        return None
+    except JWTError as exc:
+        logger.warning("Token verification failed: %s", exc.__class__.__name__)
         return None
 
 

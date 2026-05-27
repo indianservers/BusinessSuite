@@ -51,6 +51,11 @@ class RosterPublishRequest(BaseModel):
     departmentId: int | None = None
 
 
+class RosterSwapRequest(BaseModel):
+    firstRosterId: int
+    secondRosterId: int
+
+
 def _has_permission(user: User, permission: str) -> bool:
     if user.is_superuser:
         return True
@@ -277,6 +282,32 @@ def list_shift_roster(
     }
 
 
+@router.get("/my")
+def my_upcoming_roster(
+    from_: date | None = Query(None, alias="from"),
+    days: int = Query(30, ge=1, le=90),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.employee:
+        raise HTTPException(status_code=400, detail="Employee profile is required")
+    start = from_ or date.today()
+    end = start + timedelta(days=days - 1)
+    rosters = (
+        db.query(ShiftRoster)
+        .options(joinedload(ShiftRoster.shift), joinedload(ShiftRoster.employee).joinedload(Employee.department))
+        .filter(
+            ShiftRoster.employee_id == current_user.employee.id,
+            ShiftRoster.roster_date >= start,
+            ShiftRoster.roster_date <= end,
+            ShiftRoster.status == "published",
+        )
+        .order_by(ShiftRoster.roster_date)
+        .all()
+    )
+    return [_serialize(row) for row in rosters]
+
+
 @router.post("/assign")
 def assign_shift_roster(
     payload: RosterAssignRequest,
@@ -366,6 +397,27 @@ def publish_shift_roster(
         row.status = "published"
     db.commit()
     return {"published": len(rows)}
+
+
+@router.post("/swap")
+def swap_shift_roster(
+    payload: RosterSwapRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("attendance_manage")),
+):
+    first = db.query(ShiftRoster).filter(ShiftRoster.id == payload.firstRosterId).first()
+    second = db.query(ShiftRoster).filter(ShiftRoster.id == payload.secondRosterId).first()
+    if not first or not second:
+        raise HTTPException(status_code=404, detail="Roster entry not found")
+    _load_employee(db, first.employee_id, current_user)
+    _load_employee(db, second.employee_id, current_user)
+    first.shift_id, second.shift_id = second.shift_id, first.shift_id
+    first.assigned_by = current_user.id
+    second.assigned_by = current_user.id
+    db.commit()
+    db.refresh(first)
+    db.refresh(second)
+    return {"swapped": True, "rosters": [_serialize(first), _serialize(second)]}
 
 
 @router.delete("/{roster_id}")

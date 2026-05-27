@@ -153,6 +153,77 @@ def run_scheduled_leave_accruals(db: Session, run_date: date | None = None, crea
     return {"credited": credited, "skipped": skipped, "run_date": run_date.isoformat()}
 
 
+def run_leave_carry_forward(
+    db: Session,
+    *,
+    from_year: int,
+    to_year: int | None = None,
+    created_by: int | None = None,
+) -> dict:
+    to_year = to_year or from_year + 1
+    carried = 0
+    skipped = 0
+
+    source_balances = (
+        db.query(LeaveBalance)
+        .join(LeaveType, LeaveType.id == LeaveBalance.leave_type_id)
+        .filter(LeaveBalance.year == from_year, LeaveType.is_active == True)
+        .all()
+    )
+    for source in source_balances:
+        leave_type = source.leave_type
+        if not leave_type or not leave_type.carry_forward:
+            skipped += 1
+            continue
+
+        available = get_available_balance(source)
+        limit = Decimal(leave_type.carry_forward_limit or 0)
+        carry_amount = max(Decimal("0"), min(available, limit)) if limit > 0 else max(Decimal("0"), available)
+        carry_amount = _money_days(carry_amount)
+        if carry_amount <= 0:
+            skipped += 1
+            continue
+
+        target = get_leave_balance(db, source.employee_id, source.leave_type_id, to_year)
+        if not target:
+            target = LeaveBalance(
+                employee_id=source.employee_id,
+                leave_type_id=source.leave_type_id,
+                year=to_year,
+                allocated=Decimal("0"),
+                used=Decimal("0"),
+                pending=Decimal("0"),
+                carried_forward=Decimal("0"),
+            )
+            db.add(target)
+            db.flush()
+
+        reason = f"Carry forward from {from_year} to {to_year}"
+        already_carried = db.query(LeaveBalanceLedger).filter(
+            LeaveBalanceLedger.leave_balance_id == target.id,
+            LeaveBalanceLedger.transaction_type == "carry_forward",
+            LeaveBalanceLedger.reason == reason,
+        ).first()
+        if already_carried:
+            skipped += 1
+            continue
+
+        target.carried_forward = _money_days(Decimal(target.carried_forward or 0) + carry_amount)
+        add_ledger_entry(
+            db,
+            balance=target,
+            transaction_type="carry_forward",
+            amount=carry_amount,
+            balance_after=get_available_balance(target),
+            reason=reason,
+            created_by=created_by,
+        )
+        carried += 1
+
+    db.commit()
+    return {"carried": carried, "skipped": skipped, "from_year": from_year, "to_year": to_year}
+
+
 def add_ledger_entry(
     db: Session,
     *,

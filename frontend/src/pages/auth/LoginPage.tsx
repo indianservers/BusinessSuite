@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/config/runtime";
+import { getDefaultPathForUser } from "@/lib/products";
 
 const loginSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -130,6 +131,10 @@ export default function LoginPage() {
   const emailValue = watch("email");
   const apiBaseUrl = getApiBaseUrl();
 
+  const getPostLoginPath = useCallback((role?: string | null, isSuperuser = false) => (
+    loginModule === "hrms" ? getDefaultPathForUser(role, isSuperuser) : loginConfig.afterLogin
+  ), [loginConfig.afterLogin, loginModule]);
+
   const { data: ssoProviders } = useQuery({
     queryKey: ["sso-providers"],
     queryFn: () => authApi.ssoProviders().then((r) => r.data as SsoProvider[]),
@@ -150,21 +155,22 @@ export default function LoginPage() {
       window.history.replaceState({}, "", window.location.pathname);
       setTokens(accessToken, refreshToken);
       authApi.me().then((res) => {
+        const roleName = res.data.role?.name || null;
         setUser({
           id: res.data.id,
           email: res.data.email,
-          role: res.data.role?.name || null,
+          role: roleName,
           is_superuser: res.data.is_superuser,
           employee_id: res.data.employee_id,
         });
-        navigate(loginConfig.afterLogin);
+        navigate(getPostLoginPath(roleName, res.data.is_superuser));
       });
     }
     if (ssoError) {
       window.history.replaceState({}, "", window.location.pathname);
       setInlineError(ssoError.replace(/_/g, " "));
     }
-  }, [loginConfig.afterLogin, navigate, setTokens, setUser]);
+  }, [getPostLoginPath, navigate, setTokens, setUser]);
 
   const onSubmit = async (data: LoginForm) => {
     try {
@@ -181,7 +187,7 @@ export default function LoginPage() {
       setUser({ id: user_id, email, role, is_superuser, employee_id });
 
       toast({ title: "Welcome back!", variant: "default" });
-      navigate(loginConfig.afterLogin);
+      navigate(getPostLoginPath(role, is_superuser));
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
@@ -196,7 +202,7 @@ export default function LoginPage() {
       const { access_token, refresh_token, user_id, email, role, is_superuser, employee_id } = res.data;
       setTokens(access_token, refresh_token);
       setUser({ id: user_id, email, role, is_superuser, employee_id });
-      navigate(loginConfig.afterLogin);
+      navigate(getPostLoginPath(role, is_superuser));
     },
     onError: (err: unknown) => {
       const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Incorrect code";
@@ -204,7 +210,7 @@ export default function LoginPage() {
     },
   });
 
-  const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(loginConfig.afterLogin)}`;
+  const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname)}`;
 
   return (
     <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${loginTheme.page} p-4`}>
@@ -251,7 +257,7 @@ export default function LoginPage() {
                   className="bg-white/10 border-white/20 text-white placeholder:text-white/30"
                 />
                 {inlineError && <p className="text-xs text-red-400">{inlineError}</p>}
-                <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" disabled={!mfaToken || !mfaCode || verifyMfa.isPending} onClick={() => verifyMfa.mutate()}>
+                <Button className={`h-11 w-full text-white ${loginTheme.button}`} disabled={!mfaToken || !mfaCode || verifyMfa.isPending} onClick={() => verifyMfa.mutate()}>
                   {verifyMfa.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Verify
                 </Button>
                 <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => { setLoginPhase("credentials"); setMfaToken(null); setMfaCode(""); }}>
@@ -349,6 +355,10 @@ export default function LoginPage() {
                     <span className="text-xs font-semibold text-white">{login.label}</span>
                     <span className="text-[11px] text-blue-200/60">{login.email}</span>
                   </span>
+                  <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-200/80">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Credentials auto-filled
+                  </span>
                   <span className="mt-1 block text-[11px] text-blue-200/45">{login.description}</span>
                 </button>
               ))}
@@ -357,7 +367,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-blue-200/40 text-xs">
-          &copy; 2024 {loginConfig.product}. All rights reserved.
+          &copy; {new Date().getFullYear()} {loginConfig.product}. All rights reserved.
         </p>
       </div>
     </div>

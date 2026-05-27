@@ -4,20 +4,24 @@ from sqlalchemy.sql import func
 from app.db.base_class import Base
 
 
-class AppraisalCycle(Base):
+class PerformanceCycle(Base):
     __tablename__ = "appraisal_cycles"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(150), nullable=False)
-    cycle_type = Column(String(20))  # Annual, Semi-Annual, Quarterly
-    start_date = Column(Date, nullable=False)
-    end_date = Column(Date, nullable=False)
+    cycle_type = Column(String(20))  # annual, half_yearly, quarterly
+    review_period_start = Column(Date)
+    review_period_end = Column(Date)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
     self_review_deadline = Column(Date)
     manager_review_deadline = Column(Date)
-    status = Column(String(20), default="Upcoming")  # Upcoming, Self Review, Manager Review, Calibration, Completed
+    status = Column(String(20), default="draft")  # draft, active, closed
     description = Column(Text)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     goals = relationship("PerformanceGoal", back_populates="cycle")
     reviews = relationship("PerformanceReview", back_populates="cycle")
 
@@ -30,20 +34,24 @@ class PerformanceGoal(Base):
     cycle_id = Column(Integer, ForeignKey("appraisal_cycles.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(200), nullable=False)
     description = Column(Text)
+    category = Column(String(30), default="individual")
     goal_type = Column(String(20), default="KRA")  # KRA, KPI, Objective
     weightage = Column(Numeric(5, 2), default=100)
+    target_value = Column(String(500))
+    achieved_value = Column(String(500))
     target = Column(String(500))
     target_date = Column(Date)
     achievement = Column(Text)
     self_rating = Column(Numeric(3, 1))
     manager_rating = Column(Numeric(3, 1))
-    status = Column(String(20), default="Active")  # Active, Completed, Cancelled
+    status = Column(String(20), default="active")  # draft, active, completed, cancelled
+    set_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     employee = relationship("Employee", back_populates="goals")
-    cycle = relationship("AppraisalCycle", back_populates="goals")
+    cycle = relationship("PerformanceCycle", back_populates="goals")
 
 
 class PerformanceReview(Base):
@@ -53,19 +61,41 @@ class PerformanceReview(Base):
     employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
     reviewer_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
     cycle_id = Column(Integer, ForeignKey("appraisal_cycles.id", ondelete="CASCADE"), nullable=False)
-    review_type = Column(String(20))  # Self, Manager, Peer, 360
+    review_type = Column(String(20))  # self, manager, peer, 360
     overall_rating = Column(Numeric(3, 1))
     strengths = Column(Text)
     improvements = Column(Text)
     comments = Column(Text)
-    status = Column(String(20), default="Pending")  # Pending, Submitted, Acknowledged
+    status = Column(String(20), default="draft")  # draft, submitted, acknowledged
     submitted_at = Column(DateTime(timezone=True))
     acknowledged_at = Column(DateTime(timezone=True))
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    cycle = relationship("AppraisalCycle", back_populates="reviews")
+    cycle = relationship("PerformanceCycle", back_populates="reviews")
+    rating_criteria = relationship(
+        "PerformanceRatingCriteria",
+        back_populates="review",
+        cascade="all, delete-orphan",
+    )
+
+
+class PerformanceRatingCriteria(Base):
+    __tablename__ = "performance_rating_criteria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    review_id = Column(Integer, ForeignKey("performance_reviews.id", ondelete="CASCADE"), nullable=False, index=True)
+    criteria_name = Column(String(150), nullable=False)
+    criteria_category = Column(String(80))
+    rating = Column(Numeric(3, 1))
+    comments = Column(Text)
+    weightage = Column(Numeric(5, 2), default=0)
+
+    review = relationship("PerformanceReview", back_populates="rating_criteria")
+
+
+AppraisalCycle = PerformanceCycle
 
 
 class GoalCheckIn(Base):
@@ -131,7 +161,7 @@ class Feedback360Request(Base):
     comments = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    cycle = relationship("AppraisalCycle")
+    cycle = relationship("PerformanceCycle")
     employee = relationship("Employee", foreign_keys=[employee_id])
     reviewer = relationship("Employee", foreign_keys=[reviewer_id])
 

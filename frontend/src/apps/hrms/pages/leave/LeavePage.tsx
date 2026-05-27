@@ -234,6 +234,35 @@ export default function LeavePage() {
     },
   });
 
+  const runAccrualsMutation = useMutation({
+    mutationFn: () => leaveApi.runAccruals(toDateText(new Date())),
+    onSuccess: (response) => {
+      const count = (response.data as { processed?: number })?.processed ?? 0;
+      toast({ title: "Leave accruals processed", description: `${count} balance row${count === 1 ? "" : "s"} updated.` });
+      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to run leave accruals";
+      toast({ title: "Accrual run failed", description: msg, variant: "destructive" });
+    },
+  });
+
+  const runCarryForwardMutation = useMutation({
+    mutationFn: () => {
+      const year = new Date().getFullYear();
+      return leaveApi.runCarryForward(year - 1, year);
+    },
+    onSuccess: (response) => {
+      const count = (response.data as { processed?: number })?.processed ?? 0;
+      toast({ title: "Leave carry-forward processed", description: `${count} balance row${count === 1 ? "" : "s"} updated.` });
+      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to run carry-forward";
+      toast({ title: "Carry-forward failed", description: msg, variant: "destructive" });
+    },
+  });
+
   const tabs: Array<"my" | "approvals" | "calendar"> = canApproveLeave ? ["my", "approvals", "calendar"] : ["my", "calendar"];
   const pendingApprovals = allRequests || [];
   const pendingEncashments = pendingEncashmentRequests || [];
@@ -258,6 +287,18 @@ export default function LeavePage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <AskAiButton module="HRMS" defaultAgentCode="hrms_leave_assistant" defaultPrompt="Check leave balance and help with leave request/review." />
+          {canApproveLeave ? (
+            <>
+              <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => runAccrualsMutation.mutate()} disabled={runAccrualsMutation.isPending}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {runAccrualsMutation.isPending ? "Running..." : "Run Accruals"}
+              </Button>
+              <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => runCarryForwardMutation.mutate()} disabled={runCarryForwardMutation.isPending}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {runCarryForwardMutation.isPending ? "Running..." : "Carry Forward"}
+              </Button>
+            </>
+          ) : null}
           <Button size="sm" className="w-full sm:w-auto" onClick={() => setShowApplyForm((v) => !v)}>
             <Plus className="mr-2 h-4 w-4" />
             Apply Leave

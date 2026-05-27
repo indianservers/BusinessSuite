@@ -94,6 +94,7 @@ class Settings(BaseSettings):
 
     # AI
     OPENAI_API_KEY: str = ""
+    # Intentional GPT-4.1 family default. Keep this aligned with the models enabled on the deployed OpenAI account.
     OPENAI_MODEL: str = "gpt-4.1-mini"
     AI_AGENT_DEFAULT_TEMPERATURE: float = 0.2
     AI_AGENT_MAX_TOOL_CALLS: int = 8
@@ -103,7 +104,7 @@ class Settings(BaseSettings):
     ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
 
     # CORS
-    BACKEND_CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4573", "http://127.0.0.1:4573", "http://localhost:3000"]
     BACKEND_PUBLIC_URL: str = "http://localhost:8001"
     FRONTEND_PUBLIC_URL: str = "http://localhost:5173"
 

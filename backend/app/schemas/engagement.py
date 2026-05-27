@@ -8,6 +8,10 @@ class AnnouncementCreate(BaseModel):
     title: str
     body: str
     audience: str = "All"
+    target_department_id: Optional[int] = None
+    target_location_id: Optional[int] = None
+    expires_at: Optional[datetime] = None
+    requires_acknowledgement: bool = False
     is_published: bool = False
 
 
@@ -15,6 +19,14 @@ class AnnouncementSchema(AnnouncementCreate):
     id: int
     published_at: Optional[datetime] = None
     created_by: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AnnouncementAcknowledgementSchema(BaseModel):
+    id: int
+    announcement_id: int
+    employee_id: int
+    acknowledged_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 

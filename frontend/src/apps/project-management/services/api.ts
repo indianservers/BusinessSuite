@@ -50,6 +50,8 @@ import {
   WorkloadResponse,
   CreateTagInput,
   CreateProjectInput,
+  CreateProjectIntakeInput,
+  PMSProjectIntake,
   CreateRiskInput,
   CreateTaskInput,
   CreateMilestoneInput,
@@ -111,6 +113,28 @@ export const projectsAPI = {
     const response = await api.get<DashboardData>(
       `${BASE_URL}/dashboard/${projectId}`
     );
+    return response.data;
+  },
+};
+
+// ============= PROJECT INTAKE =============
+export const projectIntakeAPI = {
+  create: async (data: CreateProjectIntakeInput) => {
+    const response = await api.post<PMSProjectIntake>(`${BASE_URL}/intake`, data);
+    return response.data;
+  },
+
+  list: async (status?: string, skip: number = 0, limit: number = 20) => {
+    const params = new URLSearchParams();
+    params.append("skip", skip.toString());
+    params.append("limit", limit.toString());
+    if (status) params.append("status", status);
+    const response = await api.get<PMSProjectIntake[]>(`${BASE_URL}/intake?${params}`);
+    return response.data;
+  },
+
+  review: async (intakeId: number, data: { status: string; review_notes?: string; project_key?: string; manager_user_id?: number }) => {
+    const response = await api.post<PMSProjectIntake>(`${BASE_URL}/intake/${intakeId}/review`, data);
     return response.data;
   },
 };

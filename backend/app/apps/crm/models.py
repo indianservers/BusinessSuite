@@ -83,6 +83,7 @@ class CRMContact(Base):
 
     company = relationship("CRMCompany", back_populates="contacts", foreign_keys=[company_id])
     deals = relationship("CRMDeal", back_populates="contact", foreign_keys="CRMDeal.contact_id")
+    deal_links = relationship("CRMDealContact", back_populates="contact", cascade="all, delete-orphan")
 
 
 class CRMLead(Base):
@@ -243,6 +244,28 @@ class CRMDeal(Base):
     contact = relationship("CRMContact", back_populates="deals", foreign_keys=[contact_id])
     pipeline = relationship("CRMPipeline", back_populates="deals")
     stage = relationship("CRMPipelineStage", back_populates="deals")
+    contact_links = relationship("CRMDealContact", back_populates="deal", cascade="all, delete-orphan")
+
+
+class CRMDealContact(Base):
+    __tablename__ = "crm_deal_contacts"
+    __table_args__ = (UniqueConstraint("deal_id", "contact_id", name="uq_crm_deal_contact"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="CASCADE"), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(80), default="Stakeholder", index=True)
+    influence_level = Column(String(40), nullable=True, index=True)
+    is_primary = Column(Boolean, default=False, index=True)
+    notes = Column(Text)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    deal = relationship("CRMDeal", back_populates="contact_links")
+    contact = relationship("CRMContact", back_populates="deal_links")
 
 
 class CRMProduct(Base):

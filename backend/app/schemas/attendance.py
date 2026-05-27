@@ -1,7 +1,8 @@
 from datetime import date, datetime, time
+from datetime import date as date_type
 from decimal import Decimal
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ShiftBase(BaseModel):
@@ -66,12 +67,43 @@ class HolidayCreate(HolidayBase):
     pass
 
 
+class HolidayCalendarBase(BaseModel):
+    name: str
+    holiday_date: date_type
+    holiday_type: str = Field(default="National", pattern="^(National|Regional|Optional)$")
+    description: Optional[str] = None
+    applicable_branches: Optional[List[int]] = None
+
+
+class HolidayCalendarCreate(HolidayCalendarBase):
+    pass
+
+
+class HolidayCalendarUpdate(BaseModel):
+    name: Optional[str] = None
+    holiday_date: Optional[date_type] = None
+    holiday_type: Optional[str] = Field(default=None, pattern="^(National|Regional|Optional)$")
+    description: Optional[str] = None
+    applicable_branches: Optional[List[int]] = None
+
+
 class HolidaySchema(HolidayBase):
     id: int
     is_active: bool
 
     class Config:
         from_attributes = True
+
+
+class HolidayCalendarSchema(BaseModel):
+    id: int
+    name: str
+    holiday_date: date_type
+    holiday_type: str
+    description: Optional[str] = None
+    applicable_branches: List[int] = []
+    is_active: bool
+    created_at: Optional[datetime] = None
 
 
 class CheckInRequest(BaseModel):
@@ -96,6 +128,21 @@ class AttendancePunchCreate(BaseModel):
     longitude: Optional[Decimal] = None
     location_text: Optional[str] = None
     raw_payload: Optional[str] = None
+
+
+class PunchRequest(BaseModel):
+    punch_type: str = Field(pattern="^(IN|OUT|BREAK_IN|BREAK_OUT)$")
+    latitude: Optional[Decimal] = None
+    longitude: Optional[Decimal] = None
+    location_text: Optional[str] = None
+    source: str = Field(default="web", pattern="^(web|mobile|Web|Mobile)$")
+
+
+class AttendanceRegularizeRequest(BaseModel):
+    date: date_type
+    reason: str
+    expected_check_in: Optional[datetime] = None
+    expected_check_out: Optional[datetime] = None
 
 
 class AttendancePunchSchema(AttendancePunchCreate):
@@ -238,10 +285,25 @@ class AttendanceSchema(BaseModel):
         from_attributes = True
 
 
+class AttendanceTodayResponse(BaseModel):
+    attendance: Optional[AttendanceSchema] = None
+    punches: List[AttendancePunchSchema] = []
+
+
+class AttendancePageResponse(BaseModel):
+    items: List[AttendanceSchema]
+    total: int
+    page: int
+    page_size: int
+
+
 class RegularizationRequest(BaseModel):
-    attendance_id: int
+    attendance_id: Optional[int] = None
+    date: Optional[date_type] = None
     requested_check_in: Optional[datetime] = None
     requested_check_out: Optional[datetime] = None
+    expected_check_in: Optional[datetime] = None
+    expected_check_out: Optional[datetime] = None
     reason: str
 
 

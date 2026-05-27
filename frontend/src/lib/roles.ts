@@ -124,6 +124,7 @@ function isProjectManagementRole(role?: string | null) {
 }
 
 const hrNav: RoleNavItem[] = [
+  { label: "HR Home", icon: LayoutDashboard, to: "/hr-home", group: "Core HR", exact: true },
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
   { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
@@ -160,6 +161,7 @@ const hrNav: RoleNavItem[] = [
 ];
 
 const adminNav: RoleNavItem[] = [
+  { label: "Admin Home", icon: ShieldCheck, to: "/admin-home", group: "Core HR", exact: true },
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Workflow Designer", icon: GitBranch, to: "/workflow-designer", group: "Core HR" },
@@ -199,6 +201,7 @@ const adminNav: RoleNavItem[] = [
 ];
 
 const ceoNav: RoleNavItem[] = [
+  { label: "Executive Home", icon: LayoutDashboard, to: "/executive-home", group: "Core HR", exact: true },
   { label: "Executive Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
@@ -427,6 +430,10 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
 }
 
 const routeAccess: Record<string, RoleKey[]> = {
+  "/role-home": ["admin", "ceo", "hr", "manager", "employee"],
+  "/admin-home": ["admin"],
+  "/hr-home": ["admin", "hr"],
+  "/executive-home": ["admin", "ceo"],
   "/dashboard": ["admin", "ceo", "hr", "manager", "employee"],
   "/manager-dashboard": ["admin", "hr", "manager"],
   "/ess": ["admin", "ceo", "hr", "manager", "employee"],

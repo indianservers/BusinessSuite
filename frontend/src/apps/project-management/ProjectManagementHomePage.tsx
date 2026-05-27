@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Kanban, Globe2, Sparkles } from "lucide-react";
+import { ClipboardList, Globe2, Kanban, Plus, Send, Sparkles } from "lucide-react";
 import { ProductWorkflowCenter } from "@/components/product/ProductWorkflowCenter";
 import { useProjectStore, useUIStore } from "./store";
-import { projectsAPI } from "./services/api";
-import { PMSProject } from "./types";
+import { projectIntakeAPI, projectsAPI } from "./services/api";
+import { PMSProject, PMSProjectIntake } from "./types";
 
 /**
  * KaryaFlow - Project Management Home Page
@@ -16,6 +16,11 @@ const ProjectManagementHomePage: React.FC = () => {
   const { setSidebarOpen } = useUIStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [intakes, setIntakes] = useState<PMSProjectIntake[]>([]);
+  const [intakeTitle, setIntakeTitle] = useState("");
+  const [intakeDescription, setIntakeDescription] = useState("");
+  const [intakePriority, setIntakePriority] = useState("Medium");
+  const [intakeSaving, setIntakeSaving] = useState(false);
 
   // Initialize sidebar state
   useEffect(() => {
@@ -28,7 +33,9 @@ const ProjectManagementHomePage: React.FC = () => {
       try {
         setLoading(true);
         const data = await projectsAPI.list(0, 100);
+        const intakeData = await projectIntakeAPI.list(undefined, 0, 10).catch(() => []);
         setProjects(data || []);
+        setIntakes(intakeData || []);
       } catch (err: any) {
         setError(err.message || "Failed to load projects");
         console.error("Error loading projects:", err);
@@ -47,6 +54,28 @@ const ProjectManagementHomePage: React.FC = () => {
 
   const handleCreateProject = () => {
     navigate("/pms/projects/new");
+  };
+
+  const handleSubmitIntake = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!intakeTitle.trim()) return;
+    try {
+      setIntakeSaving(true);
+      setError(null);
+      const intake = await projectIntakeAPI.create({
+        title: intakeTitle.trim(),
+        description: intakeDescription.trim() || undefined,
+        priority: intakePriority,
+      });
+      setIntakes((items) => [intake, ...items]);
+      setIntakeTitle("");
+      setIntakeDescription("");
+      setIntakePriority("Medium");
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || err.message || "Failed to submit project intake");
+    } finally {
+      setIntakeSaving(false);
+    }
   };
 
   if (loading) {
@@ -134,6 +163,62 @@ const ProjectManagementHomePage: React.FC = () => {
             <p className="text-red-800 font-medium">{error}</p>
           </div>
         )}
+
+        <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
+          <form onSubmit={handleSubmitIntake} className="rounded-xl border bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-blue-700" />
+              <h2 className="text-lg font-bold text-gray-900">Project Intake</h2>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[1fr_12rem]">
+              <input
+                value={intakeTitle}
+                onChange={(event) => setIntakeTitle(event.target.value)}
+                className="h-11 rounded-lg border border-gray-300 px-3 text-sm"
+                placeholder="Project request title"
+              />
+              <select
+                value={intakePriority}
+                onChange={(event) => setIntakePriority(event.target.value)}
+                className="h-11 rounded-lg border border-gray-300 px-3 text-sm"
+              >
+                <option>Low</option>
+                <option>Medium</option>
+                <option>High</option>
+                <option>Critical</option>
+              </select>
+            </div>
+            <textarea
+              value={intakeDescription}
+              onChange={(event) => setIntakeDescription(event.target.value)}
+              className="mt-3 min-h-24 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              placeholder="Short description, goal, or business need"
+            />
+            <button
+              type="submit"
+              disabled={intakeSaving || !intakeTitle.trim()}
+              className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              <Send className="h-4 w-4" />
+              {intakeSaving ? "Submitting..." : "Submit Intake"}
+            </button>
+          </form>
+          <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-bold text-gray-900">Recent Intakes</h2>
+            <div className="mt-3 space-y-3">
+              {intakes.slice(0, 4).map((intake) => (
+                <div key={intake.id} className="rounded-lg border border-gray-200 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold text-gray-900">{intake.title}</p>
+                    <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">{intake.status}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">{intake.priority} priority</p>
+                </div>
+              ))}
+              {!intakes.length ? <p className="text-sm text-gray-500">No intake requests submitted yet.</p> : null}
+            </div>
+          </div>
+        </div>
 
         {projects.length === 0 ? (
           <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-16 text-center shadow-sm">

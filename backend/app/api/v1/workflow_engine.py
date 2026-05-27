@@ -251,11 +251,21 @@ def start_instance(data: WorkflowInstanceCreate, db: Session = Depends(get_db), 
     return instance
 
 
+@router.post("/instances/start", response_model=WorkflowInstanceSchema, status_code=201)
+def start_instance_alias(data: WorkflowInstanceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return start_instance(data, db, current_user)
+
+
 @router.get("/tasks", response_model=list[WorkflowTaskSchema])
 def my_tasks(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     query = db.query(WorkflowTask).filter(WorkflowTask.status == "Pending")
     role_name = current_user.role.name if current_user.role else None
     return query.filter((WorkflowTask.assigned_to_user_id == current_user.id) | (WorkflowTask.assigned_role == role_name)).order_by(WorkflowTask.created_at).limit(200).all()
+
+
+@router.get("/inbox", response_model=list[WorkflowTaskSchema])
+def workflow_inbox(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return my_tasks(db, current_user)
 
 
 @router.put("/tasks/{task_id}/decision", response_model=WorkflowTaskSchema)
@@ -282,6 +292,16 @@ def decide_task(task_id: int, data: WorkflowTaskDecision, db: Session = Depends(
     db.commit()
     db.refresh(task)
     return task
+
+
+@router.put("/tasks/{task_id}/approve", response_model=WorkflowTaskSchema)
+def approve_task(task_id: int, data: dict | None = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return decide_task(task_id, WorkflowTaskDecision(decision="approve", reason=(data or {}).get("reason")), db, current_user)
+
+
+@router.put("/tasks/{task_id}/reject", response_model=WorkflowTaskSchema)
+def reject_task(task_id: int, data: dict | None = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return decide_task(task_id, WorkflowTaskDecision(decision="reject", reason=(data or {}).get("reason")), db, current_user)
 
 
 @router.post("/tasks/process-escalations", response_model=list[WorkflowTaskSchema])

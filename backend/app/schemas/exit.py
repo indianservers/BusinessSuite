@@ -51,3 +51,23 @@ class ExitChecklistItemSchema(ExitChecklistItemCreate):
     is_completed: bool = False
     completed_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class ExitInterviewCreate(BaseModel):
+    exit_record_id: int
+    interview_date: Optional[date] = None
+    reason_for_leaving: Optional[str] = None
+    job_satisfaction: Optional[int] = None
+    management_satisfaction: Optional[int] = None
+    work_environment_satisfaction: Optional[int] = None
+    growth_satisfaction: Optional[int] = None
+    would_rejoin: Optional[bool] = None
+    feedback: Optional[str] = None
+    suggestions: Optional[str] = None
+
+
+class ExitInterviewSchema(ExitInterviewCreate):
+    id: int
+    conducted_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)

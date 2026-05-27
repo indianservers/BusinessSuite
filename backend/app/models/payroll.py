@@ -909,6 +909,9 @@ class PayrollRecord(Base):
     reimbursements = Column(Numeric(10, 2), default=0)
     bonus = Column(Numeric(10, 2), default=0)
     net_salary = Column(Numeric(12, 2), default=0)
+    salary_currency = Column(String(3), default="INR")
+    exchange_rate = Column(Numeric(14, 6))
+    converted_currency = Column(String(3), default="INR")
     payslip_pdf_url = Column(String(500))
     payslip_generated_at = Column(DateTime(timezone=True))
     is_anomaly = Column(Boolean, default=False)
@@ -1582,3 +1585,229 @@ class EmployeeTaxProof(Base):
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
 
     declaration_item = relationship("EmployeeTaxDeclarationItem", back_populates="proofs")
+
+
+class PayslipDeliveryLog(Base):
+    __tablename__ = "payslip_delivery_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payroll_record_id = Column(Integer, ForeignKey("payroll_records.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    channel = Column(String(30), nullable=False, index=True)  # email, whatsapp, sms
+    destination = Column(String(180))
+    status = Column(String(30), default="Queued", index=True)
+    message = Column(Text)
+    sent_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PayslipQuery(Base):
+    __tablename__ = "payslip_queries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payroll_record_id = Column(Integer, ForeignKey("payroll_records.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    subject = Column(String(180), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(String(30), default="Open", index=True)
+    priority = Column(String(20), default="Medium", index=True)
+    resolution = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class SalaryAdvance(Base):
+    __tablename__ = "salary_advances"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    requested_amount = Column(Numeric(14, 2), nullable=False)
+    approved_amount = Column(Numeric(14, 2), default=0)
+    reason = Column(Text)
+    requested_deduction_month = Column(Integer, nullable=False)
+    requested_deduction_year = Column(Integer, nullable=False)
+    status = Column(String(30), default="Pending", index=True)
+    payroll_record_id = Column(Integer, ForeignKey("payroll_records.id", ondelete="SET NULL"), nullable=True, index=True)
+    reviewed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True))
+    review_remarks = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SalaryRevisionBatch(Base):
+    __tablename__ = "salary_revision_batches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(160), nullable=False)
+    effective_from = Column(Date, nullable=False)
+    status = Column(String(30), default="Draft", index=True)
+    total_rows = Column(Integer, default=0)
+    applied_rows = Column(Integer, default=0)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    applied_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    applied_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    lines = relationship("SalaryRevisionBatchLine", back_populates="batch", cascade="all, delete-orphan")
+
+
+class SalaryRevisionBatchLine(Base):
+    __tablename__ = "salary_revision_batch_lines"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey("salary_revision_batches.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    current_ctc = Column(Numeric(14, 2), default=0)
+    new_ctc = Column(Numeric(14, 2), nullable=False)
+    structure_id = Column(Integer, ForeignKey("salary_structures.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(30), default="Pending", index=True)
+    error_message = Column(Text)
+
+    batch = relationship("SalaryRevisionBatch", back_populates="lines")
+
+
+class BonusPolicy(Base):
+    __tablename__ = "bonus_policies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(160), nullable=False)
+    bonus_type = Column(String(60), default="Festival", index=True)
+    amount_type = Column(String(30), default="Fixed")  # Fixed, PercentageOfCTC, PercentageOfBasic
+    amount_value = Column(Numeric(12, 2), nullable=False)
+    applicable_month = Column(Integer)
+    department_id = Column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    grade_band_id = Column(Integer, ForeignKey("grade_bands.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_active = Column(Boolean, default=True, index=True)
+    description = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class GratuityAccrual(Base):
+    __tablename__ = "gratuity_accruals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    payroll_run_id = Column(Integer, ForeignKey("payroll_runs.id", ondelete="SET NULL"), nullable=True, index=True)
+    month = Column(Integer, nullable=False)
+    year = Column(Integer, nullable=False)
+    gratuity_wage = Column(Numeric(14, 2), default=0)
+    accrual_amount = Column(Numeric(14, 2), default=0)
+    status = Column(String(30), default="Posted", index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SalaryCertificate(Base):
+    __tablename__ = "salary_certificates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    purpose = Column(String(160), nullable=False)
+    period_from = Column(Date)
+    period_to = Column(Date)
+    annual_ctc = Column(Numeric(14, 2), default=0)
+    monthly_gross = Column(Numeric(14, 2), default=0)
+    file_url = Column(String(500))
+    status = Column(String(30), default="Generated", index=True)
+    generated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    generated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PayrollBudget(Base):
+    __tablename__ = "payroll_budgets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    month = Column(Integer, nullable=False, index=True)
+    year = Column(Integer, nullable=False, index=True)
+    department_id = Column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    cost_center_id = Column(Integer, ForeignKey("cost_centers.id", ondelete="SET NULL"), nullable=True, index=True)
+    budget_amount = Column(Numeric(16, 2), nullable=False)
+    currency = Column(String(3), default="INR")
+    remarks = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PayrollBankValidation(Base):
+    __tablename__ = "payroll_bank_validations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payroll_run_id = Column(Integer, ForeignKey("payroll_runs.id", ondelete="SET NULL"), nullable=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=True, index=True)
+    status = Column(String(30), default="Pending", index=True)
+    error_code = Column(String(80))
+    message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PayrollBankFileValidation(Base):
+    __tablename__ = "payroll_bank_file_validations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payroll_run_id = Column(Integer, ForeignKey("payroll_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    bank_name = Column(String(120), nullable=False, index=True)
+    status = Column(String(30), default="Pending", index=True)
+    error_count = Column(Integer, default=0)
+    warnings_json = Column(JSON)
+    errors_json = Column(JSON)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TDS26ASReconciliation(Base):
+    __tablename__ = "tds_26as_reconciliations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    financial_year = Column(String(20), nullable=False, index=True)
+    company_tds = Column(Numeric(14, 2), default=0)
+    reported_26as_tds = Column(Numeric(14, 2), default=0)
+    difference = Column(Numeric(14, 2), default=0)
+    status = Column(String(30), default="Pending", index=True)
+    remarks = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Form12BARecord(Base):
+    __tablename__ = "form_12ba_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    financial_year = Column(String(20), nullable=False, index=True)
+    perquisites_json = Column(JSON)
+    total_perquisite_value = Column(Numeric(14, 2), default=0)
+    file_url = Column(String(500))
+    status = Column(String(30), default="Generated", index=True)
+    generated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    generated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PayrollExchangeRate(Base):
+    __tablename__ = "payroll_exchange_rates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    from_currency = Column(String(3), nullable=False, index=True)
+    to_currency = Column(String(3), default="INR", nullable=False, index=True)
+    rate = Column(Numeric(14, 6), nullable=False)
+    effective_date = Column(Date, nullable=False, index=True)
+    source = Column(String(80), default="Manual")
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PayrollReportDefinition(Base):
+    __tablename__ = "payroll_report_definitions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(160), nullable=False)
+    report_type = Column(String(80), nullable=False, index=True)
+    filters_json = Column(JSON)
+    columns_json = Column(JSON)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

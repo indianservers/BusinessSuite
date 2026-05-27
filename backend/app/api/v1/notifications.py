@@ -6,67 +6,18 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import RequirePermission, get_current_user, get_db
-from app.models.notification import Notification, NotificationDeliveryLog
-from app.models.user import User
 from app.models.employee import Employee
+from app.models.notification import Notification
+from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.schemas.notification import NotificationCreate, NotificationSchema, normalize_notification_channels
+from app.schemas.notification import NotificationCreate, NotificationSchema
+from app.services.notifications import NotificationService
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 
-def _delivery_recipient(user: Optional[User], channel: str) -> Optional[str]:
-    if not user:
-        return None
-    if channel == "email":
-        return user.email or (user.employee.personal_email if user.employee else None)
-    if channel in {"whatsapp", "sms"}:
-        return (user.employee.phone_number if user.employee else None) or getattr(user, "phone_number", None)
-    if channel == "push":
-        return f"user:{user.id}"
-    return None
-
-
 def create_notification(db: Session, data: NotificationCreate) -> Notification:
-    company_id = data.company_id
-    channels = normalize_notification_channels(data.channels)
-    recipient = (
-        db.query(User)
-        .options(joinedload(User.employee).joinedload(Employee.branch))
-        .filter(User.id == data.user_id)
-        .first()
-    )
-    if company_id is None and recipient and recipient.employee and recipient.employee.branch:
-        company_id = recipient.employee.branch.company_id
-    notification = Notification(
-        company_id=company_id,
-        user_id=data.user_id,
-        title=data.title,
-        message=data.message,
-        module=data.module,
-        event_type=data.event_type,
-        related_entity_type=data.related_entity_type,
-        related_entity_id=data.related_entity_id,
-        action_url=data.action_url,
-        priority=data.priority,
-        channels=channels,
-    )
-    db.add(notification)
-    db.flush()
-
-    for channel in channels:
-        db.add(
-            NotificationDeliveryLog(
-                notification_id=notification.id,
-                channel=channel,
-                recipient=_delivery_recipient(recipient, channel),
-                status="delivered" if channel == "in_app" else "queued",
-            )
-        )
-
-    db.commit()
-    db.refresh(notification)
-    return notification
+    return NotificationService.create_notification(db, data)
 
 
 @router.get("/", response_model=PaginatedResponse[NotificationSchema])

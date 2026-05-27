@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.api.v1.notifications import create_notification
+from app.services.notifications import create_notification
 from app.core.config import settings
 from app.core.deps import RequirePermission, get_current_user, get_db
 from app.models.employee import Employee, ProbationAction, ProbationReview

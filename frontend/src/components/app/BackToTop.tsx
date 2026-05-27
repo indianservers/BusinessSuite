@@ -6,8 +6,9 @@ export default function BackToTop() {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const main = document.querySelector("main");
-    const onScroll = () => setVisible((main?.scrollTop || 0) > 480);
+    const onScroll = () => setVisible((main?.scrollTop || 0) > 300);
     main?.addEventListener("scroll", onScroll);
+    onScroll();
     return () => main?.removeEventListener("scroll", onScroll);
   }, []);
   if (!visible) return null;

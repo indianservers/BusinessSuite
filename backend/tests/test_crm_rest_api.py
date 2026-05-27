@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from app.apps.crm.models import CRMApprovalRequest, CRMCalendarIntegration, CRMContact, CRMDeal, CRMEnrichmentLog, CRMLead, CRMMessage, CRMNoteMention, CRMPipeline, CRMPipelineStage, CRMQuotationItem, CRMTask, CRMTerritoryUser, CRMWebhookDelivery
+from app.apps.crm.models import CRMApprovalRequest, CRMCalendarIntegration, CRMContact, CRMDeal, CRMDealContact, CRMEnrichmentLog, CRMLead, CRMMessage, CRMNoteMention, CRMPipeline, CRMPipelineStage, CRMQuotationItem, CRMTask, CRMTerritoryUser, CRMWebhookDelivery
 from app.models.company import Branch, Company
 from app.models.employee import Employee
 from app.models.notification import Notification
@@ -777,6 +777,89 @@ def test_crm_multiple_pipelines_stage_management_and_remap(client, superuser_hea
         json={"pipelineId": pipeline_id, "stageId": other_stage.json()["id"]},
     )
     assert invalid_move.status_code == 422
+
+
+def test_crm_deal_supports_multiple_stakeholder_contacts(client, db, superuser_headers):
+    contact_1 = client.post(
+        "/api/v1/crm/contacts",
+        headers=superuser_headers,
+        json={"firstName": "Decision", "fullName": "Decision Maker", "email": "decision@example.com"},
+    )
+    contact_2 = client.post(
+        "/api/v1/crm/contacts",
+        headers=superuser_headers,
+        json={"firstName": "Champion", "fullName": "Internal Champion", "email": "champion@example.com"},
+    )
+    contact_3 = client.post(
+        "/api/v1/crm/contacts",
+        headers=superuser_headers,
+        json={"firstName": "Influencer", "fullName": "Deal Influencer", "email": "influencer@example.com"},
+    )
+    assert contact_1.status_code == 201
+    assert contact_2.status_code == 201
+    assert contact_3.status_code == 201
+
+    pipeline = client.post("/api/v1/crm/pipelines", headers=superuser_headers, json={"name": "Stakeholder Sales"})
+    stage = client.post(
+        f"/api/v1/crm/pipelines/{pipeline.json()['id']}/stages",
+        headers=superuser_headers,
+        json={"name": "Evaluation"},
+    )
+    assert pipeline.status_code == 201
+    assert stage.status_code == 201
+
+    deal = client.post(
+        "/api/v1/crm/deals",
+        headers=superuser_headers,
+        json={
+            "name": "Multi stakeholder ERP",
+            "pipelineId": pipeline.json()["id"],
+            "stageId": stage.json()["id"],
+            "contacts": [
+                {"contactId": contact_1.json()["id"], "role": "Decision Maker", "influenceLevel": "High", "isPrimary": True},
+                {"contactId": contact_2.json()["id"], "role": "Champion", "influenceLevel": "High"},
+            ],
+        },
+    )
+    assert deal.status_code == 201, deal.text
+    assert deal.json()["contact_id"] == contact_1.json()["id"]
+    assert db.query(CRMDealContact).filter(CRMDealContact.deal_id == deal.json()["id"]).count() == 2
+
+    detail = client.get(f"/api/v1/crm/deals/{deal.json()['id']}", headers=superuser_headers)
+    assert detail.status_code == 200
+    related_contacts = detail.json()["related"]["contacts"]
+    assert {item["role"] for item in related_contacts} == {"Decision Maker", "Champion"}
+    assert related_contacts[0]["isPrimary"] is True
+
+    added = client.post(
+        f"/api/v1/crm/deals/{deal.json()['id']}/contacts",
+        headers=superuser_headers,
+        json={"contactId": contact_3.json()["id"], "role": "Influencer", "influenceLevel": "Medium"},
+    )
+    assert added.status_code == 201, added.text
+
+    promoted = client.patch(
+        f"/api/v1/crm/deals/{deal.json()['id']}/contacts/{added.json()['id']}",
+        headers=superuser_headers,
+        json={"contactId": contact_3.json()["id"], "role": "Economic Buyer", "isPrimary": True},
+    )
+    assert promoted.status_code == 200, promoted.text
+    assert promoted.json()["isPrimary"] is True
+
+    refreshed = client.get(f"/api/v1/crm/deals/{deal.json()['id']}", headers=superuser_headers)
+    assert refreshed.json()["contact_id"] == contact_3.json()["id"]
+    assert len([item for item in refreshed.json()["related"]["contacts"] if item["isPrimary"]]) == 1
+
+    replaced = client.put(
+        f"/api/v1/crm/deals/{deal.json()['id']}/contacts",
+        headers=superuser_headers,
+        json={"contacts": [{"contactId": contact_2.json()["id"], "role": "Champion", "isPrimary": True}]},
+    )
+    assert replaced.status_code == 200, replaced.text
+    assert len(replaced.json()["items"]) == 1
+
+    final_deal = client.get(f"/api/v1/crm/deals/{deal.json()['id']}", headers=superuser_headers)
+    assert final_deal.json()["contact_id"] == contact_2.json()["id"]
 
 
 def test_crm_numeric_lead_scoring_rules_and_manual_override(client, superuser_headers):

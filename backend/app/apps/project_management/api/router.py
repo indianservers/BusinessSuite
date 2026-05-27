@@ -27,7 +27,7 @@ from app.apps.project_management.models import (
     PMSClient, PMSProject, PMSProjectMember, PMSTask, PMSBoard, PMSBoardColumn,
     PMSMilestone, PMSSprint, PMSSprintRetroActionItem, PMSComment, PMSTimeLog, PMSTimesheet, PMSFileAsset, PMSTaskDependency,
     PMSChecklistItem, PMSTag, PMSTaskTag, PMSClientApproval, PMSEpic, PMSComponent, PMSRelease, PMSMention,
-    PMSUserCapacity, PMSRisk,
+    PMSUserCapacity, PMSRisk, PMSProjectIntake,
     PMSDevIntegration, PMSDevLink, PMSSavedFilter, PMSActivity
 )
 from app.apps.project_management.access import (
@@ -43,6 +43,7 @@ from app.apps.project_management.access import (
 )
 from app.apps.project_management.schemas import (
     PMSProjectCreate, PMSProjectUpdate, PMSProjectResponse,
+    PMSProjectIntakeCreate, PMSProjectIntakeReview, PMSProjectIntakeResponse,
     PMSTaskCreate, PMSTaskUpdate, PMSTaskResponse,
     PMSClientCreate, PMSClientUpdate, PMSClientResponse,
     PMSMilestoneCreate, PMSMilestoneUpdate, PMSMilestoneResponse,
@@ -1606,6 +1607,7 @@ def module_info():
             "comments",
             "time-logs",
             "client-approvals",
+            "project-intake",
         ],
     }
 
@@ -1713,6 +1715,121 @@ def delete_client(
     db.add(client)
     db.commit()
     return {"message": "Client deleted"}
+
+
+def _project_key_from_title(db: Session, organization_id: int | None, title: str) -> str:
+    words = re.findall(r"[A-Za-z0-9]+", title.upper())
+    base = "".join(word[:3] for word in words[:2])[:8] or "PRJ"
+    candidate = base
+    counter = 1
+    while db.query(PMSProject).filter(PMSProject.organization_id == organization_id, PMSProject.project_key == candidate).first():
+        counter += 1
+        candidate = f"{base}{counter}"[:20]
+    return candidate
+
+
+@router.post("/intake", response_model=PMSProjectIntakeResponse, status_code=status.HTTP_201_CREATED)
+def create_project_intake(
+    intake_in: PMSProjectIntakeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    intake = PMSProjectIntake(
+        organization_id=organization_id_for(current_user),
+        requester_user_id=current_user.id,
+        requester_email=intake_in.requester_email or current_user.email,
+        requester_name=intake_in.requester_name or _user_display_name(current_user),
+        **intake_in.dict(exclude={"requester_email", "requester_name"}),
+    )
+    db.add(intake)
+    db.commit()
+    db.refresh(intake)
+    return intake
+
+
+@router.get("/intake", response_model=list[PMSProjectIntakeResponse])
+def list_project_intakes(
+    status_filter: str | None = Query(None, alias="status"),
+    skip: int = Query(0),
+    limit: int = Query(100, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(PMSProjectIntake).filter(PMSProjectIntake.organization_id == organization_id_for(current_user))
+    if not has_any_permission(current_user, PMS_GLOBAL_MANAGE_PROJECTS):
+        query = query.filter(PMSProjectIntake.requester_user_id == current_user.id)
+    if status_filter:
+        query = query.filter(PMSProjectIntake.status == status_filter)
+    return query.order_by(desc(PMSProjectIntake.created_at)).offset(skip).limit(limit).all()
+
+
+@router.post("/intake/{intake_id}/review", response_model=PMSProjectIntakeResponse)
+def review_project_intake(
+    intake_id: int,
+    review: PMSProjectIntakeReview,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not has_any_permission(current_user, PMS_GLOBAL_MANAGE_PROJECTS):
+        raise HTTPException(status_code=403, detail="Project management permission required")
+    intake = db.query(PMSProjectIntake).filter(
+        PMSProjectIntake.id == intake_id,
+        PMSProjectIntake.organization_id == organization_id_for(current_user),
+    ).first()
+    if not intake:
+        raise HTTPException(status_code=404, detail="Project intake not found")
+    if intake.status not in {"submitted", "needs_info"}:
+        raise HTTPException(status_code=400, detail="Only submitted intakes can be reviewed")
+
+    decision = review.status.lower()
+    if decision not in {"approved", "rejected", "needs_info"}:
+        raise HTTPException(status_code=400, detail="status must be approved, rejected, or needs_info")
+
+    if decision == "approved":
+        client_id = intake.client_id
+        if not client_id and intake.client_name:
+            client = PMSClient(
+                organization_id=organization_id_for(current_user),
+                name=intake.client_name,
+                company_name=intake.client_name,
+            )
+            db.add(client)
+            db.flush()
+            client_id = client.id
+        project_key = (review.project_key or _project_key_from_title(db, organization_id_for(current_user), intake.title)).upper()
+        if db.query(PMSProject).filter(
+            PMSProject.organization_id == organization_id_for(current_user),
+            PMSProject.project_key == project_key,
+        ).first():
+            raise HTTPException(status_code=400, detail="Project key already exists")
+        project = PMSProject(
+            organization_id=organization_id_for(current_user),
+            client_id=client_id,
+            manager_user_id=review.manager_user_id or current_user.id,
+            name=intake.title,
+            project_key=project_key,
+            description=intake.description,
+            status="Active",
+            priority=intake.priority,
+            start_date=intake.desired_start_date,
+            due_date=intake.desired_due_date,
+            budget_amount=intake.budget_amount,
+        )
+        db.add(project)
+        db.flush()
+        db.add(PMSProjectMember(project_id=project.id, user_id=current_user.id, role="Manager"))
+        if project.manager_user_id and project.manager_user_id != current_user.id:
+            db.add(PMSProjectMember(project_id=project.id, user_id=project.manager_user_id, role="Manager"))
+        intake.created_project_id = project.id
+
+    intake.status = decision
+    intake.review_notes = review.review_notes
+    intake.reviewed_by_user_id = current_user.id
+    intake.reviewed_at = datetime.utcnow()
+    db.add(intake)
+    db.commit()
+    db.refresh(intake)
+    return intake
 
 
 # ============= PROJECTS =============

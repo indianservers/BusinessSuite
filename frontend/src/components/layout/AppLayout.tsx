@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -14,7 +14,11 @@ export default function AppLayout() {
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("sidebarCollapsed") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   return (
     <div className={`product-shell ${product.themeClass} flex h-screen overflow-hidden bg-background`} data-product={product.key}>
@@ -33,15 +37,15 @@ export default function AppLayout() {
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 animate-fade-in">
+        <main className="flex-1 overflow-y-auto p-4 md:p-5 lg:p-8 animate-fade-in">
           <Breadcrumbs />
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </main>
         <BackToTop />
-        <SessionTimeoutWarning />
       </div>
+      <SessionTimeoutWarning />
 
       {/* Mobile overlay */}
       {sidebarOpen && (

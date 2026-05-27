@@ -10,7 +10,7 @@ from app.core.deps import get_current_user, get_db, RequirePermission
 from app.models.user import User
 from app.models.employee import Employee, EmployeeChangeRequest
 from app.models.attendance import Attendance, AttendanceRegularization, Holiday
-from app.models.leave import LeaveRequest
+from app.models.leave import LeaveRequest, LeaveType
 from app.models.helpdesk import HelpdeskTicket
 from app.models.document import CompanyPolicy, GeneratedDocument
 from app.models.payroll import PayrollRecord, PayrollRun
@@ -660,3 +660,129 @@ def project_utilization_report(
             headers={"Content-Disposition": "attachment; filename=project_utilization.csv"},
         )
     return result
+
+
+@router.get("/monthly-attrition")
+def monthly_attrition_report(
+    year: int = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("reports_view")),
+):
+    exits = (
+        db.query(extract("month", Employee.date_of_exit).label("month"), func.count(Employee.id).label("count"))
+        .filter(Employee.date_of_exit.isnot(None), extract("year", Employee.date_of_exit) == year)
+        .group_by("month")
+        .order_by("month")
+        .all()
+    )
+    joins = (
+        db.query(extract("month", Employee.date_of_joining).label("month"), func.count(Employee.id).label("count"))
+        .filter(Employee.date_of_joining.isnot(None), extract("year", Employee.date_of_joining) == year)
+        .group_by("month")
+        .order_by("month")
+        .all()
+    )
+    exits_by_month = {int(row.month): row.count for row in exits}
+    joins_by_month = {int(row.month): row.count for row in joins}
+    active = db.query(func.count(Employee.id)).filter(Employee.status == "Active").scalar() or 0
+    return [
+        {
+            "month": month,
+            "joiners": joins_by_month.get(month, 0),
+            "exits": exits_by_month.get(month, 0),
+            "attrition_rate": round((exits_by_month.get(month, 0) / active * 100) if active else 0, 2),
+        }
+        for month in range(1, 13)
+    ]
+
+
+@router.get("/leave-utilization")
+def leave_utilization_summary(
+    year: int = Query(...),
+    department_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("reports_view")),
+):
+    query = (
+        db.query(LeaveType.name, func.coalesce(func.sum(LeaveRequest.days_count), 0).label("used_days"), func.count(LeaveRequest.id).label("requests"))
+        .join(LeaveRequest, LeaveRequest.leave_type_id == LeaveType.id)
+        .join(Employee, Employee.id == LeaveRequest.employee_id)
+        .filter(LeaveRequest.status == "Approved", LeaveRequest.deleted_at.is_(None), extract("year", LeaveRequest.from_date) == year)
+    )
+    if department_id:
+        query = query.filter(Employee.department_id == department_id)
+    rows = query.group_by(LeaveType.id, LeaveType.name).order_by(LeaveType.name).all()
+    return [{"leave_type": row.name, "used_days": float(row.used_days or 0), "approved_requests": row.requests} for row in rows]
+
+
+@router.get("/attendance-summary")
+def attendance_summary_report(
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    department_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("reports_view")),
+):
+    query = db.query(Attendance.status, func.count(Attendance.id).label("count")).join(Employee, Employee.id == Attendance.employee_id).filter(
+        Attendance.attendance_date >= from_date,
+        Attendance.attendance_date <= to_date,
+    )
+    if department_id:
+        query = query.filter(Employee.department_id == department_id)
+    rows = query.group_by(Attendance.status).all()
+    return {"period": {"from": from_date.isoformat(), "to": to_date.isoformat()}, "summary": [{"status": row.status, "count": row.count} for row in rows]}
+
+
+@router.get("/salary-register")
+def salary_register_report(
+    month: int = Query(..., ge=1, le=12),
+    year: int = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("payroll_view")),
+):
+    rows = (
+        db.query(PayrollRecord, PayrollRun, Employee)
+        .join(PayrollRun, PayrollRun.id == PayrollRecord.payroll_run_id)
+        .join(Employee, Employee.id == PayrollRecord.employee_id)
+        .filter(PayrollRun.month == month, PayrollRun.year == year)
+        .order_by(Employee.employee_id)
+        .all()
+    )
+    return [
+        {
+            "employee_id": employee.id,
+            "employee_code": employee.employee_id,
+            "employee_name": f"{employee.first_name} {employee.last_name}",
+            "gross_salary": float(record.gross_salary or 0),
+            "total_deductions": float(record.total_deductions or 0),
+            "net_salary": float(record.net_salary or 0),
+            "pf_employee": float(record.pf_employee or 0),
+            "esi_employee": float(record.esi_employee or 0),
+            "professional_tax": float(record.professional_tax or 0),
+            "tds": float(record.tds or 0),
+            "status": record.status,
+        }
+        for record, _run, employee in rows
+    ]
+
+
+@router.get("/new-joiners-exits")
+def new_joiners_exits_report(
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("reports_view")),
+):
+    joiners = db.query(Employee).filter(Employee.date_of_joining >= from_date, Employee.date_of_joining <= to_date).order_by(Employee.date_of_joining).all()
+    exits = db.query(Employee).filter(Employee.date_of_exit >= from_date, Employee.date_of_exit <= to_date).order_by(Employee.date_of_exit).all()
+    return {
+        "period": {"from": from_date.isoformat(), "to": to_date.isoformat()},
+        "joiners": [
+            {"employee_id": e.id, "employee_code": e.employee_id, "employee_name": f"{e.first_name} {e.last_name}", "date_of_joining": e.date_of_joining}
+            for e in joiners
+        ],
+        "exits": [
+            {"employee_id": e.id, "employee_code": e.employee_id, "employee_name": f"{e.first_name} {e.last_name}", "date_of_exit": e.date_of_exit, "status": e.status}
+            for e in exits
+        ],
+    }

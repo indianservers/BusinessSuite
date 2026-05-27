@@ -99,6 +99,15 @@ export default function GlobalSearch() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input readOnly value="" placeholder={product.searchPlaceholder} className="cursor-pointer border-0 bg-secondary/50 pl-9 focus-visible:ring-1" />
       </button>
+      <button
+        type="button"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-background text-muted-foreground sm:hidden"
+        onClick={() => setOpen(true)}
+        aria-label="Open search"
+        title="Search"
+      >
+        <Search className="h-4 w-4" />
+      </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 p-4 pt-[12vh]" onClick={() => setOpen(false)}>
           <div className="mx-auto max-w-2xl rounded-lg border bg-background shadow-2xl" onClick={(e) => e.stopPropagation()}>

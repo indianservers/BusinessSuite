@@ -47,6 +47,31 @@ class PMSProject(Base):
     deleted_at = Column(DateTime(timezone=True))
 
 
+class PMSProjectIntake(Base):
+    __tablename__ = "pms_project_intakes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    title = Column(String(180), nullable=False, index=True)
+    description = Column(Text)
+    requester_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    requester_name = Column(String(180))
+    requester_email = Column(String(150), index=True)
+    client_id = Column(Integer, ForeignKey("pms_clients.id", ondelete="SET NULL"), nullable=True, index=True)
+    client_name = Column(String(180))
+    priority = Column(String(30), default="Medium", index=True)
+    desired_start_date = Column(Date)
+    desired_due_date = Column(Date)
+    budget_amount = Column(Numeric(12, 2))
+    status = Column(String(30), default="submitted", index=True)
+    review_notes = Column(Text)
+    reviewed_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True))
+    created_project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class PMSProjectMember(Base):
     __tablename__ = "pms_project_members"
     __table_args__ = (UniqueConstraint("project_id", "user_id", name="uq_pms_project_member"),)

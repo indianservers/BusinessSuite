@@ -195,7 +195,7 @@ const MONTHS = [
 
 const normalizeRunStatus = (status?: string) => (status || "draft").toLowerCase().replace(/\s+/g, "_");
 
-type PayrollTab = "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "casebook";
+type PayrollTab = "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
 
 export default function PayrollPage() {
   usePageTitle("Payroll");
@@ -232,6 +232,36 @@ export default function PayrollPage() {
   const [bankAdviceBankName, setBankAdviceBankName] = useState("Payroll Bank");
   const [templateName, setTemplateName] = useState("Default Salary Template");
   const [templateCode, setTemplateCode] = useState("DEFAULT-SALARY");
+  const [toolsMonth, setToolsMonth] = useState(today.getMonth() + 1);
+  const [toolsYear, setToolsYear] = useState(today.getFullYear());
+  const [toolsEmployeeId, setToolsEmployeeId] = useState("");
+  const [simCtc, setSimCtc] = useState("1200000");
+  const [simState, setSimState] = useState("Telangana");
+  const [simReimbursements, setSimReimbursements] = useState("0");
+  const [dispatchChannels, setDispatchChannels] = useState<string[]>(["email"]);
+  const [advanceEmployeeId, setAdvanceEmployeeId] = useState("");
+  const [advanceAmount, setAdvanceAmount] = useState("10000");
+  const [advanceReason, setAdvanceReason] = useState("Salary advance request");
+  const [queryRecordId, setQueryRecordId] = useState("");
+  const [querySubject, setQuerySubject] = useState("Payslip correction");
+  const [queryDescription, setQueryDescription] = useState("");
+  const [bankFileName, setBankFileName] = useState("HDFC");
+  const [taxEmployeeId, setTaxEmployeeId] = useState("");
+  const [taxFinancialYear, setTaxFinancialYear] = useState(`${today.getFullYear()}-${String(today.getFullYear() + 1).slice(-2)}`);
+  const [taxIncome, setTaxIncome] = useState("1200000");
+  const [taxDeductions, setTaxDeductions] = useState("150000");
+  const [tds26EmployeeId, setTds26EmployeeId] = useState("");
+  const [tds26Amount, setTds26Amount] = useState("0");
+  const [form12EmployeeId, setForm12EmployeeId] = useState("");
+  const [form12Value, setForm12Value] = useState("0");
+  const [portalFileType, setPortalFileType] = useState("PF_ECR");
+  const [portalFileUrl, setPortalFileUrl] = useState("");
+  const [budgetAmount, setBudgetAmount] = useState("1000000");
+  const [budgetDepartmentId, setBudgetDepartmentId] = useState("");
+  const [exchangeFrom, setExchangeFrom] = useState("USD");
+  const [exchangeRate, setExchangeRate] = useState("83.00");
+  const [convertAmount, setConvertAmount] = useState("1000");
+  const [toolResults, setToolResults] = useState<Record<string, unknown>>({});
   const [legalName, setLegalName] = useState("Indian Servers Pvt Ltd");
   const [legalState, setLegalState] = useState("Telangana");
   const [legalPan, setLegalPan] = useState("");
@@ -245,7 +275,7 @@ export default function PayrollPage() {
   const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
   const visibleTabs: PayrollTab[] = isEmployee
     ? ["viewer"]
-    : ["wizard", "run", "viewer", "variance", "inputs", "statutory", "tax", "casebook"];
+    : ["wizard", "run", "viewer", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
 
   useEffect(() => {
     if (isEmployee && activeTab !== "viewer") setActiveTab("viewer");
@@ -427,6 +457,24 @@ export default function PayrollPage() {
     queryFn: () => payrollApi.taxProjection({ cycle_id: activeTaxCycle.id }).then((r) => r.data),
     enabled: !!activeTaxCycle,
     retry: false,
+  });
+
+  const { data: payslipQueries } = useQuery({
+    queryKey: ["payroll-payslip-queries"],
+    queryFn: () => payrollApi.payslipQueries().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "tools",
+  });
+
+  const { data: salaryAdvances } = useQuery({
+    queryKey: ["payroll-salary-advances"],
+    queryFn: () => payrollApi.salaryAdvances().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "tools",
+  });
+
+  const { data: bonusPolicies } = useQuery({
+    queryKey: ["payroll-bonus-policies"],
+    queryFn: () => payrollApi.bonusPolicies().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "tools",
   });
 
   const runMutation = useMutation({
@@ -842,6 +890,124 @@ export default function PayrollPage() {
     onError: () => toast({ title: "Could not publish payslips", variant: "destructive" }),
   });
 
+  const saveToolResult = (key: string, data: unknown, title: string) => {
+    setToolResults((current) => ({ ...current, [key]: data }));
+    toast({ title });
+  };
+
+  const healthDashboardMutation = useMutation({
+    mutationFn: () => payrollApi.healthDashboard({ month: toolsMonth, year: toolsYear }),
+    onSuccess: (response) => saveToolResult("health", response.data, "Payroll readiness checked"),
+    onError: () => toast({ title: "Could not check payroll readiness", variant: "destructive" }),
+  });
+
+  const simulateSalaryMutation = useMutation({
+    mutationFn: () => payrollApi.simulateSalary({ ctc: simCtc, state: simState, monthly_reimbursements: simReimbursements, currency: "INR" }),
+    onSuccess: (response) => saveToolResult("simulation", response.data, "Salary simulated"),
+    onError: () => toast({ title: "Could not simulate salary", variant: "destructive" }),
+  });
+
+  const prorationMutation = useMutation({
+    mutationFn: () => payrollApi.prorationPreview({ employee_id: Number(toolsEmployeeId), month: toolsMonth, year: toolsYear }),
+    onSuccess: (response) => saveToolResult("proration", response.data, "Proration preview ready"),
+    onError: () => toast({ title: "Could not preview proration", variant: "destructive" }),
+  });
+
+  const dispatchPayslipsMutation = useMutation({
+    mutationFn: () => payrollApi.dispatchPayslips(selectedRun!.id, dispatchChannels),
+    onSuccess: (response) => saveToolResult("dispatch", response.data, "Payslip dispatch completed"),
+    onError: () => toast({ title: "Could not dispatch payslips", variant: "destructive" }),
+  });
+
+  const createPayslipQueryMutation = useMutation({
+    mutationFn: () => payrollApi.createPayslipQuery({ payroll_record_id: Number(queryRecordId), subject: querySubject, description: queryDescription || querySubject, priority: "Medium" }),
+    onSuccess: () => {
+      toast({ title: "Payslip query created" });
+      setQueryDescription("");
+      qc.invalidateQueries({ queryKey: ["payroll-payslip-queries"] });
+    },
+    onError: () => toast({ title: "Could not create payslip query", variant: "destructive" }),
+  });
+
+  const resolvePayslipQueryMutation = useMutation({
+    mutationFn: (id: number) => payrollApi.resolvePayslipQuery(id, { status: "Resolved", resolution: "Resolved from payroll tools" }),
+    onSuccess: () => {
+      toast({ title: "Payslip query resolved" });
+      qc.invalidateQueries({ queryKey: ["payroll-payslip-queries"] });
+    },
+  });
+
+  const createSalaryAdvanceMutation = useMutation({
+    mutationFn: () => payrollApi.createSalaryAdvance({ employee_id: advanceEmployeeId ? Number(advanceEmployeeId) : undefined, requested_amount: advanceAmount, reason: advanceReason, requested_deduction_month: toolsMonth, requested_deduction_year: toolsYear }),
+    onSuccess: () => {
+      toast({ title: "Salary advance requested" });
+      qc.invalidateQueries({ queryKey: ["payroll-salary-advances"] });
+    },
+    onError: () => toast({ title: "Could not create salary advance", variant: "destructive" }),
+  });
+
+  const reviewSalaryAdvanceMutation = useMutation({
+    mutationFn: ({ id, action, amount }: { id: number; action: "approve" | "reject"; amount?: number }) => payrollApi.reviewSalaryAdvance(id, { action, approved_amount: amount, remarks: `${action} from payroll tools` }),
+    onSuccess: () => {
+      toast({ title: "Salary advance reviewed" });
+      qc.invalidateQueries({ queryKey: ["payroll-salary-advances"] });
+    },
+  });
+
+  const payrollOperationMutation = useMutation({
+    mutationFn: async (action: string) => {
+      if (!selectedRun && ["arrears", "gratuity", "expenses", "bank-file", "bonus"].includes(action)) throw new Error("Select a payroll run first");
+      if (action === "arrears") return payrollApi.autoCalculateArrears(selectedRun!.id);
+      if (action === "gratuity") return payrollApi.generateGratuityAccruals(selectedRun!.id);
+      if (action === "expenses") return payrollApi.linkExpenseClaimsToReimbursements(selectedRun!.id);
+      if (action === "bank-details") return payrollApi.validateBankDetails({ run_id: selectedRun?.id });
+      if (action === "bank-file") return payrollApi.validateBankFile({ run_id: selectedRun!.id, bank_name: bankFileName });
+      if (action === "cutoff") return payrollApi.sendCutoffReminders({ month: toolsMonth, year: toolsYear });
+      if (action === "periods") return payrollApi.autoGeneratePayrollPeriods({ pay_group_id: (payGroups as { id: number }[] | undefined)?.[0]?.id, year: toolsYear });
+      if (action === "bonus-create") return payrollApi.createBonusPolicy({ name: `Festival Bonus ${toolsYear}`, bonus_type: "Festival", amount_type: "Fixed", amount_value: 5000, applicable_month: toolsMonth, description: "Created from payroll tools" });
+      if (action === "bonus") return payrollApi.applyBonusPolicy({ payroll_run_id: selectedRun!.id, policy_id: (bonusPolicies as { id: number }[] | undefined)?.[0]?.id });
+      throw new Error("Unknown action");
+    },
+    onSuccess: (response, action) => {
+      saveToolResult(`operation_${action}`, response.data, "Payroll operation completed");
+      qc.invalidateQueries({ queryKey: ["payroll-bonus-policies"] });
+      qc.invalidateQueries({ queryKey: ["run-records"] });
+    },
+    onError: (error: unknown) => toast({ title: "Payroll operation failed", description: (error as Error)?.message, variant: "destructive" }),
+  });
+
+  const taxOptimizerMutation = useMutation({
+    mutationFn: () => payrollApi.taxOptimizer({ employee_id: Number(taxEmployeeId || toolsEmployeeId), financial_year: taxFinancialYear, gross_taxable_income: taxIncome, declared_deductions: taxDeductions, hra_exemption: 0, paid_tds: 0 }),
+    onSuccess: (response) => saveToolResult("tax_optimizer", response.data, "Tax optimizer ready"),
+    onError: () => toast({ title: "Could not run tax optimizer", variant: "destructive" }),
+  });
+
+  const complianceToolMutation = useMutation({
+    mutationFn: async (action: string) => {
+      if (action === "tds26") return payrollApi.reconcileTds26As({ employee_id: Number(tds26EmployeeId || toolsEmployeeId), financial_year: taxFinancialYear, reported_26as_tds: tds26Amount });
+      if (action === "form12ba") return payrollApi.generateForm12BA({ employee_id: Number(form12EmployeeId || toolsEmployeeId), financial_year: taxFinancialYear, perquisites: [{ name: "Perquisites", value: Number(form12Value || 0) }] });
+      if (action === "portal") return payrollApi.submitStatutoryPortal({ file_type: portalFileType, file_url: portalFileUrl || "manual-upload", portal: portalFileType.includes("ESI") ? "ESIC" : "EPFO" });
+      if (action === "certificate") return payrollApi.generateSalaryCertificate({ employee_id: Number(toolsEmployeeId), purpose: "Official salary certificate" });
+      throw new Error("Unknown action");
+    },
+    onSuccess: (response, action) => saveToolResult(`compliance_${action}`, response.data, "Compliance tool completed"),
+    onError: () => toast({ title: "Compliance tool failed", variant: "destructive" }),
+  });
+
+  const planningToolMutation = useMutation({
+    mutationFn: async (action: string) => {
+      if (action === "budget") return payrollApi.createPayrollBudget({ month: toolsMonth, year: toolsYear, budget_amount: budgetAmount, department_id: budgetDepartmentId ? Number(budgetDepartmentId) : undefined, currency: "INR" });
+      if (action === "variance") return payrollApi.payrollBudgetVariance({ month: toolsMonth, year: toolsYear });
+      if (action === "rate") return payrollApi.createExchangeRate({ from_currency: exchangeFrom, to_currency: "INR", rate: exchangeRate, effective_date: `${toolsYear}-${String(toolsMonth).padStart(2, "0")}-01`, source: "Manual" });
+      if (action === "convert") return payrollApi.convertCurrency({ amount: convertAmount, from_currency: exchangeFrom, to_currency: "INR" });
+      if (action === "analytics") return payrollApi.payrollAnalytics({ month: toolsMonth, year: toolsYear });
+      if (action === "report") return payrollApi.createPayrollReport({ name: `Payroll Summary ${toolsMonth}/${toolsYear}`, report_type: "department_salary_cost", filters_json: { month: toolsMonth, year: toolsYear }, columns_json: ["department_id", "amount"] });
+      throw new Error("Unknown action");
+    },
+    onSuccess: (response, action) => saveToolResult(`planning_${action}`, response.data, "Planning tool completed"),
+    onError: () => toast({ title: "Planning tool failed", variant: "destructive" }),
+  });
+
   const prevSlipMonth = () => {
     if (slipMonth === 1) { setSlipMonth(12); setSlipYear((y) => y - 1); }
     else setSlipMonth((m) => m - 1);
@@ -861,6 +1027,16 @@ export default function PayrollPage() {
     const reason = needsReason ? window.prompt(`${action === "hold" ? "Hold" : "Skip"} reason for employee #${row.employee_id}`) : undefined;
     if (needsReason && !reason) return;
     worksheetRowMutation.mutate({ runId: selectedRun.id, rowId: row.id, action, reason: reason || undefined });
+  };
+  const healthResult = toolResults.health as { ready?: boolean; attendance_locked?: boolean; issues?: Record<string, { count?: number }> } | undefined;
+  const simulationResult = toolResults.simulation as { gross_salary?: number; estimated_take_home?: number; deductions?: Record<string, number>; components?: { component_name: string; monthly_amount: number }[]; warnings?: string[] } | undefined;
+  const prorationResult = toolResults.proration as { payable_days?: number; period_days?: number; proration_factor?: number; prorated_monthly_ctc?: number; prorated_basic?: number; prorated_hra?: number } | undefined;
+  const dispatchResult = toolResults.dispatch as { notifications_sent?: number } | undefined;
+  const taxOptimizerResult = toolResults.tax_optimizer as { recommended_regime?: { regime_code?: string }; projected_savings?: number; recommendations?: { section?: string; suggested_amount?: number; message?: string }[] } | undefined;
+  const budgetVarianceResult = toolResults.planning_variance as { rows?: { budget_amount?: number; actual_amount?: number; variance?: number }[] } | undefined;
+  const analyticsResult = toolResults.planning_analytics as { records?: number; total_gross_cost?: number; department_salary_cost?: { department_id: string; amount: number }[] } | undefined;
+  const toggleDispatchChannel = (channel: string) => {
+    setDispatchChannels((current) => current.includes(channel) ? current.filter((item) => item !== channel) : [...current, channel]);
   };
 
   return (
@@ -882,7 +1058,7 @@ export default function PayrollPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : "Real Cases"}
+            {tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
           </button>
         ))}
       </div>
@@ -2035,6 +2211,244 @@ export default function PayrollPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {!isEmployee && activeTab === "tools" && (
+        <div className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Payroll Health</CardTitle>
+                <CardDescription>Check readiness before running payroll.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5"><Label>Month</Label><Input type="number" min={1} max={12} value={toolsMonth} onChange={(event) => setToolsMonth(Number(event.target.value))} /></div>
+                  <div className="space-y-1.5"><Label>Year</Label><Input type="number" value={toolsYear} onChange={(event) => setToolsYear(Number(event.target.value))} /></div>
+                  <div className="flex items-end"><Button className="w-full" onClick={() => healthDashboardMutation.mutate()} disabled={healthDashboardMutation.isPending}>Check</Button></div>
+                </div>
+                {healthResult && (
+                  <div className="grid gap-2 text-sm sm:grid-cols-2">
+                    <Badge variant={healthResult.ready ? "default" : "destructive"}>{healthResult.ready ? "Ready" : "Not ready"}</Badge>
+                    <Badge variant="outline">Attendance {healthResult.attendance_locked ? "locked" : "open"}</Badge>
+                    {["missing_salary", "missing_bank", "invalid_bank", "missing_pan"].map((key) => (
+                      <div key={key} className="rounded-md border p-3">
+                        <p className="text-xs uppercase text-muted-foreground">{key.replace(/_/g, " ")}</p>
+                        <p className="text-lg font-semibold">{healthResult.issues?.[key]?.count ?? 0}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">CTC Simulator</CardTitle>
+                <CardDescription>Estimate monthly take-home for offer discussions.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5"><Label>Annual CTC</Label><Input value={simCtc} onChange={(event) => setSimCtc(event.target.value)} /></div>
+                  <div className="space-y-1.5"><Label>State</Label><Input value={simState} onChange={(event) => setSimState(event.target.value)} /></div>
+                  <div className="space-y-1.5"><Label>Reimb.</Label><Input value={simReimbursements} onChange={(event) => setSimReimbursements(event.target.value)} /></div>
+                </div>
+                <Button onClick={() => simulateSalaryMutation.mutate()} disabled={simulateSalaryMutation.isPending}>Simulate</Button>
+                {simulationResult && (
+                  <div className="space-y-3 text-sm">
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-md border p-3"><p className="text-muted-foreground">Gross</p><p className="font-semibold">{formatCurrency(simulationResult.gross_salary || 0)}</p></div>
+                      <div className="rounded-md border p-3"><p className="text-muted-foreground">Take-home</p><p className="font-semibold text-green-600">{formatCurrency(simulationResult.estimated_take_home || 0)}</p></div>
+                      <div className="rounded-md border p-3"><p className="text-muted-foreground">Deductions</p><p className="font-semibold">{formatCurrency(Object.values(simulationResult.deductions || {}).reduce((sum, value) => sum + Number(value || 0), 0))}</p></div>
+                    </div>
+                    {(simulationResult.components || []).slice(0, 4).map((item) => (
+                      <div key={item.component_name} className="flex justify-between rounded-md bg-muted/40 px-3 py-2"><span>{item.component_name}</span><span>{formatCurrency(item.monthly_amount || 0)}</span></div>
+                    ))}
+                    {(simulationResult.warnings || []).map((warning) => <p key={warning} className="text-xs text-amber-600">{warning}</p>)}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Proration Preview</CardTitle>
+                <CardDescription>Preview joiner/exit partial-month pay.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5"><Label>Employee ID</Label><Input value={toolsEmployeeId} onChange={(event) => setToolsEmployeeId(event.target.value)} /></div>
+                  <div className="space-y-1.5"><Label>Month</Label><Input type="number" min={1} max={12} value={toolsMonth} onChange={(event) => setToolsMonth(Number(event.target.value))} /></div>
+                  <div className="space-y-1.5"><Label>Year</Label><Input type="number" value={toolsYear} onChange={(event) => setToolsYear(Number(event.target.value))} /></div>
+                </div>
+                <Button onClick={() => prorationMutation.mutate()} disabled={prorationMutation.isPending || !toolsEmployeeId}>Preview</Button>
+                {prorationResult && (
+                  <div className="grid gap-2 text-sm sm:grid-cols-2">
+                    {[
+                      ["Payable days", prorationResult.payable_days],
+                      ["Period days", prorationResult.period_days],
+                      ["Factor", prorationResult.proration_factor],
+                      ["CTC", formatCurrency(prorationResult.prorated_monthly_ctc || 0)],
+                      ["Basic", formatCurrency(prorationResult.prorated_basic || 0)],
+                      ["HRA", formatCurrency(prorationResult.prorated_hra || 0)],
+                    ].map(([label, value]) => <div key={String(label)} className="rounded-md border p-3"><p className="text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></div>)}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Payslip Dispatch</CardTitle>
+                <CardDescription>{selectedRun ? `${MONTHS[selectedRun.month - 1]} ${selectedRun.year}` : "Select a payroll run first."}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {["email", "whatsapp", "sms"].map((channel) => (
+                    <Button key={channel} type="button" variant={dispatchChannels.includes(channel) ? "default" : "outline"} size="sm" onClick={() => toggleDispatchChannel(channel)}>
+                      {channel.toUpperCase()}
+                    </Button>
+                  ))}
+                </div>
+                <Button onClick={() => dispatchPayslipsMutation.mutate()} disabled={!selectedRun || !dispatchChannels.length || dispatchPayslipsMutation.isPending}>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Dispatch Payslips
+                </Button>
+                {dispatchResult && <p className="text-sm text-muted-foreground">Notifications sent: <span className="font-semibold text-foreground">{dispatchResult.notifications_sent ?? 0}</span></p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Payroll Operations</CardTitle>
+                <CardDescription>Run selected payroll maintenance actions.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("arrears")} disabled={!selectedRun || payrollOperationMutation.isPending}>Auto Arrears</Button>
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("gratuity")} disabled={!selectedRun || payrollOperationMutation.isPending}>Gratuity Accrual</Button>
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("expenses")} disabled={!selectedRun || payrollOperationMutation.isPending}>Link Expenses</Button>
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bank-details")} disabled={payrollOperationMutation.isPending}>Bank Details</Button>
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("cutoff")} disabled={payrollOperationMutation.isPending}>Cutoff Reminder</Button>
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("periods")} disabled={payrollOperationMutation.isPending}>Auto Periods</Button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                  <Input value={bankFileName} onChange={(event) => setBankFileName(event.target.value)} placeholder="Bank name" />
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bank-file")} disabled={!selectedRun || payrollOperationMutation.isPending}>Validate File</Button>
+                  <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bonus-create")} disabled={payrollOperationMutation.isPending}>Create Bonus</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(bonusPolicies as { id: number; name: string }[] | undefined || []).slice(0, 3).map((policy) => <Badge key={policy.id} variant="outline">{policy.name}</Badge>)}
+                  <Button size="sm" variant="outline" onClick={() => payrollOperationMutation.mutate("bonus")} disabled={!selectedRun || !(bonusPolicies as unknown[] | undefined)?.length || payrollOperationMutation.isPending}>Apply First Bonus</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Employee Actions</CardTitle>
+                <CardDescription>Salary advances and payslip disputes.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-4">
+                  <Input placeholder="Employee ID" value={advanceEmployeeId} onChange={(event) => setAdvanceEmployeeId(event.target.value)} />
+                  <Input placeholder="Amount" value={advanceAmount} onChange={(event) => setAdvanceAmount(event.target.value)} />
+                  <Input placeholder="Reason" value={advanceReason} onChange={(event) => setAdvanceReason(event.target.value)} />
+                  <Button onClick={() => createSalaryAdvanceMutation.mutate()} disabled={createSalaryAdvanceMutation.isPending}>Request Advance</Button>
+                </div>
+                <div className="space-y-2">
+                  {(salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5).map((item) => (
+                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
+                      <span>#{item.employee_id} - {formatCurrency(item.requested_amount)}</span>
+                      <div className="flex gap-2"><Badge variant="outline">{item.status}</Badge><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "approve", amount: Number(item.approved_amount || item.requested_amount) })}>Approve</Button><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "reject" })}>Reject</Button></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid gap-3 md:grid-cols-[0.7fr_1fr_1.5fr_auto]">
+                  <Input placeholder="Record ID" value={queryRecordId} onChange={(event) => setQueryRecordId(event.target.value)} />
+                  <Input placeholder="Subject" value={querySubject} onChange={(event) => setQuerySubject(event.target.value)} />
+                  <Input placeholder="Description" value={queryDescription} onChange={(event) => setQueryDescription(event.target.value)} />
+                  <Button onClick={() => createPayslipQueryMutation.mutate()} disabled={!queryRecordId || createPayslipQueryMutation.isPending}>Create Query</Button>
+                </div>
+                <div className="space-y-2">
+                  {(payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5).map((item) => (
+                    <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
+                      <span>{item.subject}</span>
+                      <div className="flex gap-2"><Badge variant="outline">{item.status}</Badge><Button size="sm" variant="outline" onClick={() => resolvePayslipQueryMutation.mutate(item.id)}>Resolve</Button></div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Compliance / Tax</CardTitle>
+                <CardDescription>Optimizer, reconciliation, Form 12BA, certificate, and portal tracking.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-4">
+                  <Input placeholder="Employee ID" value={taxEmployeeId} onChange={(event) => setTaxEmployeeId(event.target.value)} />
+                  <Input placeholder="FY" value={taxFinancialYear} onChange={(event) => setTaxFinancialYear(event.target.value)} />
+                  <Input placeholder="Income" value={taxIncome} onChange={(event) => setTaxIncome(event.target.value)} />
+                  <Input placeholder="Deductions" value={taxDeductions} onChange={(event) => setTaxDeductions(event.target.value)} />
+                </div>
+                <Button onClick={() => taxOptimizerMutation.mutate()} disabled={taxOptimizerMutation.isPending || !(taxEmployeeId || toolsEmployeeId)}>Run Optimizer</Button>
+                {taxOptimizerResult && (
+                  <div className="rounded-md border p-3 text-sm">
+                    <p>Recommended: <span className="font-semibold">{taxOptimizerResult.recommended_regime?.regime_code || "-"}</span></p>
+                    {(taxOptimizerResult.recommendations || []).slice(0, 3).map((item) => <p key={`${item.section}-${item.message}`} className="text-muted-foreground">{item.section}: {item.suggested_amount ? formatCurrency(item.suggested_amount) : ""} {item.message}</p>)}
+                  </div>
+                )}
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Input placeholder="26AS employee ID" value={tds26EmployeeId} onChange={(event) => setTds26EmployeeId(event.target.value)} />
+                  <Input placeholder="Reported TDS" value={tds26Amount} onChange={(event) => setTds26Amount(event.target.value)} />
+                  <Button variant="outline" onClick={() => complianceToolMutation.mutate("tds26")} disabled={complianceToolMutation.isPending}>Reconcile 26AS</Button>
+                  <Input placeholder="12BA employee ID" value={form12EmployeeId} onChange={(event) => setForm12EmployeeId(event.target.value)} />
+                  <Input placeholder="Perquisite value" value={form12Value} onChange={(event) => setForm12Value(event.target.value)} />
+                  <Button variant="outline" onClick={() => complianceToolMutation.mutate("form12ba")} disabled={complianceToolMutation.isPending}>Generate 12BA</Button>
+                  <Input placeholder="Portal file type" value={portalFileType} onChange={(event) => setPortalFileType(event.target.value)} />
+                  <Input placeholder="File URL" value={portalFileUrl} onChange={(event) => setPortalFileUrl(event.target.value)} />
+                  <Button variant="outline" onClick={() => complianceToolMutation.mutate("portal")} disabled={complianceToolMutation.isPending}>Portal Submit</Button>
+                </div>
+                <Button variant="outline" onClick={() => complianceToolMutation.mutate("certificate")} disabled={!toolsEmployeeId || complianceToolMutation.isPending}>Generate Salary Certificate</Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Planning / Analytics</CardTitle>
+              <CardDescription>Budgets, exchange rates, conversion, analytics, and report definitions.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-6">
+                <Input placeholder="Budget amount" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} />
+                <Input placeholder="Dept ID" value={budgetDepartmentId} onChange={(event) => setBudgetDepartmentId(event.target.value)} />
+                <Input placeholder="From currency" value={exchangeFrom} onChange={(event) => setExchangeFrom(event.target.value.toUpperCase())} />
+                <Input placeholder="Rate" value={exchangeRate} onChange={(event) => setExchangeRate(event.target.value)} />
+                <Input placeholder="Convert amount" value={convertAmount} onChange={(event) => setConvertAmount(event.target.value)} />
+                <Button onClick={() => planningToolMutation.mutate("analytics")} disabled={planningToolMutation.isPending}>Load Analytics</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => planningToolMutation.mutate("budget")} disabled={planningToolMutation.isPending}>Create Budget</Button>
+                <Button variant="outline" onClick={() => planningToolMutation.mutate("variance")} disabled={planningToolMutation.isPending}>Budget Variance</Button>
+                <Button variant="outline" onClick={() => planningToolMutation.mutate("rate")} disabled={planningToolMutation.isPending}>Create Rate</Button>
+                <Button variant="outline" onClick={() => planningToolMutation.mutate("convert")} disabled={planningToolMutation.isPending}>Convert</Button>
+                <Button variant="outline" onClick={() => planningToolMutation.mutate("report")} disabled={planningToolMutation.isPending}>Create Report</Button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-md border p-3 text-sm"><p className="text-muted-foreground">Analytics records</p><p className="font-semibold">{analyticsResult?.records ?? "-"}</p><p>{analyticsResult?.total_gross_cost ? formatCurrency(analyticsResult.total_gross_cost) : ""}</p></div>
+                <div className="rounded-md border p-3 text-sm"><p className="text-muted-foreground">Budget rows</p><p className="font-semibold">{budgetVarianceResult?.rows?.length ?? "-"}</p></div>
+                <div className="rounded-md border p-3 text-sm"><p className="text-muted-foreground">Last conversion</p><p className="font-semibold">{(toolResults.planning_convert as { converted_amount?: number } | undefined)?.converted_amount ? formatCurrency((toolResults.planning_convert as { converted_amount: number }).converted_amount) : "-"}</p></div>
               </div>
             </CardContent>
           </Card>

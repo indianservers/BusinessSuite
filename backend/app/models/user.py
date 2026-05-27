@@ -59,6 +59,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     role = relationship("Role", back_populates="users")
+    person = relationship("CommonPerson", back_populates="user", uselist=False, cascade="all, delete-orphan")
     if "hrms" in [item.strip().lower().replace("-", "_") for item in settings.INSTALLED_APPS]:
         employee = relationship("Employee", back_populates="user", uselist=False, foreign_keys="Employee.user_id")
     audit_logs = relationship("AuditLog", back_populates="user")

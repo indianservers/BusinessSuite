@@ -1,18 +1,23 @@
 from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 import ast
 import calendar
 import csv
 import os
+import re
 from app.core.deps import get_db, get_current_user, RequirePermission
 from app.core.config import settings
+from app.core.email import send_email
 from app.crud import crud_payroll
 from app.models.user import User
+from app.models.employee import Employee
+from app.models.expense import ExpenseClaim
 from app.models.payroll import (
     SalaryComponent, SalaryComponentCategory, SalaryComponentFormulaRule,
     SalaryStructure, PayrollRun, PayrollRecord, Reimbursement,
@@ -39,7 +44,11 @@ from app.models.payroll import (
     StatutoryFileValidation, StatutoryTemplateFile,
     StatutoryChallan, StatutoryReturnFile,
     TaxDeclarationCycle, TaxDeclaration, TaxDeclarationProof, EmployeeSalary,
-    EmployeeTaxDeclaration, EmployeeTaxDeclarationItem
+    EmployeeTaxDeclaration, EmployeeTaxDeclarationItem,
+    PayslipDeliveryLog, PayslipQuery, SalaryAdvance,
+    SalaryRevisionBatch, SalaryRevisionBatchLine, BonusPolicy, GratuityAccrual,
+    SalaryCertificate, PayrollBudget, PayrollBankValidation, PayrollBankFileValidation,
+    TDS26ASReconciliation, Form12BARecord, PayrollExchangeRate, PayrollReportDefinition
 )
 from app.schemas.payroll import (
     SalaryComponentCreate, SalaryComponentSchema,
@@ -97,6 +106,114 @@ from app.schemas.payroll import SalaryComponentCreate as SalaryComponentUpdate
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
 EXPORT_TYPES = {"pf_ecr", "esi", "pt", "tds_24q", "form_16", "bank_advice", "pay_register", "accounting_journal"}
+
+
+class PayrollSimulationRequest(BaseModel):
+    ctc: Decimal = Field(gt=0)
+    structure_id: int | None = None
+    monthly_reimbursements: Decimal = Decimal("0")
+    state: str | None = None
+    currency: str = "INR"
+
+
+class PayslipQueryCreate(BaseModel):
+    payroll_record_id: int
+    subject: str
+    description: str
+    priority: str = "Medium"
+
+
+class PayslipQueryResolve(BaseModel):
+    status: str = "Resolved"
+    resolution: str | None = None
+    assigned_to: int | None = None
+
+
+class SalaryAdvanceCreate(BaseModel):
+    employee_id: int | None = None
+    requested_amount: Decimal = Field(gt=0)
+    reason: str | None = None
+    requested_deduction_month: int = Field(ge=1, le=12)
+    requested_deduction_year: int
+
+
+class SalaryAdvanceReview(BaseModel):
+    action: str
+    approved_amount: Decimal | None = None
+    remarks: str | None = None
+
+
+class SalaryRevisionBatchLinePayload(BaseModel):
+    employee_id: int
+    new_ctc: Decimal = Field(gt=0)
+    structure_id: int | None = None
+
+
+class SalaryRevisionBatchCreate(BaseModel):
+    name: str
+    effective_from: date
+    lines: list[SalaryRevisionBatchLinePayload]
+
+
+class BonusPolicyPayload(BaseModel):
+    name: str
+    bonus_type: str = "Festival"
+    amount_type: str = "Fixed"
+    amount_value: Decimal = Field(gt=0)
+    applicable_month: int | None = Field(default=None, ge=1, le=12)
+    department_id: int | None = None
+    grade_band_id: int | None = None
+    description: str | None = None
+
+
+class BonusPolicyApplyRequest(BaseModel):
+    payroll_run_id: int
+    policy_id: int
+
+
+class SalaryCertificateCreate(BaseModel):
+    employee_id: int | None = None
+    purpose: str
+    period_from: date | None = None
+    period_to: date | None = None
+
+
+class PayrollBudgetCreate(BaseModel):
+    month: int = Field(ge=1, le=12)
+    year: int
+    budget_amount: Decimal = Field(gt=0)
+    department_id: int | None = None
+    cost_center_id: int | None = None
+    currency: str = "INR"
+    remarks: str | None = None
+
+
+class TDS26ASReconciliationCreate(BaseModel):
+    employee_id: int
+    financial_year: str
+    reported_26as_tds: Decimal = Decimal("0")
+    remarks: str | None = None
+
+
+class Form12BACreate(BaseModel):
+    employee_id: int
+    financial_year: str
+    perquisites: list[dict[str, Any]] = []
+
+
+class PayrollExchangeRateCreate(BaseModel):
+    from_currency: str
+    to_currency: str = "INR"
+    rate: Decimal = Field(gt=0)
+    effective_date: date
+    source: str = "Manual"
+
+
+class PayrollReportDefinitionCreate(BaseModel):
+    name: str
+    report_type: str
+    filters_json: dict[str, Any] | None = None
+    columns_json: list[str] | None = None
 
 
 def _pdf_escape(value: object) -> str:
@@ -403,6 +520,90 @@ def _rounded_money(value: Decimal, rule: Optional[str] = "Nearest Rupee") -> Dec
     if rule == "No Rounding":
         return value.quantize(Decimal("0.01"))
     return value.quantize(Decimal("1")).quantize(Decimal("0.01"))
+
+
+def _employee_or_404(db: Session, employee_id: int) -> Employee:
+    employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return employee
+
+
+def _active_employee_salary(db: Session, employee_id: int) -> EmployeeSalary | None:
+    return db.query(EmployeeSalary).filter(
+        EmployeeSalary.employee_id == employee_id,
+        EmployeeSalary.is_active == True,
+    ).order_by(EmployeeSalary.effective_from.desc(), EmployeeSalary.id.desc()).first()
+
+
+def _salary_breakup_for_ctc(db: Session, ctc: Decimal, structure_id: int | None = None) -> dict[str, Any]:
+    monthly_ctc = (Decimal(ctc) / Decimal("12")).quantize(Decimal("0.01"))
+    lines: list[dict[str, Any]] = []
+    gross = Decimal("0")
+    if structure_id:
+        structure = db.query(SalaryStructure).filter(SalaryStructure.id == structure_id).first()
+        if not structure:
+            raise HTTPException(status_code=404, detail="Salary structure not found")
+        variables = {"ctc_monthly": monthly_ctc, "ctc_annual": Decimal(ctc)}
+        ordered, warnings = _ordered_structure_components(structure)
+        for item in ordered:
+            if not item.component:
+                continue
+            amount = _component_monthly_amount(item, monthly_ctc, variables)
+            variables[item.component.code] = amount
+            variables[item.component.code.lower()] = amount
+            if item.component.component_type == "Earning":
+                gross += amount
+            lines.append({
+                "component_id": item.component.id,
+                "component_name": item.component.name,
+                "component_code": item.component.code,
+                "component_type": item.component.component_type,
+                "monthly_amount": amount,
+                "annual_amount": (amount * Decimal("12")).quantize(Decimal("0.01")),
+            })
+        return {"monthly_ctc": monthly_ctc, "gross": gross, "lines": lines, "warnings": warnings}
+
+    basic = (monthly_ctc * Decimal("0.40")).quantize(Decimal("0.01"))
+    hra = (basic * Decimal("0.50")).quantize(Decimal("0.01"))
+    other = (monthly_ctc - basic - hra).quantize(Decimal("0.01"))
+    return {
+        "monthly_ctc": monthly_ctc,
+        "gross": monthly_ctc,
+        "lines": [
+            {"component_name": "Basic", "component_code": "BASIC", "component_type": "Earning", "monthly_amount": basic, "annual_amount": basic * 12},
+            {"component_name": "House Rent Allowance", "component_code": "HRA", "component_type": "Earning", "monthly_amount": hra, "annual_amount": hra * 12},
+            {"component_name": "Other Allowances", "component_code": "OTHER", "component_type": "Earning", "monthly_amount": other, "annual_amount": other * 12},
+        ],
+        "warnings": ["No salary structure selected; used default 40/20/rest breakup"],
+    }
+
+
+def _validate_employee_bank(employee: Employee, seen_accounts: dict[str, int]) -> list[dict[str, str]]:
+    errors: list[dict[str, str]] = []
+    ifsc = (employee.ifsc_code or "").strip().upper()
+    account = (employee.account_number or "").strip()
+    if not ifsc or not re.match(r"^[A-Z]{4}0[A-Z0-9]{6}$", ifsc):
+        errors.append({"code": "INVALID_IFSC", "message": "IFSC must match Indian bank IFSC format"})
+    if not account or not re.match(r"^[0-9]{9,18}$", account):
+        errors.append({"code": "INVALID_ACCOUNT", "message": "Bank account number must be 9 to 18 digits"})
+    if account:
+        if account in seen_accounts and seen_accounts[account] != employee.id:
+            errors.append({"code": "DUPLICATE_ACCOUNT", "message": f"Account number duplicates employee_id={seen_accounts[account]}"})
+        seen_accounts[account] = employee.id
+    return errors
+
+
+def _payslip_password_for_employee(employee: Employee, policy: str) -> str | None:
+    if policy == "none":
+        return None
+    if policy in {"aadhaar_last4", "dob_or_aadhaar"} and employee.aadhaar_number:
+        digits = re.sub(r"\D", "", employee.aadhaar_number)
+        if len(digits) >= 4:
+            return digits[-4:]
+    if employee.date_of_birth:
+        return employee.date_of_birth.strftime("%d%m%Y")
+    return None
 
 
 def _active_rule(query, on_date: date):
@@ -1894,7 +2095,7 @@ def run_payroll(
 ):
     _ensure_not_locked_period(db, data.month, data.year, "rerun payroll")
     try:
-        run = crud_payroll.run_payroll(db, data.month, data.year, current_user.id)
+        run = crud_payroll.run_payroll(db, data.month, data.year, current_user.id, force_run=data.force_run)
         run.company_id = data.company_id if data.company_id is not None else _current_company_id(current_user)
         if data.pay_period_start is not None:
             run.pay_period_start = data.pay_period_start
@@ -2748,6 +2949,7 @@ def get_payslip(
 @router.post("/payslip/{record_id}/pdf")
 def generate_payslip_pdf(
     record_id: int,
+    password_policy: str = Query("dob_or_aadhaar", pattern="^(none|dob_or_aadhaar|aadhaar_last4)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("payroll_run")),
 ):
@@ -2803,11 +3005,31 @@ def generate_payslip_pdf(
             lines.append("")
         lines.append(f"Net Salary: {record.net_salary}")
         _write_basic_pdf(file_path, lines)
+    protected = False
+    password = _payslip_password_for_employee(record.employee, password_policy) if record.employee else None
+    if password:
+        try:
+            from pypdf import PdfReader, PdfWriter
+
+            protected_name = f"payslip_{record.employee_id}_{run.year}_{run.month}_protected.pdf"
+            protected_path = os.path.join(pdf_dir, protected_name)
+            reader = PdfReader(file_path)
+            writer = PdfWriter()
+            for page in reader.pages:
+                writer.add_page(page)
+            writer.encrypt(password)
+            with open(protected_path, "wb") as handle:
+                writer.write(handle)
+            file_name = protected_name
+            file_path = protected_path
+            protected = True
+        except Exception as exc:
+            _audit(db, run.id, "payslip_pdf_password_protection_skipped", current_user.id, str(exc))
     record.payslip_pdf_url = f"/uploads/payslips/{run.year}/{run.month}/{file_name}"
     record.payslip_generated_at = datetime.now(timezone.utc)
     _audit(db, run.id, "payslip_pdf_generated", current_user.id, f"record_id={record.id}")
     db.commit()
-    return {"record_id": record.id, "payslip_pdf_url": record.payslip_pdf_url}
+    return {"record_id": record.id, "payslip_pdf_url": record.payslip_pdf_url, "password_protected": protected}
 
 
 @router.get("/payslip/{record_id}/pdf")

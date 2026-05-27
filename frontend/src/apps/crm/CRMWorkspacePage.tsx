@@ -167,6 +167,116 @@ const pageTitles: Record<CRMPageKind, string> = {
 const savedViews = ["My records", "Hot pipeline", "Due this week", "No follow-up", "Recently updated"];
 type CRMFilters = { owner: string; status: string; type: string; territory: string };
 type SortState = { key: string; direction: "asc" | "desc" } | null;
+type DashboardQuickCreateKind = "leads" | "contacts" | "companies" | "deals" | "tasks";
+
+const dashboardQuickCreateKinds: Array<{ kind: DashboardQuickCreateKind; label: string }> = [
+  { kind: "leads", label: "Lead" },
+  { kind: "contacts", label: "Contact" },
+  { kind: "companies", label: "Company" },
+  { kind: "deals", label: "Deal" },
+  { kind: "tasks", label: "Task" },
+];
+
+type QuickFormField = {
+  key: string;
+  label: string;
+  type?: "text" | "email" | "number" | "date" | "textarea" | "select";
+  placeholder?: string;
+  options?: string[];
+  required?: boolean;
+  width?: "full" | "half" | "third";
+};
+
+const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
+  leads: [
+    { key: "name", label: "Lead name", required: true, placeholder: "Jane Shah" },
+    { key: "company", label: "Company", placeholder: "Acme India" },
+    { key: "email", label: "Email", type: "email", placeholder: "jane@company.com" },
+    { key: "phone", label: "Phone", placeholder: "+91 98765 43210" },
+    { key: "source", label: "Source", type: "select", options: ["Website", "Referral", "Event", "Partner", "Phone Call", "Manual Entry"] },
+    { key: "status", label: "Status", type: "select", options: ["New", "Qualified", "Working", "Converted", "Lost"] },
+    { key: "rating", label: "Rating", type: "select", options: ["Cold", "Warm", "Hot"] },
+    { key: "nextFollowUp", label: "Next follow-up", type: "date" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  contacts: [
+    { key: "name", label: "Contact name", required: true, placeholder: "Jane Shah" },
+    { key: "company", label: "Company", placeholder: "Acme India" },
+    { key: "email", label: "Email", type: "email", placeholder: "jane@company.com" },
+    { key: "phone", label: "Phone", placeholder: "+91 98765 43210" },
+    { key: "source", label: "Source", type: "select", options: ["Manual Entry", "Referral", "Website", "Partner"] },
+    { key: "stage", label: "Lifecycle stage", type: "select", options: ["Lead", "Opportunity", "Customer"] },
+    { key: "status", label: "Status", type: "select", options: ["Active", "Prospect", "Dormant"] },
+    { key: "nextFollowUp", label: "Next follow-up", type: "date" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  companies: [
+    { key: "name", label: "Company name", required: true, placeholder: "Acme India" },
+    { key: "industry", label: "Industry", placeholder: "Software" },
+    { key: "type", label: "Account type", type: "select", options: ["Prospect", "Customer", "Partner", "Vendor"] },
+    { key: "revenue", label: "Annual revenue", type: "number", placeholder: "5000000" },
+    { key: "status", label: "Status", type: "select", options: ["Active", "Prospect", "Inactive"] },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  deals: [
+    { key: "name", label: "Deal name", required: true, placeholder: "ERP rollout" },
+    { key: "amount", label: "Amount", type: "number", placeholder: "500000" },
+    { key: "probability", label: "Probability %", type: "number", placeholder: "10" },
+    { key: "status", label: "Status", type: "select", options: ["Open", "Won", "Lost"] },
+    { key: "nextFollowUp", label: "Expected close", type: "date" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  activities: [
+    { key: "subject", label: "Subject", required: true, placeholder: "Follow-up call" },
+    { key: "type", label: "Activity type", type: "select", options: ["Task", "Call", "Meeting", "Email"] },
+    { key: "status", label: "Status", type: "select", options: ["Planned", "Open", "Completed"] },
+    { key: "priority", label: "Priority", type: "select", options: ["Low", "Medium", "High"] },
+    { key: "nextFollowUp", label: "Due date", type: "date" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  tasks: [
+    { key: "subject", label: "Task title", required: true, placeholder: "Call lead" },
+    { key: "status", label: "Status", type: "select", options: ["Open", "In Progress", "Completed"] },
+    { key: "priority", label: "Priority", type: "select", options: ["Low", "Medium", "High"] },
+    { key: "nextFollowUp", label: "Due date", type: "date" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  products: [
+    { key: "name", label: "Product name", required: true, placeholder: "CRM Starter" },
+    { key: "sku", label: "SKU", placeholder: "CRM-STARTER" },
+    { key: "category", label: "Category", placeholder: "Software" },
+    { key: "price", label: "Unit price", type: "number", placeholder: "25000" },
+    { key: "status", label: "Status", type: "select", options: ["Active", "Draft", "Inactive"] },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  quotations: [
+    { key: "quote", label: "Quote number", placeholder: "QT-2026-001" },
+    { key: "status", label: "Status", type: "select", options: ["Draft", "Sent", "Accepted", "Rejected"] },
+    { key: "issueDate", label: "Issue date", type: "date" },
+    { key: "expiryDate", label: "Expiry date", type: "date" },
+    { key: "total", label: "Total amount", type: "number", placeholder: "150000" },
+  ],
+  campaigns: [
+    { key: "name", label: "Campaign name", required: true, placeholder: "Q2 Lead Nurture" },
+    { key: "type", label: "Campaign type", type: "select", options: ["Email", "WhatsApp", "Event", "Ads"] },
+    { key: "status", label: "Status", type: "select", options: ["Planned", "Active", "Completed"] },
+    { key: "startDate", label: "Start date", type: "date" },
+    { key: "endDate", label: "End date", type: "date" },
+    { key: "budget", label: "Budget", type: "number", placeholder: "100000" },
+    { key: "expectedRevenue", label: "Expected revenue", type: "number", placeholder: "250000" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  tickets: [
+    { key: "subject", label: "Ticket subject", required: true, placeholder: "Customer issue" },
+    { key: "number", label: "Ticket number", placeholder: "TCK-2026-001" },
+    { key: "priority", label: "Priority", type: "select", options: ["Low", "Medium", "High", "Critical"] },
+    { key: "status", label: "Status", type: "select", options: ["Open", "In Progress", "Resolved"] },
+    { key: "category", label: "Category", type: "select", options: ["General", "Billing", "Technical", "Onboarding"] },
+    { key: "source", label: "Source", type: "select", options: ["Manual", "Email", "Phone", "Portal"] },
+    { key: "nextFollowUp", label: "Due date", type: "date" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+};
 type AutomationCard = [title: string, value: string, detail: string, Icon: React.ElementType];
 type CRMApiState<T> = { data: T; loading: boolean; error: string | null };
 type InlineFieldType = "text" | "number" | "date" | "select" | "tags";
@@ -336,9 +446,14 @@ export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
 }
 
 function CRMDashboard() {
+  const navigate = useNavigate();
   const leadState = useCrmRecords<CRMRecord>("leads", emptyRecords);
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
+  const [quickCreateKind, setQuickCreateKind] = useState<DashboardQuickCreateKind>("leads");
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCreateSaving, setQuickCreateSaving] = useState(false);
+  const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
   const crmLeads = useMemo(() => leadState.data.map(recordToLead), [leadState.data]);
   const crmDeals = useMemo(() => dealState.data.map((record) => recordToDeal(record, stageState.data)), [dealState.data, stageState.data]);
   const stageNames = useMemo(() => stageState.data.map((stage) => String(stage.name)).filter(Boolean), [stageState.data]);
@@ -386,10 +501,30 @@ function CRMDashboard() {
     `${crmDeals.filter((deal) => deal.closeDate && new Date(deal.closeDate) < new Date() && !["Won", "Lost"].includes(deal.stage)).length} open deals are past expected close date.`,
     `${crmDeals.filter((deal) => deal.probability >= 70 && !["Won", "Lost"].includes(deal.stage)).length} high-probability deals should be reviewed for approvals and quotation follow-up.`,
   ];
+  const createQuickRecord = (draft: CRMRecord, customFields?: CRMApiRecord) => {
+    const apiEntity = apiEntityForKind[quickCreateKind];
+    if (!apiEntity) return;
+    const payload = { ...createPayloadForKind(quickCreateKind, draft), customFields: customFields || {} };
+    setQuickCreateSaving(true);
+    setQuickCreateError(null);
+    crmApi
+      .create<CRMApiRecord>(apiEntity, payload)
+      .then((response) => {
+        setShowQuickCreate(false);
+        const detailPath = detailPathFor(quickCreateKind);
+        if (detailPath && response.data?.id) {
+          navigate(`${detailPath}/${response.data.id}`);
+          return;
+        }
+        navigate(`/crm/${quickCreateKind}`);
+      })
+      .catch((err) => setQuickCreateError(err?.response?.data?.detail || "CRM record could not be created."))
+      .finally(() => setQuickCreateSaving(false));
+  };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="VyaparaCRM" description="Sales command center for leads, accounts, deals, pipeline, activities, quotations, support, automation, and analytics." action="Quick create" />
+      <PageHeader title="VyaparaCRM" description="Sales command center for leads, accounts, deals, pipeline, activities, quotations, support, automation, and analytics." action="Quick create" onAction={() => setShowQuickCreate(true)} />
       {leadState.error || dealState.error || stageState.error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{leadState.error || dealState.error || stageState.error}</div> : null}
       {leadState.loading || dealState.loading || stageState.loading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading CRM dashboard...</div> : null}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -474,6 +609,19 @@ function CRMDashboard() {
         overdueFollowUps={overdueFollowUps}
         staleOpenDeals={staleOpenDeals}
       />
+      {showQuickCreate ? (
+        <DashboardQuickCreateDialog
+          kind={quickCreateKind}
+          saving={quickCreateSaving}
+          error={quickCreateError}
+          onKindChange={(kind) => {
+            setQuickCreateKind(kind);
+            setQuickCreateError(null);
+          }}
+          onClose={() => setShowQuickCreate(false)}
+          onCreate={createQuickRecord}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1431,6 +1579,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
   const [showCreate, setShowCreate] = useState(false);
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [importExportError, setImportExportError] = useState<string | null>(null);
   const records = localRows.length ? localRows : apiRows;
   const rows = useMemo(() => filterRecords(records, search, selectedView, filters), [records, search, selectedView, filters]);
   const owners = useMemo(() => uniqueValues(records, "owner"), [records]);
@@ -1483,6 +1632,46 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
     });
   };
 
+  const importRows = (items: CRMRecord[]) => {
+    if (!apiEntity) {
+      setLocalRows(items);
+      return;
+    }
+    setImportExportError(null);
+    crmApi
+      .importRows<{ created: number; items?: CRMApiRecord[]; errors?: Array<{ row: number; error: string }> }>(apiEntity, items as CRMApiRecord[])
+      .then((response) => {
+        if (response.data.errors?.length) {
+          setImportExportError(response.data.errors.map((item) => `Row ${item.row}: ${item.error}`).join("; "));
+          return;
+        }
+        const imported = (response.data.items || []).map((item) => normalizeApiRecord(kindlessEntity(apiEntity), item));
+        setLocalRows([...imported, ...records]);
+      })
+      .catch((err) => setImportExportError(err?.response?.data?.detail || "CRM import failed."));
+  };
+
+  const exportServerRows = () => {
+    if (!apiEntity) {
+      exportRows(`${pageTitles[kind].toLowerCase().replace(/\s+/g, "-")}.csv`, rows);
+      return;
+    }
+    setImportExportError(null);
+    crmApi
+      .exportEntity(apiEntity)
+      .then((response) => {
+        const url = URL.createObjectURL(response.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${apiEntity}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      })
+      .catch((err) => setImportExportError(err?.response?.data?.detail || "CRM export failed."));
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title={pageTitles[kind]} description={descriptionFor(kind)} action={actionFor(kind)} onAction={() => setShowCreate(true)} />
@@ -1493,8 +1682,12 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
         onViewChange={setSelectedView}
         onToggleFilters={() => setShowFilters((value) => !value)}
         contacts={contacts}
-        onImportContacts={(items) => setContacts(items)}
+        onImportContacts={importRows}
+        onExportServer={exportServerRows}
+        importLabel={`Import ${pageTitles[kind].replace("CRM ", "")}`}
+        exportLabel={`Export ${pageTitles[kind].replace("CRM ", "")}`}
       />
+      {importExportError ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{importExportError}</div> : null}
       {showFilters ? (
         <FilterPanel
           filters={filters}
@@ -2610,6 +2803,9 @@ function Toolbar({
   onToggleFilters,
   contacts,
   onImportContacts,
+  onExportServer,
+  importLabel = "Import Contacts",
+  exportLabel = "Export Contacts",
 }: {
   search: string;
   onSearch: (value: string) => void;
@@ -2618,6 +2814,9 @@ function Toolbar({
   onToggleFilters?: () => void;
   contacts?: CRMRecord[];
   onImportContacts?: (rows: CRMRecord[]) => void;
+  onExportServer?: () => void;
+  importLabel?: string;
+  exportLabel?: string;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const handleImport = (event: ChangeEvent<HTMLInputElement>) => {
@@ -2646,9 +2845,9 @@ function Toolbar({
         </div>
       ) : null}
       <Button variant="outline" onClick={onToggleFilters}><Filter className="h-4 w-4" />Filters</Button>
-      <Button variant="outline" onClick={() => exportRows("crm-contacts.csv", contacts || [])}><Download className="h-4 w-4" />Export Contacts</Button>
+      <Button variant="outline" onClick={onExportServer || (() => exportRows("crm-contacts.csv", contacts || []))}><Download className="h-4 w-4" />{exportLabel}</Button>
       <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
-      <Button variant="outline" onClick={() => inputRef.current?.click()}><Upload className="h-4 w-4" />Import Contacts</Button>
+      <Button variant="outline" onClick={() => inputRef.current?.click()}><Upload className="h-4 w-4" />{importLabel}</Button>
     </div>
   );
 }
@@ -3016,19 +3215,65 @@ function customer360For(companyName: string) {
   };
 }
 
-function CreateRecordDialog({ kind, saving, error, onClose, onCreate }: { kind: CRMPageKind; saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void }) {
+function DashboardQuickCreateDialog({
+  kind,
+  saving,
+  error,
+  onKindChange,
+  onClose,
+  onCreate,
+}: {
+  kind: DashboardQuickCreateKind;
+  saving?: boolean;
+  error?: string | null;
+  onKindChange: (kind: DashboardQuickCreateKind) => void;
+  onClose: () => void;
+  onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void;
+}) {
+  return (
+    <CreateRecordDialog
+      kind={kind}
+      saving={saving}
+      error={error}
+      onClose={onClose}
+      onCreate={onCreate}
+      header={
+        <div className="flex flex-wrap gap-2">
+          {dashboardQuickCreateKinds.map((item) => (
+            <Button key={item.kind} type="button" size="sm" variant={kind === item.kind ? "default" : "outline"} onClick={() => onKindChange(item.kind)} disabled={saving}>
+              {item.label}
+            </Button>
+          ))}
+        </div>
+      }
+    />
+  );
+}
+
+function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header }: { kind: CRMPageKind; saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void; header?: React.ReactNode }) {
   const title = actionFor(kind) || "Create record";
   const entity = apiEntityForKind[kind];
   const customFieldState = useCrmRecords<CRMApiRecord>(entity && customFieldEntities.some((item) => item.value === entity) ? "custom-fields" : undefined, [], entity ? { entityType: entity } : undefined);
+  const formFields = quickFormFieldsByKind[kind] || [
+    { key: "name", label: "Name", required: true, placeholder: "Record name" },
+    { key: "status", label: "Status", placeholder: "New" },
+    { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+    { key: "nextFollowUp", label: "Next follow-up", type: "date" as const },
+  ];
   const defaultName = `New ${pageTitles[kind].replace("CRM ", "").replace(/s$/, "")}`;
-  const [draft, setDraft] = useState<CRMRecord>({
+  const initialDraft = useMemo(() => ({
     name: defaultName,
     subject: defaultName,
     owner: "",
     status: kind === "tickets" ? "Open" : "New",
     nextFollowUp: new Date().toISOString().slice(0, 10),
-  });
+  }), [defaultName, kind]);
+  const [draft, setDraft] = useState<CRMRecord>(initialDraft);
   const [customValues, setCustomValues] = useState<CRMApiRecord>({});
+  useEffect(() => {
+    setDraft(initialDraft);
+    setCustomValues({});
+  }, [initialDraft]);
   const patchDraft = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
@@ -3038,11 +3283,17 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate }: { kind: 
           <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          {header}
           {error ? <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
-          <Field label="Name"><Input value={String(draft.name || draft.subject || "")} onChange={(event) => { patchDraft("name", event.target.value); patchDraft("subject", event.target.value); }} /></Field>
-          <Field label="Owner"><Input value={String(draft.owner || "")} onChange={(event) => patchDraft("owner", event.target.value)} placeholder="Owner ID or name" /></Field>
-          <Field label="Status"><Input value={String(draft.status || "")} onChange={(event) => patchDraft("status", event.target.value)} /></Field>
-          <Field label="Next follow-up"><Input type="date" value={String(draft.nextFollowUp || "").slice(0, 10)} onChange={(event) => patchDraft("nextFollowUp", event.target.value)} /></Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            {formFields.map((field) => (
+              <div key={field.key} className={field.width === "full" ? "md:col-span-2" : undefined}>
+                <Field label={`${field.label}${field.required ? " *" : ""}`}>
+                  <QuickFormInput field={field} draft={draft} patchDraft={patchDraft} />
+                </Field>
+              </div>
+            ))}
+          </div>
           {customFieldState.data.filter((field) => Boolean(field.isVisible ?? field.is_visible ?? true)).map((field) => (
             <Field key={String(field.id)} label={`${String(field.fieldName || field.label || field.field_key)}${field.isRequired || field.is_required ? " *" : ""}`}>
               <CustomFieldInput field={field} value={customValues[String(field.fieldKey || field.field_key || field.id)]} onChange={(value) => setCustomValues((current) => ({ ...current, [String(field.fieldKey || field.field_key || field.id)]: value }))} />
@@ -3069,6 +3320,56 @@ function CustomFieldInput({ field, value, onChange }: { field: CRMApiRecord; val
   }
   const inputType = type === "number" || type === "currency" || type === "user" || type === "owner" ? "number" : type === "date" ? "date" : type === "datetime" ? "datetime-local" : type === "email" ? "email" : type === "url" ? "url" : "text";
   return <Input type={inputType} value={String(value || "")} onChange={(event) => onChange(event.target.value)} />;
+}
+
+function QuickFormInput({
+  field,
+  draft,
+  patchDraft,
+}: {
+  field: QuickFormField;
+  draft: CRMRecord;
+  patchDraft: (key: string, value: CRMApiValue) => void;
+}) {
+  const value = String(draft[field.key] || "");
+  const updateValue = (nextValue: string) => {
+    patchDraft(field.key, nextValue);
+    if (field.key === "name" && !String(draft.subject || "").trim()) {
+      patchDraft("subject", nextValue);
+    }
+    if (field.key === "subject" && !String(draft.name || "").trim()) {
+      patchDraft("name", nextValue);
+    }
+  };
+
+  if (field.type === "select") {
+    return (
+      <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => updateValue(event.target.value)}>
+        <option value="">{field.placeholder || "Select"}</option>
+        {(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    );
+  }
+
+  if (field.type === "textarea") {
+    return (
+      <textarea
+        className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+        value={value}
+        placeholder={field.placeholder}
+        onChange={(event) => updateValue(event.target.value)}
+      />
+    );
+  }
+
+  return (
+    <Input
+      type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text"}
+      value={value}
+      placeholder={field.placeholder}
+      onChange={(event) => updateValue(event.target.value)}
+    />
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

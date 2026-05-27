@@ -50,6 +50,44 @@ class EmployeeBenefitEnrollmentSchema(EmployeeBenefitEnrollmentCreate):
         from_attributes = True
 
 
+class BenefitEnrollmentWindowCreate(BaseModel):
+    name: str
+    start_date: date
+    end_date: date
+    plan_type: Optional[str] = None
+    description: Optional[str] = None
+    status: str = "Open"
+
+
+class BenefitEnrollmentWindowSchema(BenefitEnrollmentWindowCreate):
+    id: int
+    created_by: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BenefitDependentCreate(BaseModel):
+    employee_id: Optional[int] = None
+    enrollment_id: Optional[int] = None
+    full_name: str
+    relationship: str
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    identity_number: Optional[str] = None
+
+
+class BenefitDependentSchema(BenefitDependentCreate):
+    id: int
+    employee_id: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class FlexiBenefitPolicyCreate(BaseModel):
     name: str
     component_code: str

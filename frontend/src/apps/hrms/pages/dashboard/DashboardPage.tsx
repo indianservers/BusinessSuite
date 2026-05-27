@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 import {
   Users, Clock, CalendarDays, Briefcase, TrendingUp, TrendingDown,
@@ -26,6 +27,7 @@ function StatCard({
   icon: Icon,
   trend,
   color = "blue",
+  href,
 }: {
   title: string;
   value: string | number;
@@ -33,6 +35,7 @@ function StatCard({
   icon: React.ElementType;
   trend?: { value: number; label: string };
   color?: string;
+  href?: string;
 }) {
   const colorMap: Record<string, string> = {
     blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
@@ -42,7 +45,7 @@ function StatCard({
     purple: "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
   };
 
-  return (
+  const content = (
     <Card className="stat-card">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
@@ -70,6 +73,7 @@ function StatCard({
       </CardContent>
     </Card>
   );
+  return href ? <Link to={href} className="block transition-transform hover:-translate-y-1">{content}</Link> : content;
 }
 
 function SkeletonCard() {
@@ -98,8 +102,9 @@ export default function DashboardPage() {
   const currentYear = new Date().getFullYear();
 
   const { data: dashboard, isLoading } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["hrms", "dashboard"],
     queryFn: () => reportsApi.dashboard().then((r) => r.data),
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: headcount, isLoading: loadingHeadcount } = useQuery({
@@ -169,7 +174,7 @@ export default function DashboardPage() {
 
   const ceoMetrics = [
     { label: "Active Workforce", value: headcount?.active ?? dashboard?.headcount?.active ?? 0, icon: Users, tone: "text-blue-600" },
-    { label: "Last Payroll", value: lastRun ? `${lastRun.month}/${lastRun.year}` : formatCurrency(payrollData?.reduce?.((sum: number, row: { net?: number }) => sum + Number(row.net || 0), 0) || 0), icon: DollarSign, tone: "text-emerald-600" },
+    { label: "Last Payroll", value: lastRun ? `${String(lastRun.month).padStart(2, "0")}/${lastRun.year}` : "No run", icon: DollarSign, tone: "text-emerald-600" },
     { label: "Open Roles", value: dashboard?.recruitment?.open_positions ?? 0, icon: Briefcase, tone: "text-violet-600" },
     { label: "Pending Decisions", value: pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0, icon: ShieldCheck, tone: "text-amber-600" },
   ];
@@ -178,7 +183,6 @@ export default function DashboardPage() {
       sum + Number(row.available ?? row.balance ?? 0),
     0
   );
-
   const totalEmployees = headcount?.total ?? dashboard?.headcount?.total ?? 0;
   const activeEmployees = headcount?.active ?? dashboard?.headcount?.active ?? 0;
   const presentToday = todaySummary?.present ?? dashboard?.attendance?.present_today ?? 0;
@@ -203,7 +207,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {employeeActions.map((item) => (
-            <a key={item.label} href={item.href} className="group rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/50 hover:shadow-md">
+            <Link key={item.label} to={item.href} className="group rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/50 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <item.icon className="h-5 w-5" />
@@ -212,7 +216,7 @@ export default function DashboardPage() {
               </div>
               <p className="mt-4 font-medium">{item.label}</p>
               <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -275,11 +279,11 @@ export default function DashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {managerActions.map((item) => (
-            <a key={item.label} href={item.href} className="rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/50 hover:shadow-md">
+            <Link key={item.label} to={item.href} className="rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/50 hover:shadow-md">
               <item.icon className="mb-4 h-5 w-5 text-primary" />
               <p className="font-medium">{item.label}</p>
               <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -289,36 +293,44 @@ export default function DashboardPage() {
               <CardTitle className="text-base">Headcount by Department</CardTitle>
               <CardDescription>Team distribution and capacity</CardDescription>
             </CardHeader>
-            <CardContent>
+          <CardContent>
+            {deptData?.length ? (
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={deptData || []} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
+                <BarChart data={deptData || []} margin={{ top: 0, right: 0, left: -10, bottom: 28 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="department" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <XAxis dataKey="department" tick={{ fontSize: 11 }} angle={-35} textAnchor="end" tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <Tooltip />
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            ) : (
+              <ChartEmptyState label="Department headcount will appear here once employees are assigned." />
+            )}
+          </CardContent>
+        </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Manager Inbox</CardTitle>
-              <CardDescription>Requests needing action</CardDescription>
+              <CardTitle className="text-base">Team Snapshot</CardTitle>
+              <CardDescription>Operational highlights for managers</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {managerActions.map((item) => (
-                <a key={item.label} href={item.href} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <item.icon className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-sm font-medium">{item.label}</p>
-                      <p className="text-xs text-muted-foreground">{item.detail}</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </a>
-              ))}
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border p-4">
+                <p className="text-2xl font-semibold">{headcount?.active ?? dashboard?.headcount?.active ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Active team members</p>
+              </div>
+              <div className="rounded-lg border p-4">
+                <p className="text-2xl font-semibold">{pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Approvals waiting</p>
+              </div>
+              <Link to="/hrms/leave" className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
+                <span className="text-sm font-medium">Review leave queue</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+              <Link to="/hrms/attendance" className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
+                <span className="text-sm font-medium">Check attendance trends</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -353,7 +365,8 @@ export default function DashboardPage() {
               <CardTitle className="text-base">Payroll Trend</CardTitle>
               <CardDescription>Gross vs net salary comparison</CardDescription>
             </CardHeader>
-            <CardContent>
+          <CardContent>
+            {payrollData?.length ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={payrollData || []} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -365,8 +378,11 @@ export default function DashboardPage() {
                   <Bar dataKey="net" name="Net" fill="#059669" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            ) : (
+              <ChartEmptyState label="Payroll history will appear after the first completed run." />
+            )}
+          </CardContent>
+        </Card>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Board Pack</CardTitle>
@@ -378,13 +394,13 @@ export default function DashboardPage() {
                 ["Company Setup", "/hrms/company", Building2],
                 ["AI Workforce Notes", "/hrms/ai-assistant", Sparkles],
               ].map(([label, href, Icon]) => (
-                <a key={label as string} href={href as string} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
+                <Link key={label as string} to={href as string} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
                   <span className="flex items-center gap-3 text-sm font-medium">
                     <Icon className="h-4 w-4 text-primary" />
                     {label as string}
                   </span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </a>
+                </Link>
               ))}
             </CardContent>
           </Card>
@@ -415,7 +431,7 @@ export default function DashboardPage() {
               subtitle={`${headcount?.active ?? dashboard?.headcount?.active ?? 0} active`}
               icon={Users}
               color="blue"
-              trend={{ value: 5, label: "this month" }}
+              href="/hrms/employees"
             />
             <StatCard
               title="Present Today"
@@ -423,6 +439,7 @@ export default function DashboardPage() {
               subtitle={`${todaySummary?.absent ?? dashboard?.attendance?.absent_today ?? 0} absent`}
               icon={Clock}
               color="green"
+              href="/hrms/attendance"
             />
             <StatCard
               title="Pending Leaves"
@@ -430,13 +447,15 @@ export default function DashboardPage() {
               subtitle="Awaiting approval"
               icon={CalendarDays}
               color="yellow"
+              href="/hrms/leave"
             />
             <StatCard
               title="Last Payroll"
-              value={lastRun ? `${lastRun.month}/${lastRun.year}` : "No run"}
+              value={lastRun ? `${String(lastRun.month).padStart(2, "0")}/${lastRun.year}` : "No run"}
               subtitle={lastRun ? `${lastRun.status} payroll` : "Awaiting first run"}
               icon={DollarSign}
               color="purple"
+              href="/hrms/payroll"
             />
           </>
         )}
@@ -679,5 +698,15 @@ function DashboardStatistics({
         </Card>
       </div>
     </section>
+  );
+}
+
+function ChartEmptyState({ label }: { label: string }) {
+  return (
+    <div className="flex h-[250px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 text-center">
+      <BarChart3 className="mb-3 h-8 w-8 text-muted-foreground/50" />
+      <p className="text-sm font-medium">No data yet</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
   );
 }

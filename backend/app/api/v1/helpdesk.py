@@ -12,7 +12,10 @@ from app.models.helpdesk import (
 from app.schemas.helpdesk import (
     HelpdeskEscalationRuleCreate, HelpdeskEscalationRuleSchema,
     HelpdeskKnowledgeArticleCreate, HelpdeskKnowledgeArticleSchema,
+    HelpdeskTicketAssign,
+    HelpdeskTicketCreate,
     HelpdeskTicketEscalation,
+    HelpdeskTicketStatusUpdate,
 )
 
 router = APIRouter(prefix="/helpdesk", tags=["HR Helpdesk"])
@@ -38,14 +41,13 @@ def create_category(
     return cat
 
 
-@router.post("/tickets", status_code=201)
-def create_ticket(
+def _create_ticket_record(
     subject: str,
     description: str,
-    category_id: Optional[int] = None,
-    priority: str = "Medium",
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    category_id: Optional[int],
+    priority: str,
+    db: Session,
+    current_user: User,
 ):
     if not current_user.employee:
         raise HTTPException(status_code=400, detail="No employee profile")
@@ -69,6 +71,23 @@ def create_ticket(
     db.commit()
     db.refresh(ticket)
     return ticket
+
+
+@router.post("/tickets", status_code=201)
+def create_ticket(
+    subject: str,
+    description: str,
+    category_id: Optional[int] = None,
+    priority: str = "Medium",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return _create_ticket_record(subject, description, category_id, priority, db, current_user)
+
+
+@router.post("/tickets/json", status_code=201)
+def create_ticket_json(data: HelpdeskTicketCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return _create_ticket_record(data.subject, data.description, data.category_id, data.priority, db, current_user)
 
 
 @router.get("/tickets")
@@ -128,6 +147,16 @@ def update_ticket_status(
     return {"message": f"Ticket {status}"}
 
 
+@router.put("/tickets/{ticket_id}/status/json")
+def update_ticket_status_json(
+    ticket_id: int,
+    data: HelpdeskTicketStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("helpdesk_manage")),
+):
+    return update_ticket_status(ticket_id, data.status, db, current_user)
+
+
 @router.put("/tickets/{ticket_id}/assign")
 def assign_ticket(
     ticket_id: int,
@@ -142,6 +171,16 @@ def assign_ticket(
     ticket.status = "In Progress"
     db.commit()
     return {"message": "Ticket assigned"}
+
+
+@router.put("/tickets/{ticket_id}/assign/json")
+def assign_ticket_json(
+    ticket_id: int,
+    data: HelpdeskTicketAssign,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("helpdesk_manage")),
+):
+    return assign_ticket(ticket_id, data.assign_to_user_id, db, current_user)
 
 
 @router.put("/tickets/{ticket_id}/escalate")

@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 export interface AuthUser {
   id: number;
   email: string;
+  name?: string | null;
   role: string | null;
   is_superuser: boolean;
   employee_id?: number | null;

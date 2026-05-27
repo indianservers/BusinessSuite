@@ -94,6 +94,46 @@ class PMSProjectResponse(PMSProjectBase):
         from_attributes = True
 
 
+class PMSProjectIntakeBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=180)
+    description: Optional[str] = None
+    requester_name: Optional[str] = None
+    requester_email: Optional[str] = None
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
+    priority: str = "Medium"
+    desired_start_date: Optional[date] = None
+    desired_due_date: Optional[date] = None
+    budget_amount: Optional[Decimal] = None
+
+
+class PMSProjectIntakeCreate(PMSProjectIntakeBase):
+    pass
+
+
+class PMSProjectIntakeReview(BaseModel):
+    status: str
+    review_notes: Optional[str] = None
+    project_key: Optional[str] = None
+    manager_user_id: Optional[int] = None
+
+
+class PMSProjectIntakeResponse(PMSProjectIntakeBase):
+    id: int
+    organization_id: Optional[int] = None
+    requester_user_id: Optional[int] = None
+    status: str
+    review_notes: Optional[str] = None
+    reviewed_by_user_id: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
+    created_project_id: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 # ============= PROJECT MEMBER SCHEMAS =============
 class PMSProjectMemberBase(BaseModel):
     user_id: int

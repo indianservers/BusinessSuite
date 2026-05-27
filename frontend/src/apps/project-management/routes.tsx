@@ -34,6 +34,7 @@ const ProductLaunchPage = React.lazy(() => import("./pages/ProductLaunchPage"));
 const PMSOperationsPage = React.lazy(() => import("./pages/PMSOperationsPage"));
 const PortfolioPage = React.lazy(() => import("./pages/PortfolioPage"));
 const RisksPage = React.lazy(() => import("./pages/RisksPage"));
+const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
 /**
  * KaryaFlow Routes
@@ -42,6 +43,7 @@ const RisksPage = React.lazy(() => import("./pages/RisksPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
   // Home / Dashboard
   { path: "pms", element: <ProjectManagementHomePage /> },
+  { path: "pms/profile", element: <ModuleProfilePage /> },
   { path: "pms/command-center", element: <CommandCenterPage /> },
   { path: "pms/enterprise-engine", element: <EnterpriseEnginePage /> },
   { path: "pms/product-launch", element: <ProductLaunchPage /> },

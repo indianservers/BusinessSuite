@@ -311,6 +311,10 @@ export const leaveApi = {
   approve: (id: number, data: unknown) =>
     api.put(`/leave/requests/${id}/approve`, data),
   cancel: (id: number) => api.put(`/leave/requests/${id}/cancel`),
+  runAccruals: (runDate?: string) =>
+    api.post("/leave/accruals/run", null, { params: { run_date: runDate } }),
+  runCarryForward: (fromYear?: number, toYear?: number) =>
+    api.post("/leave/carry-forward/run", null, { params: { from_year: fromYear, to_year: toYear } }),
   pendingCount: () => api.get("/leave/pending-count"),
 };
 
@@ -324,6 +328,17 @@ export const leavePayrollApi = {
     api.post(`/hrms/leave-encashment/${id}/reject`, data),
   lwpFeed: (month: string) => api.get("/hrms/payroll/lwp-feed", { params: { month } }),
   lwpSync: (data: unknown) => api.post("/hrms/payroll/lwp-sync", data),
+};
+
+export type PayrollAnalyticsParams = {
+  from_month?: number;
+  from_year?: number;
+  to_month?: number;
+  to_year?: number;
+  month?: number;
+  year?: number;
+  department_id?: number;
+  cost_center_id?: number;
 };
 
 export const payrollApi = {
@@ -463,6 +478,52 @@ export const payrollApi = {
   verifyTaxProof: (id: number, data: unknown) => api.put(`/payroll/tax/proofs/${id}/verify`, data),
   taxProjection: (params: Record<string, unknown>) => api.get("/payroll/tax/projection", { params }),
   taxCompare: (params: Record<string, unknown>) => api.get("/payroll/tax/compare", { params }),
+  prorationPreview: (params: Record<string, unknown>) => api.get("/payroll/proration-preview", { params }),
+  simulateSalary: (data: unknown) => api.post("/payroll/simulate", data),
+  healthDashboard: (params: Record<string, unknown>) => api.get("/payroll/health-dashboard", { params }),
+  dispatchPayslips: (runId: number, channels: string[]) =>
+    api.post(`/payroll/runs/${runId}/payslip-dispatch?${channels.map((channel) => `channels=${encodeURIComponent(channel)}`).join("&")}`),
+  createPayslipQuery: (data: unknown) => api.post("/payroll/payslip-queries", data),
+  payslipQueries: (params?: Record<string, unknown>) => api.get("/payroll/payslip-queries", { params }),
+  resolvePayslipQuery: (id: number, data: unknown) => api.put(`/payroll/payslip-queries/${id}/resolve`, data),
+  createSalaryAdvance: (data: unknown) => api.post("/payroll/salary-advances", data),
+  salaryAdvances: (params?: Record<string, unknown>) => api.get("/payroll/salary-advances", { params }),
+  reviewSalaryAdvance: (id: number, data: unknown) => api.put(`/payroll/salary-advances/${id}/review`, data),
+  createBulkSalaryRevision: (data: unknown) => api.post("/payroll/salary-revisions/bulk", data),
+  applyBulkSalaryRevision: (batchId: number) => api.put(`/payroll/salary-revisions/bulk/${batchId}/apply`),
+  validateBankDetails: (params: Record<string, unknown>) => api.post("/payroll/bank/validate", null, { params }),
+  taxOptimizer: (params: Record<string, unknown>) => api.get("/payroll/tax/optimizer", { params }),
+  autoCalculateArrears: (payrollRunId: number) =>
+    api.post("/payroll/arrear-runs/auto-calculate", null, { params: { payroll_run_id: payrollRunId } }),
+  createBonusPolicy: (data: unknown) => api.post("/payroll/bonus-policies", data),
+  bonusPolicies: () => api.get("/payroll/bonus-policies"),
+  applyBonusPolicy: (data: unknown) => api.post("/payroll/bonus-policies/apply", data),
+  generateGratuityAccruals: (runId: number) => api.post(`/payroll/runs/${runId}/gratuity-accruals`),
+  generateSalaryCertificate: (data: unknown) => api.post("/payroll/salary-certificates", data),
+  createPayrollBudget: (data: unknown) => api.post("/payroll/budgets", data),
+  payrollBudgetVariance: (params: Record<string, unknown>) => api.get("/payroll/budgets/variance", { params }),
+  validateBankFile: (params: Record<string, unknown>) => api.post("/payroll/bank-file/validate", null, { params }),
+  reconcileTds26As: (data: unknown) => api.post("/payroll/tds-26as/reconcile", data),
+  generateForm12BA: (data: unknown) => api.post("/payroll/form-12ba", data),
+  downloadForm12BA: (id: number) => api.get(`/payroll/form-12ba/${id}/download`, { responseType: "blob" }),
+  submitStatutoryPortal: (params: Record<string, unknown>) => api.post("/payroll/statutory/portal-submit", null, { params }),
+  linkExpenseClaimsToReimbursements: (payrollRunId: number) =>
+    api.post("/payroll/reimbursements/link-expense-claims", null, { params: { payroll_run_id: payrollRunId } }),
+  autoGeneratePayrollPeriods: (params: Record<string, unknown>) =>
+    api.post("/payroll/setup/periods/auto-generate", null, { params }),
+  sendCutoffReminders: (params: Record<string, unknown>) => api.post("/payroll/cutoff-reminders", null, { params }),
+  exchangeRates: (params?: Record<string, unknown>) => api.get("/payroll/exchange-rates", { params }),
+  createExchangeRate: (data: unknown) => api.post("/payroll/exchange-rates", data),
+  convertCurrency: (params: Record<string, unknown>) => api.get("/payroll/multi-currency/convert", { params }),
+  payrollAnalytics: (params?: PayrollAnalyticsParams) => api.get("/payroll/analytics", { params }),
+  createPayrollReport: (data: unknown) => api.post("/payroll/reports", data),
+  payrollReports: (params?: Record<string, unknown>) => api.get("/payroll/reports", { params }),
+  getPayrollReport: (id: number) => api.get(`/payroll/reports/${id}`),
+  updatePayrollReport: (id: number, data: unknown) => api.put(`/payroll/reports/${id}`, data),
+  deletePayrollReport: (id: number) => api.delete(`/payroll/reports/${id}`),
+  runPayrollReport: (id: number, params?: Record<string, unknown>) => api.get(`/payroll/reports/${id}/run`, { params }),
+  runPayrollReportWithFilters: (id: number, data: unknown) => api.post(`/payroll/reports/${id}/run`, data),
+  exportPayrollReport: (id: number) => api.get(`/payroll/reports/${id}/export`, { responseType: "blob" }),
   reimbursements: (params?: Record<string, unknown>) =>
     api.get("/payroll/reimbursements", { params }),
   createReimbursement: (data: unknown) => api.post("/payroll/reimbursements", data),

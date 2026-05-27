@@ -19,11 +19,13 @@ from app.models.company import Company
 from app.models.employee import Employee
 from app.models.payroll import (
     BankAdviceFormat,
+    PayrollBankFileValidation,
     PayrollBankExport,
     PayrollRecord,
     PayrollRun,
     PayrollRunAuditLog,
 )
+from app.services.bank_file_validators import validate_bank_file_rows
 from app.models.user import User
 from app.schemas.payroll import (
     PayrollBankAdviceGenerateRequest,
@@ -148,8 +150,11 @@ def _bank_rows(db: Session, run: PayrollRun) -> tuple[list[dict[str, Any]], list
     return rows, all_errors, total
 
 
-def _preview_payload(db: Session, run: PayrollRun, bank_name: str | None = None) -> dict[str, Any]:
+def _preview_payload(db: Session, run: PayrollRun, bank_name: str | None = None, payment_mode: str | None = None) -> dict[str, Any]:
     rows, validation_errors, total = _bank_rows(db, run)
+    bank_validation = validate_bank_file_rows(rows, bank_name or "Payroll Bank", payment_mode) if bank_name else None
+    if bank_validation and bank_validation["errors"]:
+        validation_errors.extend([f"Row {item.get('row', '-')}: {item.get('message')}" for item in bank_validation["errors"]])
     return {
         "payroll_run_id": run.id,
         "payroll_month": _payroll_month(run),
@@ -159,6 +164,7 @@ def _preview_payload(db: Session, run: PayrollRun, bank_name: str | None = None)
         "total_employees": sum(1 for row in rows if not row["validation_errors"]),
         "total_amount": total,
         "validation_errors": validation_errors,
+        "bank_file_validation": bank_validation,
         "rows": [{key: value for key, value in row.items() if key != "account_number"} for row in rows],
     }
 
@@ -296,11 +302,12 @@ def _write_txt(file_path: str, rows: list[dict[str, Any]], bank_format: BankAdvi
 def preview_bank_advice(
     payroll_run_id: int,
     bank_name: str | None = None,
+    payment_mode: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("payroll_view", "payroll_run")),
 ):
     run = _get_scoped_run(db, payroll_run_id, current_user)
-    return _preview_payload(db, run, bank_name)
+    return _preview_payload(db, run, bank_name, payment_mode)
 
 
 @router.get("/{payroll_run_id}/bank-exports", response_model=list[PayrollBankExportSchema])
@@ -333,13 +340,26 @@ def generate_bank_advice(
         raise HTTPException(status_code=400, detail="Bank advice can be generated only after payroll approval")
 
     rows, validation_errors, total = _bank_rows(db, run)
+    bank_format = db.query(BankAdviceFormat).filter(BankAdviceFormat.id == data.bank_format_id, BankAdviceFormat.is_active == True).first() if data.bank_format_id else None
+    bank_name = data.bank_name or (bank_format.bank_name if bank_format else None) or "Payroll Bank"
+    bank_validation = validate_bank_file_rows(rows, bank_name=bank_name, payment_mode=data.payment_mode)
+    db.add(PayrollBankFileValidation(
+        payroll_run_id=run.id,
+        bank_name=bank_name,
+        status=bank_validation["status"],
+        error_count=len(bank_validation["errors"]),
+        errors_json=bank_validation["errors"],
+        warnings_json=bank_validation["warnings"],
+        created_by=current_user.id,
+    ))
+    if bank_validation["errors"]:
+        db.commit()
+        raise HTTPException(status_code=400, detail={"message": "Bank-specific file validation failed", "validation": bank_validation})
     if validation_errors:
         raise HTTPException(status_code=400, detail={"message": "Bank advice validation failed", "validation_errors": validation_errors})
     if not rows:
         raise HTTPException(status_code=400, detail="No payroll records available for bank advice")
 
-    bank_format = db.query(BankAdviceFormat).filter(BankAdviceFormat.id == data.bank_format_id, BankAdviceFormat.is_active == True).first() if data.bank_format_id else None
-    bank_name = data.bank_name or (bank_format.bank_name if bank_format else None) or "Payroll Bank"
     export_dir = _export_dir(run)
     os.makedirs(export_dir, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")

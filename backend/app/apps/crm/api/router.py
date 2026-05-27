@@ -10,6 +10,8 @@ import os
 import re
 import secrets
 import smtplib
+import csv
+import io
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from difflib import SequenceMatcher
@@ -21,7 +23,7 @@ from urllib.parse import urlparse
 import httpx
 from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import asc, desc, or_
 from sqlalchemy.inspection import inspect as sa_inspect
@@ -42,6 +44,7 @@ from app.apps.crm.models import (
     CRMCustomField,
     CRMCustomFieldValue,
     CRMDeal,
+    CRMDealContact,
     CRMDealProduct,
     CRMEmailLog,
     CRMEmailTemplate,
@@ -80,6 +83,20 @@ router = APIRouter(prefix="/crm", tags=["CRM"])
 
 class CRMRecordPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
+
+
+class CRMLeadConvertPayload(BaseModel):
+    createContact: bool = True
+    createCompany: bool = True
+    createDeal: bool = True
+    dealName: str | None = None
+    dealAmount: Decimal | None = None
+    pipelineId: int | None = None
+    stageId: int | None = None
+
+
+class CRMImportRowsPayload(BaseModel):
+    rows: list[dict[str, Any]]
 
 
 class CRMEmailSendPayload(BaseModel):
@@ -195,6 +212,23 @@ class CRMApprovalActionPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     comments: str | None = None
+
+
+class CRMDealContactPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    contactId: int | None = None
+    contact_id: int | None = None
+    role: str = "Stakeholder"
+    influenceLevel: str | None = None
+    influence_level: str | None = None
+    isPrimary: bool | None = False
+    is_primary: bool | None = None
+    notes: str | None = None
+
+
+class CRMDealContactsReplacePayload(BaseModel):
+    contacts: list[CRMDealContactPayload]
 
 
 class CRMDuplicateScanPayload(BaseModel):
@@ -1577,12 +1611,22 @@ def _serialize(record: Any) -> dict[str, Any]:
         "position": "displayOrder",
         "custom_field_id": "customFieldId",
         "record_id": "recordId",
+        "deal_id": "dealId",
+        "contact_id": "contactId",
+        "influence_level": "influenceLevel",
+        "is_primary": "isPrimary",
     }
     for source, target in aliases.items():
         if source in item:
             item[target] = item[source]
     if "lead_source" in item and not item.get("source"):
         item["source"] = item["lead_source"]
+    return item
+
+
+def _serialize_deal_contact(link: CRMDealContact) -> dict[str, Any]:
+    item = _serialize(link)
+    item["contact"] = _serialize(link.contact) if link.contact else None
     return item
 
 
@@ -2384,6 +2428,13 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int) ->
     elif entity == "contacts":
         related["account"] = _serialize(_get_record(db, _get_resource("companies"), record.company_id, organization_id)) if record.company_id else None
         related["deals"] = _list_related(db, "deals", "contact_id", record.id, organization_id)
+        related["stakeholderDeals"] = [
+            {"dealContact": _serialize_deal_contact(link), "deal": _serialize(link.deal) if link.deal else None}
+            for link in db.query(CRMDealContact).filter(
+                CRMDealContact.organization_id == organization_id,
+                CRMDealContact.contact_id == record.id,
+            ).order_by(desc(CRMDealContact.is_primary), asc(CRMDealContact.id)).limit(100).all()
+        ]
         related["quotations"] = _list_related(db, "quotations", "contact_id", record.id, organization_id)
     elif entity == "companies":
         related["contacts"] = _list_related(db, "contacts", "company_id", record.id, organization_id)
@@ -2392,6 +2443,7 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int) ->
     elif entity == "deals":
         related["account"] = _serialize(_get_record(db, _get_resource("companies"), record.company_id, organization_id)) if record.company_id else None
         related["contact"] = _serialize(_get_record(db, _get_resource("contacts"), record.contact_id, organization_id)) if record.contact_id else None
+        related["contacts"] = _deal_contacts_for(db, record, organization_id)
         related["quotations"] = _list_related(db, "quotations", "deal_id", record.id, organization_id)
         related["products"] = _deal_products_for(db, record.id, organization_id)
         approvals = _approval_requests_for_entity(db, organization_id, "deal", record.id)
@@ -2416,6 +2468,136 @@ def _deal_products_for(db: Session, deal_id: int, organization_id: int) -> list[
         for product in _base_query(db, _get_resource("products"), organization_id).filter(CRMProduct.id.in_(product_ids)).all()
     } if product_ids else {}
     return [{**_serialize(item), "product": products.get(item.product_id)} for item in deal_products]
+
+
+def _deal_contacts_for(db: Session, deal: CRMDeal, organization_id: int) -> list[dict[str, Any]]:
+    links = db.query(CRMDealContact).filter(
+        CRMDealContact.organization_id == organization_id,
+        CRMDealContact.deal_id == deal.id,
+    ).order_by(desc(CRMDealContact.is_primary), asc(CRMDealContact.id)).all()
+    if not links and deal.contact_id:
+        contact = _get_record(db, _get_resource("contacts"), deal.contact_id, organization_id)
+        return [{
+            "id": None,
+            "organization_id": organization_id,
+            "organizationId": organization_id,
+            "deal_id": deal.id,
+            "dealId": deal.id,
+            "contact_id": contact.id,
+            "contactId": contact.id,
+            "role": "Primary",
+            "influence_level": None,
+            "influenceLevel": None,
+            "is_primary": True,
+            "isPrimary": True,
+            "notes": None,
+            "contact": _serialize(contact),
+        }]
+    return [_serialize_deal_contact(link) for link in links]
+
+
+def _deal_contact_data(payload: CRMDealContactPayload) -> dict[str, Any]:
+    raw = payload.model_dump(exclude_unset=True)
+    contact_id = raw.get("contactId") or raw.get("contact_id")
+    if not contact_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="contactId is required")
+    return {
+        "contact_id": int(contact_id),
+        "role": str(raw.get("role") or "Stakeholder"),
+        "influence_level": raw.get("influenceLevel") or raw.get("influence_level"),
+        "is_primary": bool(raw.get("isPrimary") if "isPrimary" in raw else raw.get("is_primary", False)),
+        "notes": raw.get("notes"),
+    }
+
+
+def _sync_deal_primary_contact(db: Session, deal: CRMDeal, primary_link: CRMDealContact | None = None) -> None:
+    if primary_link:
+        db.query(CRMDealContact).filter(
+            CRMDealContact.deal_id == deal.id,
+            CRMDealContact.id != primary_link.id,
+        ).update({"is_primary": False}, synchronize_session=False)
+        deal.contact_id = primary_link.contact_id
+        return
+    primary = db.query(CRMDealContact).filter(
+        CRMDealContact.deal_id == deal.id,
+        CRMDealContact.is_primary == True,
+    ).order_by(CRMDealContact.id).first()
+    deal.contact_id = primary.contact_id if primary else None
+
+
+def _upsert_deal_contact(
+    db: Session,
+    deal: CRMDeal,
+    organization_id: int,
+    data: dict[str, Any],
+    user_id: int | None,
+) -> CRMDealContact:
+    contact = _get_record(db, _get_resource("contacts"), data["contact_id"], organization_id)
+    if deal.company_id and contact.company_id and contact.company_id != deal.company_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Contact belongs to a different account than the deal")
+    existing = db.query(CRMDealContact).filter(
+        CRMDealContact.organization_id == organization_id,
+        CRMDealContact.deal_id == deal.id,
+        CRMDealContact.contact_id == contact.id,
+    ).first()
+    if existing:
+        existing.role = data["role"]
+        existing.influence_level = data.get("influence_level")
+        existing.is_primary = bool(data.get("is_primary"))
+        existing.notes = data.get("notes")
+        existing.updated_by_user_id = user_id
+        link = existing
+    else:
+        has_links = db.query(CRMDealContact).filter(CRMDealContact.deal_id == deal.id).count() > 0
+        is_primary = bool(data.get("is_primary")) or not has_links
+        link = CRMDealContact(
+            organization_id=organization_id,
+            deal_id=deal.id,
+            contact_id=contact.id,
+            role=data["role"],
+            influence_level=data.get("influence_level"),
+            is_primary=is_primary,
+            notes=data.get("notes"),
+            created_by_user_id=user_id,
+            updated_by_user_id=user_id,
+        )
+        db.add(link)
+        db.flush()
+    if link.is_primary:
+        _sync_deal_primary_contact(db, deal, link)
+    elif not deal.contact_id:
+        link.is_primary = True
+        _sync_deal_primary_contact(db, deal, link)
+    return link
+
+
+def _create_deal_contact_links_from_payload(
+    db: Session,
+    deal: CRMDeal,
+    contacts_payload: Any,
+    organization_id: int,
+    user_id: int | None,
+) -> None:
+    if not contacts_payload:
+        if deal.contact_id:
+            _upsert_deal_contact(
+                db,
+                deal,
+                organization_id,
+                {"contact_id": deal.contact_id, "role": "Primary", "is_primary": True, "influence_level": None, "notes": None},
+                user_id,
+            )
+        return
+    contacts = contacts_payload if isinstance(contacts_payload, list) else []
+    for index, item in enumerate(contacts):
+        payload = CRMDealContactPayload(**item) if isinstance(item, dict) else CRMDealContactPayload(contactId=int(item))
+        data = _deal_contact_data(payload)
+        if index == 0 and not any(
+            bool((entry.get("isPrimary") if isinstance(entry, dict) else False) or (entry.get("is_primary") if isinstance(entry, dict) else False))
+            for entry in contacts
+        ):
+            data["is_primary"] = True
+        _upsert_deal_contact(db, deal, organization_id, data, user_id)
 
 
 def _quotation_items_for(db: Session, quotation_id: int) -> list[dict[str, Any]]:
@@ -3232,6 +3414,28 @@ def _merge_related_records(db: Session, organization_id: int, resource_name: str
     if resource_name == "contacts":
         update_count("deals", db.query(CRMDeal).filter(CRMDeal.organization_id == organization_id, CRMDeal.contact_id.in_(loser_ids)).update(update_values(CRMDeal, {"contact_id": winner_id}), synchronize_session=False))
         update_count("quotations", db.query(CRMQuotation).filter(CRMQuotation.organization_id == organization_id, CRMQuotation.contact_id.in_(loser_ids)).update(update_values(CRMQuotation, {"contact_id": winner_id}), synchronize_session=False))
+        moved_links = 0
+        for link in db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.contact_id.in_(loser_ids)).all():
+            duplicate = db.query(CRMDealContact).filter(
+                CRMDealContact.organization_id == organization_id,
+                CRMDealContact.deal_id == link.deal_id,
+                CRMDealContact.contact_id == winner_id,
+                CRMDealContact.id != link.id,
+            ).first()
+            if duplicate:
+                if link.is_primary and not duplicate.is_primary:
+                    duplicate.is_primary = True
+                    duplicate.role = duplicate.role or link.role
+                    duplicate.influence_level = duplicate.influence_level or link.influence_level
+                    duplicate.updated_by_user_id = user_id
+                    duplicate.updated_at = now
+                db.delete(link)
+            else:
+                link.contact_id = winner_id
+                link.updated_by_user_id = user_id
+                link.updated_at = now
+            moved_links += 1
+        update_count("deal_contacts", moved_links)
     if resource_name == "companies":
         update_count("contacts", db.query(CRMContact).filter(CRMContact.organization_id == organization_id, CRMContact.company_id.in_(loser_ids)).update(update_values(CRMContact, {"company_id": winner_id}), synchronize_session=False))
         update_count("deals", db.query(CRMDeal).filter(CRMDeal.organization_id == organization_id, CRMDeal.company_id.in_(loser_ids)).update(update_values(CRMDeal, {"company_id": winner_id}), synchronize_session=False))
@@ -5226,6 +5430,335 @@ def module_info() -> dict[str, Any]:
     }
 
 
+@router.post("/leads/{lead_id}/convert")
+def convert_lead(
+    lead_id: int,
+    payload: CRMLeadConvertPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    lead = _get_record(db, _get_resource("leads"), lead_id, organization_id)
+    if lead.is_converted:
+        raise HTTPException(status_code=400, detail="Lead is already converted")
+
+    company = None
+    if payload.createCompany and lead.company_name:
+        company = db.query(CRMCompany).filter(
+            CRMCompany.organization_id == organization_id,
+            CRMCompany.deleted_at.is_(None),
+            CRMCompany.name == lead.company_name,
+        ).first()
+        if not company:
+            company = CRMCompany(
+                organization_id=organization_id,
+                owner_user_id=lead.owner_user_id or current_user.id,
+                name=lead.company_name,
+                industry=lead.industry,
+                website=lead.company_website or lead.website,
+                phone=lead.phone,
+                email=lead.email,
+                city=lead.city,
+                state=lead.state,
+                country=lead.country,
+                employee_count=lead.employee_count,
+                account_type="Prospect",
+                status="Active",
+                created_by_user_id=current_user.id,
+                updated_by_user_id=current_user.id,
+            )
+            db.add(company)
+            db.flush()
+
+    contact = None
+    if payload.createContact:
+        contact = CRMContact(
+            organization_id=organization_id,
+            owner_user_id=lead.owner_user_id or current_user.id,
+            company_id=company.id if company else None,
+            first_name=lead.first_name,
+            last_name=lead.last_name,
+            full_name=lead.full_name,
+            email=lead.email,
+            phone=lead.phone,
+            alternate_phone=lead.alternate_phone,
+            job_title=lead.job_title,
+            lifecycle_stage="Lead",
+            source=lead.source,
+            company_name=lead.company_name,
+            company_website=lead.company_website,
+            industry=lead.industry,
+            employee_count=lead.employee_count,
+            website=lead.website,
+            linkedin_url=lead.linkedin_url,
+            email_verification_status=lead.email_verification_status,
+            social_profiles_json=lead.social_profiles_json,
+            city=lead.city,
+            state=lead.state,
+            country=lead.country,
+            address=lead.address,
+            created_by_user_id=current_user.id,
+            updated_by_user_id=current_user.id,
+        )
+        db.add(contact)
+        db.flush()
+
+    deal = None
+    if payload.createDeal:
+        pipeline_id = payload.pipelineId
+        stage_id = payload.stageId
+        if not pipeline_id or not stage_id:
+            default_pipeline = _base_query(db, _get_resource("pipelines"), organization_id).order_by(desc(CRMPipeline.is_default), CRMPipeline.id).first()
+            if not default_pipeline:
+                raise HTTPException(status_code=400, detail="Create a CRM pipeline before converting leads to deals")
+            pipeline_id = pipeline_id or default_pipeline.id
+            default_stage = (
+                db.query(CRMPipelineStage)
+                .filter(CRMPipelineStage.pipeline_id == pipeline_id, CRMPipelineStage.deleted_at.is_(None))
+                .order_by(CRMPipelineStage.position.asc(), CRMPipelineStage.id.asc())
+                .first()
+            )
+            if not default_stage:
+                raise HTTPException(status_code=400, detail="Create a pipeline stage before converting leads to deals")
+            stage_id = stage_id or default_stage.id
+        _validate_deal_pipeline_stage(db, pipeline_id, stage_id, organization_id)
+        amount = payload.dealAmount if payload.dealAmount is not None else lead.estimated_value
+        stage = db.query(CRMPipelineStage).filter(CRMPipelineStage.id == stage_id).first()
+        probability = int(stage.probability or 0) if stage else 0
+        deal = CRMDeal(
+            organization_id=organization_id,
+            owner_user_id=lead.owner_user_id or current_user.id,
+            company_id=company.id if company else None,
+            contact_id=contact.id if contact else None,
+            pipeline_id=pipeline_id,
+            stage_id=stage_id,
+            name=payload.dealName or f"{lead.company_name or lead.full_name} opportunity",
+            amount=amount or Decimal("0"),
+            probability=probability,
+            expected_revenue=(amount or Decimal("0")) * Decimal(probability) / Decimal("100"),
+            expected_close_date=lead.expected_close_date,
+            status="Open",
+            lead_source=lead.source,
+            source=lead.source,
+            next_follow_up_at=lead.next_follow_up_at,
+            tags_text=lead.tags_text,
+            created_by_user_id=current_user.id,
+            updated_by_user_id=current_user.id,
+        )
+        db.add(deal)
+        db.flush()
+
+    lead.is_converted = True
+    lead.converted_at = datetime.now(timezone.utc)
+    lead.converted_contact_id = contact.id if contact else None
+    lead.converted_company_id = company.id if company else None
+    lead.converted_deal_id = deal.id if deal else None
+    lead.status = "Converted"
+    lead.updated_by_user_id = current_user.id
+    db.commit()
+    db.refresh(lead)
+    return {
+        "lead": _serialize(lead),
+        "contact": _serialize(contact) if contact else None,
+        "company": _serialize(company) if company else None,
+        "deal": _serialize(deal) if deal else None,
+    }
+
+
+@router.post("/{entity}/import")
+def import_records(
+    entity: str,
+    payload: CRMImportRowsPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    resource = _get_resource(entity)
+    organization_id = _organization_id(db, current_user)
+    created = []
+    errors = []
+    for index, row in enumerate(payload.rows, start=1):
+        try:
+            data = _validate_and_build(resource, dict(row), partial=False)
+            columns = _columns(resource.model)
+            if "organization_id" in columns:
+                data["organization_id"] = organization_id
+            if resource.owner_field and resource.owner_field in columns and not data.get(resource.owner_field):
+                data[resource.owner_field] = current_user.id
+            if "created_by_user_id" in columns:
+                data["created_by_user_id"] = current_user.id
+            if "updated_by_user_id" in columns:
+                data["updated_by_user_id"] = current_user.id
+            _validate_related_records(db, data, organization_id)
+            if resource.model is CRMDeal:
+                _validate_deal_pipeline_stage(db, data.get("pipeline_id"), data.get("stage_id"), organization_id)
+            record = resource.model(**data)
+            db.add(record)
+            db.flush()
+            created.append(_serialize(record))
+        except Exception as exc:
+            errors.append({"row": index, "error": str(getattr(exc, "detail", exc))})
+    if errors:
+        db.rollback()
+        return {"created": 0, "errors": errors}
+    db.commit()
+    return {"created": len(created), "items": created, "errors": []}
+
+
+@router.get("/deals/{deal_id}/contacts")
+def list_deal_contacts(
+    deal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    return {"items": _deal_contacts_for(db, deal, organization_id)}
+
+
+@router.post("/deals/{deal_id}/contacts", status_code=status.HTTP_201_CREATED)
+def add_deal_contact(
+    deal_id: int,
+    payload: CRMDealContactPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    link = _upsert_deal_contact(db, deal, organization_id, _deal_contact_data(payload), current_user.id)
+    deal.updated_by_user_id = current_user.id
+    deal.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(link)
+    return _serialize_deal_contact(link)
+
+
+@router.put("/deals/{deal_id}/contacts")
+def replace_deal_contacts(
+    deal_id: int,
+    payload: CRMDealContactsReplacePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.deal_id == deal.id).delete(synchronize_session=False)
+    db.flush()
+    _create_deal_contact_links_from_payload(db, deal, [item.model_dump(exclude_unset=True) for item in payload.contacts], organization_id, current_user.id)
+    _sync_deal_primary_contact(db, deal)
+    deal.updated_by_user_id = current_user.id
+    deal.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"items": _deal_contacts_for(db, deal, organization_id)}
+
+
+@router.patch("/deals/{deal_id}/contacts/{deal_contact_id}")
+def update_deal_contact(
+    deal_id: int,
+    deal_contact_id: int,
+    payload: CRMDealContactPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    link = db.query(CRMDealContact).filter(
+        CRMDealContact.organization_id == organization_id,
+        CRMDealContact.deal_id == deal.id,
+        CRMDealContact.id == deal_contact_id,
+    ).first()
+    if not link:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal contact not found")
+    raw = payload.model_dump(exclude_unset=True)
+    if "contactId" in raw or "contact_id" in raw:
+        contact_id = raw.get("contactId") or raw.get("contact_id")
+        _get_record(db, _get_resource("contacts"), int(contact_id), organization_id)
+        duplicate = db.query(CRMDealContact).filter(
+            CRMDealContact.organization_id == organization_id,
+            CRMDealContact.deal_id == deal.id,
+            CRMDealContact.contact_id == int(contact_id),
+            CRMDealContact.id != link.id,
+        ).first()
+        if duplicate:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Contact is already linked to this deal")
+        link.contact_id = int(contact_id)
+    if "role" in raw:
+        link.role = raw["role"]
+    if "influenceLevel" in raw or "influence_level" in raw:
+        link.influence_level = raw.get("influenceLevel") or raw.get("influence_level")
+    if "notes" in raw:
+        link.notes = raw["notes"]
+    if "isPrimary" in raw or "is_primary" in raw:
+        link.is_primary = bool(raw.get("isPrimary") if "isPrimary" in raw else raw.get("is_primary"))
+    link.updated_by_user_id = current_user.id
+    if link.is_primary:
+        _sync_deal_primary_contact(db, deal, link)
+    else:
+        _sync_deal_primary_contact(db, deal)
+    deal.updated_by_user_id = current_user.id
+    deal.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(link)
+    return _serialize_deal_contact(link)
+
+
+@router.delete("/deals/{deal_id}/contacts/{deal_contact_id}")
+def delete_deal_contact(
+    deal_id: int,
+    deal_contact_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    link = db.query(CRMDealContact).filter(
+        CRMDealContact.organization_id == organization_id,
+        CRMDealContact.deal_id == deal.id,
+        CRMDealContact.id == deal_contact_id,
+    ).first()
+    if not link:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal contact not found")
+    was_primary = bool(link.is_primary)
+    db.delete(link)
+    db.flush()
+    if was_primary:
+        replacement = db.query(CRMDealContact).filter(
+            CRMDealContact.organization_id == organization_id,
+            CRMDealContact.deal_id == deal.id,
+        ).order_by(CRMDealContact.id).first()
+        if replacement:
+            replacement.is_primary = True
+            _sync_deal_primary_contact(db, deal, replacement)
+        else:
+            deal.contact_id = None
+    deal.updated_by_user_id = current_user.id
+    deal.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"message": "Deal contact removed"}
+
+
+@router.get("/{entity}/export")
+def export_records(
+    entity: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+):
+    resource = _get_resource(entity)
+    organization_id = _organization_id(db, current_user)
+    rows = _base_query(db, resource, organization_id).limit(5000).all()
+    columns = [column.key for column in resource.model.__table__.columns if column.key not in {"deleted_at"}]
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=columns)
+    writer.writeheader()
+    for row in rows:
+        serialized = _serialize(row)
+        writer.writerow({column: serialized.get(column) for column in columns})
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{entity}.csv"'},
+    )
+
+
 @router.get("/{entity}")
 def list_records(
     entity: str,
@@ -5315,6 +5848,12 @@ def create_record(
 ):
     resource = _get_resource(entity)
     raw_payload = payload.model_dump()
+    deal_contacts_payload = None
+    if resource.model is CRMDeal:
+        for key in ("contacts", "dealContacts", "deal_contacts", "stakeholders"):
+            if key in raw_payload:
+                deal_contacts_payload = raw_payload.pop(key)
+                break
     mention_user_ids = _extract_mention_user_ids(raw_payload)
     custom_values = _extract_custom_field_payload(raw_payload)
     validation_payload = dict(raw_payload)
@@ -5363,6 +5902,8 @@ def create_record(
         _apply_deal_close_fields(record, data)
     db.add(record)
     db.flush()
+    if resource.model is CRMDeal:
+        _create_deal_contact_links_from_payload(db, record, deal_contacts_payload, organization_id, current_user.id)
     if resource.model is CRMMeeting and raw_payload.get("syncToCalendar"):
         _sync_meeting_to_calendar(db, organization_id, record, current_user, raw_payload.get("externalProvider") or raw_payload.get("provider"))
     if canonical in CUSTOM_FIELD_SUPPORTED_ENTITIES:
@@ -5396,6 +5937,12 @@ def update_record(
     record = _get_record(db, resource, record_id, organization_id)
     before = {key: getattr(record, key) for key in _columns(resource.model) if key in IMPORTANT_UPDATE_FIELDS}
     raw_payload = payload.model_dump(exclude_unset=True)
+    deal_contacts_payload = None
+    if resource.model is CRMDeal:
+        for key in ("contacts", "dealContacts", "deal_contacts", "stakeholders"):
+            if key in raw_payload:
+                deal_contacts_payload = raw_payload.pop(key)
+                break
     custom_values = _extract_custom_field_payload(raw_payload)
     validation_payload = dict(raw_payload)
     if resource.model is CRMMeeting:
@@ -5450,6 +5997,11 @@ def update_record(
             _apply_lead_score(db, record, organization_id, current_user.id)
     if canonical in CUSTOM_FIELD_SUPPORTED_ENTITIES:
         _save_custom_field_values(db, canonical, record.id, organization_id, current_user.id, custom_values)
+    if resource.model is CRMDeal and deal_contacts_payload is not None:
+        db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.deal_id == record.id).delete(synchronize_session=False)
+        db.flush()
+        _create_deal_contact_links_from_payload(db, record, deal_contacts_payload, organization_id, current_user.id)
+        _sync_deal_primary_contact(db, record)
     if resource.model in {CRMLead, CRMCompany, CRMDeal} and "territory_id" not in data:
         _apply_territory_assignment(db, organization_id, record, override_manual=False, override_owner=not owner_was_provided)
     db.commit()

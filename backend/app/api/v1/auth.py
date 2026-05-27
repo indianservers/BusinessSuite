@@ -1,9 +1,12 @@
 from datetime import datetime, timezone, timedelta
+import hashlib
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from app.core.deps import get_current_active_superuser, get_db, get_current_user
 from app.core.config import settings
+from app.core.email import send_email
 from app.core.security import (
     verify_password, create_access_token, create_refresh_token,
     verify_refresh_token, get_password_hash
@@ -20,7 +23,7 @@ from app.models.user import User
 from app.models.user import Role, Permission, UserSession, MFAMethod, PasswordPolicy, LoginAttempt
 from app.schemas.auth import (
     LoginRequest, TokenResponse, RefreshTokenRequest,
-    ChangePasswordRequest, UserCreate, UserSchema,
+    ChangePasswordRequest, PasswordResetConfirm, PasswordResetRequest, UserCreate, UserSchema,
     RoleCreate, RoleUpdate, RoleSchema, PermissionSchema,
     UserSessionCreate, UserSessionSchema, MFAMethodCreate, MFAMethodSchema,
     PasswordPolicyCreate, PasswordPolicySchema, LoginAttemptSchema,
@@ -117,6 +120,48 @@ def check_lockout(db: Session, user: User) -> dict | None:
     if recent_failures >= attempts:
         return {"locked": True, "attempts": recent_failures, "unlock_after_minutes": duration}
     return None
+
+
+def _active_password_policy(db: Session) -> PasswordPolicy | None:
+    return db.query(PasswordPolicy).filter(
+        (PasswordPolicy.is_default == True) | (PasswordPolicy.is_active == True)
+    ).order_by(PasswordPolicy.is_default.desc(), PasswordPolicy.id.desc()).first()
+
+
+def _validate_password_policy(db: Session, password: str) -> None:
+    policy = _active_password_policy(db)
+    min_length = policy.min_length if policy else 8
+    if len(password) < min_length:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Password must be at least {min_length} characters")
+    if policy:
+        if policy.require_uppercase and not any(char.isupper() for char in password):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must include an uppercase letter")
+        if policy.require_lowercase and not any(char.islower() for char in password):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must include a lowercase letter")
+        if policy.require_number and not any(char.isdigit() for char in password):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must include a number")
+        if (policy.require_special or policy.require_symbol) and not any(not char.isalnum() for char in password):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must include a special character")
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _revoke_user_sessions(db: Session, user_id: int, except_token: str | None = None) -> None:
+    query = db.query(UserSession).filter(UserSession.user_id == user_id, UserSession.status != "revoked")
+    if except_token:
+        query = query.filter(UserSession.session_token_hash != _hash_reset_token(except_token))
+    query.update({UserSession.status: "revoked"}, synchronize_session=False)
+
+
+def _bearer_token(request: Request | None) -> str | None:
+    if not request:
+        return None
+    authorization = request.headers.get("authorization") or request.headers.get("Authorization")
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    return authorization.split(" ", 1)[1].strip()
 
 
 def _create_mfa_token(user: User) -> str:
@@ -246,20 +291,58 @@ def get_me(current_user: User = Depends(get_current_user)):
     }
 
 
+@router.post("/forgot-password")
+def forgot_password(data: PasswordResetRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+    if user:
+        raw_token = secrets.token_urlsafe(32)
+        user.password_reset_token = _hash_reset_token(raw_token)
+        user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        reset_link = f"{settings.FRONTEND_PUBLIC_URL.rstrip('/')}/reset-password?token={raw_token}"
+        send_email(
+            to=user.email,
+            subject="Reset your password",
+            body=f"Use this link to reset your password: {reset_link}\nThis link expires in 1 hour.",
+        )
+        db.commit()
+    return {"message": "If this email exists, a reset link has been sent."}
+
+
+@router.post("/reset-password")
+def reset_password(data: PasswordResetConfirm, db: Session = Depends(get_db)):
+    token_hash = _hash_reset_token(data.token)
+    user = db.query(User).filter(User.password_reset_token == token_hash).first()
+    now = datetime.now(timezone.utc)
+    expires = user.password_reset_expires if user else None
+    if expires and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if not user or not expires or expires <= now:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+
+    _validate_password_policy(db, data.new_password)
+    user.hashed_password = get_password_hash(data.new_password)
+    user.password_reset_token = None
+    user.password_reset_expires = None
+    _revoke_user_sessions(db, user.id)
+    db.commit()
+    return {"message": "Password reset successful. Please log in."}
+
+
 @router.post("/change-password")
 def change_password(
     data: ChangePasswordRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if not verify_password(data.current_password, current_user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
-    if len(data.new_password) < 8:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 8 characters")
+    _validate_password_policy(db, data.new_password)
 
     current_user.hashed_password = get_password_hash(data.new_password)
+    _revoke_user_sessions(db, current_user.id, except_token=_bearer_token(request))
     db.commit()
-    return {"message": "Password changed successfully"}
+    return {"message": "Password changed successfully."}
 
 
 @router.post("/logout")

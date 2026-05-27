@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, func
+from app.apps.hrms.services.identity import HrmsIdentityService
 from app.crud.base import CRUDBase
 from app.models.employee import (
     Employee,
@@ -83,7 +84,7 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         items = query.order_by(Employee.first_name).offset(skip).limit(limit).all()
         return items, total
 
-    def create_with_user(self, db: Session, *, obj_in: EmployeeCreate) -> Employee:
+    def create_with_user(self, db: Session, *, obj_in: EmployeeCreate, created_by: int | None = None) -> Employee:
         emp_id = obj_in.employee_id or self.generate_employee_id(db)
 
         user = None
@@ -101,6 +102,13 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         )
         db_emp = Employee(**emp_data, employee_id=emp_id, user_id=user.id if user else None)
         db.add(db_emp)
+        db.flush()
+        if user:
+            db_emp.user = user
+            HrmsIdentityService.sync_employee_identity(db, db_emp)
+        from app.crud.crud_onboarding import auto_start_onboarding_for_employee
+
+        auto_start_onboarding_for_employee(db, db_emp, created_by=created_by)
         db.commit()
         db.refresh(db_emp)
         return db_emp
