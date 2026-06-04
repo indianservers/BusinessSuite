@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
-import { leaveApi, leavePayrollApi } from "@/services/api";
+import { authApi, employeeApi, leaveApi, leavePayrollApi } from "@/services/api";
 import { formatDate, statusColor } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
@@ -79,12 +79,31 @@ interface LeaveEncashmentRequest {
   remarks?: string | null;
 }
 
+interface EmployeeOption {
+  id: number;
+  employee_id?: string;
+  first_name?: string;
+  last_name?: string;
+  work_email?: string | null;
+  personal_email?: string | null;
+  user_id?: number | null;
+}
+
+interface UserOption {
+  id: number;
+  email: string;
+  role?: string | null;
+  employee_id?: number | null;
+  employee_code?: string | null;
+}
+
 export default function LeavePage() {
   usePageTitle("Leave");
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
   const canApproveLeave = ["admin", "hr", "manager"].includes(roleKey);
+  const hasEmployeeProfile = Boolean(user?.employee_id);
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"my" | "approvals" | "calendar">("my");
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
@@ -94,15 +113,23 @@ export default function LeavePage() {
   const [encashDays, setEncashDays] = useState("");
   const [encashRemarks, setEncashRemarks] = useState("");
   const [encashReviewRemarks, setEncashReviewRemarks] = useState<Record<number, string>>({});
+  const [accountEmployeeSearch, setAccountEmployeeSearch] = useState("Recovery");
+  const [accountUserSearch, setAccountUserSearch] = useState("");
+  const [accountEmployeeId, setAccountEmployeeId] = useState("");
+  const [accountUserId, setAccountUserId] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("Employee@123456");
 
   const { data: balances, isLoading: loadingBalance } = useQuery({
     queryKey: ["leave-balance"],
     queryFn: () => leaveApi.balance().then((r) => r.data as LeaveBalance[]),
+    enabled: hasEmployeeProfile,
   });
 
   const { data: myRequests, isLoading: loadingRequests, refetch } = useQuery({
     queryKey: ["my-leave-requests"],
     queryFn: () => leaveApi.myRequests().then((r) => r.data as LeaveRequest[]),
+    enabled: hasEmployeeProfile,
   });
 
   const { data: allRequests, refetch: refetchAll } = useQuery({
@@ -115,6 +142,24 @@ export default function LeavePage() {
   const { data: leaveTypes } = useQuery({
     queryKey: ["leave-types"],
     queryFn: () => leaveApi.types().then((r) => r.data as LeaveType[]),
+  });
+
+  const { data: employeeOptions } = useQuery({
+    queryKey: ["leave-account-employees", accountEmployeeSearch],
+    queryFn: () => employeeApi.list({ search: accountEmployeeSearch || undefined, limit: 50 }).then((r) => r.data),
+    enabled: canApproveLeave,
+  });
+
+  const { data: userOptions } = useQuery({
+    queryKey: ["leave-account-user-options", accountUserSearch, accountEmployeeId],
+    queryFn: () => employeeApi.userOptions({ search: accountUserSearch || undefined, include_employee_id: accountEmployeeId || undefined }).then((r) => r.data as UserOption[]),
+    enabled: canApproveLeave,
+  });
+
+  const { data: roles } = useQuery({
+    queryKey: ["leave-account-roles"],
+    queryFn: () => authApi.roles().then((r) => r.data as Array<{ id: number; name: string }>),
+    enabled: canApproveLeave,
   });
 
   const { data: encashmentRequests } = useQuery({
@@ -263,11 +308,54 @@ export default function LeavePage() {
     },
   });
 
+  const linkEmployeeUserMutation = useMutation({
+    mutationFn: () => employeeApi.linkUser(Number(accountEmployeeId), accountUserId ? Number(accountUserId) : null),
+    onSuccess: () => {
+      toast({ title: "Employee account linked" });
+      qc.invalidateQueries({ queryKey: ["leave-account-employees"] });
+      qc.invalidateQueries({ queryKey: ["leave-account-user-options"] });
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not link employee account";
+      toast({ title: "Account link failed", description: msg, variant: "destructive" });
+    },
+  });
+
+  const createAndLinkUserMutation = useMutation({
+    mutationFn: async () => {
+      const employeeRole = (roles || []).find((item) => item.name?.toLowerCase().includes("employee"));
+      const linkedEmployee = await employeeApi.createUserAccount(Number(accountEmployeeId), {
+        email: accountEmail,
+        password: accountPassword,
+        role_id: employeeRole?.id,
+      });
+      return linkedEmployee.data;
+    },
+    onSuccess: () => {
+      toast({ title: "Employee login created", description: `${accountEmail} can now apply leave and view payslips.` });
+      setAccountUserId("");
+      qc.invalidateQueries({ queryKey: ["leave-account-employees"] });
+      qc.invalidateQueries({ queryKey: ["leave-account-user-options"] });
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not create employee login";
+      toast({ title: "Account creation failed", description: msg, variant: "destructive" });
+    },
+  });
+
   const tabs: Array<"my" | "approvals" | "calendar"> = canApproveLeave ? ["my", "approvals", "calendar"] : ["my", "calendar"];
   const pendingApprovals = allRequests || [];
   const pendingEncashments = pendingEncashmentRequests || [];
   const calendarDays = calendarData?.days || [];
   const monthLabel = calendarMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const employees = Array.isArray(employeeOptions?.items) ? employeeOptions.items as EmployeeOption[] : Array.isArray(employeeOptions) ? employeeOptions as EmployeeOption[] : [];
+  const selectedAccountEmployee = employees.find((employee) => String(employee.id) === accountEmployeeId);
+  const applyLeaveTypes = balances?.length
+    ? balances
+        .filter((balance) => Number(balance.available) > 0 || Number(balance.allocated) > 0)
+        .map((balance) => balance.leave_type)
+        .filter((type): type is LeaveType => Boolean(type?.id))
+    : leaveTypes || [];
 
   function submitDecision(id: number, status: "Approved" | "Rejected") {
     const fallback = status === "Approved" ? "Approved by HR" : "Rejected by HR";
@@ -286,7 +374,9 @@ export default function LeavePage() {
           <p className="page-description">Employees apply for leave, HR or managers approve or reject with a reason.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <AskAiButton module="HRMS" defaultAgentCode="hrms_leave_assistant" defaultPrompt="Check leave balance and help with leave request/review." />
+          {canApproveLeave ? (
+            <AskAiButton module="HRMS" defaultAgentCode="hrms_leave_assistant" defaultPrompt="Check leave balance and help with leave request/review." />
+          ) : null}
           {canApproveLeave ? (
             <>
               <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => runAccrualsMutation.mutate()} disabled={runAccrualsMutation.isPending}>
@@ -311,6 +401,13 @@ export default function LeavePage() {
           ? Array.from({ length: 4 }).map((_, i) => (
               <Card key={i}><CardContent className="p-4"><div className="h-12 skeleton rounded" /></CardContent></Card>
             ))
+          : !hasEmployeeProfile ? (
+              <Card className="sm:col-span-3 lg:col-span-4">
+                <CardContent className="p-4 text-sm text-muted-foreground">
+                  Link an employee profile to this login to show self-service leave balances.
+                </CardContent>
+              </Card>
+            )
           : balances?.map((b) => {
               const allocated = Number(b.allocated) || 0;
               const available = Number(b.available) || 0;
@@ -344,7 +441,7 @@ export default function LeavePage() {
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">Select leave type</option>
-                  {leaveTypes?.map((t) => (
+                  {applyLeaveTypes.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
@@ -398,6 +495,67 @@ export default function LeavePage() {
         </Card>
       )}
 
+      {canApproveLeave && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Employee Account Wizard</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+              <Input value={accountEmployeeSearch} onChange={(event) => setAccountEmployeeSearch(event.target.value)} placeholder="Search employee code or name" />
+              <select value={accountEmployeeId} onChange={(event) => {
+                const employeeId = event.target.value;
+                setAccountEmployeeId(employeeId);
+                const employee = employees.find((item) => String(item.id) === employeeId);
+                setAccountEmail(employee?.work_email || employee?.personal_email || "");
+              }} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Select employee</option>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.employee_id} - {employee.first_name} {employee.last_name} {employee.user_id ? "(linked)" : ""}
+                  </option>
+                ))}
+              </select>
+              <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["leave-account-employees"] })}>
+                Refresh Employees
+              </Button>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+              <Input value={accountUserSearch} onChange={(event) => setAccountUserSearch(event.target.value)} placeholder="Search existing user email" />
+              <select value={accountUserId} onChange={(event) => setAccountUserId(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Select unlinked user</option>
+                {(userOptions || []).map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.email} {user.employee_code ? `(${user.employee_code})` : ""}
+                  </option>
+                ))}
+              </select>
+              <Button disabled={!accountEmployeeId || !accountUserId || linkEmployeeUserMutation.isPending} onClick={() => linkEmployeeUserMutation.mutate()}>
+                Link Existing User
+              </Button>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[1fr_180px_auto]">
+              <Input value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} placeholder="employee@email.com" />
+              <Input value={accountPassword} onChange={(event) => setAccountPassword(event.target.value)} placeholder="Temporary password" type="password" />
+              <Button disabled={!accountEmployeeId || !accountEmail || !accountPassword || createAndLinkUserMutation.isPending} onClick={() => createAndLinkUserMutation.mutate()}>
+                Create Login
+              </Button>
+            </div>
+
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <p className="font-medium">Verification path</p>
+              <p className="mt-1 text-muted-foreground">
+                {selectedAccountEmployee
+                  ? `${selectedAccountEmployee.employee_id} will be able to login, apply leave, appear in manager/HR approvals, update leave balance after approval, and feed payroll LOP.`
+                  : "Select an employee to link or create their login account."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Leave Encashment</CardTitle>
@@ -425,7 +583,7 @@ export default function LeavePage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
                   {["Leave type", "Days", "Rate", "Amount", "Status", "Requested", "Remarks"].map((h) => (
@@ -520,7 +678,7 @@ export default function LeavePage() {
               )}
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
                     {["Type", "From", "To", "Days", "Reason", "Reviewed reason", "Applied On", "Status", ""].map((h) => (
@@ -687,7 +845,7 @@ export default function LeavePage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
                     {["Employee", "Type", "From", "To", "Days", "Reason", "Review reason", "Actions"].map((h) => (

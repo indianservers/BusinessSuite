@@ -103,6 +103,19 @@ export default function RecruitmentPage() {
     },
   });
 
+  const convertCandidateMutation = useMutation({
+    mutationFn: (id: number) => recruitmentApi.convertCandidate(id),
+    onSuccess: () => {
+      toast({ title: "Candidate converted to employee" });
+      refetchCandidates();
+      qc.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Conversion failed";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -360,15 +373,26 @@ export default function RecruitmentPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <select
-                              value={c.status}
-                              onChange={(e) => updateStatusMutation.mutate({ id: c.id, status: e.target.value })}
-                              className="text-xs h-7 rounded border border-input bg-background px-2"
-                            >
-                              {CANDIDATE_STATUSES.map((s) => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <select
+                                value={c.status}
+                                onChange={(e) => updateStatusMutation.mutate({ id: c.id, status: e.target.value })}
+                                className="text-xs h-7 rounded border border-input bg-background px-2"
+                              >
+                                {CANDIDATE_STATUSES.map((s) => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                disabled={c.status !== "Hired" || convertCandidateMutation.isPending}
+                                onClick={() => convertCandidateMutation.mutate(c.id)}
+                              >
+                                Convert
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))

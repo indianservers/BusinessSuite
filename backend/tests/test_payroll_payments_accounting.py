@@ -4,6 +4,7 @@ from decimal import Decimal
 from app.db.init_db import init_db
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, PayrollPaymentBatch, PayrollJournalEntry
+from tests.payroll_test_utils import ensure_payroll_ready
 
 
 def _login(client):
@@ -27,6 +28,7 @@ def test_payment_batch_status_import_gl_and_statutory_validation(client, db):
     employee.ifsc_code = "HDFC0001234"
     _ensure_salary(db, employee)
     db.commit()
+    ensure_payroll_ready(db, 5, 2026)
 
     run = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
     assert run.status_code == 201
@@ -37,7 +39,8 @@ def test_payment_batch_status_import_gl_and_statutory_validation(client, db):
     batch_body = batch.json()
     assert batch_body["total_amount"] != "0.00"
     assert batch_body["generated_file_url"].endswith(".csv")
-    assert batch_body["lines"][0]["bank_account"] == "1234567890"
+    employee_line = next(line for line in batch_body["lines"] if line["employee_id"] == employee.id)
+    assert employee_line["bank_account"] == "1234567890"
 
     imported = client.put(
         f"/api/v1/payroll/payments/batches/{batch_body['id']}/status-import",

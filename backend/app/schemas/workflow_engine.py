@@ -9,8 +9,19 @@ class WorkflowStepDefinitionCreate(BaseModel):
     approver_type: str = "Role"
     approver_value: Optional[str] = None
     condition_expression: Optional[str] = None
+    skip_if_condition: Optional[str] = None
     timeout_hours: Optional[int] = None
+    reminder_hours: Optional[int] = None
+    timeout_action: Optional[str] = "escalate"
     escalation_user_id: Optional[int] = None
+    escalation_role: Optional[str] = None
+    action_type: Optional[str] = None
+    action_config: Optional[dict[str, Any]] = None
+    delegation_type: Optional[str] = None
+    delegation_value: Optional[str] = None
+    delegation_starts_at: Optional[datetime] = None
+    delegation_ends_at: Optional[datetime] = None
+    metadata_json: Optional[dict[str, Any]] = None
     is_required: bool = True
 
 
@@ -59,6 +70,13 @@ class WorkflowTaskSchema(BaseModel):
     instance_id: int
     assigned_to_user_id: Optional[int] = None
     assigned_role: Optional[str] = None
+    original_assigned_to_user_id: Optional[int] = None
+    original_assigned_role: Optional[str] = None
+    delegated_to_user_id: Optional[int] = None
+    delegated_role: Optional[str] = None
+    delegation_reason: Optional[str] = None
+    delegation_started_at: Optional[datetime] = None
+    delegation_ends_at: Optional[datetime] = None
     status: str
     due_at: Optional[datetime] = None
     reminder_sent_at: Optional[datetime] = None
@@ -83,4 +101,38 @@ class WorkflowInstanceSchema(BaseModel):
     current_step_order: int
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowDelegationCreate(BaseModel):
+    delegator_user_id: Optional[int] = None
+    delegator_role: Optional[str] = None
+    delegate_to_user_id: Optional[int] = None
+    delegate_to_role: Optional[str] = None
+    module: Optional[str] = None
+    reason: Optional[str] = None
+    starts_at: datetime
+    ends_at: datetime
+
+
+class WorkflowDelegationSchema(WorkflowDelegationCreate):
+    id: int
+    is_active: bool
+    created_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkflowAuditEventSchema(BaseModel):
+    id: int
+    instance_id: int
+    task_id: Optional[int] = None
+    step_definition_id: Optional[int] = None
+    event_type: str
+    actor_user_id: Optional[int] = None
+    before_status: Optional[str] = None
+    after_status: Optional[str] = None
+    reason: Optional[str] = None
+    details_json: Optional[dict[str, Any]] = None
+    created_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)

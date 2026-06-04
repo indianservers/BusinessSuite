@@ -16,6 +16,10 @@ type Course = {
   category?: string;
   delivery_mode: string;
   duration_hours: string | number;
+  content_standard?: string;
+  external_launch_url?: string;
+  scorm_version?: string;
+  xapi_activity_id?: string;
   is_mandatory: boolean;
 };
 
@@ -34,6 +38,18 @@ type Certification = {
   title: string;
   status: string;
   expires_on?: string;
+  renewal_required?: boolean;
+  renewal_status?: string;
+  renewal_due_on?: string;
+};
+
+type CertificationRenewal = {
+  id: number;
+  certification_id: number;
+  employee_id: number;
+  due_on: string;
+  status: string;
+  reminder_sent_at?: string;
 };
 
 export default function LMSPage() {
@@ -46,6 +62,10 @@ export default function LMSPage() {
     category: "Compliance",
     delivery_mode: "Online",
     duration_hours: "1",
+    content_standard: "Internal",
+    external_launch_url: "",
+    scorm_version: "",
+    xapi_activity_id: "",
     is_mandatory: true,
   });
 
@@ -60,6 +80,14 @@ export default function LMSPage() {
   const { data: certifications } = useQuery({
     queryKey: ["lms-certifications"],
     queryFn: () => lmsApi.certifications().then((r) => r.data as Certification[]),
+    enabled: false,
+    retry: false,
+  });
+  const { data: renewals } = useQuery({
+    queryKey: ["lms-certification-renewals"],
+    queryFn: () => lmsApi.certificationRenewals({ due_within_days: 90 }).then((r) => r.data as CertificationRenewal[]),
+    enabled: false,
+    retry: false,
   });
 
   const createCourse = useMutation({
@@ -77,6 +105,10 @@ export default function LMSPage() {
         category: "Compliance",
         delivery_mode: "Online",
         duration_hours: "1",
+        content_standard: "Internal",
+        external_launch_url: "",
+        scorm_version: "",
+        xapi_activity_id: "",
         is_mandatory: true,
       });
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
@@ -92,6 +124,7 @@ export default function LMSPage() {
     const days = (new Date(cert.expires_on).getTime() - Date.now()) / 86400000;
     return days >= 0 && days <= 45;
   }).length;
+  const dueRenewals = (renewals || []).filter((renewal) => renewal.status !== "Completed").length;
 
   return (
     <div className="space-y-5">
@@ -118,6 +151,7 @@ export default function LMSPage() {
           { label: "Pending Assignments", value: pending, icon: BookOpenCheck },
           { label: "Completed", value: completed, icon: Award },
           { label: "Certificates Expiring", value: expiring, icon: RefreshCw },
+          { label: "Renewals Due", value: dueRenewals, icon: Award },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -161,6 +195,24 @@ export default function LMSPage() {
               <Label>Hours</Label>
               <Input type="number" value={courseForm.duration_hours} onChange={(e) => setCourseForm({ ...courseForm, duration_hours: e.target.value })} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Standard</Label>
+              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={courseForm.content_standard} onChange={(e) => setCourseForm({ ...courseForm, content_standard: e.target.value })}>
+                {["Internal", "SCORM", "xAPI", "External"].map((standard) => <option key={standard}>{standard}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>External Launch URL</Label>
+              <Input value={courseForm.external_launch_url} onChange={(e) => setCourseForm({ ...courseForm, external_launch_url: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>SCORM Version</Label>
+              <Input value={courseForm.scorm_version} onChange={(e) => setCourseForm({ ...courseForm, scorm_version: e.target.value })} placeholder="1.2 / 2004" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>xAPI Activity ID</Label>
+              <Input value={courseForm.xapi_activity_id} onChange={(e) => setCourseForm({ ...courseForm, xapi_activity_id: e.target.value })} />
+            </div>
             <div className="flex gap-2 sm:col-span-3">
               <Button disabled={!courseForm.code || !courseForm.title || createCourse.isPending} onClick={() => createCourse.mutate()}>
                 Publish
@@ -182,10 +234,13 @@ export default function LMSPage() {
               <div key={course.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <p className="font-medium">{course.title}</p>
-                  <p className="text-sm text-muted-foreground">{course.code} - {course.category || "General"} - {course.delivery_mode}</p>
+                  <p className="text-sm text-muted-foreground">{course.code} - {course.category || "General"} - {course.delivery_mode} - {course.content_standard || "Internal"}</p>
+                  {course.external_launch_url && <p className="mt-1 text-xs text-muted-foreground">{course.external_launch_url}</p>}
                 </div>
                 <div className="flex flex-wrap gap-2 sm:justify-end">
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{course.duration_hours} hrs</span>
+                  {course.scorm_version && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">SCORM {course.scorm_version}</span>}
+                  {course.xapi_activity_id && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">xAPI</span>}
                   {course.is_mandatory && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Mandatory</span>}
                 </div>
               </div>
@@ -212,6 +267,16 @@ export default function LMSPage() {
               <div key={`cert-${cert.id}`} className="rounded-lg border p-3">
                 <p className="text-sm font-medium">{cert.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">Employee #{cert.employee_id}{cert.expires_on ? ` expires ${cert.expires_on}` : ""}</p>
+                {cert.renewal_required && <p className="mt-1 text-xs text-amber-700">Renewal {cert.renewal_status || "Due"}{cert.renewal_due_on ? ` by ${cert.renewal_due_on}` : ""}</p>}
+              </div>
+            ))}
+            {(renewals || []).slice(0, 5).map((renewal) => (
+              <div key={`renewal-${renewal.id}`} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">Certification #{renewal.certification_id}</p>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{renewal.status}</span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">Employee #{renewal.employee_id} due {renewal.due_on}</p>
               </div>
             ))}
             {!assignments?.length && !certifications?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No learning activity yet.</p>}

@@ -165,7 +165,7 @@ export default function SettingsPage() {
     onError: (err: any) => {
       toast({
         title: "Could not save",
-        description: err?.response?.data?.detail || "Please check required fields",
+        description: apiError(err),
         variant: "destructive",
       });
     },
@@ -188,7 +188,7 @@ export default function SettingsPage() {
       };
       qc.invalidateQueries({ queryKey: [keys[type]] });
     },
-    onError: (err: any) => toast({ title: "Could not remove", description: err?.response?.data?.detail || "Please try again", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Could not remove", description: apiError(err), variant: "destructive" }),
   });
 
   const openCreate = (type: SettingKey) => {
@@ -403,6 +403,19 @@ function deleteSetting(type: SettingKey, id: number) {
   if (type === "salaryComponents") return payrollApi.deleteComponent(id);
   if (type === "roles") return authApi.deleteRole(id);
   return Promise.reject(new Error("Delete not supported for this setting"));
+}
+
+function apiError(err: any) {
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item?.msg || item?.message || JSON.stringify(item))
+      .filter(Boolean)
+      .join("; ");
+  }
+  if (detail && typeof detail === "object") return detail.msg || detail.message || JSON.stringify(detail);
+  return "Please check required fields";
 }
 
 function parentText(type: SettingKey, row: Entity, data: Record<SettingKey, Entity[]>) {

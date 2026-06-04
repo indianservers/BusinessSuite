@@ -15,14 +15,21 @@ depends_on = None
 
 
 def upgrade():
+    inspector = sa.inspect(op.get_bind())
+    existing_columns = {column["name"] for column in inspector.get_columns("pms_saved_filters")}
+    new_columns = [
+        sa.Column("organization_id", sa.Integer(), nullable=True),
+        sa.Column("entity_type", sa.String(length=40), nullable=True, server_default="task"),
+        sa.Column("filters_json", sa.Text(), nullable=True),
+        sa.Column("sort_json", sa.Text(), nullable=True),
+        sa.Column("columns_json", sa.Text(), nullable=True),
+        sa.Column("visibility", sa.String(length=30), nullable=True, server_default="private"),
+        sa.Column("is_default", sa.Boolean(), nullable=True, server_default=sa.false()),
+    ]
     with op.batch_alter_table("pms_saved_filters") as batch_op:
-        batch_op.add_column(sa.Column("organization_id", sa.Integer(), nullable=True))
-        batch_op.add_column(sa.Column("entity_type", sa.String(length=40), nullable=True, server_default="task"))
-        batch_op.add_column(sa.Column("filters_json", sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column("sort_json", sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column("columns_json", sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column("visibility", sa.String(length=30), nullable=True, server_default="private"))
-        batch_op.add_column(sa.Column("is_default", sa.Boolean(), nullable=True, server_default=sa.false()))
+        for column in new_columns:
+            if column.name not in existing_columns:
+                batch_op.add_column(column)
         batch_op.alter_column("project_id", existing_type=sa.Integer(), nullable=True)
     op.create_index("ix_pms_saved_filters_organization_id", "pms_saved_filters", ["organization_id"])
     op.create_index("ix_pms_saved_filters_entity_type", "pms_saved_filters", ["entity_type"])

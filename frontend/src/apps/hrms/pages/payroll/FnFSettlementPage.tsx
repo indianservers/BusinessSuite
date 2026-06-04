@@ -75,7 +75,7 @@ export default function FnFSettlementPage() {
 
   const employees = useQuery({
     queryKey: ["fnf-employees"],
-    queryFn: () => employeeApi.list({ per_page: 200 }).then((r) => r.data.items ?? r.data),
+    queryFn: () => employeeApi.list({ per_page: 100 }).then((r) => r.data.items ?? r.data),
   });
   const exits = useQuery({ queryKey: ["fnf-exits"], queryFn: () => exitApi.records().then((r) => r.data) });
   const settlements = useQuery({

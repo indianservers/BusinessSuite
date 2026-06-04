@@ -225,6 +225,41 @@ def create_portal_submission(data: StatutoryPortalSubmissionCreate, db: Session 
     return submission
 
 
+@router.get("/portal-submissions", response_model=List[StatutoryPortalSubmissionSchema])
+def list_portal_submissions(
+    legal_entity_id: Optional[int] = Query(None),
+    portal_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    period_month: Optional[int] = Query(None, ge=1, le=12),
+    period_year: Optional[int] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("payroll_view")),
+):
+    query = db.query(StatutoryPortalSubmission)
+    if legal_entity_id:
+        query = query.filter(StatutoryPortalSubmission.legal_entity_id == legal_entity_id)
+    if portal_type:
+        query = query.filter(StatutoryPortalSubmission.portal_type == portal_type)
+    if status:
+        query = query.filter(StatutoryPortalSubmission.status == status)
+    if period_month:
+        query = query.filter(StatutoryPortalSubmission.period_month == period_month)
+    if period_year:
+        query = query.filter(StatutoryPortalSubmission.period_year == period_year)
+    return (
+        query.order_by(
+            StatutoryPortalSubmission.period_year.desc(),
+            StatutoryPortalSubmission.period_month.desc(),
+            StatutoryPortalSubmission.id.desc(),
+        )
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+
 @router.put("/portal-submissions/{submission_id}/submit", response_model=StatutoryPortalSubmissionSchema)
 def submit_portal_submission(submission_id: int, data: PortalSubmissionSubmit, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("payroll_approve"))):
     from fastapi import HTTPException

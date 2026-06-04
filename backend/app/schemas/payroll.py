@@ -157,6 +157,9 @@ class PayrollPayGroupCreate(BaseModel):
     default_tax_regime: str = "NEW"
     rounding_policy: str = "Nearest Rupee"
     include_weekends_in_lop: bool = False
+    working_pattern: str = "company"
+    working_days_per_week: Optional[int] = None
+    weekly_off_weekdays: Optional[list[int]] = None
     is_default: bool = False
 
 
@@ -364,6 +367,13 @@ class EmployeeSalaryCreate(BaseModel):
     ctc: Decimal
     basic: Optional[Decimal] = None
     hra: Optional[Decimal] = None
+    payroll_type: str = "monthly_fixed"
+    wage_rate: Decimal = Decimal("0")
+    default_units: Decimal = Decimal("0")
+    unit_label: Optional[str] = None
+    commission_rate_percent: Decimal = Decimal("0")
+    commission_base_amount: Decimal = Decimal("0")
+    invoice_amount: Decimal = Decimal("0")
     effective_from: date_type
     effective_date: Optional[date_type] = None
     effective_to: Optional[date_type] = None
@@ -376,6 +386,13 @@ class EmployeeSalarySchema(BaseModel):
     ctc: Decimal
     basic: Optional[Decimal] = None
     hra: Optional[Decimal] = None
+    payroll_type: str = "monthly_fixed"
+    wage_rate: Decimal = Decimal("0")
+    default_units: Decimal = Decimal("0")
+    unit_label: Optional[str] = None
+    commission_rate_percent: Decimal = Decimal("0")
+    commission_base_amount: Decimal = Decimal("0")
+    invoice_amount: Decimal = Decimal("0")
     effective_from: date_type
     effective_date: Optional[date_type] = None
     effective_to: Optional[date_type] = None
@@ -438,6 +455,10 @@ class PayrollRunCreate(BaseModel):
     month: int
     year: int
     company_id: Optional[int] = None
+    branch_id: Optional[int] = None
+    department_id: Optional[int] = None
+    pay_group_id: Optional[int] = None
+    employee_category: Optional[str] = None
     pay_period_start: Optional[date_type] = None
     pay_period_end: Optional[date_type] = None
     force_run: bool = False
@@ -454,6 +475,10 @@ class PayrollRunSchema(BaseModel):
     month: int
     year: int
     company_id: Optional[int] = None
+    branch_id: Optional[int] = None
+    department_id: Optional[int] = None
+    pay_group_id: Optional[int] = None
+    employee_category: Optional[str] = None
     pay_period_start: Optional[date_type] = None
     pay_period_end: Optional[date_type] = None
     run_date: Optional[date_type] = None

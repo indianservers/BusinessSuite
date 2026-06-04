@@ -96,6 +96,7 @@ const workspaceConfig: Record<RoleKey, WorkspaceConfig> = {
           { label: "Employees", description: "Profiles, org assignment, salary info, and lifecycle state", href: "/hrms/employees", icon: Users },
           { label: "Onboarding", description: "Templates, joining checklists, and task completion", href: "/hrms/onboarding", icon: ClipboardCheck },
           { label: "Attendance", description: "Punches, summaries, shifts, holidays, and regularization", href: "/hrms/attendance", icon: Clock },
+          { label: "Shift Roster", description: "Assign shifts, weekly offs, and publish rosters", href: "/hrms/attendance/shift-roster", icon: CalendarDays },
           { label: "Leave", description: "Balances, requests, team calendars, and approvals", href: "/hrms/leave", icon: CalendarDays },
         ],
       },
@@ -135,6 +136,7 @@ const workspaceConfig: Record<RoleKey, WorkspaceConfig> = {
           { label: "Manager Hub", description: "Coverage, birthdays, reports, and team snapshots", href: "/hrms/manager-dashboard", icon: LayoutDashboard },
           { label: "Leave Approvals", description: "Approve leave, view team leave calendar, and coverage", href: "/hrms/leave", icon: CalendarDays },
           { label: "Attendance", description: "Review team attendance and regularization requests", href: "/hrms/attendance", icon: Clock },
+          { label: "Shift Roster", description: "Review roster coverage and published shifts", href: "/hrms/attendance/shift-roster", icon: CalendarDays },
           { label: "Assets", description: "View assets issued to team members", href: "/hrms/assets", icon: Package },
         ],
       },
@@ -150,8 +152,8 @@ const workspaceConfig: Record<RoleKey, WorkspaceConfig> = {
   },
   employee: {
     title: "Employee Self Service",
-    subtitle: "Punch attendance, apply leave, download payslips, manage documents, benefits, and HR requests.",
-    primaryAction: { label: "Open ESS Portal", description: "Your payslips, documents, goals, helpdesk, and assets", href: "/hrms/ess", icon: UserRound },
+    subtitle: "View your profile, attendance, leave, payslips, documents, and HR requests.",
+    primaryAction: { label: "Open ESS Portal", description: "Your profile, leave, documents, payslips, and requests", href: "/hrms/ess", icon: UserRound },
     stats: [
       { label: "Attendance", value: "Punch", tone: "bg-blue-50 text-blue-700" },
       { label: "Leave", value: "Apply", tone: "bg-emerald-50 text-emerald-700" },
@@ -159,29 +161,20 @@ const workspaceConfig: Record<RoleKey, WorkspaceConfig> = {
     ],
     sections: [
       {
-        title: "My Workday",
+        title: "Self Service",
         items: [
-          { label: "Attendance", description: "Punch in/out, view today, and regularize attendance", href: "/hrms/attendance", icon: Clock },
+          { label: "My Attendance", description: "View your attendance, hours, overtime, and monthly summary", href: "/hrms/my-attendance", icon: Clock },
           { label: "Leave", description: "Apply leave, check balances, and view team calendar", href: "/hrms/leave", icon: CalendarDays },
           { label: "Profile", description: "Personal, job, bank, tax, and emergency information", href: "/hrms/profile", icon: UserRound },
-          { label: "Helpdesk", description: "Raise salary, policy, document, or HR service tickets", href: "/hrms/helpdesk", icon: HelpCircle },
+          { label: "My Requests", description: "Track leave, attendance, document, and HR requests", href: "/hrms/workflow", icon: HelpCircle },
         ],
       },
       {
-        title: "My Pay & Growth",
+        title: "Pay And Documents",
         items: [
-          { label: "Payslip", description: "Payslips, reimbursements, advances, and payroll queries", href: "/hrms/payroll", icon: DollarSign },
-          { label: "Tax Declarations", description: "Investment declarations, HRA, NPS, and Form 12BB data", href: "/hrms/investment-declaration", icon: FileCheck2 },
-          { label: "Benefits", description: "Benefits enrollment, dependants, and coverage details", href: "/hrms/benefits", icon: Landmark },
-          { label: "Performance", description: "Goals, self reviews, appraisal feedback, and acknowledgements", href: "/hrms/performance", icon: Target },
-        ],
-      },
-      {
-        title: "Documents & Assets",
-        items: [
+          { label: "My Payslips", description: "View published payslips, component lines, YTD, and PDF download", href: "/hrms/my-payslips", icon: DollarSign },
           { label: "Documents", description: "Letters, certificates, policy docs, and employee files", href: "/hrms/documents", icon: FileText },
-          { label: "My Assets", description: "Assigned laptop, phone, cards, and return records", href: "/hrms/assets", icon: Package },
-          { label: "Learning", description: "Courses, compliance training, and progress tracking", href: "/hrms/lms", icon: Sparkles },
+          { label: "My Roster", description: "View assigned shifts and weekly offs", href: "/hrms/my-roster", icon: CalendarDays },
         ],
       },
     ],

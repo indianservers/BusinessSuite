@@ -17,7 +17,7 @@ from app.core.deps import RequirePermission, get_current_user, get_db
 from app.models.company import Company
 from app.models.employee import Employee
 from app.models.payroll import EmployeeTaxDeclaration, EmployeeTaxDeclarationItem, PayrollRecord, PayrollRun
-from app.models.statutory_compliance import Form16Record
+from app.models.statutory_compliance import Form16Record, PayrollLegalEntity
 from app.models.user import User
 
 
@@ -112,6 +112,14 @@ def _approved_declarations(db: Session, financial_year: str, employee_id: int) -
 
 
 def _company_name(db: Session, company_id: int | None) -> str:
+    legal_entity = (
+        db.query(PayrollLegalEntity)
+        .filter(PayrollLegalEntity.company_id == company_id if company_id else PayrollLegalEntity.is_default == True, PayrollLegalEntity.is_active == True)
+        .order_by(PayrollLegalEntity.is_default.desc(), PayrollLegalEntity.id.desc())
+        .first()
+    )
+    if legal_entity:
+        return legal_entity.legal_name
     company = db.query(Company).filter(Company.id == company_id).first() if company_id else None
     return (company.legal_name or company.name) if company else "Company"
 
@@ -199,6 +207,7 @@ def _write_part_b_pdf(path: str, employee: Employee, company_name: str, financia
         Table(declaration_rows, repeatRows=1),
         Spacer(1, 0.35 * inch),
         Paragraph("This certificate has been generated from payroll records and approved tax proofs.", styles["Italic"]),
+        Paragraph("Digital signature status: pending external signing connector.", styles["Italic"]),
     ]
     for item in story:
         if isinstance(item, Table):
@@ -255,6 +264,9 @@ def _serialize(record: Form16Record, include_employee: bool = True) -> dict[str,
         "status": record.status,
         "taxableIncome": record.taxable_income,
         "taxDeducted": record.tax_deducted,
+        "digitalSignatureStatus": "pending_signature" if record.status == "generated" else "not_configured",
+        "digitalSignatureProvider": None,
+        "signatureHookStatus": "connector_not_configured",
         "generatedBy": record.generated_by,
         "generatedAt": record.generated_at,
         "publishedAt": record.published_at,

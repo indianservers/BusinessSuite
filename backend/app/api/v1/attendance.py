@@ -1,5 +1,7 @@
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
+import csv
+import io
 import json
 import math
 from typing import List, Optional
@@ -19,6 +21,7 @@ from app.models.attendance import (
     Attendance, OvertimeRequest, AttendancePunch, AttendanceMonthLock, BiometricDevice,
     BiometricImportBatch, GeoAttendancePolicy, AttendancePunchProof,
 )
+from app.models.audit import AuditLog
 from app.models.employee import Employee
 from app.schemas.attendance import (
     ShiftCreate, ShiftSchema,
@@ -28,9 +31,11 @@ from app.schemas.attendance import (
     CheckInRequest, CheckOutRequest,
     AttendancePunchCreate, AttendancePunchSchema, AttendanceMonthLockCreate, AttendanceMonthLockSchema,
     BiometricDeviceCreate, BiometricDeviceSchema, BiometricImportRequest, BiometricImportBatchSchema,
+    BiometricAdapterImportRequest, BiometricReconcileRequest,
     GeoAttendancePolicyCreate, GeoAttendancePolicySchema, GeoPunchRequest, AttendancePunchProofSchema,
     AttendanceSchema, PunchRequest, RegularizationRequest,
     RegularizationApproval, RegularizationSchema,
+    AttendanceBulkEntryRequest, AttendanceBulkEntryResponse, AttendanceRegisterResponse,
 )
 from app.schemas.attendance import ShiftCreate as ShiftUpdate
 from app.schemas.attendance import HolidayCreate as HolidayUpdate
@@ -78,6 +83,170 @@ def compute_attendance_summary(employee_id: int, work_date: date, db: Session) -
     return crud_attendance.compute_day(db, employee_id, work_date)
 
 
+def _display_attendance_status(status: str | None) -> str:
+    if status == "Weekend":
+        return "Weekly Off"
+    return status or "Absent"
+
+
+def _stored_attendance_status(status: str) -> str:
+    normalized = status.strip()
+    if normalized == "Half Day":
+        return "Half-day"
+    if normalized == "Weekly Off":
+        return "Weekend"
+    return normalized
+
+
+def _attendance_register_row(employee: Employee, attendance: Attendance | None, work_date: date) -> dict:
+    return {
+        "attendance_id": attendance.id if attendance else None,
+        "employee_id": employee.id,
+        "employee_code": employee.employee_id,
+        "employee_name": " ".join(part for part in [employee.first_name, employee.last_name] if part) or employee.employee_id,
+        "department": employee.department.name if employee.department else None,
+        "branch": employee.branch.name if employee.branch else None,
+        "date": work_date,
+        "status": _display_attendance_status(attendance.status if attendance else "Absent"),
+        "hours_worked": Decimal(str(attendance.total_hours or 0)) if attendance else Decimal("0"),
+        "ot_hours": Decimal(str(attendance.overtime_hours or 0)) if attendance else Decimal("0"),
+        "remarks": attendance.remarks if attendance else None,
+    }
+
+
+def _row_value(row: dict, preferred: Optional[str], aliases: list[str]) -> Optional[str]:
+    normalized = {str(key).strip().lower(): value for key, value in row.items()}
+    if preferred:
+        value = normalized.get(preferred.strip().lower())
+        if value not in (None, ""):
+            return str(value).strip()
+    for alias in aliases:
+        value = normalized.get(alias)
+        if value not in (None, ""):
+            return str(value).strip()
+    return None
+
+
+def _parse_adapter_punch_time(value: str) -> datetime:
+    cleaned = value.strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d-%m-%Y %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"):
+        try:
+            return datetime.strptime(cleaned, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    parsed = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _normalize_adapter_punch_type(value: Optional[str]) -> str:
+    raw = (value or "IN").strip().lower()
+    if raw in {"out", "o", "1", "check out", "checkout", "clock out"}:
+        return "OUT"
+    if raw in {"break_in", "break in", "break-in", "2"}:
+        return "BREAK_IN"
+    if raw in {"break_out", "break out", "break-out", "3"}:
+        return "BREAK_OUT"
+    return "IN"
+
+
+def _employee_from_adapter_code(db: Session, code: str) -> Optional[Employee]:
+    employee = db.query(Employee).filter(Employee.employee_id == code, Employee.deleted_at.is_(None)).first()
+    if employee:
+        return employee
+    if code.isdigit():
+        return db.query(Employee).filter(Employee.id == int(code), Employee.deleted_at.is_(None)).first()
+    return None
+
+
+def _record_biometric_punch(
+    db: Session,
+    employee_id: int,
+    punch_time: datetime,
+    punch_type: str,
+    device_id: Optional[int],
+    raw_payload: dict,
+) -> bool:
+    device_key = str(device_id or "")
+    existing = db.query(AttendancePunch).filter(
+        AttendancePunch.employee_id == employee_id,
+        AttendancePunch.punch_time == punch_time,
+        AttendancePunch.punch_type == punch_type,
+        AttendancePunch.device_id == device_key,
+    ).first()
+    if existing:
+        return False
+    db.add(AttendancePunch(
+        employee_id=employee_id,
+        punch_time=punch_time,
+        punch_type=punch_type,
+        source="Biometric",
+        device_id=device_key,
+        raw_payload=json.dumps(raw_payload, default=str),
+    ))
+    return True
+
+
+def _attendance_reconciliation(db: Session, from_date: date, to_date: date, employee_id: Optional[int] = None, recompute: bool = True) -> dict:
+    if to_date < from_date:
+        raise HTTPException(status_code=400, detail="to_date must be on or after from_date")
+    employee_query = db.query(Employee).filter(Employee.deleted_at.is_(None), Employee.status.in_(["Active", "Probation", "Notice Period"]))
+    if employee_id:
+        employee_query = employee_query.filter(Employee.id == employee_id)
+    employees = employee_query.order_by(Employee.employee_id).all()
+    missing_punches = []
+    duplicate_punches = []
+    reconciled_days = 0
+    cursor = from_date
+    while cursor <= to_date:
+        start = datetime.combine(cursor, datetime.min.time(), tzinfo=timezone.utc)
+        end = datetime.combine(cursor, datetime.max.time(), tzinfo=timezone.utc)
+        for employee in employees:
+            punches = db.query(AttendancePunch).filter(
+                AttendancePunch.employee_id == employee.id,
+                AttendancePunch.punch_time >= start,
+                AttendancePunch.punch_time <= end,
+            ).order_by(AttendancePunch.punch_time).all()
+            if recompute and punches:
+                compute_attendance_summary(employee.id, cursor, db)
+            by_key: dict[tuple[str, datetime, str], int] = {}
+            for punch in punches:
+                key = (punch.punch_type, punch.punch_time, punch.device_id or "")
+                by_key[key] = by_key.get(key, 0) + 1
+            for (punch_type, punch_time, device_key), count in by_key.items():
+                if count > 1:
+                    duplicate_punches.append({
+                        "employee_id": employee.id,
+                        "employee_code": employee.employee_id,
+                        "date": cursor.isoformat(),
+                        "punch_time": punch_time.isoformat(),
+                        "punch_type": punch_type,
+                        "device_id": device_key,
+                        "count": count,
+                    })
+            punch_types = {punch.punch_type for punch in punches}
+            if not punches:
+                missing_punches.append({"employee_id": employee.id, "employee_code": employee.employee_id, "date": cursor.isoformat(), "missing": "IN_OUT"})
+            else:
+                if "IN" not in punch_types:
+                    missing_punches.append({"employee_id": employee.id, "employee_code": employee.employee_id, "date": cursor.isoformat(), "missing": "IN"})
+                if "OUT" not in punch_types:
+                    missing_punches.append({"employee_id": employee.id, "employee_code": employee.employee_id, "date": cursor.isoformat(), "missing": "OUT"})
+                if "IN" in punch_types and "OUT" in punch_types:
+                    reconciled_days += 1
+        cursor += timedelta(days=1)
+    return {
+        "from_date": from_date.isoformat(),
+        "to_date": to_date.isoformat(),
+        "employee_count": len(employees),
+        "reconciled_days": reconciled_days,
+        "missing_punch_count": len(missing_punches),
+        "duplicate_punch_count": len(duplicate_punches),
+        "missing_punches": missing_punches,
+        "duplicate_punches": duplicate_punches,
+        "payroll_blocking": bool(missing_punches or duplicate_punches),
+    }
+
+
 def _attendance_timezone():
     try:
         return ZoneInfo(settings.CELERY_TIMEZONE)
@@ -88,15 +257,18 @@ def _attendance_timezone():
 def _business_date(value: datetime | None = None) -> date:
     value = value or datetime.now(timezone.utc)
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
+        return value.date()
     return value.astimezone(_attendance_timezone()).date()
 
 
 def _utc_day_bounds(work_date: date) -> tuple[datetime, datetime]:
-    tz = _attendance_timezone()
-    start = datetime.combine(work_date, time.min, tzinfo=tz).astimezone(timezone.utc)
-    end = datetime.combine(work_date, time.max, tzinfo=tz).astimezone(timezone.utc)
+    start = datetime.combine(work_date, time.min)
+    end = datetime.combine(work_date, time.max)
     return start, end
+
+
+def _attendance_now() -> datetime:
+    return datetime.now(_attendance_timezone()).replace(tzinfo=None)
 
 
 def _attendance_payload(record: Attendance | None) -> dict | None:
@@ -372,6 +544,7 @@ def create_raw_punch(
     db.add(punch)
     db.commit()
     db.refresh(punch)
+    compute_attendance_summary(employee_id, _business_date(punch.punch_time), db)
     return punch
 
 
@@ -383,7 +556,7 @@ def punch_attendance(
     current_user: User = Depends(get_current_user),
 ):
     employee = _employee_or_400(current_user)
-    now = datetime.now(timezone.utc)
+    now = _attendance_now()
     work_date = _business_date(now)
     if _locked_month(db, work_date):
         raise HTTPException(status_code=400, detail="Attendance month is locked")
@@ -460,6 +633,7 @@ def import_biometric_punches(
             raw_payload=json.dumps(row.model_dump(), default=str),
         ))
         imported += 1
+        compute_attendance_summary(row.employee_id, _business_date(row.punch_time), db)
     batch = BiometricImportBatch(
         device_id=data.device_id,
         source_filename=data.source_filename,
@@ -478,6 +652,101 @@ def import_biometric_punches(
     db.commit()
     db.refresh(batch)
     return batch
+
+
+@router.post("/biometric/import-adapter", response_model=BiometricImportBatchSchema, status_code=201)
+def import_biometric_adapter_file(
+    data: BiometricAdapterImportRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("attendance_manage")),
+):
+    reader = csv.DictReader(io.StringIO(data.csv_text.strip()))
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="CSV header row is required")
+
+    errors = []
+    imported = 0
+    skipped = 0
+    for index, row in enumerate(reader, start=2):
+        employee_code = _row_value(row, data.employee_code_column, ["employee_code", "emp_code", "employee_id", "user_id", "uid", "pin", "enroll_id"])
+        raw_time = _row_value(row, data.punch_time_column, ["punch_time", "timestamp", "time", "date_time", "datetime", "log_time", "punch datetime"])
+        raw_type = _row_value(row, data.punch_type_column, ["punch_type", "type", "status", "direction", "state"])
+        if not employee_code or not raw_time:
+            errors.append({"row": index, "error": "Employee code and punch time are required", "payload": row})
+            continue
+        employee = _employee_from_adapter_code(db, employee_code)
+        if not employee:
+            errors.append({"row": index, "error": f"Employee not found for code {employee_code}", "payload": row})
+            continue
+        try:
+            punch_time = _parse_adapter_punch_time(raw_time)
+        except ValueError:
+            errors.append({"row": index, "error": f"Invalid punch time {raw_time}", "payload": row})
+            continue
+        if _locked_month(db, punch_time.date()):
+            errors.append({"row": index, "error": "Attendance month is locked", "payload": row})
+            continue
+        imported_now = _record_biometric_punch(
+            db=db,
+            employee_id=employee.id,
+            punch_time=punch_time,
+            punch_type=_normalize_adapter_punch_type(raw_type),
+            device_id=data.device_id,
+            raw_payload={"adapter": data.adapter, "row": row},
+        )
+        if imported_now:
+            imported += 1
+            compute_attendance_summary(employee.id, _business_date(punch_time), db)
+        else:
+            skipped += 1
+
+    batch = BiometricImportBatch(
+        device_id=data.device_id,
+        source_filename=data.source_filename or f"{data.adapter}-adapter.csv",
+        imported_rows=imported,
+        skipped_rows=skipped,
+        error_rows=len(errors),
+        status="Imported With Errors" if errors else "Imported",
+        error_report_json=json.dumps(errors, default=str),
+        imported_by=current_user.id,
+    )
+    if data.device_id:
+        device = db.query(BiometricDevice).filter(BiometricDevice.id == data.device_id).first()
+        if device:
+            device.last_sync_at = datetime.now(timezone.utc)
+    db.add(batch)
+    db.commit()
+    db.refresh(batch)
+    return batch
+
+
+@router.post("/biometric/reconcile")
+def reconcile_biometric_attendance(
+    data: BiometricReconcileRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("attendance_manage")),
+):
+    return _attendance_reconciliation(db, data.from_date, data.to_date, data.employee_id, data.recompute)
+
+
+@router.get("/reports/missing-punches")
+def missing_punch_report(
+    from_date: date = Query(...),
+    to_date: date = Query(...),
+    employee_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("attendance_manage")),
+):
+    result = _attendance_reconciliation(db, from_date, to_date, employee_id, recompute=False)
+    return {
+        "from_date": result["from_date"],
+        "to_date": result["to_date"],
+        "missing_punch_count": result["missing_punch_count"],
+        "duplicate_punch_count": result["duplicate_punch_count"],
+        "payroll_blocking": result["payroll_blocking"],
+        "rows": result["missing_punches"],
+        "duplicates": result["duplicate_punches"],
+    }
 
 
 @router.post("/geo/policies", response_model=GeoAttendancePolicySchema, status_code=201)
@@ -550,6 +819,7 @@ def create_geo_punch(
     db.add(proof)
     db.commit()
     db.refresh(proof)
+    compute_attendance_summary(current_user.employee.id, _business_date(data.punch_time), db)
     return proof
 
 
@@ -586,14 +856,53 @@ def lock_attendance_month(
         existing.reason = data.reason
         existing.locked_by = current_user.id
         existing.locked_at = datetime.now(timezone.utc)
+        existing.unlocked_by = None
+        existing.unlocked_at = None
+        db.add(AuditLog(
+            user_id=current_user.id,
+            method="POST",
+            endpoint="/attendance/locks",
+            entity_type="attendance_month_lock",
+            entity_id=existing.id,
+            action="LOCK",
+            description=f"Attendance locked for {data.month}/{data.year}",
+        ))
         db.commit()
         db.refresh(existing)
         return existing
     lock = AttendanceMonthLock(**data.model_dump(), locked_by=current_user.id)
     db.add(lock)
+    db.flush()
+    db.add(AuditLog(
+        user_id=current_user.id,
+        method="POST",
+        endpoint="/attendance/locks",
+        entity_type="attendance_month_lock",
+        entity_id=lock.id,
+        action="LOCK",
+        description=f"Attendance locked for {data.month}/{data.year}",
+    ))
     db.commit()
     db.refresh(lock)
     return lock
+
+
+@router.get("/locks", response_model=List[AttendanceMonthLockSchema])
+def list_attendance_month_locks(
+    month: Optional[int] = Query(None, ge=1, le=12),
+    year: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("attendance_manage")),
+):
+    query = db.query(AttendanceMonthLock)
+    if month:
+        query = query.filter(AttendanceMonthLock.month == month)
+    if year:
+        query = query.filter(AttendanceMonthLock.year == year)
+    if status:
+        query = query.filter(AttendanceMonthLock.status == status)
+    return query.order_by(AttendanceMonthLock.year.desc(), AttendanceMonthLock.month.desc(), AttendanceMonthLock.id.desc()).limit(200).all()
 
 
 @router.put("/locks/{lock_id}/unlock", response_model=AttendanceMonthLockSchema)
@@ -610,9 +919,126 @@ def unlock_attendance_month(
     lock.reason = reason or lock.reason
     lock.unlocked_by = current_user.id
     lock.unlocked_at = datetime.now(timezone.utc)
+    db.add(AuditLog(
+        user_id=current_user.id,
+        method="PUT",
+        endpoint=f"/attendance/locks/{lock_id}/unlock",
+        entity_type="attendance_month_lock",
+        entity_id=lock.id,
+        action="UNLOCK",
+        description=f"Attendance unlocked for {lock.month}/{lock.year}",
+    ))
     db.commit()
     db.refresh(lock)
     return lock
+
+
+@router.get("/register", response_model=AttendanceRegisterResponse)
+def attendance_register(
+    work_date: date = Query(..., alias="date"),
+    search: Optional[str] = Query(None),
+    branch_id: Optional[int] = Query(None),
+    department_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("attendance_view")),
+):
+    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+    if branch_id:
+        query = query.filter(Employee.branch_id == branch_id)
+    if department_id:
+        query = query.filter(Employee.department_id == department_id)
+    if search:
+        term = f"%{search}%"
+        query = query.filter(
+            (Employee.employee_id.ilike(term))
+            | (Employee.first_name.ilike(term))
+            | (Employee.last_name.ilike(term))
+            | (Employee.work_email.ilike(term))
+        )
+    employees = query.order_by(Employee.employee_id, Employee.first_name).limit(500).all()
+    attendance_rows = db.query(Attendance).filter(
+        Attendance.employee_id.in_([employee.id for employee in employees] or [0]),
+        Attendance.attendance_date == work_date,
+    ).all()
+    by_employee = {row.employee_id: row for row in attendance_rows}
+    items = [_attendance_register_row(employee, by_employee.get(employee.id), work_date) for employee in employees]
+    summary = {
+        "present": Decimal("0"),
+        "absent": Decimal("0"),
+        "half_day": Decimal("0"),
+        "holiday": Decimal("0"),
+        "weekly_off": Decimal("0"),
+        "wfh": Decimal("0"),
+        "overtime_hours": Decimal("0"),
+    }
+    for item in items:
+        status = item["status"]
+        if status == "Present":
+            summary["present"] += Decimal("1")
+        elif status == "Half-day":
+            summary["half_day"] += Decimal("1")
+            summary["present"] += Decimal("0.5")
+        elif status == "Holiday":
+            summary["holiday"] += Decimal("1")
+        elif status == "Weekly Off":
+            summary["weekly_off"] += Decimal("1")
+        elif status == "WFH":
+            summary["wfh"] += Decimal("1")
+            summary["present"] += Decimal("1")
+        else:
+            summary["absent"] += Decimal("1")
+        summary["overtime_hours"] += Decimal(str(item["ot_hours"] or 0))
+    return {"items": items, "total": len(items), **summary}
+
+
+@router.post("/bulk-entry", response_model=AttendanceBulkEntryResponse)
+def save_bulk_attendance(
+    data: AttendanceBulkEntryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("attendance_manage")),
+):
+    saved_items = []
+    for entry in data.entries:
+        if _locked_month(db, entry.date):
+            raise HTTPException(status_code=423, detail=f"Attendance is locked for {entry.date.month}/{entry.date.year}")
+        employee = db.query(Employee).filter(Employee.id == entry.employee_id, Employee.deleted_at.is_(None)).first()
+        if not employee:
+            raise HTTPException(status_code=404, detail=f"Employee {entry.employee_id} not found")
+        attendance = db.query(Attendance).filter(
+            Attendance.employee_id == entry.employee_id,
+            Attendance.attendance_date == entry.date,
+        ).first()
+        if not attendance:
+            attendance = Attendance(employee_id=entry.employee_id, attendance_date=entry.date, source="Manual")
+            db.add(attendance)
+            db.flush()
+        status = _stored_attendance_status(entry.status)
+        attendance.status = status
+        attendance.source = "Manual"
+        attendance.total_hours = Decimal(str(entry.hours_worked or 0))
+        attendance.overtime_hours = Decimal(str(entry.ot_hours or 0))
+        attendance.remarks = entry.remarks
+        if status in {"Absent", "Holiday", "Weekend"}:
+            attendance.check_in = None
+            attendance.check_out = None
+            if status in {"Absent", "Holiday", "Weekend"} and attendance.total_hours is None:
+                attendance.total_hours = Decimal("0")
+        elif attendance.total_hours and not attendance.check_in:
+            attendance.check_in = datetime.combine(entry.date, time(hour=9))
+            attendance.check_out = attendance.check_in + timedelta(hours=float(attendance.total_hours))
+        attendance.computed_at = datetime.now(timezone.utc)
+        db.add(AuditLog(
+            user_id=current_user.id,
+            method="POST",
+            endpoint="/attendance/bulk-entry",
+            entity_type="attendance",
+            entity_id=attendance.id,
+            action="UPSERT",
+            description=f"Manual attendance {status} saved for employee {employee.employee_id} on {entry.date}",
+        ))
+        saved_items.append(_attendance_register_row(employee, attendance, entry.date))
+    db.commit()
+    return {"saved": len(saved_items), "items": saved_items}
 
 
 @router.get("/today")

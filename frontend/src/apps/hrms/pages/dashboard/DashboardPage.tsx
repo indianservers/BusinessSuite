@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import {
   Users, Clock, CalendarDays, Briefcase, TrendingUp, TrendingDown,
   CheckCircle2, AlertCircle, Building2, DollarSign, ShieldCheck, Target,
-  FileText, HelpCircle, Award, UserCheck, ArrowRight, BarChart3, Sparkles
+  FileText, HelpCircle, Award, UserCheck, ArrowRight, BarChart3, Sparkles,
+  Fingerprint, FileCheck2, LockKeyhole, Smartphone
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -98,8 +99,10 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
+  const hasEmployeeProfile = Boolean(user?.employee_id);
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ["hrms", "dashboard"],
@@ -130,10 +133,17 @@ export default function DashboardPage() {
     retry: false,
   });
 
+  const { data: missingPunches } = useQuery({
+    queryKey: ["dashboard-missing-punches", todayIso],
+    queryFn: () => attendanceApi.missingPunches({ from_date: todayIso, to_date: todayIso }).then((r) => r.data),
+    retry: false,
+  });
+
   const { data: leaveBalances } = useQuery({
     queryKey: ["dashboard-leave-balances"],
     queryFn: () => leaveApi.balance(currentYear).then((r) => r.data),
     retry: false,
+    enabled: hasEmployeeProfile,
   });
 
   const { data: certificates } = useQuery({
@@ -158,11 +168,18 @@ export default function DashboardPage() {
     queryFn: () => reportsApi.payrollSummary(currentYear).then((r) => r.data),
   });
 
+  const { data: bankAdviceReadiness } = useQuery({
+    queryKey: ["dashboard-bank-advice-readiness", lastRun?.id],
+    queryFn: () => payrollApi.validateExport(lastRun.id, "bank_advice").then((r) => r.data),
+    enabled: Boolean(lastRun?.id),
+    retry: false,
+  });
+
   const employeeActions = [
-    { label: "Check Attendance", detail: "Clock in, clock out, regularize", icon: Clock, href: "/hrms/attendance" },
+    { label: "My Attendance", detail: "View attendance, hours, and overtime", icon: Clock, href: "/hrms/my-attendance" },
     { label: "Apply Leave", detail: "Balances and leave requests", icon: CalendarDays, href: "/hrms/leave" },
-    { label: "Download Payslip", detail: "Monthly salary slip", icon: DollarSign, href: "/hrms/payroll" },
-    { label: "Raise Ticket", detail: "HR helpdesk support", icon: HelpCircle, href: "/hrms/helpdesk" },
+    { label: "My Payslips", detail: "Published payslips and PDF download", icon: DollarSign, href: "/hrms/my-payslips" },
+    { label: "My Documents", detail: "Letters, certificates, and policy documents", icon: FileText, href: "/hrms/documents" },
   ];
 
   const managerActions = [
@@ -195,6 +212,43 @@ export default function DashboardPage() {
   const departmentCount = deptData?.length ?? 0;
   const certificateCount = certificates?.length ?? 0;
   const recognitionCount = recognitions?.length ?? 0;
+  const payrollLocked = ["locked", "paid", "Locked", "Paid"].includes(lastRun?.status ?? "");
+  const missingPunchCount = missingPunches?.missing_punch_count ?? 0;
+  const bankAdviceIssues = bankAdviceReadiness?.critical_issue_count ?? 0;
+  const readinessSignals = [
+    {
+      label: "Biometric exceptions",
+      value: missingPunchCount,
+      detail: missingPunchCount ? "Missing or duplicate punches before payroll" : "No punch blockers for today",
+      Icon: Fingerprint,
+      href: "/hrms/attendance",
+      tone: missingPunchCount ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800",
+    },
+    {
+      label: "Bank advice readiness",
+      value: lastRun?.id ? bankAdviceIssues : "No run",
+      detail: lastRun?.id ? (bankAdviceIssues ? "Employee bank details need cleanup" : "Latest run is export-ready") : "Run payroll to validate exports",
+      Icon: FileCheck2,
+      href: "/hrms/payroll",
+      tone: bankAdviceIssues ? "border-red-200 bg-red-50 text-red-800" : "border-sky-200 bg-sky-50 text-sky-800",
+    },
+    {
+      label: "Payroll lock",
+      value: payrollLocked ? "Locked" : lastRun?.status ?? "No run",
+      detail: payrollLocked ? "Post-lock changes require authorization" : "Approval/lock pending for latest run",
+      Icon: LockKeyhole,
+      href: "/hrms/payroll",
+      tone: payrollLocked ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-orange-200 bg-orange-50 text-orange-800",
+    },
+    {
+      label: "Employee self-service",
+      value: certificateCount + recognitionCount,
+      detail: "Documents and engagement signals surfaced to ESS",
+      Icon: Smartphone,
+      href: "/hrms/enterprise/ess",
+      tone: "border-violet-200 bg-violet-50 text-violet-800",
+    },
+  ];
 
   if (roleKey === "employee") {
     return (
@@ -202,7 +256,7 @@ export default function DashboardPage() {
         <div className="rounded-lg border bg-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{roleLabel}</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">My HR workspace</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Attendance, leave, payslips, documents, and support in one place.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Attendance, leave, payslips, documents, and requests in one place.</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -558,6 +612,26 @@ export default function DashboardPage() {
           </a>
         ))}
       </div>
+
+      <section className="space-y-4">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold tracking-tight">Production Readiness Command Center</h2>
+          <p className="text-sm text-muted-foreground">Pre-payroll controls for biometric imports, statutory exports, payroll locking, and employee self-service.</p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {readinessSignals.map(({ label, value, detail, Icon, href, tone }) => (
+            <Link key={label} to={href} className={`rounded-lg border p-4 shadow-sm transition hover:shadow-md ${tone}`}>
+              <div className="flex items-start justify-between gap-3">
+                <Icon className="h-5 w-5 shrink-0" />
+                <ArrowRight className="h-4 w-4 shrink-0 opacity-60" />
+              </div>
+              <p className="mt-4 text-2xl font-semibold">{value}</p>
+              <p className="text-sm font-medium">{label}</p>
+              <p className="mt-1 text-xs opacity-80">{detail}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <DashboardStatistics
         totalEmployees={totalEmployees}

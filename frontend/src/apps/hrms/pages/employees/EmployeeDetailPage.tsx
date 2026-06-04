@@ -106,6 +106,7 @@ export default function EmployeeDetailPage() {
     effective_from: "",
   });
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [accountForm, setAccountForm] = useState({ email: "", password: "Employee@123456" });
   const editing = params.get("edit") === "true";
   usePageTitle("Employee Details");
 
@@ -214,6 +215,21 @@ export default function EmployeeDetailPage() {
     }),
   });
 
+  const createUserAccountMutation = useMutation({
+    mutationFn: (payload: { email: string; password: string }) => employeeApi.createUserAccount(Number(id), payload),
+    onSuccess: () => {
+      toast({ title: "Employee login account created" });
+      setAccountForm({ email: "", password: "Employee@123456" });
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+      qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
+    },
+    onError: (err: unknown) => toast({
+      title: "Could not create login account",
+      description: getApiErrorMessage(err),
+      variant: "destructive",
+    }),
+  });
+
   const salaryMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => payrollApi.setEmployeeSalary(payload),
     onSuccess: () => {
@@ -269,6 +285,10 @@ export default function EmployeeDetailPage() {
   useEffect(() => {
     if (!emp) return;
     setSelectedUserId(emp.user_id ? String(emp.user_id) : "");
+    setAccountForm((current) => ({
+      ...current,
+      email: current.email || emp.work_email || emp.personal_email || "",
+    }));
   }, [emp]);
 
   if (isLoading) {
@@ -768,6 +788,52 @@ export default function EmployeeDetailPage() {
                   : "No login user is linked to this employee yet."}
               </p>
             </div>
+
+            {!emp.user_id && (
+              <form
+                className="rounded-lg border p-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  createUserAccountMutation.mutate({
+                    email: accountForm.email.trim(),
+                    password: accountForm.password,
+                  });
+                }}
+              >
+                <div className="grid gap-3 sm:grid-cols-[1fr_14rem_auto] sm:items-end">
+                  <div className="space-y-2">
+                    <Label>Login Email</Label>
+                    <Input
+                      type="email"
+                      value={accountForm.email}
+                      onChange={(event) => setAccountForm((form) => ({ ...form, email: event.target.value }))}
+                      placeholder="employee@company.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Temporary Password</Label>
+                    <Input
+                      type="password"
+                      value={accountForm.password}
+                      onChange={(event) => setAccountForm((form) => ({ ...form, password: event.target.value }))}
+                      minLength={8}
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={createUserAccountMutation.isPending || !accountForm.email || accountForm.password.length < 8}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    {createUserAccountMutation.isPending ? "Creating..." : "Create Login"}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Creates an active employee user account and links it to this employee.
+                </p>
+              </form>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
               <div className="space-y-2">

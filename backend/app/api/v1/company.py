@@ -123,10 +123,22 @@ def _ensure_designation_unique(db: Session, data: DesignationCreate | Designatio
 
 @router.get("/", response_model=List[CompanySchema])
 def list_companies(
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("company_view")),
 ):
-    return db.query(Company).filter(Company.is_active == True).all()
+    query = db.query(Company).filter(Company.is_active == True)
+    if search:
+        pattern = f"%{search.strip()}%"
+        query = query.filter(
+            (Company.name.ilike(pattern))
+            | (Company.legal_name.ilike(pattern))
+            | (Company.registration_number.ilike(pattern))
+            | (Company.pan_number.ilike(pattern))
+            | (Company.city.ilike(pattern))
+            | (Company.state.ilike(pattern))
+        )
+    return query.order_by(Company.name.asc()).all()
 
 
 @router.post("/", response_model=CompanySchema, status_code=status.HTTP_201_CREATED)
@@ -184,13 +196,22 @@ def update_company_settings(
 @router.get("/branches/", response_model=List[BranchSchema])
 def list_branches(
     company_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("company_view")),
 ):
     q = db.query(Branch).filter(Branch.is_active == True)
     if company_id:
         q = q.filter(Branch.company_id == company_id)
-    return q.all()
+    if search:
+        pattern = f"%{search.strip()}%"
+        q = q.filter(
+            (Branch.name.ilike(pattern))
+            | (Branch.code.ilike(pattern))
+            | (Branch.city.ilike(pattern))
+            | (Branch.state.ilike(pattern))
+        )
+    return q.order_by(Branch.name.asc()).all()
 
 
 @router.post("/branches/", response_model=BranchSchema, status_code=201)
@@ -237,6 +258,10 @@ def delete_branch(
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch:
         raise HTTPException(status_code=404, detail="Branch not found")
+    active_departments = db.query(Department).filter(Department.branch_id == branch_id, Department.is_active == True).count()
+    active_employees = db.query(Employee).filter(Employee.branch_id == branch_id, Employee.deleted_at.is_(None)).count()
+    if active_departments or active_employees:
+        raise HTTPException(status_code=409, detail="Branch is used by departments or employees")
     branch.is_active = False
     db.commit()
     return {"message": "Branch deactivated"}
@@ -247,13 +272,21 @@ def delete_branch(
 @router.get("/departments/", response_model=List[DepartmentSchema])
 def list_departments(
     branch_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("company_view")),
 ):
     q = db.query(Department).filter(Department.is_active == True)
     if branch_id:
         q = q.filter(Department.branch_id == branch_id)
-    return q.all()
+    if search:
+        pattern = f"%{search.strip()}%"
+        q = q.filter(
+            (Department.name.ilike(pattern))
+            | (Department.code.ilike(pattern))
+            | (Department.description.ilike(pattern))
+        )
+    return q.order_by(Department.name.asc()).all()
 
 
 @router.post("/departments/", response_model=DepartmentSchema, status_code=201)
@@ -300,6 +333,10 @@ def delete_department(
     dept = db.query(Department).filter(Department.id == dept_id).first()
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
+    active_designations = db.query(Designation).filter(Designation.department_id == dept_id, Designation.is_active == True).count()
+    active_employees = db.query(Employee).filter(Employee.department_id == dept_id, Employee.deleted_at.is_(None)).count()
+    if active_designations or active_employees:
+        raise HTTPException(status_code=409, detail="Department is used by designations or employees")
     dept.is_active = False
     db.commit()
     return {"message": "Department deactivated"}
@@ -310,13 +347,22 @@ def delete_department(
 @router.get("/designations/", response_model=List[DesignationSchema])
 def list_designations(
     department_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("company_view")),
 ):
     q = db.query(Designation).filter(Designation.is_active == True)
     if department_id:
         q = q.filter(Designation.department_id == department_id)
-    return q.all()
+    if search:
+        pattern = f"%{search.strip()}%"
+        q = q.filter(
+            (Designation.name.ilike(pattern))
+            | (Designation.code.ilike(pattern))
+            | (Designation.grade.ilike(pattern))
+            | (Designation.description.ilike(pattern))
+        )
+    return q.order_by(Designation.name.asc()).all()
 
 
 @router.post("/designations/", response_model=DesignationSchema, status_code=201)
@@ -363,6 +409,9 @@ def delete_designation(
     desig = db.query(Designation).filter(Designation.id == desig_id).first()
     if not desig:
         raise HTTPException(status_code=404, detail="Designation not found")
+    active_employees = db.query(Employee).filter(Employee.designation_id == desig_id, Employee.deleted_at.is_(None)).count()
+    if active_employees:
+        raise HTTPException(status_code=409, detail="Designation is used by employees")
     desig.is_active = False
     db.commit()
     return {"message": "Designation deactivated"}
@@ -618,6 +667,9 @@ def delete_company(
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+    active_branches = db.query(Branch).filter(Branch.company_id == company_id, Branch.is_active == True).count()
+    if active_branches:
+        raise HTTPException(status_code=409, detail="Company is used by active branches")
     company.is_active = False
     db.commit()
     return {"message": "Company deactivated"}

@@ -4,6 +4,7 @@ from decimal import Decimal
 from app.db.init_db import init_db
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, PayrollBankExport, PayrollRun
+from tests.payroll_test_utils import ensure_payroll_ready
 
 
 def _login(client):
@@ -37,6 +38,7 @@ def test_bank_advice_preview_generate_and_download(client, db):
     employee.ifsc_code = "HDFC0001234"
     _ensure_salary(db, employee)
     db.commit()
+    ensure_payroll_ready(db, 5, 2026)
 
     run_response = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
     assert run_response.status_code == 201
@@ -50,8 +52,9 @@ def test_bank_advice_preview_generate_and_download(client, db):
     body = preview.json()
     assert body["validation_errors"] == []
     assert body["total_employees"] >= 1
-    assert body["rows"][0]["account_number_masked"].endswith("7890")
-    assert body["rows"][0]["account_number_masked"] != "1234567890"
+    employee_row = next(row for row in body["rows"] if row["employee_id"] == employee.id)
+    assert employee_row["account_number_masked"].endswith("7890")
+    assert employee_row["account_number_masked"] != "1234567890"
 
     export_response = client.post(
         f"/api/v1/hrms/payroll/{run_id}/bank-advice/generate",
@@ -80,17 +83,18 @@ def test_bank_advice_generation_blocks_invalid_bank_details(client, db):
     headers = _login(client)
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
     assert employee
-    employee.bank_name = None
-    employee.account_number = None
-    employee.ifsc_code = None
     _ensure_salary(db, employee)
     db.commit()
+    ensure_payroll_ready(db, 6, 2026)
 
     run_response = client.post("/api/v1/payroll/run", json={"month": 6, "year": 2026}, headers=headers)
     assert run_response.status_code == 201
     run_id = run_response.json()["id"]
     run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
     run.status = "approved"
+    employee.bank_name = None
+    employee.account_number = None
+    employee.ifsc_code = None
     db.commit()
 
     export_response = client.post(
@@ -100,5 +104,5 @@ def test_bank_advice_generation_blocks_invalid_bank_details(client, db):
     )
     assert export_response.status_code == 400
     detail = export_response.json()["detail"]
-    assert detail["message"] == "Bank advice validation failed"
-    assert any("Account number is missing" in item for item in detail["validation_errors"])
+    assert detail["message"] == "Bank-specific file validation failed"
+    assert any(item["code"] == "MISSING_ACCOUNT" for item in detail["validation"]["errors"])

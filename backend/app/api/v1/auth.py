@@ -1,8 +1,10 @@
 from datetime import datetime, timezone, timedelta
 import hashlib
+import ipaddress
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from jose import JWTError, jwt
 from app.core.deps import get_current_active_superuser, get_db, get_current_user
 from app.core.config import settings
@@ -16,11 +18,13 @@ from app.core.mfa import (
     generate_totp_qr_base64,
     generate_totp_secret,
     hash_recovery_code,
+    protect_totp_secret,
+    reveal_totp_secret,
     verify_recovery_code,
     verify_totp,
 )
 from app.models.user import User
-from app.models.user import Role, Permission, UserSession, MFAMethod, PasswordPolicy, LoginAttempt
+from app.models.user import Role, Permission, UserSession, MFAMethod, PasswordPolicy, LoginAttempt, IPAccessPolicy
 from app.schemas.auth import (
     LoginRequest, TokenResponse, RefreshTokenRequest,
     ChangePasswordRequest, PasswordResetConfirm, PasswordResetRequest, UserCreate, UserSchema,
@@ -77,11 +81,48 @@ def _ensure_module_login_allowed(user: User, module: str | None) -> None:
         )
 
 
-def _token_response(user: User) -> TokenResponse:
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _client_ip(request: Request | None) -> str | None:
+    if not request:
+        return None
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip()
+    return request.client.host if request.client else None
+
+
+def _device_name(request: Request | None, explicit: str | None = None) -> str:
+    if explicit:
+        return explicit[:150]
+    agent = request.headers.get("user-agent") if request else None
+    return (agent or "Unknown device")[:150]
+
+
+def _token_response(db: Session, user: User, request: Request | None = None, trusted_device: bool = False, device_name: str | None = None) -> TokenResponse:
+    session = UserSession(
+        user_id=user.id,
+        session_token_hash="pending",
+        device_name=_device_name(request, device_name),
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent") if request else None,
+        trusted_device=trusted_device,
+        status="Active",
+        last_seen_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+    )
+    db.add(session)
+    db.flush()
+    access_token = create_access_token(user.id, session_id=session.id)
+    refresh_token = create_refresh_token(user.id, session_id=session.id)
+    session.session_token_hash = _hash_token(access_token)
+    db.flush()
     employee = getattr(user, "employee", None)
     return TokenResponse(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+        access_token=access_token,
+        refresh_token=refresh_token,
         user_id=user.id,
         email=user.email,
         role=user.role.name if user.role else None,
@@ -94,7 +135,7 @@ def _log_attempt(db: Session, user: User | None, email: str, success: bool, fail
     db.add(LoginAttempt(
         email=email,
         user_id=user.id if user else None,
-        ip_address=request.client.host if request and request.client else None,
+        ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent") if request else None,
         status="Success" if success else "Failed",
         success=success,
@@ -149,7 +190,7 @@ def _hash_reset_token(token: str) -> str:
 
 
 def _revoke_user_sessions(db: Session, user_id: int, except_token: str | None = None) -> None:
-    query = db.query(UserSession).filter(UserSession.user_id == user_id, UserSession.status != "revoked")
+    query = db.query(UserSession).filter(UserSession.user_id == user_id, UserSession.status.notin_(["revoked", "Revoked"]))
     if except_token:
         query = query.filter(UserSession.session_token_hash != _hash_reset_token(except_token))
     query.update({UserSession.status: "revoked"}, synchronize_session=False)
@@ -188,8 +229,84 @@ def _active_totp(db: Session, user_id: int) -> MFAMethod | None:
     ).order_by(MFAMethod.id.desc()).first()
 
 
+def _active_policy_mfa_required(db: Session) -> bool:
+    policy = _active_password_policy(db)
+    return bool(policy and policy.mfa_required)
+
+
+def _check_ip_policy(db: Session, request: Request) -> None:
+    ip_text = _client_ip(request)
+    if not ip_text:
+        return
+    try:
+        client_ip = ipaddress.ip_address(ip_text)
+    except ValueError:
+        return
+    policies = db.query(IPAccessPolicy).filter(IPAccessPolicy.is_active == True).all()
+    if not policies:
+        return
+    matching_allow = False
+    for policy in policies:
+        try:
+            network = ipaddress.ip_network(policy.cidr, strict=False)
+        except ValueError:
+            continue
+        if client_ip in network:
+            if policy.action.lower() == "block":
+                raise HTTPException(status_code=403, detail="IP address is blocked")
+            if policy.action.lower() == "allow":
+                matching_allow = True
+    has_allowlist = any(policy.action.lower() == "allow" for policy in policies)
+    if has_allowlist and not matching_allow:
+        raise HTTPException(status_code=403, detail="IP address is not allowed")
+
+
+def _trusted_device_valid(db: Session, user_id: int, token: str | None) -> bool:
+    if not token:
+        return False
+    hashed = _hash_token(token)
+    now = datetime.now(timezone.utc)
+    session = db.query(UserSession).filter(
+        UserSession.user_id == user_id,
+        UserSession.session_token_hash == hashed,
+        UserSession.trusted_device == True,
+        UserSession.status != "revoked",
+    ).first()
+    if not session:
+        return False
+    expires = session.expires_at
+    if expires and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires and expires <= now:
+        session.status = "revoked"
+        db.commit()
+        return False
+    session.last_seen_at = now
+    db.commit()
+    return True
+
+
+def _create_trusted_device(db: Session, user: User, request: Request, device_name: str | None = None) -> str:
+    raw = secrets.token_urlsafe(32)
+    session = UserSession(
+        user_id=user.id,
+        session_token_hash=_hash_token(raw),
+        device_name=_device_name(request, device_name),
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        trusted_device=True,
+        status="Active",
+        last_seen_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+    )
+    db.add(session)
+    db.flush()
+    return raw
+
+
 @router.post("/login")
 def login(request_data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    _check_ip_policy(db, request)
     user = db.query(User).filter(User.email == request_data.email).first()
     if user:
         lockout = check_lockout(db, user)
@@ -212,10 +329,16 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
     _log_attempt(db, user, request_data.email, True, request=request)
     db.commit()
 
-    if user.mfa_enabled:
+    if user.mfa_enabled and _trusted_device_valid(db, user.id, request_data.trusted_device_token):
+        token_response = _token_response(db, user, request, trusted_device=True)
+        db.commit()
+        return token_response
+    if user.mfa_enabled or _active_policy_mfa_required(db):
         return {"mfa_required": True, "mfa_token": _create_mfa_token(user), "mfa_methods": ["totp", "recovery"]}
 
-    return _token_response(user)
+    token_response = _token_response(db, user, request)
+    db.commit()
+    return token_response
 
 
 @router.post("/mfa/verify")
@@ -231,7 +354,7 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
     method = _active_totp(db, user.id)
     valid = False
     if data.method == "totp" and method:
-        valid = verify_totp(method.secret or method.secret_ref or "", data.code)
+        valid = verify_totp(reveal_totp_secret(method.secret_ref or method.secret or ""), data.code)
     elif data.method == "recovery" and method:
         codes = method.recovery_codes_json or []
         for item in codes:
@@ -239,6 +362,7 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
                 item["used"] = True
                 item["used_at"] = datetime.now(timezone.utc).isoformat()
                 method.recovery_codes_json = codes
+                flag_modified(method, "recovery_codes_json")
                 valid = True
                 break
     if not valid:
@@ -249,8 +373,13 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
         method.last_used_at = datetime.now(timezone.utc)
     user.last_login = datetime.now(timezone.utc)
     _log_attempt(db, user, user.email, True, request=request, mfa_attempted=True, mfa_success=True)
+    trusted_device_token = _create_trusted_device(db, user, request, data.device_name) if data.trust_device else None
+    token_response = _token_response(db, user, request, trusted_device=bool(data.trust_device), device_name=data.device_name)
     db.commit()
-    return _token_response(user)
+    body = token_response.model_dump()
+    if trusted_device_token:
+        body["trusted_device_token"] = trusted_device_token
+    return body
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -262,9 +391,20 @@ def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == int(payload["sub"])).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+    session_id = payload.get("sid")
+    if session_id:
+        session = db.query(UserSession).filter(UserSession.id == int(session_id), UserSession.user_id == user.id).first()
+        if not session or session.status.lower() == "revoked":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked")
+    else:
+        session = None
 
-    access_token = create_access_token(user.id)
-    refresh_token_new = create_refresh_token(user.id)
+    access_token = create_access_token(user.id, session_id=session.id if session else None)
+    refresh_token_new = create_refresh_token(user.id, session_id=session.id if session else None)
+    if session:
+        session.session_token_hash = _hash_token(access_token)
+        session.last_seen_at = datetime.now(timezone.utc)
+        db.commit()
 
     employee = getattr(user, "employee", None)
     return TokenResponse(
@@ -364,8 +504,8 @@ def setup_mfa(
     method = MFAMethod(
         user_id=current_user.id,
         method_type="totp",
-        secret=secret,
-        secret_ref=secret,
+        secret=None,
+        secret_ref=protect_totp_secret(secret),
         is_primary=True,
         is_verified=False,
         is_active=True,
@@ -391,7 +531,7 @@ def confirm_mfa(
     method = db.query(MFAMethod).filter(MFAMethod.id == data.method_id, MFAMethod.user_id == current_user.id).first()
     if not method:
         raise HTTPException(status_code=404, detail="MFA method not found")
-    if not verify_totp(method.secret or method.secret_ref or "", data.code):
+    if not verify_totp(reveal_totp_secret(method.secret_ref or method.secret or ""), data.code):
         raise HTTPException(status_code=401, detail="Incorrect code. Please try again.")
     try:
         db.query(MFAMethod).filter(
@@ -420,7 +560,7 @@ def disable_mfa(
 ):
     """Disable TOTP MFA after verifying the current code."""
     method = _active_totp(db, current_user.id)
-    if not method or not verify_totp(method.secret or method.secret_ref or "", data.code):
+    if not method or not verify_totp(reveal_totp_secret(method.secret_ref or method.secret or ""), data.code):
         raise HTTPException(status_code=401, detail="Invalid MFA code")
     try:
         method.is_active = False
@@ -457,7 +597,7 @@ def regenerate_recovery_codes(
 ):
     """Regenerate one-time recovery codes after TOTP verification."""
     method = _active_totp(db, current_user.id)
-    if not method or not verify_totp(method.secret or method.secret_ref or "", data.code):
+    if not method or not verify_totp(reveal_totp_secret(method.secret_ref or method.secret or ""), data.code):
         raise HTTPException(status_code=401, detail="Invalid MFA code")
     codes = generate_recovery_codes(10)
     try:
@@ -490,6 +630,7 @@ def create_user(
         role = db.query(Role).filter(Role.id == data.role_id).first()
         if not role:
             raise HTTPException(status_code=404, detail="Role not found")
+    _validate_password_policy(db, data.password)
     user = User(
         email=data.email,
         hashed_password=get_password_hash(data.password),
@@ -608,6 +749,51 @@ def list_user_sessions(
     return query.order_by(UserSession.id.desc()).limit(300).all()
 
 
+@router.get("/sessions/me", response_model=list[UserSessionSchema])
+def list_my_sessions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return (
+        db.query(UserSession)
+        .filter(UserSession.user_id == current_user.id)
+        .order_by(UserSession.last_seen_at.desc().nullslast(), UserSession.id.desc())
+        .limit(100)
+        .all()
+    )
+
+
+@router.put("/sessions/me/revoke-others")
+def revoke_other_sessions(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bearer = _bearer_token(request)
+    current_hash = _hash_token(bearer) if bearer else None
+    query = db.query(UserSession).filter(UserSession.user_id == current_user.id, UserSession.status.notin_(["revoked", "Revoked"]))
+    if current_hash:
+        query = query.filter(UserSession.session_token_hash != current_hash)
+    updated = query.update({UserSession.status: "revoked"}, synchronize_session=False)
+    db.commit()
+    return {"revoked": updated}
+
+
+@router.put("/sessions/me/{session_id}/revoke", response_model=UserSessionSchema)
+def revoke_my_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    item = db.query(UserSession).filter(UserSession.id == session_id, UserSession.user_id == current_user.id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Session not found")
+    item.status = "revoked"
+    db.commit()
+    db.refresh(item)
+    return item
+
+
 @router.put("/sessions/{session_id}/revoke", response_model=UserSessionSchema)
 def revoke_user_session(
     session_id: int,
@@ -617,7 +803,7 @@ def revoke_user_session(
     item = db.query(UserSession).filter(UserSession.id == session_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Session not found")
-    item.status = "Revoked"
+    item.status = "revoked"
     db.commit()
     db.refresh(item)
     return item
@@ -740,3 +926,62 @@ def list_login_attempts(
     if email:
         query = query.filter(LoginAttempt.email == email)
     return query.order_by(LoginAttempt.id.desc()).limit(300).all()
+
+
+@router.get("/ip-policies")
+def list_ip_policies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    return db.query(IPAccessPolicy).order_by(IPAccessPolicy.id.desc()).all()
+
+
+@router.post("/ip-policies", status_code=201)
+def create_ip_policy(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    cidr = str(data.get("cidr") or "").strip()
+    action = str(data.get("action") or "allow").lower()
+    if action not in {"allow", "block"}:
+        raise HTTPException(status_code=400, detail="IP policy action must be allow or block")
+    try:
+        ipaddress.ip_network(cidr, strict=False)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid CIDR")
+    item = IPAccessPolicy(cidr=cidr, action=action, description=data.get("description"), is_active=bool(data.get("is_active", True)))
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/ip-policies/{policy_id}")
+def update_ip_policy(
+    policy_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    item = db.query(IPAccessPolicy).filter(IPAccessPolicy.id == policy_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="IP policy not found")
+    if "cidr" in data:
+        try:
+            ipaddress.ip_network(str(data["cidr"]), strict=False)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid CIDR")
+        item.cidr = str(data["cidr"])
+    if "action" in data:
+        action = str(data["action"]).lower()
+        if action not in {"allow", "block"}:
+            raise HTTPException(status_code=400, detail="IP policy action must be allow or block")
+        item.action = action
+    if "description" in data:
+        item.description = data["description"]
+    if "is_active" in data:
+        item.is_active = bool(data["is_active"])
+    db.commit()
+    db.refresh(item)
+    return item

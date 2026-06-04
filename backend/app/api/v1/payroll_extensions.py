@@ -348,23 +348,7 @@ def simulate_take_home(data: PayrollSimulationRequest, db: Session = Depends(get
 
 @router.get("/health-dashboard")
 def payroll_health_dashboard(month: int = Query(..., ge=1, le=12), year: int = Query(...), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("payroll_view"))):
-    employees = db.query(Employee).filter(Employee.deleted_at.is_(None), Employee.status.in_(["Active", "Probation", "Resigned"])).all()
-    salary_employee_ids = {row[0] for row in db.query(EmployeeSalary.employee_id).filter(EmployeeSalary.is_active == True).all()}
-    seen_accounts: dict[str, int] = {}
-    missing_salary, missing_bank, invalid_bank, missing_pan = [], [], [], []
-    for employee in employees:
-        if employee.id not in salary_employee_ids:
-            missing_salary.append(employee.id)
-        if not employee.account_number or not employee.ifsc_code:
-            missing_bank.append(employee.id)
-        errors = _validate_employee_bank(employee, seen_accounts)
-        if errors:
-            invalid_bank.append({"employee_id": employee.id, "errors": errors})
-        if not employee.pan_number:
-            missing_pan.append(employee.id)
-    period = db.query(PayrollPeriod).filter(PayrollPeriod.month == month, PayrollPeriod.year == year).order_by(PayrollPeriod.id.desc()).first()
-    attendance_locked = bool(period and str(period.status).lower() in {"locked", "closed"})
-    return {"month": month, "year": year, "total_employees": len(employees), "ready": not missing_salary and not missing_bank and not invalid_bank and not missing_pan and attendance_locked, "attendance_locked": attendance_locked, "issues": {"missing_salary": {"count": len(missing_salary), "employee_ids": missing_salary[:100]}, "missing_bank": {"count": len(missing_bank), "employee_ids": missing_bank[:100]}, "invalid_bank": {"count": len(invalid_bank), "items": invalid_bank[:100]}, "missing_pan": {"count": len(missing_pan), "employee_ids": missing_pan[:100]}}}
+    return crud_payroll.payroll_readiness_summary(db, month, year)
 
 
 @router.post("/runs/{run_id}/payslip-dispatch")

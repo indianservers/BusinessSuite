@@ -5,8 +5,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.core.deps import RequirePermission, get_db
 from app.models.audit import AuditLog
+from app.models.audit import FieldAuditEvent
 from app.models.user import User
-from app.schemas.audit import AuditLogSchema
+from app.schemas.audit import AuditLogSchema, FieldAuditEventSchema
 
 router = APIRouter(prefix="/logs", tags=["Admin Logs"])
 
@@ -40,6 +41,40 @@ def list_audit_logs(
     if to_at:
         query = query.filter(AuditLog.created_at <= to_at)
     return query.order_by(AuditLog.id.desc()).limit(limit).all()
+
+
+@router.get("/field-audit", response_model=List[FieldAuditEventSchema])
+def list_field_audit_events(
+    employee_id: Optional[int] = Query(None),
+    field_name: Optional[str] = Query(None),
+    actor_user_id: Optional[int] = Query(None),
+    module: Optional[str] = Query(None),
+    entity_type: Optional[str] = Query(None),
+    from_at: Optional[datetime] = Query(None),
+    to_at: Optional[datetime] = Query(None),
+    value_hash: Optional[str] = Query(None),
+    limit: int = Query(200, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("company_manage")),
+):
+    query = db.query(FieldAuditEvent)
+    if employee_id:
+        query = query.filter(FieldAuditEvent.employee_id == employee_id)
+    if field_name:
+        query = query.filter(FieldAuditEvent.field_name == field_name)
+    if actor_user_id:
+        query = query.filter(FieldAuditEvent.actor_user_id == actor_user_id)
+    if module:
+        query = query.filter(FieldAuditEvent.module == module)
+    if entity_type:
+        query = query.filter(FieldAuditEvent.entity_type == entity_type)
+    if from_at:
+        query = query.filter(FieldAuditEvent.created_at >= from_at)
+    if to_at:
+        query = query.filter(FieldAuditEvent.created_at <= to_at)
+    if value_hash:
+        query = query.filter((FieldAuditEvent.old_value_hash == value_hash) | (FieldAuditEvent.new_value_hash == value_hash))
+    return query.order_by(FieldAuditEvent.id.desc()).limit(limit).all()
 
 
 @router.get("/errors", response_model=List[AuditLogSchema])

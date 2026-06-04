@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bar,
   BarChart,
@@ -263,8 +263,14 @@ function WorkforceAnalytics() {
 }
 
 function SavedReports() {
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<ReportDefinition | null>(null);
   const definitions = useQuery({ queryKey: ["report-definitions"], queryFn: () => reportsApi.definitions().then((r) => r.data as ReportDefinition[]), staleTime: STALE_TIME });
+  const schedules = useQuery({ queryKey: ["report-schedules"], queryFn: () => reportsApi.schedules().then((r) => r.data as Array<{ id: number; name: string; status: string; cron_expression: string; last_run_at?: string }>), staleTime: STALE_TIME });
+  const runSchedule = useMutation({
+    mutationFn: (id: number) => reportsApi.runSchedule(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["report-schedules"] }),
+  });
   const result = useQuery({
     queryKey: ["report-definition-run", selected?.id],
     queryFn: () => reportsApi.runDefinition(selected!.id).then((r) => r.data as ReportResult),
@@ -310,6 +316,20 @@ function SavedReports() {
               <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{definition.description || "No description"}</p>
             </button>
           ))}
+          <div className="border-t pt-3">
+            <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Schedules</p>
+            {(schedules.data || []).map((schedule) => (
+              <div key={schedule.id} className="mb-2 rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium">{schedule.name}</p>
+                  <Badge variant="secondary">{schedule.status}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{schedule.cron_expression}</p>
+                <Button className="mt-2 h-7 text-xs" variant="outline" onClick={() => runSchedule.mutate(schedule.id)}>Run</Button>
+              </div>
+            ))}
+            {!schedules.isLoading && !schedules.data?.length && <p className="text-xs text-muted-foreground">No scheduled exports configured.</p>}
+          </div>
         </CardContent>
       </Card>
 
@@ -351,13 +371,24 @@ function SavedReports() {
   );
 }
 
-function Kpi({ title, value, icon: Icon, className, loading }: { title: string; value: string | number; icon: any; className: string; loading: boolean }) {
+function Kpi({ title, value, icon: Icon, className, loading }: { title: string; value: unknown; icon: any; className: string; loading: boolean }) {
+  const displayValue: string | number =
+    typeof value === "string" || typeof value === "number"
+      ? value
+      : Array.isArray(value)
+        ? value.length
+        : value && typeof value === "object"
+          ? JSON.stringify(value)
+          : value == null
+            ? 0
+            : String(value);
+
   return (
     <Card>
       <CardContent className="flex items-center justify-between p-5">
         <div>
           <p className="text-sm text-muted-foreground">{title}</p>
-          {loading ? <div className="mt-2 h-8 w-20 animate-pulse rounded bg-muted" /> : <p className="mt-2 text-2xl font-semibold">{value}</p>}
+          {loading ? <div className="mt-2 h-8 w-20 animate-pulse rounded bg-muted" /> : <p className="mt-2 text-2xl font-semibold">{displayValue}</p>}
         </div>
         <div className={cn("rounded-lg p-3", className)}><Icon className="h-5 w-5" /></div>
       </CardContent>

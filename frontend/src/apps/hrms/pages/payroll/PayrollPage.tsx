@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { leavePayrollApi, payrollApi, statutoryComplianceApi } from "@/services/api";
+import { employeeApi, leavePayrollApi, payrollApi, statutoryComplianceApi } from "@/services/api";
 import { assetUrl, formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -67,6 +67,28 @@ interface PayrollPreRunCheck {
   status: string;
   message?: string;
   blocker: boolean;
+}
+
+interface PayrollEmployeeOption {
+  id: number;
+  employee_id?: string;
+  first_name?: string;
+  last_name?: string;
+  work_email?: string | null;
+}
+
+interface PayrollReadinessSummary {
+  ready: boolean;
+  critical_issue_count: number;
+  warning_issue_count: number;
+  attendance_locked: boolean;
+  issues: Record<string, {
+    count: number;
+    severity?: string;
+    employee_ids?: number[];
+    items?: unknown[];
+    message?: string;
+  }>;
 }
 
 interface PayrollWorksheetRow {
@@ -209,6 +231,7 @@ export default function PayrollPage() {
   const [slipYear, setSlipYear] = useState(today.getFullYear());
   const [runMonth, setRunMonth] = useState(today.getMonth() + 1);
   const [runYear, setRunYear] = useState(today.getFullYear());
+  const [readinessError, setReadinessError] = useState<PayrollReadinessSummary | null>(null);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
   const [payGroupName, setPayGroupName] = useState("India Monthly");
   const [payGroupCode, setPayGroupCode] = useState("IN-MONTHLY");
@@ -273,6 +296,8 @@ export default function PayrollPage() {
   const [structureName, setStructureName] = useState("India Monthly Structure");
   const [structureVersion, setStructureVersion] = useState("1.0");
   const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
+  const [slipEmployeeSearch, setSlipEmployeeSearch] = useState("Recovery");
+  const [slipEmployeeId, setSlipEmployeeId] = useState("");
   const visibleTabs: PayrollTab[] = isEmployee
     ? ["viewer"]
     : ["wizard", "run", "viewer", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
@@ -282,9 +307,16 @@ export default function PayrollPage() {
   }, [activeTab, isEmployee]);
 
   const { data: payslip, isLoading: loadingSlip } = useQuery({
-    queryKey: ["payslip", slipMonth, slipYear],
-    queryFn: () => payrollApi.payslip(slipMonth, slipYear).then((r) => r.data),
+    queryKey: ["payslip", slipMonth, slipYear, slipEmployeeId, isEmployee],
+    queryFn: () => payrollApi.payslip(slipMonth, slipYear, !isEmployee && slipEmployeeId ? Number(slipEmployeeId) : undefined).then((r) => r.data),
+    enabled: isEmployee || Boolean(slipEmployeeId),
     retry: false,
+  });
+
+  const { data: payslipEmployeeOptions } = useQuery({
+    queryKey: ["payslip-employee-options", slipEmployeeSearch],
+    queryFn: () => employeeApi.list({ search: slipEmployeeSearch || undefined, limit: 50 }).then((r) => r.data),
+    enabled: !isEmployee,
   });
 
   const { data: runs, isLoading: loadingRuns, refetch: refetchRuns } = useQuery({
@@ -348,6 +380,11 @@ export default function PayrollPage() {
   });
 
   const selectedInputPeriod = Number(inputPeriodId || ((payrollPeriods as { id: number }[] | undefined)?.[0]?.id || 0));
+  const payslipEmployees = Array.isArray(payslipEmployeeOptions?.items)
+    ? payslipEmployeeOptions.items as PayrollEmployeeOption[]
+    : Array.isArray(payslipEmployeeOptions)
+      ? payslipEmployeeOptions as PayrollEmployeeOption[]
+      : [];
 
   const { data: payrollInputs } = useQuery({
     queryKey: ["payroll-inputs", selectedInputPeriod],
@@ -455,7 +492,7 @@ export default function PayrollPage() {
   const { data: taxProjection } = useQuery({
     queryKey: ["tax-projection", activeTaxCycle?.id],
     queryFn: () => payrollApi.taxProjection({ cycle_id: activeTaxCycle.id }).then((r) => r.data),
-    enabled: !!activeTaxCycle,
+    enabled: !!activeTaxCycle && isEmployee && activeTab === "tax",
     retry: false,
   });
 
@@ -477,14 +514,22 @@ export default function PayrollPage() {
     enabled: !isEmployee && activeTab === "tools",
   });
 
-  const runMutation = useMutation({
-    mutationFn: () => payrollApi.runPayroll({ month: runMonth, year: runYear }),
+  const runMutation = useMutation<unknown, unknown, boolean>({
+    mutationFn: (forceRun: boolean) => payrollApi.runPayroll({ month: runMonth, year: runYear, force_run: forceRun }),
     onSuccess: () => {
+      setReadinessError(null);
       toast({ title: "Payroll run initiated!" });
       refetchRuns();
     },
     onError: (e: unknown) => {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Failed to run payroll";
+      const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      if (detail && typeof detail === "object" && "readiness" in detail) {
+        const readiness = (detail as { readiness?: PayrollReadinessSummary }).readiness || null;
+        setReadinessError(readiness);
+        toast({ title: "Payroll readiness failed", description: "Resolve critical issues or use Force Run if authorized.", variant: "destructive" });
+        return;
+      }
+      const msg = typeof detail === "string" ? detail : "Failed to run payroll";
       toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
@@ -973,7 +1018,7 @@ export default function PayrollPage() {
       qc.invalidateQueries({ queryKey: ["payroll-bonus-policies"] });
       qc.invalidateQueries({ queryKey: ["run-records"] });
     },
-    onError: (error: unknown) => toast({ title: "Payroll operation failed", description: (error as Error)?.message, variant: "destructive" }),
+    onError: (error: unknown) => toast({ title: "Payroll operation failed", description: readableApiError(error), variant: "destructive" }),
   });
 
   const taxOptimizerMutation = useMutation({
@@ -1110,7 +1155,7 @@ export default function PayrollPage() {
               </div>
               {selectedRun && (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Gross", "Deductions", "Net", "Status", "Actions"].map((h) => (
@@ -1128,7 +1173,11 @@ export default function PayrollPage() {
                           <td className="px-4 py-3"><Badge variant="outline">{record.status}</Badge></td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-2">
-                              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectedRecordId(record.id)}>
+                              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
+                                setSelectedRecordId(record.id);
+                                const employeeId = (record as PayslipRecord & { employee_id?: number }).employee_id;
+                                if (employeeId) setSlipEmployeeId(String(employeeId));
+                              }}>
                                 <Eye className="mr-1 h-3 w-3" /> Preview
                               </Button>
                               <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => generatePdfMutation.mutate(record.id)}>
@@ -1224,13 +1273,37 @@ export default function PayrollPage() {
             </Card>
           )}
 
+          {!isEmployee && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Payslip Filters</CardTitle>
+                <CardDescription>Search an employee and load their locked payroll payslip for the selected month.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                <Input value={slipEmployeeSearch} onChange={(event) => setSlipEmployeeSearch(event.target.value)} placeholder="Search employee code or name" />
+                <select value={slipEmployeeId} onChange={(event) => setSlipEmployeeId(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">Select employee</option>
+                  {payslipEmployees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.employee_id} - {employee.first_name} {employee.last_name}
+                    </option>
+                  ))}
+                </select>
+                <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["payslip"] })}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Load Payslip
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {loadingSlip ? (
             <Card><CardContent className="p-8 text-center"><div className="h-40 skeleton rounded" /></CardContent></Card>
           ) : !payslip ? (
             <Card className="payslip-print">
               <CardContent className="p-12 text-center text-muted-foreground">
                 <FileText className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p>No payslip available for {MONTHS[slipMonth - 1]} {slipYear}</p>
+                <p>{!isEmployee && !slipEmployeeId ? "Select an employee to view payslip." : `No payslip available for ${MONTHS[slipMonth - 1]} ${slipYear}`}</p>
               </CardContent>
             </Card>
           ) : (
@@ -1407,14 +1480,54 @@ export default function PayrollPage() {
                   />
                 </div>
                 <Button
-                  onClick={() => runMutation.mutate()}
+                  onClick={() => runMutation.mutate(false)}
                   disabled={runMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <Play className="h-4 w-4 mr-2" />
                   {runMutation.isPending ? "Processing..." : "Run Payroll"}
                 </Button>
+                {readinessError && (
+                  <Button
+                    variant="outline"
+                    onClick={() => runMutation.mutate(true)}
+                    disabled={runMutation.isPending}
+                    className="border-amber-500 text-amber-700 hover:bg-amber-50"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Force Run
+                  </Button>
+                )}
               </div>
+              {readinessError && (
+                <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-700" />
+                    <div>
+                      <p className="font-medium text-amber-900">Payroll readiness checks blocked this run.</p>
+                      <p className="text-amber-800">
+                        Critical issues: {readinessError.critical_issue_count}. Warnings: {readinessError.warning_issue_count}.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {Object.entries(readinessError.issues || {})
+                      .filter(([, issue]) => issue.count > 0)
+                      .map(([key, issue]) => (
+                        <div key={key} className="rounded border border-amber-200 bg-white px-3 py-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>
+                            <Badge variant={issue.severity === "Critical" ? "destructive" : "secondary"}>{issue.severity || "Info"}</Badge>
+                          </div>
+                          <p className="mt-1 text-muted-foreground">
+                            {issue.count} issue{issue.count === 1 ? "" : "s"}
+                            {issue.message ? ` - ${issue.message}` : ""}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1494,7 +1607,7 @@ export default function PayrollPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Period", "Employees", "Gross", "Net", "Status", "Actions"].map((h) => (
@@ -1587,7 +1700,7 @@ export default function PayrollPage() {
                     <CardTitle className="text-base">
                       {MONTHS[selectedRun.month - 1]} {selectedRun.year} Payroll Review
                     </CardTitle>
-                    <CardDescription>Variance, audit-ready export batches, and statutory stubs</CardDescription>
+                    <CardDescription>Variance, audit-ready export batches, and statutory portal-ready files</CardDescription>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => refetchVariance()}>
                     <RefreshCw className="h-4 w-4 mr-2" />
@@ -1601,7 +1714,9 @@ export default function PayrollPage() {
                     ["pf_ecr", "PF ECR"],
                     ["esi", "ESI"],
                     ["pt", "PT"],
+                    ["lwf", "LWF"],
                     ["tds_24q", "TDS 24Q"],
+                    ["tds_26q", "TDS 26Q"],
                     ["bank_advice", "Bank Advice"],
                     ["pay_register", "Pay Register"],
                   ].map(([type, label]) => (
@@ -1619,7 +1734,7 @@ export default function PayrollPage() {
                 </div>
 
                 <div className="overflow-x-auto border rounded-md">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Gross Change", "Net Change", "Severity", "Reason"].map((h) => (
@@ -1679,7 +1794,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Input", "Calculation", "Approval", "Net", "Worksheet Actions"].map((h) => (
@@ -1833,7 +1948,7 @@ export default function PayrollPage() {
                     </div>
                   )}
                   <div className="max-h-48 overflow-auto rounded-md border">
-                    <table className="w-full text-xs">
+                    <table className="w-full min-w-[760px] text-xs">
                       <thead className="bg-muted/50">
                         <tr>
                           {["Employee", "Bank", "Account", "IFSC", "Net"].map((h) => <th key={h} className="px-2 py-2 text-left">{h}</th>)}
@@ -1918,7 +2033,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Gross", "Deductions", "Net", "Status"].map((h) => (
@@ -1991,7 +2106,7 @@ export default function PayrollPage() {
                 ))}
               </div>
               <div className="overflow-x-auto rounded-md border">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Employee", "Gross Previous", "Gross Current", "Net Previous", "Net Current", "Deviation", "Flag"].map((h) => (
@@ -2110,7 +2225,7 @@ export default function PayrollPage() {
                 ))}
               </div>
               <div className="overflow-x-auto rounded-md border">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Employee", "Leave LWP", "Attendance LWP", "Manual LOP", "Total LWP", "Estimated deduction"].map((h) => (
@@ -2189,7 +2304,7 @@ export default function PayrollPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Employee", "Working", "Payable", "Paid Leave", "LOP", "OT", "Status"].map((h) => (
@@ -2963,4 +3078,24 @@ export default function PayrollPage() {
       )}
     </div>
   );
+}
+
+function readableApiError(error: unknown) {
+  const detail = (error as { response?: { data?: { detail?: unknown } }; message?: string })?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "msg" in item) return String((item as { msg?: unknown }).msg);
+        return "";
+      })
+      .filter(Boolean)
+      .join("; ");
+  }
+  if (detail && typeof detail === "object") {
+    const message = (detail as { message?: unknown; msg?: unknown }).message || (detail as { message?: unknown; msg?: unknown }).msg;
+    if (message) return String(message);
+  }
+  return (error as { message?: string })?.message || "Please check the selected payroll data and try again.";
 }

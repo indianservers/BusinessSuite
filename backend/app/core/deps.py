@@ -1,10 +1,11 @@
 from typing import Generator, Optional
+from datetime import datetime, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.core.security import verify_access_token
-from app.models.user import User
+from app.models.user import User, UserSession
 
 security = HTTPBearer(auto_error=False)
 
@@ -40,6 +41,16 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
+    session_id = payload.get("sid")
+    if session_id:
+        session = db.query(UserSession).filter(UserSession.id == int(session_id), UserSession.user_id == user.id).first()
+        expires_at = session.expires_at if session else None
+        if expires_at and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if not session or session.status.lower() == "revoked" or (expires_at and expires_at <= datetime.now(timezone.utc)):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked or expired")
+        session.last_seen_at = datetime.now(timezone.utc)
+        db.commit()
     return user
 
 

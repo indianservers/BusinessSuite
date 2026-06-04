@@ -54,8 +54,8 @@ api.interceptors.response.use(
 
 // API service functions
 export const authApi = {
-  login: (email: string, password: string, module?: string) =>
-    api.post("/auth/login", { email, password, module }),
+  login: (email: string, password: string, module?: string, trustedDeviceToken?: string) =>
+    api.post("/auth/login", { email, password, module, trusted_device_token: trustedDeviceToken }),
   refresh: (refreshToken: string) =>
     api.post("/auth/refresh", { refresh_token: refreshToken }),
   me: () => api.get("/auth/me"),
@@ -72,13 +72,18 @@ export const authApi = {
   mfaStatus: () => api.get("/auth/mfa/status"),
   regenerateRecoveryCodes: (data: unknown) => api.post("/auth/mfa/regenerate-recovery-codes", data),
   permissions: () => api.get("/auth/permissions"),
+  users: () => api.get("/auth/users"),
+  createUser: (data: unknown) => api.post("/auth/users", data),
   roles: () => api.get("/auth/roles"),
   createRole: (data: unknown) => api.post("/auth/roles", data),
   updateRole: (id: number, data: unknown) => api.put(`/auth/roles/${id}`, data),
   deleteRole: (id: number) => api.delete(`/auth/roles/${id}`),
   sessions: (params?: Record<string, unknown>) => api.get("/auth/sessions", { params }),
+  mySessions: () => api.get("/auth/sessions/me"),
   createSession: (data: unknown) => api.post("/auth/sessions", data),
   revokeSession: (id: number) => api.put(`/auth/sessions/${id}/revoke`),
+  revokeMySession: (id: number) => api.put(`/auth/sessions/me/${id}/revoke`),
+  revokeOtherSessions: () => api.put("/auth/sessions/me/revoke-others"),
   mfaMethods: (params?: Record<string, unknown>) => api.get("/auth/mfa-methods", { params }),
   createMfaMethod: (data: unknown) => api.post("/auth/mfa-methods", data),
   verifyMfaMethod: (id: number) => api.put(`/auth/mfa-methods/${id}/verify`),
@@ -87,6 +92,9 @@ export const authApi = {
   updatePasswordPolicy: (id: number, data: unknown) => api.put(`/auth/password-policies/${id}`, data),
   enforceMfaPolicy: (id: number) => api.post(`/auth/password-policies/${id}/enforce-mfa`),
   loginAttempts: (params?: Record<string, unknown>) => api.get("/auth/login-attempts", { params }),
+  ipPolicies: () => api.get("/auth/ip-policies"),
+  createIpPolicy: (data: unknown) => api.post("/auth/ip-policies", data),
+  updateIpPolicy: (id: number, data: unknown) => api.put(`/auth/ip-policies/${id}`, data),
   ssoProviders: () => api.get("/auth/sso/providers/active"),
   ssoAdminProviders: () => api.get("/auth/sso/providers"),
   createSsoProvider: (data: unknown) => api.post("/auth/sso/providers", data),
@@ -123,6 +131,8 @@ export const employeeApi = {
     api.get("/employees/user-options", { params }),
   linkUser: (id: number, userId: number | null) =>
     api.put(`/employees/${id}/user-link`, { user_id: userId }),
+  createUserAccount: (id: number, data: unknown) =>
+    api.post(`/employees/${id}/user-account`, data),
   stats: () => api.get("/employees/stats"),
   count: () => api.get("/employees/count"),
   addEducation: (id: number, data: unknown) => api.post(`/employees/${id}/education`, data),
@@ -219,13 +229,37 @@ export const enterpriseApi = {
   createPrivacyRequest: (data: unknown) => api.post("/enterprise/privacy-requests", data),
   reviewPrivacyRequest: (id: number, data: unknown) =>
     api.put(`/enterprise/privacy-requests/${id}`, data),
+  processPrivacyRequest: (id: number) => api.post(`/enterprise/privacy-requests/${id}/process`),
+  privacyExport: (id: number) => api.get(`/enterprise/privacy-requests/${id}/export`),
   retentionPolicies: () => api.get("/enterprise/retention-policies"),
   createRetentionPolicy: (data: unknown) => api.post("/enterprise/retention-policies", data),
+  runRetentionPolicies: (dryRun = true) =>
+    api.post("/enterprise/retention-policies/run", null, { params: { dry_run: dryRun } }),
   legalHolds: () => api.get("/enterprise/legal-holds"),
   createLegalHold: (data: unknown) => api.post("/enterprise/legal-holds", data),
   releaseLegalHold: (id: number) => api.put(`/enterprise/legal-holds/${id}/release`),
   metrics: (params?: Record<string, unknown>) => api.get("/enterprise/metrics", { params }),
   createMetric: (data: unknown) => api.post("/enterprise/metrics", data),
+  domainPackCatalog: () => api.get("/enterprise/domain-packs/catalog"),
+  domainPacks: (params?: Record<string, unknown>) => api.get("/enterprise/domain-packs", { params }),
+  enableDomainPack: (data: unknown) => api.post("/enterprise/domain-packs/enable", data),
+  disableDomainPack: (id: number) => api.put(`/enterprise/domain-packs/${id}/disable`),
+  manufacturingSafetyIncidents: (params?: Record<string, unknown>) =>
+    api.get("/enterprise/domain-packs/manufacturing/safety-incidents", { params }),
+  createManufacturingSafetyIncident: (data: unknown) =>
+    api.post("/enterprise/domain-packs/manufacturing/safety-incidents", data),
+  manufacturingPpeIssuances: (params?: Record<string, unknown>) =>
+    api.get("/enterprise/domain-packs/manufacturing/ppe-issuances", { params }),
+  createManufacturingPpeIssuance: (data: unknown) =>
+    api.post("/enterprise/domain-packs/manufacturing/ppe-issuances", data),
+  manufacturingMedicalFitness: (params?: Record<string, unknown>) =>
+    api.get("/enterprise/domain-packs/manufacturing/medical-fitness", { params }),
+  createManufacturingMedicalFitness: (data: unknown) =>
+    api.post("/enterprise/domain-packs/manufacturing/medical-fitness", data),
+  manufacturingContractLaborBatches: (params?: Record<string, unknown>) =>
+    api.get("/enterprise/domain-packs/manufacturing/contract-labor-batches", { params }),
+  createManufacturingContractLaborBatch: (data: unknown) =>
+    api.post("/enterprise/domain-packs/manufacturing/contract-labor-batches", data),
 };
 
 export const attendanceApi = {
@@ -238,6 +272,8 @@ export const attendanceApi = {
     api.get(`/attendance/employee/${empId}`, {
       params: { from_date: fromDate, to_date: toDate },
     }),
+  register: (params: Record<string, unknown>) => api.get("/attendance/register", { params }),
+  bulkEntry: (data: unknown) => api.post("/attendance/bulk-entry", data),
   monthlySummary: (month: number, year: number, employeeId?: number) =>
     api.get("/attendance/summary/monthly", {
       params: { month, year, employee_id: employeeId },
@@ -258,6 +294,15 @@ export const attendanceApi = {
   biometricDevices: () => api.get("/attendance/biometric/devices"),
   createBiometricDevice: (data: unknown) => api.post("/attendance/biometric/devices", data),
   importBiometricPunches: (data: unknown) => api.post("/attendance/biometric/import", data),
+  importBiometricAdapter: (data: unknown) => api.post("/attendance/biometric/import-adapter", data),
+  reconcileBiometric: (data: unknown) => api.post("/attendance/biometric/reconcile", data),
+  missingPunches: (params: Record<string, unknown>) => api.get("/attendance/reports/missing-punches", { params }),
+  locks: (params?: Record<string, unknown>) => api.get("/attendance/locks", { params }),
+  lockMonth: (data: unknown) => api.post("/attendance/locks", data),
+  unlockMonth: (id: number, reason?: string) =>
+    api.put(`/attendance/locks/${id}/unlock`, null, { params: { reason } }),
+  weeklyOffs: (params?: Record<string, unknown>) => api.get("/attendance/weekly-offs", { params }),
+  createWeeklyOff: (data: unknown) => api.post("/attendance/weekly-offs", data),
   geoPolicies: () => api.get("/attendance/geo/policies"),
   createGeoPolicy: (data: unknown) => api.post("/attendance/geo/policies", data),
   geoPunch: (data: unknown) => api.post("/attendance/geo/punch", data),
@@ -291,6 +336,7 @@ export const customFieldsApi = {
 
 export const logsApi = {
   audit: (params?: Record<string, unknown>) => api.get("/logs/audit", { params }),
+  fieldAudit: (params?: Record<string, unknown>) => api.get("/logs/field-audit", { params }),
   errors: (params?: Record<string, unknown>) => api.get("/logs/errors", { params }),
   analysis: (params?: Record<string, unknown>) => api.get("/logs/analysis", { params }),
 };
@@ -301,6 +347,7 @@ export const leaveApi = {
   updateType: (id: number, data: unknown) => api.put(`/leave/types/${id}`, data),
   deleteType: (id: number) => api.delete(`/leave/types/${id}`),
   balance: (year?: number) => api.get("/leave/balance", { params: { year } }),
+  employeeBalance: (employeeId: number, year?: number) => api.get(`/leave/balance/${employeeId}`, { params: { year } }),
   apply: (data: unknown) => api.post("/leave/apply", data),
   myRequests: (params?: Record<string, unknown>) =>
     api.get("/leave/my-requests", { params }),
@@ -371,6 +418,8 @@ export const payrollApi = {
   approveRun: (id: number, data: unknown) => api.put(`/payroll/runs/${id}/approve`, data),
   runRecords: (runId: number) => api.get(`/payroll/runs/${runId}/records`),
   runVariance: (runId: number) => api.get(`/payroll/runs/${runId}/variance`),
+  validateExport: (runId: number, exportType: string) =>
+    api.get(`/payroll/runs/${runId}/exports/${exportType}/validate`),
   exportRun: (runId: number, exportType: string) =>
     api.post(`/payroll/runs/${runId}/exports/${exportType}`),
   runAudit: (runId: number) => api.get(`/payroll/runs/${runId}/audit`),
@@ -596,6 +645,15 @@ export const lmsApi = {
   updateAssignment: (id: number, data: unknown) => api.put(`/lms/assignments/${id}`, data),
   certifications: (params?: Record<string, unknown>) => api.get("/lms/certifications", { params }),
   createCertification: (data: unknown) => api.post("/lms/certifications", data),
+  certificationRenewals: (params?: Record<string, unknown>) =>
+    api.get("/lms/certification-renewals", { params }),
+  createCertificationRenewal: (data: unknown) => api.post("/lms/certification-renewals", data),
+  updateCertificationRenewal: (id: number, data: unknown) =>
+    api.put(`/lms/certification-renewals/${id}`, data),
+  markCertificationRenewalReminders: (dueWithinDays = 30) =>
+    api.post("/lms/certification-renewals/reminders", null, { params: { due_within_days: dueWithinDays } }),
+  completionCallbackPlaceholder: (assignmentId: number, data: unknown) =>
+    api.post(`/lms/assignments/${assignmentId}/completion-callback`, data),
 };
 
 export const recruitmentApi = {
@@ -609,6 +667,7 @@ export const recruitmentApi = {
   getCandidate: (id: number) => api.get(`/recruitment/candidates/${id}`),
   updateCandidateStatus: (id: number, status: string) =>
     api.put(`/recruitment/candidates/${id}/status`, null, { params: { status } }),
+  convertCandidate: (id: number) => api.post(`/recruitment/candidates/${id}/convert`),
   uploadResume: (id: number, formData: FormData) =>
     api.post(`/recruitment/candidates/${id}/resume`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -648,6 +707,14 @@ export const performanceApi = {
   createGoal: (data: unknown) => api.post("/performance/goals", data),
   updateGoal: (id: number, data: unknown) => api.put(`/performance/goals/${id}`, data),
   submitReview: (data: unknown) => api.post("/performance/reviews", data),
+  calibrationSessions: (params?: Record<string, unknown>) =>
+    api.get("/performance/calibration/sessions", { params }),
+  createCalibrationSession: (data: unknown) => api.post("/performance/calibration/sessions", data),
+  updateCalibrationSession: (id: number, data: unknown) =>
+    api.put(`/performance/calibration/sessions/${id}`, data),
+  nineBox: (params?: Record<string, unknown>) => api.get("/performance/nine-box", { params }),
+  oneOnOnes: (params?: Record<string, unknown>) => api.get("/performance/one-on-ones", { params }),
+  createOneOnOne: (data: unknown) => api.post("/performance/one-on-ones", data),
   employeeReviews: (empId: number, cycleId?: number) =>
     api.get(`/performance/reviews/${empId}`, { params: { cycle_id: cycleId } }),
   createGoalCheckIn: (data: unknown) => api.post("/performance/goals/check-ins", data),
@@ -668,12 +735,26 @@ export const performanceApi = {
   createCompetencyAssessment: (data: unknown) =>
     api.post("/performance/competency-assessments", data),
   skillGap: (employeeId: number) => api.get(`/performance/employees/${employeeId}/skill-gap`),
+  criticalRoles: (params?: Record<string, unknown>) =>
+    api.get("/performance/succession/critical-roles", { params }),
+  createCriticalRole: (data: unknown) => api.post("/performance/succession/critical-roles", data),
+  createSuccessionCandidate: (data: unknown) => api.post("/performance/succession/candidates", data),
+  compensationCycles: () => api.get("/performance/compensation/cycles"),
   createCompensationCycle: (data: unknown) => api.post("/performance/compensation/cycles", data),
+  payBands: () => api.get("/performance/compensation/pay-bands"),
   createPayBand: (data: unknown) => api.post("/performance/compensation/pay-bands", data),
+  meritRecommendations: (params?: Record<string, unknown>) =>
+    api.get("/performance/compensation/merit-recommendations", { params }),
   createMeritRecommendation: (data: unknown) =>
     api.post("/performance/compensation/merit-recommendations", data),
   reviewMeritRecommendation: (id: number, data: unknown) =>
     api.put(`/performance/compensation/merit-recommendations/${id}`, data),
+  compensationWorksheet: (params?: Record<string, unknown>) =>
+    api.get("/performance/compensation/worksheet", { params }),
+  createCompensationWorksheetRow: (data: unknown) =>
+    api.post("/performance/compensation/worksheet", data),
+  updateCompensationWorksheetRow: (id: number, data: unknown) =>
+    api.put(`/performance/compensation/worksheet/${id}`, data),
 };
 
 export const benefitsApi = {
@@ -745,6 +826,12 @@ export const reportsApi = {
   definitions: (params?: Record<string, unknown>) => api.get("/reports/definitions", { params }),
   createDefinition: (data: unknown) => api.post("/reports/definitions", data),
   runDefinition: (id: number) => api.get(`/reports/definitions/${id}/run`),
+  createSchedule: (data: unknown) => api.post("/reports/schedules", data),
+  schedules: (params?: Record<string, unknown>) => api.get("/reports/schedules", { params }),
+  runSchedule: (id: number) => api.post(`/reports/schedules/${id}/run`),
+  governedMetrics: () => api.get("/reports/analytics/metric-definitions"),
+  analyticsDrilldown: (params: Record<string, unknown>) =>
+    api.get("/reports/analytics/drilldown", { params }),
 };
 
 export const engagementApi = {

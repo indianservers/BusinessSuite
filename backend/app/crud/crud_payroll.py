@@ -1,6 +1,8 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, List, Optional
+import calendar
+import re
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from app.models.payroll import (
@@ -10,7 +12,9 @@ from app.models.payroll import (
     OvertimePayLine, LeaveEncashmentLine, LeaveEncashmentRequest, PayrollLWPEntry,
     EmployeeStatutoryProfile, PayrollStatutoryContributionLine,
     PFRule, ESIRule, ProfessionalTaxSlab, LWFSlab, SalaryAdvance, PayrollExchangeRate,
-    PayrollCalculationSnapshot, PayrollPreRunCheck,
+    PayrollCalculationSnapshot, PayrollPreRunCheck, PayrollRunAuditLog,
+    PayrollPayGroup, PayrollManualInput, SalaryRevisionRequest,
+    EmployeeTaxDeclaration,
 )
 from app.models.expense import ExpenseClaim
 
@@ -30,6 +34,24 @@ PAYROLL_RUN_STATUSES = (
     PAYROLL_RUN_STATUS_LOCKED,
     PAYROLL_RUN_STATUS_PAID,
 )
+
+PAYROLL_READINESS_CHECK_TYPES = {
+    "missing_salary",
+    "missing_bank",
+    "invalid_bank",
+    "missing_pan",
+    "attendance_not_locked",
+    "pending_salary_revisions",
+    "pending_reimbursements",
+    "negative_net_salary",
+    "tax_declaration_readiness",
+}
+
+
+class PayrollReadinessError(ValueError):
+    def __init__(self, summary: dict[str, Any]):
+        super().__init__("Payroll readiness checks failed")
+        self.summary = summary
 
 PAYROLL_RUN_TRANSITIONS = {
     PAYROLL_RUN_STATUS_DRAFT: {PAYROLL_RUN_STATUS_INPUTS_PENDING},
@@ -281,17 +303,429 @@ def _find_exchange_rate(db: Session, from_currency: str, to_currency: str, on_da
     ).order_by(PayrollExchangeRate.effective_date.desc(), PayrollExchangeRate.id.desc()).first()
 
 
-def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_run: bool = False) -> PayrollRun:
+def validate_employee_bank(employee, seen_accounts: dict[str, int]) -> list[dict[str, str]]:
+    errors: list[dict[str, str]] = []
+    ifsc = (employee.ifsc_code or "").strip().upper()
+    account = (employee.account_number or "").strip()
+    if not ifsc or not re.match(r"^[A-Z]{4}0[A-Z0-9]{6}$", ifsc):
+        errors.append({"code": "INVALID_IFSC", "message": "IFSC must match Indian bank IFSC format"})
+    if not account or not re.match(r"^[0-9]{9,18}$", account):
+        errors.append({"code": "INVALID_ACCOUNT", "message": "Bank account number must be 9 to 18 digits"})
+    if account:
+        if account in seen_accounts and seen_accounts[account] != employee.id:
+            errors.append({"code": "DUPLICATE_ACCOUNT", "message": f"Account number duplicates employee_id={seen_accounts[account]}"})
+        seen_accounts[account] = employee.id
+    return errors
+
+
+def _payroll_scope_filters(
+    company_id: int | None = None,
+    branch_id: int | None = None,
+    department_id: int | None = None,
+    pay_group_id: int | None = None,
+    employee_category: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "company_id": company_id,
+        "branch_id": branch_id,
+        "department_id": department_id,
+        "pay_group_id": pay_group_id,
+        "employee_category": employee_category,
+    }
+
+
+def _scoped_employee_query(db: Session, base_query, scope: dict[str, Any]):
+    from app.models.company import Branch
+    from app.models.employee import Employee
+
+    pay_group_id = scope.get("pay_group_id")
+    branch_id = scope.get("branch_id")
+    if pay_group_id and not branch_id:
+        pay_group = db.query(PayrollPayGroup).filter(PayrollPayGroup.id == pay_group_id).first()
+        branch_id = pay_group.branch_id if pay_group else None
+
+    if scope.get("company_id"):
+        base_query = base_query.join(Employee.branch).filter(Branch.company_id == scope["company_id"])
+    if branch_id:
+        base_query = base_query.filter(Employee.branch_id == branch_id)
+    if scope.get("department_id"):
+        base_query = base_query.filter(Employee.department_id == scope["department_id"])
+    if scope.get("employee_category"):
+        category = scope["employee_category"]
+        base_query = base_query.filter(or_(
+            Employee.employment_type == category,
+            Employee.worker_type == category,
+            Employee.worker_category == category,
+            Employee.functional_area == category,
+        ))
+    return base_query
+
+
+def payroll_readiness_summary(
+    db: Session,
+    month: int,
+    year: int,
+    company_id: int | None = None,
+    branch_id: int | None = None,
+    department_id: int | None = None,
+    pay_group_id: int | None = None,
+    employee_category: str | None = None,
+) -> dict[str, Any]:
+    from app.models.employee import Employee
+
+    scope = _payroll_scope_filters(company_id, branch_id, department_id, pay_group_id, employee_category)
+    employee_query = db.query(Employee).filter(
+        Employee.deleted_at.is_(None),
+        Employee.status.in_(["Active", "Probation", "Resigned"]),
+    )
+    employees = _scoped_employee_query(db, employee_query, scope).all()
+    employee_ids = [employee.id for employee in employees]
+    salary_employee_ids = {row[0] for row in db.query(EmployeeSalary.employee_id).filter(EmployeeSalary.is_active == True).all()}
+    seen_accounts: dict[str, int] = {}
+    missing_salary: list[int] = []
+    missing_bank: list[int] = []
+    invalid_bank: list[dict[str, Any]] = []
+    missing_pan: list[int] = []
+
+    for employee in employees:
+        if employee.id not in salary_employee_ids:
+            missing_salary.append(employee.id)
+        if not employee.account_number or not employee.ifsc_code:
+            missing_bank.append(employee.id)
+        errors = validate_employee_bank(employee, seen_accounts)
+        if errors:
+            invalid_bank.append({"employee_id": employee.id, "errors": errors})
+        if not employee.pan_number:
+            missing_pan.append(employee.id)
+
+    period_query = db.query(PayrollPeriod).filter(PayrollPeriod.month == month, PayrollPeriod.year == year)
+    if pay_group_id:
+        period_query = period_query.filter(PayrollPeriod.pay_group_id == pay_group_id)
+    period = period_query.order_by(PayrollPeriod.id.desc()).first()
+    attendance_locked = bool(period and str(period.status).lower() in {"locked", "closed"})
+    period_end = period.period_end if period and period.period_end else date(year, month, calendar.monthrange(year, month)[1])
+    financial_year = f"{period_end.year}-{str(period_end.year + 1)[-2:]}" if period_end.month >= 4 else f"{period_end.year - 1}-{str(period_end.year)[-2:]}"
+
+    pending_revision_ids = [
+        row[0] for row in db.query(SalaryRevisionRequest.employee_id).filter(
+            SalaryRevisionRequest.employee_id.in_(employee_ids or [0]),
+            SalaryRevisionRequest.status.in_(["Pending", "Submitted"]),
+            SalaryRevisionRequest.effective_from <= period_end,
+        ).all()
+    ]
+    pending_reimbursement_rows = db.query(Reimbursement.employee_id, Reimbursement.id, Reimbursement.status).filter(
+        Reimbursement.employee_id.in_(employee_ids or [0]),
+        Reimbursement.payroll_record_id.is_(None),
+        Reimbursement.status.in_(["Pending", "Submitted"]),
+    ).all()
+    negative_net_rows = db.query(PayrollRecord.employee_id, PayrollRecord.id, PayrollRecord.net_salary).join(
+        PayrollRun, PayrollRun.id == PayrollRecord.payroll_run_id
+    ).filter(
+        PayrollRun.month == month,
+        PayrollRun.year == year,
+        PayrollRun.deleted_at.is_(None),
+        PayrollRecord.employee_id.in_(employee_ids or [0]),
+        PayrollRecord.net_salary < 0,
+    ).all()
+    declared_employee_ids = {
+        row[0] for row in db.query(EmployeeTaxDeclaration.employee_id).filter(
+            EmployeeTaxDeclaration.employee_id.in_(employee_ids or [0]),
+            EmployeeTaxDeclaration.financial_year == financial_year,
+            EmployeeTaxDeclaration.status.in_(["submitted", "approved", "verified", "Submitted", "Approved", "Verified"]),
+        ).all()
+    }
+    tax_not_ready_ids = [employee_id for employee_id in employee_ids if employee_id not in declared_employee_ids]
+
+    issues = {
+        "missing_salary": {
+            "count": len(missing_salary),
+            "severity": "Critical",
+            "employee_ids": missing_salary[:100],
+        },
+        "missing_bank": {
+            "count": len(missing_bank),
+            "severity": "Critical",
+            "employee_ids": missing_bank[:100],
+        },
+        "invalid_bank": {
+            "count": len(invalid_bank),
+            "severity": "Critical",
+            "items": invalid_bank[:100],
+        },
+        "missing_pan": {
+            "count": len(missing_pan),
+            "severity": "Warning",
+            "employee_ids": missing_pan[:100],
+        },
+        "attendance_not_locked": {
+            "count": 0 if attendance_locked else 1,
+            "severity": "Critical",
+            "message": "Attendance is locked" if attendance_locked else "Attendance period is not locked or no payroll period exists",
+        },
+        "pending_salary_revisions": {
+            "count": len(set(pending_revision_ids)),
+            "severity": "Critical",
+            "employee_ids": sorted(set(pending_revision_ids))[:100],
+            "message": "Salary revision requests effective for this period are still pending approval.",
+        },
+        "pending_reimbursements": {
+            "count": len(pending_reimbursement_rows),
+            "severity": "Critical",
+            "items": [
+                {"employee_id": row.employee_id, "reimbursement_id": row.id, "status": row.status}
+                for row in pending_reimbursement_rows[:100]
+            ],
+            "message": "Reimbursements are pending approval for this period.",
+        },
+        "negative_net_salary": {
+            "count": len(negative_net_rows),
+            "severity": "Critical",
+            "items": [
+                {"employee_id": row.employee_id, "payroll_record_id": row.id, "net_salary": row.net_salary}
+                for row in negative_net_rows[:100]
+            ],
+            "message": "One or more payroll records have negative net salary.",
+        },
+        "tax_declaration_readiness": {
+            "count": len(tax_not_ready_ids),
+            "severity": "Warning",
+            "employee_ids": tax_not_ready_ids[:100],
+            "financial_year": financial_year,
+            "message": "Employee tax declaration is missing or not submitted/approved for the financial year.",
+        },
+    }
+    critical_issue_count = sum(issue["count"] for issue in issues.values() if issue["severity"] == "Critical")
+    warning_issue_count = sum(issue["count"] for issue in issues.values() if issue["severity"] == "Warning")
+    return {
+        "month": month,
+        "year": year,
+        "scope": scope,
+        "total_employees": len(employees),
+        "ready": critical_issue_count == 0,
+        "attendance_locked": attendance_locked,
+        "critical_issue_count": critical_issue_count,
+        "warning_issue_count": warning_issue_count,
+        "issues": issues,
+    }
+
+
+def persist_payroll_readiness_checks(
+    db: Session,
+    payroll_run: PayrollRun,
+    summary: dict[str, Any],
+    actor_user_id: int,
+    force_run: bool = False,
+) -> None:
+    db.query(PayrollPreRunCheck).filter(
+        PayrollPreRunCheck.payroll_run_id == payroll_run.id,
+        PayrollPreRunCheck.check_type.in_(PAYROLL_READINESS_CHECK_TYPES),
+    ).delete(synchronize_session=False)
+    issues = summary.get("issues") or {}
+
+    for employee_id in issues.get("missing_salary", {}).get("employee_ids", []):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="missing_salary", status="Failed", severity="Critical", affected_employee_id=employee_id, message="Employee has no active salary assignment."))
+    for employee_id in issues.get("missing_bank", {}).get("employee_ids", []):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="missing_bank", status="Failed", severity="Critical", affected_employee_id=employee_id, message="Employee is missing bank account number or IFSC."))
+    for item in issues.get("invalid_bank", {}).get("items", []):
+        message = "; ".join(error.get("message", "") for error in item.get("errors", [])) or "Employee bank details failed validation."
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="invalid_bank", status="Failed", severity="Critical", affected_employee_id=item.get("employee_id"), message=message))
+    for employee_id in issues.get("missing_pan", {}).get("employee_ids", []):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="missing_pan", status="Warning", severity="Warning", affected_employee_id=employee_id, message="Employee PAN is missing; TDS/reporting may be affected."))
+    if issues.get("attendance_not_locked", {}).get("count", 0):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="attendance_not_locked", status="Failed", severity="Critical", message="Attendance is not locked for this payroll month."))
+    for employee_id in issues.get("pending_salary_revisions", {}).get("employee_ids", []):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="pending_salary_revisions", status="Failed", severity="Critical", affected_employee_id=employee_id, message="Salary revision effective for this period is pending approval."))
+    for item in issues.get("pending_reimbursements", {}).get("items", []):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="pending_reimbursements", status="Failed", severity="Critical", affected_employee_id=item.get("employee_id"), message=f"Reimbursement #{item.get('reimbursement_id')} is {item.get('status')} and not included in payroll."))
+    for item in issues.get("negative_net_salary", {}).get("items", []):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="negative_net_salary", status="Failed", severity="Critical", affected_employee_id=item.get("employee_id"), message=f"Payroll record #{item.get('payroll_record_id')} has negative net salary."))
+    for employee_id in issues.get("tax_declaration_readiness", {}).get("employee_ids", []):
+        db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id, check_type="tax_declaration_readiness", status="Warning", severity="Warning", affected_employee_id=employee_id, message="Employee tax declaration is missing or not submitted/approved for this financial year."))
+
+    if force_run and (summary.get("critical_issue_count", 0) or summary.get("warning_issue_count", 0)):
+        db.add(PayrollRunAuditLog(
+            payroll_run_id=payroll_run.id,
+            action="payroll_force_run_readiness_warnings",
+            actor_user_id=actor_user_id,
+            details=(
+                f"Payroll force-run allowed with {summary.get('critical_issue_count', 0)} critical "
+                f"and {summary.get('warning_issue_count', 0)} warning readiness issues."
+            ),
+        ))
+
+
+def _active_pay_group(db: Session, pay_group_id: int | None, employee) -> PayrollPayGroup | None:
+    if pay_group_id:
+        return db.query(PayrollPayGroup).filter(PayrollPayGroup.id == pay_group_id).first()
+    default = db.query(PayrollPayGroup).filter(
+        PayrollPayGroup.is_default == True,
+        PayrollPayGroup.is_active == True,
+    ).order_by(PayrollPayGroup.id.desc()).first()
+    if default:
+        return default
+    if employee.branch_id:
+        scoped = db.query(PayrollPayGroup).filter(
+            PayrollPayGroup.branch_id == employee.branch_id,
+            PayrollPayGroup.is_active == True,
+        ).order_by(PayrollPayGroup.is_default.desc(), PayrollPayGroup.id.desc()).first()
+        if scoped:
+            return scoped
+    return None
+
+
+def _week_of_month(value: date) -> int:
+    return ((value.day - 1) // 7) + 1
+
+
+def _holiday_dates_for_employee(db: Session, employee, period_start: date, period_end: date) -> set[date]:
+    from app.models.attendance import Holiday
+
+    rows = db.query(Holiday).filter(
+        Holiday.is_active == True,
+        Holiday.holiday_date >= period_start,
+        Holiday.holiday_date <= period_end,
+    ).all()
+    dates: set[date] = set()
+    branch_id = str(employee.branch_id or "")
+    for row in rows:
+        applicable = (row.applicable_branches or "").strip()
+        if not applicable or branch_id in {item.strip() for item in applicable.split(",") if item.strip()}:
+            dates.add(row.holiday_date)
+    return dates
+
+
+def _is_weekly_off(db: Session, employee, work_date: date, pay_group: PayrollPayGroup | None) -> bool:
+    from app.models.attendance import ShiftRoster, ShiftWeeklyOff
+
+    pattern = (pay_group.working_pattern if pay_group else None) or "company"
+    if pattern == "shift_roster":
+        return not db.query(ShiftRoster).filter(
+            ShiftRoster.employee_id == employee.id,
+            ShiftRoster.roster_date == work_date,
+            ShiftRoster.status.in_(["published", "Published", "approved", "Approved"]),
+        ).first()
+
+    if pattern == "rotational_weekly_off" and employee.shift_id:
+        week = str(_week_of_month(work_date))
+        return bool(db.query(ShiftWeeklyOff).filter(
+            ShiftWeeklyOff.shift_id == employee.shift_id,
+            ShiftWeeklyOff.weekday == work_date.weekday(),
+            ShiftWeeklyOff.is_active == True,
+            ShiftWeeklyOff.week_pattern.in_(["all", week]),
+        ).first())
+
+    weekly_offs = pay_group.weekly_off_weekdays if pay_group and pay_group.weekly_off_weekdays else None
+    if weekly_offs:
+        return work_date.weekday() in {int(day) for day in weekly_offs}
+
+    days_per_week = pay_group.working_days_per_week if pay_group and pay_group.working_days_per_week else None
+    if days_per_week is None and pattern == "5_day":
+        days_per_week = 5
+    if days_per_week is None and pattern == "6_day":
+        days_per_week = 6
+    if days_per_week is None and employee.branch and employee.branch.company:
+        days_per_week = employee.branch.company.working_days_per_week
+    days_per_week = int(days_per_week or 5)
+
+    if days_per_week >= 7:
+        return False
+    if days_per_week == 6:
+        return work_date.weekday() == 6
+    return work_date.weekday() >= 5
+
+
+def _working_days_for_employee(
+    db: Session,
+    employee,
+    period_start: date,
+    period_end: date,
+    pay_group: PayrollPayGroup | None,
+) -> Decimal:
+    holidays = _holiday_dates_for_employee(db, employee, period_start, period_end)
+    days = Decimal("0")
+    cursor = period_start
+    while cursor <= period_end:
+        if cursor not in holidays and not _is_weekly_off(db, employee, cursor, pay_group):
+            days += Decimal("1")
+        cursor = date.fromordinal(cursor.toordinal() + 1)
+    return days
+
+
+def _attendance_day_value(status: str | None) -> Decimal:
+    normalized = (status or "").strip().lower()
+    if normalized in {"present", "wfh", "work from home", "remote"}:
+        return Decimal("1")
+    if normalized in {"half-day", "half day", "half_day"}:
+        return Decimal("0.5")
+    return Decimal("0")
+
+
+def _non_monthly_base_pay(salary: EmployeeSalary, paid_days: Decimal) -> tuple[Decimal, Decimal, Decimal, Decimal, str | None]:
+    payroll_type = (salary.payroll_type or "monthly_fixed").strip().lower()
+    rate = Decimal(salary.wage_rate or 0)
+    default_units = Decimal(salary.default_units or 0)
+    unit_label = salary.unit_label
+    if payroll_type == "daily":
+        amount = rate * paid_days
+        return _money(amount), _money(amount), Decimal("0"), Decimal("0"), "Daily Wage"
+    if payroll_type in {"hourly", "per_lecture", "per_class", "per_delivery", "per_trip", "per_shift", "piece_rate", "unit_based"}:
+        amount = rate * default_units
+        labels = {
+            "hourly": "Hourly Wage",
+            "per_lecture": "Per Lecture Pay",
+            "per_class": "Per Class Pay",
+            "per_delivery": "Delivery Incentive",
+            "per_trip": "Trip Allowance",
+            "per_shift": "Shift Pay",
+            "piece_rate": "Production Incentive",
+            "unit_based": unit_label or "Unit Pay",
+        }
+        return _money(amount), _money(amount), Decimal("0"), Decimal("0"), labels.get(payroll_type)
+    if payroll_type == "commission_based":
+        amount = Decimal(salary.commission_base_amount or 0) * Decimal(salary.commission_rate_percent or 0) / Decimal("100")
+        if amount == 0:
+            amount = rate * default_units
+        return _money(amount), Decimal("0"), Decimal("0"), _money(amount), "Commission"
+    if payroll_type == "invoice_based":
+        amount = Decimal(salary.invoice_amount or 0) or (rate * default_units)
+        return _money(amount), Decimal("0"), Decimal("0"), _money(amount), "Consultant Invoice"
+    return Decimal("0"), Decimal("0"), Decimal("0"), Decimal("0"), None
+
+
+def run_payroll(
+    db: Session,
+    month: int,
+    year: int,
+    run_by_user_id: int,
+    force_run: bool = False,
+    company_id: int | None = None,
+    branch_id: int | None = None,
+    department_id: int | None = None,
+    pay_group_id: int | None = None,
+    employee_category: str | None = None,
+    pay_period_start: date | None = None,
+    pay_period_end: date | None = None,
+) -> PayrollRun:
     from app.models.employee import Employee
     from app.models.attendance import Attendance
     import calendar
 
-    period_start = date(year, month, 1)
-    period_end = date(year, month, calendar.monthrange(year, month)[1])
+    period_start = pay_period_start or date(year, month, 1)
+    period_end = pay_period_end or date(year, month, calendar.monthrange(year, month)[1])
+    scope = _payroll_scope_filters(company_id, branch_id, department_id, pay_group_id, employee_category)
 
     # Create or get existing run
     payroll_run = db.query(PayrollRun).filter(
-        and_(PayrollRun.month == month, PayrollRun.year == year, PayrollRun.deleted_at.is_(None))
+        and_(
+            PayrollRun.month == month,
+            PayrollRun.year == year,
+            PayrollRun.company_id == company_id,
+            PayrollRun.branch_id == branch_id,
+            PayrollRun.department_id == department_id,
+            PayrollRun.pay_group_id == pay_group_id,
+            PayrollRun.employee_category == employee_category,
+            PayrollRun.deleted_at.is_(None),
+        )
     ).first()
 
     if payroll_run:
@@ -307,6 +741,11 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
         payroll_run = PayrollRun(
             month=month,
             year=year,
+            company_id=company_id,
+            branch_id=branch_id,
+            department_id=department_id,
+            pay_group_id=pay_group_id,
+            employee_category=employee_category,
             pay_period_start=period_start,
             pay_period_end=period_end,
             run_date=date.today(),
@@ -318,14 +757,19 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
     if payroll_run.status == PAYROLL_RUN_STATUS_DRAFT:
         transition_payroll_run_status(payroll_run, PAYROLL_RUN_STATUS_INPUTS_PENDING)
 
+    readiness = payroll_readiness_summary(db, month, year, **scope)
+    persist_payroll_readiness_checks(db, payroll_run, readiness, run_by_user_id, force_run=force_run)
+    if readiness["critical_issue_count"] and not force_run:
+        db.commit()
+        raise PayrollReadinessError(readiness)
+
     # Get all employees who were employed for at least one day in this payroll period.
-    employees = db.query(Employee).filter(
+    employee_query = db.query(Employee).filter(
         Employee.date_of_joining <= period_end,
         or_(Employee.date_of_exit.is_(None), Employee.date_of_exit >= period_start),
         Employee.deleted_at.is_(None),
-    ).all()
-    total_working_days = sum(1 for d in range(1, calendar.monthrange(year, month)[1] + 1)
-                             if date(year, month, d).weekday() < 5)  # Mon-Fri
+    )
+    employees = _scoped_employee_query(db, employee_query, scope).all()
 
     total_gross = Decimal("0")
     total_deductions = Decimal("0")
@@ -398,21 +842,26 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
         if payable_calendar_days <= 0:
             continue
 
+        pay_group = _active_pay_group(db, pay_group_id, emp)
+        employee_working_days = _working_days_for_employee(db, emp, employment_start, employment_end, pay_group)
+
         if attendance_input:
-            total_working_days = int(attendance_input.working_days or total_working_days)
+            employee_working_days = Decimal(attendance_input.working_days or employee_working_days)
             paid_days = Decimal(attendance_input.payable_days or 0)
             lop_days = Decimal(attendance_input.lop_days or 0)
             present_days = Decimal(attendance_input.present_days or 0)
         else:
             # If attendance has not been captured for the period, treat the employee as payable.
-            # Once attendance rows exist, the present/WFH/Half-day count drives LOP.
-            employable_working_days = sum(
-                1 for d in range(employment_start.day, employment_end.day + 1)
-                if date(year, month, d).weekday() < 5
-            )
-            present_days = Decimal(str(raw_present_days if raw_attendance_days else employable_working_days))
-            paid_days = min(present_days, Decimal(str(employable_working_days)))
-            lop_days = max(Decimal("0"), Decimal(str(employable_working_days)) - paid_days)
+            # Once attendance rows exist, raw status values drive payable days. Half-day is 0.5.
+            if raw_attendance_days:
+                present_days = sum(
+                    (_attendance_day_value(row.status) for row in attendance_query.all()),
+                    Decimal("0"),
+                )
+            else:
+                present_days = employee_working_days
+            paid_days = min(present_days, employee_working_days)
+            lop_days = max(Decimal("0"), employee_working_days - paid_days)
 
         salary_currency = (emp.salary_currency or "INR").upper()
         exchange_rate = Decimal("1")
@@ -434,15 +883,25 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
             monthly_ctc = _money(monthly_ctc * exchange_rate)
             basic = _money(basic * exchange_rate)
             hra = _money(hra * exchange_rate)
-        monthly_ctc = _money(monthly_ctc * employment_ratio)
-        basic = _money(basic * employment_ratio)
-        hra = _money(hra * employment_ratio)
-        other_allowances = monthly_ctc - basic - hra
-
-        per_day_salary = monthly_ctc / Decimal(str(total_working_days or 1))
-        lop_deduction = per_day_salary * lop_days
-
-        gross = monthly_ctc - lop_deduction
+        payroll_type = (salary.payroll_type or "monthly_fixed").strip().lower()
+        unit_component_name = None
+        if payroll_type in {"monthly_fixed", "mixed"}:
+            monthly_ctc = _money(monthly_ctc * employment_ratio)
+            basic = _money(basic * employment_ratio)
+            hra = _money(hra * employment_ratio)
+            other_allowances = monthly_ctc - basic - hra
+            per_day_salary = monthly_ctc / Decimal(str(employee_working_days or 1))
+            lop_deduction = per_day_salary * lop_days
+            gross = monthly_ctc - lop_deduction
+            if payroll_type == "mixed":
+                unit_pay, _unit_basic, _unit_hra, unit_other, unit_component_name = _non_monthly_base_pay(salary, paid_days)
+                gross += unit_pay
+                other_allowances += unit_other
+        else:
+            unit_pay, basic, hra, other_allowances, unit_component_name = _non_monthly_base_pay(salary, paid_days)
+            monthly_ctc = unit_pay
+            lop_deduction = Decimal("0")
+            gross = unit_pay
 
         approved_reimbursements = db.query(Reimbursement).filter(
             and_(
@@ -486,7 +945,23 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
             overtime_total = sum((item.amount or Decimal("0")) for item in overtime_lines)
             encashment_total = sum((item.amount or Decimal("0")) for item in encashment_lines)
 
-        gross = gross + overtime_total + encashment_total
+        approved_manual_inputs = db.query(PayrollManualInput).filter(
+            PayrollManualInput.payroll_run_id == payroll_run.id,
+            PayrollManualInput.employee_id == emp.id,
+            PayrollManualInput.status == "Approved",
+        ).all()
+        manual_earning_inputs = [
+            item for item in approved_manual_inputs
+            if (item.input_type or "").strip().lower() not in {"deduction", "recovery", "loan", "advance"}
+        ]
+        manual_deduction_inputs = [
+            item for item in approved_manual_inputs
+            if (item.input_type or "").strip().lower() in {"deduction", "recovery", "loan", "advance"}
+        ]
+        manual_earning_total = sum((item.amount or Decimal("0")) for item in manual_earning_inputs)
+        manual_deduction_total = sum((item.amount or Decimal("0")) for item in manual_deduction_inputs)
+
+        gross = gross + overtime_total + encashment_total + manual_earning_total
         statutory_amounts, statutory_lines = _calculate_statutory_amounts(
             db=db,
             employee_id=emp.id,
@@ -502,7 +977,7 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
         pt = statutory_amounts["professional_tax"]
         lwf_employee = statutory_amounts["lwf_employee"]
         lwf_employer = statutory_amounts["lwf_employer"]
-        total_ded = pf_employee + esi_employee + pt + lwf_employee + salary_advance_total
+        total_ded = pf_employee + esi_employee + pt + lwf_employee + salary_advance_total + manual_deduction_total
         net = gross - total_ded + reimbursement_total
 
         # AI anomaly detection placeholder
@@ -529,7 +1004,7 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
         record = PayrollRecord(
             payroll_run_id=payroll_run.id,
             employee_id=emp.id,
-            working_days=total_working_days,
+            working_days=int(employee_working_days),
             present_days=paid_days,
             lop_days=lop_days,
             paid_days=paid_days,
@@ -545,7 +1020,8 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
             esi_employer=esi_employer,
             professional_tax=pt,
             tds=Decimal("0"),
-            other_deductions=lwf_employee + salary_advance_total,
+            other_deductions=lwf_employee + salary_advance_total + manual_deduction_total,
+            bonus=manual_earning_total,
             total_deductions=total_ded,
             reimbursements=reimbursement_total,
             net_salary=net,
@@ -564,10 +1040,12 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
             snapshot_type="PayrollRun",
             attendance_input_json={
                 "attendance_input_id": attendance_input.id if attendance_input else None,
-                "paid_days": str(paid_days),
-                "lop_days": str(lop_days),
-                "employment_ratio": str(employment_ratio),
-            },
+                        "paid_days": str(paid_days),
+                        "lop_days": str(lop_days),
+                        "employment_ratio": str(employment_ratio),
+                        "working_days": str(employee_working_days),
+                        "working_pattern": (pay_group.working_pattern if pay_group else "company"),
+                    },
             result_json={
                 "salary_currency": salary_currency,
                 "exchange_rate": str(exchange_rate),
@@ -598,12 +1076,18 @@ def run_payroll(db: Session, month: int, year: int, run_by_user_id: int, force_r
             ("ESI Employer", "Employer Contribution", esi_employer),
             ("LWF Employer", "Employer Contribution", lwf_employer),
         ]
+        if unit_component_name and payroll_type != "monthly_fixed":
+            payroll_lines.insert(0, (unit_component_name, "Earning", monthly_ctc if payroll_type != "mixed" else Decimal(salary.wage_rate or 0) * Decimal(salary.default_units or 0)))
         if overtime_total > 0:
             payroll_lines.append(("Overtime Pay", "Earning", overtime_total))
         if encashment_total > 0:
             payroll_lines.append(("Leave Encashment", "Earning", encashment_total))
         if reimbursement_total > 0:
             payroll_lines.append(("Approved Reimbursements", "Reimbursement", reimbursement_total))
+        for item in manual_earning_inputs:
+            payroll_lines.append((item.component_name, "Earning", item.amount or Decimal("0")))
+        for item in manual_deduction_inputs:
+            payroll_lines.append((item.component_name, "Deduction", item.amount or Decimal("0")))
 
         for order, (component_name, component_type, amount) in enumerate(payroll_lines, start=1):
             if amount and amount != Decimal("0"):

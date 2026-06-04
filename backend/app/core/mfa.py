@@ -4,14 +4,36 @@ import io
 import secrets
 import pyotp
 import qrcode
+from cryptography.fernet import Fernet, InvalidToken
+from app.core.config import settings
 
 
 APP_NAME = "Business Suite"
 
 
+def _fernet() -> Fernet:
+    digest = hashlib.sha256(settings.SECRET_KEY.encode("utf-8")).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
+
+
 def generate_totp_secret() -> str:
     """Generate a new random TOTP secret."""
     return pyotp.random_base32()
+
+
+def protect_totp_secret(secret: str) -> str:
+    """Encrypt a TOTP secret before storing it."""
+    return _fernet().encrypt(secret.encode("utf-8")).decode("utf-8")
+
+
+def reveal_totp_secret(secret_ref: str) -> str:
+    """Decrypt a stored TOTP secret. Plain legacy values are accepted for migration compatibility."""
+    if not secret_ref:
+        return ""
+    try:
+        return _fernet().decrypt(secret_ref.encode("utf-8")).decode("utf-8")
+    except (InvalidToken, ValueError):
+        return secret_ref
 
 
 def get_totp_uri(secret: str, user_email: str, issuer: str = APP_NAME) -> str:

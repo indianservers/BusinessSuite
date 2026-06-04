@@ -16,6 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
     for table_name in (
         "branches",
         "business_units",
@@ -41,22 +42,40 @@ def upgrade() -> None:
     op.execute("UPDATE cost_centers SET organization_id = company_id WHERE organization_id IS NULL")
     op.execute("UPDATE work_locations SET organization_id = company_id WHERE organization_id IS NULL")
     op.execute("UPDATE positions SET organization_id = company_id WHERE organization_id IS NULL")
-    op.execute(
-        """
-        UPDATE departments
-        SET organization_id = branches.company_id
-        FROM branches
-        WHERE departments.branch_id = branches.id AND departments.organization_id IS NULL
-        """
-    )
-    op.execute(
-        """
-        UPDATE designations
-        SET organization_id = departments.organization_id
-        FROM departments
-        WHERE designations.department_id = departments.id AND designations.organization_id IS NULL
-        """
-    )
+    if bind.dialect.name == "mysql":
+        op.execute(
+            """
+            UPDATE departments
+            JOIN branches ON departments.branch_id = branches.id
+            SET departments.organization_id = branches.company_id
+            WHERE departments.organization_id IS NULL
+            """
+        )
+        op.execute(
+            """
+            UPDATE designations
+            JOIN departments ON designations.department_id = departments.id
+            SET designations.organization_id = departments.organization_id
+            WHERE designations.organization_id IS NULL
+            """
+        )
+    else:
+        op.execute(
+            """
+            UPDATE departments
+            SET organization_id = branches.company_id
+            FROM branches
+            WHERE departments.branch_id = branches.id AND departments.organization_id IS NULL
+            """
+        )
+        op.execute(
+            """
+            UPDATE designations
+            SET organization_id = departments.organization_id
+            FROM departments
+            WHERE designations.department_id = departments.id AND designations.organization_id IS NULL
+            """
+        )
 
 
 def downgrade() -> None:

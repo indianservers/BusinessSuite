@@ -12,6 +12,7 @@ import csv
 import os
 import re
 from app.core.deps import get_db, get_current_user, RequirePermission
+from app.core.hr_audit import record_salary_field_changes
 from app.core.config import settings
 from app.core.email import send_email
 from app.crud import crud_payroll
@@ -127,6 +128,57 @@ class PayslipQueryResolve(BaseModel):
     status: str = "Resolved"
     resolution: str | None = None
     assigned_to: int | None = None
+
+
+def _payroll_export_readiness(db: Session, run: PayrollRun, export_type: str) -> dict:
+    if export_type not in EXPORT_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported payroll export type")
+    records = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run.id).all()
+    issues = []
+    warnings = []
+    for record in records:
+        employee = db.query(Employee).filter(Employee.id == record.employee_id).first()
+        employee_code = employee.employee_id if employee else str(record.employee_id)
+        if not employee:
+            issues.append({"employee_id": record.employee_id, "employee_code": employee_code, "severity": "Critical", "message": "Employee master is missing"})
+            continue
+        if (record.net_salary or Decimal("0")) < 0:
+            issues.append({"employee_id": employee.id, "employee_code": employee_code, "severity": "Critical", "message": "Net salary is negative"})
+        if export_type == "pf_ecr" and (record.pf_employee or Decimal("0")) > 0 and not employee.uan_number:
+            issues.append({"employee_id": employee.id, "employee_code": employee_code, "severity": "Critical", "message": "UAN is required for PF ECR"})
+        if export_type == "esi" and (record.esi_employee or Decimal("0")) > 0 and not employee.esic_number:
+            issues.append({"employee_id": employee.id, "employee_code": employee_code, "severity": "Critical", "message": "ESI IP number is required for ESI export"})
+        if export_type in {"tds_24q", "form_16"} and (record.tds or Decimal("0")) > 0 and not employee.pan_number:
+            issues.append({"employee_id": employee.id, "employee_code": employee_code, "severity": "Critical", "message": "PAN is required for TDS/Form 16 export"})
+        if export_type == "bank_advice":
+            missing_bank = [field for field, value in {
+                "bank_name": employee.bank_name,
+                "account_number": employee.account_number,
+                "ifsc_code": employee.ifsc_code,
+            }.items() if not value]
+            if missing_bank:
+                issues.append({"employee_id": employee.id, "employee_code": employee_code, "severity": "Critical", "message": f"Bank details missing: {', '.join(missing_bank)}"})
+    if not records:
+        issues.append({"employee_id": None, "employee_code": None, "severity": "Critical", "message": "Payroll run has no records"})
+    if run.status not in {crud_payroll.PAYROLL_RUN_STATUS_APPROVED, crud_payroll.PAYROLL_RUN_STATUS_LOCKED, crud_payroll.PAYROLL_RUN_STATUS_PAID}:
+        warnings.append({"severity": "Medium", "message": "Export is usually generated after payroll approval or lock"})
+    return {
+        "payroll_run_id": run.id,
+        "export_type": export_type,
+        "record_count": len(records),
+        "scope": {
+            "company_id": run.company_id,
+            "branch_id": run.branch_id,
+            "department_id": run.department_id,
+            "pay_group_id": run.pay_group_id,
+            "employee_category": run.employee_category,
+        },
+        "ready": not issues,
+        "critical_issue_count": len(issues),
+        "warning_count": len(warnings),
+        "issues": issues,
+        "warnings": warnings,
+    }
 
 
 class SalaryAdvanceCreate(BaseModel):
@@ -274,13 +326,33 @@ def _current_company_id(user: User) -> Optional[int]:
     return None
 
 
-def _locked_period(db: Session, month: int, year: int) -> Optional[PayrollRun]:
-    return db.query(PayrollRun).filter(
+def _locked_period(
+    db: Session,
+    month: int,
+    year: int,
+    company_id: Optional[int] = None,
+    branch_id: Optional[int] = None,
+    department_id: Optional[int] = None,
+    pay_group_id: Optional[int] = None,
+    employee_category: Optional[str] = None,
+) -> Optional[PayrollRun]:
+    query = db.query(PayrollRun).filter(
         PayrollRun.month == month,
         PayrollRun.year == year,
         PayrollRun.status.in_([crud_payroll.PAYROLL_RUN_STATUS_LOCKED, crud_payroll.PAYROLL_RUN_STATUS_PAID, "Locked", "Paid"]),
         PayrollRun.deleted_at.is_(None),
-    ).first()
+    )
+    if company_id is not None:
+        query = query.filter(PayrollRun.company_id == company_id)
+    if branch_id is not None:
+        query = query.filter(PayrollRun.branch_id == branch_id)
+    if department_id is not None:
+        query = query.filter(PayrollRun.department_id == department_id)
+    if pay_group_id is not None:
+        query = query.filter(PayrollRun.pay_group_id == pay_group_id)
+    if employee_category is not None:
+        query = query.filter(PayrollRun.employee_category == employee_category)
+    return query.first()
 
 
 def _get_payroll_run_or_404(db: Session, run_id: int) -> PayrollRun:
@@ -293,8 +365,18 @@ def _get_payroll_run_or_404(db: Session, run_id: int) -> PayrollRun:
     return run
 
 
-def _ensure_not_locked_period(db: Session, month: int, year: int, action: str) -> None:
-    if _locked_period(db, month, year):
+def _ensure_not_locked_period(
+    db: Session,
+    month: int,
+    year: int,
+    action: str,
+    company_id: Optional[int] = None,
+    branch_id: Optional[int] = None,
+    department_id: Optional[int] = None,
+    pay_group_id: Optional[int] = None,
+    employee_category: Optional[str] = None,
+) -> None:
+    if _locked_period(db, month, year, company_id, branch_id, department_id, pay_group_id, employee_category):
         raise HTTPException(status_code=400, detail=f"Payroll is locked for this period; cannot {action}")
 
 
@@ -1922,6 +2004,17 @@ def set_employee_salary(
     # Deactivate existing salary
     existing = crud_payroll.get_active_salary(db, data.employee_id)
     if existing:
+        record_salary_field_changes(
+            db,
+            employee_id=existing.employee_id,
+            entity_type="employee_salary",
+            entity_id=existing.id,
+            old_values={"is_active": existing.is_active, "effective_to": existing.effective_to},
+            new_values={"is_active": False, "effective_to": data.effective_from - timedelta(days=1)},
+            actor_user_id=current_user.id,
+            action="deactivated",
+            reason="New salary assignment",
+        )
         existing.is_active = False
         existing.effective_to = data.effective_from - timedelta(days=1)
 
@@ -1929,6 +2022,18 @@ def set_employee_salary(
     payload["effective_date"] = payload.get("effective_date") or payload["effective_from"]
     salary = EmployeeSalary(**payload)
     db.add(salary)
+    db.flush()
+    record_salary_field_changes(
+        db,
+        employee_id=data.employee_id,
+        entity_type="employee_salary",
+        entity_id=salary.id,
+        old_values={},
+        new_values=payload,
+        actor_user_id=current_user.id,
+        action="created",
+        reason="Salary assignment",
+    )
     _audit(db, None, "salary_assigned", current_user.id, f"employee_id={data.employee_id}")
     db.commit()
     db.refresh(salary)
@@ -2015,6 +2120,17 @@ def review_salary_revision_request(
     if action == "approve":
         existing = crud_payroll.get_active_salary(db, request.employee_id)
         if existing:
+            record_salary_field_changes(
+                db,
+                employee_id=existing.employee_id,
+                entity_type="employee_salary",
+                entity_id=existing.id,
+                old_values={"is_active": existing.is_active, "effective_to": existing.effective_to},
+                new_values={"is_active": False, "effective_to": request.effective_from - timedelta(days=1)},
+                actor_user_id=current_user.id,
+                action="deactivated",
+                reason=data.remarks or "Salary revision applied",
+            )
             existing.is_active = False
             existing.effective_to = request.effective_from - timedelta(days=1)
         salary = EmployeeSalary(
@@ -2026,6 +2142,18 @@ def review_salary_revision_request(
             is_active=True,
         )
         db.add(salary)
+        db.flush()
+        record_salary_field_changes(
+            db,
+            employee_id=request.employee_id,
+            entity_type="salary_revision_request",
+            entity_id=request.id,
+            old_values={"ctc": request.current_ctc},
+            new_values={"ctc": request.proposed_ctc, "structure_id": request.proposed_structure_id, "effective_from": request.effective_from, "is_active": True},
+            actor_user_id=current_user.id,
+            action="approved_applied",
+            reason=data.remarks,
+        )
         request.status = "Applied"
         db.add(SensitiveSalaryAuditLog(
             employee_id=request.employee_id,
@@ -2093,17 +2221,38 @@ def run_payroll(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("payroll_run")),
 ):
-    _ensure_not_locked_period(db, data.month, data.year, "rerun payroll")
+    effective_company_id = data.company_id if data.company_id is not None else _current_company_id(current_user)
+    _ensure_not_locked_period(
+        db,
+        data.month,
+        data.year,
+        "rerun payroll",
+        company_id=effective_company_id,
+        branch_id=data.branch_id,
+        department_id=data.department_id,
+        pay_group_id=data.pay_group_id,
+        employee_category=data.employee_category,
+    )
     try:
-        run = crud_payroll.run_payroll(db, data.month, data.year, current_user.id, force_run=data.force_run)
-        run.company_id = data.company_id if data.company_id is not None else _current_company_id(current_user)
-        if data.pay_period_start is not None:
-            run.pay_period_start = data.pay_period_start
-        if data.pay_period_end is not None:
-            run.pay_period_end = data.pay_period_end
+        run = crud_payroll.run_payroll(
+            db,
+            data.month,
+            data.year,
+            current_user.id,
+            force_run=data.force_run,
+            company_id=effective_company_id,
+            branch_id=data.branch_id,
+            department_id=data.department_id,
+            pay_group_id=data.pay_group_id,
+            employee_category=data.employee_category,
+            pay_period_start=data.pay_period_start,
+            pay_period_end=data.pay_period_end,
+        )
         db.commit()
         db.refresh(run)
         return run
+    except crud_payroll.PayrollReadinessError as e:
+        raise HTTPException(status_code=400, detail={"message": "Payroll readiness checks failed", "readiness": e.summary})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -2179,6 +2328,17 @@ def get_payroll_variance(
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@router.get("/runs/{run_id}/exports/{export_type}/validate")
+def validate_payroll_export(
+    run_id: int,
+    export_type: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("payroll_view")),
+):
+    run = _get_payroll_run_or_404(db, run_id)
+    return _payroll_export_readiness(db, run, export_type)
+
+
 @router.post("/runs/{run_id}/exports/{export_type}", response_model=PayrollExportBatchSchema, status_code=201)
 def create_payroll_export(
     run_id: int,
@@ -2189,6 +2349,7 @@ def create_payroll_export(
     if export_type not in EXPORT_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported payroll export type")
     run = _get_payroll_run_or_404(db, run_id)
+    readiness = _payroll_export_readiness(db, run, export_type)
     records = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id).all()
     total_records = len(records)
     export_dir = os.path.join(settings.UPLOAD_DIR, "exports", "payroll", str(run_id))
@@ -2233,10 +2394,10 @@ def create_payroll_export(
         output_file_url=output_url,
         total_records=total_records,
         generated_by=current_user.id,
-        remarks="CSV export generated.",
+        remarks="CSV export generated." if readiness["ready"] else f"CSV export generated with {readiness['critical_issue_count']} readiness issue(s).",
     )
     db.add(batch)
-    _audit(db, run_id, "export_generated", current_user.id, export_type)
+    _audit(db, run_id, "export_generated", current_user.id, f"{export_type}:ready={readiness['ready']}:issues={readiness['critical_issue_count']}")
     db.commit()
     db.refresh(batch)
     return batch

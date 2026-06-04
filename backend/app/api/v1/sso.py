@@ -3,6 +3,7 @@ import secrets
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response, RedirectResponse
+from urllib.parse import urlparse
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.deps import get_current_active_superuser, get_db
@@ -39,6 +40,45 @@ def _admin_provider(provider: SSOProvider) -> dict:
     return data
 
 
+def _safe_relay_state(next_url: str | None) -> str:
+    value = next_url or "/dashboard"
+    parsed = urlparse(value)
+    if parsed.scheme or parsed.netloc or not value.startswith("/"):
+        return "/dashboard"
+    return value
+
+
+def _validate_provider_config(data: dict) -> None:
+    provider_type = str(data.get("provider_type") or "").lower()
+    if provider_type not in {"google", "microsoft", "okta", "azure_ad", "custom_oidc", "saml"}:
+        raise HTTPException(status_code=400, detail="Unsupported SSO provider type")
+    domain_hint = (data.get("domain_hint") or "").strip()
+    if domain_hint and ("@" in domain_hint or "/" in domain_hint):
+        raise HTTPException(status_code=400, detail="Domain hint must be a bare email domain")
+    if provider_type == "saml":
+        required = ["idp_entity_id", "idp_sso_url", "idp_x509_cert"]
+    else:
+        required = ["client_id", "client_secret", "authorization_url", "token_url", "userinfo_url"]
+    missing = [key for key in required if not data.get(key) or data.get(key) == "***"]
+    if missing:
+        raise HTTPException(status_code=400, detail={"message": "SSO provider configuration is incomplete", "missing": missing})
+    for key in ["authorization_url", "token_url", "userinfo_url", "idp_sso_url"]:
+        value = data.get(key)
+        if value:
+            parsed = urlparse(value)
+            if parsed.scheme != "https" or not parsed.netloc:
+                raise HTTPException(status_code=400, detail=f"{key} must be an HTTPS URL")
+    if provider_type == "saml" and "BEGIN CERTIFICATE" not in str(data.get("idp_x509_cert", "")):
+        raise HTTPException(status_code=400, detail="SAML IdP certificate must be PEM formatted")
+
+
+def _domain_allowed(provider: SSOProvider, email: str) -> bool:
+    domain_hint = (provider.domain_hint or "").strip().lower()
+    if not domain_hint:
+        return True
+    return email.lower().endswith(f"@{domain_hint}")
+
+
 @router.get("/providers/active")
 def active_sso_providers(db: Session = Depends(get_db)):
     """Return active SSO providers safe for the login page."""
@@ -60,7 +100,7 @@ async def initiate_sso(provider_id: int, next: str = Query("/dashboard"), db: Se
         state=state,
         nonce=nonce,
         code_verifier=verifier,
-        relay_state=next or "/dashboard",
+        relay_state=_safe_relay_state(next),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
     )
     db.add(session)
@@ -91,6 +131,8 @@ async def oidc_callback(provider_id: int, code: str | None = None, state: str | 
         attrs = extract_user_attributes(userinfo, provider)
         if not attrs.get("email"):
             return RedirectResponse(f"{frontend}/login?sso_error=email_missing")
+        if not _domain_allowed(provider, attrs["email"]):
+            return RedirectResponse(f"{frontend}/login?sso_error=domain_not_allowed")
         user = db.query(User).filter(User.email == attrs["email"]).first()
         if not user:
             if not provider.auto_provision:
@@ -112,7 +154,7 @@ async def oidc_callback(provider_id: int, code: str | None = None, state: str | 
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
         db.commit()
-        return RedirectResponse(f"{frontend}{session.relay_state}?sso_success=1&access_token={access_token}&refresh_token={refresh_token}")
+        return RedirectResponse(f"{frontend}{session.relay_state}#sso_success=1&access_token={access_token}&refresh_token={refresh_token}")
     except Exception:
         db.rollback()
         return RedirectResponse(f"{frontend}/login?sso_error=exchange_failed")
@@ -127,6 +169,9 @@ def list_sso_providers(db: Session = Depends(get_db), current_user: User = Depen
 @router.post("/providers", status_code=201)
 def create_sso_provider(data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_superuser)):
     """Create an SSO provider configuration."""
+    _validate_provider_config(data)
+    if data.get("is_default"):
+        db.query(SSOProvider).update({SSOProvider.is_default: False})
     provider = SSOProvider(**data)
     try:
         db.add(provider)
@@ -145,6 +190,11 @@ def update_sso_provider(provider_id: int, data: dict, db: Session = Depends(get_
     if not provider:
         raise HTTPException(status_code=404, detail="SSO provider not found")
     try:
+        merged = {column.name: getattr(provider, column.name) for column in provider.__table__.columns}
+        merged.update({key: value for key, value in data.items() if not (key == "client_secret" and value == "***")})
+        _validate_provider_config(merged)
+        if data.get("is_default"):
+            db.query(SSOProvider).filter(SSOProvider.id != provider_id).update({SSOProvider.is_default: False})
         for key, value in data.items():
             if key == "client_secret" and value == "***":
                 continue

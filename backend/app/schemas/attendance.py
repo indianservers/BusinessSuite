@@ -184,6 +184,23 @@ class BiometricImportRequest(BaseModel):
     rows: List[BiometricImportRow]
 
 
+class BiometricAdapterImportRequest(BaseModel):
+    adapter: str = Field(default="generic", pattern="^(generic|essl|zkteco|mantra|csv)$")
+    device_id: Optional[int] = None
+    source_filename: Optional[str] = None
+    csv_text: str
+    employee_code_column: Optional[str] = None
+    punch_time_column: Optional[str] = None
+    punch_type_column: Optional[str] = None
+
+
+class BiometricReconcileRequest(BaseModel):
+    from_date: date
+    to_date: date
+    employee_id: Optional[int] = None
+    recompute: bool = True
+
+
 class BiometricImportBatchSchema(BaseModel):
     id: int
     device_id: Optional[int] = None
@@ -283,6 +300,50 @@ class AttendanceSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AttendanceRegisterRow(BaseModel):
+    attendance_id: Optional[int] = None
+    employee_id: int
+    employee_code: Optional[str] = None
+    employee_name: str
+    department: Optional[str] = None
+    branch: Optional[str] = None
+    date: date
+    status: str
+    hours_worked: Decimal = Decimal("0")
+    ot_hours: Decimal = Decimal("0")
+    remarks: Optional[str] = None
+
+
+class AttendanceRegisterResponse(BaseModel):
+    items: List[AttendanceRegisterRow]
+    total: int
+    present: Decimal = Decimal("0")
+    absent: Decimal = Decimal("0")
+    half_day: Decimal = Decimal("0")
+    holiday: Decimal = Decimal("0")
+    weekly_off: Decimal = Decimal("0")
+    wfh: Decimal = Decimal("0")
+    overtime_hours: Decimal = Decimal("0")
+
+
+class AttendanceManualEntry(BaseModel):
+    employee_id: int
+    date: date
+    status: str = Field(pattern="^(Present|Absent|Half-day|Half Day|Holiday|Weekly Off|Weekend|WFH)$")
+    hours_worked: Decimal = Decimal("0")
+    ot_hours: Decimal = Decimal("0")
+    remarks: Optional[str] = None
+
+
+class AttendanceBulkEntryRequest(BaseModel):
+    entries: List[AttendanceManualEntry]
+
+
+class AttendanceBulkEntryResponse(BaseModel):
+    saved: int
+    items: List[AttendanceRegisterRow]
 
 
 class AttendanceTodayResponse(BaseModel):

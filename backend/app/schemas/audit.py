@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from typing import Any
+from pydantic import BaseModel, ConfigDict
 
 
 class AuditLogSchema(BaseModel):
@@ -20,3 +21,25 @@ class AuditLogSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class FieldAuditEventSchema(BaseModel):
+    id: int
+    module: str
+    entity_type: str
+    entity_id: int
+    employee_id: Optional[int] = None
+    field_name: str
+    action: Optional[str] = None
+    old_value_masked: Optional[str] = None
+    new_value_masked: Optional[str] = None
+    old_value_hash: Optional[str] = None
+    new_value_hash: Optional[str] = None
+    is_sensitive: bool = True
+    actor_user_id: Optional[int] = None
+    reason: Optional[str] = None
+    request_id: Optional[str] = None
+    ip_address: Optional[str] = None
+    metadata_json: Optional[dict[str, Any]] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)

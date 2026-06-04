@@ -69,7 +69,7 @@ export function getDefaultPathForUser(role?: string | null, isSuperuser = false)
 
   if (productKey !== "hrms") return products[productKey].homePath;
   if (isSuperuser || ["super_admin", "admin"].includes(value)) return "/hrms/admin-home";
-  if (["hr_manager", "hr_admin", "hr"].includes(value)) return "/hrms/hr-home";
+  if (["hr_manager", "hr_admin", "hr", "hr_company_admin", "hr_workflow_admin", "hr_custom_field_admin"].includes(value)) return "/hrms/hr-home";
   if (["ceo", "founder", "director", "executive"].includes(value)) return "/hrms/executive-home";
   if (["manager", "team_lead", "department_head"].includes(value)) return "/hrms/manager-dashboard";
   if (value === "employee") return "/hrms/ess";

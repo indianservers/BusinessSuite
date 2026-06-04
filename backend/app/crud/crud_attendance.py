@@ -16,11 +16,48 @@ def _attendance_timezone():
         return timezone.utc
 
 
-def _utc_day_bounds(work_date: date) -> tuple[datetime, datetime]:
-    tz = _attendance_timezone()
-    start = datetime.combine(work_date, time.min, tzinfo=tz).astimezone(timezone.utc)
-    end = datetime.combine(work_date, time.max, tzinfo=tz).astimezone(timezone.utc)
+def _attendance_local(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return value.replace(tzinfo=None)
+
+
+def _attendance_now() -> datetime:
+    return datetime.now(_attendance_timezone()).replace(tzinfo=None)
+
+
+def _attendance_day_bounds(work_date: date, shift: Shift | None = None) -> tuple[datetime, datetime]:
+    start = datetime.combine(work_date, time.min)
+    end_date = work_date
+    if shift and (shift.is_night_shift or shift.end_time <= shift.start_time):
+        end_date = work_date + timedelta(days=1)
+    end = datetime.combine(end_date, time.max)
     return start, end
+
+
+def _shift_window(work_date: date, shift: Shift) -> tuple[datetime, datetime]:
+    start = datetime.combine(work_date, shift.start_time)
+    end_date = work_date + timedelta(days=1) if shift.is_night_shift or shift.end_time <= shift.start_time else work_date
+    return start, datetime.combine(end_date, shift.end_time)
+
+
+def _worked_minutes(check_in: datetime, check_out: datetime | None, punches: list[AttendancePunch]) -> int:
+    if not check_out:
+        return 0
+    gross_minutes = max(0, int((check_out - check_in).total_seconds() // 60))
+    break_minutes = 0
+    break_start: datetime | None = None
+    for punch in punches:
+        punch_time = _attendance_local(punch.punch_time)
+        if not punch_time:
+            continue
+        if punch.punch_type == "BREAK_OUT":
+            break_start = punch_time
+        elif punch.punch_type == "BREAK_IN" and break_start:
+            if check_in <= break_start <= punch_time <= check_out:
+                break_minutes += max(0, int((punch_time - break_start).total_seconds() // 60))
+            break_start = None
+    return max(0, gross_minutes - break_minutes)
 
 
 class CRUDAttendance(CRUDBase):
@@ -117,7 +154,7 @@ class CRUDAttendance(CRUDBase):
         record.is_short_hours = False
         record.overtime_hours = Decimal("0")
 
-        day_start, day_end = _utc_day_bounds(work_date)
+        day_start, day_end = _attendance_day_bounds(work_date, shift)
         punches = (
             db.query(AttendancePunch)
             .filter(
@@ -149,20 +186,20 @@ class CRUDAttendance(CRUDBase):
             db.refresh(record)
             return record
 
-        check_in = record.check_in.replace(tzinfo=timezone.utc) if record.check_in and record.check_in.tzinfo is None else record.check_in
-        check_out = record.check_out.replace(tzinfo=timezone.utc) if record.check_out and record.check_out.tzinfo is None else record.check_out
+        check_in = _attendance_local(record.check_in)
+        check_out = _attendance_local(record.check_out)
+        record.check_in = check_in
+        record.check_out = check_out
 
+        worked_minutes = _worked_minutes(check_in, check_out, punches)
         if check_out:
-            total_hours = Decimal(str(round((check_out - check_in).total_seconds() / 3600, 2)))
+            total_hours = (Decimal(worked_minutes) / Decimal("60")).quantize(Decimal("0.01"))
             record.total_hours = total_hours
         else:
             total_hours = record.total_hours or Decimal("0")
 
         if shift:
-            tz = _attendance_timezone()
-            start_dt = datetime.combine(work_date, shift.start_time, tzinfo=tz).astimezone(timezone.utc)
-            end_date = work_date + timedelta(days=1) if shift.is_night_shift or shift.end_time <= shift.start_time else work_date
-            end_dt = datetime.combine(end_date, shift.end_time, tzinfo=tz).astimezone(timezone.utc)
+            start_dt, end_dt = _shift_window(work_date, shift)
             late_threshold = start_dt + timedelta(minutes=shift.grace_minutes or 0)
             early_threshold = end_dt - timedelta(minutes=shift.grace_minutes or 0)
 
@@ -173,7 +210,6 @@ class CRUDAttendance(CRUDBase):
                 record.early_exit_minutes = int((end_dt - check_out).total_seconds() // 60)
                 record.is_early_exit = True
             required_minutes = int(Decimal(shift.working_hours or 0) * 60)
-            worked_minutes = int((total_hours or Decimal("0")) * 60)
             half_day_minutes = required_minutes // 2
             if record.check_out and worked_minutes < required_minutes:
                 record.short_minutes = max(0, required_minutes - worked_minutes)
@@ -237,9 +273,9 @@ class CRUDAttendance(CRUDBase):
         )
 
     def check_in(self, db: Session, employee_id: int, location: str = None, ip: str = None, source: str = "Web") -> Attendance:
-        today = date.today()
+        today = _attendance_now().date()
         existing = self.get_today(db, employee_id)
-        now = datetime.now(timezone.utc)
+        now = _attendance_now()
 
         if existing:
             self._ensure_defaults(existing)
@@ -274,7 +310,7 @@ class CRUDAttendance(CRUDBase):
         if not record or not record.check_in:
             return None
 
-        now = datetime.now(timezone.utc)
+        now = _attendance_now()
         self._ensure_defaults(record)
         record.check_out = now
         record.check_out_location = location

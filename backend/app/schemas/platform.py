@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Optional
 from pydantic import BaseModel
 
@@ -158,6 +159,26 @@ class ReportRunSchema(BaseModel):
         from_attributes = True
 
 
+class ReportScheduleCreate(BaseModel):
+    report_definition_id: int
+    name: str
+    cron_expression: str
+    recipients_json: Optional[Any] = None
+    export_format: str = "csv"
+    status: str = "Active"
+
+
+class ReportScheduleSchema(ReportScheduleCreate):
+    id: int
+    last_run_at: Optional[datetime] = None
+    next_run_at: Optional[datetime] = None
+    created_by: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class IntegrationCredentialCreate(BaseModel):
     provider: str
     credential_name: str
@@ -248,7 +269,9 @@ class DataPrivacyRequestSchema(DataPrivacyRequestCreate):
     id: int
     status: str
     resolution_notes: Optional[str] = None
+    processing_result_json: Optional[Any] = None
     created_at: datetime
+    processed_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
 
     class Config:
@@ -267,6 +290,8 @@ class DataRetentionPolicyCreate(BaseModel):
 class DataRetentionPolicySchema(DataRetentionPolicyCreate):
     id: int
     created_at: datetime
+    last_run_at: Optional[datetime] = None
+    last_run_summary_json: Optional[Any] = None
 
     class Config:
         from_attributes = True
@@ -303,6 +328,111 @@ class MetricDefinitionCreate(BaseModel):
 
 class MetricDefinitionSchema(MetricDefinitionCreate):
     id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DomainPackEnable(BaseModel):
+    company_id: Optional[int] = None
+    pack_key: str
+    pack_name: Optional[str] = None
+    config_json: Optional[Any] = None
+
+
+class DomainPackRegistrySchema(BaseModel):
+    id: int
+    company_id: Optional[int] = None
+    pack_key: str
+    pack_name: str
+    status: str
+    config_json: Optional[Any] = None
+    enabled_by: Optional[int] = None
+    enabled_at: datetime
+    disabled_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ManufacturingSafetyIncidentCreate(BaseModel):
+    company_id: Optional[int] = None
+    employee_id: Optional[int] = None
+    incident_date: date
+    location: Optional[str] = None
+    incident_type: str
+    severity: str = "Low"
+    description: Optional[str] = None
+    lost_time_hours: Decimal = Decimal("0")
+    corrective_action: Optional[str] = None
+    status: str = "Open"
+
+
+class ManufacturingSafetyIncidentSchema(ManufacturingSafetyIncidentCreate):
+    id: int
+    reported_by: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ManufacturingPPEIssuanceCreate(BaseModel):
+    company_id: Optional[int] = None
+    employee_id: int
+    ppe_item: str
+    issued_on: date
+    quantity: int = 1
+    expiry_date: Optional[date] = None
+    condition: str = "New"
+    acknowledgement_status: str = "Pending"
+
+
+class ManufacturingPPEIssuanceSchema(ManufacturingPPEIssuanceCreate):
+    id: int
+    issued_by: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ManufacturingMedicalFitnessRecordCreate(BaseModel):
+    company_id: Optional[int] = None
+    employee_id: int
+    exam_date: date
+    fitness_status: str
+    valid_until: Optional[date] = None
+    restrictions: Optional[str] = None
+    provider_name: Optional[str] = None
+    document_url: Optional[str] = None
+
+
+class ManufacturingMedicalFitnessRecordSchema(ManufacturingMedicalFitnessRecordCreate):
+    id: int
+    recorded_by: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ManufacturingContractLaborBatchCreate(BaseModel):
+    company_id: Optional[int] = None
+    vendor_name: str
+    batch_code: str
+    work_order_number: Optional[str] = None
+    start_date: date
+    end_date: Optional[date] = None
+    headcount: int = 0
+    compliance_status: str = "Pending"
+    document_url: Optional[str] = None
+
+
+class ManufacturingContractLaborBatchSchema(ManufacturingContractLaborBatchCreate):
+    id: int
+    created_by: Optional[int] = None
     created_at: datetime
 
     class Config:

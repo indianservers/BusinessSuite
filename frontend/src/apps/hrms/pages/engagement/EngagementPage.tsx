@@ -31,7 +31,7 @@ export default function EngagementPage() {
   const announcements = useQuery({ queryKey: ["engagement-announcements"], queryFn: () => engagementApi.announcements(false).then((r) => r.data) });
   const surveys = useQuery({ queryKey: ["engagement-surveys"], queryFn: () => engagementApi.surveys(false).then((r) => r.data) });
   const recognitions = useQuery({ queryKey: ["recognition-wall"], queryFn: () => engagementApi.recognitions().then((r) => r.data) });
-  const employees = useQuery({ queryKey: ["engagement-employees"], queryFn: () => employeeApi.list({ per_page: 200 }).then((r) => r.data.items || []) });
+  const employees = useQuery({ queryKey: ["engagement-employees"], queryFn: () => employeeApi.list({ per_page: 100 }).then((r) => r.data.items || []) });
   const moments = useQuery({ queryKey: ["people-moments", 14], queryFn: () => reportsApi.peopleMoments(14).then((r) => r.data) });
   const activeSurvey = surveys.data?.find((item: any) => item.id === selectedSurveyId) || surveys.data?.[0];
   const resultSurveyId = selectedSurveyId || activeSurvey?.id;

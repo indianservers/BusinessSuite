@@ -35,8 +35,19 @@ class WorkflowStepPayload(BaseModel):
     approver_type: str = "role"
     approver_value: str | None = None
     condition_expression: str | None = None
+    skip_if_condition: str | None = None
     timeout_hours: int | None = None
+    reminder_hours: int | None = None
+    timeout_action: str | None = "escalate"
     escalation_user_id: int | None = None
+    escalation_role: str | None = None
+    action_type: str | None = None
+    action_config: dict[str, Any] | None = None
+    delegation_type: str | None = None
+    delegation_value: str | None = None
+    delegation_starts_at: datetime | None = None
+    delegation_ends_at: datetime | None = None
+    metadata_json: dict[str, Any] | None = None
     is_required: bool = True
 
 
@@ -48,8 +59,19 @@ class WorkflowStepOut(BaseModel):
     approver_type: str
     approver_value: str | None = None
     condition_expression: str | None = None
+    skip_if_condition: str | None = None
     timeout_hours: int | None = None
+    reminder_hours: int | None = None
+    timeout_action: str | None = None
     escalation_user_id: int | None = None
+    escalation_role: str | None = None
+    action_type: str | None = None
+    action_config: dict[str, Any] | None = None
+    delegation_type: str | None = None
+    delegation_value: str | None = None
+    delegation_starts_at: datetime | None = None
+    delegation_ends_at: datetime | None = None
+    metadata_json: dict[str, Any] | None = None
     is_required: bool
 
     model_config = ConfigDict(from_attributes=True)

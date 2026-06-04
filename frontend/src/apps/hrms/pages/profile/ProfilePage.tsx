@@ -10,6 +10,7 @@ import {
   Send,
   ShieldCheck,
   XCircle,
+  MonitorSmartphone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ export default function ProfilePage() {
   const user = useAuthStore((state) => state.user);
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
   const canReviewChanges = ["admin", "hr", "manager"].includes(roleKey);
+  const hasEmployeeProfile = Boolean(user?.employee_id);
   const [changeDraft, setChangeDraft] = useState<ChangeDraft>(emptyChangeDraft);
   const [changeReason, setChangeReason] = useState("Employee self-service profile update");
   const [documentDraft, setDocumentDraft] = useState({
@@ -97,14 +99,25 @@ export default function ProfilePage() {
     queryKey: ["my-employee-profile"],
     queryFn: () => employeeApi.me().then((r) => r.data),
     retry: false,
+    enabled: hasEmployeeProfile,
   });
   const completeness = useQuery({
     queryKey: ["profile-completeness"],
     queryFn: () => employeeApi.profileCompleteness().then((r) => r.data),
     retry: false,
+    enabled: hasEmployeeProfile,
   });
   const mfaStatus = useQuery({ queryKey: ["mfa-status"], queryFn: () => authApi.mfaStatus().then((r) => r.data) });
   const loginAttempts = useQuery({ queryKey: ["my-login-attempts"], queryFn: () => authApi.loginAttempts().then((r) => r.data) });
+  const sessions = useQuery({
+    queryKey: ["my-sessions", user?.id, user?.is_superuser],
+    queryFn: () =>
+      user?.is_superuser
+        ? authApi.sessions({ user_id: user.id }).then((r) => r.data)
+        : authApi.mySessions().then((r) => r.data),
+    enabled: Boolean(user?.id),
+    retry: false,
+  });
   const employeeId = employee.data?.id || me.data?.employee_id;
 
   const fieldLabels = useMemo(() => ({
@@ -278,6 +291,20 @@ export default function ProfilePage() {
       toast({ title: "Recovery codes regenerated" });
       setMfaStep(3);
       qc.invalidateQueries({ queryKey: ["mfa-status"] });
+    },
+  });
+  const revokeSession = useMutation({
+    mutationFn: (id: number) => authApi.revokeMySession(id),
+    onSuccess: () => {
+      toast({ title: "Session revoked" });
+      qc.invalidateQueries({ queryKey: ["my-sessions"] });
+    },
+  });
+  const revokeOthers = useMutation({
+    mutationFn: () => authApi.revokeOtherSessions(),
+    onSuccess: (response) => {
+      toast({ title: "Other sessions revoked", description: `${response.data.revoked || 0} session(s) ended.` });
+      qc.invalidateQueries({ queryKey: ["my-sessions"] });
     },
   });
 
@@ -602,6 +629,37 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base"><MonitorSmartphone className="h-5 w-5 text-primary" />Active Sessions & Devices</CardTitle>
+              <CardDescription>Review trusted devices and revoke sessions you no longer recognize.</CardDescription>
+            </div>
+            <Button variant="outline" onClick={() => revokeOthers.mutate()} disabled={revokeOthers.isPending}>Revoke other sessions</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Device</th><th className="px-3 py-2 text-left">IP</th><th className="px-3 py-2 text-left">Trusted</th><th className="px-3 py-2 text-left">Last Seen</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
+              <tbody>
+                {(sessions.data || []).map((session: any) => (
+                  <tr key={session.id} className="border-t">
+                    <td className="px-3 py-2">{session.device_name || "Unknown device"}</td>
+                    <td className="px-3 py-2">{session.ip_address || "-"}</td>
+                    <td className="px-3 py-2">{session.trusted_device ? <Badge variant="outline">Trusted</Badge> : "-"}</td>
+                    <td className="px-3 py-2">{formatDateTime(session.last_seen_at || session.created_at)}</td>
+                    <td className="px-3 py-2"><Badge variant={String(session.status).toLowerCase() === "revoked" ? "destructive" : "secondary"}>{session.status}</Badge></td>
+                    <td className="px-3 py-2 text-right"><Button size="sm" variant="ghost" disabled={String(session.status).toLowerCase() === "revoked" || revokeSession.isPending} onClick={() => revokeSession.mutate(session.id)}>Revoke</Button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {canReviewChanges && (
         <Card>

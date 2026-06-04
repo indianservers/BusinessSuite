@@ -69,6 +69,7 @@ export default function OrgChartPage() {
   const [locationId, setLocationId] = useState("");
   const [gradeBandId, setGradeBandId] = useState("");
   const [zoom, setZoom] = useState(0.9);
+  const [loadRequested, setLoadRequested] = useState(false);
 
   const departments = useQuery({ queryKey: ["org-departments"], queryFn: () => companyApi.listDepartments().then((r) => r.data) });
   const locations = useQuery({ queryKey: ["org-locations"], queryFn: () => companyApi.workLocations().then((r) => r.data) });
@@ -81,6 +82,8 @@ export default function OrgChartPage() {
         location_id: locationId || undefined,
         grade_band_id: gradeBandId || undefined,
       }).then((r) => r.data as OrgNode[]),
+    enabled: loadRequested,
+    retry: false,
   });
 
   const nodes = useMemo(() => layout([...(org.data || [])]), [org.data]);
@@ -131,7 +134,7 @@ export default function OrgChartPage() {
       ctx.fillText(node.title.slice(0, 28), x + 14, y + 26);
       ctx.font = "12px Arial";
       ctx.fillText((node.employee_name || "Vacant").slice(0, 30), x + 14, y + 52);
-      ctx.fillText(`${node.department_name || "-"} â€¢ ${node.grade_band_name || "-"}`.slice(0, 34), x + 14, y + 76);
+      ctx.fillText(`${node.department_name || "-"} - ${node.grade_band_name || "-"}`.slice(0, 34), x + 14, y + 76);
     });
     const a = document.createElement("a");
     a.href = canvas.toDataURL("image/png");
@@ -152,6 +155,7 @@ export default function OrgChartPage() {
             <Button variant="outline" size="sm" onClick={() => setZoom((v) => Math.max(0.45, v - 0.1))} title="Zoom out"><Minus className="h-4 w-4" /></Button>
             <Button variant="outline" size="sm" onClick={() => setZoom((v) => Math.min(1.5, v + 0.1))} title="Zoom in"><Plus className="h-4 w-4" /></Button>
             <Button variant="outline" size="sm" onClick={() => setZoom(0.9)} title="Reset zoom"><RotateCcw className="h-4 w-4" /></Button>
+            <Button variant="outline" size="sm" onClick={() => setLoadRequested(true)}><RotateCcw className="h-4 w-4" />Load chart</Button>
             <Button variant="outline" size="sm" onClick={() => window.print()}><FileText className="h-4 w-4" />PDF</Button>
             <Button variant="outline" size="sm" onClick={exportPng}><FileImage className="h-4 w-4" />PNG</Button>
             <Button variant="outline" size="sm" onClick={exportSvg}><Download className="h-4 w-4" />SVG</Button>
@@ -183,13 +187,16 @@ export default function OrgChartPage() {
             if (!parent) return null;
             return <path key={`l-${node.position_id}`} d={`M ${(parent.x || 0) + NODE_W / 2} ${(parent.y || 0) + NODE_H} V ${(parent.y || 0) + NODE_H + GAP_Y / 2} H ${(node.x || 0) + NODE_W / 2} V ${node.y || 0}`} fill="none" stroke="#94a3b8" strokeWidth="1.5" />;
           })}
+          {!loadRequested && (
+            <text x="20" y="40" fontSize="14" fill="#64748b">Use Load chart to fetch the live organization hierarchy.</text>
+          )}
           {nodes.map((node) => (
             <g key={node.position_id} transform={`translate(${node.x || 0},${node.y || 0})`} onClick={() => node.incumbent_employee_id && navigate(`/hrms/employees/${node.incumbent_employee_id}`)} className={node.incumbent_employee_id ? "cursor-pointer" : ""}>
               <rect width={NODE_W} height={NODE_H} rx="8" fill={node.is_vacant ? "#fffbeb" : "#eff6ff"} stroke={node.is_vacant ? "#f59e0b" : "#2563eb"} strokeWidth="1.8" strokeDasharray={node.is_vacant ? "8 5" : undefined} />
               <text x="14" y="24" fontSize="14" fontWeight="700" fill="#111827">{node.title.slice(0, 28)}</text>
               <text x="14" y="46" fontSize="12" fill="#334155">{(node.employee_name || "Vacant position").slice(0, 31)}</text>
               <text x="14" y="66" fontSize="11" fill="#64748b">{(node.department_name || "No department").slice(0, 26)}</text>
-              <text x="14" y="84" fontSize="11" fill="#64748b">{`${node.grade_band_name || "-"} â€¢ ${node.location_name || "-"}`.slice(0, 29)}</text>
+              <text x="14" y="84" fontSize="11" fill="#64748b">{`${node.grade_band_name || "-"} - ${node.location_name || "-"}`.slice(0, 29)}</text>
             </g>
           ))}
         </svg>

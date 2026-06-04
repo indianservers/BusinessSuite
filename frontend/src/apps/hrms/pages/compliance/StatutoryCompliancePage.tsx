@@ -17,7 +17,9 @@ const FILE_TYPES = [
   ["pf_ecr", "Generate PF ECR"],
   ["esi", "Generate ESI Return"],
   ["pt", "Generate PT Challan"],
+  ["lwf", "Generate LWF Return"],
   ["tds_24q", "Generate TDS 24Q"],
+  ["tds_26q", "Generate TDS 26Q"],
 ] as const;
 
 type CalendarItem = {
@@ -28,6 +30,10 @@ type CalendarItem = {
   period_end?: string;
   description?: string;
   status: string;
+  effective_status?: string;
+  reminder_due_on?: string;
+  reminder_status?: string;
+  reminder_days_before?: number;
 };
 
 type Submission = {
@@ -36,7 +42,10 @@ type Submission = {
   payroll_run_id: number;
   payroll_period?: string;
   validation_status: string;
-  validation_errors_json?: Array<{ row: number; field: string; error: string }>;
+  validation_errors_json?: Array<{ row: number; field: string; code?: string; message?: string; error: string; severity?: string }>;
+  filing_status?: string;
+  digital_signature_status?: string;
+  portal_connector_status?: string;
   row_count?: number;
   total_amount?: number;
   submitted_at?: string;
@@ -180,7 +189,10 @@ function CalendarTab() {
                         <td className="px-3 py-2">{item.description || "Statutory filing"}</td>
                         <td className="px-3 py-2">{item.period_start || "-"} to {item.period_end || "-"}</td>
                         <td className="px-3 py-2">{item.due_date}</td>
-                        <td className="px-3 py-2"><StatusBadge status={overdue ? "Overdue" : item.status} /></td>
+                        <td className="px-3 py-2">
+                          <StatusBadge status={item.effective_status || (overdue ? "Overdue" : item.status)} />
+                          {item.reminder_due_on && <p className="mt-1 text-xs text-muted-foreground">Reminder {item.reminder_status || "scheduled"}: {item.reminder_due_on}</p>}
+                        </td>
                         <td className="px-3 py-2 text-right">{item.status !== "Filed" && <Button size="sm" variant="outline" onClick={() => setMarking(item)}>Mark Filed</Button>}</td>
                       </tr>
                     );
@@ -319,7 +331,12 @@ function GenerateTab() {
             ))}
             {lastResult && (
               <div className="rounded-lg border p-4">
-                <div className="mb-3 flex items-center gap-2"><StatusBadge status={lastResult.validation_status} /><span className="text-sm">{lastResult.row_count} rows - {money(lastResult.total_amount)}</span></div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <StatusBadge status={lastResult.filing_status || lastResult.validation_status} />
+                  <Badge variant="outline">{lastResult.portal_connector_status || "not_configured"}</Badge>
+                  <Badge variant="outline">{lastResult.digital_signature_status || "not_applicable"}</Badge>
+                  <span className="text-sm">{lastResult.row_count} rows - {money(lastResult.total_amount)}</span>
+                </div>
                 {!!lastResult.errors?.length && <ErrorList errors={lastResult.errors} />}
                 {!lastResult.errors?.length && <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => download(lastResult.submission_id)}>Download CSV</Button><Button size="sm" onClick={() => setAckSubmission(lastResult.submission_id)}>Mark as Submitted</Button></div>}
               </div>
@@ -514,7 +531,7 @@ function HistoryTab() {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}><option value="">All types</option>{["PF_ECR", "ESI", "PT", "TDS_24Q"].map((type) => <option key={type}>{type}</option>)}</select>
+        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}><option value="">All types</option>{["PF_ECR", "ESI", "PT", "LWF", "TDS_24Q", "TDS_26Q"].map((type) => <option key={type}>{type}</option>)}</select>
         <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.validation_status} onChange={(e) => setFilters({ ...filters, validation_status: e.target.value })}><option value="">All statuses</option>{["valid", "invalid", "submitted"].map((status) => <option key={status}>{status}</option>)}</select>
       </div>
       {submissions.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : <HistoryTable rows={submissions.data || []} />}
@@ -529,16 +546,19 @@ function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; 
       <CardContent>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[840px] text-sm">
-            <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Payroll Period</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Rows</th><th className="px-3 py-2 text-left">Amount</th><th className="px-3 py-2 text-left">Submitted At</th><th className="px-3 py-2 text-left">ACK Number</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
+            <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Payroll Period</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Rows</th><th className="px-3 py-2 text-left">Amount</th><th className="px-3 py-2 text-left">Submission</th><th className="px-3 py-2 text-left">ACK Number</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="border-t">
                   <td className="px-3 py-2"><TypeBadge type={row.statutory_type} /></td>
                   <td className="px-3 py-2">{row.payroll_period || row.payroll_run_id}</td>
-                  <td className="px-3 py-2"><StatusBadge status={row.validation_status} />{row.validation_status === "invalid" && <Badge variant="outline" className="ml-2">{row.validation_errors_json?.length || 0} errors</Badge>}</td>
+                  <td className="px-3 py-2"><StatusBadge status={row.filing_status || row.validation_status} />{row.validation_status === "invalid" && <Badge variant="outline" className="ml-2">{row.validation_errors_json?.length || 0} errors</Badge>}</td>
                   <td className="px-3 py-2">{row.row_count || 0}</td>
                   <td className="px-3 py-2">{money(row.total_amount)}</td>
-                  <td className="px-3 py-2">{row.submitted_at ? new Date(row.submitted_at).toLocaleString("en-IN") : "-"}</td>
+                  <td className="px-3 py-2">
+                    <p>{row.submitted_at ? new Date(row.submitted_at).toLocaleString("en-IN") : row.portal_connector_status || "ready for manual upload"}</p>
+                    <p className="text-xs text-muted-foreground">{row.digital_signature_status || "signature not applicable"}</p>
+                  </td>
                   <td className="px-3 py-2">{row.portal_reference || "-"}</td>
                   <td className="px-3 py-2 text-right"><Button size="sm" variant="ghost" onClick={() => download(row.id)}><Download className="h-4 w-4" /></Button>{onMarkSubmitted && row.validation_status === "valid" && <Button size="sm" variant="outline" onClick={() => onMarkSubmitted(row.id)}>Submit</Button>}</td>
                 </tr>
@@ -638,9 +658,9 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("border-0 capitalize", cls)}>{status}</Badge>;
 }
 
-function ErrorList({ errors }: { errors: Array<{ row: number; field: string; error: string }> }) {
+function ErrorList({ errors }: { errors: Array<{ row: number; field: string; code?: string; message?: string; error: string; severity?: string }> }) {
   const [open, setOpen] = useState(false);
-  return <div><Button variant="outline" size="sm" onClick={() => setOpen(!open)}>{open ? "Hide" : "Show"} validation errors</Button>{open && <div className="mt-3 max-h-52 overflow-auto rounded border p-3 text-sm">{errors.map((err, index) => <p key={index}>Row {err.row}, {err.field}: {err.error}</p>)}</div>}</div>;
+  return <div><Button variant="outline" size="sm" onClick={() => setOpen(!open)}>{open ? "Hide" : "Show"} validation errors</Button>{open && <div className="mt-3 max-h-52 overflow-auto rounded border p-3 text-sm">{errors.map((err, index) => <p key={index}>Row {err.row}, {err.field} {err.code ? `(${err.code})` : ""}: {err.message || err.error}</p>)}</div>}</div>;
 }
 
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {

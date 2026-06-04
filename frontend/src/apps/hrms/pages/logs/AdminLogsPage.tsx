@@ -32,6 +32,18 @@ type LogAnalysis = {
   slow_endpoints: Array<{ endpoint: string; avg_ms: number; count: number }>;
 };
 
+type FieldAuditEvent = {
+  id: number;
+  module: string;
+  employee_id?: number | null;
+  field_name: string;
+  action?: string | null;
+  old_value_masked?: string | null;
+  new_value_masked?: string | null;
+  actor_user_id?: number | null;
+  created_at: string;
+};
+
 function statusVariant(status?: number | null) {
   if (!status) return "secondary";
   if (status >= 500) return "destructive";
@@ -42,6 +54,8 @@ function statusVariant(status?: number | null) {
 export default function AdminLogsPage() {
   usePageTitle("Audit Logs");
   const [endpoint, setEndpoint] = useState("attendance");
+  const [employeeId, setEmployeeId] = useState("");
+  const [fieldName, setFieldName] = useState("");
   const [errorsOnly, setErrorsOnly] = useState(true);
   const params = { endpoint: endpoint || undefined, limit: 100 };
 
@@ -54,6 +68,15 @@ export default function AdminLogsPage() {
   const analysis = useQuery({
     queryKey: ["admin-log-analysis", endpoint],
     queryFn: () => logsApi.analysis({ endpoint: endpoint || undefined }).then((r) => r.data as LogAnalysis),
+  });
+
+  const fieldAudit = useQuery({
+    queryKey: ["field-audit", employeeId, fieldName],
+    queryFn: () => logsApi.fieldAudit({
+      employee_id: employeeId || undefined,
+      field_name: fieldName || undefined,
+      limit: 100,
+    }).then((r) => r.data as FieldAuditEvent[]),
   });
 
   return (
@@ -93,6 +116,57 @@ export default function AdminLogsPage() {
           <Button variant={errorsOnly ? "default" : "outline"} onClick={() => setErrorsOnly((value) => !value)}>
             Errors only
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sensitive HR Field Audit</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-[160px_220px_auto]">
+            <input
+              value={employeeId}
+              onChange={(event) => setEmployeeId(event.target.value)}
+              placeholder="Employee ID"
+              className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <select
+              value={fieldName}
+              onChange={(event) => setFieldName(event.target.value)}
+              className="h-9 rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">All fields</option>
+              {["ctc", "basic", "hra", "account_number", "ifsc_code", "pan_number", "aadhaar_number", "reporting_manager_id", "designation_id", "department_id", "work_location", "status"].map((field) => (
+                <option key={field} value={field}>{field}</option>
+              ))}
+            </select>
+            <Button variant="outline" onClick={() => fieldAudit.refetch()}>Refresh Field Audit</Button>
+          </div>
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead className="border-b bg-muted/50">
+                <tr>{["Time", "Module", "Employee", "Field", "Old", "New", "Actor", "Action"].map((heading) => <th key={heading} className="px-3 py-2 text-left text-xs uppercase text-muted-foreground">{heading}</th>)}</tr>
+              </thead>
+              <tbody>
+                {(fieldAudit.data || []).map((event) => (
+                  <tr key={event.id} className="border-b">
+                    <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{new Date(event.created_at).toLocaleString()}</td>
+                    <td className="px-3 py-2">{event.module}</td>
+                    <td className="px-3 py-2">{event.employee_id ?? "-"}</td>
+                    <td className="px-3 py-2 font-medium">{event.field_name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{event.old_value_masked || "-"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{event.new_value_masked || "-"}</td>
+                    <td className="px-3 py-2">{event.actor_user_id ?? "-"}</td>
+                    <td className="px-3 py-2"><Badge variant="outline">{event.action || "updated"}</Badge></td>
+                  </tr>
+                ))}
+                {!fieldAudit.isLoading && (fieldAudit.data || []).length === 0 && (
+                  <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">No field audit events found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 
@@ -139,7 +213,7 @@ export default function AdminLogsPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
                   {["Time", "Method", "Endpoint", "Status", "Duration", "User", "Details"].map((heading) => (

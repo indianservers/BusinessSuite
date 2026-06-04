@@ -45,16 +45,27 @@ def upgrade() -> None:
             {"org": organization_id},
         ).scalar()
         if not pipeline_id:
-            pipeline_id = conn.execute(
+            result = conn.execute(
                 sa.text(
                     """
                     INSERT INTO crm_pipelines (organization_id, name, description, is_default, created_at)
                     VALUES (:org, 'Default Sales Pipeline', 'Default CRM sales process', true, CURRENT_TIMESTAMP)
-                    RETURNING id
                     """
                 ),
                 {"org": organization_id},
-            ).scalar()
+            )
+            pipeline_id = result.lastrowid
+            if not pipeline_id:
+                pipeline_id = conn.execute(
+                    sa.text(
+                        """
+                        SELECT id FROM crm_pipelines
+                        WHERE organization_id = :org AND name = 'Default Sales Pipeline'
+                        ORDER BY id DESC LIMIT 1
+                        """
+                    ),
+                    {"org": organization_id},
+                ).scalar()
         for name, probability, position, color, is_won, is_lost in DEFAULT_STAGES:
             exists = conn.execute(
                 sa.text("SELECT id FROM crm_pipeline_stages WHERE organization_id = :org AND pipeline_id = :pipeline AND name = :name"),

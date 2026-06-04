@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Edit2, GitBranch, GripVertical, MoreHorizontal, Plus, Save, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Copy, Edit2, GitBranch, GripVertical, MoreHorizontal, Plus, Save, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +36,14 @@ type WorkflowStep = {
   condition_expression?: string | null;
   skip_if_condition?: string | null;
   reminder_hours?: number | null;
+  escalation_user_id?: number | null;
+  escalation_role?: string | null;
+  action_type?: string | null;
+  action_config?: { target_module?: string; target_id?: number; fields?: Record<string, unknown> } | null;
+  delegation_type?: string | null;
+  delegation_value?: string | null;
+  delegation_starts_at?: string | null;
+  delegation_ends_at?: string | null;
   is_active: boolean;
   description?: string | null;
 };
@@ -44,6 +52,15 @@ const MODULES = ["employee", "leave", "payroll", "recruitment", "onboarding", "h
 const STEP_TYPES = ["approval", "review", "notification", "action", "condition", "parallel"];
 const ASSIGNEE_TYPES = ["role", "user", "manager", "reporting_manager", "department_head"];
 const TIMEOUT_ACTIONS = ["escalate", "auto_approve", "auto_reject"];
+const CONDITION_FIELDS = ["amount", "leave_days", "days_count", "department", "role", "employee_type", "location", "requires_hr"];
+const SAFE_ACTION_FIELDS: Record<string, string[]> = {
+  leave: ["status", "review_remarks"],
+  attendance: ["status", "manager_remarks", "hr_remarks"],
+  expense: ["status", "approval_notes", "finance_notes"],
+  payroll: ["status", "approval_status", "remarks"],
+  reimbursement: ["status", "approval_status", "payment_status", "remarks"],
+  employee: ["status", "probation_status", "work_location", "background_verification_status"],
+};
 
 const moduleColors: Record<string, string> = {
   employee: "bg-blue-100 text-blue-800",
@@ -87,6 +104,7 @@ export default function WorkflowDesignerPage() {
   const steps = useMemo(() => [...(stepsQuery.data || selectedDefinition?.steps || [])].sort((a, b) => a.step_order - b.step_order), [stepsQuery.data, selectedDefinition]);
   const selectedStep = steps.find((step) => step.id === selectedStepId) || null;
   const filteredDefinitions = definitions.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()));
+  const validationWarnings = useMemo(() => workflowWarnings(selectedDefinition, steps), [selectedDefinition, steps]);
 
   useEffect(() => {
     if (!selectedDefinitionId && definitions.length) setSelectedDefinitionId(definitions[0].id);
@@ -249,6 +267,14 @@ export default function WorkflowDesignerPage() {
                 <p className="text-sm text-muted-foreground">Trigger</p>
                 <div className="mt-1 flex items-center gap-2"><GitBranch className="h-5 w-5 text-primary" /><p className="font-semibold">{selectedDefinition.trigger_event}</p><ModuleBadge module={selectedDefinition.module} /></div>
               </div>
+              {validationWarnings.length ? (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  <div className="mb-2 flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" />Activation warnings</div>
+                  <ul className="space-y-1">
+                    {validationWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+                  </ul>
+                </div>
+              ) : null}
               <Connector onAdd={() => createStep.mutate(1)} active={dragToIndex === 0} />
               {steps.map((step, index) => (
                 <div key={step.id}>
@@ -267,9 +293,12 @@ export default function WorkflowDesignerPage() {
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">Assigned to: {assigneeText(step)}</p>
                         <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant="outline">{step.step_type}</Badge>
                           {step.timeout_hours ? <Badge variant="outline">{step.timeout_hours}h - {step.timeout_action || "escalate"}</Badge> : null}
                           {step.condition_expression && <Badge variant="outline">if: {truncate(step.condition_expression, 34)}</Badge>}
                           {step.skip_if_condition && <Badge variant="outline">skip</Badge>}
+                          {step.delegation_value && <Badge variant="outline">delegated</Badge>}
+                          {step.action_type && <Badge variant="outline">action</Badge>}
                         </div>
                       </div>
                       <Button size="icon" variant="ghost" onClick={(event) => { event.stopPropagation(); setSelectedStepId(step.id); }}><Edit2 className="h-4 w-4" /></Button>
@@ -309,6 +338,8 @@ function StepEditor({ definitionId, step }: { definitionId: number | null; step:
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [conditionsOpen, setConditionsOpen] = useState(false);
+  const [delegationOpen, setDelegationOpen] = useState(false);
+  const [actionOpen, setActionOpen] = useState(false);
 
   useEffect(() => setDraft(step), [step?.id]);
 
@@ -356,6 +387,12 @@ function StepEditor({ definitionId, step }: { definitionId: number | null; step:
       <Section title="Timing">
         <Field label="Timeout (hours)"><Input type="number" value={draft.timeout_hours || ""} onChange={(e) => patch({ timeout_hours: e.target.value ? Number(e.target.value) : null })} /></Field>
         {draft.timeout_hours ? <Field label="Timeout Action"><Select value={draft.timeout_action || "escalate"} options={TIMEOUT_ACTIONS} onChange={(value) => patch({ timeout_action: value })} /></Field> : null}
+        {draft.timeout_action === "escalate" ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Escalate User ID"><Input type="number" value={draft.escalation_user_id || ""} onChange={(e) => patch({ escalation_user_id: e.target.value ? Number(e.target.value) : null })} /></Field>
+            <Field label="Escalate Role"><Input value={draft.escalation_role || ""} onChange={(e) => patch({ escalation_role: e.target.value || null })} placeholder="hr_manager" /></Field>
+          </div>
+        ) : null}
         <Field label="Reminder (hours before timeout)"><Input type="number" value={draft.reminder_hours || ""} onChange={(e) => patch({ reminder_hours: e.target.value ? Number(e.target.value) : null })} /></Field>
       </Section>
       <div>
@@ -364,13 +401,66 @@ function StepEditor({ definitionId, step }: { definitionId: number | null; step:
           <div className="space-y-3">
             <Field label="Condition Expression"><textarea rows={3} className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={draft.condition_expression || ""} onChange={(e) => patch({ condition_expression: e.target.value })} placeholder="e.g. leave_days > 3 or department == 'Engineering'" /></Field>
             <Field label="Skip If Condition"><textarea rows={3} className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={draft.skip_if_condition || ""} onChange={(e) => patch({ skip_if_condition: e.target.value })} placeholder="e.g. employee.probation == true" /></Field>
-            <p className="text-xs text-muted-foreground">Use Python-like expressions. Available vars: employee.*, request.*, leave.*, payroll.*</p>
+            <p className="text-xs text-muted-foreground">Allowed fields: {CONDITION_FIELDS.join(", ")}. Use comparisons joined with and/or.</p>
           </div>
+        )}
+      </div>
+      <div>
+        <button type="button" className="mb-3 text-sm font-semibold" onClick={() => setDelegationOpen(!delegationOpen)}>Delegation</button>
+        {delegationOpen && (
+          <div className="space-y-3">
+            <Field label="Delegate Type"><Select value={draft.delegation_type || "Role"} options={["Role", "User"]} onChange={(value) => patch({ delegation_type: value })} /></Field>
+            <Field label="Delegate Value"><Input value={draft.delegation_value || ""} onChange={(e) => patch({ delegation_value: e.target.value || null })} placeholder={draft.delegation_type === "User" ? "user id" : "backup_hr_manager"} /></Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Starts"><Input type="datetime-local" value={toLocalInput(draft.delegation_starts_at)} onChange={(e) => patch({ delegation_starts_at: fromLocalInput(e.target.value) })} /></Field>
+              <Field label="Ends"><Input type="datetime-local" value={toLocalInput(draft.delegation_ends_at)} onChange={(e) => patch({ delegation_ends_at: fromLocalInput(e.target.value) })} /></Field>
+            </div>
+          </div>
+        )}
+      </div>
+      <div>
+        <button type="button" className="mb-3 text-sm font-semibold" onClick={() => setActionOpen(!actionOpen)}>Action Step</button>
+        {actionOpen && (
+          <ActionEditor draft={draft} patch={patch} />
         )}
       </div>
       <Section title="Status">
         <div className="flex items-center justify-between"><Label>Is Active</Label><Switch checked={draft.is_active} onChange={() => patch({ is_active: !draft.is_active })} /></div>
       </Section>
+    </div>
+  );
+}
+
+function ActionEditor({ draft, patch }: { draft: WorkflowStep; patch: (changes: Partial<WorkflowStep>) => void }) {
+  const config = draft.action_config || { target_module: "leave", fields: {} };
+  const module = config.target_module || "leave";
+  const fields = config.fields || {};
+  const safeFields = SAFE_ACTION_FIELDS[module] || [];
+  const firstField = safeFields[0] || "status";
+  const [fieldName, setFieldName] = useState(firstField);
+  const [fieldValue, setFieldValue] = useState("");
+  const updateConfig = (next: typeof config) => patch({ step_type: "action", action_type: "field_update", action_config: next });
+  return (
+    <div className="space-y-3">
+      <Field label="Target Module"><Select value={module} options={Object.keys(SAFE_ACTION_FIELDS)} onChange={(value) => updateConfig({ ...config, target_module: value, fields: {} })} /></Field>
+      <Field label="Target Record ID"><Input type="number" value={config.target_id || ""} onChange={(e) => updateConfig({ ...config, target_id: e.target.value ? Number(e.target.value) : undefined })} placeholder="Defaults to workflow entity" /></Field>
+      <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+        <Select value={fieldName} options={safeFields} onChange={setFieldName} />
+        <Input value={fieldValue} onChange={(e) => setFieldValue(e.target.value)} placeholder="new value" />
+        <Button type="button" variant="outline" onClick={() => { updateConfig({ ...config, fields: { ...fields, [fieldName]: fieldValue } }); setFieldValue(""); }}>Add</Button>
+      </div>
+      <div className="space-y-1">
+        {Object.entries(fields).map(([key, value]) => (
+          <div key={key} className="flex items-center justify-between rounded-md bg-muted/60 px-2 py-1 text-xs">
+            <span>{key}: {String(value)}</span>
+            <button type="button" className="text-destructive" onClick={() => {
+              const nextFields = { ...fields };
+              delete nextFields[key];
+              updateConfig({ ...config, fields: nextFields });
+            }}>Remove</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -460,6 +550,14 @@ function stepPayload(step: WorkflowStep) {
     condition_expression: step.condition_expression || null,
     skip_if_condition: step.skip_if_condition || null,
     reminder_hours: step.reminder_hours || null,
+    escalation_user_id: step.escalation_user_id || null,
+    escalation_role: step.escalation_role || null,
+    action_type: step.action_type || null,
+    action_config: step.action_config || null,
+    delegation_type: step.delegation_type || null,
+    delegation_value: step.delegation_value || null,
+    delegation_starts_at: step.delegation_starts_at || null,
+    delegation_ends_at: step.delegation_ends_at || null,
     is_active: step.is_active,
     description: step.description || null,
   };
@@ -473,4 +571,37 @@ function assigneeText(step: WorkflowStep) {
 
 function truncate(value: string, length: number) {
   return value.length > length ? `${value.slice(0, length)}...` : value;
+}
+
+function workflowWarnings(definition: WorkflowDefinition | null, steps: WorkflowStep[]) {
+  const warnings: string[] = [];
+  if (!definition) return warnings;
+  if (!steps.some((step) => step.is_active)) warnings.push("Add at least one active step before activation.");
+  steps.forEach((step, index) => {
+    const label = `Step ${index + 1}`;
+    if (["approval", "review", "parallel"].includes(step.step_type) && !step.assignee_role && !step.assignee_user_id && ["role", "user"].includes(step.assignee_type)) {
+      warnings.push(`${label} needs an approver role or user.`);
+    }
+    if (step.timeout_action === "escalate" && step.timeout_hours && !step.escalation_user_id && !step.escalation_role) {
+      warnings.push(`${label} escalates on timeout but has no escalation target.`);
+    }
+    if (step.delegation_value && (!step.delegation_starts_at || !step.delegation_ends_at)) {
+      warnings.push(`${label} delegation should include start and end dates.`);
+    }
+    if (step.step_type === "action" && (!step.action_config?.fields || !Object.keys(step.action_config.fields).length)) {
+      warnings.push(`${label} action step needs at least one safe field update.`);
+    }
+  });
+  return warnings;
+}
+
+function toLocalInput(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function fromLocalInput(value: string) {
+  return value ? new Date(value).toISOString() : null;
 }

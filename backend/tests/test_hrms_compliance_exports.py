@@ -4,6 +4,7 @@ from decimal import Decimal
 from app.db.init_db import init_db
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, EmployeeStatutoryProfile, ESIRule, PFRule, PayrollRun, StatutoryExport
+from tests.payroll_test_utils import ensure_payroll_ready
 
 
 def _login(client):
@@ -39,7 +40,8 @@ def _prepare_employee(db):
 def test_pf_ecr_and_esi_export_generation(client, db):
     init_db(db)
     headers = _login(client)
-    _prepare_employee(db)
+    employee = _prepare_employee(db)
+    ensure_payroll_ready(db, 7, 2026)
 
     run_response = client.post("/api/v1/payroll/run", json={"month": 7, "year": 2026}, headers=headers)
     assert run_response.status_code == 201
@@ -51,7 +53,7 @@ def test_pf_ecr_and_esi_export_generation(client, db):
     pf_preview = client.get(f"/api/v1/hrms/compliance/pf-ecr/preview?payrollRunId={run_id}", headers=headers)
     assert pf_preview.status_code == 200
     assert pf_preview.json()["validation_errors"] == []
-    assert pf_preview.json()["rows"][0]["uan"] == "100200300400"
+    assert any(row["uan"] == "100200300400" for row in pf_preview.json()["rows"])
 
     pf_export = client.post("/api/v1/hrms/compliance/pf-ecr/generate", json={"payroll_run_id": run_id}, headers=headers)
     assert pf_export.status_code == 201
@@ -60,7 +62,7 @@ def test_pf_ecr_and_esi_export_generation(client, db):
     esi_preview = client.get(f"/api/v1/hrms/compliance/esi/preview?payrollRunId={run_id}", headers=headers)
     assert esi_preview.status_code == 200
     assert esi_preview.json()["validation_errors"] == []
-    assert esi_preview.json()["rows"][0]["esic_number"] == "ESIC12345"
+    assert any(row["esic_number"] == "ESIC12345" for row in esi_preview.json()["rows"])
 
     esi_export = client.post("/api/v1/hrms/compliance/esi/generate", json={"payroll_run_id": run_id}, headers=headers)
     assert esi_export.status_code == 201
@@ -78,6 +80,7 @@ def test_pf_generation_reports_missing_uan(client, db):
     init_db(db)
     headers = _login(client)
     employee = _prepare_employee(db)
+    ensure_payroll_ready(db, 8, 2026)
     employee.uan_number = None
     profile = db.query(EmployeeStatutoryProfile).filter(EmployeeStatutoryProfile.employee_id == employee.id).first()
     profile.uan = None

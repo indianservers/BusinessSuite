@@ -5,7 +5,8 @@ from app.db.init_db import init_db
 from app.models.attendance import Attendance, OvertimeRequest
 from app.models.employee import Employee
 from app.models.leave import LeaveRequest, LeaveType
-from app.models.payroll import EmployeeSalary, PayrollComponent, PayrollRunEmployee, PayrollCalculationSnapshot
+from app.models.payroll import EmployeeSalary, PayrollComponent, PayrollRunEmployee, PayrollCalculationSnapshot, PayrollPeriod
+from tests.payroll_test_utils import ensure_payroll_ready
 
 
 def _login(client):
@@ -71,6 +72,7 @@ def test_reconcile_inputs_blocks_approval_until_locked_and_creates_worksheet(cli
     assert inputs.json()[0]["source_status"] == "Draft"
     assert Decimal(str(inputs.json()[0]["paid_leave_days"])) == Decimal("1.0")
     assert Decimal(str(inputs.json()[0]["lop_days"])) == Decimal("1.0")
+    ensure_payroll_ready(db, 5, 2026)
 
     run = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
     assert run.status_code == 201
@@ -81,10 +83,13 @@ def test_reconcile_inputs_blocks_approval_until_locked_and_creates_worksheet(cli
     )
     assert blocked.status_code == 400
     assert "attendance inputs" in blocked.json()["detail"]["message"]
+    period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
+    period.status = "Open"
+    db.commit()
 
     locked_reconcile = client.post(
         "/api/v1/payroll/inputs/reconcile-attendance",
-        json={"period_id": period_id, "employee_ids": [employee.id], "approve_inputs": True},
+        json={"period_id": period_id, "approve_inputs": True},
         headers=headers,
     )
     assert locked_reconcile.status_code == 201
@@ -158,6 +163,7 @@ def test_payroll_input_lines_and_arrear_off_cycle_foundation(client, db):
         headers=headers,
     )
     assert attendance_input.status_code == 201
+    ensure_payroll_ready(db, 5, 2026)
     run = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
     assert run.status_code == 201
     components = db.query(PayrollComponent).join(PayrollComponent.record).filter(PayrollComponent.component_name.in_(["Overtime Pay", "Leave Encashment"])).all()

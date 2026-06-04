@@ -10,7 +10,9 @@ from pydantic import BaseModel
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 from app.core.deps import get_db, get_current_user, RequirePermission
+from app.core.hr_audit import record_employee_field_changes
 from app.core.masking import mask_employee_detail, mask_employee_list_item
+from app.core.security import get_password_hash
 from app.crud.crud_employee import crud_employee
 from app.models.audit import AuditLog
 from app.models.user import Role, User
@@ -36,6 +38,12 @@ _DIRECTORY_SEARCH_BUCKETS: dict[int, list[float]] = {}
 
 class EmployeeUserLinkUpdate(BaseModel):
     user_id: Optional[int] = None
+
+
+class EmployeeUserAccountCreate(BaseModel):
+    email: str
+    password: str
+    role_id: Optional[int] = None
 
 
 class EmployeeUserOption(BaseModel):
@@ -1271,6 +1279,63 @@ def update_employee_user_link(
     return emp
 
 
+@router.post("/{employee_id}/user-account", response_model=EmployeeSchema, status_code=status.HTTP_201_CREATED)
+def create_employee_user_account(
+    employee_id: int,
+    data: EmployeeUserAccountCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("employee_update")),
+):
+    emp = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if emp.user_id:
+        raise HTTPException(status_code=400, detail="Employee already has a linked user account")
+
+    email = data.email.strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    if len(data.password or "") < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="User email already exists")
+
+    role_id = data.role_id
+    if role_id:
+        role = db.query(Role).filter(Role.id == role_id).first()
+        if not role:
+            raise HTTPException(status_code=404, detail="Role not found")
+    else:
+        role = db.query(Role).filter(func.lower(Role.name).like("%employee%")).order_by(Role.id.asc()).first()
+        role_id = role.id if role else None
+
+    user = User(
+        email=email,
+        hashed_password=get_password_hash(data.password),
+        role_id=role_id,
+        is_superuser=False,
+        is_active=True,
+    )
+    db.add(user)
+    db.flush()
+
+    emp.user_id = user.id
+    db.add(AuditLog(
+        user_id=current_user.id,
+        method="POST",
+        endpoint=f"/api/v1/employees/{employee_id}/user-account",
+        status_code=201,
+        entity_type="employee_user_account",
+        entity_id=employee_id,
+        action="CREATE_AND_LINK",
+        new_values=json.dumps({"employee_code": emp.employee_id, "email": email, "created_user_id": user.id}),
+        description=f"Created and linked employee user account for {emp.employee_id}",
+    ))
+    db.commit()
+    db.refresh(emp)
+    return emp
+
+
 @router.get("/{employee_id}", response_model=EmployeeSchema)
 def get_employee(
     employee_id: int,
@@ -1293,6 +1358,7 @@ def update_employee(
     emp = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
+    record_employee_field_changes(db, emp, data.model_dump(exclude_unset=True), current_user.id)
     return crud_employee.update(db, db_obj=emp, obj_in=data)
 
 

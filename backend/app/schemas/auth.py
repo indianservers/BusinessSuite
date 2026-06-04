@@ -7,6 +7,7 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
     module: Optional[str] = None
+    trusted_device_token: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -24,6 +25,8 @@ class MFAVerifyRequest(BaseModel):
     mfa_token: str
     code: str
     method: str = "totp"
+    trust_device: bool = False
+    device_name: Optional[str] = None
 
 
 class MFAConfirmRequest(BaseModel):

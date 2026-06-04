@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import AppLayout from "@/components/layout/AppLayout";
 import { canAccessRoute } from "@/lib/roles";
 import { getInstalledAppKeys, type FrontendRoute } from "@/appRegistry";
-import { getDefaultPathForUser, getLoginPathForContext } from "@/lib/products";
+import { getLoginPathForContext } from "@/lib/products";
 import { hrmsRoutes } from "@/apps/hrms/routes";
 import { crmRoutes } from "@/apps/crm/routes";
 import { projectManagementRoutes } from "@/apps/project-management/routes";
@@ -15,6 +15,7 @@ import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
 const ModuleIndexPage = React.lazy(() => import("@/pages/ModuleIndexPage"));
+const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
 
 const appRoutes: Record<string, FrontendRoute[]> = {
   hrms: hrmsRoutes,
@@ -50,7 +51,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) return <Navigate to={getLoginPathForContext(location.pathname, user?.role, user?.is_superuser)} replace />;
   if (!user) return <LoadingFallback />;
   if (!canAccessRoute(location.pathname, user?.role, user?.is_superuser)) {
-    return <Navigate to={getDefaultPathForUser(user?.role, user?.is_superuser)} replace />;
+    return <AccessDeniedPage />;
   }
   return <>{children}</>;
 }

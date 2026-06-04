@@ -52,7 +52,7 @@ export type RoleNavItem = {
 export function getRoleKey(role?: string | null, isSuperuser = false): RoleKey {
   const value = (role || "").toLowerCase().replace(/\s+/g, "_");
   if (isSuperuser || ["super_admin", "admin"].includes(value)) return "admin";
-  if (["hr_manager", "hr_admin", "hr"].includes(value)) return "hr";
+  if (["hr_manager", "hr_admin", "hr", "hr_company_admin", "hr_workflow_admin", "hr_custom_field_admin"].includes(value)) return "hr";
   if (["ceo", "founder", "director", "executive"].includes(value)) return "ceo";
   if (["manager", "team_lead", "department_head"].includes(value)) return "manager";
   return "employee";
@@ -97,7 +97,34 @@ function normalizeRole(role?: string | null) {
 
 function isHrmsRole(role?: string | null, isSuperuser = false) {
   const value = normalizeRole(role);
-  return isSuperuser || ["super_admin", "admin", "hr_manager", "hr_admin", "hr", "ceo", "founder", "director", "executive", "manager", "team_lead", "department_head", "employee"].includes(value);
+  return isSuperuser || [
+    "super_admin",
+    "admin",
+    "hr_manager",
+    "hr_admin",
+    "hr",
+    "hr_company_admin",
+    "hr_workflow_admin",
+    "hr_custom_field_admin",
+    "ceo",
+    "founder",
+    "director",
+    "executive",
+    "manager",
+    "team_lead",
+    "department_head",
+    "employee",
+  ].includes(value);
+}
+
+function hasOptionalHrPermission(role: string | null | undefined, permission: "hr.company_admin" | "hr.workflow_admin" | "hr.custom_field_admin") {
+  const value = normalizeRole(role);
+  const permissionRoles: Record<string, string[]> = {
+    "hr.company_admin": ["hr_company_admin"],
+    "hr.workflow_admin": ["hr_workflow_admin"],
+    "hr.custom_field_admin": ["hr_custom_field_admin"],
+  };
+  return permissionRoles[permission].includes(value);
 }
 
 function isCrmRole(role?: string | null) {
@@ -130,9 +157,9 @@ const hrNav: RoleNavItem[] = [
   { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
   { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
-  { label: "Workflow Designer", icon: GitBranch, to: "/workflow-designer", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
   { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
+  { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
   { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
@@ -148,14 +175,12 @@ const hrNav: RoleNavItem[] = [
   { label: "Helpdesk", icon: HelpCircle, to: "/helpdesk", group: "Compliance" },
   { label: "Reports", icon: BarChart3, to: "/reports", group: "Platform" },
   { label: "Advanced Analytics", icon: Gauge, to: "/advanced-analytics", group: "Platform", badge: "AI" },
-  { label: "Company", icon: Building2, to: "/company", group: "Platform" },
   { label: "Org Chart", icon: GitBranch, to: "/org-chart", group: "Platform" },
   { label: "Onboarding", icon: ClipboardCheck, to: "/onboarding", group: "Platform" },
   { label: "Documents", icon: FileText, to: "/documents", group: "Platform" },
   { label: "Assets", icon: Package, to: "/assets", group: "Platform" },
   { label: "Exit", icon: LogOut, to: "/exit", group: "Platform" },
   { label: "WhatsApp ESS", icon: MessageCircle, to: "/whatsapp-ess", group: "Platform" },
-  { label: "Custom Fields", icon: SlidersHorizontal, to: "/custom-fields", group: "Platform" },
   { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Platform" },
   { label: "AI Assistant", icon: Sparkles, to: "/ai-assistant", badge: "AI", group: "Platform" },
 ];
@@ -170,6 +195,7 @@ const adminNav: RoleNavItem[] = [
   { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
   { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
   { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
+  { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
   { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
@@ -231,6 +257,7 @@ const managerNav: RoleNavItem[] = [
   { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
   { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
   { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
+  { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave Approvals", icon: CalendarDays, to: "/leave", group: "Core HR" },
   { label: "Recruitment", icon: Briefcase, to: "/recruitment", group: "Core HR" },
@@ -247,25 +274,13 @@ const managerNav: RoleNavItem[] = [
 ];
 
 const employeeNav: RoleNavItem[] = [
-  { label: "My Home", icon: LayoutDashboard, to: "/dashboard", group: "Home", exact: true },
-  { label: "ESS Portal", icon: UserRound, to: "/ess", group: "Home", exact: true },
-  { label: "Employee Directory", icon: Users, to: "/employee-directory", group: "Home" },
+  { label: "ESS Dashboard", icon: LayoutDashboard, to: "/ess", group: "Self Service", exact: true },
+  { label: "My Profile", icon: UserRound, to: "/profile", group: "Self Service" },
+  { label: "My Attendance", icon: Clock, to: "/my-attendance", group: "Self Service" },
+  { label: "My Leave", icon: CalendarDays, to: "/leave", group: "Self Service" },
+  { label: "My Payslips", icon: DollarSign, to: "/my-payslips", group: "Self Service" },
+  { label: "My Documents", icon: FileText, to: "/documents", group: "Self Service" },
   { label: "My Requests", icon: Inbox, to: "/workflow", group: "Home" },
-  { label: "Notifications", icon: Bell, to: "/notifications", group: "Home" },
-  { label: "Attendance", icon: Clock, to: "/attendance", group: "Daily" },
-  { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Daily" },
-  { label: "Leave", icon: CalendarDays, to: "/leave", group: "Daily" },
-  { label: "Payslip", icon: DollarSign, to: "/payroll", group: "My Pay" },
-  { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "My Pay" },
-  { label: "Benefits", icon: HeartPulse, to: "/benefits", group: "My Pay" },
-  { label: "My Assets", icon: Package, to: "/assets", group: "My Pay" },
-  { label: "Reviews", icon: Target, to: "/performance", group: "Growth" },
-  { label: "Learning", icon: GraduationCap, to: "/lms", group: "Growth" },
-  { label: "Engagement", icon: Megaphone, to: "/engagement", group: "Growth" },
-  { label: "Helpdesk", icon: HelpCircle, to: "/helpdesk", group: "Support" },
-  { label: "Documents", icon: FileText, to: "/documents", group: "Support" },
-  { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Support" },
-  { label: "AI Assistant", icon: Sparkles, to: "/ai-assistant", badge: "AI", group: "Support" },
 ];
 
 const crmNav: RoleNavItem[] = [
@@ -394,6 +409,20 @@ function getHrmsNavForRole(key: RoleKey) {
   return hrNav;
 }
 
+function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
+  const items: RoleNavItem[] = [];
+  if (hasOptionalHrPermission(role, "hr.company_admin")) {
+    items.push({ label: "Company", icon: Building2, to: "/company", group: "Delegated Admin" });
+  }
+  if (hasOptionalHrPermission(role, "hr.workflow_admin")) {
+    items.push({ label: "Workflow Designer", icon: GitBranch, to: "/workflow-designer", group: "Delegated Admin" });
+  }
+  if (hasOptionalHrPermission(role, "hr.custom_field_admin")) {
+    items.push({ label: "Custom Fields", icon: SlidersHorizontal, to: "/custom-fields", group: "Delegated Admin" });
+  }
+  return items;
+}
+
 export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname) {
   const installedApps = getInstalledAppKeys();
   const key = getRoleKey(role, isSuperuser);
@@ -408,7 +437,7 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
   }
 
   if (activeModule === "ai_agents") {
-    return aiAgentsNav;
+    return key === "employee" ? [] : aiAgentsNav;
   }
 
   if (activeModule === "suite") {
@@ -422,64 +451,73 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
     if (installedApps.includes("project_management") && isProjectManagementRole(role)) {
       suiteNav.push({ label: "KaryaFlow", icon: Target, to: "/pms", group: "Applications", exact: true });
     }
-    suiteNav.push({ label: "AI Agents", icon: Sparkles, to: "/ai-agents", group: "Applications", badge: "AI", exact: true });
+    if (key !== "employee") {
+      suiteNav.push({ label: "AI Agents", icon: Sparkles, to: "/ai-agents", group: "Applications", badge: "AI", exact: true });
+    }
     return suiteNav;
   }
 
-  return installedApps.includes("hrms") && isHrmsRole(role, isSuperuser) ? withPrefix(getHrmsNavForRole(key), "/hrms") : [];
+  if (!installedApps.includes("hrms") || !isHrmsRole(role, isSuperuser)) return [];
+  const nav = key === "hr" ? [...getHrmsNavForRole(key), ...getDelegatedHrNav(role)] : getHrmsNavForRole(key);
+  return withPrefix(nav, "/hrms");
 }
 
 const routeAccess: Record<string, RoleKey[]> = {
-  "/role-home": ["admin", "ceo", "hr", "manager", "employee"],
+  "/role-home": ["admin", "ceo", "hr", "manager"],
   "/admin-home": ["admin"],
   "/hr-home": ["admin", "hr"],
   "/executive-home": ["admin", "ceo"],
-  "/dashboard": ["admin", "ceo", "hr", "manager", "employee"],
+  "/dashboard": ["admin", "ceo", "hr", "manager"],
   "/manager-dashboard": ["admin", "hr", "manager"],
   "/ess": ["admin", "ceo", "hr", "manager", "employee"],
   "/profile": ["admin", "ceo", "hr", "manager", "employee"],
+  "/workflow/admin": ["admin", "hr", "manager"],
   "/workflow": ["admin", "ceo", "hr", "manager", "employee"],
-  "/workflow-designer": ["admin", "hr"],
-  "/notifications": ["admin", "ceo", "hr", "manager", "employee"],
-  "/attendance": ["admin", "hr", "manager", "employee"],
-  "/timesheets": ["admin", "ceo", "hr", "manager", "employee"],
+  "/workflow-designer": ["admin"],
+  "/notifications": ["admin", "ceo", "hr", "manager"],
+  "/attendance/shift-roster": ["admin", "hr", "manager"],
+  "/attendance": ["admin", "hr", "manager"],
+  "/my-attendance": ["admin", "hr", "manager", "employee"],
+  "/my-roster": ["admin", "hr", "manager", "employee"],
+  "/timesheets": ["admin", "ceo", "hr", "manager"],
   "/leave": ["admin", "hr", "manager", "employee"],
-  "/payroll": ["admin", "ceo", "hr", "employee"],
-  "/investment-declaration": ["admin", "ceo", "hr", "employee"],
+  "/payroll": ["admin", "ceo", "hr"],
+  "/my-payslips": ["admin", "hr", "employee"],
+  "/investment-declaration": ["admin", "ceo", "hr"],
   "/fnf-settlements": ["admin", "ceo", "hr"],
-  "/benefits": ["admin", "ceo", "hr", "employee"],
-  "/performance": ["admin", "ceo", "hr", "manager", "employee"],
-  "/lms": ["admin", "ceo", "hr", "manager", "employee"],
+  "/benefits": ["admin", "ceo", "hr"],
+  "/performance": ["admin", "ceo", "hr", "manager"],
+  "/lms": ["admin", "ceo", "hr", "manager"],
   "/statutory-compliance": ["admin", "ceo", "hr"],
   "/background-verification": ["admin", "hr"],
   "/whatsapp-ess": ["admin", "hr"],
-  "/custom-fields": ["admin", "hr"],
+  "/custom-fields": ["admin"],
   "/enterprise": ["admin"],
-  "/engagement": ["admin", "ceo", "hr", "manager", "employee"],
-  "/helpdesk": ["admin", "hr", "manager", "employee"],
+  "/engagement": ["admin", "ceo", "hr", "manager"],
+  "/helpdesk": ["admin", "hr", "manager"],
   "/documents": ["admin", "hr", "employee"],
-  "/employee-directory": ["admin", "ceo", "hr", "manager", "employee"],
+  "/employee-directory": ["admin", "ceo", "hr", "manager"],
   "/employees": ["admin", "ceo", "hr", "manager"],
   "/probation": ["admin", "ceo", "hr", "manager"],
   "/reports": ["admin", "ceo", "hr", "manager"],
   "/advanced-analytics": ["admin", "ceo", "hr", "manager"],
   "/logs": ["admin"],
   "/recruitment": ["admin", "hr", "manager"],
-  "/company": ["admin", "ceo", "hr"],
+  "/company": ["admin", "ceo"],
   "/org-chart": ["admin", "ceo", "hr", "manager"],
   "/settings": ["admin"],
-  "/assets": ["admin", "hr", "manager", "employee"],
+  "/assets": ["admin", "hr", "manager"],
   "/onboarding": ["admin", "hr"],
   "/exit": ["admin", "hr"],
-  "/ai-assistant": ["admin", "ceo", "hr", "manager", "employee"],
-  "/ai-agents": ["admin", "ceo", "hr", "manager", "employee"],
+  "/ai-assistant": ["admin", "ceo", "hr", "manager"],
+  "/ai-agents": ["admin", "ceo", "hr", "manager"],
   "/crm": ["admin", "ceo", "hr", "manager"],
   "/pms": ["admin", "ceo", "hr", "manager", "employee"],
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
   if (pathname === "/") return true;
-  if (pathname.startsWith("/ai-agents")) return true;
+  if (pathname.startsWith("/ai-agents")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname === "/hrms") return isHrmsRole(role, isSuperuser);
   if (pathname.startsWith("/crm")) return isCrmRole(role);
   if (pathname.startsWith("/pms")) return isProjectManagementRole(role);
@@ -492,7 +530,32 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
     .sort((a, b) => b.length - a.length)
     .find((path) => normalizedPathname === path || normalizedPathname.startsWith(`${path}/`));
   if (!match) return key === "admin" || isSuperuser;
+  if (key === "hr") {
+    if (match === "/company") return hasOptionalHrPermission(role, "hr.company_admin");
+    if (match === "/workflow-designer") return hasOptionalHrPermission(role, "hr.workflow_admin");
+    if (match === "/custom-fields") return hasOptionalHrPermission(role, "hr.custom_field_admin");
+  }
   return routeAccess[match].includes(key);
+}
+
+export function getRequiredPermissionForPath(pathname: string) {
+  const normalizedPathname = pathname.startsWith("/hrms/")
+    ? pathname.replace(/^\/hrms/, "")
+    : pathname;
+  const match = Object.keys(routeAccess)
+    .sort((a, b) => b.length - a.length)
+    .find((path) => normalizedPathname === path || normalizedPathname.startsWith(`${path}/`));
+
+  if (match === "/company") return "hr.company_admin or Admin";
+  if (match === "/workflow-designer") return "hr.workflow_admin or Admin";
+  if (match === "/custom-fields") return "hr.custom_field_admin or Admin";
+  if (match === "/workflow/admin") return "Approval Administration";
+  if (match === "/payroll") return "Payroll Operations";
+  if (match === "/attendance") return "Attendance Register";
+  if (match === "/attendance/shift-roster") return "Shift Roster Administration";
+  if (match) return routeAccess[match].map((role) => role.toUpperCase()).join(", ");
+  if (pathname.startsWith("/ai-agents")) return "AI Agents Access";
+  return "Admin";
 }
 
 export function getSearchPlaceholder(role?: string | null, isSuperuser = false) {

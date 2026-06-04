@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Target, Plus, Star, TrendingUp, CheckCircle2, RefreshCw, MessageSquareText
+  Target, Plus, Star, TrendingUp, CheckCircle2, RefreshCw, MessageSquareText, Users, Grid3X3, BriefcaseBusiness, IndianRupee
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -64,10 +64,57 @@ interface Feedback360Request {
   created_at: string;
 }
 
+type PerformanceTab = "goals" | "reviews" | "360" | "calibration" | "oneOnOnes" | "nineBox" | "succession" | "compensation";
+
+interface CalibrationSession {
+  id: number;
+  name: string;
+  status: string;
+  cycle_id: number;
+  participants?: Array<{ id: number; employee_id: number; proposed_rating?: string | number; final_rating?: string | number; potential_rating?: string | number; notes?: string }>;
+}
+
+interface OneOnOneRecord {
+  id: number;
+  manager_id: number;
+  employee_id: number;
+  meeting_date: string;
+  status: string;
+  talking_points_json?: Array<{ text?: string; topic?: string }>;
+  action_items_json?: Array<{ owner?: string; action?: string; due?: string }>;
+}
+
+interface NineBoxItem {
+  employee_id: number;
+  employee_name?: string;
+  performance_rating?: string;
+  potential_rating?: string;
+  box: string;
+}
+
+interface CriticalRole {
+  id: number;
+  role_name: string;
+  business_impact: string;
+  vacancy_risk: string;
+  successors?: Array<{ id: number; employee_id: number; readiness_level: string; development_actions_json?: Array<{ action?: string }> }>;
+}
+
+interface CompensationWorksheetRow {
+  id: number;
+  employee_id: number;
+  current_ctc: string | number;
+  proposed_merit_amount: string | number;
+  proposed_merit_percent: string | number;
+  proposed_ctc: string | number;
+  budget_impact: string | number;
+  approval_status: string;
+}
+
 export default function PerformancePage() {
   usePageTitle("Performance");
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"goals" | "reviews" | "360">("goals");
+  const [activeTab, setActiveTab] = useState<PerformanceTab>("goals");
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [selectedCycle, setSelectedCycle] = useState<number | "">("");
 
@@ -80,11 +127,36 @@ export default function PerformancePage() {
     queryKey: ["goals", selectedCycle],
     queryFn: () =>
       performanceApi.goals(selectedCycle ? Number(selectedCycle) : undefined).then((r) => r.data),
+    enabled: Boolean(selectedCycle),
+    retry: false,
   });
 
   const { data: feedback360, isLoading: loading360 } = useQuery({
     queryKey: ["feedback-360-requests"],
     queryFn: () => performanceApi.feedback360Requests().then((r) => r.data as Feedback360Request[]),
+    retry: false,
+  });
+  const { data: calibrationSessions } = useQuery({
+    queryKey: ["perf-calibration", selectedCycle],
+    queryFn: () => performanceApi.calibrationSessions(selectedCycle ? { cycle_id: Number(selectedCycle) } : undefined).then((r) => r.data as CalibrationSession[]),
+  });
+  const { data: oneOnOnes } = useQuery({
+    queryKey: ["perf-one-on-ones"],
+    queryFn: () => performanceApi.oneOnOnes().then((r) => r.data as OneOnOneRecord[]),
+  });
+  const { data: nineBox } = useQuery({
+    queryKey: ["perf-nine-box", selectedCycle],
+    queryFn: () => performanceApi.nineBox(selectedCycle ? { cycle_id: Number(selectedCycle) } : undefined).then((r) => r.data as { items: NineBoxItem[]; count: number }),
+    enabled: Boolean(selectedCycle),
+    retry: false,
+  });
+  const { data: criticalRoles } = useQuery({
+    queryKey: ["perf-critical-roles"],
+    queryFn: () => performanceApi.criticalRoles().then((r) => r.data as CriticalRole[]),
+  });
+  const { data: worksheetRows } = useQuery({
+    queryKey: ["perf-comp-worksheet"],
+    queryFn: () => performanceApi.compensationWorksheet().then((r) => r.data as CompensationWorksheetRow[]),
     retry: false,
   });
 
@@ -192,7 +264,16 @@ export default function PerformancePage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b">
-        {(["goals", "reviews", "360"] as const).map((tab) => (
+        {([
+          ["goals", "My Goals"],
+          ["reviews", "Submit Review"],
+          ["360", "360 Reviews"],
+          ["calibration", "Calibration"],
+          ["oneOnOnes", "1:1s"],
+          ["nineBox", "Nine Box"],
+          ["succession", "Succession"],
+          ["compensation", "Comp Worksheet"],
+        ] as Array<[PerformanceTab, string]>).map(([tab, label]) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -202,7 +283,7 @@ export default function PerformancePage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab === "goals" ? "My Goals" : tab === "reviews" ? "Submit Review" : "360 Reviews"}
+            {label}
           </button>
         ))}
       </div>
@@ -429,6 +510,144 @@ export default function PerformancePage() {
                 </div>
               ))
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "calibration" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Calibration Sessions</CardTitle>
+            <CardDescription>Review-cycle rating moderation with proposed, final, and potential ratings.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(calibrationSessions || []).map((session) => (
+              <div key={session.id} className="rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{session.name}</p>
+                    <p className="text-xs text-muted-foreground">Cycle #{session.cycle_id} - {session.participants?.length || 0} participants</p>
+                  </div>
+                  <Badge>{session.status}</Badge>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {(session.participants || []).slice(0, 6).map((participant) => (
+                    <div key={participant.id} className="rounded-md bg-muted/50 p-3 text-xs">
+                      <p className="font-medium">Employee #{participant.employee_id}</p>
+                      <p className="text-muted-foreground">Proposed {participant.proposed_rating || "-"} / Final {participant.final_rating || "-"}</p>
+                      <p className="text-muted-foreground">Potential {participant.potential_rating || "-"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {!calibrationSessions?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No calibration sessions yet.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "oneOnOnes" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">One-on-Ones</CardTitle>
+            <CardDescription>Manager and employee conversations with action follow-through.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(oneOnOnes || []).slice(0, 20).map((item) => (
+              <div key={item.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto]">
+                <div>
+                  <p className="text-sm font-medium">Employee #{item.employee_id} with Manager #{item.manager_id}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(item.meeting_date)}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {(item.talking_points_json || []).map((point) => point.text || point.topic).filter(Boolean).join(", ") || "No talking points captured"}
+                  </p>
+                </div>
+                <Badge variant={item.status === "Closed" ? "default" : "secondary"}>{item.status}</Badge>
+              </div>
+            ))}
+            {!oneOnOnes?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No one-on-one records yet.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "nineBox" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Nine-Box Grid</CardTitle>
+            <CardDescription>Performance and potential placement from calibration outcomes.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {(nineBox?.items || []).map((item) => (
+                <div key={`${item.employee_id}-${item.box}`} className="rounded-lg border p-4">
+                  <Grid3X3 className="mb-2 h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">{item.employee_name || `Employee #${item.employee_id}`}</p>
+                  <p className="text-xs text-muted-foreground">Performance {item.performance_rating || "-"} / Potential {item.potential_rating || "-"}</p>
+                  <Badge className="mt-3" variant="secondary">{item.box}</Badge>
+                </div>
+              ))}
+            </div>
+            {!nineBox?.items?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No nine-box placements yet.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "succession" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Succession & Career Paths</CardTitle>
+            <CardDescription>Critical roles, successors, readiness, and development actions.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(criticalRoles || []).map((role) => (
+              <div key={role.id} className="rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{role.role_name}</p>
+                    <p className="text-xs text-muted-foreground">Impact {role.business_impact} - Vacancy risk {role.vacancy_risk}</p>
+                  </div>
+                  <BriefcaseBusiness className="h-5 w-5 text-primary" />
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {(role.successors || []).map((candidate) => (
+                    <div key={candidate.id} className="rounded-md bg-muted/50 p-3 text-xs">
+                      <p className="font-medium">Successor Employee #{candidate.employee_id}</p>
+                      <p className="text-muted-foreground">{candidate.readiness_level}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {!criticalRoles?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No critical roles configured.</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "compensation" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Compensation Worksheet</CardTitle>
+            <CardDescription>Restricted merit planning with pay-band and budget impact tracking.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(worksheetRows || []).map((row) => (
+              <div key={row.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto]">
+                <div>
+                  <p className="text-sm font-medium">Employee #{row.employee_id}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Current INR {Number(row.current_ctc || 0).toLocaleString("en-IN")} - Proposed INR {Number(row.proposed_ctc || 0).toLocaleString("en-IN")}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Merit INR {Number(row.proposed_merit_amount || 0).toLocaleString("en-IN")} ({row.proposed_merit_percent || 0}%) - Budget impact INR {Number(row.budget_impact || 0).toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 sm:justify-end">
+                  <IndianRupee className="h-4 w-4 text-primary" />
+                  <Badge>{row.approval_status}</Badge>
+                </div>
+              </div>
+            ))}
+            {!worksheetRows?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No accessible compensation worksheet rows.</p>}
           </CardContent>
         </Card>
       )}

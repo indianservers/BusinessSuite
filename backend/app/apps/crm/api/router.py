@@ -75,6 +75,7 @@ from app.core.config import settings
 from app.core.deps import RequirePermission, get_db
 from app.models.company import Branch, Company
 from app.models.employee import Employee
+from app.models.audit import AuditLog
 from app.models.notification import Notification
 from app.models.user import User
 
@@ -406,6 +407,9 @@ DUPLICATE_ENTITY_RESOURCES = {
 IMPORTANT_UPDATE_FIELDS = {
     "status",
     "owner_user_id",
+    "branch_id",
+    "department_id",
+    "assigned_team_id",
     "stage_id",
     "pipeline_id",
     "amount",
@@ -414,6 +418,8 @@ IMPORTANT_UPDATE_FIELDS = {
     "priority",
     "total_amount",
     "discount_amount",
+    "lost_reason",
+    "win_reason",
 }
 
 RESERVED_QUERY_KEYS = {
@@ -1106,8 +1112,11 @@ def _filtered_report_deals(
     end: datetime,
     owner_id: int | None = None,
     pipeline_id: int | None = None,
+    current_user: User | None = None,
 ) -> list[CRMDeal]:
     query = _base_query(db, _get_resource("deals"), organization_id)
+    if current_user is not None:
+        query = _apply_record_visibility(query, _get_resource("deals"), current_user, db)
     if owner_id:
         query = query.filter(CRMDeal.owner_user_id == owner_id)
     if pipeline_id:
@@ -1204,6 +1213,115 @@ def _organization_id(db: Session, user: User) -> int:
 
 def _crm_user_organization_id(db: Session, user: User) -> int:
     return _organization_id(db, user)
+
+
+def _crm_role_key(user: User) -> str:
+    role_name = str(user.role.name if user.role else "").strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "crm_admin": "admin",
+        "sales_admin": "admin",
+        "sales_manager": "manager",
+        "crm_manager": "manager",
+        "sales_executive": "executive",
+        "crm_executive": "executive",
+        "viewer": "viewer",
+        "crm_viewer": "viewer",
+    }
+    return aliases.get(role_name, role_name)
+
+
+def _crm_user_scope(db: Session, user: User) -> dict[str, Any]:
+    employee = db.query(Employee).filter(Employee.user_id == user.id).first()
+    team_ids = [
+        row.team_id
+        for row in db.query(CRMOwner)
+        .filter(CRMOwner.user_id == user.id, CRMOwner.status == "Active", CRMOwner.deleted_at.is_(None))
+        .all()
+        if row.team_id
+    ]
+    return {
+        "role": _crm_role_key(user),
+        "branch_id": employee.branch_id if employee else None,
+        "department_id": employee.department_id if employee else None,
+        "team_ids": sorted(set(team_ids)),
+    }
+
+
+def _crm_has_full_visibility(user: User) -> bool:
+    return bool(user.is_superuser or _crm_role_key(user) in {"admin", "viewer", "super_admin"})
+
+
+def _crm_can_assign_beyond_self(user: User) -> bool:
+    return bool(user.is_superuser or _crm_role_key(user) in {"admin", "manager", "super_admin"})
+
+
+def _apply_record_visibility(query, resource: Resource, current_user: User, db: Session):
+    if _crm_has_full_visibility(current_user):
+        return query
+    columns = _columns(resource.model)
+    clauses = []
+    scope = _crm_user_scope(db, current_user)
+    if resource.owner_field and resource.owner_field in columns:
+        clauses.append(getattr(resource.model, resource.owner_field) == current_user.id)
+    if "created_by_user_id" in columns:
+        clauses.append(getattr(resource.model, "created_by_user_id") == current_user.id)
+    if scope["branch_id"] and "branch_id" in columns:
+        clauses.append(getattr(resource.model, "branch_id") == scope["branch_id"])
+    if scope["department_id"] and "department_id" in columns:
+        clauses.append(getattr(resource.model, "department_id") == scope["department_id"])
+    if scope["team_ids"] and "assigned_team_id" in columns:
+        clauses.append(getattr(resource.model, "assigned_team_id").in_(scope["team_ids"]))
+    if scope["role"] == "manager" and not clauses:
+        return query
+    return query.filter(or_(*clauses)) if clauses else query.filter(False)
+
+
+def _assert_record_visible(db: Session, resource: Resource, record_id: int, organization_id: int, current_user: User, include_deleted: bool = False) -> None:
+    visible = (
+        _apply_record_visibility(_base_query(db, resource, organization_id, include_deleted), resource, current_user, db)
+        .filter(resource.model.id == record_id)
+        .first()
+    )
+    if not visible:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CRM record is outside your permitted visibility scope")
+
+
+def _assert_write_scope(resource: Resource, data: dict[str, Any], current_user: User, db: Session) -> None:
+    if _crm_can_assign_beyond_self(current_user):
+        return
+    columns = _columns(resource.model)
+    if resource.owner_field and resource.owner_field in columns and data.get(resource.owner_field) not in {None, current_user.id}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sales executives can assign records only to themselves")
+    scope = _crm_user_scope(db, current_user)
+    for field in ("branch_id", "department_id"):
+        if field in columns and data.get(field) and scope.get(field) and data[field] != scope[field]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CRM record is outside your branch or department scope")
+
+
+def _create_crm_audit_log(
+    db: Session,
+    *,
+    user_id: int | None,
+    entity_type: str,
+    entity_id: int | None,
+    action: str,
+    old_values: dict[str, Any] | None = None,
+    new_values: dict[str, Any] | None = None,
+    description: str | None = None,
+) -> None:
+    db.add(
+        AuditLog(
+            user_id=user_id,
+            method="CRM",
+            endpoint=f"/crm/{entity_type}/{entity_id}" if entity_id else f"/crm/{entity_type}",
+            entity_type=f"crm_{entity_type}",
+            entity_id=entity_id,
+            action=action.upper(),
+            old_values=json.dumps(_json_ready(old_values or {})),
+            new_values=json.dumps(_json_ready(new_values or {})),
+            description=description,
+        )
+    )
 
 
 def _extract_mention_user_ids(payload: dict[str, Any]) -> list[int]:
@@ -1548,6 +1666,15 @@ def _serialize(record: Any) -> dict[str, Any]:
     aliases = {
         "organization_id": "organizationId",
         "owner_user_id": "ownerId",
+        "branch_id": "branchId",
+        "department_id": "departmentId",
+        "assigned_team_id": "assignedTeamId",
+        "company_id": "companyId",
+        "contact_id": "contactId",
+        "lead_id": "leadId",
+        "deal_id": "dealId",
+        "pipeline_id": "pipelineId",
+        "stage_id": "stageId",
         "author_user_id": "authorId",
         "entity_type": "entityType",
         "entity_id": "entityId",
@@ -1595,6 +1722,18 @@ def _serialize(record: Any) -> dict[str, Any]:
         "lost_at": "lostAt",
         "closed_at": "closedAt",
         "lost_reason": "lostReason",
+        "win_reason": "winReason",
+        "expected_close_date": "expectedCloseDate",
+        "actual_close_date": "actualCloseDate",
+        "expected_revenue": "expectedRevenue",
+        "lead_source": "leadSource",
+        "quote_number": "quoteNumber",
+        "issue_date": "issueDate",
+        "expiry_date": "expiryDate",
+        "subtotal": "subtotal",
+        "discount_amount": "discountAmount",
+        "tax_amount": "taxAmount",
+        "total_amount": "totalAmount",
         "territory_id": "territoryId",
         "rules_json": "rules",
         "priority": "priority",
@@ -1805,6 +1944,10 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
             data["entity_type"] = _normalize_entity_type(data["entity_type"])
         if "metadata" in data and "metadata_json" not in data:
             data["metadata_json"] = data.pop("metadata")
+    if "assigned_user_id" in data and "owner_user_id" not in data:
+        data["owner_user_id"] = data.pop("assigned_user_id")
+    if "team_id" in data and "assigned_team_id" not in data:
+        data["assigned_team_id"] = data.pop("team_id")
     if resource.model is CRMTerritory:
         if "rules" in data and "rules_json" not in data:
             data["rules_json"] = data.pop("rules")
@@ -1815,7 +1958,7 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
         if "is_active" in data and "status" not in data:
             data["status"] = "Active" if data["is_active"] else "Inactive"
     columns = _columns(resource.model)
-    unknown = sorted(key for key in data if key not in columns and key not in {"owner_id", "created_by", "updated_by", "organization_id", "custom_fields", "custom_field_values"})
+    unknown = sorted(key for key in data if key not in columns and key not in {"owner_id", "assigned_user_id", "team_id", "created_by", "updated_by", "organization_id", "custom_fields", "custom_field_values"})
     if unknown:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Unsupported field(s): {', '.join(unknown)}")
 
@@ -5092,7 +5235,7 @@ def win_loss_report(
 ):
     organization_id = _organization_id(db, current_user)
     start, end = _parse_report_range(startDate, endDate)
-    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId)
+    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId, current_user)
     payload = _win_loss_payload(db, organization_id, deals, start, end)
     payload["filters"] = {"startDate": start.date().isoformat(), "endDate": end.date().isoformat(), "ownerId": ownerId, "pipelineId": pipelineId}
     return payload
@@ -5109,7 +5252,7 @@ def sales_funnel_report(
 ):
     organization_id = _organization_id(db, current_user)
     start, end = _parse_report_range(startDate, endDate)
-    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId)
+    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId, current_user)
     stage_ids = {deal.stage_id for deal in deals if deal.stage_id}
     stages = (
         _base_query(db, _get_resource("pipeline-stages"), organization_id)
@@ -5155,9 +5298,144 @@ def revenue_trend_report(
 ):
     organization_id = _organization_id(db, current_user)
     start, end = _parse_report_range(startDate, endDate)
-    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId)
+    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId, current_user)
     payload = _win_loss_payload(db, organization_id, deals, start, end)
     return {"items": payload["revenueWonTrend"], "total": len(payload["revenueWonTrend"]), "filters": {"startDate": start.date().isoformat(), "endDate": end.date().isoformat(), "ownerId": ownerId, "pipelineId": pipelineId}}
+
+
+@router.get("/reports/lead-source")
+def lead_source_report(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    organization_id = _organization_id(db, current_user)
+    leads = _apply_record_visibility(_base_query(db, _get_resource("leads"), organization_id), _get_resource("leads"), current_user, db).all()
+    rows: dict[str, dict[str, Any]] = {}
+    for lead in leads:
+        source = str(lead.source or "Unknown")
+        row = rows.setdefault(source, {"source": source, "leads": 0, "converted": 0, "estimatedValue": 0.0})
+        row["leads"] += 1
+        row["converted"] += 1 if lead.is_converted else 0
+        row["estimatedValue"] += float(lead.estimated_value or 0)
+    for row in rows.values():
+        row["conversionRate"] = round((row["converted"] / row["leads"]) * 100, 2) if row["leads"] else 0.0
+        row["estimatedValue"] = round(row["estimatedValue"], 2)
+    items = sorted(rows.values(), key=lambda row: (-row["leads"], row["source"]))
+    return {"items": items, "total": len(items)}
+
+
+@router.get("/reports/lead-conversion")
+def lead_conversion_report(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    organization_id = _organization_id(db, current_user)
+    leads = _apply_record_visibility(_base_query(db, _get_resource("leads"), organization_id), _get_resource("leads"), current_user, db).all()
+    converted = [lead for lead in leads if lead.is_converted]
+    by_status: dict[str, int] = {}
+    for lead in leads:
+        by_status[str(lead.status or "Unknown")] = by_status.get(str(lead.status or "Unknown"), 0) + 1
+    return {
+        "summary": {
+            "totalLeads": len(leads),
+            "convertedLeads": len(converted),
+            "conversionRate": round((len(converted) / len(leads)) * 100, 2) if leads else 0.0,
+        },
+        "byStatus": [{"status": key, "count": value} for key, value in sorted(by_status.items())],
+        "items": [_serialize(lead) for lead in converted[:100]],
+    }
+
+
+@router.get("/reports/sales-pipeline")
+def sales_pipeline_report(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerId: int | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    return sales_funnel_report(startDate, endDate, ownerId, pipelineId, db, current_user)
+
+
+@router.get("/reports/deal-stage")
+def deal_stage_report(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerId: int | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    return sales_funnel_report(startDate, endDate, ownerId, pipelineId, db, current_user)
+
+
+@router.get("/reports/salesperson-performance")
+def salesperson_performance_report(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    organization_id = _organization_id(db, current_user)
+    start, end = _parse_report_range(startDate, endDate)
+    deals = _filtered_report_deals(db, organization_id, start, end, current_user=current_user)
+    owner_names = _owner_names(db, {deal.owner_user_id for deal in deals})
+    buckets: dict[int | None, dict[str, Any]] = {}
+    for deal in deals:
+        row = buckets.setdefault(deal.owner_user_id, {"ownerId": deal.owner_user_id, "owner": owner_names.get(deal.owner_user_id, "Unassigned"), "openDeals": 0, "wonDeals": 0, "lostDeals": 0, "pipelineAmount": 0.0, "wonRevenue": 0.0})
+        amount = _deal_amount(deal)
+        if _deal_status(deal) == "won":
+            row["wonDeals"] += 1
+            row["wonRevenue"] += amount
+        elif _deal_status(deal) == "lost":
+            row["lostDeals"] += 1
+        else:
+            row["openDeals"] += 1
+            row["pipelineAmount"] += amount
+    for row in buckets.values():
+        row["winRate"] = _rate(int(row["wonDeals"]), int(row["lostDeals"]))
+        row["pipelineAmount"] = round(row["pipelineAmount"], 2)
+        row["wonRevenue"] = round(row["wonRevenue"], 2)
+    items = sorted(buckets.values(), key=lambda row: (-row["wonRevenue"], row["owner"]))
+    return {"items": items, "total": len(items), "filters": {"startDate": start.date().isoformat(), "endDate": end.date().isoformat()}}
+
+
+@router.get("/reports/follow-up-overdue")
+def follow_up_overdue_report(
+    ownerId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    return overdue_activities_dashboard(ownerId, db, current_user)
+
+
+@router.get("/reports/monthly-revenue-forecast")
+def monthly_revenue_forecast_report(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerId: int | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    organization_id = _organization_id(db, current_user)
+    start, end = _parse_report_range(startDate, endDate)
+    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId, current_user)
+    months = {key: {"month": key, "label": _month_label(key), "dealCount": 0, "amount": 0.0, "expectedRevenue": 0.0} for key in _month_keys_between(start, end)}
+    for deal in deals:
+        close_at = _as_datetime(deal.expected_close_date) or _deal_report_datetime(deal)
+        key = _month_key(close_at)
+        row = months.setdefault(key, {"month": key, "label": _month_label(key), "dealCount": 0, "amount": 0.0, "expectedRevenue": 0.0})
+        amount = _deal_amount(deal)
+        row["dealCount"] += 1
+        row["amount"] += amount
+        row["expectedRevenue"] += float(deal.expected_revenue or Decimal(str(amount)) * Decimal(int(deal.probability or 0)) / Decimal("100"))
+    for row in months.values():
+        row["amount"] = round(row["amount"], 2)
+        row["expectedRevenue"] = round(row["expectedRevenue"], 2)
+    items = sorted(months.values(), key=lambda row: row["month"])
+    return {"items": items, "total": len(items), "filters": {"startDate": start.date().isoformat(), "endDate": end.date().isoformat(), "ownerId": ownerId, "pipelineId": pipelineId}}
 
 
 @router.get("/reports/territories")
@@ -5430,6 +5708,149 @@ def module_info() -> dict[str, Any]:
     }
 
 
+@router.get("/roles")
+def crm_roles(
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+) -> dict[str, Any]:
+    return {
+        "items": [
+            {"key": "crm_admin", "name": "CRM Admin", "permissions": ["crm_admin", "crm_manage", "crm_view", "reports_view"], "visibility": "all_records"},
+            {"key": "sales_manager", "name": "Sales Manager", "permissions": ["crm_manage", "crm_view", "reports_view"], "visibility": "team_branch_department_records"},
+            {"key": "sales_executive", "name": "Sales Executive", "permissions": ["crm_manage", "crm_view"], "visibility": "owned_branch_department_team_records"},
+            {"key": "crm_viewer", "name": "Viewer", "permissions": ["crm_view", "reports_view"], "visibility": "read_only_all_records"},
+        ],
+        "currentRole": _crm_role_key(current_user),
+    }
+
+
+@router.get("/audit-logs")
+def crm_audit_logs(
+    entityType: str | None = None,
+    entityId: int | None = None,
+    action: str | None = None,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+) -> dict[str, Any]:
+    query = db.query(AuditLog).filter(AuditLog.entity_type.ilike("crm_%"))
+    if entityType:
+        query = query.filter(AuditLog.entity_type == f"crm_{_canonical_entity(entityType)}")
+    if entityId:
+        query = query.filter(AuditLog.entity_id == entityId)
+    if action:
+        query = query.filter(AuditLog.action == action.upper())
+    rows = query.order_by(desc(AuditLog.created_at), desc(AuditLog.id)).limit(limit).all()
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "entityType": row.entity_type,
+                "entityId": row.entity_id,
+                "action": row.action,
+                "description": row.description,
+                "oldValues": json.loads(row.old_values or "{}"),
+                "newValues": json.loads(row.new_values or "{}"),
+                "createdAt": row.created_at.isoformat() if row.created_at else None,
+                "userId": row.user_id,
+            }
+            for row in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@router.get("/deals/kanban")
+def deals_kanban(
+    pipelineId: int | None = None,
+    ownerId: int | None = None,
+    branchId: int | None = None,
+    departmentId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+) -> dict[str, Any]:
+    organization_id = _organization_id(db, current_user)
+    stage_query = _base_query(db, _get_resource("pipeline-stages"), organization_id)
+    if pipelineId:
+        stage_query = stage_query.filter(CRMPipelineStage.pipeline_id == pipelineId)
+    stages = stage_query.order_by(asc(CRMPipelineStage.position), asc(CRMPipelineStage.id)).all()
+
+    deal_query = _apply_record_visibility(_base_query(db, _get_resource("deals"), organization_id), _get_resource("deals"), current_user, db)
+    if pipelineId:
+        deal_query = deal_query.filter(CRMDeal.pipeline_id == pipelineId)
+    if ownerId:
+        deal_query = deal_query.filter(CRMDeal.owner_user_id == ownerId)
+    if branchId:
+        deal_query = deal_query.filter(CRMDeal.branch_id == branchId)
+    if departmentId:
+        deal_query = deal_query.filter(CRMDeal.department_id == departmentId)
+    deals = deal_query.order_by(asc(CRMDeal.position), desc(CRMDeal.updated_at), desc(CRMDeal.created_at)).all()
+    owner_names = _owner_names(db, {deal.owner_user_id for deal in deals})
+    by_stage: dict[int, list[CRMDeal]] = {}
+    for deal in deals:
+        by_stage.setdefault(int(deal.stage_id or 0), []).append(deal)
+    columns = []
+    for stage in stages:
+        rows = by_stage.get(stage.id, [])
+        amount = sum(_deal_amount(deal) for deal in rows)
+        expected = sum(float(deal.expected_revenue or Decimal(str(_deal_amount(deal))) * Decimal(int(deal.probability or stage.probability or 0)) / Decimal("100")) for deal in rows)
+        columns.append(
+            {
+                "stageId": stage.id,
+                "stage": stage.name,
+                "pipelineId": stage.pipeline_id,
+                "probability": stage.probability,
+                "count": len(rows),
+                "amount": round(amount, 2),
+                "expectedRevenue": round(expected, 2),
+                "deals": [
+                    {
+                        **_serialize(deal),
+                        "ownerName": owner_names.get(deal.owner_user_id, "Unassigned"),
+                        "expectedRevenue": float(deal.expected_revenue or Decimal(str(_deal_amount(deal))) * Decimal(int(deal.probability or stage.probability or 0)) / Decimal("100")),
+                    }
+                    for deal in rows
+                ],
+            }
+        )
+    return {"items": columns, "totalDeals": len(deals), "filters": {"pipelineId": pipelineId, "ownerId": ownerId, "branchId": branchId, "departmentId": departmentId}}
+
+
+@router.get("/dashboards/overdue-activities")
+def overdue_activities_dashboard(
+    ownerId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+) -> dict[str, Any]:
+    organization_id = _organization_id(db, current_user)
+    now = datetime.now(timezone.utc)
+    task_query = _apply_record_visibility(_base_query(db, _get_resource("tasks"), organization_id), _get_resource("tasks"), current_user, db).filter(
+        CRMTask.due_date.is_not(None),
+        CRMTask.due_date < now,
+        CRMTask.status.notin_(["Done", "Completed", "Complete", "Cancelled"]),
+    )
+    activity_query = _apply_record_visibility(_base_query(db, _get_resource("activities"), organization_id), _get_resource("activities"), current_user, db).filter(
+        CRMActivity.due_date.is_not(None),
+        CRMActivity.due_date < now,
+        CRMActivity.status.notin_(["Done", "Completed", "Complete", "Cancelled"]),
+    )
+    if ownerId:
+        task_query = task_query.filter(CRMTask.owner_user_id == ownerId)
+        activity_query = activity_query.filter(CRMActivity.owner_user_id == ownerId)
+    tasks = task_query.order_by(asc(CRMTask.due_date)).limit(100).all()
+    activities = activity_query.order_by(asc(CRMActivity.due_date)).limit(100).all()
+    items = [{"type": "task", **_serialize(row)} for row in tasks] + [{"type": "activity", **_serialize(row)} for row in activities]
+    items.sort(key=lambda item: str(item.get("dueDate") or ""))
+    return {
+        "items": items,
+        "total": len(items),
+        "summary": {
+            "tasks": len(tasks),
+            "activities": len(activities),
+            "highPriority": sum(1 for item in items if str(item.get("priority") or "").lower() == "high"),
+        },
+    }
+
+
 @router.post("/leads/{lead_id}/convert")
 def convert_lead(
     lead_id: int,
@@ -5439,6 +5860,7 @@ def convert_lead(
 ):
     organization_id = _organization_id(db, current_user)
     lead = _get_record(db, _get_resource("leads"), lead_id, organization_id)
+    _assert_record_visible(db, _get_resource("leads"), lead_id, organization_id, current_user)
     if lead.is_converted:
         raise HTTPException(status_code=400, detail="Lead is already converted")
 
@@ -5453,6 +5875,9 @@ def convert_lead(
             company = CRMCompany(
                 organization_id=organization_id,
                 owner_user_id=lead.owner_user_id or current_user.id,
+                branch_id=lead.branch_id,
+                department_id=lead.department_id,
+                assigned_team_id=lead.assigned_team_id,
                 name=lead.company_name,
                 industry=lead.industry,
                 website=lead.company_website or lead.website,
@@ -5475,6 +5900,9 @@ def convert_lead(
         contact = CRMContact(
             organization_id=organization_id,
             owner_user_id=lead.owner_user_id or current_user.id,
+            branch_id=lead.branch_id,
+            department_id=lead.department_id,
+            assigned_team_id=lead.assigned_team_id,
             company_id=company.id if company else None,
             first_name=lead.first_name,
             last_name=lead.last_name,
@@ -5528,6 +5956,9 @@ def convert_lead(
         deal = CRMDeal(
             organization_id=organization_id,
             owner_user_id=lead.owner_user_id or current_user.id,
+            branch_id=lead.branch_id,
+            department_id=lead.department_id,
+            assigned_team_id=lead.assigned_team_id,
             company_id=company.id if company else None,
             contact_id=contact.id if contact else None,
             pipeline_id=pipeline_id,
@@ -5555,6 +5986,36 @@ def convert_lead(
     lead.converted_deal_id = deal.id if deal else None
     lead.status = "Converted"
     lead.updated_by_user_id = current_user.id
+    _create_timeline_activity(
+        db,
+        organization_id=organization_id,
+        entity_type="lead",
+        entity_id=lead.id,
+        activity_type="conversion",
+        title="Lead converted",
+        body="Lead converted into CRM customer records.",
+        user_id=current_user.id,
+        metadata={
+            "contactId": contact.id if contact else None,
+            "companyId": company.id if company else None,
+            "dealId": deal.id if deal else None,
+        },
+    )
+    _create_crm_audit_log(
+        db,
+        user_id=current_user.id,
+        entity_type="leads",
+        entity_id=lead.id,
+        action="CONVERT",
+        old_values={"status": "Open"},
+        new_values={
+            "status": "Converted",
+            "converted_contact_id": contact.id if contact else None,
+            "converted_company_id": company.id if company else None,
+            "converted_deal_id": deal.id if deal else None,
+        },
+        description="Lead converted into account, contact and deal",
+    )
     db.commit()
     db.refresh(lead)
     return {
@@ -5584,6 +6045,7 @@ def import_records(
                 data["organization_id"] = organization_id
             if resource.owner_field and resource.owner_field in columns and not data.get(resource.owner_field):
                 data[resource.owner_field] = current_user.id
+            _assert_write_scope(resource, data, current_user, db)
             if "created_by_user_id" in columns:
                 data["created_by_user_id"] = current_user.id
             if "updated_by_user_id" in columns:
@@ -5777,6 +6239,7 @@ def list_records(
     resource = _get_resource(entity)
     organization_id = _organization_id(db, current_user)
     query = _base_query(db, resource, organization_id, include_deleted)
+    query = _apply_record_visibility(query, resource, current_user, db)
     query = _apply_filters(query, resource, request, owner_id)
     query = _apply_custom_field_filters(db, query, resource, request, organization_id)
     query = _apply_search(query, resource, search or q)
@@ -5811,6 +6274,7 @@ def get_record(
     resource = _get_resource(entity)
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
+    _assert_record_visible(db, resource, record_id, organization_id, current_user)
     canonical = _canonical_entity(entity)
     if canonical in {"leads", "contacts", "companies", "deals", "quotations", "tasks"}:
         return _detail_payload(db, entity, record, organization_id)
@@ -5827,6 +6291,7 @@ def get_related_records(
     resource = _get_resource(entity)
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
+    _assert_record_visible(db, resource, record_id, organization_id, current_user)
     canonical = _canonical_entity(entity)
     if canonical not in {"leads", "contacts", "companies", "deals", "quotations"}:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CRM related records are not configured for this entity")
@@ -5884,6 +6349,7 @@ def create_record(
         _validate_deal_pipeline_stage(db, data.get("pipeline_id"), data.get("stage_id"), organization_id)
     if resource.owner_field and resource.owner_field in columns and not data.get(resource.owner_field):
         data[resource.owner_field] = current_user.id
+    _assert_write_scope(resource, data, current_user, db)
     if "author_user_id" in columns and not data.get("author_user_id"):
         data["author_user_id"] = current_user.id
     if "created_by_user_id" in columns:
@@ -5935,6 +6401,7 @@ def update_record(
     resource = _get_resource(entity)
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
+    _assert_record_visible(db, resource, record_id, organization_id, current_user)
     before = {key: getattr(record, key) for key in _columns(resource.model) if key in IMPORTANT_UPDATE_FIELDS}
     raw_payload = payload.model_dump(exclude_unset=True)
     deal_contacts_payload = None
@@ -5971,6 +6438,7 @@ def update_record(
     _validate_related_records(db, data, organization_id)
     if resource.model is CRMDeal:
         _validate_deal_pipeline_stage(db, data.get("pipeline_id", record.pipeline_id), data.get("stage_id", record.stage_id), organization_id)
+    _assert_write_scope(resource, {**_serialize(record), **data}, current_user, db)
     _assert_final_action_allowed(db, organization_id, resource, record, data)
     for key, value in data.items():
         if key not in {"id", "organization_id", "created_at", "created_by_user_id"}:
@@ -6007,6 +6475,29 @@ def update_record(
     db.commit()
     db.refresh(record)
     _create_update_timeline_events(db, entity, record, before, data, organization_id, current_user.id)
+    changed_audit = {
+        key: {"old": _json_ready(before.get(key)), "new": _json_ready(getattr(record, key, None))}
+        for key in IMPORTANT_UPDATE_FIELDS.intersection(data.keys())
+        if _json_ready(before.get(key)) != _json_ready(getattr(record, key, None))
+    }
+    if changed_audit:
+        action = "UPDATE"
+        if resource.model is CRMDeal and "stage_id" in changed_audit:
+            action = "STAGE_CHANGE"
+        elif "owner_user_id" in changed_audit:
+            action = "ASSIGNMENT_CHANGE"
+        elif resource.model is CRMQuotation and "status" in changed_audit:
+            action = "QUOTATION_STATUS_CHANGE"
+        _create_crm_audit_log(
+            db,
+            user_id=current_user.id,
+            entity_type=_canonical_entity(entity),
+            entity_id=record.id,
+            action=action,
+            old_values={key: value["old"] for key, value in changed_audit.items()},
+            new_values={key: value["new"] for key, value in changed_audit.items()},
+            description=f"CRM {action.lower().replace('_', ' ')}",
+        )
     for event_type in _event_types_for_update(canonical, before, record, data):
         _enqueue_webhook_event(db, organization_id, event_type, _serialize(record), current_user.id, {"changedFields": sorted(data)})
     db.commit()
@@ -6027,6 +6518,7 @@ def delete_record(
     resource = _get_resource(entity)
     record = _get_record(db, resource, record_id, _organization_id(db, current_user), include_deleted=True)
     organization_id = _organization_id(db, current_user)
+    _assert_record_visible(db, resource, record_id, organization_id, current_user, include_deleted=True)
     if resource.model is CRMPipeline:
         active_deals = _base_query(db, _get_resource("deals"), organization_id).filter(CRMDeal.pipeline_id == record.id).count()
         if active_deals:
@@ -6051,5 +6543,14 @@ def delete_record(
             record.updated_by_user_id = current_user.id
     else:
         db.delete(record)
+    _create_crm_audit_log(
+        db,
+        user_id=current_user.id,
+        entity_type=_canonical_entity(entity),
+        entity_id=record_id,
+        action="DELETE",
+        old_values=_serialize(record),
+        description="CRM record deleted",
+    )
     db.commit()
     return {"message": "CRM record deleted"}

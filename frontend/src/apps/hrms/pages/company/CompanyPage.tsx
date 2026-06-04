@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
 import { companyApi } from "@/services/api";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { toast } from "@/hooks/use-toast";
@@ -185,12 +186,8 @@ export default function CompanyPage() {
 
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
         <div className="space-y-2">
-          {companies.isLoading && (
-            <div className="rounded-lg border p-4 text-sm text-muted-foreground">Loading companies...</div>
-          )}
-          {companies.isError && (
-            <div className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">Could not load companies</div>
-          )}
+          {companies.isLoading && <LoadingState label="Loading companies" />}
+          {companies.isError && <ErrorState title="Could not load companies" description="Company records are required before branch and payroll setup can continue." />}
           {(companies.data || []).map((company: any) => (
             <button
               key={company.id}
@@ -205,7 +202,7 @@ export default function CompanyPage() {
             </button>
           ))}
           {!companies.isLoading && !companies.isError && !companies.data?.length && (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No companies yet</div>
+            <EmptyState title="No companies yet" description="Create the legal entity first, then add branches, departments and designations." />
           )}
         </div>
 
@@ -445,17 +442,13 @@ function OrgPanel({
           ))}
           <Button type="submit" className="w-full" disabled={saving || hasMissingRequired}>
             <Save className="h-4 w-4" />
-            {form.id ? "Update" : "Add"}
+            {saving ? "Saving..." : form.id ? "Update" : "Add"}
           </Button>
         </form>
 
         <div className="space-y-2">
-          {loading && (
-            <div className="rounded-lg border p-4 text-center text-sm text-muted-foreground">Loading...</div>
-          )}
-          {error && (
-            <div className="rounded-lg border border-destructive/40 p-4 text-center text-sm text-destructive">Could not load records</div>
-          )}
+          {loading && <LoadingState label={`Loading ${title.toLowerCase()}`} />}
+          {error && <ErrorState title={`Could not load ${title.toLowerCase()}`} />}
           {!loading && !error && items.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
               <div className="min-w-0">
@@ -480,7 +473,7 @@ function OrgPanel({
             </div>
           ))}
           {!loading && !error && items.length === 0 && (
-            <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">No records yet</div>
+            <EmptyState title={`No ${title.toLowerCase()} yet`} description="Add the first record using the form above." />
           )}
         </div>
       </CardContent>
@@ -489,7 +482,16 @@ function OrgPanel({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
+  const required = label.includes("*");
+  return (
+    <div className="space-y-2">
+      <Label>
+        {label.replace(" *", "")}
+        {required && <span className="ml-1 text-destructive" aria-label="required">*</span>}
+      </Label>
+      {children}
+    </div>
+  );
 }
 
 function cleanPayload(data: OrgForm) {
@@ -507,5 +509,14 @@ function titleFor(kind: OrgKind) {
 }
 
 function apiError(err: any) {
-  return err?.response?.data?.detail || "Please check fields";
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item?.msg || item?.message || JSON.stringify(item))
+      .filter(Boolean)
+      .join("; ");
+  }
+  if (detail && typeof detail === "object") return detail.msg || detail.message || JSON.stringify(detail);
+  return "Please check fields";
 }

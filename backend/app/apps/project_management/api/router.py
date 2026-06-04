@@ -161,6 +161,17 @@ class DevIntegrationCreateRequest(BaseModel):
     is_active: bool = True
 
 
+class ProjectCloneRequest(BaseModel):
+    name: str
+    project_key: str
+    include_milestones: bool = True
+    include_tasks: bool = True
+    include_dependencies: bool = True
+    include_team: bool = False
+    as_template: bool = False
+    status: str = "Planned"
+
+
 def _task_points(task: PMSTask) -> int:
     return int(task.story_points or 0)
 
@@ -1030,6 +1041,43 @@ def _report_task_query(
     return query
 
 
+def _project_financial_rows(db: Session, current_user: User, project_id: int | None = None) -> list[dict]:
+    project_ids = _report_project_ids(db, current_user, project_id)
+    projects = db.query(PMSProject).filter(PMSProject.id.in_(project_ids or [0])).order_by(PMSProject.name).all()
+    rows: list[dict] = []
+    for project in projects:
+        tasks = db.query(PMSTask).filter(PMSTask.project_id == project.id, PMSTask.deleted_at == None).all()
+        logs = db.query(PMSTimeLog).filter(PMSTimeLog.project_id == project.id).all()
+        planned_hours = Decimal(project.estimated_hours or 0) or sum((task.estimated_hours or Decimal("0")) for task in tasks)
+        actual_hours = sum(Decimal(log.duration_minutes or 0) for log in logs) / Decimal("60")
+        billable_hours = sum(Decimal(log.duration_minutes or 0) for log in logs if log.is_billable) / Decimal("60")
+        estimated_cost = Decimal(project.estimated_cost or 0)
+        cost_rate = (estimated_cost / planned_hours) if planned_hours else Decimal("0")
+        timesheet_cost = actual_hours * cost_rate
+        actual_cost = Decimal(project.actual_cost or 0) + timesheet_cost
+        budget = Decimal(project.budget_amount or 0) or estimated_cost
+        variance = budget - actual_cost
+        rows.append({
+            "project_id": project.id,
+            "project_key": project.project_key,
+            "project_name": project.name,
+            "client_id": project.client_id,
+            "category": project.category,
+            "status": project.status,
+            "billing_status": project.billing_status or "Unbilled",
+            "budget_amount": _json_ready(budget),
+            "estimated_hours": _json_ready(planned_hours),
+            "actual_hours": _json_ready(actual_hours),
+            "billable_hours": _json_ready(billable_hours),
+            "estimated_cost": _json_ready(estimated_cost),
+            "actual_cost": _json_ready(actual_cost),
+            "variance_amount": _json_ready(variance),
+            "profitability_amount": _json_ready(variance),
+            "profitability_percent": round(float((variance / budget * Decimal("100")) if budget else Decimal("0")), 2),
+        })
+    return rows
+
+
 def _status_changes_for_tasks(db: Session, task_ids: list[int]) -> dict[int, list[dict]]:
     if not task_ids:
         return {}
@@ -1854,7 +1902,15 @@ def create_project(
         organization_id=organization_id_for(current_user),
         **project_in.dict()
     )
+    if not db_project.owner_user_id:
+        db_project.owner_user_id = db_project.manager_user_id or current_user.id
+    if db_project.planned_start_date and not db_project.start_date:
+        db_project.start_date = db_project.planned_start_date
+    if db_project.planned_end_date and not db_project.due_date:
+        db_project.due_date = db_project.planned_end_date
     db.add(db_project)
+    db.flush()
+    _record_activity(db, db_project.id, current_user, "project.created", "project", db_project.id, f"Created project {db_project.project_key}")
     db.commit()
     db.refresh(db_project)
     if not db.query(PMSProjectMember).filter(
@@ -1913,11 +1969,22 @@ def update_project(
     """Update a project."""
     project = get_project_for_action(db, project_id, current_user, "edit_project")
     
+    before = {field: getattr(project, field) for field in project_in.dict(exclude_unset=True)}
     update_data = project_in.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(project, field, value)
+    if update_data.get("status") in {"Completed", "Cancelled"} and not project.actual_end_date:
+        project.actual_end_date = date.today()
+    if update_data.get("status") == "Active" and not project.actual_start_date:
+        project.actual_start_date = date.today()
     
     db.add(project)
+    if update_data:
+        _record_activity(db, project.id, current_user, "project.updated", "project", project.id, f"Updated project {project.project_key}", metadata={"changed_fields": update_data, "old_values": before})
+    if "status" in update_data:
+        _record_activity(db, project.id, current_user, "project.status_changed", "project", project.id, f"Changed project status to {project.status}", metadata={"old_value": before.get("status"), "new_value": project.status})
+    if "budget_amount" in update_data or "estimated_cost" in update_data:
+        _record_activity(db, project.id, current_user, "project.budget_changed", "project", project.id, f"Changed project budget for {project.project_key}", metadata={"old_values": before, "new_values": update_data})
     db.commit()
     db.refresh(project)
     _broadcast_realtime(
@@ -1943,8 +2010,145 @@ def delete_project(
     from datetime import datetime
     project.deleted_at = datetime.utcnow()
     db.add(project)
+    _record_activity(db, project.id, current_user, "project.deleted", "project", project.id, f"Deleted project {project.project_key}")
     db.commit()
     return {"message": "Project deleted"}
+
+
+@router.post("/projects/{project_id}/archive", response_model=PMSProjectResponse)
+def archive_project(
+    project_id: int,
+    archive: bool = True,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = get_project_for_action(db, project_id, current_user, "edit_project")
+    project.is_archived = archive
+    _record_activity(db, project.id, current_user, "project.archived" if archive else "project.unarchived", "project", project.id, f"{'Archived' if archive else 'Unarchived'} project {project.project_key}")
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@router.post("/projects/{project_id}/clone", response_model=PMSProjectResponse, status_code=status.HTTP_201_CREATED)
+def clone_project(
+    project_id: int,
+    clone_in: ProjectCloneRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    source = get_project_for_action(db, project_id, current_user, "browse")
+    if not can_access_project(db, source, current_user, "edit_project") and not has_any_permission(current_user, PMS_GLOBAL_MANAGE_PROJECTS):
+        raise HTTPException(status_code=403, detail="Project management permission required")
+    project_key = clone_in.project_key.upper()
+    if db.query(PMSProject).filter(PMSProject.organization_id == source.organization_id, PMSProject.project_key == project_key).first():
+        raise HTTPException(status_code=400, detail="Project key already exists")
+    cloned = PMSProject(
+        organization_id=source.organization_id,
+        client_id=source.client_id,
+        manager_user_id=source.manager_user_id or current_user.id,
+        owner_user_id=source.owner_user_id or source.manager_user_id or current_user.id,
+        department_id=source.department_id,
+        branch_id=source.branch_id,
+        name=clone_in.name,
+        project_key=project_key,
+        category=source.category,
+        description=source.description,
+        status=clone_in.status,
+        priority=source.priority,
+        health="Good",
+        start_date=source.start_date,
+        due_date=source.due_date,
+        planned_start_date=source.planned_start_date,
+        planned_end_date=source.planned_end_date,
+        budget_amount=source.budget_amount,
+        estimated_hours=source.estimated_hours,
+        estimated_cost=source.estimated_cost,
+        billing_status="Unbilled",
+        is_client_visible=source.is_client_visible,
+        is_template=clone_in.as_template,
+    )
+    db.add(cloned)
+    db.flush()
+    milestone_map: dict[int, int] = {}
+    if clone_in.include_milestones:
+        for milestone in db.query(PMSMilestone).filter(PMSMilestone.project_id == source.id).all():
+            item = PMSMilestone(
+                project_id=cloned.id,
+                owner_user_id=milestone.owner_user_id,
+                name=milestone.name,
+                description=milestone.description,
+                status="Not Started",
+                start_date=milestone.start_date,
+                due_date=milestone.due_date,
+                progress_percent=0,
+                client_approval_status=milestone.client_approval_status,
+            )
+            db.add(item)
+            db.flush()
+            milestone_map[milestone.id] = item.id
+    task_map: dict[int, int] = {}
+    if clone_in.include_tasks:
+        source_tasks = db.query(PMSTask).filter(PMSTask.project_id == source.id, PMSTask.deleted_at == None).order_by(PMSTask.parent_task_id.isnot(None), PMSTask.id).all()
+        for task in source_tasks:
+            item = PMSTask(
+                project_id=cloned.id,
+                milestone_id=milestone_map.get(task.milestone_id),
+                parent_task_id=task_map.get(task.parent_task_id),
+                assignee_user_id=task.assignee_user_id,
+                reporter_user_id=current_user.id,
+                title=task.title,
+                description=task.description,
+                task_key=task.task_key.replace(source.project_key, cloned.project_key, 1) if task.task_key.startswith(source.project_key) else f"{cloned.project_key}-{len(task_map) + 1}",
+                work_type=task.work_type,
+                status="To Do",
+                priority=task.priority,
+                start_date=task.start_date,
+                due_date=task.due_date,
+                estimated_hours=task.estimated_hours,
+                original_estimate_hours=task.original_estimate_hours,
+                remaining_estimate_hours=task.remaining_estimate_hours,
+                story_points=task.story_points,
+                rank=task.rank,
+                security_level=task.security_level,
+                position=task.position,
+                is_client_visible=task.is_client_visible,
+                recurrence_rule=task.recurrence_rule,
+                recurrence_interval=task.recurrence_interval,
+                recurrence_until=task.recurrence_until,
+            )
+            db.add(item)
+            db.flush()
+            task_map[task.id] = item.id
+    if clone_in.include_tasks and clone_in.include_dependencies:
+        for dependency in db.query(PMSTaskDependency).filter(PMSTaskDependency.task_id.in_(list(task_map.keys()) or [0])).all():
+            if dependency.task_id in task_map and dependency.depends_on_task_id in task_map:
+                db.add(PMSTaskDependency(
+                    task_id=task_map[dependency.task_id],
+                    depends_on_task_id=task_map[dependency.depends_on_task_id],
+                    dependency_type=dependency.dependency_type,
+                    lag_days=dependency.lag_days,
+                ))
+    team_user_ids: set[int] = set()
+    if clone_in.include_team:
+        for member in db.query(PMSProjectMember).filter(PMSProjectMember.project_id == source.id).all():
+            db.add(PMSProjectMember(project_id=cloned.id, user_id=member.user_id, role=member.role, allocation_percent=member.allocation_percent))
+            team_user_ids.add(member.user_id)
+    if current_user.id not in team_user_ids:
+        db.add(PMSProjectMember(project_id=cloned.id, user_id=current_user.id, role="Project Manager"))
+    _record_activity(db, cloned.id, current_user, "project.cloned", "project", cloned.id, f"Cloned project {source.project_key} into {cloned.project_key}", metadata={"source_project_id": source.id})
+    db.commit()
+    db.refresh(cloned)
+    return cloned
+
+
+@router.get("/project-templates", response_model=list[PMSProjectResponse])
+def list_project_templates(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return accessible_project_query(db, current_user).filter(PMSProject.is_template == True).order_by(PMSProject.name).all()
 
 
 # ============= PROJECT MEMBERS =============
@@ -4818,6 +5022,268 @@ def report_team_performance(
     return {"items": items}
 
 
+@router.get("/reports/status-dashboard")
+def report_project_status_dashboard(
+    projectId: int = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    projects, tasks_by_project, sprints_by_project, milestones_by_project, risks_by_project, owners, clients = _portfolio_context(db, current_user)
+    if projectId:
+        projects = [project for project in projects if project.id == projectId]
+    payloads = [
+        _portfolio_project_payload(
+            project,
+            owners.get(project.manager_user_id),
+            clients.get(project.client_id),
+            tasks_by_project.get(project.id, []),
+            sprints_by_project.get(project.id, []),
+            milestones_by_project.get(project.id, []),
+            risks_by_project.get(project.id, []),
+        )
+        for project in projects
+    ]
+    by_status: dict[str, int] = {}
+    by_health: dict[str, int] = {}
+    for item in payloads:
+        by_status[item["status"] or "Unspecified"] = by_status.get(item["status"] or "Unspecified", 0) + 1
+        by_health[item["health"] or "Unspecified"] = by_health.get(item["health"] or "Unspecified", 0) + 1
+    return {"total_projects": len(payloads), "by_status": by_status, "by_health": by_health, "projects": payloads}
+
+
+@router.get("/reports/overdue-tasks")
+def report_overdue_tasks(
+    projectId: int = Query(None),
+    assigneeId: int = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    today = date.today()
+    tasks = _report_task_query(db, current_user, projectId, assigneeId).filter(
+        PMSTask.status.notin_(DONE_STATUSES),
+        PMSTask.due_date != None,
+        PMSTask.due_date < today,
+    ).order_by(PMSTask.due_date.asc()).all()
+    return {
+        "count": len(tasks),
+        "items": [
+            {
+                "task_id": task.id,
+                "task_key": task.task_key,
+                "title": task.title,
+                "project_id": task.project_id,
+                "assignee_user_id": task.assignee_user_id,
+                "status": task.status,
+                "priority": task.priority,
+                "due_date": task.due_date,
+                "days_overdue": (today - task.due_date).days if task.due_date else 0,
+            }
+            for task in tasks
+        ],
+    }
+
+
+@router.get("/reports/milestone-progress")
+def report_milestone_progress(
+    projectId: int = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project_ids = _report_project_ids(db, current_user, projectId)
+    milestones = db.query(PMSMilestone).filter(PMSMilestone.project_id.in_(project_ids or [0])).order_by(PMSMilestone.due_date.asc().nullslast()).all()
+    items = []
+    for milestone in milestones:
+        tasks = db.query(PMSTask).filter(PMSTask.milestone_id == milestone.id, PMSTask.deleted_at == None).all()
+        done = len([task for task in tasks if task.status in DONE_STATUSES])
+        calculated_progress = round(done / len(tasks) * 100, 2) if tasks else float(milestone.progress_percent or 0)
+        items.append({
+            "milestone_id": milestone.id,
+            "project_id": milestone.project_id,
+            "name": milestone.name,
+            "status": milestone.status,
+            "start_date": milestone.start_date,
+            "due_date": milestone.due_date,
+            "stored_progress_percent": milestone.progress_percent,
+            "calculated_progress_percent": calculated_progress,
+            "total_tasks": len(tasks),
+            "completed_tasks": done,
+            "client_approval_status": milestone.client_approval_status,
+        })
+    return {"count": len(items), "items": items}
+
+
+@router.get("/reports/planned-vs-actual")
+def report_planned_vs_actual(
+    projectId: int = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project_ids = _report_project_ids(db, current_user, projectId)
+    projects = db.query(PMSProject).filter(PMSProject.id.in_(project_ids or [0])).order_by(PMSProject.name).all()
+    rows = []
+    for project in projects:
+        tasks = db.query(PMSTask).filter(PMSTask.project_id == project.id, PMSTask.deleted_at == None).all()
+        logs = db.query(PMSTimeLog).filter(PMSTimeLog.project_id == project.id).all()
+        planned_hours = Decimal(project.estimated_hours or 0) or sum((task.estimated_hours or Decimal("0")) for task in tasks)
+        actual_hours = sum(Decimal(log.duration_minutes or 0) for log in logs) / Decimal("60")
+        planned_start = project.planned_start_date or project.start_date
+        planned_end = project.planned_end_date or project.due_date
+        actual_start = project.actual_start_date
+        actual_end = project.actual_end_date or (project.completed_at.date() if project.completed_at else None)
+        rows.append({
+            "project_id": project.id,
+            "project_key": project.project_key,
+            "project_name": project.name,
+            "planned_start_date": planned_start,
+            "planned_end_date": planned_end,
+            "actual_start_date": actual_start,
+            "actual_end_date": actual_end,
+            "planned_hours": _json_ready(planned_hours),
+            "actual_hours": _json_ready(actual_hours),
+            "hour_variance": _json_ready(actual_hours - planned_hours),
+            "schedule_variance_days": (actual_end - planned_end).days if actual_end and planned_end else None,
+        })
+    return {"count": len(rows), "items": rows}
+
+
+@router.get("/reports/timesheet")
+def report_timesheet(
+    projectId: int = Query(None),
+    userId: int = Query(None),
+    from_: date = Query(None, alias="from"),
+    to: date = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project_ids = _report_project_ids(db, current_user, projectId)
+    query = db.query(PMSTimeLog).filter(PMSTimeLog.project_id.in_(project_ids or [0]))
+    if userId:
+        query = query.filter(PMSTimeLog.user_id == userId)
+    if from_:
+        query = query.filter(PMSTimeLog.log_date >= from_)
+    if to:
+        query = query.filter(PMSTimeLog.log_date <= to)
+    logs = query.order_by(PMSTimeLog.log_date.desc()).all()
+    return {
+        "total_hours": _json_ready(sum(Decimal(log.duration_minutes or 0) for log in logs) / Decimal("60")),
+        "billable_hours": _json_ready(sum(Decimal(log.duration_minutes or 0) for log in logs if log.is_billable) / Decimal("60")),
+        "non_billable_hours": _json_ready(sum(Decimal(log.duration_minutes or 0) for log in logs if not log.is_billable) / Decimal("60")),
+        "items": [
+            {
+                "id": log.id,
+                "project_id": log.project_id,
+                "task_id": log.task_id,
+                "user_id": log.user_id,
+                "log_date": log.log_date,
+                "hours": _json_ready(Decimal(log.duration_minutes or 0) / Decimal("60")),
+                "is_billable": log.is_billable,
+                "approval_status": log.approval_status,
+            }
+            for log in logs
+        ],
+    }
+
+
+@router.get("/reports/resource-utilization")
+def report_resource_utilization(
+    projectId: int = Query(None),
+    from_: date = Query(None, alias="from"),
+    to: date = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    start, end = _date_range_defaults(from_, to)
+    project_ids = _report_project_ids(db, current_user, projectId)
+    logs = db.query(PMSTimeLog).filter(
+        PMSTimeLog.project_id.in_(project_ids or [0]),
+        PMSTimeLog.log_date >= start,
+        PMSTimeLog.log_date <= end,
+    ).all()
+    capacities = {
+        row.user_id: Decimal(row.capacity_hours or 0)
+        for row in db.query(PMSUserCapacity).filter(PMSUserCapacity.week_start_date.in_(_weeks_between(start, end))).all()
+    }
+    by_user: dict[int, dict] = {}
+    for log in logs:
+        row = by_user.setdefault(log.user_id, {"user_id": log.user_id, "logged_hours": Decimal("0"), "billable_hours": Decimal("0")})
+        row["logged_hours"] += Decimal(log.duration_minutes or 0) / Decimal("60")
+        if log.is_billable:
+            row["billable_hours"] += Decimal(log.duration_minutes or 0) / Decimal("60")
+    users = {user.id: _user_display_name(user) for user in db.query(User).filter(User.id.in_(list(by_user) or [0])).all()}
+    items = []
+    for user_id, row in by_user.items():
+        capacity = capacities.get(user_id, Decimal("40") * Decimal(len(_weeks_between(start, end)) or 1))
+        items.append({
+            "user_id": user_id,
+            "name": users.get(user_id),
+            "logged_hours": _json_ready(row["logged_hours"]),
+            "billable_hours": _json_ready(row["billable_hours"]),
+            "capacity_hours": _json_ready(capacity),
+            "utilization_percent": round(float((row["logged_hours"] / capacity * Decimal("100")) if capacity else Decimal("0")), 2),
+        })
+    return {"items": items}
+
+
+@router.get("/reports/budget-vs-actual")
+def report_budget_vs_actual(
+    projectId: int = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return {"items": _project_financial_rows(db, current_user, projectId)}
+
+
+@router.get("/reports/client-profitability")
+def report_client_profitability(
+    projectId: int = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    rows = _project_financial_rows(db, current_user, projectId)
+    by_client: dict[str, dict] = {}
+    for row in rows:
+        key = str(row["client_id"] or "No client")
+        item = by_client.setdefault(key, {"client_id": row["client_id"], "projects": 0, "budget_amount": 0.0, "actual_cost": 0.0, "profitability_amount": 0.0})
+        item["projects"] += 1
+        item["budget_amount"] += float(row["budget_amount"] or 0)
+        item["actual_cost"] += float(row["actual_cost"] or 0)
+        item["profitability_amount"] += float(row["profitability_amount"] or 0)
+    return {"items": list(by_client.values()), "projects": rows}
+
+
+@router.get("/reports/dependency-delays")
+def report_dependency_delays(
+    projectId: int = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project_ids = _report_project_ids(db, current_user, projectId)
+    tasks = {task.id: task for task in db.query(PMSTask).filter(PMSTask.project_id.in_(project_ids or [0]), PMSTask.deleted_at == None).all()}
+    dependencies = db.query(PMSTaskDependency).filter(PMSTaskDependency.task_id.in_(list(tasks) or [0])).all()
+    delays = []
+    for dep in dependencies:
+        task = tasks.get(dep.task_id)
+        blocker = tasks.get(dep.depends_on_task_id)
+        if not task or not blocker or not blocker.due_date:
+            continue
+        allowed_start = blocker.due_date + timedelta(days=dep.lag_days or 0)
+        target_date = task.start_date or task.due_date
+        if target_date and target_date < allowed_start:
+            delays.append({
+                "dependency_id": dep.id,
+                "task_id": task.id,
+                "task_key": task.task_key,
+                "depends_on_task_id": blocker.id,
+                "depends_on_task_key": blocker.task_key,
+                "dependency_type": dep.dependency_type,
+                "lag_days": dep.lag_days,
+                "allowed_start": allowed_start,
+                "scheduled_start": target_date,
+                "delay_days": (allowed_start - target_date).days,
+            })
+    return {"count": len(delays), "items": delays}
+
+
 @router.get("/reports/export")
 def export_reports(
     report: str = Query("task-distribution"),
@@ -5097,6 +5563,7 @@ def approve_timesheet(
         log.approved_by_user_id = current_user.id
         log.approved_at = sheet.approved_at
         db.add(log)
+        _record_activity(db, log.project_id, current_user, "timesheet.approved", "timesheet", sheet.id, "Approved timesheet entry", task_id=log.task_id, metadata={"timesheet_id": sheet.id, "time_log_id": log.id})
     db.add(sheet)
     db.commit()
     db.refresh(sheet)
@@ -5121,6 +5588,7 @@ def reject_timesheet(
     for log in _timesheet_logs(db, sheet):
         log.approval_status = "Rejected"
         db.add(log)
+        _record_activity(db, log.project_id, current_user, "timesheet.rejected", "timesheet", sheet.id, "Rejected timesheet entry", task_id=log.task_id, metadata={"timesheet_id": sheet.id, "time_log_id": log.id, "reason": reject_in.rejection_reason})
     db.add(sheet)
     db.commit()
     db.refresh(sheet)

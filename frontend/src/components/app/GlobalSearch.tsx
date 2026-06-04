@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { reportsApi } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
+import { canAccessRoute } from "@/lib/roles";
 
 type Result = { type: string; title: string; subtitle?: string; url: string };
 
@@ -50,7 +51,9 @@ export default function GlobalSearch() {
       { type: "Page", title: "Org Chart", subtitle: "Company hierarchy", url: "/hrms/company" },
     ];
   }, [product.key]);
-  const results: Result[] = enabled ? (data?.results || []) : staticResults;
+  const results: Result[] = (enabled ? (data?.results || []) : staticResults).filter((item: Result) =>
+    canAccessRoute(item.url, user?.role, user?.is_superuser)
+  );
 
   useEffect(() => {
     setFocusedIndex(-1);

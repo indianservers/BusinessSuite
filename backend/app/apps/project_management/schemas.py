@@ -46,15 +46,27 @@ class PMSProjectBase(BaseModel):
     description: Optional[str] = None
     client_id: Optional[int] = None
     manager_user_id: Optional[int] = None
+    owner_user_id: Optional[int] = None
+    department_id: Optional[int] = None
+    branch_id: Optional[int] = None
+    category: Optional[str] = None
     status: str = "Draft"
     priority: str = "Medium"
     health: str = "Good"
     start_date: Optional[date] = None
     due_date: Optional[date] = None
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    actual_start_date: Optional[date] = None
+    actual_end_date: Optional[date] = None
     budget_amount: Optional[Decimal] = None
+    estimated_hours: Optional[Decimal] = None
+    estimated_cost: Optional[Decimal] = None
     actual_cost: Optional[Decimal] = None
+    billing_status: str = "Unbilled"
     progress_percent: int = 0
     is_client_visible: bool = False
+    is_template: bool = False
     is_archived: bool = False
 
     @validator("project_key")
@@ -71,15 +83,27 @@ class PMSProjectUpdate(BaseModel):
     description: Optional[str] = None
     client_id: Optional[int] = None
     manager_user_id: Optional[int] = None
+    owner_user_id: Optional[int] = None
+    department_id: Optional[int] = None
+    branch_id: Optional[int] = None
+    category: Optional[str] = None
     status: Optional[str] = None
     priority: Optional[str] = None
     health: Optional[str] = None
     start_date: Optional[date] = None
     due_date: Optional[date] = None
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    actual_start_date: Optional[date] = None
+    actual_end_date: Optional[date] = None
     budget_amount: Optional[Decimal] = None
+    estimated_hours: Optional[Decimal] = None
+    estimated_cost: Optional[Decimal] = None
     actual_cost: Optional[Decimal] = None
+    billing_status: Optional[str] = None
     progress_percent: Optional[int] = None
     is_client_visible: Optional[bool] = None
+    is_template: Optional[bool] = None
     is_archived: Optional[bool] = None
 
 
@@ -138,6 +162,7 @@ class PMSProjectIntakeResponse(PMSProjectIntakeBase):
 class PMSProjectMemberBase(BaseModel):
     user_id: int
     role: str = "Member"
+    allocation_percent: Optional[Decimal] = Decimal("100")
 
 
 class PMSProjectMemberCreate(PMSProjectMemberBase):
@@ -146,6 +171,7 @@ class PMSProjectMemberCreate(PMSProjectMemberBase):
 
 class PMSProjectMemberUpdate(BaseModel):
     role: Optional[str] = None
+    allocation_percent: Optional[Decimal] = None
 
 
 class PMSProjectMemberResponse(PMSProjectMemberBase):
@@ -560,6 +586,9 @@ class PMSTaskBase(BaseModel):
     position: int = 0
     is_client_visible: bool = False
     is_blocking: bool = False
+    recurrence_rule: Optional[str] = None
+    recurrence_interval: Optional[int] = 1
+    recurrence_until: Optional[date] = None
 
 
 class PMSTaskCreate(PMSTaskBase):
@@ -606,6 +635,9 @@ class PMSTaskUpdate(BaseModel):
     position: Optional[int] = None
     is_client_visible: Optional[bool] = None
     is_blocking: Optional[bool] = None
+    recurrence_rule: Optional[str] = None
+    recurrence_interval: Optional[int] = None
+    recurrence_until: Optional[date] = None
 
 
 class PMSTaskResponse(PMSTaskBase):

@@ -11,7 +11,7 @@ import GlobalSearch from "@/components/app/GlobalSearch";
 import KeyboardShortcuts from "@/components/app/KeyboardShortcuts";
 import { useThemeStore } from "@/store/themeStore";
 import { useAuthStore } from "@/store/authStore";
-import { getRoleLabel } from "@/lib/roles";
+import { canAccessRoute, getRoleLabel } from "@/lib/roles";
 import { getProductForContext } from "@/lib/products";
 import { authApi, notificationsApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
@@ -51,6 +51,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const isHrms = location.pathname.startsWith("/hrms");
   const profilePath = isHrms ? "/hrms/profile" : location.pathname.startsWith("/crm") ? "/crm/profile" : "/pms/profile";
   const selfServicePath = isHrms ? "/hrms/ess" : profilePath;
+  const notificationsPath = isHrms ? "/hrms/notifications" : profilePath;
+  const canOpenNotifications = canAccessRoute(notificationsPath, user?.role, user?.is_superuser);
   const changePassword = useMutation({
     mutationFn: () => authApi.changePassword(currentPassword, newPassword),
     onSuccess: () => {
@@ -83,14 +85,16 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <div className="ml-auto flex items-center gap-2">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative" onClick={() => navigate(isHrms ? "/hrms/notifications" : profilePath)}>
-          <Bell className="h-5 w-5" />
-          {!!unreadCount.data && unreadCount.data > 0 && (
-            <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
-              {unreadCount.data > 99 ? "99+" : unreadCount.data}
-            </span>
-          )}
-        </Button>
+        {canOpenNotifications ? (
+          <Button variant="ghost" size="icon" className="relative" onClick={() => navigate(notificationsPath)}>
+            <Bell className="h-5 w-5" />
+            {!!unreadCount.data && unreadCount.data > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+                {unreadCount.data > 99 ? "99+" : unreadCount.data}
+              </span>
+            )}
+          </Button>
+        ) : null}
         <KeyboardShortcuts />
 
         {/* Theme toggle */}

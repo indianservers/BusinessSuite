@@ -179,6 +179,40 @@
   .page-description {
     @apply text-sm text-muted-foreground;
   }
+  .ui-section {
+    @apply rounded-lg border bg-card shadow-sm;
+  }
+  .ui-table-wrap {
+    @apply w-full overflow-x-auto rounded-lg border;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ui-table {
+    @apply w-full min-w-[760px] text-sm;
+  }
+  .ui-table th {
+    @apply whitespace-nowrap bg-muted/50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .ui-table td {
+    @apply px-4 py-3 align-middle;
+  }
+  .ui-table tbody tr {
+    @apply border-b transition-colors hover:bg-muted/30;
+  }
+  .ui-table tbody tr:last-child {
+    @apply border-b-0;
+  }
+  .ui-toolbar {
+    @apply flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+  .ui-action-row {
+    @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+  .ui-form-grid {
+    @apply grid gap-4 sm:grid-cols-2;
+  }
+  .sticky-form-actions {
+    @apply sticky bottom-0 z-10 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0;
+  }
   .stat-card {
     @apply rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md;
   }
@@ -190,6 +224,52 @@
   }
   .nav-link-inactive {
     @apply text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+  }
+
+  .product-shell input,
+  .product-shell select,
+  .product-shell textarea,
+  .product-shell button {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .product-shell textarea {
+    @apply min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm;
+  }
+
+  .product-shell table {
+    border-collapse: collapse;
+  }
+
+  .product-shell th,
+  .product-shell td {
+    vertical-align: middle;
+  }
+
+  .product-shell td {
+    overflow-wrap: anywhere;
+  }
+
+  .product-shell .card-action-bar {
+    @apply flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-title {
+    @apply text-xl;
+  }
+
+  .product-shell main {
+    @apply px-3 py-4;
+  }
+
+  .ui-table-wrap {
+    @apply -mx-1 rounded-md;
+  }
+
+  .ui-table {
+    @apply min-w-[680px];
   }
 }
 

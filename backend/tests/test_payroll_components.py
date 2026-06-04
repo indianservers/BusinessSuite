@@ -5,6 +5,7 @@ from app.db.init_db import init_db
 from app.models.attendance import Attendance
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, PayrollComponent, Reimbursement
+from tests.payroll_test_utils import ensure_payroll_ready
 
 
 def _login(client, email: str, password: str) -> dict[str, str]:
@@ -55,6 +56,7 @@ def test_payroll_run_persists_component_lines_and_rich_payslip(client, db):
     ))
     db.commit()
     _seed_attendance_for_weekdays(db, employee.id, 5, 2026)
+    ensure_payroll_ready(db, 5, 2026)
 
     run = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=admin_headers)
     assert run.status_code == 201
@@ -62,7 +64,7 @@ def test_payroll_run_persists_component_lines_and_rich_payslip(client, db):
 
     records = client.get(f"/api/v1/payroll/runs/{run_id}/records", headers=admin_headers)
     assert records.status_code == 200
-    record = records.json()[0]
+    record = next(item for item in records.json() if item["employee_id"] == employee.id)
 
     lines = db.query(PayrollComponent).filter(PayrollComponent.record_id == record["id"]).all()
     names = {line.component_name for line in lines}

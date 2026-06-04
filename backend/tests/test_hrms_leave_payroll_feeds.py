@@ -4,6 +4,7 @@ from decimal import Decimal
 from app.models.employee import Employee
 from app.models.leave import LeaveBalance, LeaveRequest, LeaveType
 from app.models.payroll import EmployeeSalary, LeaveEncashmentRequest, PayrollLWPEntry, PayrollPeriod, PayrollRecord
+from tests.payroll_test_utils import ensure_payroll_ready
 
 
 def _employee(db, code: str = "LP-001") -> Employee:
@@ -71,6 +72,7 @@ def test_leave_encashment_request_approval_feeds_payroll(client, db, superuser_h
     assert approve.json()["status"] == "approved"
 
     today = date.today()
+    ensure_payroll_ready(db, today.month, today.year, employees=[employee])
     run = client.post("/api/v1/payroll/run", json={"month": today.month, "year": today.year}, headers=superuser_headers)
     assert run.status_code == 201, run.text
 
@@ -116,6 +118,7 @@ def test_lwp_feed_sync_creates_payroll_deduction_input(client, db, superuser_hea
     assert sync.json()["synced"] >= 1
     period = db.query(PayrollPeriod).filter_by(month=today.month, year=today.year).first()
     assert period is not None
+    ensure_payroll_ready(db, today.month, today.year, employees=[employee])
 
     run = client.post("/api/v1/payroll/run", json={"month": today.month, "year": today.year}, headers=superuser_headers)
     assert run.status_code == 201, run.text

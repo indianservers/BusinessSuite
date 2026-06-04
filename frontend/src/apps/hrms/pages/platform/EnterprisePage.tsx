@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authApi } from "@/services/api";
+import { authApi, enterpriseApi } from "@/services/api";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "@/hooks/use-toast";
@@ -60,6 +60,25 @@ type SsoProvider = {
   default_role_id?: number | "";
 };
 
+type IpPolicy = {
+  id?: number;
+  cidr: string;
+  action: "allow" | "block";
+  description?: string;
+  is_active: boolean;
+};
+
+type PrivacyRequest = {
+  id: number;
+  employee_id?: number | null;
+  request_type: string;
+  status: string;
+  requested_by_email?: string | null;
+  resolution_notes?: string | null;
+  processing_result_json?: Record<string, unknown> | null;
+  created_at: string;
+};
+
 const blankProvider: SsoProvider = {
   name: "",
   provider_type: "google",
@@ -79,7 +98,7 @@ const blankProvider: SsoProvider = {
 export default function EnterprisePage() {
   usePageTitle("Enterprise");
   const user = useAuthStore((state) => state.user);
-  const [tab, setTab] = useState<"Security Policy" | "SSO Providers">("Security Policy");
+  const [tab, setTab] = useState<"Security Policy" | "SSO Providers" | "IP Policies" | "Privacy">("Security Policy");
   if (!user?.is_superuser) {
     return <div className="rounded-lg border p-6 text-sm text-muted-foreground">Enterprise security settings are available to administrators only.</div>;
   }
@@ -87,9 +106,103 @@ export default function EnterprisePage() {
     <div className="space-y-6">
       <div><h1 className="page-title">Enterprise Platform</h1><p className="page-description">Security policy, MFA enforcement, and enterprise SSO configuration.</p></div>
       <div className="flex gap-2 border-b">
-        {["Security Policy", "SSO Providers"].map((item) => <button key={item} onClick={() => setTab(item as "Security Policy" | "SSO Providers")} className={cn("border-b-2 px-3 py-2 text-sm font-medium", tab === item ? "border-primary text-primary" : "border-transparent text-muted-foreground")}>{item}</button>)}
+        {["Security Policy", "SSO Providers", "IP Policies", "Privacy"].map((item) => <button key={item} onClick={() => setTab(item as "Security Policy" | "SSO Providers" | "IP Policies" | "Privacy")} className={cn("border-b-2 px-3 py-2 text-sm font-medium", tab === item ? "border-primary text-primary" : "border-transparent text-muted-foreground")}>{item}</button>)}
       </div>
-      {tab === "Security Policy" ? <SecurityPolicy /> : <SsoProviders />}
+      {tab === "Security Policy" ? <SecurityPolicy /> : tab === "SSO Providers" ? <SsoProviders /> : tab === "IP Policies" ? <IpPolicies /> : <PrivacyOps />}
+    </div>
+  );
+}
+
+function PrivacyOps() {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState({ employee_id: "", request_type: "export", requested_by_email: "" });
+  const requests = useQuery({ queryKey: ["privacy-requests"], queryFn: () => enterpriseApi.privacyRequests().then((r) => r.data as PrivacyRequest[]) });
+  const create = useMutation({
+    mutationFn: () => enterpriseApi.createPrivacyRequest({ ...draft, employee_id: draft.employee_id ? Number(draft.employee_id) : null }),
+    onSuccess: () => {
+      toast({ title: "Privacy request created" });
+      setDraft({ employee_id: "", request_type: "export", requested_by_email: "" });
+      qc.invalidateQueries({ queryKey: ["privacy-requests"] });
+    },
+  });
+  const process = useMutation({
+    mutationFn: (id: number) => enterpriseApi.processPrivacyRequest(id),
+    onSuccess: () => {
+      toast({ title: "Privacy request processed" });
+      qc.invalidateQueries({ queryKey: ["privacy-requests"] });
+    },
+    onError: () => toast({ title: "Privacy processing blocked", variant: "destructive" }),
+  });
+  const retention = useMutation({
+    mutationFn: (dryRun: boolean) => enterpriseApi.runRetentionPolicies(dryRun),
+    onSuccess: (res) => toast({ title: "Retention run complete", description: `${res.data.eligible || 0} eligible, ${res.data.blocked || 0} blocked.` }),
+  });
+  return (
+    <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Privacy Request</CardTitle><CardDescription>Exports use masked sensitive identifiers. Delete requests are blocked by active legal holds and retention.</CardDescription></CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="Employee ID"><Input value={draft.employee_id} onChange={(e) => setDraft({ ...draft, employee_id: e.target.value })} /></Field>
+          <Field label="Request Type"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.request_type} onChange={(e) => setDraft({ ...draft, request_type: e.target.value })}><option value="export">Export</option><option value="anonymize">Anonymize/Delete</option></select></Field>
+          <Field label="Requester Email"><Input value={draft.requested_by_email} onChange={(e) => setDraft({ ...draft, requested_by_email: e.target.value })} /></Field>
+          <Button onClick={() => create.mutate()} disabled={!draft.employee_id || create.isPending}>Create Request</Button>
+          <div className="flex gap-2 border-t pt-4">
+            <Button variant="outline" onClick={() => retention.mutate(true)}>Dry Run Retention</Button>
+            <Button variant="outline" onClick={() => retention.mutate(false)}>Run Retention</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Privacy Queue</CardTitle></CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">ID</th><th className="px-3 py-2 text-left">Employee</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Result</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
+              <tbody>{(requests.data || []).map((row) => <tr key={row.id} className="border-t"><td className="px-3 py-2">{row.id}</td><td className="px-3 py-2">{row.employee_id || "-"}</td><td className="px-3 py-2">{row.request_type}</td><td className="px-3 py-2"><Badge variant={row.status === "Blocked" ? "destructive" : "secondary"}>{row.status}</Badge></td><td className="max-w-[320px] truncate px-3 py-2 text-muted-foreground">{row.resolution_notes || JSON.stringify(row.processing_result_json || {})}</td><td className="px-3 py-2 text-right"><Button size="sm" variant="ghost" onClick={() => process.mutate(row.id)}>Process</Button></td></tr>)}</tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function IpPolicies() {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState<IpPolicy>({ cidr: "", action: "allow", description: "", is_active: true });
+  const policies = useQuery({ queryKey: ["ip-policies"], queryFn: () => authApi.ipPolicies().then((r) => r.data as IpPolicy[]) });
+  const save = useMutation({
+    mutationFn: () => draft.id ? authApi.updateIpPolicy(draft.id, draft) : authApi.createIpPolicy(draft),
+    onSuccess: () => {
+      toast({ title: "IP policy saved" });
+      setDraft({ cidr: "", action: "allow", description: "", is_active: true });
+      qc.invalidateQueries({ queryKey: ["ip-policies"] });
+    },
+    onError: () => toast({ title: "Invalid IP policy", variant: "destructive" }),
+  });
+  return (
+    <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
+      <Card>
+        <CardHeader><CardTitle className="text-base">{draft.id ? "Edit" : "Add"} IP Policy</CardTitle><CardDescription>Blocklist entries always win. If any allowlist entry is active, unmatched IPs are rejected.</CardDescription></CardHeader>
+        <CardContent className="space-y-4">
+          <Field label="CIDR"><Input placeholder="203.0.113.0/24" value={draft.cidr} onChange={(e) => setDraft({ ...draft, cidr: e.target.value })} /></Field>
+          <Field label="Action"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.action} onChange={(e) => setDraft({ ...draft, action: e.target.value as "allow" | "block" })}><option value="allow">Allow</option><option value="block">Block</option></select></Field>
+          <Field label="Description"><Input value={draft.description || ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.is_active} onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })} />Active</label>
+          <Button onClick={() => save.mutate()} disabled={!draft.cidr || save.isPending}>Save Policy</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">IP Allowlist / Blocklist</CardTitle></CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">CIDR</th><th className="px-3 py-2 text-left">Action</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Description</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
+              <tbody>{(policies.data || []).map((row) => <tr key={row.id} className="border-t"><td className="px-3 py-2">{row.cidr}</td><td className="px-3 py-2"><Badge variant={row.action === "block" ? "destructive" : "secondary"}>{row.action}</Badge></td><td className="px-3 py-2">{row.is_active ? "Active" : "Inactive"}</td><td className="px-3 py-2">{row.description || "-"}</td><td className="px-3 py-2 text-right"><Button size="sm" variant="ghost" onClick={() => setDraft(row)}>Edit</Button></td></tr>)}</tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

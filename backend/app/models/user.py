@@ -145,3 +145,14 @@ class LoginAttempt(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User")
+
+
+class IPAccessPolicy(Base):
+    __tablename__ = "ip_access_policies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cidr = Column(String(80), nullable=False, index=True)
+    action = Column(String(20), nullable=False, default="allow", index=True)
+    description = Column(String(255))
+    is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

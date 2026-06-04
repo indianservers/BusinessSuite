@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text, JSON
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, JSON
 from sqlalchemy.sql import func
 from app.db.base_class import Base
 
@@ -115,6 +115,22 @@ class ReportRun(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class ReportSchedule(Base):
+    __tablename__ = "report_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_definition_id = Column(Integer, ForeignKey("report_definitions.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    cron_expression = Column(String(80), nullable=False)
+    recipients_json = Column(JSON)
+    export_format = Column(String(20), default="csv")
+    status = Column(String(30), default="Active", index=True)
+    last_run_at = Column(DateTime(timezone=True))
+    next_run_at = Column(DateTime(timezone=True))
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class IntegrationCredential(Base):
     __tablename__ = "integration_credentials"
 
@@ -185,8 +201,10 @@ class DataPrivacyRequest(Base):
     requested_by_email = Column(String(150))
     due_date = Column(DateTime(timezone=True))
     resolution_notes = Column(Text)
+    processing_result_json = Column(JSON)
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    processed_at = Column(DateTime(timezone=True))
     closed_at = Column(DateTime(timezone=True))
 
 
@@ -199,6 +217,8 @@ class DataRetentionPolicy(Base):
     retention_days = Column(Integer, nullable=False)
     action = Column(String(40), default="Archive")
     legal_basis = Column(Text)
+    last_run_at = Column(DateTime(timezone=True))
+    last_run_summary_json = Column(JSON)
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -229,4 +249,88 @@ class MetricDefinition(Base):
     owner_role = Column(String(80))
     refresh_frequency = Column(String(50), default="Daily")
     is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DomainPackRegistry(Base):
+    __tablename__ = "domain_pack_registry"
+    __table_args__ = (
+        Index("idx_domain_pack_company_key", "company_id", "pack_key", unique=True),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True)
+    pack_key = Column(String(80), nullable=False, index=True)
+    pack_name = Column(String(150), nullable=False)
+    status = Column(String(30), default="Enabled", index=True)
+    config_json = Column(JSON)
+    enabled_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    enabled_at = Column(DateTime(timezone=True), server_default=func.now())
+    disabled_at = Column(DateTime(timezone=True))
+
+
+class ManufacturingSafetyIncident(Base):
+    __tablename__ = "manufacturing_safety_incidents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    incident_date = Column(Date, nullable=False, index=True)
+    location = Column(String(150))
+    incident_type = Column(String(80), nullable=False, index=True)
+    severity = Column(String(30), default="Low", index=True)
+    description = Column(Text)
+    lost_time_hours = Column(Numeric(8, 2), default=0)
+    corrective_action = Column(Text)
+    status = Column(String(30), default="Open", index=True)
+    reported_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ManufacturingPPEIssuance(Base):
+    __tablename__ = "manufacturing_ppe_issuances"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    ppe_item = Column(String(120), nullable=False, index=True)
+    issued_on = Column(Date, nullable=False, index=True)
+    quantity = Column(Integer, default=1)
+    expiry_date = Column(Date)
+    condition = Column(String(40), default="New")
+    acknowledgement_status = Column(String(30), default="Pending", index=True)
+    issued_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ManufacturingMedicalFitnessRecord(Base):
+    __tablename__ = "manufacturing_medical_fitness_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    exam_date = Column(Date, nullable=False, index=True)
+    fitness_status = Column(String(40), nullable=False, index=True)
+    valid_until = Column(Date, index=True)
+    restrictions = Column(Text)
+    provider_name = Column(String(150))
+    document_url = Column(String(500))
+    recorded_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ManufacturingContractLaborBatch(Base):
+    __tablename__ = "manufacturing_contract_labor_batches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    vendor_name = Column(String(180), nullable=False, index=True)
+    batch_code = Column(String(80), nullable=False, index=True)
+    work_order_number = Column(String(100))
+    start_date = Column(Date, nullable=False, index=True)
+    end_date = Column(Date)
+    headcount = Column(Integer, default=0)
+    compliance_status = Column(String(40), default="Pending", index=True)
+    document_url = Column(String(500))
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

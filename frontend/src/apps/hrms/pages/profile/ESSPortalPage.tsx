@@ -1,24 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { CalendarDays, Clock, Download, FileText, HelpCircle, Laptop, Target, Ticket, UserRound } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { CalendarDays, Clock, Download, FileText, Inbox, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { employeeApi, leaveApi, reportsApi } from "@/services/api";
 import { usePageTitle } from "@/hooks/use-page-title";
-import { assetUrl, formatCurrency, formatDate } from "@/lib/utils";
+import { assetUrl, formatCurrency } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
 
 export default function ESSPortalPage() {
   usePageTitle("ESS Portal");
-  const completeness = useQuery({ queryKey: ["profile-completeness"], queryFn: () => employeeApi.profileCompleteness().then((r) => r.data), retry: false });
-  const summary = useQuery({ queryKey: ["ess-summary"], queryFn: () => reportsApi.essSummary().then((r) => r.data), retry: false });
-  const leaveBalance = useQuery({ queryKey: ["ess-leave-balance"], queryFn: () => leaveApi.balance(new Date().getFullYear()).then((r) => r.data), retry: false });
+  const user = useAuthStore((state) => state.user);
+  const hasEmployeeProfile = Boolean(user?.employee_id);
+  const completeness = useQuery({ queryKey: ["profile-completeness"], queryFn: () => employeeApi.profileCompleteness().then((r) => r.data), retry: false, enabled: hasEmployeeProfile });
+  const summary = useQuery({ queryKey: ["ess-summary"], queryFn: () => reportsApi.essSummary().then((r) => r.data), retry: false, enabled: hasEmployeeProfile });
+  const leaveBalance = useQuery({ queryKey: ["ess-leave-balance"], queryFn: () => leaveApi.balance(new Date().getFullYear()).then((r) => r.data), retry: false, enabled: hasEmployeeProfile });
 
   const actions = [
-    ["Profile", "Photo, data completeness, change requests", UserRound, "/hrms/profile"],
-    ["Apply Leave", "Request leave and track approvals", CalendarDays, "/hrms/leave"],
-    ["Attendance", "Monthly view and regularization", Clock, "/hrms/attendance"],
-    ["Helpdesk", "Raise HR or IT support ticket", HelpCircle, "/hrms/helpdesk"],
+    ["My Profile", "Photo, data completeness, and personal information", UserRound, "/hrms/profile"],
+    ["My Attendance", "Monthly view, status, hours, and overtime", Clock, "/hrms/my-attendance"],
+    ["My Leave", "Request leave and track approvals", CalendarDays, "/hrms/leave"],
+    ["My Requests", "Track submitted HR and payroll requests", Inbox, "/hrms/workflow"],
   ];
 
   return (
@@ -26,7 +28,7 @@ export default function ESSPortalPage() {
       <div className="rounded-lg border bg-card p-4 sm:p-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Employee Self Service</p>
         <h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">ESS Portal</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Payslips, leave, attendance, documents, goals, tickets, and assigned assets.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Profile, leave, attendance, payslips, documents, and requests.</p>
       </div>
 
       <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -45,7 +47,9 @@ export default function ESSPortalPage() {
                 <p className="text-xl font-semibold">{item.available ?? item.allocated}</p>
               </div>
             ))}
-            {!leaveBalance.data?.length && <p className="col-span-2 text-sm text-muted-foreground">No leave balances assigned yet.</p>}
+            {!hasEmployeeProfile ? (
+              <p className="col-span-2 text-sm text-muted-foreground">No employee profile is linked to this login.</p>
+            ) : !leaveBalance.data?.length && <p className="col-span-2 text-sm text-muted-foreground">No leave balances assigned yet.</p>}
           </CardContent>
         </Card>
       </div>
@@ -70,7 +74,7 @@ export default function ESSPortalPage() {
                   <p className="text-sm font-medium">{item.month}/{item.year}</p>
                   <p className="text-xs text-muted-foreground">Net {formatCurrency(Number(item.net_salary || 0))}</p>
                 </div>
-                {item.pdf_url ? <Button asChild variant="outline" size="sm"><a href={assetUrl(item.pdf_url)} target="_blank" rel="noreferrer"><Download className="h-4 w-4" />PDF</a></Button> : <Badge variant="outline">No PDF</Badge>}
+                {item.pdf_url ? <Button asChild variant="outline" size="sm"><a href={assetUrl(item.pdf_url)} target="_blank" rel="noreferrer"><Download className="h-4 w-4" />PDF</a></Button> : <Button asChild variant="outline" size="sm"><a href="/hrms/my-payslips">Open</a></Button>}
               </div>
             ))}
             {!summary.data?.payslips?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No payslips available yet.</p>}
@@ -90,42 +94,6 @@ export default function ESSPortalPage() {
               </div>
             ))}
             {!summary.data?.documents?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No generated documents yet.</p>}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card>
-          <CardHeader><CardTitle className="text-base"><Target className="mr-2 inline h-4 w-4" />Goals & Appraisal</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {(summary.data?.goals || []).slice(0, 5).map((item: any) => (
-              <div key={item.id} className="rounded-lg border p-3">
-                <p className="text-sm font-medium">{item.title}</p>
-                <p className="text-xs text-muted-foreground">{item.status} â€¢ target {formatDate(item.target_date)}</p>
-              </div>
-            ))}
-            {(summary.data?.reviews || []).slice(0, 3).map((item: any) => <Badge key={item.id} variant="outline">{item.review_type}: {item.status}</Badge>)}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-base"><Ticket className="mr-2 inline h-4 w-4" />Helpdesk</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">Raise HR, payroll, IT, document, or asset support requests and track replies.</p>
-            <Button asChild><a href="/hrms/helpdesk"><HelpCircle className="h-4 w-4" />Raise ticket</a></Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-base"><Laptop className="mr-2 inline h-4 w-4" />IT Assets</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {(summary.data?.assets || []).map((item: any) => (
-              <div key={item.id} className="rounded-lg border p-3">
-                <p className="text-sm font-medium">{item.name || "Asset"} <span className="text-muted-foreground">({item.asset_tag})</span></p>
-                <p className="text-xs text-muted-foreground">Assigned {formatDate(item.assigned_date)} â€¢ {item.condition || "Good"}</p>
-              </div>
-            ))}
-            {!summary.data?.assets?.length && <p className="text-sm text-muted-foreground">No active asset assignments.</p>}
           </CardContent>
         </Card>
       </div>

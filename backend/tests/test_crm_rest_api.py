@@ -1,10 +1,11 @@
 from datetime import date, datetime, timezone
 
 from app.apps.crm.models import CRMApprovalRequest, CRMCalendarIntegration, CRMContact, CRMDeal, CRMDealContact, CRMEnrichmentLog, CRMLead, CRMMessage, CRMNoteMention, CRMPipeline, CRMPipelineStage, CRMQuotationItem, CRMTask, CRMTerritoryUser, CRMWebhookDelivery
+from app.core.security import get_password_hash
 from app.models.company import Branch, Company
 from app.models.employee import Employee
 from app.models.notification import Notification
-from app.models.user import User
+from app.models.user import Permission, Role, User
 
 
 def test_crm_leads_crud_is_scoped_to_current_organization(client, db, superuser_headers):
@@ -56,6 +57,157 @@ def test_crm_leads_crud_is_scoped_to_current_organization(client, db, superuser_
 
     after_delete = client.get("/api/v1/crm/leads", headers=superuser_headers, params={"include_deleted": False})
     assert all(item["id"] != lead_id for item in after_delete.json()["items"])
+
+
+def _crm_user_headers(client, db, email: str, role_name: str, permissions: list[str]):
+    role = Role(name=role_name, description=role_name, is_system=True)
+    db.add(role)
+    db.flush()
+    for permission_name in permissions:
+        permission = db.query(Permission).filter(Permission.name == permission_name).first()
+        if not permission:
+            permission = Permission(name=permission_name, module="crm", description=permission_name)
+            db.add(permission)
+            db.flush()
+        role.permissions.append(permission)
+    user = User(
+        email=email,
+        hashed_password=get_password_hash("Sales@123456"),
+        is_active=True,
+        is_superuser=False,
+        role_id=role.id,
+    )
+    db.add(user)
+    db.commit()
+    response = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
+    assert response.status_code == 200
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}, user
+
+
+def test_crm_readiness_acceptance_flow_with_pipeline_quote_reports_and_audit(client, superuser_headers):
+    roles = client.get("/api/v1/crm/roles", headers=superuser_headers)
+    assert roles.status_code == 200
+    assert {item["key"] for item in roles.json()["items"]} >= {"crm_admin", "sales_manager", "sales_executive", "crm_viewer"}
+
+    pipeline = client.post("/api/v1/crm/pipelines", headers=superuser_headers, json={"name": "Readiness Sales", "isDefault": True})
+    assert pipeline.status_code == 201
+    stage_new = client.post(f"/api/v1/crm/pipelines/{pipeline.json()['id']}/stages", headers=superuser_headers, json={"name": "Qualification", "position": 1, "probability": 25})
+    stage_proposal = client.post(f"/api/v1/crm/pipelines/{pipeline.json()['id']}/stages", headers=superuser_headers, json={"name": "Proposal", "position": 2, "probability": 60})
+    assert stage_new.status_code == 201
+    assert stage_proposal.status_code == 201
+
+    lead = client.post(
+        "/api/v1/crm/leads",
+        headers=superuser_headers,
+        json={
+            "firstName": "Nisha",
+            "fullName": "Nisha Rao",
+            "email": "nisha@example.com",
+            "phone": "+919876543210",
+            "companyName": "Readiness College",
+            "source": "Website",
+            "status": "New",
+            "estimatedValue": 250000,
+            "expectedCloseDate": "2026-06-30",
+        },
+    )
+    assert lead.status_code == 201
+    lead_id = lead.json()["id"]
+
+    task = client.post(
+        "/api/v1/crm/tasks",
+        headers=superuser_headers,
+        json={"title": "Admission follow-up", "leadId": lead_id, "dueDate": "2026-01-01T09:00:00+00:00", "priority": "High"},
+    )
+    assert task.status_code == 201
+
+    converted = client.post(
+        f"/api/v1/crm/leads/{lead_id}/convert",
+        headers=superuser_headers,
+        json={"createContact": True, "createCompany": True, "createDeal": True, "pipelineId": pipeline.json()["id"], "stageId": stage_new.json()["id"]},
+    )
+    assert converted.status_code == 200
+    assert converted.json()["lead"]["is_converted"] is True
+    deal_id = converted.json()["deal"]["id"]
+
+    moved = client.patch(
+        f"/api/v1/crm/deals/{deal_id}",
+        headers=superuser_headers,
+        json={"stageId": stage_proposal.json()["id"], "probability": 60, "expectedRevenue": 150000},
+    )
+    assert moved.status_code == 200
+    assert moved.json()["stageId"] == stage_proposal.json()["id"]
+
+    quotation = client.post(
+        "/api/v1/crm/quotations",
+        headers=superuser_headers,
+        json={
+            "quoteNumber": "CRM-UAT-001",
+            "dealId": deal_id,
+            "companyId": converted.json()["company"]["id"],
+            "contactId": converted.json()["contact"]["id"],
+            "issueDate": "2026-06-03",
+            "expiryDate": "2026-06-30",
+            "subtotal": 250000,
+            "discountAmount": 10000,
+            "taxAmount": 43200,
+            "totalAmount": 283200,
+            "terms": "Valid for 30 days",
+            "status": "Draft",
+        },
+    )
+    assert quotation.status_code == 201
+    quote_status = client.patch(f"/api/v1/crm/quotations/{quotation.json()['id']}", headers=superuser_headers, json={"status": "Sent"})
+    assert quote_status.status_code == 200
+    pdf = client.get(f"/api/v1/crm/quotations/{quotation.json()['id']}/pdf", headers=superuser_headers)
+    assert pdf.status_code == 200
+    assert pdf.headers["content-type"] == "application/pdf"
+
+    kanban = client.get("/api/v1/crm/deals/kanban", headers=superuser_headers, params={"pipelineId": pipeline.json()["id"]})
+    assert kanban.status_code == 200
+    assert any(column["stageId"] == stage_proposal.json()["id"] and column["count"] >= 1 for column in kanban.json()["items"])
+
+    for report in [
+        "lead-source",
+        "lead-conversion",
+        "sales-pipeline",
+        "deal-stage",
+        "salesperson-performance",
+        "follow-up-overdue",
+        "monthly-revenue-forecast",
+    ]:
+        response = client.get(f"/api/v1/crm/reports/{report}", headers=superuser_headers)
+        assert response.status_code == 200, report
+
+    overdue = client.get("/api/v1/crm/dashboards/overdue-activities", headers=superuser_headers)
+    assert overdue.status_code == 200
+    assert overdue.json()["summary"]["tasks"] >= 1
+
+    audit = client.get("/api/v1/crm/audit-logs", headers=superuser_headers)
+    assert audit.status_code == 200
+    actions = {item["action"] for item in audit.json()["items"]}
+    assert {"CONVERT", "STAGE_CHANGE", "QUOTATION_STATUS_CHANGE"}.issubset(actions)
+
+
+def test_crm_sales_executive_visibility_is_limited_to_permitted_records(client, db):
+    exec1_headers, exec1 = _crm_user_headers(client, db, "exec1@example.com", "sales_executive_a", ["crm_view", "crm_manage"])
+    exec2_headers, exec2 = _crm_user_headers(client, db, "exec2@example.com", "sales_executive_b", ["crm_view", "crm_manage"])
+
+    lead1 = client.post("/api/v1/crm/leads", headers=exec1_headers, json={"firstName": "Owned", "fullName": "Owned Lead", "email": "owned@example.com"})
+    lead2 = client.post("/api/v1/crm/leads", headers=exec2_headers, json={"firstName": "Hidden", "fullName": "Hidden Lead", "email": "hidden@example.com"})
+    assert lead1.status_code == 201
+    assert lead2.status_code == 201
+    assert lead1.json()["ownerId"] == exec1.id
+    assert lead2.json()["ownerId"] == exec2.id
+
+    listing = client.get("/api/v1/crm/leads", headers=exec1_headers)
+    assert listing.status_code == 200
+    ids = {item["id"] for item in listing.json()["items"]}
+    assert lead1.json()["id"] in ids
+    assert lead2.json()["id"] not in ids
+
+    denied = client.get(f"/api/v1/crm/leads/{lead2.json()['id']}", headers=exec1_headers)
+    assert denied.status_code == 403
 
 
 def test_crm_validates_unknown_entity_and_required_fields(client, superuser_headers):

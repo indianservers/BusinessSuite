@@ -15,9 +15,16 @@ depends_on = None
 
 
 def upgrade():
+    inspector = sa.inspect(op.get_bind())
+    existing_columns = {column["name"] for column in inspector.get_columns("pms_epics")}
+    new_columns = [
+        sa.Column("organization_id", sa.Integer(), nullable=True),
+        sa.Column("end_date", sa.Date(), nullable=True),
+    ]
     with op.batch_alter_table("pms_epics") as batch_op:
-        batch_op.add_column(sa.Column("organization_id", sa.Integer(), nullable=True))
-        batch_op.add_column(sa.Column("end_date", sa.Date(), nullable=True))
+        for column in new_columns:
+            if column.name not in existing_columns:
+                batch_op.add_column(column)
     op.create_index("ix_pms_epics_organization_id", "pms_epics", ["organization_id"])
     op.create_index("ix_pms_epics_end_date", "pms_epics", ["end_date"])
     op.execute("UPDATE pms_epics SET end_date = target_date WHERE end_date IS NULL")

@@ -68,6 +68,9 @@ This is the long-term database shape for a domain-neutral HRMS. It is intentiona
 | `field_audit_events` | tenant_id, object_type, object_id, field_name, old_hash, new_hash | Sensitive field audit. |
 | `data_retention_rules` | tenant_id, object_type, retention_period, action | Retention. |
 | `privacy_requests` | tenant_id, person_id, request_type, status | GDPR-style privacy flows. |
+| `metric_definitions` | tenant_id, code, module, formula_json, owner_role | Governed analytics metric catalog. |
+| `report_schedules` | report_definition_id, cron_expression, recipients_json, last_run_at | Scheduled report exports and manual schedule runs. |
+| `domain_pack_registry` | tenant_id/company_id, pack_key, status, config_json | Enables extensible industry/domain packs per tenant or company. |
 
 ## Workflow and Configuration
 
@@ -193,7 +196,7 @@ This is the long-term database shape for a domain-neutral HRMS. It is intentiona
 
 | Domain | Tables |
 | --- | --- |
-| Manufacturing | `safety_incidents`, `ppe_issuances`, `medical_fitness_records`, `production_shift_handovers`, `contract_labor_batches` |
+| Manufacturing | `manufacturing_safety_incidents`, `manufacturing_ppe_issuances`, `manufacturing_medical_fitness_records`, `production_shift_handovers`, `manufacturing_contract_labor_batches` |
 | BFSI | `regulatory_certifications`, `segregation_of_duties_rules`, `policy_attestations`, `investigation_cases`, `evidence_files` |
 | Retail and Field | `store_staffing_plans`, `field_routes`, `field_visit_logs`, `mobile_task_lists`, `offline_sync_batches` |
 | Healthcare | `clinical_credentials`, `license_registrations`, `on_call_rosters`, `vaccination_records`, `department_privileges` |
@@ -205,8 +208,10 @@ This is the long-term database shape for a domain-neutral HRMS. It is intentiona
 | Table | Key columns | Purpose |
 | --- | --- | --- |
 | `metric_definitions` | tenant_id, key, name, formula_sql, owner_module | Governed metrics. |
+| `hr_analytics_drilldowns` | tenant_id, metric_key, filters_json, generated_at | Cached drilldown outputs for pay equity, span, manager effectiveness, attrition, absenteeism, and DE&I. |
 | `dashboard_definitions` | tenant_id, name, layout_json, visibility_json | Dashboards. |
 | `report_definitions` | tenant_id, name, query_json, schedule_json | Custom reports. |
+| `report_schedules` | report_definition_id, cron_expression, recipients_json, last_run_at | Scheduled/manual report export metadata. |
 | `data_exports` | tenant_id, object_type, file_url, status | Export jobs. |
 | `ai_prompts` | tenant_id, use_case, prompt_template, version | AI prompt management. |
 | `ai_runs` | tenant_id, use_case, input_hash, output_json, actor_user_id | AI audit. |

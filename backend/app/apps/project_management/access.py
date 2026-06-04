@@ -16,10 +16,14 @@ PMS_GLOBAL_CLIENT = {"pms_client_portal", "pms_manage_projects", "pms_admin"}
 
 ROLE_PERMISSIONS = {
     "Admin": {"browse", "edit_project", "administer", "manage_members", "manage_tasks", "comment", "upload", "log_time", "approve"},
+    "Project Admin": {"browse", "edit_project", "administer", "manage_members", "manage_tasks", "comment", "upload", "log_time", "approve"},
     "Manager": {"browse", "edit_project", "manage_members", "manage_tasks", "comment", "upload", "log_time", "approve"},
+    "Project Manager": {"browse", "edit_project", "manage_members", "manage_tasks", "comment", "upload", "log_time", "approve"},
     "Lead": {"browse", "manage_tasks", "comment", "upload", "log_time", "approve"},
     "Member": {"browse", "manage_tasks", "comment", "upload", "log_time"},
+    "Team Member": {"browse", "manage_tasks", "comment", "upload", "log_time"},
     "Viewer": {"browse"},
+    "Client Viewer": {"browse_client", "comment_client", "approve"},
     "Client": {"browse_client", "comment_client", "approve"},
 }
 
@@ -74,6 +78,13 @@ def can_access_project(db: Session, project: PMSProject, user: User, action: str
     if project.manager_user_id == user.id and action != "browse_client":
         return True
 
+    employee = getattr(user, "employee", None)
+    if action == "browse" and employee:
+        if project.department_id and project.department_id == getattr(employee, "department_id", None):
+            return True
+        if project.branch_id and project.branch_id == getattr(employee, "branch_id", None):
+            return True
+
     member = project_member(db, project.id, user.id)
     if not member:
         return False
@@ -98,10 +109,14 @@ def accessible_project_query(db: Session, user: User):
         return query.filter(PMSProject.organization_id == organization_id_for(user))
 
     member_project_ids = db.query(PMSProjectMember.project_id).filter(PMSProjectMember.user_id == user.id)
-    return query.filter(
-        (PMSProject.manager_user_id == user.id)
-        | (PMSProject.id.in_(member_project_ids))
-    )
+    visibility_filter = (PMSProject.manager_user_id == user.id) | (PMSProject.owner_user_id == user.id) | (PMSProject.id.in_(member_project_ids))
+    employee = getattr(user, "employee", None)
+    if employee:
+        if getattr(employee, "department_id", None):
+            visibility_filter = visibility_filter | (PMSProject.department_id == employee.department_id)
+        if getattr(employee, "branch_id", None):
+            visibility_filter = visibility_filter | (PMSProject.branch_id == employee.branch_id)
+    return query.filter(visibility_filter)
 
 
 def get_project_for_action(db: Session, project_id: int, user: User, action: str = "browse") -> PMSProject:
@@ -122,4 +137,3 @@ def get_task_project_for_action(db: Session, task_id: int, user: User, action: s
         raise HTTPException(status_code=404, detail="Task not found")
     project = get_project_for_action(db, task.project_id, user, action)
     return task, project
-

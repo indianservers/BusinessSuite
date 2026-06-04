@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { employeeApi, taxDeclarationApi } from "@/services/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
 
 type Category = {
   id: number;
@@ -67,6 +68,8 @@ function currentFinancialYear() {
 export default function InvestmentDeclarationPage() {
   usePageTitle("Investment Declaration");
   const qc = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const hasEmployeeProfile = Boolean(user?.employee_id);
   const [financialYear, setFinancialYear] = useState(currentFinancialYear());
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [employeeId, setEmployeeId] = useState("");
@@ -77,15 +80,20 @@ export default function InvestmentDeclarationPage() {
   const [remarks, setRemarks] = useState<Record<number, string>>({});
   const [newCategory, setNewCategory] = useState({ code: "", name: "", section: "", maxLimit: "" });
 
-  const me = useQuery({ queryKey: ["tax-me"], queryFn: () => employeeApi.me().then((r) => r.data), retry: false });
-  const employees = useQuery({ queryKey: ["tax-employees"], queryFn: () => employeeApi.list({ per_page: 200 }).then((r) => r.data.items ?? r.data) });
+  const me = useQuery({
+    queryKey: ["tax-me"],
+    queryFn: () => employeeApi.me().then((r) => r.data),
+    retry: false,
+    enabled: hasEmployeeProfile,
+  });
+  const employees = useQuery({ queryKey: ["tax-employees"], queryFn: () => employeeApi.list({ per_page: 100 }).then((r) => r.data.items ?? r.data) });
   const categories = useQuery({
     queryKey: ["tax-categories", financialYear],
     queryFn: () => taxDeclarationApi.categories(financialYear).then((r) => r.data as Category[]),
   });
   const employeeDeclarations = useQuery({
     queryKey: ["tax-declarations-self", me.data?.id, financialYear],
-    enabled: Boolean(me.data?.id) && !adminMode,
+    enabled: hasEmployeeProfile && Boolean(me.data?.id) && !adminMode,
     queryFn: () => taxDeclarationApi.employeeDeclarations(me.data.id, financialYear).then((r) => r.data as Declaration[]),
   });
   const reviewDeclarations = useQuery({

@@ -70,6 +70,8 @@ export default function ShiftRosterPage() {
   const [departmentId, setDepartmentId] = useState("");
   const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
   const [bulkShiftId, setBulkShiftId] = useState("");
+  const [weeklyOffShiftId, setWeeklyOffShiftId] = useState("");
+  const [weeklyOffDay, setWeeklyOffDay] = useState("6");
   const [lastConflicts, setLastConflicts] = useState<Array<{ employeeId?: number; rosterDate?: string; messages?: string[] }>>([]);
 
   const weekDays = useMemo(() => {
@@ -88,9 +90,13 @@ export default function ShiftRosterPage() {
     queryKey: ["shift-roster", params],
     queryFn: () => shiftRosterApi.list(params).then((r) => r.data as { employees: EmployeeRow[]; rosters: Roster[] }),
   });
+  const weeklyOffs = useQuery({
+    queryKey: ["shift-weekly-offs", weeklyOffShiftId],
+    queryFn: () => attendanceApi.weeklyOffs({ shift_id: weeklyOffShiftId || undefined }).then((r) => r.data as Array<{ id: number; shift_id: number; weekday: number; week_number?: number; is_active: boolean }>),
+  });
   const employeesFallback = useQuery({
     queryKey: ["shift-roster-employees-fallback", departmentId],
-    queryFn: () => employeeApi.list({ department_id: departmentId || undefined, limit: 200, per_page: 200 }).then((r) => r.data),
+    queryFn: () => employeeApi.list({ department_id: departmentId || undefined, limit: 100, per_page: 100 }).then((r) => r.data),
     enabled: !roster.data?.employees?.length,
   });
 
@@ -174,6 +180,20 @@ export default function ShiftRosterPage() {
     },
   });
 
+  const createWeeklyOff = useMutation({
+    mutationFn: () => attendanceApi.createWeeklyOff({
+      shift_id: Number(weeklyOffShiftId),
+      weekday: Number(weeklyOffDay),
+      week_number: null,
+      is_active: true,
+    }),
+    onSuccess: () => {
+      toast({ title: "Weekly off saved" });
+      qc.invalidateQueries({ queryKey: ["shift-weekly-offs"] });
+    },
+    onError: () => toast({ title: "Could not save weekly off", variant: "destructive" }),
+  });
+
   function dropShift(employeeId: number, date: string, data: string) {
     const shiftId = Number(data || selectedShiftId);
     if (!shiftId) return;
@@ -237,6 +257,39 @@ export default function ShiftRosterPage() {
               <Button onClick={() => publish.mutate()} disabled={publish.isPending}>
                 {publish.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publish Roster
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Weekly Off Setup</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label>Shift</Label>
+              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffShiftId} onChange={(event) => setWeeklyOffShiftId(event.target.value)}>
+                <option value="">Select shift</option>
+                {(shifts.data || []).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Weekly off day</Label>
+              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffDay} onChange={(event) => setWeeklyOffDay(event.target.value)}>
+                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((label, index) => (
+                  <option key={label} value={index}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <Button className="w-full" variant="outline" onClick={() => createWeeklyOff.mutate()} disabled={!weeklyOffShiftId || createWeeklyOff.isPending}>
+              Save Weekly Off
+            </Button>
+            <div className="space-y-2 text-sm">
+              {(weeklyOffs.data || []).slice(0, 6).map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-md border p-2">
+                  <span>Shift #{item.shift_id}</span>
+                  <Badge variant="outline">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][item.weekday] || item.weekday}</Badge>
+                </div>
+              ))}
+              {!weeklyOffs.isLoading && weeklyOffShiftId && !weeklyOffs.data?.length && <p className="text-muted-foreground">No weekly offs configured for this shift.</p>}
             </div>
           </CardContent>
         </Card>

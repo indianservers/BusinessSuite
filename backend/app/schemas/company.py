@@ -18,13 +18,13 @@ class CompanyBase(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
-    country: str = "India"
+    country: Optional[str] = "India"
     pincode: Optional[str] = None
     logo_url: Optional[str] = None
-    working_days_per_week: int = 5
-    fiscal_year_start_month: int = 4
-    default_timezone: str = "Asia/Kolkata"
-    default_currency: str = "INR"
+    working_days_per_week: Optional[int] = 5
+    fiscal_year_start_month: Optional[int] = 4
+    default_timezone: Optional[str] = "Asia/Kolkata"
+    default_currency: Optional[str] = "INR"
 
 
 class CompanyCreate(CompanyBase):
@@ -50,7 +50,7 @@ class BranchBase(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
-    country: str = "India"
+    country: Optional[str] = "India"
     pincode: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -102,7 +102,7 @@ class DesignationBase(BaseModel):
     code: Optional[str] = None
     department_id: int
     grade: Optional[str] = None
-    level: int = 1
+    level: Optional[int] = 1
     description: Optional[str] = None
 
 

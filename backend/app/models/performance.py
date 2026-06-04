@@ -81,6 +81,63 @@ class PerformanceReview(Base):
     )
 
 
+class CalibrationSession(Base):
+    __tablename__ = "calibration_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cycle_id = Column(Integer, ForeignKey("appraisal_cycles.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    facilitator_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(30), default="Draft", index=True)
+    scheduled_at = Column(DateTime(timezone=True))
+    notes = Column(Text)
+    audit_json = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    cycle = relationship("PerformanceCycle")
+    participants = relationship("CalibrationParticipant", back_populates="session", cascade="all, delete-orphan")
+
+
+class CalibrationParticipant(Base):
+    __tablename__ = "calibration_participants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("calibration_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    proposed_rating = Column(Numeric(3, 1))
+    final_rating = Column(Numeric(3, 1))
+    potential_rating = Column(Numeric(3, 1))
+    notes = Column(Text)
+    status = Column(String(30), default="Proposed", index=True)
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    session = relationship("CalibrationSession", back_populates="participants")
+    employee = relationship("Employee")
+
+
+class OneOnOneRecord(Base):
+    __tablename__ = "one_on_one_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    manager_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    meeting_date = Column(Date, nullable=False, index=True)
+    talking_points_json = Column(JSON)
+    action_items_json = Column(JSON)
+    private_manager_notes = Column(Text)
+    employee_notes = Column(Text)
+    status = Column(String(30), default="Open", index=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    manager = relationship("Employee", foreign_keys=[manager_id])
+    employee = relationship("Employee", foreign_keys=[employee_id])
+
+
 class PerformanceRatingCriteria(Base):
     __tablename__ = "performance_rating_criteria"
 
@@ -208,6 +265,43 @@ class EmployeeCompetencyAssessment(Base):
     competency = relationship("Competency")
 
 
+class CriticalRole(Base):
+    __tablename__ = "critical_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role_name = Column(String(160), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    designation_id = Column(Integer, ForeignKey("designations.id", ondelete="SET NULL"), nullable=True, index=True)
+    incumbent_employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    business_impact = Column(String(40), default="High")
+    vacancy_risk = Column(String(40), default="Medium")
+    notes = Column(Text)
+    is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    successors = relationship("SuccessionCandidate", back_populates="critical_role", cascade="all, delete-orphan")
+
+
+class SuccessionCandidate(Base):
+    __tablename__ = "succession_candidates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    critical_role_id = Column(Integer, ForeignKey("critical_roles.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    readiness_level = Column(String(40), default="Ready in 1-2 years", index=True)
+    readiness_score = Column(Numeric(4, 2))
+    development_actions_json = Column(JSON)
+    mentor_employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(30), default="Active", index=True)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    critical_role = relationship("CriticalRole", back_populates="successors")
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    mentor = relationship("Employee", foreign_keys=[mentor_employee_id])
+
+
 class CompensationCycle(Base):
     __tablename__ = "compensation_cycles"
 
@@ -257,3 +351,34 @@ class MeritRecommendation(Base):
 
     cycle = relationship("CompensationCycle")
     employee = relationship("Employee")
+
+
+class CompensationWorksheetRow(Base):
+    __tablename__ = "compensation_worksheet_rows"
+
+    id = Column(Integer, primary_key=True, index=True)
+    compensation_cycle_id = Column(Integer, ForeignKey("compensation_cycles.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    manager_employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    pay_band_id = Column(Integer, ForeignKey("pay_bands.id", ondelete="SET NULL"), nullable=True)
+    current_ctc = Column(Numeric(14, 2), default=0)
+    pay_band_min = Column(Numeric(14, 2), default=0)
+    pay_band_midpoint = Column(Numeric(14, 2), default=0)
+    pay_band_max = Column(Numeric(14, 2), default=0)
+    proposed_merit_amount = Column(Numeric(14, 2), default=0)
+    proposed_merit_percent = Column(Numeric(6, 2), default=0)
+    proposed_ctc = Column(Numeric(14, 2), default=0)
+    budget_impact = Column(Numeric(14, 2), default=0)
+    approval_status = Column(String(30), default="Draft", index=True)
+    performance_rating = Column(Numeric(3, 1))
+    manager_notes = Column(Text)
+    hr_notes = Column(Text)
+    approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approved_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    cycle = relationship("CompensationCycle")
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    manager = relationship("Employee", foreign_keys=[manager_employee_id])
+    pay_band = relationship("PayBand")

@@ -6,6 +6,7 @@ from app.models.employee import Employee
 from app.models.payroll import (
     EmployeeSalary,
     PayrollCalculationSnapshot,
+    PayrollPeriod,
     PayrollPreRunCheck,
     PayrollRecord,
 )
@@ -18,6 +19,30 @@ def _login(client, email: str, password: str) -> dict[str, str]:
 
 
 def _prepare_usd_employee(db) -> Employee:
+    for row in db.query(Employee).all():
+        row.account_number = row.account_number or f"123456789{row.id}"
+        row.ifsc_code = row.ifsc_code or "HDFC0001234"
+        row.pan_number = row.pan_number or f"ABCDE{row.id:04d}F"
+        if not db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == row.id, EmployeeSalary.is_active == True).first():
+            db.add(EmployeeSalary(
+                employee_id=row.id,
+                ctc=Decimal("600000"),
+                basic=Decimal("20000"),
+                hra=Decimal("10000"),
+                effective_from=date(2026, 5, 1),
+                is_active=True,
+            ))
+    if not db.query(PayrollPeriod).filter(PayrollPeriod.month == 5, PayrollPeriod.year == 2026).first():
+        db.add(PayrollPeriod(
+            pay_group_id=1,
+            month=5,
+            year=2026,
+            financial_year="2026-27",
+            period_start=date(2026, 5, 1),
+            period_end=date(2026, 5, 31),
+            payroll_date=date(2026, 5, 31),
+            status="Locked",
+        ))
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
     employee.salary_currency = "USD"
     db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == employee.id).delete(synchronize_session=False)
