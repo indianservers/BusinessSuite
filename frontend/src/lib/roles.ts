@@ -127,7 +127,8 @@ function hasOptionalHrPermission(role: string | null | undefined, permission: "h
   return permissionRoles[permission].includes(value);
 }
 
-function isCrmRole(role?: string | null) {
+function isCrmRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
   return [
     "crm_super_admin",
     "crm_org_admin",
@@ -139,7 +140,8 @@ function isCrmRole(role?: string | null) {
   ].includes(normalizeRole(role));
 }
 
-function isProjectManagementRole(role?: string | null) {
+function isProjectManagementRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
   return [
     "pms_super_admin",
     "pms_org_admin",
@@ -429,11 +431,11 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
   const activeModule = getActiveModule(pathname);
 
   if (activeModule === "crm") {
-    return installedApps.includes("crm") && isCrmRole(role) ? crmNav : [];
+    return installedApps.includes("crm") && isCrmRole(role, isSuperuser) ? crmNav : [];
   }
 
   if (activeModule === "project_management") {
-    return installedApps.includes("project_management") && isProjectManagementRole(role) ? projectManagementNav : [];
+    return installedApps.includes("project_management") && isProjectManagementRole(role, isSuperuser) ? projectManagementNav : [];
   }
 
   if (activeModule === "ai_agents") {
@@ -445,10 +447,10 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
     if (installedApps.includes("hrms") && isHrmsRole(role, isSuperuser)) {
       suiteNav.push({ label: "AI HRMS", icon: Building2, to: "/hrms", group: "Applications", exact: true });
     }
-    if (installedApps.includes("crm") && isCrmRole(role)) {
+    if (installedApps.includes("crm") && isCrmRole(role, isSuperuser)) {
       suiteNav.push({ label: "VyaparaCRM", icon: Briefcase, to: "/crm", group: "Applications", exact: true });
     }
-    if (installedApps.includes("project_management") && isProjectManagementRole(role)) {
+    if (installedApps.includes("project_management") && isProjectManagementRole(role, isSuperuser)) {
       suiteNav.push({ label: "KaryaFlow", icon: Target, to: "/pms", group: "Applications", exact: true });
     }
     if (key !== "employee") {
@@ -519,8 +521,8 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
   if (pathname === "/") return true;
   if (pathname.startsWith("/ai-agents")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname === "/hrms") return isHrmsRole(role, isSuperuser);
-  if (pathname.startsWith("/crm")) return isCrmRole(role);
-  if (pathname.startsWith("/pms")) return isProjectManagementRole(role);
+  if (pathname.startsWith("/crm")) return isCrmRole(role, isSuperuser);
+  if (pathname.startsWith("/pms")) return isProjectManagementRole(role, isSuperuser);
   if (pathname.startsWith("/hrms/") && !isHrmsRole(role, isSuperuser)) return false;
   const normalizedPathname = pathname.startsWith("/hrms/")
     ? pathname.replace(/^\/hrms/, "")

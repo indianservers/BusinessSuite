@@ -104,7 +104,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
             {navItems.map((item, index) => {
               const showGroup = !collapsed && item.group && item.group !== navItems[index - 1]?.group;
               return (
-                <Fragment key={item.to}>
+                <Fragment key={`${item.to}:${item.label}`}>
                   {showGroup && (
                     <li className={cn(index > 0 && "pt-3")}>
                       {index > 0 && <hr className="mb-3 border-sidebar-border" />}
