@@ -48,6 +48,9 @@ SYSTEM_PERMISSIONS = [
     ("settings_manage", "Manage platform settings", "settings"),
     # Workflow
     ("workflow_view", "View workflow inbox", "workflow"),
+    ("approval_os_view", "View centralized approval operating system", "approval_os"),
+    ("approval_os_create", "Create centralized approval requests", "approval_os"),
+    ("approval_os_admin", "Administer centralized approvals, escalations, and audit", "approval_os"),
     # Notifications
     ("notification_view", "View notification inbox", "notification"),
     ("notification_manage", "Manage notifications and delivery hooks", "notification"),
@@ -103,7 +106,8 @@ SYSTEM_ROLES = [
             "reports_view", "reports_manage", "settings_view", "settings_manage",
             "asset_view", "asset_manage", "exit_view", "exit_manage", "ai_assistant",
             "timesheet_view", "timesheet_manage", "timesheet_approve",
-            "targets_view", "targets_manage", "workflow_view", "notification_view", "notification_manage",
+            "targets_view", "targets_manage", "workflow_view", "approval_os_view", "approval_os_create", "approval_os_admin",
+            "notification_view", "notification_manage",
         ],
     },
     {
@@ -113,7 +117,7 @@ SYSTEM_ROLES = [
             "company_view", "employee_view", "attendance_view", "leave_view",
             "payroll_view", "recruitment_view", "performance_view", "reports_view",
             "timesheet_view",
-            "targets_view", "workflow_view", "notification_view", "ai_assistant",
+            "targets_view", "workflow_view", "approval_os_view", "notification_view", "ai_assistant",
         ],
     },
     {
@@ -124,7 +128,7 @@ SYSTEM_ROLES = [
             "payroll_view", "performance_view", "performance_manage", "helpdesk_view",
             "reports_view", "ai_assistant",
             "timesheet_view", "timesheet_approve",
-            "targets_view", "workflow_view",
+            "targets_view", "workflow_view", "approval_os_view",
             "notification_view",
         ],
     },
@@ -135,24 +139,24 @@ SYSTEM_ROLES = [
             "attendance_view", "leave_view", "leave_apply", "payroll_view",
             "performance_view", "helpdesk_view", "ai_assistant",
             "timesheet_view",
-            "targets_view", "workflow_view",
+            "targets_view", "workflow_view", "approval_os_view",
             "notification_view",
         ],
     },
     {
         "name": "crm_super_admin",
         "description": "CRM platform super admin",
-        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view"],
+        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin"],
     },
     {
         "name": "crm_org_admin",
         "description": "CRM organization admin",
-        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view"],
+        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin"],
     },
     {
         "name": "crm_sales_manager",
         "description": "CRM sales manager",
-        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "reports_view", "notification_view"],
+        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "reports_view", "notification_view", "approval_os_view"],
     },
     {
         "name": "crm_sales_executive",
@@ -177,17 +181,17 @@ SYSTEM_ROLES = [
     {
         "name": "pms_super_admin",
         "description": "Project management platform super admin",
-        "permissions": ["pms_view", "pms_manage_projects", "pms_manage_tasks", "pms_time_manage", "pms_client_portal", "pms_admin", "reports_view", "settings_view"],
+        "permissions": ["pms_view", "pms_manage_projects", "pms_manage_tasks", "pms_time_manage", "pms_client_portal", "pms_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin"],
     },
     {
         "name": "pms_org_admin",
         "description": "Project management organization admin",
-        "permissions": ["pms_view", "pms_manage_projects", "pms_manage_tasks", "pms_time_manage", "pms_client_portal", "pms_admin", "reports_view", "settings_view"],
+        "permissions": ["pms_view", "pms_manage_projects", "pms_manage_tasks", "pms_time_manage", "pms_client_portal", "pms_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin"],
     },
     {
         "name": "pms_project_manager",
         "description": "Project manager",
-        "permissions": ["pms_view", "pms_manage_projects", "pms_manage_tasks", "pms_time_manage", "reports_view", "notification_view"],
+        "permissions": ["pms_view", "pms_manage_projects", "pms_manage_tasks", "pms_time_manage", "reports_view", "notification_view", "approval_os_view"],
     },
     {
         "name": "pms_team_member",

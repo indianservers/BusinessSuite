@@ -15,6 +15,7 @@ const MyAttendancePage = React.lazy(() => import("@/apps/hrms/pages/attendance/M
 const ShiftRosterPage = React.lazy(() => import("@/apps/hrms/pages/attendance/ShiftRosterPage"));
 const MyRosterPage = React.lazy(() => import("@/apps/hrms/pages/attendance/MyRosterPage"));
 const TimesheetsPage = React.lazy(() => import("@/apps/hrms/pages/timesheets/TimesheetsPage"));
+const ApprovalOsPage = React.lazy(() => import("@/apps/hrms/pages/workflow/ApprovalOsPage"));
 const WorkflowInboxPage = React.lazy(() => import("@/apps/hrms/pages/workflow/WorkflowInboxPage"));
 const WorkflowDesignerPage = React.lazy(() => import("@/apps/hrms/pages/workflow/WorkflowDesignerPage"));
 const NotificationsPage = React.lazy(() => import("@/apps/hrms/pages/notifications/NotificationsPage"));
@@ -66,6 +67,7 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "attendance/shift-roster", element: <ShiftRosterPage /> },
   { path: "my-roster", element: <MyRosterPage /> },
   { path: "timesheets", element: <TimesheetsPage /> },
+  { path: "approval-os", element: <ApprovalOsPage /> },
   { path: "workflow", element: <WorkflowInboxPage /> },
   { path: "workflow-designer", element: <WorkflowDesignerPage /> },
   { path: "notifications", element: <NotificationsPage /> },

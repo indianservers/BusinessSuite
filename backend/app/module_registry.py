@@ -20,6 +20,7 @@ class AppModule:
 
 COMMON_ROUTER_MODULES = (
     "app.api.v1.auth",
+    "app.api.v1.approval_os",
     "app.api.v1.logs",
     "app.api.v1.users",
     "app.api.v1.workflow_engine",
@@ -30,6 +31,7 @@ COMMON_MODEL_MODULES = (
     "app.models.user",
     "app.common.models",
     "app.models.audit",
+    "app.models.approval_os",
     "app.models.notification",
     "app.models.sso",
     "app.models.workflow_engine",

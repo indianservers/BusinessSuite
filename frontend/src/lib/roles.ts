@@ -158,6 +158,7 @@ const hrNav: RoleNavItem[] = [
   { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
   { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
   { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
   { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
@@ -190,6 +191,7 @@ const hrNav: RoleNavItem[] = [
 const adminNav: RoleNavItem[] = [
   { label: "Admin Home", icon: ShieldCheck, to: "/admin-home", group: "Core HR", exact: true },
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Workflow Designer", icon: GitBranch, to: "/workflow-designer", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
@@ -231,6 +233,7 @@ const adminNav: RoleNavItem[] = [
 const ceoNav: RoleNavItem[] = [
   { label: "Executive Home", icon: LayoutDashboard, to: "/executive-home", group: "Core HR", exact: true },
   { label: "Executive Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
   { label: "Reports", icon: BarChart3, to: "/reports", group: "Finance" },
@@ -254,6 +257,7 @@ const ceoNav: RoleNavItem[] = [
 const managerNav: RoleNavItem[] = [
   { label: "Team Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Manager Hub", icon: Users, to: "/manager-dashboard", group: "Core HR", exact: true },
+  { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
   { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
@@ -282,6 +286,7 @@ const employeeNav: RoleNavItem[] = [
   { label: "My Leave", icon: CalendarDays, to: "/leave", group: "Self Service" },
   { label: "My Payslips", icon: DollarSign, to: "/my-payslips", group: "Self Service" },
   { label: "My Documents", icon: FileText, to: "/documents", group: "Self Service" },
+  { label: "My Approvals", icon: FileCheck2, to: "/approval-os", group: "Home" },
   { label: "My Requests", icon: Inbox, to: "/workflow", group: "Home" },
 ];
 
@@ -474,6 +479,7 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/ess": ["admin", "ceo", "hr", "manager", "employee"],
   "/profile": ["admin", "ceo", "hr", "manager", "employee"],
   "/workflow/admin": ["admin", "hr", "manager"],
+  "/approval-os": ["admin", "ceo", "hr", "manager", "employee"],
   "/workflow": ["admin", "ceo", "hr", "manager", "employee"],
   "/workflow-designer": ["admin"],
   "/notifications": ["admin", "ceo", "hr", "manager"],
@@ -549,6 +555,7 @@ export function getRequiredPermissionForPath(pathname: string) {
     .find((path) => normalizedPathname === path || normalizedPathname.startsWith(`${path}/`));
 
   if (match === "/company") return "hr.company_admin or Admin";
+  if (match === "/approval-os") return "Approval OS";
   if (match === "/workflow-designer") return "hr.workflow_admin or Admin";
   if (match === "/custom-fields") return "hr.custom_field_admin or Admin";
   if (match === "/workflow/admin") return "Approval Administration";

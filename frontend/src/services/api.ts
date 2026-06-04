@@ -874,6 +874,18 @@ export const workflowApi = {
   processEscalations: () => api.post("/workflow-engine/tasks/process-escalations"),
 };
 
+export const approvalOsApi = {
+  inbox: (params?: Record<string, unknown>) => api.get("/approval-os/inbox", { params }),
+  summary: (params?: Record<string, unknown>) => api.get("/approval-os/summary", { params }),
+  createRequest: (data: unknown) => api.post("/approval-os/requests", data),
+  getRequest: (id: number) => api.get(`/approval-os/requests/${id}`),
+  approve: (id: number, data: unknown) => api.put(`/approval-os/requests/${id}/approve`, data),
+  reject: (id: number, data: unknown) => api.put(`/approval-os/requests/${id}/reject`, data),
+  addComment: (id: number, data: unknown) => api.post(`/approval-os/requests/${id}/comments`, data),
+  history: (id: number) => api.get(`/approval-os/requests/${id}/history`),
+  processEscalations: () => api.post("/approval-os/process-escalations"),
+};
+
 export const workflowDefinitionsApi = {
   list: (params?: Record<string, unknown>) =>
     api.get("/workflow-engine/definitions", { params }),
