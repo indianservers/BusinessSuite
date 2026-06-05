@@ -242,6 +242,78 @@ function srmResponse(path: string, method: string) {
       reminders: [{ id: 1, reminder_type: "email", status: "sent", invoice_id: 1 }, { id: 2, reminder_type: "escalation", status: "sent", invoice_id: 1 }, { id: 3, reminder_type: "write_off_request", status: "queued", invoice_id: 1 }],
     };
   }
+  if (path === "/srm/sales-orders/1") {
+    return {
+      id: 1,
+      order_number: "SO-000001",
+      title: "Implementation order",
+      customer_id: 10,
+      crm_deal_id: 501,
+      crm_quote_id: 701,
+      status: "confirmed",
+      subtotal_amount: 211864,
+      tax_amount: 38136,
+      total_amount: 250000,
+      contract_id: 3,
+      engagement_id: 2,
+      billing_plan_id: 4,
+      pms_project_id: 301,
+      lines: [{ id: 1, description: "Implementation milestone", quantity: 1, unit_price: 250000, line_total: 250000 }],
+      audit_trail: [{ id: 1, action: "confirmed" }],
+    };
+  }
+  if (path === "/srm/contracts/1") {
+    return {
+      id: 1,
+      contract_number: "CTR-000001",
+      title: "Managed Services",
+      customer_id: 10,
+      sales_order_id: 1,
+      engagement_id: 2,
+      status: "active",
+      contract_value: 250000,
+      start_date: "2026-06-01",
+      end_date: "2027-05-31",
+      billing_terms: "Milestone billing",
+      billing_plan_id: 4,
+      audit_trail: [{ id: 1, action: "activated" }],
+    };
+  }
+  if (path === "/srm/engagements/1" || path === "/srm/engagements/2") {
+    return {
+      id: Number(path.split("/").pop()),
+      engagement_number: "ENG-000001",
+      name: "Delivery engagement",
+      customer_id: 10,
+      crm_deal_id: 501,
+      crm_quote_id: 701,
+      sales_order_id: 1,
+      contract_id: 3,
+      billing_plan_id: 4,
+      pms_project_id: 301,
+      status: "project_created",
+      delivery_status: "delivery_in_progress",
+      billing_status: "billing_in_progress",
+      budget_amount: 250000,
+      audit_trail: [{ id: 1, action: "pms_project_created" }],
+    };
+  }
+  if (path === "/srm/billing-plans/1" || path === "/srm/billing-plans/4") {
+    return {
+      id: Number(path.split("/").pop()),
+      name: "Milestone billing",
+      sales_order_id: 1,
+      engagement_id: 2,
+      contract_id: 3,
+      plan_type: "milestone",
+      status: "active",
+      total_amount: 250000,
+      invoiced_amount: 100000,
+      balance_amount: 150000,
+      milestones: [{ id: 1, name: "Go-live milestone", amount: 250000, invoice_status: "ready" }],
+      audit_trail: [{ id: 1, action: "activated" }],
+    };
+  }
   if (path.includes("/sales-orders")) {
     return [{ id: 1, order_number: "SO-000001", title: "Implementation order", customer_id: 10, status: "confirmed", total_amount: 250000, created_at: "2026-06-04T00:00:00Z" }];
   }
