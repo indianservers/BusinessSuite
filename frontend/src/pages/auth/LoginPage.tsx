@@ -66,6 +66,21 @@ const moduleLogins = {
       { label: "Client", email: "client@karyaflow.com", password: "Password@123", description: "Client portal, deliverables, approvals" },
     ],
   },
+  srm: {
+    product: "RevenueFlow SRM",
+    authModule: "srm",
+    tagline: "Sales & Revenue Management",
+    description: "Enter your SRM credentials",
+    afterLogin: "/srm",
+    accent: "amber",
+    demoLogins: [
+      { label: "SRM Admin", email: "admin@srm.local", password: "Password@123", description: "SRM settings, approvals, lifecycle controls" },
+      { label: "Sales Manager", email: "sales.manager@srm.local", password: "Password@123", description: "Team sales orders, engagements, revenue dashboards" },
+      { label: "Sales Executive", email: "sales.executive@srm.local", password: "Password@123", description: "Assigned sales orders and engagement handoffs" },
+      { label: "Finance Manager", email: "finance@srm.local", password: "Password@123", description: "Invoices, approvals, receipts, profitability" },
+      { label: "Collections", email: "collections@srm.local", password: "Password@123", description: "Aging, reminders, receipts, allocations" },
+    ],
+  },
 } as const;
 
 const loginThemes = {
@@ -99,11 +114,22 @@ const loginThemes = {
     button: "bg-violet-600 hover:bg-violet-500 shadow-violet-500/25",
     ring: "focus-visible:ring-violet-400",
   },
+  srm: {
+    page: "from-slate-950 via-amber-950 to-zinc-950",
+    glow: "from-amber-700/20",
+    logo: "bg-amber-600 shadow-amber-500/25",
+    text: "text-amber-100",
+    textSoft: "text-amber-100/70",
+    textMuted: "text-amber-100/60",
+    button: "bg-amber-600 hover:bg-amber-500 shadow-amber-500/25",
+    ring: "focus-visible:ring-amber-400",
+  },
 } as const;
 
 function getLoginModule(pathname: string): keyof typeof moduleLogins {
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/pms")) return "project_management";
+  if (pathname.startsWith("/srm")) return "srm";
   return "hrms";
 }
 

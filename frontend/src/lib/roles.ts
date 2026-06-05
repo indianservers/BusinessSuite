@@ -4,6 +4,7 @@ import {
   Briefcase,
   Building2,
   CalendarDays,
+  CheckCircle2,
   ClipboardCheck,
   Clock,
   Inbox,
@@ -25,6 +26,7 @@ import {
   MessageCircle,
   Network,
   Package,
+  Receipt,
   ScrollText,
   Search,
   Settings,
@@ -79,6 +81,17 @@ export function getRoleLabel(role?: string | null, isSuperuser = false) {
   };
   if (crmLabels[normalizedRole]) return crmLabels[normalizedRole];
   if (projectLabels[normalizedRole]) return projectLabels[normalizedRole];
+  const srmLabels: Record<string, string> = {
+    srm_admin: "SRM Admin",
+    srm_sales_manager: "SRM Sales Manager",
+    srm_sales_executive: "SRM Sales Executive",
+    srm_finance_manager: "Finance Manager",
+    srm_revenue_manager: "Revenue Manager",
+    srm_collection_executive: "Collection Executive",
+    srm_business_owner: "Business Owner",
+    srm_viewer: "SRM Viewer",
+  };
+  if (srmLabels[normalizedRole]) return srmLabels[normalizedRole];
 
   const key = getRoleKey(role, isSuperuser);
   const labels: Record<RoleKey, string> = {
@@ -140,6 +153,47 @@ function isCrmRole(role?: string | null, isSuperuser = false) {
   ].includes(normalizeRole(role));
 }
 
+function isCrmAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "crm_super_admin", "crm_org_admin"].includes(normalizeRole(role));
+}
+
+function isCrmManagerRole(role?: string | null, isSuperuser = false) {
+  if (isCrmAdminRole(role, isSuperuser)) return true;
+  return normalizeRole(role) === "crm_sales_manager";
+}
+
+const crmAdminOnlyPaths = [
+  "/crm/admin",
+  "/crm/settings",
+  "/crm/approval-settings",
+  "/crm/webhooks",
+  "/crm/feature-checklist",
+];
+
+const crmManagerOnlyPaths = [
+  "/crm/import-export",
+  "/crm/lead-scoring",
+  "/crm/pipeline-settings",
+  "/crm/territories",
+];
+
+function canAccessCrmPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isCrmRole(role, isSuperuser)) return false;
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/crm";
+  if (crmAdminOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isCrmAdminRole(role, isSuperuser);
+  }
+  if (crmManagerOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isCrmManagerRole(role, isSuperuser);
+  }
+  return true;
+}
+
+function getCrmNavForRole(role?: string | null, isSuperuser = false) {
+  return crmNav.filter((item) => !item.to.startsWith("/crm") || canAccessCrmPath(item.to, role, isSuperuser));
+}
+
 function isProjectManagementRole(role?: string | null, isSuperuser = false) {
   if (isSuperuser) return true;
   return [
@@ -150,6 +204,170 @@ function isProjectManagementRole(role?: string | null, isSuperuser = false) {
     "pms_client",
     "pms_viewer",
   ].includes(normalizeRole(role));
+}
+
+function isPmsAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "pms_super_admin", "pms_org_admin"].includes(normalizeRole(role));
+}
+
+function isPmsManagerRole(role?: string | null, isSuperuser = false) {
+  if (isPmsAdminRole(role, isSuperuser)) return true;
+  return normalizeRole(role) === "pms_project_manager";
+}
+
+function isPmsDeliveryRole(role?: string | null, isSuperuser = false) {
+  if (isPmsManagerRole(role, isSuperuser)) return true;
+  return normalizeRole(role) === "pms_team_member";
+}
+
+const pmsAdminOnlyPaths = [
+  "/pms/admin",
+  "/pms/settings",
+  "/pms/security",
+  "/pms/apps",
+  "/pms/workflows",
+  "/pms/blueprints",
+  "/pms/components",
+  "/pms/templates",
+  "/pms/forms",
+  "/pms/plans",
+];
+
+const pmsManagerOnlyPaths = [
+  "/pms/projects/new",
+  "/pms/command-center",
+  "/pms/enterprise-engine",
+  "/pms/product-launch",
+  "/pms/portfolio",
+  "/pms/dependency-management",
+  "/pms/resource-planning",
+  "/pms/agile-execution",
+  "/pms/project-financials",
+  "/pms/resource-utilization",
+  "/pms/reports",
+  "/pms/dashboards",
+];
+
+const pmsDeliveryOnlyPaths = [
+  "/pms/backlog",
+  "/pms/backlog-grooming",
+  "/pms/issues",
+  "/pms/tasks",
+  "/pms/navigator",
+  "/pms/issue-navigator-pro",
+  "/pms/risk-register",
+  "/pms/risks",
+  "/pms/goals",
+  "/pms/roadmap",
+  "/pms/timeline-plus",
+  "/pms/dependencies",
+  "/pms/releases",
+  "/pms/calendar",
+  "/pms/gantt",
+  "/pms/sprints",
+  "/pms/sprint-lifecycle",
+  "/pms/files",
+  "/pms/time-tracking",
+  "/pms/timesheets",
+  "/pms/workload",
+  "/pms/capacity",
+  "/pms/automation",
+  "/pms/automation-ai",
+  "/pms/software",
+  "/pms/live",
+  "/pms/teams-live",
+  "/pms/work-hub",
+  "/pms/ai-planner",
+  "/pms/projects",
+];
+
+function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isProjectManagementRole(role, isSuperuser)) return false;
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";
+  const normalizedRole = normalizeRole(role);
+
+  if (normalizedPath === "/pms" || normalizedPath === "/pms/profile") return true;
+  if (normalizedPath === "/pms/client-portal" || normalizedPath.startsWith("/pms/client-portal/")) {
+    return true;
+  }
+  if (normalizedRole === "pms_client") return false;
+
+  if (pmsAdminOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isPmsAdminRole(role, isSuperuser);
+  }
+  if (pmsManagerOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isPmsManagerRole(role, isSuperuser);
+  }
+  if (pmsDeliveryOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isPmsDeliveryRole(role, isSuperuser) || normalizedRole === "pms_viewer";
+  }
+  return isPmsManagerRole(role, isSuperuser);
+}
+
+function getPmsNavForRole(role?: string | null, isSuperuser = false) {
+  return projectManagementNav.filter((item) => !item.to.startsWith("/pms") || canAccessPmsPath(item.to, role, isSuperuser));
+}
+
+function isSrmRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return [
+    "srm_admin",
+    "srm_sales_manager",
+    "srm_sales_executive",
+    "srm_finance_manager",
+    "srm_revenue_manager",
+    "srm_collection_executive",
+    "srm_business_owner",
+    "srm_viewer",
+  ].includes(normalizeRole(role));
+}
+
+function isSrmAdminRole(role?: string | null, isSuperuser = false) {
+  if (isSuperuser) return true;
+  return ["super_admin", "admin", "srm_admin"].includes(normalizeRole(role));
+}
+
+function isSrmFinanceRole(role?: string | null, isSuperuser = false) {
+  if (isSrmAdminRole(role, isSuperuser)) return true;
+  return ["srm_finance_manager", "srm_revenue_manager", "srm_business_owner"].includes(normalizeRole(role));
+}
+
+function isSrmCollectionRole(role?: string | null, isSuperuser = false) {
+  if (isSrmAdminRole(role, isSuperuser)) return true;
+  return ["srm_collection_executive", "srm_finance_manager", "srm_business_owner"].includes(normalizeRole(role));
+}
+
+function isSrmSalesRole(role?: string | null, isSuperuser = false) {
+  if (isSrmAdminRole(role, isSuperuser)) return true;
+  return ["srm_sales_manager", "srm_sales_executive", "srm_business_owner"].includes(normalizeRole(role));
+}
+
+const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/revenue-recognition", "/srm/profitability", "/srm/reports"];
+const srmCollectionOnlyPaths = ["/srm/collections"];
+const srmSalesOnlyPaths = ["/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360"];
+
+function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (!isSrmRole(role, isSuperuser)) return false;
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/srm";
+  const normalizedRole = normalizeRole(role);
+  if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;
+  if (normalizedPath === "/srm/settings") return true;
+  if (normalizedPath === "/srm/reports") return isSrmFinanceRole(role, isSuperuser) || normalizedRole === "srm_viewer";
+  if (srmCollectionOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isSrmCollectionRole(role, isSuperuser);
+  }
+  if (srmFinanceOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isSrmFinanceRole(role, isSuperuser);
+  }
+  if (srmSalesOnlyPaths.some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+    return isSrmSalesRole(role, isSuperuser) || normalizedRole === "srm_viewer";
+  }
+  return isSrmAdminRole(role, isSuperuser);
+}
+
+function getSrmNavForRole(role?: string | null, isSuperuser = false) {
+  return srmNav.filter((item) => !item.to.startsWith("/srm") || canAccessSrmPath(item.to, role, isSuperuser));
 }
 
 const hrNav: RoleNavItem[] = [
@@ -376,6 +594,23 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "PM Admin", icon: ShieldCheck, to: "/pms/admin", group: "Project Admin" },
 ];
 
+const srmNav: RoleNavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, to: "/srm/dashboard", group: "Sales & Revenue", exact: true },
+  { label: "Sales Orders", icon: Receipt, to: "/srm/sales-orders", group: "Sales & Revenue" },
+  { label: "Contracts", icon: FileCheck2, to: "/srm/contracts", group: "Sales & Revenue" },
+  { label: "Engagements", icon: Briefcase, to: "/srm/engagements", group: "Sales & Revenue" },
+  { label: "Billing Plans", icon: CalendarDays, to: "/srm/billing-plans", group: "Billing" },
+  { label: "Invoice Drafts", icon: FileText, to: "/srm/invoice-drafts", group: "Billing" },
+  { label: "Invoices", icon: DollarSign, to: "/srm/invoices", group: "Billing" },
+  { label: "Collections", icon: Landmark, to: "/srm/collections", group: "Collections" },
+  { label: "Revenue Recognition", icon: CheckCircle2, to: "/srm/revenue-recognition", group: "Revenue" },
+  { label: "Profitability", icon: BarChart3, to: "/srm/profitability", group: "Revenue" },
+  { label: "Customer 360", icon: Users, to: "/srm/customer-360", group: "Revenue" },
+  { label: "Reports", icon: BarChart3, to: "/srm/reports", group: "Insights" },
+  { label: "Settings", icon: Settings, to: "/srm/settings", group: "Admin" },
+];
+
+
 const aiAgentsNav: RoleNavItem[] = [
   { label: "Dashboard", icon: Sparkles, to: "/ai-agents", group: "AI Agents", exact: true },
   { label: "Chat", icon: MessageCircle, to: "/ai-agents", group: "AI Agents" },
@@ -390,6 +625,7 @@ const aiAgentsNav: RoleNavItem[] = [
   { label: "Logs", icon: ScrollText, to: "/ai-agents/logs", group: "AI Agents" },
   { label: "CRM", icon: Briefcase, to: "/crm", group: "Applications", exact: true },
   { label: "PMS", icon: Target, to: "/pms", group: "Applications", exact: true },
+  { label: "SRM", icon: Receipt, to: "/srm", group: "Applications", exact: true },
   { label: "HRMS", icon: Building2, to: "/hrms", group: "Applications", exact: true },
 ];
 
@@ -405,6 +641,7 @@ export function getActiveModule(pathname: string) {
   if (pathname.startsWith("/ai-agents")) return "ai_agents";
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/pms")) return "project_management";
+  if (pathname.startsWith("/srm")) return "srm";
   return "hrms";
 }
 
@@ -436,11 +673,15 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
   const activeModule = getActiveModule(pathname);
 
   if (activeModule === "crm") {
-    return installedApps.includes("crm") && isCrmRole(role, isSuperuser) ? crmNav : [];
+    return installedApps.includes("crm") && isCrmRole(role, isSuperuser) ? getCrmNavForRole(role, isSuperuser) : [];
   }
 
   if (activeModule === "project_management") {
-    return installedApps.includes("project_management") && isProjectManagementRole(role, isSuperuser) ? projectManagementNav : [];
+    return installedApps.includes("project_management") && isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : [];
+  }
+
+  if (activeModule === "srm") {
+    return installedApps.includes("srm") && isSrmRole(role, isSuperuser) ? getSrmNavForRole(role, isSuperuser) : [];
   }
 
   if (activeModule === "ai_agents") {
@@ -457,6 +698,9 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
     }
     if (installedApps.includes("project_management") && isProjectManagementRole(role, isSuperuser)) {
       suiteNav.push({ label: "KaryaFlow", icon: Target, to: "/pms", group: "Applications", exact: true });
+    }
+    if (installedApps.includes("srm") && isSrmRole(role, isSuperuser)) {
+      suiteNav.push({ label: "RevenueFlow", icon: Receipt, to: "/srm", group: "Applications", exact: true });
     }
     if (key !== "employee") {
       suiteNav.push({ label: "AI Agents", icon: Sparkles, to: "/ai-agents", group: "Applications", badge: "AI", exact: true });
@@ -521,14 +765,16 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/ai-agents": ["admin", "ceo", "hr", "manager"],
   "/crm": ["admin", "ceo", "hr", "manager"],
   "/pms": ["admin", "ceo", "hr", "manager", "employee"],
+  "/srm": ["admin", "ceo", "hr", "manager"],
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
   if (pathname === "/") return true;
   if (pathname.startsWith("/ai-agents")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname === "/hrms") return isHrmsRole(role, isSuperuser);
-  if (pathname.startsWith("/crm")) return isCrmRole(role, isSuperuser);
-  if (pathname.startsWith("/pms")) return isProjectManagementRole(role, isSuperuser);
+  if (pathname.startsWith("/crm")) return canAccessCrmPath(pathname, role, isSuperuser);
+  if (pathname.startsWith("/pms")) return canAccessPmsPath(pathname, role, isSuperuser);
+  if (pathname.startsWith("/srm")) return canAccessSrmPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/hrms/") && !isHrmsRole(role, isSuperuser)) return false;
   const normalizedPathname = pathname.startsWith("/hrms/")
     ? pathname.replace(/^\/hrms/, "")
@@ -564,6 +810,7 @@ export function getRequiredPermissionForPath(pathname: string) {
   if (match === "/attendance/shift-roster") return "Shift Roster Administration";
   if (match) return routeAccess[match].map((role) => role.toUpperCase()).join(", ");
   if (pathname.startsWith("/ai-agents")) return "AI Agents Access";
+  if (pathname.startsWith("/srm")) return "SRM Access";
   return "Admin";
 }
 

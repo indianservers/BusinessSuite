@@ -394,6 +394,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
             <main className="space-y-5">
               <DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving} />
+              {kind === "deals" ? <CommercialHandoff related={record.related || {}} /> : null}
               <FullDetails kind={kind} record={record} onSave={saveInlineField} />
               {["deals", "quotations"].includes(kind) ? <ApprovalTimeline approval={approval} /> : null}
               <CustomFields fields={record.customFields || []} onSave={saveCustomField} />
@@ -423,6 +424,37 @@ function DetailFields({ kind, record, fields, onSave, saving }: { kind: DetailKi
         {fields.map((key) => <InlineField key={key} config={detailInlineEditConfig[kind]?.[key]} fieldKey={key} value={record[key]} onSave={onSave} saving={saving} />)}
       </CardContent>
     </Card>
+  );
+}
+
+function CommercialHandoff({ related }: { related: Record<string, unknown> }) {
+  const srm = related.srm as CRMApiRecord | undefined;
+  if (!srm || typeof srm !== "object") return null;
+  const salesOrder = srm.salesOrder as CRMApiRecord | null | undefined;
+  const engagement = srm.engagement as CRMApiRecord | null | undefined;
+  const contract = srm.contract as CRMApiRecord | null | undefined;
+  const billingPlan = srm.billingPlan as CRMApiRecord | null | undefined;
+  const pmsProject = srm.pmsProject as CRMApiRecord | null | undefined;
+  return (
+    <Card>
+      <CardHeader><CardTitle>Commercial Handoff</CardTitle></CardHeader>
+      <CardContent className="grid gap-3 md:grid-cols-2">
+        <HandoffLine label="SRM Sales Order" value={valueText(salesOrder?.order_number || salesOrder?.title)} to={salesOrder?.id ? `/srm/sales-orders` : undefined} />
+        <HandoffLine label="SRM Engagement" value={valueText(engagement?.engagement_number || engagement?.name)} to={engagement?.id ? `/srm/engagements` : undefined} />
+        <HandoffLine label="SRM Contract" value={valueText(contract?.contract_number || contract?.title)} to={contract?.id ? `/srm/contracts` : undefined} />
+        <HandoffLine label="Billing Plan" value={valueText(billingPlan?.name || billingPlan?.billing_type)} to={billingPlan?.id ? `/srm/billing-plans` : undefined} />
+        <HandoffLine label="PMS Project" value={valueText(pmsProject?.project_key || pmsProject?.name)} to={pmsProject?.id ? `/pms/projects/${pmsProject.id}` : undefined} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function HandoffLine({ label, value, to }: { label: string; value: string; to?: string }) {
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      {to && value ? <Link to={to} className="mt-1 block truncate font-medium text-primary hover:underline">{value}</Link> : <p className="mt-1 font-medium">{value || "Not linked"}</p>}
+    </div>
   );
 }
 

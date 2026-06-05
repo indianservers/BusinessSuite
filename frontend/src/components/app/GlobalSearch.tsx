@@ -43,6 +43,16 @@ export default function GlobalSearch() {
         { type: "Page", title: "Reports", subtitle: "Delivery analytics", url: "/pms/reports" },
       ];
     }
+    if (product.key === "srm") {
+      return [
+        { type: "Page", title: "SRM Dashboard", url: "/srm" },
+        { type: "Page", title: "Sales Orders", subtitle: "CRM won handoffs and order approvals", url: "/srm/sales-orders" },
+        { type: "Page", title: "Engagements", subtitle: "CRM, SRM, and PMS lifecycle links", url: "/srm/engagements" },
+        { type: "Page", title: "Invoices", subtitle: "Drafts, approvals, sending, and PDF", url: "/srm/invoices" },
+        { type: "Page", title: "Collections", subtitle: "Receipts, allocations, aging, reminders", url: "/srm/collections" },
+        { type: "Page", title: "Profitability", subtitle: "Margin and cash performance", url: "/srm/profitability" },
+      ];
+    }
     return [
       { type: "Page", title: "HRMS Dashboard", url: "/hrms" },
       { type: "Page", title: "Payroll", subtitle: "Run, pre-checks, payslips", url: "/hrms/payroll" },

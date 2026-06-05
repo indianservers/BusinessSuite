@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Briefcase, Building2, FolderKanban, LogIn, Sparkles } from "lucide-react";
+import { Briefcase, Building2, FolderKanban, LogIn, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuthStore } from "@/store/authStore";
@@ -35,6 +35,16 @@ const modules = [
     loginPath: "/pms/login",
     tone: "bg-violet-600",
   },
+  {
+    key: "srm",
+    name: "Sales & Revenue Management",
+    label: "SRM",
+    description: "Manage sales orders, contracts, billing, invoices, collections, and revenue profitability.",
+    icon: Receipt,
+    homePath: "/srm",
+    loginPath: "/srm/login",
+    tone: "bg-amber-600",
+  },
 ];
 
 export default function ModuleIndexPage() {
@@ -51,7 +61,7 @@ export default function ModuleIndexPage() {
             </div>
             <h1 className="text-3xl font-semibold tracking-tight">Choose a module</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Open CRM, HRMS, or PMS from one index page. Sign in to the module you want to use.
+              Open CRM, HRMS, PMS, or SRM from one index page. Sign in to the module you want to use.
             </p>
           </div>
           <Button asChild variant="outline">
@@ -60,7 +70,7 @@ export default function ModuleIndexPage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-3">
+      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-4">
         {modules.map((module) => {
           const Icon = module.icon;
           return (
@@ -76,7 +86,7 @@ export default function ModuleIndexPage() {
                   <div className="mt-6 grid gap-2">
                     <Button asChild>
                       <Link to={isHydrated && isAuthenticated ? module.homePath : module.loginPath}>
-                        {!isHydrated ? "Loading..." : isAuthenticated ? "Open module" : "Sign in"}
+                        {!isHydrated ? "Loading..." : module.key === "srm" ? "Open SRM" : isAuthenticated ? `Open ${module.label}` : "Sign in"}
                       </Link>
                     </Button>
                   </div>

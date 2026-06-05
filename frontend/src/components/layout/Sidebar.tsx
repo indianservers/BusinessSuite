@@ -27,7 +27,9 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
       ? "/crm/profile"
       : location.pathname.startsWith("/pms")
         ? "/pms/profile"
-        : "/";
+        : location.pathname.startsWith("/srm")
+          ? "/srm/profile"
+          : "/";
   const handleLogout = () => {
     logout();
     navigate(product.loginPath, { replace: true });

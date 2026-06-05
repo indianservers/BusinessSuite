@@ -60,6 +60,12 @@ export interface PMSProject {
   progress_percent: number;
   is_client_visible: boolean;
   is_archived: boolean;
+  srm_links?: {
+    engagement?: Record<string, unknown> | null;
+    sales_order?: Record<string, unknown> | null;
+    contract?: Record<string, unknown> | null;
+    billing_plan?: Record<string, unknown> | null;
+  } | null;
   created_at: string;
   updated_at: string;
 }

@@ -6,6 +6,7 @@ const labels: Record<string, string> = {
   hrms: "HRMS",
   crm: "CRM",
   pms: "PMS",
+  srm: "SRM",
   dashboard: "Dashboard",
   employees: "Employees",
   attendance: "Attendance",
@@ -36,6 +37,15 @@ const labels: Record<string, string> = {
   "agile-execution": "Agile Execution",
   "project-financials": "Project Financials",
   "risk-register": "Risk Register",
+  "sales-orders": "Sales Orders",
+  contracts: "Contracts",
+  engagements: "Engagements",
+  "billing-plans": "Billing Plans",
+  "invoice-drafts": "Invoice Drafts",
+  invoices: "Invoices",
+  collections: "Collections",
+  "revenue-recognition": "Revenue Recognition",
+  profitability: "Profitability",
 };
 
 export default function Breadcrumbs() {
@@ -66,5 +76,5 @@ export default function Breadcrumbs() {
 }
 
 function pathProductLabel(part: string) {
-  return part === "hrms" || part === "crm" || part === "pms";
+  return part === "hrms" || part === "crm" || part === "pms" || part === "srm";
 }

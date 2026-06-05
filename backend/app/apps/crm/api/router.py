@@ -2589,6 +2589,25 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int) ->
         related["contacts"] = _deal_contacts_for(db, record, organization_id)
         related["quotations"] = _list_related(db, "quotations", "deal_id", record.id, organization_id)
         related["products"] = _deal_products_for(db, record.id, organization_id)
+        try:
+            from app.apps.srm.models import SRMBillingPlan, SRMContract, SRMEngagement, SRMSalesOrder
+            from app.apps.project_management.models import PMSProject
+
+            sales_order = db.query(SRMSalesOrder).filter(SRMSalesOrder.crm_deal_id == record.id, SRMSalesOrder.deleted_at == None).first()
+            engagement = db.query(SRMEngagement).filter(SRMEngagement.crm_deal_id == record.id, SRMEngagement.deleted_at == None).first()
+            contract = db.query(SRMContract).filter(SRMContract.sales_order_id == sales_order.id, SRMContract.deleted_at == None).first() if sales_order else None
+            billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
+            project = db.query(PMSProject).filter(PMSProject.id == engagement.pms_project_id, PMSProject.deleted_at == None).first() if engagement and engagement.pms_project_id else None
+            if sales_order or engagement or project:
+                related["srm"] = {
+                    "salesOrder": _serialize(sales_order) if sales_order else None,
+                    "engagement": _serialize(engagement) if engagement else None,
+                    "contract": _serialize(contract) if contract else None,
+                    "billingPlan": _serialize(billing_plan) if billing_plan else None,
+                    "pmsProject": _serialize(project) if project else None,
+                }
+        except Exception:
+            pass
         approvals = _approval_requests_for_entity(db, organization_id, "deal", record.id)
         related["approval"] = approvals[0] if approvals else {"status": "not_submitted"}
         related["approvals"] = approvals
@@ -2977,6 +2996,39 @@ def _detail_payload(db: Session, entity: str, record: Any, organization_id: int)
     payload["timeline"] = _timeline_for(db, canonical, record, organization_id)
     payload["related"] = _related_for(db, canonical, record, organization_id)
     return payload
+
+
+def _maybe_create_srm_handoff_for_won_deal(db: Session, deal: CRMDeal, current_user: User) -> None:
+    """Create SRM commercial records after CRM deal won; CRM never creates PMS directly."""
+    is_won_status = str(getattr(deal, "status", "") or "").lower() == "won"
+    stage = db.query(CRMPipelineStage).filter(CRMPipelineStage.id == deal.stage_id).first() if deal.stage_id else None
+    if not (is_won_status or bool(getattr(stage, "is_won", False))):
+        return
+    try:
+        from app.apps.srm.api.router import create_sales_order_from_crm_deal_service
+
+        create_sales_order_from_crm_deal_service(deal.id, db, current_user)
+        _create_timeline_activity(
+            db,
+            organization_id=getattr(deal, "organization_id", None) or _organization_id(db, current_user),
+            entity_type="deal",
+            entity_id=deal.id,
+            activity_type="srm_handoff",
+            title="SRM commercial handoff created",
+            body="CRM won deal was handed off to SRM sales order, engagement, contract, and billing plan.",
+            user_id=current_user.id,
+        )
+    except Exception as exc:
+        _create_timeline_activity(
+            db,
+            organization_id=getattr(deal, "organization_id", None) or _organization_id(db, current_user),
+            entity_type="deal",
+            entity_id=deal.id,
+            activity_type="srm_handoff_failed",
+            title="SRM commercial handoff failed",
+            body=str(exc),
+            user_id=current_user.id,
+        )
 
 
 RELATED_RESOURCE_BY_FIELD = {
@@ -6387,6 +6439,9 @@ def create_record(
     if resource.model is not CRMLead:
         _recalculate_linked_lead(db, _serialize(record), organization_id, current_user.id)
         db.commit()
+    if resource.model is CRMDeal:
+        _maybe_create_srm_handoff_for_won_deal(db, record, current_user)
+        db.commit()
     return _serialize(record)
 
 
@@ -6503,6 +6558,9 @@ def update_record(
     db.commit()
     if resource.model is not CRMLead:
         _recalculate_linked_lead(db, _serialize(record), organization_id, current_user.id)
+        db.commit()
+    if resource.model is CRMDeal:
+        _maybe_create_srm_handoff_for_won_deal(db, record, current_user)
         db.commit()
     return _serialize(record)
 

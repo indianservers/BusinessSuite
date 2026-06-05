@@ -86,6 +86,17 @@ SYSTEM_PERMISSIONS = [
     ("pms_time_manage", "Manage time logs and approvals", "project_management"),
     ("pms_client_portal", "Access project client portal", "project_management"),
     ("pms_admin", "Manage project settings and admin areas", "project_management"),
+    # Sales & Revenue Management
+    ("srm_view", "View sales and revenue management records", "srm"),
+    ("srm_manage", "Manage SRM sales orders, contracts, engagements, and billing", "srm"),
+    ("srm_admin", "Administer SRM settings and lifecycle controls", "srm"),
+    ("srm_invoice_view", "View SRM invoices", "srm"),
+    ("srm_invoice_create", "Create SRM invoice drafts and invoices", "srm"),
+    ("srm_invoice_approve", "Approve SRM invoices and sales orders", "srm"),
+    ("srm_collection_view", "View SRM collections and aging", "srm"),
+    ("srm_collection_create", "Create SRM receipts, allocations, and reminders", "srm"),
+    ("srm_profitability_view", "View SRM profitability", "srm"),
+    ("srm_settings_manage", "Manage SRM settings", "srm"),
 ]
 
 SYSTEM_ROLES = [
@@ -208,6 +219,46 @@ SYSTEM_ROLES = [
         "description": "Project management read-only viewer",
         "permissions": ["pms_view", "reports_view"],
     },
+    {
+        "name": "srm_admin",
+        "description": "SRM administrator",
+        "permissions": ["srm_view", "srm_manage", "srm_admin", "srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_collection_view", "srm_collection_create", "srm_profitability_view", "srm_settings_manage", "reports_view", "approval_os_view", "approval_os_create", "approval_os_admin", "notification_view"],
+    },
+    {
+        "name": "srm_sales_manager",
+        "description": "Sales manager with team sales and revenue visibility",
+        "permissions": ["srm_view", "srm_manage", "srm_invoice_view", "srm_collection_view", "srm_profitability_view", "reports_view", "approval_os_view", "notification_view"],
+    },
+    {
+        "name": "srm_sales_executive",
+        "description": "Sales executive with assigned SRM records",
+        "permissions": ["srm_view", "srm_manage", "notification_view"],
+    },
+    {
+        "name": "srm_finance_manager",
+        "description": "Finance manager for invoices and receipts",
+        "permissions": ["srm_view", "srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_collection_view", "srm_collection_create", "srm_profitability_view", "reports_view", "approval_os_view", "notification_view"],
+    },
+    {
+        "name": "srm_revenue_manager",
+        "description": "Revenue manager for recognition and profitability",
+        "permissions": ["srm_view", "srm_invoice_view", "srm_profitability_view", "reports_view", "notification_view"],
+    },
+    {
+        "name": "srm_collection_executive",
+        "description": "Collection executive for receipts and reminders",
+        "permissions": ["srm_collection_view", "srm_collection_create", "notification_view"],
+    },
+    {
+        "name": "srm_business_owner",
+        "description": "Business owner dashboards and reports",
+        "permissions": ["srm_view", "srm_invoice_view", "srm_collection_view", "srm_profitability_view", "reports_view", "approval_os_view", "notification_view"],
+    },
+    {
+        "name": "srm_viewer",
+        "description": "SRM read-only viewer",
+        "permissions": ["srm_view", "srm_invoice_view", "srm_collection_view", "reports_view"],
+    },
 ]
 
 
@@ -288,6 +339,42 @@ DEMO_USERS = [
         "email": "client@karyaflow.com",
         "password": "Password@123",
         "role": "pms_client",
+        "is_superuser": False,
+    },
+    {
+        "email": "admin@srm.local",
+        "password": "Password@123",
+        "role": "srm_admin",
+        "is_superuser": False,
+    },
+    {
+        "email": "sales.manager@srm.local",
+        "password": "Password@123",
+        "role": "srm_sales_manager",
+        "is_superuser": False,
+    },
+    {
+        "email": "sales.executive@srm.local",
+        "password": "Password@123",
+        "role": "srm_sales_executive",
+        "is_superuser": False,
+    },
+    {
+        "email": "finance@srm.local",
+        "password": "Password@123",
+        "role": "srm_finance_manager",
+        "is_superuser": False,
+    },
+    {
+        "email": "collections@srm.local",
+        "password": "Password@123",
+        "role": "srm_collection_executive",
+        "is_superuser": False,
+    },
+    {
+        "email": "owner@srm.local",
+        "password": "Password@123",
+        "role": "srm_business_owner",
         "is_superuser": False,
     },
 ]

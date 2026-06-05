@@ -1949,14 +1949,31 @@ def list_projects(
     return projects
 
 
-@router.get("/projects/{project_id}", response_model=PMSProjectResponse)
+@router.get("/projects/{project_id}")
 def get_project(
     project_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Get a specific project."""
-    return get_project_for_action(db, project_id, current_user)
+    project = get_project_for_action(db, project_id, current_user)
+    payload = _model_payload(project)
+    try:
+        from app.apps.srm.models import SRMBillingPlan, SRMContract, SRMEngagement, SRMSalesOrder
+
+        engagement = db.query(SRMEngagement).filter(SRMEngagement.pms_project_id == project.id, SRMEngagement.deleted_at == None).first()
+        sales_order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == engagement.sales_order_id, SRMSalesOrder.deleted_at == None).first() if engagement and engagement.sales_order_id else None
+        contract = db.query(SRMContract).filter(SRMContract.id == engagement.contract_id, SRMContract.deleted_at == None).first() if engagement and engagement.contract_id else None
+        billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
+        payload["srm_links"] = {
+            "engagement": _model_payload(engagement) if engagement else None,
+            "sales_order": _model_payload(sales_order) if sales_order else None,
+            "contract": _model_payload(contract) if contract else None,
+            "billing_plan": _model_payload(billing_plan) if billing_plan else None,
+        } if engagement else None
+    except Exception:
+        payload["srm_links"] = None
+    return payload
 
 
 @router.patch("/projects/{project_id}", response_model=PMSProjectResponse)
@@ -6628,6 +6645,6 @@ def get_project_dashboard(
     }
     
     return {
-        "project": project,
+        "project": get_project(project_id, db, current_user),
         "metrics": metrics
     }

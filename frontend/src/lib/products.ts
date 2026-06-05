@@ -1,4 +1,4 @@
-export type ProductKey = "hrms" | "crm" | "project_management";
+export type ProductKey = "hrms" | "crm" | "project_management" | "srm";
 
 export type ProductMeta = {
   key: ProductKey;
@@ -38,6 +38,15 @@ export const products: Record<ProductKey, ProductMeta> = {
     themeClass: "product-pms",
     searchPlaceholder: "Search projects, issues, sprints...  Cmd+K",
   },
+  srm: {
+    key: "srm",
+    name: "RevenueFlow SRM",
+    shortName: "SRM",
+    loginPath: "/srm/login",
+    homePath: "/srm",
+    themeClass: "product-srm",
+    searchPlaceholder: "Search orders, invoices, collections...  Cmd+K",
+  },
 };
 
 export function normalizeRole(role?: string | null) {
@@ -47,6 +56,7 @@ export function normalizeRole(role?: string | null) {
 export function getProductKeyFromPath(pathname: string): ProductKey | null {
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/pms")) return "project_management";
+  if (pathname.startsWith("/srm")) return "srm";
   if (pathname.startsWith("/hrms")) return "hrms";
   return null;
 }
@@ -55,6 +65,7 @@ export function getProductKeyForRole(role?: string | null, isSuperuser = false):
   const value = normalizeRole(role);
   if (value.startsWith("crm_")) return "crm";
   if (value.startsWith("pms_")) return "project_management";
+  if (value.startsWith("srm_")) return "srm";
   if (isSuperuser || value) return "hrms";
   return "hrms";
 }

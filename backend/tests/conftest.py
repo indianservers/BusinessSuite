@@ -28,6 +28,7 @@ sys.unraisablehook = _make_unraisablehook(sys.unraisablehook)
 
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("MYSQL_PASSWORD", "")
+os.environ.setdefault("INSTALLED_APPS", "hrms,crm,project_management,srm")
 
 from app.main import app
 from app.db.base_class import Base

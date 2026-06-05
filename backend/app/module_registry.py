@@ -122,6 +122,12 @@ APP_MODULES: dict[str, AppModule] = {
         router_modules=("app.apps.project_management.api.router",),
         model_modules=("app.apps.project_management.models",),
     ),
+    "srm": AppModule(
+        key="srm",
+        label="Sales & Revenue Management",
+        router_modules=("app.apps.srm.api.router",),
+        model_modules=("app.apps.srm.models",),
+    ),
 }
 
 

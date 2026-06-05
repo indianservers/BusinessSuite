@@ -104,6 +104,20 @@ export default function ProjectDashboard() {
         </Card>
       </div>
 
+      {project.srm_links ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>SRM Engagement Link</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-4">
+            <LinkedSummary label="Engagement" value={textValue(project.srm_links.engagement?.engagement_number || project.srm_links.engagement?.name)} />
+            <LinkedSummary label="Sales Order" value={textValue(project.srm_links.sales_order?.order_number || project.srm_links.sales_order?.title)} />
+            <LinkedSummary label="Contract" value={textValue(project.srm_links.contract?.contract_number || project.srm_links.contract?.title)} />
+            <LinkedSummary label="Billing Plan" value={textValue(project.srm_links.billing_plan?.name || project.srm_links.billing_plan?.billing_type)} />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>AI Insights</CardTitle>
@@ -138,6 +152,15 @@ function Metric({ icon: Icon, label, value, tone }: { icon: typeof ListChecks; l
 
 function Summary({ label, value }: { label: string; value: string }) {
   return <div className="flex items-center justify-between border-b pb-2 last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-medium">{value}</span></div>;
+}
+
+function LinkedSummary({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg border bg-muted/30 p-3 text-sm"><p className="text-xs uppercase text-muted-foreground">{label}</p><p className="mt-1 truncate font-medium">{value || "Not linked"}</p></div>;
+}
+
+function textValue(value: unknown) {
+  if (value === null || value === undefined) return "";
+  return String(value);
 }
 
 function Insight({ text }: { text: string }) {

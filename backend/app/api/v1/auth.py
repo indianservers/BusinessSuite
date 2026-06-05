@@ -55,6 +55,16 @@ MODULE_ROLE_MAP = {
         "pms_client",
         "pms_viewer",
     },
+    "srm": {
+        "srm_admin",
+        "srm_sales_manager",
+        "srm_sales_executive",
+        "srm_finance_manager",
+        "srm_revenue_manager",
+        "srm_collection_executive",
+        "srm_business_owner",
+        "srm_viewer",
+    },
 }
 
 
@@ -64,7 +74,7 @@ def _normalize_module(module: str | None) -> str | None:
     value = module.strip().lower().replace("-", "_")
     if value in {"pms", "project", "project_management"}:
         return "project_management"
-    if value in {"crm", "hrms"}:
+    if value in {"crm", "hrms", "srm"}:
         return value
     return None
 

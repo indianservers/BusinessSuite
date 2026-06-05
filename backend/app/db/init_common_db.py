@@ -18,6 +18,16 @@ COMMON_PERMISSIONS = [
     ("pms_time_manage", "Manage time logs and approvals", "project_management"),
     ("pms_client_portal", "Access project client portal", "project_management"),
     ("pms_admin", "Manage project settings and admin areas", "project_management"),
+    ("srm_view", "View sales and revenue management records", "srm"),
+    ("srm_manage", "Manage SRM sales orders, contracts, engagements, and billing", "srm"),
+    ("srm_admin", "Administer SRM settings and lifecycle controls", "srm"),
+    ("srm_invoice_view", "View SRM invoices", "srm"),
+    ("srm_invoice_create", "Create SRM invoice drafts and invoices", "srm"),
+    ("srm_invoice_approve", "Approve SRM invoices and sales orders", "srm"),
+    ("srm_collection_view", "View SRM collections and aging", "srm"),
+    ("srm_collection_create", "Create SRM receipts, allocations, and reminders", "srm"),
+    ("srm_profitability_view", "View SRM profitability", "srm"),
+    ("srm_settings_manage", "Manage SRM settings", "srm"),
 ]
 
 COMMON_ROLES = [

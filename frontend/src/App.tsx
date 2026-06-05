@@ -10,6 +10,7 @@ import { getLoginPathForContext } from "@/lib/products";
 import { hrmsRoutes } from "@/apps/hrms/routes";
 import { crmRoutes } from "@/apps/crm/routes";
 import { projectManagementRoutes } from "@/apps/project-management/routes";
+import { srmRoutes } from "@/apps/srm/routes";
 import { aiAgentRoutes } from "@/pages/ai-agents/routes";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 
@@ -21,6 +22,7 @@ const appRoutes: Record<string, FrontendRoute[]> = {
   hrms: hrmsRoutes,
   crm: crmRoutes,
   project_management: projectManagementRoutes,
+  srm: srmRoutes,
 };
 
 function getEnabledRoutes() {
@@ -69,6 +71,7 @@ export default function App() {
           <Route path="/hrms/login" element={<LoginPage />} />
           <Route path="/crm/login" element={<LoginPage />} />
           <Route path="/pms/login" element={<LoginPage />} />
+          <Route path="/srm/login" element={<LoginPage />} />
           <Route path="/" element={<ModuleIndexPage />} />
           <Route
             path="/*"

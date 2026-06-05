@@ -55,6 +55,10 @@ async def lifespan(app: FastAPI):
             from app.apps.project_management.schema import ensure_pms_schema
 
             ensure_pms_schema(db)
+        if is_app_enabled("srm"):
+            from app.apps.srm.schema import ensure_srm_schema
+
+            ensure_srm_schema(db)
         from app.ai_agents.services.registry import AiAgentRegistryService
         from app.ai_agents.tools.ai_tool_registry_service import AiToolRegistryService
 
