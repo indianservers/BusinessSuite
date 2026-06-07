@@ -81,6 +81,21 @@ const moduleLogins = {
       { label: "Collections", email: "collections@srm.local", password: "Password@123", description: "Aging, reminders, receipts, allocations" },
     ],
   },
+  fam: {
+    product: "FinanceFlow FAM",
+    authModule: "fam",
+    tagline: "Finance & Accounting Management",
+    description: "Enter your FAM credentials",
+    afterLogin: "/fam",
+    accent: "cyan",
+    demoLogins: [
+      { label: "FAM Admin", email: "admin@fam.local", password: "Password@123", description: "Company books, settings, chart, audit controls" },
+      { label: "Accountant", email: "accountant@fam.local", password: "Password@123", description: "Ledgers, opening balances, cost centers, branches" },
+      { label: "Finance Manager", email: "finance.manager@fam.local", password: "Password@123", description: "Operational finance setup and books review" },
+      { label: "Auditor", email: "auditor@fam.local", password: "Password@123", description: "Read-only books and audit logs" },
+      { label: "Viewer", email: "viewer@fam.local", password: "Password@123", description: "Read-only financial foundation pages" },
+    ],
+  },
 } as const;
 
 const loginThemes = {
@@ -124,12 +139,23 @@ const loginThemes = {
     button: "bg-amber-600 hover:bg-amber-500 shadow-amber-500/25",
     ring: "focus-visible:ring-amber-400",
   },
+  fam: {
+    page: "from-slate-950 via-cyan-950 to-zinc-950",
+    glow: "from-cyan-700/20",
+    logo: "bg-cyan-700 shadow-cyan-500/25",
+    text: "text-cyan-100",
+    textSoft: "text-cyan-100/70",
+    textMuted: "text-cyan-100/60",
+    button: "bg-cyan-700 hover:bg-cyan-600 shadow-cyan-500/25",
+    ring: "focus-visible:ring-cyan-400",
+  },
 } as const;
 
 function getLoginModule(pathname: string): keyof typeof moduleLogins {
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/pms")) return "project_management";
   if (pathname.startsWith("/srm")) return "srm";
+  if (pathname.startsWith("/fam")) return "fam";
   return "hrms";
 }
 

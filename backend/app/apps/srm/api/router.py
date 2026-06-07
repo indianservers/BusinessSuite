@@ -8,6 +8,7 @@ from fastapi.responses import Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.apps.fam.models import FAMPostingJob, FAMSRMMapping
 from app.apps.srm.access import engagement_query, get_engagement_for_user, get_sales_order_for_user, organization_id_for, sales_order_query
 from app.apps.srm.models import (
     SRMAuditLog,
@@ -230,7 +231,22 @@ def _get_invoice(db: Session, invoice_id: int) -> SRMInvoice:
     return invoice
 
 
-def _invoice_payload(invoice: SRMInvoice) -> dict:
+def _srm_accounting_status(db: Session | None, organization_id: int | None, source_record_type: str, source_record_id: int) -> dict:
+    if db is None:
+        return {"status": "unknown", "mappings": []}
+    company_id = int(organization_id or 1)
+    jobs = db.query(FAMPostingJob).filter(FAMPostingJob.company_id == company_id, FAMPostingJob.source_module == "srm", FAMPostingJob.source_record_type == source_record_type, FAMPostingJob.source_record_id == source_record_id).all()
+    mappings = db.query(FAMSRMMapping).filter(FAMSRMMapping.company_id == company_id, FAMSRMMapping.srm_record_type == source_record_type, FAMSRMMapping.srm_record_id == source_record_id).all()
+    latest = sorted(jobs, key=lambda item: item.id, reverse=True)[0] if jobs else None
+    return {
+        "status": latest.status if latest else "not_posted",
+        "voucher_id": latest.voucher_id if latest else None,
+        "job_id": latest.id if latest else None,
+        "mappings": [{"fam_record_type": item.fam_record_type, "fam_record_id": item.fam_record_id, "mapping_status": item.mapping_status} for item in mappings],
+    }
+
+
+def _invoice_payload(invoice: SRMInvoice, db: Session | None = None) -> dict:
     payload = _serialize(invoice)
     if invoice.invoice_draft_id:
         draft = getattr(invoice, "_srm_loaded_draft", None)
@@ -240,7 +256,7 @@ def _invoice_payload(invoice: SRMInvoice) -> dict:
     if lines:
         payload["source_type"] = payload.get("source_type") or lines[0].get("source_type")
         payload["source_id"] = lines[0].get("source_id")
-    return payload | {"lines": lines}
+    return payload | {"lines": lines, "accounting_status": _srm_accounting_status(db, invoice.organization_id, "invoice", invoice.id)}
 
 
 def _assert_invoice_source_available(db: Session, source_type: str, source_id: int | None) -> None:
@@ -1434,13 +1450,13 @@ def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depe
 
 @router.get("/invoices")
 def list_invoices(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_admin"))):
-    return [_serialize(item) for item in db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).limit(200).all()]
+    return [_invoice_payload(item, db) for item in db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).limit(200).all()]
 
 
 @router.get("/invoices/{invoice_id}")
 def get_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_admin"))):
     invoice = _get_invoice(db, invoice_id)
-    return _serialize(invoice) | {"lines": [_serialize(line) for line in invoice.lines]}
+    return _invoice_payload(invoice, db)
 
 
 @router.patch("/invoices/{invoice_id}")
@@ -1528,6 +1544,20 @@ def create_receipt(data: SRMReceiptCreate, db: Session = Depends(get_db), curren
     db.commit()
     db.refresh(item)
     return _serialize(item)
+
+
+@router.get("/receipts")
+def list_receipts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
+    return [_serialize(item) | {"accounting_status": _srm_accounting_status(db, item.organization_id, "receipt", item.id)} for item in db.query(SRMReceipt).order_by(SRMReceipt.id.desc()).limit(200).all()]
+
+
+@router.get("/receipts/{receipt_id}")
+def get_receipt(receipt_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
+    item = db.query(SRMReceipt).filter(SRMReceipt.id == receipt_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    allocations = db.query(SRMReceiptAllocation).filter(SRMReceiptAllocation.receipt_id == item.id).all()
+    return _serialize(item) | {"allocations": [_serialize(allocation) | {"accounting_status": _srm_accounting_status(db, item.organization_id, "allocation", allocation.id)} for allocation in allocations], "accounting_status": _srm_accounting_status(db, item.organization_id, "receipt", item.id)}
 
 
 @router.post("/receipts/{receipt_id}/confirm")

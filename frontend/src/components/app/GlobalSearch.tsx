@@ -53,6 +53,40 @@ export default function GlobalSearch() {
         { type: "Page", title: "Profitability", subtitle: "Margin and cash performance", url: "/srm/profitability" },
       ];
     }
+    if (product.key === "fam") {
+      return [
+        { type: "Page", title: "FAM Dashboard", url: "/fam" },
+        { type: "Page", title: "Company Financial Settings", subtitle: "GST, PAN, books start, statutory settings", url: "/fam/settings" },
+        { type: "Page", title: "Financial Years", subtitle: "Open, close, and lock books periods", url: "/fam/financial-years" },
+        { type: "Page", title: "Chart of Accounts", subtitle: "Ledger groups and ledgers", url: "/fam/chart-of-accounts" },
+        { type: "Page", title: "Opening Balances", subtitle: "Balanced debit and credit opening entries", url: "/fam/opening-balances" },
+        { type: "Page", title: "Voucher Types", subtitle: "Voucher categories and numbering", url: "/fam/voucher-types" },
+        { type: "Page", title: "Vouchers", subtitle: "Draft, post, cancel, reverse, and clone vouchers", url: "/fam/vouchers" },
+        { type: "Page", title: "Journal", subtitle: "Double-entry journal voucher screen", url: "/fam/journal" },
+        { type: "Page", title: "Day Book", subtitle: "Voucher register and debit/credit totals", url: "/fam/day-book" },
+        { type: "Page", title: "Ledger Entries", subtitle: "Immutable ledger postings", url: "/fam/ledger-entries" },
+        { type: "Page", title: "Customers", subtitle: "Customer ledgers, statements, and receivables", url: "/fam/customers" },
+        { type: "Page", title: "Vendors", subtitle: "Vendor ledgers, statements, and payables", url: "/fam/vendors" },
+        { type: "Page", title: "AR Aging", subtitle: "Receivable aging buckets", url: "/fam/ar/aging" },
+        { type: "Page", title: "AP Aging", subtitle: "Payable aging buckets", url: "/fam/ap/aging" },
+        { type: "Page", title: "Bill References", subtitle: "Bill-wise tracking", url: "/fam/bill-references" },
+        { type: "Page", title: "Bill Allocations", subtitle: "Receipt/payment allocations", url: "/fam/bill-allocations" },
+        { type: "Page", title: "SRM Accounting Integration", subtitle: "Post SRM invoices, receipts, allocations, and reversals", url: "/fam/integrations/srm" },
+        { type: "Page", title: "Posting Jobs", subtitle: "SRM to FAM posting queue and retries", url: "/fam/posting-jobs" },
+        { type: "Page", title: "Posting Rules", subtitle: "Ledger rules for SRM accounting postings", url: "/fam/posting-rules" },
+        { type: "Page", title: "Banking", subtitle: "Bank accounts, statements, reconciliation, bank book, cash book", url: "/fam/banking" },
+        { type: "Page", title: "India GST", subtitle: "GST registrations, rates, HSN/SAC, returns, e-invoice and e-way bill", url: "/fam/gst" },
+        { type: "Page", title: "Bank Accounts", subtitle: "Bank masters linked to FAM ledgers", url: "/fam/bank-accounts" },
+        { type: "Page", title: "Payment Modes", subtitle: "Cash, cheque, NEFT, RTGS, UPI, card, wallet", url: "/fam/payment-modes" },
+        { type: "Page", title: "Bank Statements", subtitle: "Manual CSV import and matching", url: "/fam/bank-statements" },
+        { type: "Page", title: "Bank Reconciliation", subtitle: "Book balance, statement balance, unreconciled items", url: "/fam/bank-reconciliation" },
+        { type: "Page", title: "Bank Book", subtitle: "Bank ledger voucher postings", url: "/fam/bank-book" },
+        { type: "Page", title: "Cash Book", subtitle: "Cash ledger voucher postings", url: "/fam/cash-book" },
+        { type: "Page", title: "Contra", subtitle: "Bank/cash transfers through contra vouchers", url: "/fam/contra" },
+        { type: "Page", title: "Bank Charges", subtitle: "Post bank fees through payment vouchers", url: "/fam/bank-charges" },
+        { type: "Page", title: "Accounting Audit", subtitle: "Setup and chart audit logs", url: "/fam/audit" },
+      ];
+    }
     return [
       { type: "Page", title: "HRMS Dashboard", url: "/hrms" },
       { type: "Page", title: "Payroll", subtitle: "Run, pre-checks, payslips", url: "/hrms/payroll" },
@@ -156,3 +190,4 @@ export default function GlobalSearch() {
     </>
   );
 }
+

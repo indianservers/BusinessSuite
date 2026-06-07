@@ -389,6 +389,12 @@ function invoicePayload(overrides: Record<string, unknown> = {}) {
     balance_amount: 150000,
     created_by: 101,
     approval_status: "Pending",
+    accounting_status: {
+      status: "posted",
+      voucher_id: 1,
+      job_id: 1,
+      mappings: [{ fam_record_type: "voucher", fam_record_id: 1, mapping_status: "active" }],
+    },
     ...overrides,
   };
 }

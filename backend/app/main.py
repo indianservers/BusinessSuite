@@ -59,6 +59,25 @@ async def lifespan(app: FastAPI):
             from app.apps.srm.schema import ensure_srm_schema
 
             ensure_srm_schema(db)
+        if is_app_enabled("fam"):
+            from app.apps.fam.schema import ensure_fam_schema
+
+            ensure_fam_schema(db)
+        from app.apps.automation.schema import ensure_automation_schema
+
+        ensure_automation_schema(db)
+        from app.apps.customization.schema import ensure_customization_schema
+
+        ensure_customization_schema(db)
+        from app.apps.communication.schema import ensure_communication_schema
+
+        ensure_communication_schema(db)
+        from app.apps.analytics.schema import ensure_analytics_schema
+
+        ensure_analytics_schema(db)
+        from app.apps.ai_copilot.schema import ensure_ai_copilot_schema
+
+        ensure_ai_copilot_schema(db)
         from app.ai_agents.services.registry import AiAgentRegistryService
         from app.ai_agents.tools.ai_tool_registry_service import AiToolRegistryService
 

@@ -11,18 +11,28 @@ import { hrmsRoutes } from "@/apps/hrms/routes";
 import { crmRoutes } from "@/apps/crm/routes";
 import { projectManagementRoutes } from "@/apps/project-management/routes";
 import { srmRoutes } from "@/apps/srm/routes";
+import { famRoutes } from "@/apps/fam/routes";
+import { inventoryRoutes } from "@/apps/inventory/routes";
 import { aiAgentRoutes } from "@/pages/ai-agents/routes";
+import { aiCopilotRoutes } from "@/apps/ai-copilot/routes";
+import { adminSecurityRoutes } from "@/apps/admin-security/routes";
+import { PortalPage, saasRoutes } from "@/apps/saas/routes";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
 const ModuleIndexPage = React.lazy(() => import("@/pages/ModuleIndexPage"));
 const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
+const AutomationStudioPage = React.lazy(() => import("@/apps/automation/AutomationStudioPage"));
+const CustomizationStudioPage = React.lazy(() => import("@/apps/customization/CustomizationStudioPage"));
+const AnalyticsPage = React.lazy(() => import("@/apps/analytics/AnalyticsPage"));
 
 const appRoutes: Record<string, FrontendRoute[]> = {
   hrms: hrmsRoutes,
   crm: crmRoutes,
   project_management: projectManagementRoutes,
   srm: srmRoutes,
+  fam: famRoutes,
+  inventory: inventoryRoutes,
 };
 
 function getEnabledRoutes() {
@@ -61,7 +71,45 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   const { isAuthenticated, isHydrated } = useAuthStore();
   const enabledRoutes = getEnabledRoutes();
-  const routes = [...enabledRoutes, ...aiAgentRoutes];
+  const commonRoutes: FrontendRoute[] = [
+    { path: "admin/automation", element: <AutomationStudioPage /> },
+    { path: "admin/automation/workflows", element: <AutomationStudioPage /> },
+    { path: "admin/automation/workflows/:id", element: <AutomationStudioPage /> },
+    { path: "admin/automation/blueprints", element: <AutomationStudioPage /> },
+    { path: "admin/automation/approvals", element: <AutomationStudioPage /> },
+    { path: "admin/automation/assignment-rules", element: <AutomationStudioPage /> },
+    { path: "admin/automation/cadences", element: <AutomationStudioPage /> },
+    { path: "admin/automation/webhooks", element: <AutomationStudioPage /> },
+    { path: "admin/automation/logs", element: <AutomationStudioPage /> },
+    { path: "admin/customization", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/modules", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/modules/:id", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/fields", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/layouts", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/views", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/kanban", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/validation-rules", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/buttons", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/picklists", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/formulas", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/rollups", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/audit", element: <CustomizationStudioPage /> },
+    { path: "analytics", element: <AnalyticsPage /> },
+    { path: "analytics/report-builder", element: <AnalyticsPage /> },
+    { path: "analytics/reports", element: <AnalyticsPage /> },
+    { path: "analytics/reports/:id", element: <AnalyticsPage /> },
+    { path: "analytics/dashboards", element: <AnalyticsPage /> },
+    { path: "analytics/dashboards/:id", element: <AnalyticsPage /> },
+    { path: "analytics/scheduled-reports", element: <AnalyticsPage /> },
+    { path: "analytics/exports", element: <AnalyticsPage /> },
+    { path: "analytics/funnel", element: <AnalyticsPage /> },
+    { path: "analytics/forecast", element: <AnalyticsPage /> },
+    { path: "analytics/profitability", element: <AnalyticsPage /> },
+    { path: "analytics/collections", element: <AnalyticsPage /> },
+    { path: "analytics/campaigns", element: <AnalyticsPage /> },
+    { path: "analytics/anomalies", element: <AnalyticsPage /> },
+  ];
+  const routes = [...enabledRoutes, ...commonRoutes, ...aiAgentRoutes, ...aiCopilotRoutes, ...adminSecurityRoutes, ...saasRoutes];
 
   return (
     <>
@@ -72,6 +120,11 @@ export default function App() {
           <Route path="/crm/login" element={<LoginPage />} />
           <Route path="/pms/login" element={<LoginPage />} />
           <Route path="/srm/login" element={<LoginPage />} />
+          <Route path="/fam/login" element={<LoginPage />} />
+          <Route path="/portal/customer/login" element={<PortalPage />} />
+          <Route path="/portal/customer/*" element={<PortalPage />} />
+          <Route path="/portal/partner/login" element={<PortalPage />} />
+          <Route path="/portal/partner/*" element={<PortalPage />} />
           <Route path="/" element={<ModuleIndexPage />} />
           <Route
             path="/*"

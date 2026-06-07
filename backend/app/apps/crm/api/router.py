@@ -32,6 +32,7 @@ from sqlalchemy.sql.sqltypes import Boolean, Date, DateTime, Integer, Numeric
 
 from app.apps.crm.models import (
     CRMActivity,
+    CRMAccount,
     CRMApprovalRequest,
     CRMApprovalRequestStep,
     CRMApprovalStep,
@@ -41,6 +42,7 @@ from app.apps.crm.models import (
     CRMCampaign,
     CRMCompany,
     CRMContact,
+    CRMCPQRule,
     CRMCustomField,
     CRMCustomFieldValue,
     CRMDeal,
@@ -50,8 +52,11 @@ from app.apps.crm.models import (
     CRMEmailTemplate,
     CRMEnrichmentLog,
     CRMFileAsset,
+    CRMForecastSnapshot,
     CRMLead,
+    CRMLeadConversionLog,
     CRMLeadScoringRule,
+    CRMLostReason,
     CRMMeeting,
     CRMMessage,
     CRMMessageTemplate,
@@ -60,13 +65,24 @@ from app.apps.crm.models import (
     CRMOwner,
     CRMPipeline,
     CRMPipelineStage,
+    CRMPriceBook,
+    CRMPriceBookItem,
     CRMProduct,
+    CRMQuoteApproval,
+    CRMQuoteSRMConversionLog,
+    CRMQuoteVersion,
     CRMQuotation,
     CRMQuotationItem,
+    CRMService,
+    CRMGuidedSellingFlow,
+    CRMSalesPerformanceSnapshot,
+    CRMSalesTarget,
     CRMTask,
     CRMTeam,
+    CRMTimelineEvent,
     CRMTicket,
     CRMTerritory,
+    CRMTerritoryAssignment,
     CRMTerritoryUser,
     CRMWebhook,
     CRMWebhookDelivery,
@@ -94,6 +110,22 @@ class CRMLeadConvertPayload(BaseModel):
     dealAmount: Decimal | None = None
     pipelineId: int | None = None
     stageId: int | None = None
+
+
+class CRMDealStageMovePayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    stageId: int | None = None
+    stage_id: int | None = None
+    probability: int | None = None
+
+
+class CRMDealMarkLostPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    lostReason: str | None = None
+    lost_reason: str | None = None
+    competitor: str | None = None
 
 
 class CRMImportRowsPayload(BaseModel):
@@ -323,9 +355,15 @@ RESOURCES: dict[str, Resource] = {
     "lead-scoring-rules": Resource(CRMLeadScoringRule, required=("name", "field", "operator", "points"), search=("name", "field", "operator", "value"), owner_field=None),
     "contacts": Resource(CRMContact, required=("first_name", "full_name"), search=("full_name", "email", "phone", "job_title", "lifecycle_stage", "source")),
     "companies": Resource(CRMCompany, required=("name",), search=("name", "industry", "email", "phone", "city", "account_type", "status"), aliases=("accounts",)),
+    "account-registry": Resource(CRMAccount, required=("account_name",), search=("account_number", "account_name", "legal_name", "industry", "phone", "account_status"), owner_field="owner_id"),
     "deals": Resource(CRMDeal, required=("name", "pipeline_id", "stage_id"), search=("name", "description", "status", "lead_source"), aliases=("opportunities",)),
     "pipelines": Resource(CRMPipeline, required=("name",), search=("name", "description"), owner_field=None),
     "pipeline-stages": Resource(CRMPipelineStage, required=("pipeline_id", "name"), search=("name", "color"), owner_field=None),
+    "sales-targets": Resource(CRMSalesTarget, required=("period_type", "period_start", "period_end", "target_owner_type", "target_amount"), search=("period_type", "target_owner_type", "currency"), owner_field=None),
+    "forecast-snapshots": Resource(CRMForecastSnapshot, required=(), search=("snapshot_name", "currency"), owner_field=None),
+    "territory-assignments": Resource(CRMTerritoryAssignment, required=("territory_id",), search=("assignment_type",), owner_field=None),
+    "lost-reasons": Resource(CRMLostReason, required=("name",), search=("name", "description"), owner_field=None),
+    "sales-performance-snapshots": Resource(CRMSalesPerformanceSnapshot, required=(), search=(), owner_field=None),
     "activities": Resource(CRMActivity, required=("activity_type",), search=("entity_type", "activity_type", "title", "subject", "body", "description", "status", "priority"), default_sort="activity_date"),
     "notes": Resource(CRMNote, required=("body",), search=("body",), owner_field="author_user_id"),
     "tasks": Resource(CRMTask, required=("title",), search=("title", "description", "status", "priority")),
@@ -339,8 +377,17 @@ RESOURCES: dict[str, Resource] = {
     "webhook-deliveries": Resource(CRMWebhookDelivery, required=("webhook_id", "event_type"), search=("event_type", "status", "response_body"), owner_field=None),
     "enrichment-logs": Resource(CRMEnrichmentLog, required=("entity_type", "entity_id"), search=("entity_type", "provider", "status"), owner_field=None),
     "meetings": Resource(CRMMeeting, required=("title", "start_time", "end_time"), search=("title", "description", "location", "status")),
-    "quotations": Resource(CRMQuotation, required=("quote_number", "issue_date", "expiry_date"), search=("quote_number", "status", "currency", "terms", "notes")),
-    "products": Resource(CRMProduct, required=("name",), search=("name", "sku", "category", "description", "status"), aliases=("products-services",)),
+    "quotations": Resource(CRMQuotation, required=("quote_number", "issue_date", "expiry_date"), search=("quote_number", "status", "currency", "terms", "notes"), aliases=("quotes",)),
+    "quotation-items": Resource(CRMQuotationItem, required=("quotation_id", "name"), search=("name", "description", "item_type", "billing_type"), aliases=("quote-lines",), owner_field=None),
+    "quote-versions": Resource(CRMQuoteVersion, required=("quote_id", "version_number"), search=("status",), owner_field=None),
+    "quote-approvals": Resource(CRMQuoteApproval, required=("quote_id",), search=("status", "comments"), owner_field=None),
+    "quote-srm-conversion-logs": Resource(CRMQuoteSRMConversionLog, required=("quote_id",), search=("status", "message"), owner_field=None),
+    "products": Resource(CRMProduct, required=("name",), search=("name", "sku", "product_code", "category", "description", "status"), aliases=("products-services",)),
+    "services": Resource(CRMService, required=("service_code", "name"), search=("service_code", "name", "category", "billing_type", "description"), owner_field=None),
+    "price-books": Resource(CRMPriceBook, required=("name",), search=("name", "currency", "region", "customer_segment", "status"), owner_field=None),
+    "price-book-items": Resource(CRMPriceBookItem, required=("price_book_id", "item_type"), search=("item_type",), owner_field=None),
+    "cpq-rules": Resource(CRMCPQRule, required=("name", "rule_type"), search=("name", "rule_type", "status"), owner_field=None),
+    "guided-selling-flows": Resource(CRMGuidedSellingFlow, required=("name",), search=("name", "status"), owner_field=None),
     "campaigns": Resource(CRMCampaign, required=("name", "campaign_type"), search=("name", "campaign_type", "status", "description")),
     "tickets": Resource(CRMTicket, required=("ticket_number", "subject"), search=("ticket_number", "subject", "description", "priority", "status", "category", "source")),
     "files": Resource(CRMFileAsset, required=("file_name", "original_name", "storage_path"), search=("file_name", "original_name", "mime_type", "visibility"), aliases=("file-assets",)),
@@ -355,10 +402,47 @@ for key, resource in list(RESOURCES.items()):
     for alias in resource.aliases:
         RESOURCES[alias] = resource
 
+CRM_ENTITY_PERMISSION_KEYS = {
+    "leads": "leads",
+    "contacts": "contacts",
+    "companies": "accounts",
+    "accounts": "accounts",
+    "deals": "deals",
+    "activities": "activities",
+    "tasks": "activities",
+    "pipelines": "pipeline",
+    "pipeline-stages": "pipeline",
+    "sales-targets": "targets",
+    "targets": "targets",
+    "territories": "territory",
+    "territory-assignments": "territory",
+    "forecast-snapshots": "forecast",
+    "lost-reasons": "sales_performance",
+    "sales-performance-snapshots": "sales_performance",
+    "products": "products",
+    "products-services": "products",
+    "services": "products",
+    "quotations": "quotes",
+    "quotes": "quotes",
+    "quotation-items": "quotes",
+    "quote-lines": "quotes",
+    "quote-versions": "quotes",
+    "quote-approvals": "quotes",
+    "quote-srm-conversion-logs": "quotes",
+    "price-books": "price_books",
+    "price-book-items": "price_books",
+    "cpq-rules": "cpq",
+    "guided-selling-flows": "cpq",
+}
+CRM_VIEW_PERMISSIONS = tuple(f"crm_{value}_view" for value in sorted(set(CRM_ENTITY_PERMISSION_KEYS.values())))
+CRM_MANAGE_PERMISSIONS = tuple(f"crm_{value}_manage" for value in sorted(set(CRM_ENTITY_PERMISSION_KEYS.values())))
+CRM_SPECIAL_PERMISSIONS = ("crm_quotes_approve", "crm_quotes_send", "crm_quotes_convert_to_srm")
+CRM_ANY_PERMISSIONS = ("crm_view", "crm_manage", "crm_admin", *CRM_VIEW_PERMISSIONS, *CRM_MANAGE_PERMISSIONS, *CRM_SPECIAL_PERMISSIONS)
+
 CANONICAL_ENTITY_BY_MODEL = {
     resource.model: key
     for key, resource in RESOURCES.items()
-    if key not in {"accounts", "opportunities", "products-services", "call-logs", "email-logs", "users"}
+    if key not in {"accounts", "opportunities", "products-services", "quotes", "quote-lines", "call-logs", "email-logs", "users"}
 }
 
 DETAIL_ENTITY_FIELDS = {
@@ -1125,6 +1209,162 @@ def _filtered_report_deals(
     return [deal for deal in rows if start <= _deal_report_datetime(deal) <= end]
 
 
+def _expected_close_datetime(deal: CRMDeal) -> datetime:
+    return _as_datetime(deal.expected_close_date, end_of_day=True) or _deal_report_datetime(deal)
+
+
+def _filtered_forecast_deals(
+    db: Session,
+    organization_id: int,
+    start: datetime,
+    end: datetime,
+    current_user: User,
+    *,
+    owner_id: int | None = None,
+    team_id: int | None = None,
+    territory_id: int | None = None,
+    pipeline_id: int | None = None,
+    currency: str | None = None,
+) -> list[CRMDeal]:
+    query = _apply_record_visibility(_base_query(db, _get_resource("deals"), organization_id), _get_resource("deals"), current_user, db)
+    if owner_id:
+        query = query.filter(CRMDeal.owner_user_id == owner_id)
+    if team_id:
+        query = query.filter(CRMDeal.assigned_team_id == team_id)
+    if territory_id:
+        query = query.filter(CRMDeal.territory_id == territory_id)
+    if pipeline_id:
+        query = query.filter(CRMDeal.pipeline_id == pipeline_id)
+    if currency:
+        query = query.filter(CRMDeal.currency == currency)
+    rows = query.all()
+    return [deal for deal in rows if start <= _expected_close_datetime(deal) <= end or _deal_status(deal) in {"won", "lost"} and start <= _deal_report_datetime(deal) <= end]
+
+
+def _srm_actuals_for_deals(db: Session, organization_id: int, deal_ids: list[int]) -> dict[str, float]:
+    if not deal_ids:
+        return {"invoiced": 0.0, "collected": 0.0, "salesOrders": 0, "invoices": 0, "receipts": 0}
+    try:
+        from app.apps.srm.models import SRMInvoice, SRMReceiptAllocation, SRMSalesOrder
+    except Exception:
+        return {"invoiced": 0.0, "collected": 0.0, "salesOrders": 0, "invoices": 0, "receipts": 0}
+    sales_orders = (
+        db.query(SRMSalesOrder)
+        .filter(SRMSalesOrder.organization_id == organization_id, SRMSalesOrder.crm_deal_id.in_(deal_ids))
+        .all()
+    )
+    order_ids = [row.id for row in sales_orders]
+    if not order_ids:
+        return {"invoiced": 0.0, "collected": 0.0, "salesOrders": 0, "invoices": 0, "receipts": 0}
+    invoices = db.query(SRMInvoice).filter(SRMInvoice.organization_id == organization_id, SRMInvoice.sales_order_id.in_(order_ids)).all()
+    invoice_ids = [row.id for row in invoices]
+    allocations = db.query(SRMReceiptAllocation).filter(SRMReceiptAllocation.invoice_id.in_(invoice_ids)).all() if invoice_ids else []
+    invoiced = sum(float(getattr(row, "total_amount", None) or getattr(row, "amount", None) or 0) for row in invoices)
+    collected = sum(float(getattr(row, "amount", None) or 0) for row in allocations)
+    return {"invoiced": round(invoiced, 2), "collected": round(collected, 2), "salesOrders": len(sales_orders), "invoices": len(invoices), "receipts": len(allocations)}
+
+
+def _forecast_summary(db: Session, organization_id: int, deals: list[CRMDeal]) -> dict[str, Any]:
+    pipeline_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) != "lost")
+    weighted_amount = sum(_deal_amount(deal) * float(deal.probability or 0) / 100 for deal in deals if _deal_status(deal) != "lost")
+    committed_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) == "won" or int(deal.probability or 0) >= 80)
+    best_case_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) == "won" or int(deal.probability or 0) >= 50)
+    upside_amount = sum(_deal_amount(deal) for deal in deals if 25 <= int(deal.probability or 0) < 50 and _deal_status(deal) == "open")
+    closed_won_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) == "won")
+    actuals = _srm_actuals_for_deals(db, organization_id, [int(deal.id) for deal in deals])
+    scenarios = {
+        "conservative": round(weighted_amount * Decimal("0.80"), 2) if isinstance(weighted_amount, Decimal) else round(weighted_amount * 0.8, 2),
+        "expected": round(weighted_amount, 2),
+        "aggressive": round(max(best_case_amount, weighted_amount * 1.2), 2),
+    }
+    return {
+        "pipelineAmount": round(pipeline_amount, 2),
+        "weightedAmount": round(weighted_amount, 2),
+        "committedAmount": round(committed_amount, 2),
+        "bestCaseAmount": round(best_case_amount, 2),
+        "upsideAmount": round(upside_amount, 2),
+        "closedWonAmount": round(closed_won_amount, 2),
+        "invoicedAmount": actuals["invoiced"],
+        "collectedAmount": actuals["collected"],
+        "srmSalesOrders": actuals["salesOrders"],
+        "srmInvoices": actuals["invoices"],
+        "srmReceipts": actuals["receipts"],
+        "scenarios": scenarios,
+        "dealCount": len(deals),
+    }
+
+
+def _forecast_payload(
+    db: Session,
+    organization_id: int,
+    current_user: User,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    owner_id: int | None = None,
+    team_id: int | None = None,
+    territory_id: int | None = None,
+    pipeline_id: int | None = None,
+    currency: str | None = None,
+    group_by: str | None = None,
+) -> dict[str, Any]:
+    start, end = _parse_report_range(start_date, end_date)
+    deals = _filtered_forecast_deals(db, organization_id, start, end, current_user, owner_id=owner_id, team_id=team_id, territory_id=territory_id, pipeline_id=pipeline_id, currency=currency)
+    summary = _forecast_summary(db, organization_id, deals)
+    owner_names = _owner_names(db, {deal.owner_user_id for deal in deals})
+    group_key = group_by or "owner"
+    rows: dict[str, dict[str, Any]] = {}
+    for deal in deals:
+        if group_key == "team":
+            key = str(deal.assigned_team_id or "unassigned")
+            label = f"Team {deal.assigned_team_id}" if deal.assigned_team_id else "Unassigned team"
+        elif group_key == "territory":
+            key = str(deal.territory_id or "unassigned")
+            label = f"Territory {deal.territory_id}" if deal.territory_id else "Unassigned territory"
+        else:
+            key = str(deal.owner_user_id or "unassigned")
+            label = owner_names.get(deal.owner_user_id, "Unassigned owner")
+        row = rows.setdefault(key, {"key": key, "label": label, "deals": []})
+        row["deals"].append(deal)
+    items = []
+    for row in rows.values():
+        item = {k: v for k, v in row.items() if k != "deals"}
+        item.update(_forecast_summary(db, organization_id, row["deals"]))
+        items.append(item)
+    items.sort(key=lambda item: (-float(item["weightedAmount"]), str(item["label"])))
+    return {
+        "summary": summary,
+        "items": items,
+        "total": len(items),
+        "filters": {
+            "startDate": start.date().isoformat(),
+            "endDate": end.date().isoformat(),
+            "ownerId": owner_id,
+            "teamId": team_id,
+            "territoryId": territory_id,
+            "pipelineId": pipeline_id,
+            "currency": currency,
+            "groupBy": group_key,
+        },
+    }
+
+
+def _crm_audit(db: Session, current_user: User, *, entity_type: str, entity_id: int | None, action: str, description: str, values: dict[str, Any] | None = None) -> None:
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            method="SYSTEM",
+            endpoint="/api/v1/crm",
+            status_code=200,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            action=action,
+            new_values=json.dumps(values or {}, default=str),
+            description=description,
+        )
+    )
+
+
 def _closed_outcomes(deals: list[CRMDeal]) -> list[CRMDeal]:
     return [deal for deal in deals if _deal_status(deal) in {"won", "lost"}]
 
@@ -1253,6 +1493,30 @@ def _crm_has_full_visibility(user: User) -> bool:
 
 def _crm_can_assign_beyond_self(user: User) -> bool:
     return bool(user.is_superuser or _crm_role_key(user) in {"admin", "manager", "super_admin"})
+
+
+def _crm_permission_names(user: User) -> set[str]:
+    return {permission.name for permission in (user.role.permissions if user.role else [])}
+
+
+def _assert_entity_permission(entity: str, current_user: User, action: str) -> None:
+    if current_user.is_superuser:
+        return
+    permissions = _crm_permission_names(current_user)
+    if "crm_admin" in permissions:
+        return
+    canonical = _canonical_entity(entity)
+    permission_key = CRM_ENTITY_PERMISSION_KEYS.get(canonical)
+    if action == "view":
+        allowed = {"crm_view", "crm_manage"}
+        if permission_key:
+            allowed.update({f"crm_{permission_key}_view", f"crm_{permission_key}_manage"})
+    else:
+        allowed = {"crm_manage"}
+        if permission_key:
+            allowed.add(f"crm_{permission_key}_manage")
+    if not allowed.intersection(permissions):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"CRM {action} permission is required for {canonical}")
 
 
 def _apply_record_visibility(query, resource: Resource, current_user: User, db: Session):
@@ -1666,6 +1930,7 @@ def _serialize(record: Any) -> dict[str, Any]:
     aliases = {
         "organization_id": "organizationId",
         "owner_user_id": "ownerId",
+        "owner_id": "ownerId",
         "branch_id": "branchId",
         "department_id": "departmentId",
         "assigned_team_id": "assignedTeamId",
@@ -1680,6 +1945,17 @@ def _serialize(record: Any) -> dict[str, Any]:
         "entity_id": "entityId",
         "activity_type": "activityType",
         "activity_date": "activityDate",
+        "record_type": "recordType",
+        "record_id": "recordId",
+        "actor_user_id": "actorUserId",
+        "occurred_at": "occurredAt",
+        "account_number": "accountNumber",
+        "account_name": "accountName",
+        "legal_name": "legalName",
+        "billing_address": "billingAddress",
+        "shipping_address": "shippingAddress",
+        "tax_registration_number": "taxRegistrationNumber",
+        "account_status": "accountStatus",
         "metadata_json": "metadata",
         "old_values_json": "oldValues",
         "new_values_json": "newValues",
@@ -1728,16 +2004,86 @@ def _serialize(record: Any) -> dict[str, Any]:
         "expected_revenue": "expectedRevenue",
         "lead_source": "leadSource",
         "quote_number": "quoteNumber",
+        "quote_id": "quoteId",
+        "quotation_id": "quoteId",
         "issue_date": "issueDate",
         "expiry_date": "expiryDate",
+        "quote_date": "quoteDate",
+        "valid_until": "validUntil",
+        "account_id": "accountId",
+        "approval_status": "approvalStatus",
         "subtotal": "subtotal",
         "discount_amount": "discountAmount",
         "tax_amount": "taxAmount",
         "total_amount": "totalAmount",
+        "discount_total": "discountTotal",
+        "tax_total": "taxTotal",
+        "grand_total": "grandTotal",
+        "estimated_cost": "estimatedCost",
+        "expected_margin": "expectedMargin",
+        "margin_percentage": "marginPercentage",
+        "version_number": "versionNumber",
+        "terms_and_conditions": "termsAndConditions",
+        "approved_by": "approvedBy",
+        "approved_at": "approvedAt",
+        "accepted_at": "acceptedAt",
+        "declined_at": "declinedAt",
+        "converted_srm_sales_order_id": "convertedSrmSalesOrderId",
+        "converted_srm_contract_id": "convertedSrmContractId",
+        "converted_srm_engagement_id": "convertedSrmEngagementId",
+        "product_code": "productCode",
+        "unit_of_measure": "unitOfMeasure",
+        "list_price": "listPrice",
+        "cost_price": "costPrice",
+        "service_code": "serviceCode",
+        "billing_type": "billingType",
+        "default_rate": "defaultRate",
+        "default_cost": "defaultCost",
+        "price_book_id": "priceBookId",
+        "item_type": "itemType",
+        "service_id": "serviceId",
+        "unit_price": "unitPrice",
+        "discount_type": "discountType",
+        "discount_value": "discountValue",
+        "line_total": "lineTotal",
+        "margin_amount": "marginAmount",
+        "condition_json": "condition",
+        "action_json": "action",
+        "question_json": "questions",
+        "recommendation_json": "recommendations",
+        "srm_sales_order_id": "srmSalesOrderId",
+        "srm_contract_id": "srmContractId",
+        "srm_engagement_id": "srmEngagementId",
         "territory_id": "territoryId",
         "rules_json": "rules",
         "priority": "priority",
         "is_active": "isActive",
+        "order_index": "orderIndex",
+        "stage_type": "stageType",
+        "manager_id": "managerId",
+        "product_line": "productLine",
+        "service_line": "serviceLine",
+        "period_type": "periodType",
+        "period_start": "periodStart",
+        "period_end": "periodEnd",
+        "target_owner_type": "targetOwnerType",
+        "target_owner_id": "targetOwnerId",
+        "target_amount": "targetAmount",
+        "snapshot_name": "snapshotName",
+        "owner_user_id": "ownerId",
+        "team_id": "teamId",
+        "pipeline_amount": "pipelineAmount",
+        "weighted_amount": "weightedAmount",
+        "committed_amount": "committedAmount",
+        "best_case_amount": "bestCaseAmount",
+        "upside_amount": "upsideAmount",
+        "closed_won_amount": "closedWonAmount",
+        "invoiced_amount": "invoicedAmount",
+        "collected_amount": "collectedAmount",
+        "scenarios_json": "scenarios",
+        "assignment_type": "assignmentType",
+        "activity_count": "activityCount",
+        "conversion_rate": "conversionRate",
         "entity": "entityType",
         "field_name": "fieldName",
         "field_key": "fieldKey",
@@ -1930,6 +2276,10 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
         if "options_json" in data and isinstance(data["options_json"], str):
             data["options_json"] = [item.strip() for item in re.split(r"[\n,]", data["options_json"]) if item.strip()]
     if resource.model is CRMActivity:
+        if "record_type" in data and "entity_type" not in data:
+            data["entity_type"] = data.pop("record_type")
+        if "record_id" in data and "entity_id" not in data:
+            data["entity_id"] = data.pop("record_id")
         if "description" in data and "body" not in data:
             data["body"] = data["description"]
         if "body" in data and "description" not in data:
@@ -1944,6 +2294,107 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
             data["entity_type"] = _normalize_entity_type(data["entity_type"])
         if "metadata" in data and "metadata_json" not in data:
             data["metadata_json"] = data.pop("metadata")
+    if resource.model is CRMProduct:
+        if "product_code" in data and "sku" not in data:
+            data["sku"] = data["product_code"]
+        if "sku" in data and "product_code" not in data:
+            data["product_code"] = data["sku"]
+        if "list_price" in data and "unit_price" not in data:
+            data["unit_price"] = data["list_price"]
+        if "unit_price" in data and "list_price" not in data:
+            data["list_price"] = data["unit_price"]
+        if "active" in data and "status" not in data:
+            data["status"] = "Active" if data["active"] else "Inactive"
+        if "active" not in data and not partial:
+            data["active"] = True
+        if "cost_price" not in data and not partial:
+            data["cost_price"] = 0
+    if resource.model is CRMQuotation:
+        if "account_id" in data and "company_id" not in data:
+            data["company_id"] = data["account_id"]
+        if "company_id" in data and "account_id" not in data:
+            data["account_id"] = data["company_id"]
+        if "owner_id" in data and "owner_user_id" not in data:
+            data["owner_user_id"] = data["owner_id"]
+        if "owner_user_id" in data and "owner_id" not in data:
+            data["owner_id"] = data["owner_user_id"]
+        if "quote_date" in data and "issue_date" not in data:
+            data["issue_date"] = data["quote_date"]
+        if "issue_date" in data and "quote_date" not in data:
+            data["quote_date"] = data["issue_date"]
+        if "valid_until" in data and "expiry_date" not in data:
+            data["expiry_date"] = data["valid_until"]
+        if "expiry_date" in data and "valid_until" not in data:
+            data["valid_until"] = data["expiry_date"]
+        if "terms_and_conditions" in data and "terms" not in data:
+            data["terms"] = data["terms_and_conditions"]
+        if "terms" in data and "terms_and_conditions" not in data:
+            data["terms_and_conditions"] = data["terms"]
+        if "grand_total" in data and "total_amount" not in data:
+            data["total_amount"] = data["grand_total"]
+        if "total_amount" in data and "grand_total" not in data:
+            data["grand_total"] = data["total_amount"]
+        if "tax_total" in data and "tax_amount" not in data:
+            data["tax_amount"] = data["tax_total"]
+        if "tax_amount" in data and "tax_total" not in data:
+            data["tax_total"] = data["tax_amount"]
+        if "discount_total" in data and "discount_amount" not in data:
+            data["discount_amount"] = data["discount_total"]
+        if "discount_amount" in data and "discount_total" not in data:
+            data["discount_total"] = data["discount_amount"]
+        if "approval_status" not in data and not partial:
+            data["approval_status"] = "not_submitted"
+        if "version_number" not in data and not partial:
+            data["version_number"] = 1
+    if resource.model is CRMQuotationItem:
+        if "quote_id" in data and "quotation_id" not in data:
+            data["quotation_id"] = data["quote_id"]
+        if "quotation_id" in data and "quote_id" not in data:
+            data["quote_id"] = data["quotation_id"]
+        if "line_total" in data and "total_amount" not in data:
+            data["total_amount"] = data["line_total"]
+        if "total_amount" in data and "line_total" not in data:
+            data["line_total"] = data["total_amount"]
+        if "discount_value" in data and "discount_amount" not in data:
+            data["discount_amount"] = data["discount_value"]
+        if "discount_amount" in data and "discount_value" not in data:
+            data["discount_value"] = data["discount_amount"]
+        if "item_type" not in data and not partial:
+            data["item_type"] = "service" if data.get("service_id") else "product"
+        if "discount_type" not in data and not partial:
+            data["discount_type"] = "amount"
+        if "billing_type" not in data and not partial:
+            data["billing_type"] = "fixed"
+        if "name" not in data and not partial:
+            data["name"] = data.get("description") or f"{data.get('item_type', 'quote')} line"
+    if resource.model is CRMPriceBookItem:
+        selling_price = data.pop("selling_price", None)
+        list_price = data.pop("list_price", None)
+        data.pop("currency", None)
+        if selling_price is not None and "unit_price" not in data:
+            data["unit_price"] = selling_price
+        elif list_price is not None and "unit_price" not in data:
+            data["unit_price"] = list_price
+        if "item_id" in data:
+            if str(data.get("item_type") or "").lower() == "service" and "service_id" not in data:
+                data["service_id"] = data["item_id"]
+            elif "product_id" not in data:
+                data["product_id"] = data["item_id"]
+    if resource.model is CRMPriceBook:
+        if "status" in data and "active" not in data:
+            data["active"] = str(data.pop("status") or "").lower() not in {"inactive", "disabled", "archived"}
+        if "active" not in data and not partial:
+            data["active"] = True
+    if resource.model is CRMCPQRule:
+        if "condition" in data and "condition_json" not in data:
+            data["condition_json"] = data.pop("condition")
+        if "action" in data and "action_json" not in data:
+            data["action_json"] = data.pop("action")
+    if resource.model is CRMGuidedSellingFlow:
+        if "questions" in data and "question_json" not in data:
+            data["question_json"] = data.pop("questions")
+        if "recommendations" in data and "recommendation_json" not in data:
+            data["recommendation_json"] = data.pop("recommendations")
     if "assigned_user_id" in data and "owner_user_id" not in data:
         data["owner_user_id"] = data.pop("assigned_user_id")
     if "team_id" in data and "assigned_team_id" not in data:
@@ -2465,6 +2916,21 @@ def _timeline_for(db: Session, entity: str, record: Any, organization_id: int) -
     field = DETAIL_ENTITY_FIELDS.get(entity)
     entity_type = ENTITY_TYPE_BY_CANONICAL.get(entity)
     events: list[dict[str, Any]] = []
+    if entity_type:
+        timeline_rows = (
+            db.query(CRMTimelineEvent)
+            .filter(
+                CRMTimelineEvent.organization_id == organization_id,
+                CRMTimelineEvent.record_type == entity_type,
+                CRMTimelineEvent.record_id == record.id,
+            )
+            .order_by(desc(CRMTimelineEvent.occurred_at), desc(CRMTimelineEvent.id))
+            .limit(50)
+            .all()
+        )
+        for row in timeline_rows:
+            item = _serialize(row)
+            events.append({"type": item.get("eventType") or item.get("event_type"), "title": row.title, "occurredAt": item.get("occurredAt") or item.get("occurred_at"), "record": item})
     if getattr(record, "created_at", None):
         events.append({"type": "created", "title": "Record created", "occurredAt": record.created_at.isoformat(), "record": _serialize(record)})
     if getattr(record, "updated_at", None):
@@ -2988,6 +3454,193 @@ def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_i
     return file_path, file_name, file_url
 
 
+def _quote_lines(db: Session, quote_id: int) -> list[CRMQuotationItem]:
+    return db.query(CRMQuotationItem).filter(
+        (CRMQuotationItem.quotation_id == quote_id) | (CRMQuotationItem.quote_id == quote_id)
+    ).order_by(CRMQuotationItem.id.asc()).all()
+
+
+def _decimal_value(value: Any) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    if value in {None, ""}:
+        return Decimal("0")
+    return Decimal(str(value))
+
+
+def _apply_quote_line_calculation(line: CRMQuotationItem) -> None:
+    quantity = _decimal_value(line.quantity or 1)
+    unit_price = _decimal_value(line.unit_price)
+    base = quantity * unit_price
+    discount_value = _decimal_value(getattr(line, "discount_value", None) if getattr(line, "discount_value", None) is not None else line.discount_amount)
+    if str(getattr(line, "discount_type", "") or "").lower() in {"percent", "percentage"}:
+        discount_amount = base * discount_value / Decimal("100")
+    else:
+        discount_amount = discount_value
+    taxable = base - discount_amount
+    tax_rate = _decimal_value(getattr(line, "tax_rate", 0))
+    tax_amount = taxable * tax_rate / Decimal("100")
+    total = taxable + tax_amount
+    cost = _decimal_value(getattr(line, "estimated_cost", 0))
+    margin = total - cost
+    line.discount_amount = discount_amount
+    line.discount_value = discount_value
+    line.line_total = total
+    line.total_amount = total
+    line.margin_amount = margin
+    line.margin_percentage = (margin / total * Decimal("100")) if total else Decimal("0")
+
+
+def _recalculate_quote(db: Session, quotation: CRMQuotation) -> dict[str, Any]:
+    subtotal = Decimal("0")
+    discount_total = Decimal("0")
+    tax_total = Decimal("0")
+    grand_total = Decimal("0")
+    estimated_cost = Decimal("0")
+    for line in _quote_lines(db, quotation.id):
+        _apply_quote_line_calculation(line)
+        subtotal += _decimal_value(line.quantity or 1) * _decimal_value(line.unit_price)
+        discount_total += _decimal_value(line.discount_amount)
+        tax_total += (_decimal_value(line.quantity or 1) * _decimal_value(line.unit_price) - _decimal_value(line.discount_amount)) * _decimal_value(getattr(line, "tax_rate", 0)) / Decimal("100")
+        grand_total += _decimal_value(line.line_total)
+        estimated_cost += _decimal_value(line.estimated_cost)
+    margin = grand_total - estimated_cost
+    quotation.subtotal = subtotal
+    quotation.discount_amount = discount_total
+    quotation.discount_total = discount_total
+    quotation.tax_amount = tax_total
+    quotation.tax_total = tax_total
+    quotation.total_amount = grand_total
+    quotation.grand_total = grand_total
+    quotation.estimated_cost = estimated_cost
+    quotation.expected_margin = margin
+    quotation.margin_percentage = (margin / grand_total * Decimal("100")) if grand_total else Decimal("0")
+    return {
+        "subtotal": float(subtotal),
+        "discountTotal": float(discount_total),
+        "taxTotal": float(tax_total),
+        "grandTotal": float(grand_total),
+        "estimatedCost": float(estimated_cost),
+        "expectedMargin": float(margin),
+        "marginPercentage": float(quotation.margin_percentage or 0),
+    }
+
+
+def _quote_payload(db: Session, quotation: CRMQuotation) -> dict[str, Any]:
+    payload = _serialize(quotation)
+    payload["lines"] = [_serialize(line) for line in _quote_lines(db, quotation.id)]
+    payload["versions"] = [_serialize(row) for row in db.query(CRMQuoteVersion).filter(CRMQuoteVersion.quote_id == quotation.id).order_by(CRMQuoteVersion.version_number.desc()).all()]
+    payload["approvals"] = [_serialize(row) for row in db.query(CRMQuoteApproval).filter(CRMQuoteApproval.quote_id == quotation.id).order_by(CRMQuoteApproval.id.desc()).all()]
+    payload["srmConversionLogs"] = [_serialize(row) for row in db.query(CRMQuoteSRMConversionLog).filter(CRMQuoteSRMConversionLog.quote_id == quotation.id).order_by(CRMQuoteSRMConversionLog.id.desc()).all()]
+    return payload
+
+
+def _set_quote_status(db: Session, quotation: CRMQuotation, current_user: User, status_value: str, approval_status: str | None = None) -> dict[str, Any]:
+    before = {"status": quotation.status, "approval_status": quotation.approval_status}
+    quotation.status = status_value
+    if approval_status:
+        quotation.approval_status = approval_status
+    if status_value.lower() == "sent":
+        quotation.sent_at = datetime.now(timezone.utc)
+    if status_value.lower() == "accepted":
+        quotation.accepted_at = datetime.now(timezone.utc)
+    if status_value.lower() in {"declined", "rejected"}:
+        quotation.declined_at = datetime.now(timezone.utc)
+    quotation.updated_at = datetime.now(timezone.utc)
+    quotation.updated_by_user_id = current_user.id
+    _create_crm_audit_log(
+        db,
+        user_id=current_user.id,
+        entity_type="quotations",
+        entity_id=quotation.id,
+        action="QUOTATION_STATUS_CHANGE",
+        old_values=before,
+        new_values={"status": quotation.status, "approval_status": quotation.approval_status},
+        description=f"Quote status changed to {quotation.status}",
+    )
+    _create_timeline_activity(
+        db,
+        organization_id=quotation.organization_id or _organization_id(db, current_user),
+        entity_type="quotation",
+        entity_id=quotation.id,
+        activity_type="quotation_status",
+        title=f"Quote {quotation.status}",
+        body=f"Quote {quotation.quote_number} changed to {quotation.status}.",
+        user_id=current_user.id,
+    )
+    db.commit()
+    db.refresh(quotation)
+    return _quote_payload(db, quotation)
+
+
+def _convert_quote_to_srm(db: Session, quotation: CRMQuotation, current_user: User) -> dict[str, Any]:
+    existing_log = db.query(CRMQuoteSRMConversionLog).filter(
+        CRMQuoteSRMConversionLog.quote_id == quotation.id,
+        CRMQuoteSRMConversionLog.status == "converted",
+    ).order_by(CRMQuoteSRMConversionLog.id.desc()).first()
+    if existing_log:
+        return {"idempotent": True, "quote": _quote_payload(db, quotation), "conversionLog": _serialize(existing_log)}
+    if not quotation.deal_id:
+        log = CRMQuoteSRMConversionLog(
+            quote_id=quotation.id,
+            deal_id=None,
+            status="failed",
+            message="Quote must be linked to a CRM deal before SRM conversion.",
+            created_by_user_id=current_user.id,
+        )
+        db.add(log)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quote must be linked to a CRM deal before SRM conversion")
+    try:
+        from app.apps.srm.api.router import create_sales_order_from_crm_deal_service
+
+        result = create_sales_order_from_crm_deal_service(quotation.deal_id, db, current_user)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log = CRMQuoteSRMConversionLog(
+            quote_id=quotation.id,
+            deal_id=quotation.deal_id,
+            status="failed",
+            message=str(exc),
+            created_by_user_id=current_user.id,
+        )
+        db.add(log)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"SRM conversion failed: {exc}") from exc
+    sales_order = result.get("sales_order") or {}
+    contract = result.get("contract") or {}
+    engagement = result.get("engagement") or {}
+    quotation.converted_srm_sales_order_id = sales_order.get("id")
+    quotation.converted_srm_contract_id = contract.get("id")
+    quotation.converted_srm_engagement_id = engagement.get("id")
+    log = CRMQuoteSRMConversionLog(
+        quote_id=quotation.id,
+        deal_id=quotation.deal_id,
+        srm_sales_order_id=quotation.converted_srm_sales_order_id,
+        srm_contract_id=quotation.converted_srm_contract_id,
+        srm_engagement_id=quotation.converted_srm_engagement_id,
+        status="converted",
+        message="Quote converted to SRM commercial records.",
+        created_by_user_id=current_user.id,
+    )
+    db.add(log)
+    _create_timeline_activity(
+        db,
+        organization_id=quotation.organization_id or _organization_id(db, current_user),
+        entity_type="quotation",
+        entity_id=quotation.id,
+        activity_type="srm_conversion",
+        title="Quote converted to SRM",
+        body="Accepted CRM quote created or linked SRM commercial records.",
+        user_id=current_user.id,
+        metadata={"salesOrderId": quotation.converted_srm_sales_order_id, "engagementId": quotation.converted_srm_engagement_id},
+    )
+    db.commit()
+    db.refresh(quotation)
+    return {"idempotent": bool(result.get("idempotent")), "quote": _quote_payload(db, quotation), "conversionLog": _serialize(log), "srm": result}
+
+
 def _detail_payload(db: Session, entity: str, record: Any, organization_id: int) -> dict[str, Any]:
     canonical = _canonical_entity(entity)
     payload = _serialize(record)
@@ -2995,6 +3648,8 @@ def _detail_payload(db: Session, entity: str, record: Any, organization_id: int)
     payload["customFields"] = _custom_fields_for(db, canonical, record.id, organization_id)
     payload["timeline"] = _timeline_for(db, canonical, record, organization_id)
     payload["related"] = _related_for(db, canonical, record, organization_id)
+    if canonical == "quotations":
+        payload.update({key: value for key, value in _quote_payload(db, record).items() if key not in payload or key in {"lines", "versions", "approvals", "srmConversionLogs"}})
     return payload
 
 
@@ -3033,9 +3688,15 @@ def _maybe_create_srm_handoff_for_won_deal(db: Session, deal: CRMDeal, current_u
 
 RELATED_RESOURCE_BY_FIELD = {
     "company_id": "companies",
+    "account_id": "companies",
     "contact_id": "contacts",
     "deal_id": "deals",
     "lead_id": "leads",
+    "quote_id": "quotations",
+    "quotation_id": "quotations",
+    "product_id": "products",
+    "service_id": "services",
+    "price_book_id": "price-books",
     "pipeline_id": "pipelines",
     "stage_id": "pipeline-stages",
     "territory_id": "territories",
@@ -3734,6 +4395,19 @@ def _create_timeline_activity(
         values[linked_field] = entity_id
     activity = CRMActivity(**values)
     db.add(activity)
+    db.add(
+        CRMTimelineEvent(
+            organization_id=organization_id,
+            record_type=entity_type,
+            record_id=entity_id,
+            event_type=activity_type,
+            title=title,
+            description=body,
+            metadata_json=metadata or {},
+            actor_user_id=user_id,
+            occurred_at=values["activity_date"],
+        )
+    )
     if commit:
         db.commit()
         db.refresh(activity)
@@ -5062,6 +5736,271 @@ def list_custom_fields(
     return {"items": [_serialize(row) for row in rows], "total": len(rows), "page": 1, "per_page": len(rows), "pages": 1 if rows else 0}
 
 
+@router.post("/quotes/{quote_id}/lines", status_code=status.HTTP_201_CREATED)
+def add_quote_line(
+    quote_id: int,
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "manage")
+    organization_id = _organization_id(db, current_user)
+    quote = _get_record(db, _get_resource("quotations"), quote_id, organization_id)
+    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
+    raw = payload.model_dump()
+    raw["quote_id"] = quote.id
+    raw["quotation_id"] = quote.id
+    data = _validate_and_build(_get_resource("quotation-items"), raw, partial=False)
+    line = CRMQuotationItem(**data)
+    _apply_quote_line_calculation(line)
+    db.add(line)
+    db.flush()
+    totals = _recalculate_quote(db, quote)
+    _create_crm_audit_log(db, user_id=current_user.id, entity_type="quote-lines", entity_id=line.id, action="CREATE", new_values=_serialize(line), description="Quote line added")
+    db.commit()
+    db.refresh(line)
+    return _serialize(line) | {"quoteTotals": totals}
+
+
+@router.put("/quote-lines/{line_id}")
+@router.patch("/quote-lines/{line_id}")
+def update_quote_line(
+    line_id: int,
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "manage")
+    organization_id = _organization_id(db, current_user)
+    line = db.query(CRMQuotationItem).filter(CRMQuotationItem.id == line_id).first()
+    if not line:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quote line not found")
+    quote = _get_record(db, _get_resource("quotations"), line.quote_id or line.quotation_id, organization_id)
+    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
+    before = _serialize(line)
+    data = _validate_and_build(_get_resource("quotation-items"), payload.model_dump(exclude_unset=True), partial=True)
+    for key, value in data.items():
+        if key not in {"id", "quotation_id", "quote_id"}:
+            setattr(line, key, value)
+    _apply_quote_line_calculation(line)
+    totals = _recalculate_quote(db, quote)
+    _create_crm_audit_log(db, user_id=current_user.id, entity_type="quote-lines", entity_id=line.id, action="UPDATE", old_values=before, new_values=_serialize(line), description="Quote line updated")
+    db.commit()
+    db.refresh(line)
+    return _serialize(line) | {"quoteTotals": totals}
+
+
+@router.delete("/quote-lines/{line_id}")
+def delete_quote_line(
+    line_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "manage")
+    organization_id = _organization_id(db, current_user)
+    line = db.query(CRMQuotationItem).filter(CRMQuotationItem.id == line_id).first()
+    if not line:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quote line not found")
+    quote = _get_record(db, _get_resource("quotations"), line.quote_id or line.quotation_id, organization_id)
+    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Accepted or declined quotes cannot be edited")
+    before = _serialize(line)
+    db.delete(line)
+    totals = _recalculate_quote(db, quote)
+    _create_crm_audit_log(db, user_id=current_user.id, entity_type="quote-lines", entity_id=line_id, action="DELETE", old_values=before, description="Quote line deleted")
+    db.commit()
+    return {"deleted": True, "id": line_id, "quoteTotals": totals}
+
+
+@router.post("/quotes/{quote_id}/calculate")
+def calculate_quote(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "view")
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    totals = _recalculate_quote(db, quote)
+    db.commit()
+    db.refresh(quote)
+    return _quote_payload(db, quote) | {"calculation": totals}
+
+
+@router.post("/quotes/{quote_id}/submit")
+def submit_quote(
+    quote_id: int,
+    payload: CRMRecordPayload | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "manage")
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    if str(quote.status or "").lower() not in {"draft", "rejected"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only draft or rejected quotes can be submitted")
+    db.add(CRMQuoteApproval(organization_id=quote.organization_id, quote_id=quote.id, status="pending", reason=(payload.model_dump().get("comments") if payload else None), submitted_by=current_user.id, approver_user_id=None))
+    return _set_quote_status(db, quote, current_user, "Pending Approval", "pending")
+
+
+@router.post("/quotes/{quote_id}/approve")
+def approve_quote(
+    quote_id: int,
+    payload: CRMRecordPayload | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_quotes_approve", "crm_admin", "crm_manage")),
+):
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    if str(quote.status or "").lower() not in {"pending approval", "draft", "approved"} and str(quote.approval_status or "").lower() != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only submitted quotes can be approved")
+    approval = db.query(CRMQuoteApproval).filter(CRMQuoteApproval.quote_id == quote.id, CRMQuoteApproval.status == "pending").order_by(CRMQuoteApproval.id.desc()).first()
+    if approval:
+        approval.status = "approved"
+        approval.approved_by = current_user.id
+        approval.approver_user_id = current_user.id
+        approval.comments = (payload.model_dump().get("comments") if payload else None)
+        approval.decided_at = datetime.now(timezone.utc)
+    quote.approved_by = current_user.id
+    quote.approved_at = datetime.now(timezone.utc)
+    return _set_quote_status(db, quote, current_user, "Approved", "approved")
+
+
+@router.post("/quotes/{quote_id}/reject")
+def reject_quote(
+    quote_id: int,
+    payload: CRMRecordPayload | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_quotes_approve", "crm_admin", "crm_manage")),
+):
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    approval = db.query(CRMQuoteApproval).filter(CRMQuoteApproval.quote_id == quote.id, CRMQuoteApproval.status == "pending").order_by(CRMQuoteApproval.id.desc()).first()
+    if approval:
+        approval.status = "rejected"
+        approval.approved_by = current_user.id
+        approval.approver_user_id = current_user.id
+        approval.comments = (payload.model_dump().get("comments") if payload else None)
+        approval.decided_at = datetime.now(timezone.utc)
+    return _set_quote_status(db, quote, current_user, "Rejected", "rejected")
+
+
+@router.post("/quotes/{quote_id}/send")
+def send_quote(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_quotes_send", "crm_admin", "crm_manage")),
+):
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    if str(quote.approval_status or "").lower() not in {"approved", "not_required"} and str(quote.status or "").lower() != "approved":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quote must be approved before sending")
+    _generate_quotation_pdf(db, quote, _organization_id(db, current_user), current_user.id)
+    return _set_quote_status(db, quote, current_user, "Sent", "approved")
+
+
+@router.post("/quotes/{quote_id}/accept")
+def accept_quote(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "manage")
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    if str(quote.status or "").lower() not in {"sent", "approved", "accepted"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only sent or approved quotes can be accepted")
+    payload = _set_quote_status(db, quote, current_user, "Accepted", "approved")
+    conversion = _convert_quote_to_srm(db, quote, current_user)
+    return payload | {"srmConversion": conversion}
+
+
+@router.post("/quotes/{quote_id}/decline")
+def decline_quote(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "manage")
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    return _set_quote_status(db, quote, current_user, "Declined", "declined")
+
+
+@router.post("/quotes/{quote_id}/new-version", status_code=status.HTTP_201_CREATED)
+def new_quote_version(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    _assert_entity_permission("quotations", current_user, "manage")
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    snapshot = _quote_payload(db, quote)
+    version = CRMQuoteVersion(organization_id=quote.organization_id, quote_id=quote.id, version_number=(quote.version_number or 1), snapshot_json=snapshot, created_by_user_id=current_user.id)
+    db.add(version)
+    quote.version_number = (quote.version_number or 1) + 1
+    quote.status = "Draft"
+    quote.approval_status = "not_submitted"
+    db.commit()
+    db.refresh(version)
+    db.refresh(quote)
+    return {"version": _serialize(version), "quote": _quote_payload(db, quote)}
+
+
+@router.post("/quotes/{quote_id}/convert-to-srm")
+def convert_quote_to_srm(
+    quote_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_quotes_convert_to_srm", "crm_admin", "crm_manage")),
+):
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    if str(quote.status or "").lower() != "accepted":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only accepted quotes can be converted to SRM")
+    return _convert_quote_to_srm(db, quote, current_user)
+
+
+@router.get("/quotes/{quote_id}/pdf")
+def generate_quote_pdf_alias(
+    quote_id: int,
+    download: bool = Query(default=False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin", "crm_quotes_view")),
+):
+    quotation = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    file_path, file_name, file_url = _generate_quotation_pdf(db, quotation, _organization_id(db, current_user), current_user.id)
+    _create_timeline_activity(db, organization_id=quotation.organization_id or _organization_id(db, current_user), entity_type="quotation", entity_id=quotation.id, activity_type="quotation_pdf", title="Quote PDF generated", body=file_name, user_id=current_user.id, metadata={"pdfUrl": file_url, "fileName": file_name})
+    db.commit()
+    return FileResponse(file_path, media_type="application/pdf", filename=file_name if download else None, headers={"Content-Disposition": f"{'attachment' if download else 'inline'}; filename={file_name}"})
+
+
+@router.post("/cpq/evaluate")
+def evaluate_cpq(
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_cpq_view", "crm_cpq_manage", "crm_admin", "crm_manage")),
+):
+    data = payload.model_dump()
+    organization_id = _organization_id(db, current_user)
+    rules = _base_query(db, _get_resource("cpq-rules"), organization_id).filter(CRMCPQRule.active.is_(True)).all()
+    recommendations: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
+    requested_amount = _decimal_value(data.get("amount") or data.get("total") or data.get("grandTotal"))
+    discount = _decimal_value(data.get("discount") or data.get("discountTotal") or 0)
+    for rule in rules:
+        condition = rule.condition_json or {}
+        action = rule.action_json or {}
+        min_amount = _decimal_value(condition.get("min_amount") or condition.get("minAmount"))
+        max_discount = _decimal_value(condition.get("max_discount") or condition.get("maxDiscount"))
+        matched = True
+        if min_amount and requested_amount < min_amount:
+            matched = False
+        if max_discount and discount <= max_discount:
+            matched = False
+        if not matched:
+            continue
+        item = {"ruleId": rule.id, "rule": rule.name, "ruleType": rule.rule_type, "action": action}
+        if str(rule.rule_type).lower() in {"approval", "discount", "validation"}:
+            warnings.append(item)
+        else:
+            recommendations.append(item)
+    return {"recommendations": recommendations, "warnings": warnings, "ruleCount": len(rules), "evaluatedAt": datetime.now(timezone.utc).isoformat()}
+
+
 @router.get("/quotations/{quotation_id}/pdf")
 def generate_quotation_pdf(
     quotation_id: int,
@@ -5274,6 +6213,401 @@ def _win_loss_payload(db: Session, organization_id: int, deals: list[CRMDeal], s
             for deal in closed
         ],
     }
+
+
+@router.post("/pipeline-stages/reorder")
+def reorder_pipeline_stages(
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_pipeline_manage", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    raw = payload.model_dump()
+    items = raw.get("items") or raw.get("stages") or []
+    if not isinstance(items, list) or not items:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="items must contain stage ids and orderIndex values")
+    updated = []
+    for index, item in enumerate(items):
+        stage_id = int(item.get("id") or item.get("stageId") or item.get("stage_id") or 0)
+        if not stage_id:
+            continue
+        order_index = int(item.get("orderIndex") or item.get("order_index") or item.get("position") or index + 1)
+        stage = _get_record(db, _get_resource("pipeline-stages"), stage_id, organization_id)
+        stage.order_index = order_index
+        stage.position = order_index
+        stage.updated_by_user_id = current_user.id
+        stage.updated_at = datetime.now(timezone.utc)
+        updated.append(stage)
+    _crm_audit(db, current_user, entity_type="crm_pipeline_stage", entity_id=None, action="REORDER", description="CRM pipeline stages reordered", values={"items": items})
+    db.commit()
+    return {"items": [_serialize(row) for row in updated], "total": len(updated)}
+
+
+@router.get("/forecast")
+def crm_forecast(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerId: int | None = None,
+    teamId: int | None = None,
+    territoryId: int | None = None,
+    pipelineId: int | None = None,
+    currency: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_forecast_view", "crm_forecast_manage", "crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    return _forecast_payload(db, organization_id, current_user, start_date=startDate, end_date=endDate, owner_id=ownerId, team_id=teamId, territory_id=territoryId, pipeline_id=pipelineId, currency=currency, group_by="owner")
+
+
+@router.get("/forecast/by-owner")
+def crm_forecast_by_owner(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_forecast_view", "crm_forecast_manage", "crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    return _forecast_payload(db, organization_id, current_user, start_date=startDate, end_date=endDate, pipeline_id=pipelineId, group_by="owner")
+
+
+@router.get("/forecast/by-team")
+def crm_forecast_by_team(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_forecast_view", "crm_forecast_manage", "crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    return _forecast_payload(db, organization_id, current_user, start_date=startDate, end_date=endDate, pipeline_id=pipelineId, group_by="team")
+
+
+@router.get("/forecast/by-territory")
+def crm_forecast_by_territory(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_forecast_view", "crm_forecast_manage", "crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    return _forecast_payload(db, organization_id, current_user, start_date=startDate, end_date=endDate, pipeline_id=pipelineId, group_by="territory")
+
+
+@router.post("/forecast/snapshot", status_code=status.HTTP_201_CREATED)
+def create_forecast_snapshot(
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_forecast_manage", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    raw = payload.model_dump()
+    forecast = _forecast_payload(
+        db,
+        organization_id,
+        current_user,
+        start_date=raw.get("startDate") or raw.get("periodStart"),
+        end_date=raw.get("endDate") or raw.get("periodEnd"),
+        owner_id=raw.get("ownerId"),
+        team_id=raw.get("teamId"),
+        territory_id=raw.get("territoryId"),
+        pipeline_id=raw.get("pipelineId"),
+        currency=raw.get("currency"),
+        group_by="owner",
+    )
+    filters = forecast["filters"]
+    summary = forecast["summary"]
+    snapshot = CRMForecastSnapshot(
+        organization_id=organization_id,
+        snapshot_name=raw.get("snapshotName") or raw.get("name") or f"Forecast {datetime.now(timezone.utc).date().isoformat()}",
+        period_start=date.fromisoformat(str(filters["startDate"])),
+        period_end=date.fromisoformat(str(filters["endDate"])),
+        pipeline_id=filters.get("pipelineId"),
+        owner_user_id=filters.get("ownerId"),
+        team_id=filters.get("teamId"),
+        territory_id=filters.get("territoryId"),
+        currency=filters.get("currency") or raw.get("currency") or "INR",
+        pipeline_amount=Decimal(str(summary["pipelineAmount"])),
+        weighted_amount=Decimal(str(summary["weightedAmount"])),
+        committed_amount=Decimal(str(summary["committedAmount"])),
+        best_case_amount=Decimal(str(summary["bestCaseAmount"])),
+        upside_amount=Decimal(str(summary["upsideAmount"])),
+        closed_won_amount=Decimal(str(summary["closedWonAmount"])),
+        invoiced_amount=Decimal(str(summary["invoicedAmount"])),
+        collected_amount=Decimal(str(summary["collectedAmount"])),
+        scenarios_json=summary["scenarios"],
+        created_by_user_id=current_user.id,
+    )
+    db.add(snapshot)
+    db.flush()
+    _crm_audit(db, current_user, entity_type="crm_forecast_snapshot", entity_id=snapshot.id, action="CREATE", description="CRM forecast snapshot created", values=summary)
+    db.commit()
+    db.refresh(snapshot)
+    return _serialize(snapshot)
+
+
+@router.get("/targets")
+def list_targets(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerType: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_targets_view", "crm_targets_manage", "crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    query = _base_query(db, _get_resource("sales-targets"), organization_id)
+    if startDate:
+        query = query.filter(CRMSalesTarget.period_end >= date.fromisoformat(startDate[:10]))
+    if endDate:
+        query = query.filter(CRMSalesTarget.period_start <= date.fromisoformat(endDate[:10]))
+    if ownerType:
+        query = query.filter(CRMSalesTarget.target_owner_type == ownerType)
+    rows = query.order_by(desc(CRMSalesTarget.period_start), asc(CRMSalesTarget.target_owner_type), asc(CRMSalesTarget.target_owner_id)).all()
+    return {"items": [_serialize(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/targets", status_code=status.HTTP_201_CREATED)
+def create_target(
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_targets_manage", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    data = _validate_and_build(_get_resource("sales-targets"), payload.model_dump(), partial=False)
+    data["organization_id"] = organization_id
+    data["created_by_user_id"] = current_user.id
+    data["updated_by_user_id"] = current_user.id
+    target = CRMSalesTarget(**data)
+    db.add(target)
+    db.flush()
+    _crm_audit(db, current_user, entity_type="crm_sales_target", entity_id=target.id, action="CREATE", description="CRM sales target created", values=_serialize(target))
+    db.commit()
+    db.refresh(target)
+    return _serialize(target)
+
+
+@router.put("/targets/{target_id}")
+def update_target(
+    target_id: int,
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_targets_manage", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    target = _get_record(db, _get_resource("sales-targets"), target_id, organization_id)
+    data = _validate_and_build(_get_resource("sales-targets"), payload.model_dump(exclude_unset=True), partial=True)
+    for key, value in data.items():
+        if key not in {"id", "organization_id", "created_at", "created_by_user_id"}:
+            setattr(target, key, value)
+    target.updated_by_user_id = current_user.id
+    target.updated_at = datetime.now(timezone.utc)
+    _crm_audit(db, current_user, entity_type="crm_sales_target", entity_id=target.id, action="UPDATE", description="CRM sales target updated", values=data)
+    db.commit()
+    db.refresh(target)
+    return _serialize(target)
+
+
+@router.get("/targets/performance")
+def targets_performance(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_targets_view", "crm_targets_manage", "crm_sales_performance_view", "crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    start, end = _parse_report_range(startDate, endDate)
+    targets = _base_query(db, _get_resource("sales-targets"), organization_id).filter(CRMSalesTarget.period_start <= end.date(), CRMSalesTarget.period_end >= start.date()).all()
+    items = []
+    for target in targets:
+        owner_id = target.target_owner_id if target.target_owner_type == "user" else None
+        team_id = target.target_owner_id if target.target_owner_type == "team" else None
+        territory_id = target.target_owner_id if target.target_owner_type == "territory" else None
+        forecast = _forecast_payload(db, organization_id, current_user, start_date=start.date().isoformat(), end_date=end.date().isoformat(), owner_id=owner_id, team_id=team_id, territory_id=territory_id, currency=target.currency)
+        summary = forecast["summary"]
+        target_amount = float(target.target_amount or 0)
+        achieved = float(summary["closedWonAmount"])
+        items.append(
+            {
+                **_serialize(target),
+                "achievedAmount": round(achieved, 2),
+                "weightedAmount": summary["weightedAmount"],
+                "invoicedAmount": summary["invoicedAmount"],
+                "collectedAmount": summary["collectedAmount"],
+                "achievementPercent": round((achieved / target_amount) * 100, 2) if target_amount else 0.0,
+                "invoicePercent": round((float(summary["invoicedAmount"]) / target_amount) * 100, 2) if target_amount else 0.0,
+                "collectionPercent": round((float(summary["collectedAmount"]) / target_amount) * 100, 2) if target_amount else 0.0,
+            }
+        )
+    return {"items": items, "total": len(items), "filters": {"startDate": start.date().isoformat(), "endDate": end.date().isoformat()}}
+
+
+@router.get("/funnel")
+def crm_funnel(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerId: int | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_sales_performance_view", "crm_forecast_view", "crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    organization_id = _organization_id(db, current_user)
+    start, end = _parse_report_range(startDate, endDate)
+    leads = _apply_record_visibility(_base_query(db, _get_resource("leads"), organization_id), _get_resource("leads"), current_user, db).all()
+    qualified = [lead for lead in leads if str(lead.status or "").lower() in {"qualified", "converted"} or bool(getattr(lead, "is_converted", False))]
+    deals = _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId, current_user)
+    won = [deal for deal in deals if _deal_status(deal) == "won"]
+    lost = [deal for deal in deals if _deal_status(deal) == "lost"]
+    actuals = _srm_actuals_for_deals(db, organization_id, [deal.id for deal in won])
+    stage_payload = sales_funnel_report(startDate, endDate, ownerId, pipelineId, db, current_user)
+    base_count = max(len(leads), 1)
+    rows = [
+        {"stage": "Lead", "count": len(leads), "amount": round(sum(float(lead.estimated_value or 0) for lead in leads), 2)},
+        {"stage": "Qualified", "count": len(qualified), "amount": round(sum(float(lead.estimated_value or 0) for lead in qualified), 2)},
+        {"stage": "Deal Created", "count": len(deals), "amount": round(sum(_deal_amount(deal) for deal in deals), 2)},
+        *stage_payload["items"],
+        {"stage": "Deal Won", "count": len(won), "amount": round(sum(_deal_amount(deal) for deal in won), 2)},
+        {"stage": "Deal Lost", "count": len(lost), "amount": round(sum(_deal_amount(deal) for deal in lost), 2)},
+        {"stage": "SRM Sales Order", "count": int(actuals["salesOrders"]), "amount": round(sum(_deal_amount(deal) for deal in won), 2)},
+        {"stage": "SRM Invoice Generated", "count": int(actuals["invoices"]), "amount": actuals["invoiced"]},
+        {"stage": "Receipt Collected", "count": int(actuals["receipts"]), "amount": actuals["collected"]},
+    ]
+    previous = None
+    for row in rows:
+        row["conversionRate"] = round((int(row.get("count") or 0) / base_count) * 100, 2)
+        row["stageToStageRate"] = round((int(row.get("count") or 0) / previous) * 100, 2) if previous else 100.0 if int(row.get("count") or 0) else 0.0
+        previous = int(row.get("count") or 0)
+    return {"items": rows, "total": len(rows), "filters": {"startDate": start.date().isoformat(), "endDate": end.date().isoformat(), "ownerId": ownerId, "pipelineId": pipelineId}}
+
+
+@router.get("/lost-analysis")
+def lost_analysis(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerId: int | None = None,
+    pipelineId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_sales_performance_view", "crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    organization_id = _organization_id(db, current_user)
+    start, end = _parse_report_range(startDate, endDate)
+    deals = [deal for deal in _filtered_report_deals(db, organization_id, start, end, ownerId, pipelineId, current_user) if _deal_status(deal) == "lost"]
+    reason_rows = _bucket_outcomes(deals, _deal_lost_reason)
+    competitor_rows = _competitor_breakdown(db, organization_id, [deal.id for deal in deals])
+    owner_names = _owner_names(db, {deal.owner_user_id for deal in deals})
+    owner_rows = _bucket_outcomes(deals, lambda deal: owner_names.get(deal.owner_user_id, "Unassigned"))
+    return {
+        "summary": {"lostDeals": len(deals), "lostAmount": round(sum(_deal_amount(deal) for deal in deals), 2), "aiPatternDetection": "Placeholder: backend AI scoring is not enabled for lost-analysis patterns yet."},
+        "lostReasonBreakdown": [{"reason": row["key"], "count": row["lost"], "amount": round(row["lostAmount"], 2)} for row in reason_rows],
+        "topCompetitors": competitor_rows,
+        "ownerTrends": owner_rows,
+        "deals": [_serialize(deal) for deal in deals],
+        "filters": {"startDate": start.date().isoformat(), "endDate": end.date().isoformat(), "ownerId": ownerId, "pipelineId": pipelineId},
+    }
+
+
+@router.get("/sales-performance")
+def sales_performance(
+    startDate: str | None = None,
+    endDate: str | None = None,
+    ownerId: int | None = None,
+    teamId: int | None = None,
+    territoryId: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_sales_performance_view", "crm_view", "crm_manage", "crm_admin", "reports_view")),
+):
+    organization_id = _organization_id(db, current_user)
+    start, end = _parse_report_range(startDate, endDate)
+    forecast = _forecast_payload(db, organization_id, current_user, start_date=start.date().isoformat(), end_date=end.date().isoformat(), owner_id=ownerId, team_id=teamId, territory_id=territoryId, group_by="owner")
+    deals = _filtered_forecast_deals(db, organization_id, start, end, current_user, owner_id=ownerId, team_id=teamId, territory_id=territoryId)
+    activities = _apply_record_visibility(_base_query(db, _get_resource("activities"), organization_id), _get_resource("activities"), current_user, db).all()
+    if ownerId:
+        activities = [item for item in activities if item.owner_user_id == ownerId]
+    rows = []
+    owner_names = _owner_names(db, {deal.owner_user_id for deal in deals})
+    by_owner: dict[int | None, list[CRMDeal]] = {}
+    for deal in deals:
+        by_owner.setdefault(deal.owner_user_id, []).append(deal)
+    for owner_id, owner_deals in by_owner.items():
+        closed = [deal for deal in owner_deals if _deal_status(deal) in {"won", "lost"}]
+        won = [deal for deal in owner_deals if _deal_status(deal) == "won"]
+        owner_activities = [item for item in activities if item.owner_user_id == owner_id]
+        summary = _forecast_summary(db, organization_id, owner_deals)
+        rows.append(
+            {
+                "ownerId": owner_id,
+                "owner": owner_names.get(owner_id, "Unassigned owner"),
+                **summary,
+                "wonDeals": len(won),
+                "lostDeals": len([deal for deal in owner_deals if _deal_status(deal) == "lost"]),
+                "activityCount": len(owner_activities),
+                "conversionRate": round((len(won) / len(closed)) * 100, 2) if closed else 0.0,
+            }
+        )
+    return {"summary": forecast["summary"], "items": sorted(rows, key=lambda row: (-float(row["weightedAmount"]), str(row["owner"]))), "total": len(rows), "filters": {"startDate": start.date().isoformat(), "endDate": end.date().isoformat(), "ownerId": ownerId, "teamId": teamId, "territoryId": territoryId}}
+
+
+@router.put("/territories/{territory_id}")
+def put_territory(
+    territory_id: int,
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_territory_manage", "crm_manage", "crm_admin")),
+):
+    return update_territory(territory_id, payload, db, current_user)
+
+
+@router.post("/territories/{territory_id}/assign", status_code=status.HTTP_201_CREATED)
+def assign_territory(
+    territory_id: int,
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_territory_manage", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    territory = _get_record(db, _get_resource("territories"), territory_id, organization_id)
+    raw = payload.model_dump()
+    user_id = raw.get("userId") or raw.get("user_id")
+    team_id = raw.get("teamId") or raw.get("team_id")
+    if not user_id and not team_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="userId or teamId is required")
+    if user_id and not _user_is_in_organization(db, int(user_id), organization_id):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Territory user must belong to the same organization")
+    assignment_type = str(raw.get("assignmentType") or raw.get("assignment_type") or "owner")
+    existing = (
+        db.query(CRMTerritoryAssignment)
+        .filter(
+            CRMTerritoryAssignment.organization_id == organization_id,
+            CRMTerritoryAssignment.territory_id == territory.id,
+            CRMTerritoryAssignment.user_id == (int(user_id) if user_id else None),
+            CRMTerritoryAssignment.team_id == (int(team_id) if team_id else None),
+            CRMTerritoryAssignment.assignment_type == assignment_type,
+            CRMTerritoryAssignment.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if existing:
+        existing.active = bool(raw.get("active", True))
+        row = existing
+    else:
+        row = CRMTerritoryAssignment(
+            organization_id=organization_id,
+            territory_id=territory.id,
+            user_id=int(user_id) if user_id else None,
+            team_id=int(team_id) if team_id else None,
+            assignment_type=assignment_type,
+            active=bool(raw.get("active", True)),
+            created_by_user_id=current_user.id,
+            updated_by_user_id=current_user.id,
+        )
+        db.add(row)
+    if user_id:
+        territory.owner_user_id = territory.owner_user_id or int(user_id)
+        add_territory_user(territory.id, CRMTerritoryUserPayload(userId=int(user_id)), db, current_user)
+    _crm_audit(db, current_user, entity_type="crm_territory_assignment", entity_id=territory.id, action="ASSIGN", description="CRM territory assignment updated", values=raw)
+    db.commit()
+    db.refresh(row)
+    return {"item": _serialize(row), "territory": _serialize_territory(territory, db, organization_id)}
 
 
 @router.get("/reports/win-loss")
@@ -5756,7 +7090,7 @@ def module_info() -> dict[str, Any]:
         "key": "crm",
         "name": "VyaparaCRM",
         "status": "installed",
-        "modules": sorted(key for key in RESOURCES if key not in {"accounts", "opportunities", "products-services", "call-logs", "email-logs", "users"}),
+        "modules": sorted(key for key in RESOURCES if key not in {"accounts", "opportunities", "products-services", "quotes", "quote-lines", "call-logs", "email-logs", "users"}),
     }
 
 
@@ -5764,12 +7098,49 @@ def module_info() -> dict[str, Any]:
 def crm_roles(
     current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
 ) -> dict[str, Any]:
+    full_crm_permissions = [
+        "crm_view",
+        "crm_manage",
+        "crm_leads_view",
+        "crm_leads_manage",
+        "crm_accounts_view",
+        "crm_accounts_manage",
+        "crm_contacts_view",
+        "crm_contacts_manage",
+        "crm_deals_view",
+        "crm_deals_manage",
+        "crm_activities_view",
+        "crm_activities_manage",
+        "crm_pipeline_view",
+        "crm_pipeline_manage",
+        "crm_forecast_view",
+        "crm_forecast_manage",
+        "crm_targets_view",
+        "crm_targets_manage",
+        "crm_territory_view",
+        "crm_territory_manage",
+        "crm_sales_performance_view",
+        "crm_products_view",
+        "crm_products_manage",
+        "crm_price_books_view",
+        "crm_price_books_manage",
+        "crm_quotes_view",
+        "crm_quotes_manage",
+        "crm_quotes_approve",
+        "crm_quotes_send",
+        "crm_quotes_convert_to_srm",
+        "crm_cpq_view",
+        "crm_cpq_manage",
+        "crm_admin",
+    ]
     return {
         "items": [
-            {"key": "crm_admin", "name": "CRM Admin", "permissions": ["crm_admin", "crm_manage", "crm_view", "reports_view"], "visibility": "all_records"},
-            {"key": "sales_manager", "name": "Sales Manager", "permissions": ["crm_manage", "crm_view", "reports_view"], "visibility": "team_branch_department_records"},
-            {"key": "sales_executive", "name": "Sales Executive", "permissions": ["crm_manage", "crm_view"], "visibility": "owned_branch_department_team_records"},
-            {"key": "crm_viewer", "name": "Viewer", "permissions": ["crm_view", "reports_view"], "visibility": "read_only_all_records"},
+            {"key": "crm_admin", "name": "CRM Admin", "permissions": [*full_crm_permissions, "reports_view"], "visibility": "all_records"},
+            {"key": "sales_manager", "name": "Sales Manager", "permissions": ["crm_view", "crm_manage", "crm_leads_view", "crm_leads_manage", "crm_accounts_view", "crm_contacts_view", "crm_deals_view", "crm_deals_manage", "crm_activities_view", "crm_activities_manage", "crm_pipeline_view", "crm_pipeline_manage", "crm_forecast_view", "crm_forecast_manage", "crm_targets_view", "crm_targets_manage", "crm_territory_view", "crm_territory_manage", "crm_sales_performance_view", "crm_products_view", "crm_price_books_view", "crm_quotes_view", "crm_quotes_manage", "crm_quotes_approve", "crm_quotes_send", "crm_cpq_view", "reports_view"], "visibility": "team_branch_department_records"},
+            {"key": "sales_executive", "name": "Sales Executive", "permissions": ["crm_leads_view", "crm_leads_manage", "crm_contacts_view", "crm_deals_view", "crm_deals_manage", "crm_activities_view", "crm_activities_manage", "crm_pipeline_view", "crm_forecast_view", "crm_targets_view", "crm_territory_view", "crm_sales_performance_view", "crm_products_view", "crm_quotes_view", "crm_quotes_manage", "crm_quotes_send", "crm_cpq_view"], "visibility": "owned_branch_department_team_records"},
+            {"key": "business_owner", "name": "Business Owner", "permissions": ["crm_view", "crm_leads_view", "crm_accounts_view", "crm_contacts_view", "crm_deals_view", "crm_activities_view", "crm_pipeline_view", "crm_forecast_view", "crm_targets_view", "crm_territory_view", "crm_sales_performance_view", "crm_products_view", "crm_price_books_view", "crm_quotes_view", "crm_cpq_view", "reports_view"], "visibility": "read_only_all_records"},
+            {"key": "crm_viewer", "name": "Viewer", "permissions": ["crm_view", "crm_leads_view", "crm_accounts_view", "crm_contacts_view", "crm_deals_view", "crm_activities_view", "crm_pipeline_view", "crm_forecast_view", "crm_targets_view", "crm_territory_view", "crm_sales_performance_view", "crm_products_view", "crm_price_books_view", "crm_quotes_view", "crm_cpq_view", "reports_view"], "visibility": "read_only_permitted_records"},
+            {"key": "non_crm_employee", "name": "Non-CRM Employee", "permissions": [], "visibility": "blocked"},
         ],
         "currentRole": _crm_role_key(current_user),
     }
@@ -5908,7 +7279,7 @@ def convert_lead(
     lead_id: int,
     payload: CRMLeadConvertPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_leads_manage")),
 ):
     organization_id = _organization_id(db, current_user)
     lead = _get_record(db, _get_resource("leads"), lead_id, organization_id)
@@ -6053,6 +7424,23 @@ def convert_lead(
             "dealId": deal.id if deal else None,
         },
     )
+    db.add(
+        CRMLeadConversionLog(
+            organization_id=organization_id,
+            lead_id=lead.id,
+            converted_account_id=company.id if company else None,
+            converted_contact_id=contact.id if contact else None,
+            converted_deal_id=deal.id if deal else None,
+            converted_by_user_id=current_user.id,
+            conversion_status="completed",
+            notes="Lead converted into account, contact and deal",
+            metadata_json={
+                "createContact": payload.createContact,
+                "createCompany": payload.createCompany,
+                "createDeal": payload.createDeal,
+            },
+        )
+    )
     _create_crm_audit_log(
         db,
         user_id=current_user.id,
@@ -6116,6 +7504,145 @@ def import_records(
         return {"created": 0, "errors": errors}
     db.commit()
     return {"created": len(created), "items": created, "errors": []}
+
+
+@router.post("/leads/{lead_id}/qualify")
+def qualify_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_leads_manage")),
+):
+    organization_id = _organization_id(db, current_user)
+    lead = _get_record(db, _get_resource("leads"), lead_id, organization_id)
+    _assert_record_visible(db, _get_resource("leads"), lead_id, organization_id, current_user)
+    previous_status = lead.status
+    lead.status = "Qualified"
+    lead.updated_by_user_id = current_user.id
+    lead.updated_at = datetime.now(timezone.utc)
+    _create_timeline_activity(
+        db,
+        organization_id=organization_id,
+        entity_type="lead",
+        entity_id=lead.id,
+        activity_type="qualification",
+        title="Lead qualified",
+        body="Lead moved to Qualified status.",
+        user_id=current_user.id,
+        metadata={"previousStatus": previous_status, "status": "Qualified"},
+    )
+    _create_crm_audit_log(
+        db,
+        user_id=current_user.id,
+        entity_type="leads",
+        entity_id=lead.id,
+        action="QUALIFY",
+        old_values={"status": previous_status},
+        new_values={"status": "Qualified"},
+        description="Lead qualified",
+    )
+    db.commit()
+    db.refresh(lead)
+    return _detail_payload(db, "leads", lead, organization_id)
+
+
+@router.post("/deals/{deal_id}/move-stage")
+def move_deal_stage(
+    deal_id: int,
+    payload: CRMDealStageMovePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_deals_manage")),
+):
+    stage_id = payload.stageId or payload.stage_id
+    if not stage_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="stageId is required")
+    data: dict[str, Any] = {"stageId": stage_id}
+    if payload.probability is not None:
+        data["probability"] = payload.probability
+    return update_record("deals", deal_id, CRMRecordPayload(**data), db, current_user)
+
+
+@router.post("/deals/{deal_id}/mark-won")
+def mark_deal_won(
+    deal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_deals_manage")),
+):
+    return update_record("deals", deal_id, CRMRecordPayload(status="Won"), db, current_user)
+
+
+@router.post("/deals/{deal_id}/mark-lost")
+def mark_deal_lost(
+    deal_id: int,
+    payload: CRMDealMarkLostPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_deals_manage")),
+):
+    reason = payload.lostReason or payload.lost_reason
+    if not reason:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="lostReason is required")
+    data: dict[str, Any] = {"status": "Lost", "lostReason": reason}
+    return update_record("deals", deal_id, CRMRecordPayload(**data), db, current_user)
+
+
+@router.post("/activities/{activity_id}/complete")
+def complete_activity(
+    activity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_activities_manage")),
+):
+    return update_record(
+        "activities",
+        activity_id,
+        CRMRecordPayload(status="Completed", completedAt=datetime.now(timezone.utc)),
+        db,
+        current_user,
+    )
+
+
+@router.get("/timeline/{record_type}/{record_id}")
+def crm_timeline(
+    record_type: str,
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    resource_name = _resource_for_custom_entity(record_type)
+    if not resource_name:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Timeline supports lead, account, contact, deal, quotation, and task records")
+    _assert_entity_permission(resource_name, current_user, "view")
+    organization_id = _organization_id(db, current_user)
+    resource = _get_resource(resource_name)
+    record = _get_record(db, resource, record_id, organization_id)
+    _assert_record_visible(db, resource, record_id, organization_id, current_user)
+    return {"items": _timeline_for(db, _canonical_entity(resource_name), record, organization_id), "recordType": record_type, "recordId": record_id}
+
+
+@router.get("/dashboard")
+def crm_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    leads_query = _apply_record_visibility(_base_query(db, _get_resource("leads"), organization_id), _get_resource("leads"), current_user, db)
+    deals_query = _apply_record_visibility(_base_query(db, _get_resource("deals"), organization_id), _get_resource("deals"), current_user, db)
+    activities_query = _apply_record_visibility(_base_query(db, _get_resource("activities"), organization_id), _get_resource("activities"), current_user, db)
+    open_deals = deals_query.filter(CRMDeal.status.notin_(["Won", "Lost"])).all()
+    now = datetime.now(timezone.utc)
+    overdue = activities_query.filter(CRMActivity.due_date.is_not(None), CRMActivity.due_date < now, CRMActivity.status.notin_(["Completed", "Done", "Cancelled"])).count()
+    return {
+        "summary": {
+            "leads": leads_query.count(),
+            "qualifiedLeads": leads_query.filter(CRMLead.status == "Qualified").count(),
+            "contacts": _apply_record_visibility(_base_query(db, _get_resource("contacts"), organization_id), _get_resource("contacts"), current_user, db).count(),
+            "accounts": _apply_record_visibility(_base_query(db, _get_resource("companies"), organization_id), _get_resource("companies"), current_user, db).count(),
+            "openDeals": len(open_deals),
+            "pipelineValue": float(sum(Decimal(str(deal.amount or 0)) for deal in open_deals)),
+            "overdueActivities": overdue,
+        },
+        "nextBestAction": "Review overdue activities and qualify high-score leads.",
+        "accountHealthPlaceholder": "Account health scoring will combine CRM, SRM, and PMS signals.",
+        "dealRiskPlaceholder": "Deal risk indicators will use stage age, activity gaps, and approval status.",
+    }
 
 
 @router.get("/deals/{deal_id}/contacts")
@@ -6286,9 +7813,10 @@ def list_records(
     include_deleted: bool = False,
     owner_id: int | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "view")
     organization_id = _organization_id(db, current_user)
     query = _base_query(db, resource, organization_id, include_deleted)
     query = _apply_record_visibility(query, resource, current_user, db)
@@ -6321,9 +7849,10 @@ def get_record(
     entity: str,
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "view")
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
@@ -6338,9 +7867,10 @@ def get_related_records(
     entity: str,
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "view")
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
@@ -6361,9 +7891,10 @@ def create_record(
     entity: str,
     payload: CRMRecordPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "manage")
     raw_payload = payload.model_dump()
     deal_contacts_payload = None
     if resource.model is CRMDeal:
@@ -6451,9 +7982,10 @@ def update_record(
     record_id: int,
     payload: CRMRecordPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "manage")
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
@@ -6565,15 +8097,27 @@ def update_record(
     return _serialize(record)
 
 
+@router.put("/{entity}/{record_id}")
+def replace_record(
+    entity: str,
+    record_id: int,
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    return update_record(entity, record_id, payload, db, current_user)
+
+
 @router.delete("/{entity}/{record_id}")
 def delete_record(
     entity: str,
     record_id: int,
     remapStageId: int | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "manage")
     record = _get_record(db, resource, record_id, _organization_id(db, current_user), include_deleted=True)
     organization_id = _organization_id(db, current_user)
     _assert_record_visible(db, resource, record_id, organization_id, current_user, include_deleted=True)

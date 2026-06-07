@@ -14,6 +14,7 @@ import {
   Receipt,
   Search,
   Settings,
+  Sparkles,
   TrendingUp,
   WalletCards,
 } from "lucide-react";
@@ -185,9 +186,14 @@ function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetchin
         </div>
       </div>
       {onRefresh ? (
-        <Button variant="outline" onClick={onRefresh} disabled={isFetching}>
-          Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => { window.location.href = "/ai/copilot?module_name=srm"; }}>
+            <Sparkles className="h-4 w-4" />AI Copilot
+          </Button>
+          <Button variant="outline" onClick={onRefresh} disabled={isFetching}>
+            Refresh
+          </Button>
+        </div>
       ) : null}
     </div>
   );
@@ -477,6 +483,7 @@ function InvoicesView() {
   const detail = useQuery({ queryKey: ["srm", "invoice", invoiceId], queryFn: () => srmApi.invoice(invoiceId), enabled: invoiceId > 0 });
   const action = useRevenueAction();
   const invoice = (detail.data || asList(list.data)[0] || {}) as SRMRecord;
+  const accountingStatus = (invoice.accounting_status || {}) as SRMRecord;
   const pdfHref = `/api/v1/srm/invoices/${invoiceId}/pdf`;
   return (
     <div className="space-y-5">
@@ -488,6 +495,15 @@ function InvoicesView() {
         <MetricCard label="Paid Amount" value={money(invoice.paid_amount)} />
         <MetricCard label="Balance Amount" value={money(invoice.balance_amount)} />
       </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">FAM Accounting Status</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <MetricCard label="Posting Status" value={formatValue(accountingStatus.status || "not_posted")} />
+          <MetricCard label="FAM Voucher" value={accountingStatus.voucher_id ? `#${accountingStatus.voucher_id}` : "Not posted"} />
+          <MetricCard label="Posting Job" value={accountingStatus.job_id ? `#${accountingStatus.job_id}` : "Pending"} />
+          <MetricCard label="FAM Ledger Link" value={asList(accountingStatus.mappings).length ? "Mapped" : "Not mapped"} />
+        </CardContent>
+      </Card>
       {canManage ? (
         <Card>
           <CardHeader>
@@ -544,8 +560,8 @@ function CollectionsView() {
       ) : null}
       <div className="grid gap-4 xl:grid-cols-2">
         <RecordList title="Invoice Aging" records={asList(aging.data)} primaryKey="customer_id" secondaryKey="days_1_30" amountKey="total_outstanding" />
-        <RecordList title="Customer Outstanding" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).invoices : [])} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
-        <RecordList title="Receipts" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).receipts : [])} primaryKey="receipt_number" secondaryKey="status" amountKey="unallocated_amount" />
+        <RecordList title="Customer Outstanding and FAM Links" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).invoices : [])} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
+        <RecordList title="Receipts and FAM Accounting Status" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).receipts : [])} primaryKey="receipt_number" secondaryKey="status" amountKey="unallocated_amount" />
         <RecordList title="Reminder / Escalation / Write-off History" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).reminders : [])} primaryKey="reminder_type" secondaryKey="status" amountKey="invoice_id" />
       </div>
     </div>

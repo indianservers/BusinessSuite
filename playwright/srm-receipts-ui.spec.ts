@@ -18,8 +18,8 @@ test.describe("SRM receipts UI", () => {
     await page.getByRole("button", { name: "Allocate Full Payment" }).click();
     await expect(page.getByRole("main").getByRole("status")).toContainText("Full allocation completed");
 
-    await expect(page.getByRole("heading", { name: "Receipts", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Customer Outstanding" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Receipts and FAM Accounting Status" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Customer Outstanding and FAM Links" })).toBeVisible();
   });
 
   test("shows allocation validation errors", async ({ page }) => {

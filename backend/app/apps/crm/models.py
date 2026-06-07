@@ -41,6 +41,31 @@ class CRMCompany(Base):
     deals = relationship("CRMDeal", back_populates="company", foreign_keys="CRMDeal.company_id")
 
 
+class CRMAccount(Base):
+    __tablename__ = "crm_accounts"
+    __table_args__ = (UniqueConstraint("organization_id", "account_number", name="uq_crm_account_org_number"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    account_number = Column(String(60), nullable=True, index=True)
+    account_name = Column(String(180), nullable=False, index=True)
+    legal_name = Column(String(180), nullable=True)
+    industry = Column(String(120), index=True)
+    website = Column(String(200))
+    phone = Column(String(40))
+    billing_address = Column(Text)
+    shipping_address = Column(Text)
+    country = Column(String(100), default="India", index=True)
+    tax_registration_number = Column(String(80), index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    account_status = Column(String(40), default="Active", index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
 class CRMContact(Base):
     __tablename__ = "crm_contacts"
 
@@ -177,6 +202,7 @@ class CRMPipeline(Base):
     name = Column(String(160), nullable=False)
     description = Column(Text)
     is_default = Column(Boolean, default=False, index=True)
+    active = Column(Boolean, default=True, index=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -196,7 +222,10 @@ class CRMPipelineStage(Base):
     name = Column(String(120), nullable=False)
     probability = Column(Integer, default=0)
     position = Column(Integer, default=0)
+    order_index = Column(Integer, default=0, index=True)
+    stage_type = Column(String(20), default="open", index=True)
     color = Column(String(30))
+    active = Column(Boolean, default=True, index=True)
     is_won = Column(Boolean, default=False)
     is_lost = Column(Boolean, default=False)
     organization_id = Column(Integer, nullable=True, index=True)
@@ -286,14 +315,19 @@ class CRMProduct(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, nullable=True, index=True)
+    product_code = Column(String(80), index=True)
     name = Column(String(180), nullable=False, index=True)
     sku = Column(String(80), index=True)
     category = Column(String(120), index=True)
     description = Column(Text)
+    unit_of_measure = Column(String(40), default="unit")
+    list_price = Column(Numeric(14, 2), default=0)
+    cost_price = Column(Numeric(14, 2), default=0)
     unit_price = Column(Numeric(12, 2), default=0)
     currency = Column(String(10), default="INR")
     tax_rate = Column(Numeric(5, 2))
     image_url = Column(String(500))
+    active = Column(Boolean, default=True, index=True)
     status = Column(String(30), default="Active", index=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
@@ -316,6 +350,69 @@ class CRMDealProduct(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class CRMService(Base):
+    __tablename__ = "crm_services"
+    __table_args__ = (UniqueConstraint("organization_id", "service_code", name="uq_crm_service_org_code"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    service_code = Column(String(80), nullable=False, index=True)
+    name = Column(String(180), nullable=False, index=True)
+    category = Column(String(120), index=True)
+    description = Column(Text)
+    billing_type = Column(String(30), default="fixed", index=True)
+    default_rate = Column(Numeric(14, 2), default=0)
+    default_cost = Column(Numeric(14, 2), default=0)
+    tax_rate = Column(Numeric(5, 2), default=0)
+    active = Column(Boolean, default=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
+class CRMPriceBook(Base):
+    __tablename__ = "crm_price_books"
+    __table_args__ = (UniqueConstraint("organization_id", "name", "currency", "region", "customer_segment", name="uq_crm_price_book_scope"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    name = Column(String(180), nullable=False, index=True)
+    currency = Column(String(10), default="INR", index=True)
+    region = Column(String(120), index=True)
+    customer_segment = Column(String(120), index=True)
+    effective_from = Column(Date, nullable=True, index=True)
+    effective_to = Column(Date, nullable=True, index=True)
+    active = Column(Boolean, default=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
+class CRMPriceBookItem(Base):
+    __tablename__ = "crm_price_book_items"
+    __table_args__ = (UniqueConstraint("price_book_id", "item_type", "product_id", "service_id", name="uq_crm_price_book_item"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    price_book_id = Column(Integer, ForeignKey("crm_price_books.id", ondelete="CASCADE"), nullable=False, index=True)
+    item_type = Column(String(30), default="product", index=True)
+    product_id = Column(Integer, ForeignKey("crm_products.id", ondelete="CASCADE"), nullable=True, index=True)
+    service_id = Column(Integer, ForeignKey("crm_services.id", ondelete="CASCADE"), nullable=True, index=True)
+    unit_price = Column(Numeric(14, 2), default=0)
+    cost_price = Column(Numeric(14, 2), default=0)
+    tax_rate = Column(Numeric(5, 2), default=0)
+    active = Column(Boolean, default=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
 class CRMQuotation(Base):
     __tablename__ = "crm_quotations"
     __table_args__ = (UniqueConstraint("organization_id", "quote_number", name="uq_crm_quote_org_number"),)
@@ -324,22 +421,43 @@ class CRMQuotation(Base):
     organization_id = Column(Integer, nullable=True, index=True)
     deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True, index=True)
     company_id = Column(Integer, ForeignKey("crm_companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    account_id = Column(Integer, ForeignKey("crm_companies.id", ondelete="SET NULL"), nullable=True, index=True)
     contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True, index=True)
     owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     branch_id = Column(Integer, nullable=True, index=True)
     department_id = Column(Integer, nullable=True, index=True)
     assigned_team_id = Column(Integer, nullable=True, index=True)
     quote_number = Column(String(60), nullable=False, index=True)
     issue_date = Column(Date, nullable=False)
+    quote_date = Column(Date, nullable=True)
     expiry_date = Column(Date, nullable=False, index=True)
+    valid_until = Column(Date, nullable=True, index=True)
     status = Column(String(30), default="Draft", index=True)
+    approval_status = Column(String(30), default="not_required", index=True)
     currency = Column(String(10), default="INR")
     subtotal = Column(Numeric(12, 2), default=0)
     discount_amount = Column(Numeric(12, 2))
+    discount_total = Column(Numeric(14, 2), default=0)
     tax_amount = Column(Numeric(12, 2))
+    tax_total = Column(Numeric(14, 2), default=0)
     total_amount = Column(Numeric(12, 2), default=0)
+    grand_total = Column(Numeric(14, 2), default=0)
+    estimated_cost = Column(Numeric(14, 2), default=0)
+    expected_margin = Column(Numeric(14, 2), default=0)
+    margin_percentage = Column(Numeric(6, 2), default=0)
+    version_number = Column(Integer, default=1, index=True)
     terms = Column(Text)
+    terms_and_conditions = Column(Text)
     notes = Column(Text)
+    approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approved_at = Column(DateTime(timezone=True))
+    sent_at = Column(DateTime(timezone=True))
+    accepted_at = Column(DateTime(timezone=True))
+    declined_at = Column(DateTime(timezone=True))
+    converted_srm_sales_order_id = Column(Integer, nullable=True, index=True)
+    converted_srm_contract_id = Column(Integer, nullable=True, index=True)
+    converted_srm_engagement_id = Column(Integer, nullable=True, index=True)
     pdf_url = Column(String(500))
     pdf_file_name = Column(String(180))
     pdf_status = Column(String(30))
@@ -356,14 +474,104 @@ class CRMQuotationItem(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     quotation_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=False, index=True)
+    quote_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=True, index=True)
+    item_type = Column(String(30), default="product", index=True)
     product_id = Column(Integer, ForeignKey("crm_products.id", ondelete="SET NULL"), nullable=True, index=True)
+    service_id = Column(Integer, ForeignKey("crm_services.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(180), nullable=False)
     description = Column(Text)
-    quantity = Column(Integer, default=1)
-    unit_price = Column(Numeric(12, 2), default=0)
+    quantity = Column(Numeric(12, 2), default=1)
+    unit_price = Column(Numeric(14, 2), default=0)
+    discount_type = Column(String(20), default="amount")
+    discount_value = Column(Numeric(14, 2), default=0)
     discount_amount = Column(Numeric(12, 2))
     tax_rate = Column(Numeric(5, 2))
+    line_total = Column(Numeric(14, 2), default=0)
     total_amount = Column(Numeric(12, 2), default=0)
+    estimated_cost = Column(Numeric(14, 2), default=0)
+    margin_amount = Column(Numeric(14, 2), default=0)
+    margin_percentage = Column(Numeric(6, 2), default=0)
+    billing_type = Column(String(30), default="fixed")
+
+
+class CRMQuoteVersion(Base):
+    __tablename__ = "crm_quote_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    quote_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=False, index=True)
+    version_number = Column(Integer, nullable=False, index=True)
+    snapshot_json = Column(JSON)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CRMQuoteApproval(Base):
+    __tablename__ = "crm_quote_approvals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    quote_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String(30), default="pending", index=True)
+    reason = Column(Text)
+    submitted_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approver_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    comments = Column(Text)
+    submitted_at = Column(DateTime(timezone=True), server_default=func.now())
+    decided_at = Column(DateTime(timezone=True))
+
+
+class CRMCPQRule(Base):
+    __tablename__ = "crm_cpq_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    name = Column(String(180), nullable=False, index=True)
+    rule_type = Column(String(40), nullable=False, index=True)
+    condition_json = Column(JSON)
+    action_json = Column(JSON)
+    active = Column(Boolean, default=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
+class CRMGuidedSellingFlow(Base):
+    __tablename__ = "crm_guided_selling_flows"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    name = Column(String(180), nullable=False, index=True)
+    question_json = Column(JSON)
+    recommendation_json = Column(JSON)
+    active = Column(Boolean, default=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
+class CRMQuoteSRMConversionLog(Base):
+    __tablename__ = "crm_quote_srm_conversion_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    quote_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=False, index=True)
+    deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True, index=True)
+    srm_sales_order_id = Column(Integer, nullable=True, index=True)
+    srm_contract_id = Column(Integer, nullable=True, index=True)
+    srm_engagement_id = Column(Integer, nullable=True, index=True)
+    srm_billing_plan_id = Column(Integer, nullable=True, index=True)
+    idempotency_key = Column(String(160), index=True)
+    status = Column(String(40), default="converted", index=True)
+    message = Column(Text)
+    payload_json = Column(JSON)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class CRMActivity(Base):
@@ -460,6 +668,39 @@ class CRMNoteMention(Base):
     entity_id = Column(Integer, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     read_at = Column(DateTime(timezone=True))
+
+
+class CRMTimelineEvent(Base):
+    __tablename__ = "crm_timeline_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    record_type = Column(String(40), nullable=False, index=True)
+    record_id = Column(Integer, nullable=False, index=True)
+    event_type = Column(String(80), nullable=False, index=True)
+    title = Column(String(220), nullable=False)
+    description = Column(Text)
+    metadata_json = Column(JSON)
+    actor_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    occurred_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CRMLeadConversionLog(Base):
+    __tablename__ = "crm_lead_conversion_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    lead_id = Column(Integer, ForeignKey("crm_leads.id", ondelete="CASCADE"), nullable=False, index=True)
+    converted_account_id = Column(Integer, ForeignKey("crm_companies.id", ondelete="SET NULL"), nullable=True, index=True)
+    converted_contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="SET NULL"), nullable=True, index=True)
+    converted_deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="SET NULL"), nullable=True, index=True)
+    converted_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    conversion_status = Column(String(40), default="completed", index=True)
+    notes = Column(Text)
+    metadata_json = Column(JSON)
+    converted_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class CRMEnrichmentLog(Base):
@@ -738,15 +979,20 @@ class CRMTerritory(Base):
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, nullable=True, index=True)
     owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    manager_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(160), nullable=False, index=True)
     code = Column(String(40), index=True)
+    region = Column(String(120), index=True)
     country = Column(String(100), default="India")
     state = Column(String(100), index=True)
     city = Column(String(100), index=True)
+    product_line = Column(String(120), index=True)
+    service_line = Column(String(120), index=True)
     description = Column(Text)
     rules_json = Column(JSON)
     priority = Column(Integer, default=100, index=True)
     is_active = Column(Boolean, default=True, index=True)
+    active = Column(Boolean, default=True, index=True)
     status = Column(String(30), default="Active", index=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
@@ -765,6 +1011,24 @@ class CRMTerritoryUser(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CRMTerritoryAssignment(Base):
+    __tablename__ = "crm_territory_assignments"
+    __table_args__ = (UniqueConstraint("territory_id", "user_id", "team_id", "assignment_type", name="uq_crm_territory_assignment"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    territory_id = Column(Integer, ForeignKey("crm_territories.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    team_id = Column(Integer, ForeignKey("crm_teams.id", ondelete="CASCADE"), nullable=True, index=True)
+    assignment_type = Column(String(40), default="owner", index=True)
+    active = Column(Boolean, default=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
 
 
 class CRMTeam(Base):
@@ -804,6 +1068,89 @@ class CRMOwner(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True))
+
+
+class CRMSalesTarget(Base):
+    __tablename__ = "crm_sales_targets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    period_type = Column(String(20), nullable=False, default="monthly", index=True)
+    period_start = Column(Date, nullable=False, index=True)
+    period_end = Column(Date, nullable=False, index=True)
+    target_owner_type = Column(String(20), nullable=False, default="user", index=True)
+    target_owner_id = Column(Integer, nullable=True, index=True)
+    target_amount = Column(Numeric(14, 2), nullable=False, default=0)
+    currency = Column(String(10), default="INR", index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
+class CRMForecastSnapshot(Base):
+    __tablename__ = "crm_forecast_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    snapshot_name = Column(String(180), nullable=True)
+    period_start = Column(Date, nullable=True, index=True)
+    period_end = Column(Date, nullable=True, index=True)
+    pipeline_id = Column(Integer, ForeignKey("crm_pipelines.id", ondelete="SET NULL"), nullable=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    team_id = Column(Integer, nullable=True, index=True)
+    territory_id = Column(Integer, ForeignKey("crm_territories.id", ondelete="SET NULL"), nullable=True, index=True)
+    currency = Column(String(10), default="INR", index=True)
+    pipeline_amount = Column(Numeric(14, 2), default=0)
+    weighted_amount = Column(Numeric(14, 2), default=0)
+    committed_amount = Column(Numeric(14, 2), default=0)
+    best_case_amount = Column(Numeric(14, 2), default=0)
+    upside_amount = Column(Numeric(14, 2), default=0)
+    closed_won_amount = Column(Numeric(14, 2), default=0)
+    invoiced_amount = Column(Numeric(14, 2), default=0)
+    collected_amount = Column(Numeric(14, 2), default=0)
+    scenarios_json = Column(JSON)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CRMLostReason(Base):
+    __tablename__ = "crm_lost_reasons"
+    __table_args__ = (UniqueConstraint("organization_id", "name", name="uq_crm_lost_reason_org_name"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    name = Column(String(160), nullable=False, index=True)
+    description = Column(Text)
+    active = Column(Boolean, default=True, index=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+
+class CRMSalesPerformanceSnapshot(Base):
+    __tablename__ = "crm_sales_performance_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    team_id = Column(Integer, nullable=True, index=True)
+    territory_id = Column(Integer, ForeignKey("crm_territories.id", ondelete="SET NULL"), nullable=True, index=True)
+    period_start = Column(Date, nullable=True, index=True)
+    period_end = Column(Date, nullable=True, index=True)
+    target_amount = Column(Numeric(14, 2), default=0)
+    pipeline_amount = Column(Numeric(14, 2), default=0)
+    weighted_amount = Column(Numeric(14, 2), default=0)
+    won_amount = Column(Numeric(14, 2), default=0)
+    lost_amount = Column(Numeric(14, 2), default=0)
+    invoiced_amount = Column(Numeric(14, 2), default=0)
+    collected_amount = Column(Numeric(14, 2), default=0)
+    activity_count = Column(Integer, default=0)
+    conversion_rate = Column(Numeric(6, 2), default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class CRMCustomField(Base):

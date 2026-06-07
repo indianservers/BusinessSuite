@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
-    INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm"]
+    INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam", "inventory"]
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(48)
@@ -86,6 +86,8 @@ class Settings(BaseSettings):
     CRM_OUTLOOK_CALENDAR_CLIENT_SECRET: str = ""
     CRM_CALENDAR_WEBHOOK_SECRET: str = ""
     CRM_WEBHOOK_BLOCK_PRIVATE_URLS: bool = True
+    COMMUNICATION_EMAIL_PROVIDER: str = ""
+    COMMUNICATION_EMAIL_RATE_LIMIT_PER_REQUEST: int = 50
 
     # File storage
     UPLOAD_DIR: str = "./uploads"
@@ -132,8 +134,20 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_cors(self):
-        if self.ENVIRONMENT.lower() == "production" and "*" in self.BACKEND_CORS_ORIGINS:
-            raise ValueError("BACKEND_CORS_ORIGINS must list explicit origins when ENVIRONMENT=production")
+        if self.ENVIRONMENT.lower() == "production":
+            local_markers = ("localhost", "127.0.0.1", "0.0.0.0")
+            origins = [str(origin) for origin in self.BACKEND_CORS_ORIGINS]
+            if "*" in origins:
+                raise ValueError("BACKEND_CORS_ORIGINS must list explicit origins when ENVIRONMENT=production")
+            if any(any(marker in origin for marker in local_markers) for origin in origins):
+                raise ValueError("BACKEND_CORS_ORIGINS cannot contain localhost/dev origins when ENVIRONMENT=production")
+            public_urls = {
+                "BACKEND_PUBLIC_URL": self.BACKEND_PUBLIC_URL,
+                "FRONTEND_PUBLIC_URL": self.FRONTEND_PUBLIC_URL,
+            }
+            for name, value in public_urls.items():
+                if any(marker in str(value) for marker in local_markers):
+                    raise ValueError(f"{name} must be set to a production URL when ENVIRONMENT=production")
         return self
 
     # Rate limiting

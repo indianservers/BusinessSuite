@@ -51,6 +51,65 @@ SYSTEM_PERMISSIONS = [
     ("approval_os_view", "View centralized approval operating system", "approval_os"),
     ("approval_os_create", "Create centralized approval requests", "approval_os"),
     ("approval_os_admin", "Administer centralized approvals, escalations, and audit", "approval_os"),
+    ("automation_view", "View Automation Studio rules and blueprints", "automation"),
+    ("automation_manage", "Manage Automation Studio rules, blueprints, cadences, and assignments", "automation"),
+    ("automation_execute", "Execute and test Automation Studio workflows", "automation"),
+    ("automation_logs_view", "View Automation Studio execution logs", "automation"),
+    ("automation_approval_view", "View Automation Studio approval requests", "automation"),
+    ("automation_approval_manage", "Manage Automation Studio approval rules and requests", "automation"),
+    ("automation_approval_decide", "Approve or reject Automation Studio approval requests", "automation"),
+    ("automation_webhook_manage", "Manage Automation Studio webhook endpoints", "automation"),
+    ("customization_view", "View Customization Studio metadata", "customization"),
+    ("customization_manage", "Manage Customization Studio metadata and records", "customization"),
+    ("customization_modules_manage", "Manage custom modules", "customization"),
+    ("customization_fields_manage", "Manage custom fields, formulas, rollups, and picklists", "customization"),
+    ("customization_layouts_manage", "Manage custom layouts", "customization"),
+    ("customization_views_manage", "Manage custom list and Kanban views", "customization"),
+    ("customization_validation_manage", "Manage custom validation rules", "customization"),
+    ("customization_buttons_manage", "Manage custom buttons", "customization"),
+    ("communication_view", "View CRM Communication Hub", "communication"),
+    ("communication_email_send", "Send individual CRM emails", "communication"),
+    ("communication_templates_manage", "Manage communication templates", "communication"),
+    ("communication_webforms_manage", "Manage CRM webforms and auto responses", "communication"),
+    ("communication_campaigns_view", "View CRM campaigns", "communication"),
+    ("communication_campaigns_manage", "Manage CRM campaigns", "communication"),
+    ("communication_campaigns_send", "Send CRM campaigns", "communication"),
+    ("communication_consents_manage", "Manage communication consent and opt-out", "communication"),
+    ("communication_logs_view", "View communication delivery logs", "communication"),
+    ("analytics_view", "View analytics reports and dashboards", "analytics"),
+    ("analytics_manage", "Manage analytics reports and dashboards", "analytics"),
+    ("analytics_report_builder", "Build analytics reports", "analytics"),
+    ("analytics_export", "Export analytics reports", "analytics"),
+    ("analytics_schedule", "Schedule analytics reports", "analytics"),
+    ("analytics_financial_view", "View financial analytics", "analytics"),
+    ("analytics_profitability_view", "View profitability analytics", "analytics"),
+    ("analytics_admin", "Administer analytics and exports", "analytics"),
+    ("ai_view", "View AI Copilot outputs and summaries", "ai"),
+    ("ai_use", "Use AI Copilot generation endpoints", "ai"),
+    ("ai_manage_settings", "Manage AI provider settings", "ai"),
+    ("ai_manage_prompts", "Manage AI prompt templates", "ai"),
+    ("ai_agent_actions", "Preview and confirm AI agent actions", "ai"),
+    ("ai_action_log_view", "View AI action and run logs", "ai"),
+    ("admin_security_view", "View enterprise security and governance settings", "admin_security"),
+    ("admin_security_manage", "Manage enterprise security and governance settings", "admin_security"),
+    ("admin_profiles_manage", "Manage admin profiles", "admin_security"),
+    ("admin_roles_manage", "Manage admin role hierarchy", "admin_security"),
+    ("admin_field_security_manage", "Manage field-level security", "admin_security"),
+    ("admin_record_sharing_manage", "Manage record and data sharing rules", "admin_security"),
+    ("admin_import_manage", "Manage governed imports", "admin_security"),
+    ("admin_duplicates_manage", "Manage duplicate rules and merges", "admin_security"),
+    ("admin_audit_view", "View enterprise audit logs", "admin_security"),
+    ("admin_export_control_manage", "Manage export controls", "admin_security"),
+    ("admin_compliance_manage", "Manage compliance and retention settings", "admin_security"),
+    ("portal_manage", "Manage secure customer and partner portal access", "portal"),
+    ("developer_view", "View Developer Hub documentation and logs", "developer"),
+    ("developer_manage", "Manage Developer Hub API keys and webhooks", "developer"),
+    ("marketplace_view", "View internal marketplace apps", "marketplace"),
+    ("marketplace_manage", "Manage internal marketplace apps and installs", "marketplace"),
+    ("sandbox_view", "View sandbox requests and status", "sandbox"),
+    ("sandbox_manage", "Create and refresh sandbox environments", "sandbox"),
+    ("tenant_view", "View tenant company, subscription, and usage settings", "tenant"),
+    ("tenant_admin", "Manage tenant company, subscription, usage, and feature gates", "tenant"),
     # Notifications
     ("notification_view", "View notification inbox", "notification"),
     ("notification_manage", "Manage notifications and delivery hooks", "notification"),
@@ -97,6 +156,67 @@ SYSTEM_PERMISSIONS = [
     ("srm_collection_create", "Create SRM receipts, allocations, and reminders", "srm"),
     ("srm_profitability_view", "View SRM profitability", "srm"),
     ("srm_settings_manage", "Manage SRM settings", "srm"),
+    # Finance & Accounting Management
+    ("fam_view", "View FAM dashboards and accounting foundation records", "fam"),
+    ("fam_manage", "Manage FAM operational accounting foundation records", "fam"),
+    ("fam_admin", "Administer FAM company books, chart, and controls", "fam"),
+    ("fam_settings_manage", "Manage FAM company financial settings and years", "fam"),
+    ("fam_chart_view", "View FAM chart of accounts and ledgers", "fam"),
+    ("fam_chart_manage", "Manage FAM chart of accounts and ledgers", "fam"),
+    ("fam_opening_balance_view", "View FAM opening balances", "fam"),
+    ("fam_opening_balance_manage", "Manage and post FAM opening balances", "fam"),
+    ("fam_cost_center_manage", "Manage FAM cost centers", "fam"),
+    ("fam_branch_manage", "Manage FAM branches", "fam"),
+    ("fam_audit_view", "View FAM audit logs", "fam"),
+    ("fam_vouchers_view", "View FAM vouchers", "fam"),
+    ("fam_vouchers_create", "Create and update FAM draft vouchers", "fam"),
+    ("fam_vouchers_post", "Post balanced FAM vouchers", "fam"),
+    ("fam_vouchers_cancel", "Cancel posted FAM vouchers", "fam"),
+    ("fam_vouchers_reverse", "Reverse posted FAM vouchers", "fam"),
+    ("fam_voucher_types_manage", "Manage FAM voucher types and numbering", "fam"),
+    ("fam_ledger_entries_view", "View FAM immutable ledger entries", "fam"),
+    ("fam_day_book_view", "View FAM day book", "fam"),
+    ("fam_parties_view", "View FAM customers, vendors, and party ledgers", "fam"),
+    ("fam_parties_manage", "Manage FAM customers, vendors, and party ledgers", "fam"),
+    ("fam_ar_view", "View FAM accounts receivable", "fam"),
+    ("fam_ar_manage", "Manage FAM accounts receivable", "fam"),
+    ("fam_ap_view", "View FAM accounts payable", "fam"),
+    ("fam_ap_manage", "Manage FAM accounts payable", "fam"),
+    ("fam_bill_allocation_manage", "Manage FAM bill allocations", "fam"),
+    ("fam_party_statement_view", "View FAM customer/vendor statements", "fam"),
+    ("fam_srm_integration_view", "View FAM SRM accounting integration", "fam"),
+    ("fam_srm_posting_manage", "Post SRM records into FAM accounting", "fam"),
+    ("fam_posting_rules_manage", "Manage FAM posting rules", "fam"),
+    ("fam_posting_jobs_retry", "Retry failed FAM posting jobs", "fam"),
+    ("fam_accounting_status_view", "View FAM accounting status links", "fam"),
+    ("fam_banking_view", "View FAM banking and reconciliation records", "fam"),
+    ("fam_banking_manage", "Manage FAM banking masters and accounting actions", "fam"),
+    ("fam_bank_statement_import", "Import FAM bank statements", "fam"),
+    ("fam_bank_reconcile", "Match and reconcile FAM bank statements", "fam"),
+    ("fam_cash_book_view", "View FAM cash book", "fam"),
+    ("fam_bank_book_view", "View FAM bank book", "fam"),
+    ("fam_gst_view", "View FAM GST settings, registers, and readiness records", "fam"),
+    ("fam_gst_manage", "Manage FAM GST registrations, rates, and HSN/SAC masters", "fam"),
+    ("fam_gst_return_prepare", "Prepare FAM GSTR-1 and GSTR-3B working records", "fam"),
+    ("fam_gst_einvoice_manage", "Manage FAM e-invoice readiness jobs and settings", "fam"),
+    ("fam_gst_ewaybill_manage", "Manage FAM e-way bill readiness jobs and settings", "fam"),
+    ("fam_gst_reconciliation_view", "View FAM GST reconciliation items", "fam"),
+    ("fam_purchase_view", "View FAM purchase bills and purchase registers", "fam"),
+    ("fam_purchase_manage", "Manage and post FAM purchase bills", "fam"),
+    ("fam_expense_view", "View FAM expense claims and expense registers", "fam"),
+    ("fam_expense_manage", "Manage and post FAM expense claims", "fam"),
+    ("fam_tds_view", "View FAM TDS sections, transactions, and payable reports", "fam"),
+    ("fam_tds_manage", "Manage FAM TDS sections, rates, and deductions", "fam"),
+    ("fam_vendor_payment_manage", "Prepare and post FAM vendor payment runs", "fam"),
+    ("fam_inventory_view", "View FAM inventory masters and stock balances", "fam"),
+    ("fam_inventory_manage", "Manage FAM inventory masters", "fam"),
+    ("fam_stock_post", "Post FAM stock movements and opening balances", "fam"),
+    ("fam_stock_adjust", "Create and post FAM stock adjustments", "fam"),
+    ("fam_stock_transfer", "Create and post FAM stock transfers", "fam"),
+    ("fam_inventory_valuation_view", "View FAM inventory valuation and item ledgers", "fam"),
+    ("fam_cogs_post", "Post FAM inventory COGS vouchers", "fam"),
+    ("fam_inventory_reports_view", "View FAM inventory reports", "fam"),
+    ("fam_inventory_ai_use", "Use audited FAM inventory AI insights", "fam"),
 ]
 
 SYSTEM_ROLES = [
@@ -157,22 +277,22 @@ SYSTEM_ROLES = [
     {
         "name": "crm_super_admin",
         "description": "CRM platform super admin",
-        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin"],
+        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin", "automation_view", "automation_manage", "automation_execute", "automation_logs_view", "automation_approval_view", "automation_approval_manage", "automation_approval_decide", "automation_webhook_manage", "customization_view", "customization_manage", "customization_modules_manage", "customization_fields_manage", "customization_layouts_manage", "customization_views_manage", "customization_validation_manage", "customization_buttons_manage", "communication_view", "communication_email_send", "communication_templates_manage", "communication_webforms_manage", "communication_campaigns_view", "communication_campaigns_manage", "communication_campaigns_send", "communication_consents_manage", "communication_logs_view", "analytics_view", "analytics_manage", "analytics_report_builder", "analytics_export", "analytics_schedule", "analytics_financial_view", "analytics_profitability_view", "analytics_admin"],
     },
     {
         "name": "crm_org_admin",
         "description": "CRM organization admin",
-        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin"],
+        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "crm_support_manage", "crm_marketing_manage", "crm_admin", "reports_view", "settings_view", "approval_os_view", "approval_os_create", "approval_os_admin", "automation_view", "automation_manage", "automation_execute", "automation_logs_view", "automation_approval_view", "automation_approval_manage", "automation_approval_decide", "automation_webhook_manage", "customization_view", "customization_manage", "customization_modules_manage", "customization_fields_manage", "customization_layouts_manage", "customization_views_manage", "customization_validation_manage", "customization_buttons_manage", "communication_view", "communication_email_send", "communication_templates_manage", "communication_webforms_manage", "communication_campaigns_view", "communication_campaigns_manage", "communication_campaigns_send", "communication_consents_manage", "communication_logs_view", "analytics_view", "analytics_manage", "analytics_report_builder", "analytics_export", "analytics_schedule", "analytics_financial_view", "analytics_profitability_view", "analytics_admin"],
     },
     {
         "name": "crm_sales_manager",
         "description": "CRM sales manager",
-        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "reports_view", "notification_view", "approval_os_view"],
+        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "reports_view", "notification_view", "approval_os_view", "automation_view", "automation_approval_view", "automation_approval_decide", "communication_view", "communication_email_send", "communication_campaigns_view", "analytics_view", "analytics_report_builder", "analytics_export"],
     },
     {
         "name": "crm_sales_executive",
         "description": "CRM sales executive",
-        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "notification_view"],
+        "permissions": ["crm_view", "crm_manage", "crm_pipeline_manage", "notification_view", "automation_execute", "automation_approval_view", "communication_view", "communication_email_send", "analytics_view"],
     },
     {
         "name": "crm_support_agent",
@@ -182,12 +302,12 @@ SYSTEM_ROLES = [
     {
         "name": "crm_marketing_user",
         "description": "CRM marketing user",
-        "permissions": ["crm_view", "crm_marketing_manage", "notification_view"],
+        "permissions": ["crm_view", "crm_marketing_manage", "notification_view", "communication_view", "communication_templates_manage", "communication_webforms_manage", "communication_campaigns_view", "communication_campaigns_manage", "communication_campaigns_send", "communication_logs_view"],
     },
     {
         "name": "crm_viewer",
         "description": "CRM read-only viewer",
-        "permissions": ["crm_view", "reports_view"],
+        "permissions": ["crm_view", "reports_view", "communication_view", "analytics_view"],
     },
     {
         "name": "pms_super_admin",
@@ -237,7 +357,7 @@ SYSTEM_ROLES = [
     {
         "name": "srm_finance_manager",
         "description": "Finance manager for invoices and receipts",
-        "permissions": ["srm_view", "srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_collection_view", "srm_collection_create", "srm_profitability_view", "reports_view", "approval_os_view", "notification_view"],
+        "permissions": ["srm_view", "srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_collection_view", "srm_collection_create", "srm_profitability_view", "reports_view", "approval_os_view", "notification_view", "automation_approval_view", "automation_approval_decide"],
     },
     {
         "name": "srm_revenue_manager",
@@ -259,7 +379,69 @@ SYSTEM_ROLES = [
         "description": "SRM read-only viewer",
         "permissions": ["srm_view", "srm_invoice_view", "srm_collection_view", "reports_view"],
     },
+    {
+        "name": "fam_admin",
+        "description": "FAM administrator",
+        "permissions": ["fam_view", "fam_manage", "fam_admin", "fam_settings_manage", "fam_chart_view", "fam_chart_manage", "fam_opening_balance_view", "fam_opening_balance_manage", "fam_cost_center_manage", "fam_branch_manage", "fam_audit_view", "fam_vouchers_view", "fam_vouchers_create", "fam_vouchers_post", "fam_vouchers_cancel", "fam_vouchers_reverse", "fam_voucher_types_manage", "fam_ledger_entries_view", "fam_day_book_view", "fam_parties_view", "fam_parties_manage", "fam_ar_view", "fam_ar_manage", "fam_ap_view", "fam_ap_manage", "fam_bill_allocation_manage", "fam_party_statement_view", "fam_srm_integration_view", "fam_srm_posting_manage", "fam_posting_rules_manage", "fam_posting_jobs_retry", "fam_accounting_status_view", "fam_banking_view", "fam_banking_manage", "fam_bank_statement_import", "fam_bank_reconcile", "fam_cash_book_view", "fam_bank_book_view", "fam_gst_view", "fam_gst_reconciliation_view", "fam_purchase_view", "fam_purchase_manage", "fam_expense_view", "fam_expense_manage", "fam_tds_view", "fam_tds_manage", "fam_vendor_payment_manage", "fam_inventory_view", "fam_inventory_manage", "fam_stock_post", "fam_stock_adjust", "fam_stock_transfer", "fam_inventory_valuation_view", "fam_cogs_post", "fam_inventory_reports_view", "fam_inventory_ai_use", "reports_view", "notification_view"],
+    },
+    {
+        "name": "accountant",
+        "description": "FAM accountant",
+        "permissions": ["fam_view", "fam_manage", "fam_chart_view", "fam_chart_manage", "fam_opening_balance_view", "fam_opening_balance_manage", "fam_cost_center_manage", "fam_branch_manage", "fam_vouchers_view", "fam_vouchers_create", "fam_vouchers_post", "fam_ledger_entries_view", "fam_day_book_view", "fam_parties_view", "fam_parties_manage", "fam_ar_view", "fam_ar_manage", "fam_ap_view", "fam_ap_manage", "fam_bill_allocation_manage", "fam_party_statement_view", "fam_srm_integration_view", "fam_srm_posting_manage", "fam_posting_jobs_retry", "fam_accounting_status_view", "fam_banking_view", "fam_banking_manage", "fam_bank_statement_import", "fam_bank_reconcile", "fam_cash_book_view", "fam_bank_book_view", "fam_gst_view", "fam_gst_reconciliation_view", "fam_purchase_view", "fam_purchase_manage", "fam_expense_view", "fam_expense_manage", "fam_tds_view", "fam_tds_manage", "fam_vendor_payment_manage", "fam_inventory_view", "fam_inventory_manage", "fam_stock_post", "fam_stock_adjust", "fam_stock_transfer", "fam_inventory_valuation_view", "fam_cogs_post", "fam_inventory_reports_view", "fam_inventory_ai_use", "reports_view", "notification_view"],
+    },
+    {
+        "name": "finance_manager",
+        "description": "FAM finance manager",
+        "permissions": ["fam_view", "fam_manage", "fam_chart_view", "fam_chart_manage", "fam_opening_balance_view", "fam_opening_balance_manage", "fam_cost_center_manage", "fam_branch_manage", "fam_audit_view", "fam_vouchers_view", "fam_vouchers_create", "fam_vouchers_post", "fam_vouchers_cancel", "fam_vouchers_reverse", "fam_voucher_types_manage", "fam_ledger_entries_view", "fam_day_book_view", "fam_parties_view", "fam_parties_manage", "fam_ar_view", "fam_ar_manage", "fam_ap_view", "fam_ap_manage", "fam_bill_allocation_manage", "fam_party_statement_view", "fam_srm_integration_view", "fam_srm_posting_manage", "fam_posting_rules_manage", "fam_posting_jobs_retry", "fam_accounting_status_view", "fam_banking_view", "fam_banking_manage", "fam_bank_statement_import", "fam_bank_reconcile", "fam_cash_book_view", "fam_bank_book_view", "fam_gst_view", "fam_gst_reconciliation_view", "fam_purchase_view", "fam_purchase_manage", "fam_expense_view", "fam_expense_manage", "fam_tds_view", "fam_tds_manage", "fam_vendor_payment_manage", "fam_inventory_view", "fam_inventory_manage", "fam_stock_post", "fam_stock_adjust", "fam_stock_transfer", "fam_inventory_valuation_view", "fam_cogs_post", "fam_inventory_reports_view", "fam_inventory_ai_use", "reports_view", "notification_view"],
+    },
+    {
+        "name": "auditor",
+        "description": "FAM read-only auditor",
+        "permissions": ["fam_view", "fam_chart_view", "fam_opening_balance_view", "fam_audit_view", "fam_vouchers_view", "fam_ledger_entries_view", "fam_day_book_view", "fam_parties_view", "fam_ar_view", "fam_ap_view", "fam_party_statement_view", "fam_srm_integration_view", "fam_accounting_status_view", "fam_banking_view", "fam_cash_book_view", "fam_bank_book_view", "fam_gst_view", "fam_gst_reconciliation_view", "fam_purchase_view", "fam_expense_view", "fam_tds_view", "reports_view"],
+    },
+    {
+        "name": "business_owner",
+        "description": "FAM business owner read-only dashboard access",
+        "permissions": ["fam_view", "fam_chart_view", "fam_opening_balance_view", "fam_vouchers_view", "fam_ledger_entries_view", "fam_day_book_view", "fam_parties_view", "fam_ar_view", "fam_ap_view", "fam_party_statement_view", "fam_banking_view", "fam_cash_book_view", "fam_bank_book_view", "fam_gst_view", "fam_gst_reconciliation_view", "fam_purchase_view", "fam_expense_view", "fam_tds_view", "reports_view"],
+    },
+    {
+        "name": "fam_viewer",
+        "description": "FAM read-only viewer",
+        "permissions": ["fam_view", "fam_chart_view", "fam_opening_balance_view", "fam_vouchers_view", "fam_ledger_entries_view", "fam_day_book_view", "fam_parties_view", "fam_ar_view", "fam_ap_view", "fam_party_statement_view", "fam_banking_view", "fam_cash_book_view", "fam_bank_book_view", "fam_gst_view", "fam_gst_reconciliation_view", "fam_purchase_view", "fam_expense_view", "fam_tds_view", "reports_view"],
+    },
+    {
+        "name": "non_fam_employee",
+        "description": "Employee without FAM access",
+        "permissions": ["notification_view"],
+    },
 ]
+
+AI_ROLE_PERMISSION_ADDITIONS = {
+    "crm_super_admin": ["ai_view", "ai_use", "ai_manage_prompts", "ai_agent_actions", "ai_action_log_view", "admin_security_view", "admin_security_manage", "admin_profiles_manage", "admin_roles_manage", "admin_field_security_manage", "admin_record_sharing_manage", "admin_import_manage", "admin_duplicates_manage", "admin_audit_view", "admin_export_control_manage", "admin_compliance_manage", "portal_manage", "developer_view", "developer_manage", "marketplace_view", "marketplace_manage", "sandbox_view", "sandbox_manage", "tenant_view", "tenant_admin"],
+    "crm_org_admin": ["ai_view", "ai_use", "ai_manage_prompts", "ai_agent_actions", "ai_action_log_view", "admin_security_view", "admin_profiles_manage", "admin_roles_manage", "admin_field_security_manage", "admin_record_sharing_manage", "admin_import_manage", "admin_duplicates_manage", "admin_audit_view", "admin_export_control_manage", "admin_compliance_manage", "portal_manage", "developer_view", "developer_manage", "marketplace_view", "marketplace_manage", "sandbox_view", "sandbox_manage", "tenant_view", "tenant_admin"],
+    "crm_sales_manager": ["ai_view", "ai_use", "ai_agent_actions", "ai_action_log_view"],
+    "crm_sales_executive": ["ai_view", "ai_use", "ai_agent_actions"],
+    "crm_viewer": ["ai_view"],
+    "pms_super_admin": ["ai_view", "ai_use", "ai_agent_actions", "ai_action_log_view"],
+    "pms_org_admin": ["ai_view", "ai_use", "ai_agent_actions", "ai_action_log_view"],
+    "pms_project_manager": ["ai_view", "ai_use", "ai_agent_actions"],
+    "pms_team_member": ["ai_view", "ai_use"],
+    "srm_admin": ["ai_view", "ai_use", "ai_manage_prompts", "ai_agent_actions", "ai_action_log_view"],
+    "srm_sales_manager": ["ai_view", "ai_use", "ai_agent_actions"],
+    "srm_sales_executive": ["ai_view", "ai_use"],
+    "srm_finance_manager": ["ai_view", "ai_use", "ai_agent_actions", "ai_action_log_view"],
+    "srm_revenue_manager": ["ai_view", "ai_use"],
+    "srm_collection_executive": ["ai_view", "ai_use", "ai_agent_actions"],
+    "srm_business_owner": ["ai_view", "ai_use", "ai_action_log_view"],
+    "srm_viewer": ["ai_view"],
+    "fam_admin": ["ai_view", "ai_use", "ai_action_log_view"],
+    "accountant": ["ai_view", "ai_use"],
+    "finance_manager": ["ai_view", "ai_use", "ai_action_log_view"],
+    "auditor": ["ai_view"],
+    "business_owner": ["ai_view", "ai_use"],
+    "fam_viewer": ["ai_view"],
+    "ceo": ["ai_view", "ai_use", "ai_action_log_view", "admin_security_view", "admin_audit_view", "portal_manage", "developer_view", "marketplace_view", "sandbox_view", "tenant_view"],
+}
 
 
 DEMO_USERS = [
@@ -774,6 +956,10 @@ def init_db(db: Session) -> None:
             db.add(role)
             db.flush()
         role.permissions = [perm_map[p] for p in role_data["permissions"] if p in perm_map]
+        for permission_name in AI_ROLE_PERMISSION_ADDITIONS.get(role_data["name"], []):
+            permission = perm_map.get(permission_name)
+            if permission and permission not in role.permissions:
+                role.permissions.append(permission)
         role_map[role_data["name"]] = role
 
     db.commit()
@@ -917,3 +1103,12 @@ def init_db(db: Session) -> None:
         db.add(employee)
 
     db.commit()
+
+
+
+
+
+
+
+
+

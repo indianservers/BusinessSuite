@@ -24,6 +24,13 @@ COMMON_ROUTER_MODULES = (
     "app.api.v1.logs",
     "app.api.v1.users",
     "app.api.v1.workflow_engine",
+    "app.apps.automation.api.router",
+    "app.apps.customization.api.router",
+    "app.apps.communication.api.router",
+    "app.apps.analytics.api.router",
+    "app.apps.ai_copilot.api.router",
+    "app.apps.admin_security.api.router",
+    "app.apps.saas.api.router",
     "app.ai_agents.api",
 )
 
@@ -35,6 +42,13 @@ COMMON_MODEL_MODULES = (
     "app.models.notification",
     "app.models.sso",
     "app.models.workflow_engine",
+    "app.apps.automation.models",
+    "app.apps.customization.models",
+    "app.apps.communication.models",
+    "app.apps.analytics.models",
+    "app.apps.ai_copilot.models",
+    "app.apps.admin_security.models",
+    "app.apps.saas.models",
     "app.ai_agents.models",
 )
 
@@ -127,6 +141,16 @@ APP_MODULES: dict[str, AppModule] = {
         label="Sales & Revenue Management",
         router_modules=("app.apps.srm.api.router",),
         model_modules=("app.apps.srm.models",),
+    ),
+    "fam": AppModule(
+        key="fam",
+        label="Finance & Accounting Management",
+        router_modules=("app.apps.fam.api.router",),
+        model_modules=("app.apps.fam.models",),
+    ),
+    "inventory": AppModule(
+        key="inventory",
+        label="Inventory",
     ),
 }
 

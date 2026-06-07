@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
+import { communicationApi } from "@/apps/communication/api";
 import { crmApi, type CRMApiRecord, type CRMApiValue, type CRMApprovalRequest, type CRMEnrichmentPreview } from "./api";
 
 type DetailKind = "leads" | "contacts" | "accounts" | "deals" | "quotations";
@@ -400,6 +401,8 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
               <CustomFields fields={record.customFields || []} onSave={saveCustomField} />
             </main>
             <aside className="space-y-5">
+              <AICopilotPanel kind={kind} recordId={recordId} />
+              <CommunicationTimeline recordType={kind === "accounts" ? "account" : kind.replace(/s$/, "")} recordId={recordId} />
               <Timeline events={record.timeline || []} onAction={setAction} />
               <RelatedRecords related={record.related || {}} />
             </aside>
@@ -444,6 +447,26 @@ function CommercialHandoff({ related }: { related: Record<string, unknown> }) {
         <HandoffLine label="SRM Contract" value={valueText(contract?.contract_number || contract?.title)} to={contract?.id ? `/srm/contracts` : undefined} />
         <HandoffLine label="Billing Plan" value={valueText(billingPlan?.name || billingPlan?.billing_type)} to={billingPlan?.id ? `/srm/billing-plans` : undefined} />
         <HandoffLine label="PMS Project" value={valueText(pmsProject?.project_key || pmsProject?.name)} to={pmsProject?.id ? `/pms/projects/${pmsProject.id}` : undefined} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function AICopilotPanel({ kind, recordId }: { kind: DetailKind; recordId: number }) {
+  const recordType = kind === "accounts" ? "account" : kind === "quotations" ? "quotation" : kind.replace(/s$/, "");
+  const summaryHref = `/ai/record-summary?module_name=crm&record_type=${recordType}&record_id=${recordId}`;
+  const coachHref = kind === "deals" ? `/ai/deal-coach?module_name=crm&record_type=deal&record_id=${recordId}` : `/ai/copilot?module_name=crm&record_type=${recordType}&record_id=${recordId}`;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base"><Sparkles className="h-4 w-4" />AI Copilot Panel</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-sm text-muted-foreground">Uses sanitized CRM context and backend AI permissions for this record.</p>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm"><Link to={summaryHref}>Record Summary</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to={coachHref}>{kind === "deals" ? "Deal Coach" : "Open Copilot"}</Link></Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -558,6 +581,27 @@ function ApprovalTimeline({ approval }: { approval?: CRMApprovalRequest | null }
         ) : (
           <p className="text-sm text-muted-foreground">No approval request has been submitted for this record.</p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CommunicationTimeline({ recordType, recordId }: { recordType: string; recordId: number }) {
+  const [events, setEvents] = useState<CRMApiRecord[]>([]);
+  useEffect(() => {
+    communicationApi.timeline(recordType, recordId).then((data) => setEvents((data.items || []) as CRMApiRecord[])).catch(() => setEvents([]));
+  }, [recordType, recordId]);
+  return (
+    <Card>
+      <CardHeader><CardTitle>Communication Timeline</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        {!events.length ? <p className="text-sm text-muted-foreground">No communication events logged yet.</p> : null}
+        {events.map((event) => (
+          <div key={String(event.id)} className="rounded-md border p-3 text-sm">
+            <div className="flex items-center justify-between gap-2"><span className="font-medium">{valueText(event.subject || event.event_type)}</span><Badge variant="outline">{valueText(event.channel)}</Badge></div>
+            <p className="mt-1 text-muted-foreground">{valueText(event.summary)}</p>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
@@ -977,7 +1021,7 @@ function EmailComposeModal({ kind, record, disabled = false, approvalStatus = ""
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    crmApi.emailTemplates({ entityType }).then((response) => setTemplates(response.data.items || [])).catch(() => setTemplates([]));
+    communicationApi.templates().then((response) => setTemplates((response.items || []) as CRMApiRecord[])).catch(() => setTemplates([]));
   }, [entityType]);
 
   const patch = (key: string, value: CRMApiValue) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: value }));
@@ -986,7 +1030,7 @@ function EmailComposeModal({ kind, record, disabled = false, approvalStatus = ""
     const template = templates.find((item) => String(item.id) === templateId);
     if (!template) return;
     patch("subject", renderTemplate(valueText(template.subject), record, recordName));
-    patch("body", renderTemplate(valueText(template.body), record, recordName));
+    patch("body", renderTemplate(valueText(template.body_html || template.body_text), record, recordName));
   };
   const submit = (saveAsDraft: boolean) => {
     if (disabled && !saveAsDraft) {
@@ -995,12 +1039,20 @@ function EmailComposeModal({ kind, record, disabled = false, approvalStatus = ""
     }
     setSaving(true);
     setError(null);
-    crmApi
-      .sendEmail({ ...draft, saveAsDraft })
+    const payload = {
+      related_record_type: entityType,
+      related_record_id: Number(record.id),
+      to_email: valueText(draft.to),
+      cc: valueText(draft.cc) || undefined,
+      bcc: valueText(draft.bcc) || undefined,
+      subject: valueText(draft.subject),
+      body: valueText(draft.body),
+    };
+    (saveAsDraft ? communicationApi.draftEmail(payload) : communicationApi.sendEmail(payload))
       .then((response) => {
-        const status = String(response.data.status || "");
-        if (status === "failed") {
-          setError(String(response.data.failure_reason || response.data.failureReason || "Email failed to send."));
+        const status = String(response.status || "");
+        if (status === "failed" || status === "blocked") {
+          setError(String(response.error_message || "Email could not be delivered."));
           return;
         }
         onDone();

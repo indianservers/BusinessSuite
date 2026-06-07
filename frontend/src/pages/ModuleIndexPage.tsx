@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Briefcase, Building2, FolderKanban, LogIn, Receipt, Sparkles } from "lucide-react";
+import { Briefcase, Building2, FolderKanban, Landmark, LogIn, Package, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuthStore } from "@/store/authStore";
@@ -45,6 +45,26 @@ const modules = [
     loginPath: "/srm/login",
     tone: "bg-amber-600",
   },
+  {
+    key: "fam",
+    name: "Finance & Accounting Management",
+    label: "FAM",
+    description: "Manage financial settings, chart of accounts, ledgers, opening balances, branches, cost centers, and audit-ready books.",
+    icon: Landmark,
+    homePath: "/fam",
+    loginPath: "/fam/login",
+    tone: "bg-cyan-700",
+  },
+  {
+    key: "inventory",
+    name: "Vyapara ERP Inventory",
+    label: "Inventory",
+    description: "Products, stock, warehouses, purchases, sales, POS, reports, and GST-ready inventory operations from the cloned Vyapara ERP app.",
+    icon: Package,
+    homePath: "/inventory",
+    loginPath: "/login",
+    tone: "bg-teal-700",
+  },
 ];
 
 export default function ModuleIndexPage() {
@@ -61,7 +81,7 @@ export default function ModuleIndexPage() {
             </div>
             <h1 className="text-3xl font-semibold tracking-tight">Choose a module</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Open CRM, HRMS, PMS, or SRM from one index page. Sign in to the module you want to use.
+              Open CRM, HRMS, PMS, SRM, FAM, or Inventory from one index page. Sign in to the module you want to use.
             </p>
           </div>
           <Button asChild variant="outline">
@@ -70,7 +90,7 @@ export default function ModuleIndexPage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-4">
+      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-2 lg:grid-cols-3">
         {modules.map((module) => {
           const Icon = module.icon;
           return (
@@ -86,7 +106,7 @@ export default function ModuleIndexPage() {
                   <div className="mt-6 grid gap-2">
                     <Button asChild>
                       <Link to={isHydrated && isAuthenticated ? module.homePath : module.loginPath}>
-                        {!isHydrated ? "Loading..." : module.key === "srm" ? "Open SRM" : isAuthenticated ? `Open ${module.label}` : "Sign in"}
+                        {!isHydrated ? "Loading..." : isAuthenticated || module.key === "srm" ? `Open ${module.label}` : "Sign in"}
                       </Link>
                     </Button>
                   </div>

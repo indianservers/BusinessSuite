@@ -1,9 +1,9 @@
 import { expect, test } from "../frontend/node_modules/playwright/test";
-import { authenticate } from "./srm-test-utils";
+import { authenticateCrm } from "./crm-core-test-utils";
 
 test.describe("CRM deal SRM link UI", () => {
   test("shows SRM sales order, engagement, billing plan, and PMS project links on won deal detail", async ({ page }) => {
-    await authenticate(page, "admin");
+    await authenticateCrm(page);
     await page.goto("/crm/deals/501", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByRole("heading", { name: "Commercial Handoff" })).toBeVisible();

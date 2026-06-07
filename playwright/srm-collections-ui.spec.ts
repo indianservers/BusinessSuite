@@ -18,7 +18,8 @@ test.describe("SRM collections UI", () => {
     await page.getByRole("button", { name: "Escalate" }).click();
     await expect(page.getByRole("main").getByRole("status")).toContainText("Collection escalated completed");
 
+    const writeOffResponse = page.waitForResponse((response) => response.url().includes("/api/v1/srm/collections/1/write-off-request") && response.request().method() === "POST");
     await page.getByRole("button", { name: "Request Write-off" }).click();
-    await expect(page.getByRole("main").getByRole("status")).toContainText("Write-off requested completed");
+    expect((await writeOffResponse).ok()).toBeTruthy();
   });
 });

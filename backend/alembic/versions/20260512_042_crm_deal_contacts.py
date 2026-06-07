@@ -59,7 +59,7 @@ def upgrade() -> None:
             true,
             created_by_user_id,
             updated_by_user_id,
-            COALESCE(created_at, now())
+            COALESCE(created_at, CURRENT_TIMESTAMP)
         FROM crm_deals
         WHERE contact_id IS NOT NULL
         """

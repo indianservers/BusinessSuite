@@ -1,0 +1,2 @@
+"""CRM Communication Hub application."""
+

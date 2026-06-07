@@ -1,4 +1,4 @@
-export type ProductKey = "hrms" | "crm" | "project_management" | "srm";
+export type ProductKey = "hrms" | "crm" | "project_management" | "srm" | "fam" | "inventory";
 
 export type ProductMeta = {
   key: ProductKey;
@@ -47,6 +47,24 @@ export const products: Record<ProductKey, ProductMeta> = {
     themeClass: "product-srm",
     searchPlaceholder: "Search orders, invoices, collections...  Cmd+K",
   },
+  fam: {
+    key: "fam",
+    name: "FinanceFlow FAM",
+    shortName: "FAM",
+    loginPath: "/fam/login",
+    homePath: "/fam",
+    themeClass: "product-fam",
+    searchPlaceholder: "Search ledgers, groups, balances...  Cmd+K",
+  },
+  inventory: {
+    key: "inventory",
+    name: "Vyapara ERP Inventory",
+    shortName: "Inventory",
+    loginPath: "/login",
+    homePath: "/inventory",
+    themeClass: "product-inventory",
+    searchPlaceholder: "Search products, stock, invoices...  Cmd+K",
+  },
 };
 
 export function normalizeRole(role?: string | null) {
@@ -57,6 +75,8 @@ export function getProductKeyFromPath(pathname: string): ProductKey | null {
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/pms")) return "project_management";
   if (pathname.startsWith("/srm")) return "srm";
+  if (pathname.startsWith("/fam")) return "fam";
+  if (pathname.startsWith("/inventory")) return "inventory";
   if (pathname.startsWith("/hrms")) return "hrms";
   return null;
 }
@@ -66,6 +86,7 @@ export function getProductKeyForRole(role?: string | null, isSuperuser = false):
   if (value.startsWith("crm_")) return "crm";
   if (value.startsWith("pms_")) return "project_management";
   if (value.startsWith("srm_")) return "srm";
+  if (value.startsWith("fam_") || ["accountant", "auditor"].includes(value)) return "fam";
   if (isSuperuser || value) return "hrms";
   return "hrms";
 }

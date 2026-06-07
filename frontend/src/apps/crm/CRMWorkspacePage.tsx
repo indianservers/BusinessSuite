@@ -14,7 +14,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
@@ -24,6 +24,7 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -38,6 +39,7 @@ import {
   ListFilter,
   Mail,
   Megaphone,
+  Package,
   Phone,
   Plus,
   Save,
@@ -112,6 +114,13 @@ type CRMPageKind =
   | "webhooks"
   | "campaigns"
   | "products"
+  | "services"
+  | "priceBooks"
+  | "quotes"
+  | "quoteBuilder"
+  | "quoteApprovals"
+  | "cpq"
+  | "guidedSelling"
   | "quotations"
   | "approvalSettings"
   | "myApprovals"
@@ -123,6 +132,10 @@ type CRMPageKind =
   | "automation"
   | "leadCash"
   | "forecasting"
+  | "targets"
+  | "salesPerformance"
+  | "funnel"
+  | "lostAnalysis"
   | "customer360"
   | "importExport"
   | "settings"
@@ -134,7 +147,7 @@ const pageTitles: Record<CRMPageKind, string> = {
   dashboard: "CRM Dashboard",
   leads: "Leads",
   contacts: "Contacts",
-  companies: "Companies",
+  companies: "Accounts",
   deals: "Deals",
   pipeline: "Sales Pipeline",
   pipelineSettings: "Pipeline Settings",
@@ -145,6 +158,13 @@ const pageTitles: Record<CRMPageKind, string> = {
   webhooks: "Webhooks",
   campaigns: "Campaigns",
   products: "Products",
+  services: "Services",
+  priceBooks: "Price Books",
+  quotes: "Quotes",
+  quoteBuilder: "Quote Builder",
+  quoteApprovals: "Quote Approvals",
+  cpq: "CPQ Rules",
+  guidedSelling: "Guided Selling",
   quotations: "Quotations",
   approvalSettings: "Approval Settings",
   myApprovals: "My Approvals",
@@ -156,6 +176,10 @@ const pageTitles: Record<CRMPageKind, string> = {
   automation: "Automation",
   leadCash: "Lead-to-Cash",
   forecasting: "Forecasting",
+  targets: "Sales Targets",
+  salesPerformance: "Sales Performance",
+  funnel: "Sales Funnel",
+  lostAnalysis: "Lost Analysis",
   customer360: "Customer 360",
   importExport: "Import & Export",
   settings: "CRM Settings",
@@ -177,6 +201,68 @@ const dashboardQuickCreateKinds: Array<{ kind: DashboardQuickCreateKind; label: 
   { kind: "tasks", label: "Task" },
 ];
 
+type CRMBusinessTemplate = {
+  key: string;
+  name: string;
+  group: "Teams" | "Industries";
+  category: string;
+  accent: string;
+  description?: string;
+  fieldEntity?: string;
+  sampleRecord?: string;
+  stages: Array<{ name: string; probability: number; color: string; isWon?: boolean; isLost?: boolean }>;
+  fields: string[];
+  automations: string[];
+  reports: string[];
+};
+
+const crmBusinessTemplates: CRMBusinessTemplate[] = [
+  { key: "sales-pipeline", name: "Sales Pipeline", group: "Teams", category: "Core Sales", accent: "#2563eb", stages: [{ name: "Qualification", probability: 20, color: "#2563eb" }, { name: "Needs Analysis", probability: 35, color: "#0891b2" }, { name: "Proposal", probability: 55, color: "#7c3aed" }, { name: "Negotiation", probability: 75, color: "#d97706" }, { name: "Closed Won", probability: 100, color: "#059669", isWon: true }, { name: "Closed Lost", probability: 0, color: "#dc2626", isLost: true }], fields: ["Lead source", "Deal value", "Expected close", "Competitor", "Next step"], automations: ["Owner assignment", "No-response reminder", "Won handoff"], reports: ["Pipeline value", "Forecast", "Lost reasons"] },
+  { key: "customer-support", name: "Customer Support", group: "Teams", category: "Support", accent: "#0891b2", stages: [{ name: "New Request", probability: 10, color: "#0891b2" }, { name: "Triage", probability: 25, color: "#2563eb" }, { name: "In Progress", probability: 50, color: "#7c3aed" }, { name: "Customer Review", probability: 75, color: "#d97706" }, { name: "Resolved", probability: 100, color: "#059669", isWon: true }], fields: ["Issue type", "SLA", "Priority", "Product", "Resolution"], automations: ["SLA escalation", "Customer update", "Reopen alert"], reports: ["Open cases", "SLA breaches", "Resolution time"] },
+  { key: "customer-onboarding", name: "Customer Onboarding", group: "Teams", category: "Success", accent: "#0f766e", stages: [{ name: "Kickoff", probability: 15, color: "#0f766e" }, { name: "Setup", probability: 35, color: "#2563eb" }, { name: "Training", probability: 55, color: "#7c3aed" }, { name: "Go Live", probability: 85, color: "#d97706" }, { name: "Adopted", probability: 100, color: "#059669", isWon: true }], fields: ["Plan", "Stakeholders", "Launch date", "Training owner", "Adoption score"], automations: ["Kickoff task pack", "Training reminder", "CS handoff"], reports: ["Activation", "Time to value", "At-risk onboardings"] },
+  { key: "customer-testimonials", name: "Customer Testimonials", group: "Teams", category: "Marketing", accent: "#be185d", stages: [{ name: "Candidate", probability: 20, color: "#be185d" }, { name: "Outreach", probability: 35, color: "#7c3aed" }, { name: "Interview", probability: 60, color: "#2563eb" }, { name: "Approval", probability: 80, color: "#d97706" }, { name: "Published", probability: 100, color: "#059669", isWon: true }], fields: ["Customer story", "Use case", "Approver", "Asset type", "Publish date"], automations: ["Consent check", "Approval reminder", "Publish handoff"], reports: ["Story pipeline", "Assets by industry", "Approval aging"] },
+  { key: "project-tracker", name: "Project Tracker", group: "Teams", category: "Delivery", accent: "#7c3aed", stages: [{ name: "Intake", probability: 10, color: "#7c3aed" }, { name: "Scoped", probability: 30, color: "#2563eb" }, { name: "In Delivery", probability: 55, color: "#0891b2" }, { name: "UAT", probability: 80, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Project owner", "Budget", "Milestone", "Risk", "Delivery date"], automations: ["Milestone reminder", "Risk escalation", "PMS project handoff"], reports: ["Delivery value", "Milestone health", "Budget risk"] },
+  { key: "recruitment", name: "Recruitment", group: "Teams", category: "Hiring", accent: "#9333ea", stages: [{ name: "Sourced", probability: 10, color: "#9333ea" }, { name: "Screening", probability: 30, color: "#2563eb" }, { name: "Interview", probability: 55, color: "#0891b2" }, { name: "Offer", probability: 80, color: "#d97706" }, { name: "Hired", probability: 100, color: "#059669", isWon: true }, { name: "Rejected", probability: 0, color: "#dc2626", isLost: true }], fields: ["Role", "Candidate source", "Notice period", "CTC", "Hiring manager"], automations: ["Interview schedule", "Offer approval", "Candidate update"], reports: ["Hiring funnel", "Source quality", "Offer aging"] },
+  { key: "refund-processing", name: "Refund Processing", group: "Teams", category: "Finance Ops", accent: "#ca8a04", stages: [{ name: "Request", probability: 10, color: "#ca8a04" }, { name: "Validation", probability: 35, color: "#2563eb" }, { name: "Approval", probability: 60, color: "#d97706" }, { name: "Payment", probability: 85, color: "#0891b2" }, { name: "Closed", probability: 100, color: "#059669", isWon: true }], fields: ["Invoice", "Reason", "Amount", "Approval owner", "Refund mode"], automations: ["Eligibility check", "Approval route", "Payment reminder"], reports: ["Refund value", "Aging", "Approval SLA"] },
+  { key: "order-fulfillment", name: "Order Fulfillment", group: "Teams", category: "Operations", accent: "#ea580c", stages: [{ name: "Order Received", probability: 15, color: "#ea580c" }, { name: "Packed", probability: 35, color: "#2563eb" }, { name: "Dispatched", probability: 65, color: "#0891b2" }, { name: "Delivered", probability: 90, color: "#d97706" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Order ID", "Items", "Warehouse", "Courier", "Delivery SLA"], automations: ["Dispatch alert", "Delay escalation", "Delivery confirmation"], reports: ["Orders by status", "Delay reasons", "Fulfillment SLA"] },
+  { key: "website-launch", name: "Website Launch", group: "Teams", category: "Marketing Ops", accent: "#0284c7", stages: [{ name: "Brief", probability: 10, color: "#0284c7" }, { name: "Design", probability: 30, color: "#7c3aed" }, { name: "Build", probability: 55, color: "#2563eb" }, { name: "QA", probability: 80, color: "#d97706" }, { name: "Launched", probability: 100, color: "#059669", isWon: true }], fields: ["Domain", "Launch date", "Content owner", "SEO checklist", "QA owner"], automations: ["Content reminder", "QA checklist", "Launch approval"], reports: ["Launch readiness", "Blocked tasks", "Post-launch issues"] },
+  { key: "press-release", name: "Press Release", group: "Teams", category: "PR", accent: "#475569", stages: [{ name: "Idea", probability: 10, color: "#475569" }, { name: "Draft", probability: 35, color: "#2563eb" }, { name: "Review", probability: 60, color: "#7c3aed" }, { name: "Distribution", probability: 85, color: "#d97706" }, { name: "Published", probability: 100, color: "#059669", isWon: true }], fields: ["Announcement", "Spokesperson", "Media list", "Approval", "Publish date"], automations: ["Legal approval", "Media follow-up", "Coverage tracking"], reports: ["Release calendar", "Coverage", "Approval aging"] },
+  { key: "event-sponsorship", name: "Event Sponsorship", group: "Teams", category: "Events", accent: "#16a34a", stages: [{ name: "Target Event", probability: 15, color: "#16a34a" }, { name: "Proposal", probability: 35, color: "#2563eb" }, { name: "Negotiation", probability: 65, color: "#d97706" }, { name: "Booked", probability: 90, color: "#0891b2" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Event date", "Package", "Audience", "Sponsor fee", "Deliverables"], automations: ["Budget approval", "Asset deadline", "Post-event follow-up"], reports: ["Event ROI", "Sponsor pipeline", "Deliverable status"] },
+  { key: "content-planner", name: "Content Planner", group: "Teams", category: "Content", accent: "#db2777", stages: [{ name: "Backlog", probability: 10, color: "#db2777" }, { name: "Writing", probability: 35, color: "#2563eb" }, { name: "Design", probability: 55, color: "#7c3aed" }, { name: "Review", probability: 80, color: "#d97706" }, { name: "Published", probability: 100, color: "#059669", isWon: true }], fields: ["Topic", "Channel", "Writer", "Designer", "Publish date"], automations: ["Brief reminder", "Review approval", "Publish task"], reports: ["Content velocity", "Channel mix", "Review bottlenecks"] },
+  { key: "employee-onboarding", name: "Employee Onboarding", group: "Teams", category: "People Ops", accent: "#4f46e5", stages: [{ name: "Offer Accepted", probability: 20, color: "#4f46e5" }, { name: "Documents", probability: 40, color: "#2563eb" }, { name: "Assets", probability: 60, color: "#0891b2" }, { name: "Day One", probability: 85, color: "#d97706" }, { name: "Onboarded", probability: 100, color: "#059669", isWon: true }], fields: ["Joining date", "Department", "Manager", "Asset kit", "Document status"], automations: ["Document reminder", "Asset request", "Welcome workflow"], reports: ["Joining pipeline", "Document gaps", "Onboarding SLA"] },
+  { key: "real-estate", name: "Real Estate", group: "Industries", category: "Property Sales", accent: "#0f766e", stages: [{ name: "Inquiry", probability: 10, color: "#0f766e" }, { name: "Site Visit", probability: 30, color: "#2563eb" }, { name: "Shortlisted", probability: 55, color: "#7c3aed" }, { name: "Booking", probability: 80, color: "#d97706" }, { name: "Registration", probability: 100, color: "#059669", isWon: true }], fields: ["Project", "Unit type", "Budget", "Visit date", "Broker"], automations: ["Visit reminder", "Payment follow-up", "Booking approval"], reports: ["Inventory interest", "Broker performance", "Booking forecast"] },
+  { key: "facility-maintenance", name: "Facility Maintenance", group: "Industries", category: "Services", accent: "#64748b", stages: [{ name: "Service Request", probability: 10, color: "#64748b" }, { name: "Inspection", probability: 30, color: "#2563eb" }, { name: "Estimate", probability: 55, color: "#d97706" }, { name: "Work Order", probability: 80, color: "#0891b2" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Site", "Asset", "Issue type", "Technician", "SLA"], automations: ["Technician assignment", "SLA escalation", "Completion proof"], reports: ["Open work orders", "SLA breaches", "Asset issues"] },
+  { key: "interior-design", name: "Interior Design", group: "Industries", category: "Design Studio", accent: "#be123c", stages: [{ name: "Consultation", probability: 15, color: "#be123c" }, { name: "Concept", probability: 35, color: "#7c3aed" }, { name: "Estimate", probability: 55, color: "#2563eb" }, { name: "Contract", probability: 80, color: "#d97706" }, { name: "Handover", probability: 100, color: "#059669", isWon: true }], fields: ["Property type", "Room count", "Budget", "Moodboard", "Handover date"], automations: ["Design review", "Estimate approval", "Material reminder"], reports: ["Design pipeline", "Budget mix", "Handover forecast"] },
+  { key: "software-consulting", name: "Software Consulting", group: "Industries", category: "IT Services", accent: "#2563eb", stages: [{ name: "Discovery", probability: 15, color: "#2563eb" }, { name: "Solution Fit", probability: 35, color: "#0891b2" }, { name: "Proposal", probability: 60, color: "#7c3aed" }, { name: "MSA/SOW", probability: 85, color: "#d97706" }, { name: "Won", probability: 100, color: "#059669", isWon: true }, { name: "Lost", probability: 0, color: "#dc2626", isLost: true }], fields: ["Stack", "Scope", "Cloud", "SOW owner", "Delivery model"], automations: ["Solution review", "SOW approval", "SRM/PMS handoff"], reports: ["Services forecast", "Tech demand", "SOW aging"] },
+  { key: "freelancers", name: "Freelancers", group: "Industries", category: "Solo Business", accent: "#7c3aed", stages: [{ name: "Lead", probability: 10, color: "#7c3aed" }, { name: "Brief", probability: 30, color: "#2563eb" }, { name: "Quote Sent", probability: 55, color: "#d97706" }, { name: "In Work", probability: 80, color: "#0891b2" }, { name: "Paid", probability: 100, color: "#059669", isWon: true }], fields: ["Service", "Rate", "Deadline", "Advance", "Payment status"], automations: ["Quote follow-up", "Deadline reminder", "Payment chase"], reports: ["Cash forecast", "Workload", "Client repeat rate"] },
+  { key: "brand-collaborations", name: "Brand Collaborations", group: "Industries", category: "Creator/Brand", accent: "#db2777", stages: [{ name: "Lead", probability: 10, color: "#db2777" }, { name: "Media Kit", probability: 30, color: "#7c3aed" }, { name: "Negotiation", probability: 60, color: "#d97706" }, { name: "Content Live", probability: 85, color: "#2563eb" }, { name: "Paid", probability: 100, color: "#059669", isWon: true }], fields: ["Brand", "Campaign", "Deliverables", "Usage rights", "Payout"], automations: ["Contract reminder", "Content approval", "Invoice follow-up"], reports: ["Brand revenue", "Deliverable status", "Payment aging"] },
+  { key: "legal", name: "Legal", group: "Industries", category: "Legal Practice", accent: "#334155", stages: [{ name: "Consultation", probability: 15, color: "#334155" }, { name: "Conflict Check", probability: 30, color: "#2563eb" }, { name: "Engagement Letter", probability: 55, color: "#d97706" }, { name: "Matter Opened", probability: 85, color: "#0891b2" }, { name: "Closed", probability: 100, color: "#059669", isWon: true }], fields: ["Matter type", "Jurisdiction", "Conflict status", "Retainer", "Court date"], automations: ["Conflict check", "Retainer reminder", "Matter task pack"], reports: ["Matter pipeline", "Retainer aging", "Practice mix"] },
+  { key: "insurance", name: "Insurance", group: "Industries", category: "Policy Sales", accent: "#0369a1", stages: [{ name: "Prospect", probability: 10, color: "#0369a1" }, { name: "Needs Analysis", probability: 30, color: "#2563eb" }, { name: "Quote", probability: 55, color: "#d97706" }, { name: "Underwriting", probability: 80, color: "#7c3aed" }, { name: "Policy Issued", probability: 100, color: "#059669", isWon: true }], fields: ["Policy type", "Premium", "Sum assured", "Nominee", "Renewal date"], automations: ["Document reminder", "Underwriting follow-up", "Renewal alert"], reports: ["Premium forecast", "Policy mix", "Renewals"] },
+  { key: "startup-fundraising", name: "Startup Fundraising", group: "Industries", category: "Investor Pipeline", accent: "#9333ea", stages: [{ name: "Target Investor", probability: 10, color: "#9333ea" }, { name: "Intro", probability: 25, color: "#2563eb" }, { name: "Partner Meeting", probability: 50, color: "#7c3aed" }, { name: "Term Sheet", probability: 80, color: "#d97706" }, { name: "Committed", probability: 100, color: "#059669", isWon: true }], fields: ["Fund", "Partner", "Ticket size", "Round", "Data room"], automations: ["Intro follow-up", "Data room reminder", "Commitment update"], reports: ["Capital pipeline", "Investor stage", "Round forecast"] },
+  { key: "bank-loan-processing", name: "Bank Loan Processing", group: "Industries", category: "Lending", accent: "#075985", stages: [{ name: "Application", probability: 10, color: "#075985" }, { name: "Documents", probability: 30, color: "#2563eb" }, { name: "Credit Review", probability: 55, color: "#d97706" }, { name: "Sanction", probability: 80, color: "#7c3aed" }, { name: "Disbursed", probability: 100, color: "#059669", isWon: true }], fields: ["Loan type", "Amount", "CIBIL", "Collateral", "Disbursement date"], automations: ["Document checklist", "Credit escalation", "Disbursement reminder"], reports: ["Loan funnel", "Sanction value", "Document gaps"] },
+  { key: "school-admission", name: "School Admission", group: "Industries", category: "Education", accent: "#16a34a", stages: [{ name: "Inquiry", probability: 10, color: "#16a34a" }, { name: "Counselling", probability: 30, color: "#2563eb" }, { name: "Application", probability: 55, color: "#d97706" }, { name: "Fee Payment", probability: 85, color: "#7c3aed" }, { name: "Enrolled", probability: 100, color: "#059669", isWon: true }], fields: ["Grade", "Parent", "Campus", "Scholarship", "Fee status"], automations: ["Counselling reminder", "Document reminder", "Fee follow-up"], reports: ["Admissions funnel", "Campus demand", "Fee pending"] },
+  { key: "education-training", name: "Education/Training", group: "Industries", category: "Training Sales", accent: "#4f46e5", stages: [{ name: "Inquiry", probability: 10, color: "#4f46e5" }, { name: "Counselling", probability: 30, color: "#2563eb" }, { name: "Demo Class", probability: 55, color: "#0891b2" }, { name: "Enrollment", probability: 85, color: "#d97706" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Course", "Batch", "Trainer", "Fee", "Learning goal"], automations: ["Demo reminder", "Fee reminder", "Batch onboarding"], reports: ["Course pipeline", "Batch fill", "Fee collection"] },
+  { key: "used-car-sales", name: "Used Car Sales", group: "Industries", category: "Automotive", accent: "#ea580c", stages: [{ name: "Lead", probability: 10, color: "#ea580c" }, { name: "Vehicle Match", probability: 30, color: "#2563eb" }, { name: "Test Drive", probability: 55, color: "#0891b2" }, { name: "Finance", probability: 80, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Model", "Budget", "Test drive", "Exchange", "Finance status"], automations: ["Test drive reminder", "Finance follow-up", "Delivery checklist"], reports: ["Vehicle demand", "Finance conversion", "Delivery forecast"] },
+  { key: "automobile-sales", name: "Automobile Sales", group: "Industries", category: "Automotive", accent: "#0284c7", stages: [{ name: "Walk-in/Lead", probability: 10, color: "#0284c7" }, { name: "Model Demo", probability: 30, color: "#2563eb" }, { name: "Test Drive", probability: 55, color: "#0891b2" }, { name: "Booking", probability: 80, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Model", "Variant", "Color", "Exchange", "Delivery date"], automations: ["Test drive reminder", "Booking approval", "Delivery task pack"], reports: ["Model demand", "Booking value", "Delivery SLA"] },
+  { key: "automobile-service", name: "Automobile Service", group: "Industries", category: "Automotive Service", accent: "#64748b", stages: [{ name: "Service Booking", probability: 10, color: "#64748b" }, { name: "Vehicle In", probability: 30, color: "#2563eb" }, { name: "Estimate", probability: 55, color: "#d97706" }, { name: "Repair", probability: 80, color: "#0891b2" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Vehicle", "Odometer", "Job card", "Parts", "Advisor"], automations: ["Service reminder", "Estimate approval", "Delivery notification"], reports: ["Service load", "Parts pending", "Advisor performance"] },
+  { key: "car-accessories", name: "Car Accessories", group: "Industries", category: "Retail", accent: "#0f766e", stages: [{ name: "Inquiry", probability: 10, color: "#0f766e" }, { name: "Fitment Advice", probability: 30, color: "#2563eb" }, { name: "Quote", probability: 55, color: "#d97706" }, { name: "Installation", probability: 85, color: "#0891b2" }, { name: "Sold", probability: 100, color: "#059669", isWon: true }], fields: ["Vehicle", "Accessory", "Fitment slot", "Warranty", "Invoice"], automations: ["Stock check", "Fitment reminder", "Warranty follow-up"], reports: ["Accessory demand", "Install slots", "Revenue mix"] },
+  { key: "nonprofits-donations", name: "Nonprofits Donations", group: "Industries", category: "Nonprofit", accent: "#16a34a", stages: [{ name: "Prospect", probability: 10, color: "#16a34a" }, { name: "Appeal Sent", probability: 30, color: "#2563eb" }, { name: "Pledge", probability: 60, color: "#d97706" }, { name: "Donation Received", probability: 100, color: "#059669", isWon: true }, { name: "Not Now", probability: 0, color: "#dc2626", isLost: true }], fields: ["Cause", "Donation amount", "Frequency", "Receipt", "Donor type"], automations: ["Pledge reminder", "Receipt email", "Renewal appeal"], reports: ["Donation pipeline", "Donor retention", "Campaign ROI"] },
+  { key: "patient-referral", name: "Patient Referral Management", group: "Industries", category: "Healthcare", accent: "#dc2626", stages: [{ name: "Referral", probability: 10, color: "#dc2626" }, { name: "Eligibility", probability: 30, color: "#2563eb" }, { name: "Appointment", probability: 60, color: "#0891b2" }, { name: "Consulted", probability: 85, color: "#d97706" }, { name: "Care Started", probability: 100, color: "#059669", isWon: true }], fields: ["Referrer", "Department", "Insurance", "Appointment", "Consent"], automations: ["Appointment reminder", "Consent check", "Referrer update"], reports: ["Referral conversion", "Department demand", "No-show rate"] },
+  { key: "patient-management", name: "Patient Management", group: "Industries", category: "Healthcare", accent: "#be123c", stages: [{ name: "Inquiry", probability: 10, color: "#be123c" }, { name: "Registration", probability: 30, color: "#2563eb" }, { name: "Consultation", probability: 60, color: "#0891b2" }, { name: "Treatment Plan", probability: 85, color: "#d97706" }, { name: "Follow-up", probability: 100, color: "#059669", isWon: true }], fields: ["Patient ID", "Doctor", "Department", "Treatment", "Follow-up date"], automations: ["Registration checklist", "Follow-up reminder", "Care plan update"], reports: ["Patient funnel", "Doctor load", "Follow-up compliance"] },
+  { key: "dry-cleaning", name: "Dry Cleaning", group: "Industries", category: "Local Services", accent: "#0e7490", stages: [{ name: "Pickup Request", probability: 10, color: "#0e7490" }, { name: "Received", probability: 30, color: "#2563eb" }, { name: "Cleaning", probability: 55, color: "#7c3aed" }, { name: "Ready", probability: 85, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Garments", "Pickup slot", "Service type", "Delivery slot", "Payment"], automations: ["Pickup reminder", "Ready notification", "Payment follow-up"], reports: ["Order volume", "Pickup SLA", "Revenue by service"] },
+  { key: "jewellery", name: "Jewellery", group: "Industries", category: "Luxury Retail", accent: "#b45309", stages: [{ name: "Walk-in/Inquiry", probability: 10, color: "#b45309" }, { name: "Design Selection", probability: 35, color: "#7c3aed" }, { name: "Estimate", probability: 60, color: "#d97706" }, { name: "Advance Paid", probability: 85, color: "#2563eb" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Occasion", "Metal", "Stone", "Budget", "Delivery date"], automations: ["Design follow-up", "Advance reminder", "Delivery appointment"], reports: ["Occasion demand", "Custom orders", "Advance aging"] },
+  { key: "photography", name: "Photography", group: "Industries", category: "Creative Services", accent: "#7c3aed", stages: [{ name: "Inquiry", probability: 10, color: "#7c3aed" }, { name: "Package Sent", probability: 35, color: "#2563eb" }, { name: "Date Hold", probability: 60, color: "#d97706" }, { name: "Booked", probability: 85, color: "#0891b2" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Event date", "Package", "Venue", "Advance", "Album status"], automations: ["Date hold expiry", "Advance reminder", "Delivery timeline"], reports: ["Booking calendar", "Package revenue", "Delivery backlog"] },
+  { key: "telecommunications", name: "Telecommunications", group: "Industries", category: "Telecom", accent: "#2563eb", stages: [{ name: "Lead", probability: 10, color: "#2563eb" }, { name: "Feasibility", probability: 30, color: "#0891b2" }, { name: "Plan Proposal", probability: 55, color: "#7c3aed" }, { name: "Provisioning", probability: 85, color: "#d97706" }, { name: "Activated", probability: 100, color: "#059669", isWon: true }], fields: ["Plan", "Location", "Bandwidth", "Feasibility", "Activation date"], automations: ["Feasibility task", "Provisioning reminder", "Activation notice"], reports: ["Activation pipeline", "Plan demand", "Provisioning SLA"] },
+  { key: "ca-firm", name: "CA Firm", group: "Industries", category: "Professional Services", accent: "#0f766e", description: "Manage compliance leads, retainers, filing work, and recurring client service pipelines for chartered accountancy firms.", fieldEntity: "Client", sampleRecord: "GST return retainer", stages: [{ name: "Client Inquiry", probability: 10, color: "#0f766e" }, { name: "Document Review", probability: 30, color: "#2563eb" }, { name: "Proposal/Retainer", probability: 55, color: "#d97706" }, { name: "Engagement Signed", probability: 85, color: "#7c3aed" }, { name: "Service Active", probability: 100, color: "#059669", isWon: true }], fields: ["Service type", "PAN/GSTIN", "Due date", "Retainer value", "Document status"], automations: ["Document checklist", "Filing due reminder", "Retainer renewal"], reports: ["Compliance pipeline", "Retainer forecast", "Filing aging"] },
+  { key: "audit-firm", name: "Audit Firm", group: "Industries", category: "Assurance", accent: "#475569", description: "Track audit prospects from scoping through engagement letters, fieldwork readiness, and final sign-off.", fieldEntity: "Audit", sampleRecord: "FY audit engagement", stages: [{ name: "Audit Lead", probability: 10, color: "#475569" }, { name: "Scope Assessment", probability: 30, color: "#2563eb" }, { name: "Fee Proposal", probability: 55, color: "#d97706" }, { name: "Engagement Letter", probability: 80, color: "#7c3aed" }, { name: "Audit Scheduled", probability: 100, color: "#059669", isWon: true }], fields: ["Audit type", "Entity size", "Period", "Partner", "Risk rating"], automations: ["Independence check", "Proposal approval", "PBC list reminder"], reports: ["Audit pipeline", "Partner workload", "Risk mix"] },
+  { key: "tax-practice", name: "Tax Practice", group: "Industries", category: "Tax Advisory", accent: "#b45309", description: "Handle tax advisory, notices, assessment cases, appeals, and recurring filing opportunities.", fieldEntity: "Tax case", sampleRecord: "Income tax notice response", stages: [{ name: "Tax Query", probability: 10, color: "#b45309" }, { name: "Case Review", probability: 30, color: "#2563eb" }, { name: "Fee Quote", probability: 55, color: "#d97706" }, { name: "Authority Filing", probability: 80, color: "#7c3aed" }, { name: "Closed/Filed", probability: 100, color: "#059669", isWon: true }], fields: ["Tax type", "Assessment year", "Notice date", "Filing deadline", "Fee"], automations: ["Deadline alert", "Document reminder", "Client approval"], reports: ["Tax case value", "Deadline risk", "Case outcome"] },
+  { key: "it-company", name: "IT Company", group: "Industries", category: "IT Products & Services", accent: "#2563eb", description: "Run product demos, implementation proposals, support renewals, and CRM-to-SRM/PMS delivery handoffs.", fieldEntity: "Opportunity", sampleRecord: "ERP implementation", stages: [{ name: "Discovery", probability: 15, color: "#2563eb" }, { name: "Demo/POC", probability: 35, color: "#0891b2" }, { name: "Commercial Proposal", probability: 60, color: "#7c3aed" }, { name: "Security/Legal", probability: 80, color: "#d97706" }, { name: "Won - Delivery Handoff", probability: 100, color: "#059669", isWon: true }, { name: "Lost", probability: 0, color: "#dc2626", isLost: true }], fields: ["Solution", "Users", "Implementation scope", "ARR/Project value", "Delivery owner"], automations: ["Demo follow-up", "Security checklist", "SRM/PMS handoff"], reports: ["ARR forecast", "Implementation backlog", "Win rate by solution"] },
+  { key: "manufacturing", name: "Manufacturing", group: "Industries", category: "B2B Manufacturing", accent: "#64748b", description: "Track enquiries, samples, quotations, purchase orders, production readiness, and dispatch commitments.", fieldEntity: "Order", sampleRecord: "Custom component order", stages: [{ name: "RFQ Received", probability: 10, color: "#64748b" }, { name: "Sample/Spec Review", probability: 30, color: "#2563eb" }, { name: "Quote Sent", probability: 55, color: "#d97706" }, { name: "PO Received", probability: 85, color: "#7c3aed" }, { name: "Production Ready", probability: 100, color: "#059669", isWon: true }], fields: ["SKU/spec", "Quantity", "Target price", "Delivery date", "Plant"], automations: ["Sample reminder", "Quote follow-up", "Production handoff"], reports: ["RFQ value", "PO conversion", "Capacity forecast"] },
+  { key: "logistics", name: "Logistics", group: "Industries", category: "Transport & Freight", accent: "#ea580c", description: "Manage freight enquiries, route pricing, shipment booking, tracking, POD, and billing follow-up.", fieldEntity: "Shipment", sampleRecord: "Mumbai to Delhi FTL", stages: [{ name: "Shipment Inquiry", probability: 10, color: "#ea580c" }, { name: "Route Priced", probability: 35, color: "#2563eb" }, { name: "Booking Confirmed", probability: 65, color: "#d97706" }, { name: "In Transit", probability: 85, color: "#0891b2" }, { name: "Delivered/POD", probability: 100, color: "#059669", isWon: true }], fields: ["Origin", "Destination", "Load type", "Vehicle", "POD status"], automations: ["Rate approval", "Tracking update", "POD reminder"], reports: ["Freight pipeline", "Route margin", "Delivery SLA"] },
+  { key: "restaurant-catering", name: "Restaurant & Catering", group: "Industries", category: "Hospitality", accent: "#be123c", description: "Convert event enquiries into menus, tastings, bookings, advance payments, and final delivery.", fieldEntity: "Event", sampleRecord: "Corporate lunch booking", stages: [{ name: "Event Inquiry", probability: 10, color: "#be123c" }, { name: "Menu Shared", probability: 30, color: "#d97706" }, { name: "Tasting/Review", probability: 55, color: "#7c3aed" }, { name: "Advance Paid", probability: 85, color: "#2563eb" }, { name: "Event Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Event date", "Guest count", "Menu", "Venue", "Advance"], automations: ["Tasting reminder", "Advance follow-up", "Kitchen prep task"], reports: ["Event pipeline", "Menu demand", "Advance pending"] },
+  { key: "travel-agency", name: "Travel Agency", group: "Industries", category: "Travel", accent: "#0284c7", description: "Track travel enquiries, itineraries, quotes, booking payments, visa steps, and departure readiness.", fieldEntity: "Trip", sampleRecord: "Dubai family package", stages: [{ name: "Travel Inquiry", probability: 10, color: "#0284c7" }, { name: "Itinerary Planned", probability: 35, color: "#2563eb" }, { name: "Quote Approved", probability: 60, color: "#d97706" }, { name: "Booked", probability: 85, color: "#7c3aed" }, { name: "Travel Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Destination", "Travel dates", "Passengers", "Visa status", "Payment"], automations: ["Quote follow-up", "Visa checklist", "Departure reminder"], reports: ["Package pipeline", "Destination demand", "Payment aging"] },
+];
+
 type QuickFormField = {
   key: string;
   label: string;
@@ -186,6 +272,23 @@ type QuickFormField = {
   required?: boolean;
   width?: "full" | "half" | "third";
 };
+
+type DealProductLine = {
+  id: number;
+  product: string;
+  listPrice: number;
+  quantity: number;
+  discount: number;
+};
+
+const createDealStages = [
+  { id: 1, name: "Qualification", probability: 10, tone: "border-blue-200 bg-blue-50 text-blue-800" },
+  { id: 2, name: "Needs Analysis", probability: 25, tone: "border-cyan-200 bg-cyan-50 text-cyan-800" },
+  { id: 3, name: "Proposal/Price Quote", probability: 50, tone: "border-amber-200 bg-amber-50 text-amber-800" },
+  { id: 4, name: "Negotiation/Review", probability: 75, tone: "border-violet-200 bg-violet-50 text-violet-800" },
+  { id: 5, name: "Closed Won", probability: 100, tone: "border-emerald-200 bg-emerald-50 text-emerald-800", isWon: true },
+  { id: 6, name: "Closed Lost", probability: 0, tone: "border-red-200 bg-red-50 text-red-800", isLost: true },
+];
 
 const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
   leads: [
@@ -243,11 +346,34 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
   ],
   products: [
     { key: "name", label: "Product name", required: true, placeholder: "CRM Starter" },
-    { key: "sku", label: "SKU", placeholder: "CRM-STARTER" },
+    { key: "productCode", label: "Product code", placeholder: "CRM-STARTER" },
     { key: "category", label: "Category", placeholder: "Software" },
-    { key: "price", label: "Unit price", type: "number", placeholder: "25000" },
+    { key: "price", label: "List price", type: "number", placeholder: "25000" },
+    { key: "cost", label: "Cost price", type: "number", placeholder: "12000" },
     { key: "status", label: "Status", type: "select", options: ["Active", "Draft", "Inactive"] },
     { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
+  ],
+  services: [
+    { key: "serviceCode", label: "Service code", required: true, placeholder: "IMPL-STD" },
+    { key: "name", label: "Service name", required: true, placeholder: "Implementation" },
+    { key: "category", label: "Category", placeholder: "Professional Services" },
+    { key: "billingType", label: "Billing type", type: "select", options: ["fixed", "hourly", "milestone", "recurring"] },
+    { key: "price", label: "Default rate", type: "number", placeholder: "5000" },
+    { key: "cost", label: "Default cost", type: "number", placeholder: "2500" },
+  ],
+  priceBooks: [
+    { key: "name", label: "Price book", required: true, placeholder: "India Standard FY26" },
+    { key: "currency", label: "Currency", placeholder: "INR" },
+    { key: "region", label: "Region", placeholder: "India" },
+    { key: "segment", label: "Segment", placeholder: "Mid-market" },
+    { key: "status", label: "Status", type: "select", options: ["active", "draft", "inactive"] },
+  ],
+  quotes: [
+    { key: "quote", label: "Quote number", placeholder: "QT-2026-001" },
+    { key: "status", label: "Status", type: "select", options: ["Draft", "Pending Approval", "Approved", "Sent", "Accepted", "Declined"] },
+    { key: "issueDate", label: "Quote date", type: "date" },
+    { key: "expiryDate", label: "Valid until", type: "date" },
+    { key: "total", label: "Grand total", type: "number", placeholder: "150000" },
   ],
   quotations: [
     { key: "quote", label: "Quote number", placeholder: "QT-2026-001" },
@@ -372,6 +498,13 @@ const apiEntityForKind: Partial<Record<CRMPageKind, string>> = {
   tasks: "tasks",
   calendar: "meetings",
   products: "products",
+  services: "services",
+  priceBooks: "price-books",
+  quotes: "quotes",
+  quoteBuilder: "quotes",
+  quoteApprovals: "quote-approvals",
+  cpq: "cpq-rules",
+  guidedSelling: "guided-selling-flows",
   quotations: "quotations",
   campaigns: "campaigns",
   tickets: "tickets",
@@ -410,6 +543,12 @@ function useCrmRecords<T = CRMRecord>(entity: string | undefined, fallback: T[],
 function kindlessEntity(entity: string) {
   if (entity === "companies") return "companies";
   if (entity === "products") return "products";
+  if (entity === "services") return "services";
+  if (entity === "price-books") return "priceBooks";
+  if (entity === "quotes") return "quotes";
+  if (entity === "quote-approvals") return "quoteApprovals";
+  if (entity === "cpq-rules") return "cpq";
+  if (entity === "guided-selling-flows") return "guidedSelling";
   if (entity === "quotations") return "quotations";
   if (entity === "deals") return "deals";
   if (entity === "leads") return "leads";
@@ -440,8 +579,17 @@ export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
   if (kind === "automation") return <SalesAutomationPage />;
   if (kind === "leadCash") return <LeadToCashPage />;
   if (kind === "forecasting") return <ForecastingPage />;
+  if (kind === "targets") return <SalesTargetsPage />;
+  if (kind === "salesPerformance") return <SalesPerformancePage />;
+  if (kind === "funnel") return <FunnelAnalyticsPage />;
+  if (kind === "lostAnalysis") return <LostAnalysisPage />;
   if (kind === "customer360") return <Customer360Page />;
   if (kind === "importExport") return <ImportExportPage />;
+  if (kind === "products") return <ProductCatalogPage />;
+  if (kind === "quoteBuilder") return <QuoteBuilderPage />;
+  if (kind === "quoteApprovals") return <QuoteApprovalsPage />;
+  if (kind === "cpq") return <CPQPage />;
+  if (kind === "guidedSelling") return <GuidedSellingPage />;
   return <CRMListPage kind={kind} />;
 }
 
@@ -450,6 +598,7 @@ function CRMDashboard() {
   const leadState = useCrmRecords<CRMRecord>("leads", emptyRecords);
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
+  const [dashboardMode, setDashboardMode] = useState<"simple" | "advanced">("simple");
   const [quickCreateKind, setQuickCreateKind] = useState<DashboardQuickCreateKind>("leads");
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [quickCreateSaving, setQuickCreateSaving] = useState(false);
@@ -523,39 +672,113 @@ function CRMDashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="VyaparaCRM" description="Sales command center for leads, accounts, deals, pipeline, activities, quotations, support, automation, and analytics." action="Quick create" onAction={() => setShowQuickCreate(true)} />
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">
+      <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select className="h-10 rounded-full border bg-white px-4 text-sm font-semibold text-slate-950" defaultValue="overview" aria-label="Dashboard view">
+                <option value="overview">Overview</option>
+                <option value="sales">Sales performance</option>
+                <option value="activity">Activity performance</option>
+                <option value="forecast">Forecast</option>
+              </select>
+              <div className="flex rounded-full border bg-slate-50 p-1" aria-label="Dashboard mode">
+                {(["simple", "advanced"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${dashboardMode === mode ? "bg-white text-emerald-700 shadow-sm" : "text-slate-600 hover:text-slate-950"}`}
+                    onClick={() => setDashboardMode(mode)}
+                  >
+                    {mode === "simple" ? "Simple" : "Advanced"}
+                  </button>
+                ))}
+              </div>
+              <Badge variant="outline">Live CRM</Badge>
+              <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">{dashboardMode === "simple" ? "Simple dashboard" : "Executive dashboard"}</Badge>
+            </div>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">VyaparaCRM</h1>
+            <p className="max-w-3xl text-sm text-slate-600">Sales command center for leads, accounts, deals, pipeline, activities, quotations, support, automation, and analytics.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-4 w-4" />Reports</Button>
+            <Button variant="outline" onClick={() => navigate("/crm/templates")}><LayoutGrid className="h-4 w-4" />Templates</Button>
+            <Button onClick={() => setShowQuickCreate(true)}><Plus className="h-4 w-4" />Component</Button>
+          </div>
+        </div>
+      </div>
+      <main className="space-y-5 px-4 py-4 sm:px-6 lg:px-8">
       {leadState.error || dealState.error || stageState.error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{leadState.error || dealState.error || stageState.error}</div> : null}
-      {leadState.loading || dealState.loading || stageState.loading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading CRM dashboard...</div> : null}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <Metric icon={Users} label="Total leads" value={crmLeads.length} tone="blue" />
-        <Metric icon={LayoutGrid} label="Open deals" value={crmDeals.filter((deal) => !["Won", "Lost"].includes(deal.stage)).length} tone="emerald" />
-        <Metric icon={IndianRupee} label="Pipeline value" value={formatCurrency(pipelineValue)} tone="violet" />
-        <Metric icon={BarChart3} label="Expected revenue" value={formatCurrency(weighted)} tone="amber" />
-        <Metric icon={Activity} label="Overdue follow-ups" value={overdueFollowUps} tone="red" />
+      {leadState.loading || dealState.loading || stageState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM dashboard...</div> : null}
+      {dashboardMode === "simple" ? (
+        <SimpleDashboardView
+          chartData={chartData}
+          convertedLeads={convertedLeads}
+          crmDeals={crmDeals}
+          crmLeads={crmLeads}
+          lostDeals={lostDeals}
+          openDeals={openDeals}
+          overdueFollowUps={overdueFollowUps}
+          pipelineValue={pipelineValue}
+          weighted={weighted}
+          wonDeals={wonDeals}
+          wonRevenue={wonRevenue}
+          onOpenPipeline={() => navigate("/crm/pipeline")}
+          onQuickCreate={() => setShowQuickCreate(true)}
+        />
+      ) : (
+      <>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <DashboardKpiCard title="Contacts created" value={convertedLeads || crmLeads.length} previous="Last month" delta={conversionRate || 0} />
+        <DashboardKpiCard title="Deals won" value={wonDeals} previous={formatCurrency(wonRevenue)} delta={winRate} tone="emerald" />
+        <DashboardKpiCard title="Deals lost" value={lostDeals} previous="This month" delta={lostDeals ? -100 : 0} tone="red" />
+        <DashboardKpiCard title="Tasks closed" value={Math.max(0, crmLeads.length - overdueFollowUps)} previous={`${overdueFollowUps} overdue`} delta={overdueFollowUps ? -overdueFollowUps : 0} tone="amber" />
+        <DashboardKpiCard title="Open pipeline" value={openDeals} previous={formatCurrency(pipelineValue)} delta={weightedCoverage} tone="blue" />
+        <DashboardKpiCard title="Forecast" value={formatCurrency(weighted)} previous="Weighted revenue" delta={weightedCoverage} tone="violet" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Pipeline by stage</CardTitle>
-            <Badge variant="outline">{formatCurrency(wonRevenue)} won</Badge>
-          </CardHeader>
-          <CardContent className="h-80">
+      <div className="grid gap-4 xl:grid-cols-[1fr_26rem]">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="flex-row items-center justify-between">
+              <div>
+                <CardTitle>Open deals by stage - This Month</CardTitle>
+                <p className="text-sm text-muted-foreground">Stage-wise pipeline value from current CRM data.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => navigate("/crm/pipeline")} aria-label="Open pipeline"><RefreshIcon /></Button>
+            </CardHeader>
+            <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <BarChart data={chartData} layout="vertical" margin={{ left: 24 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="stage" tickLine={false} axisLine={false} interval={0} angle={-18} textAnchor="end" height={70} />
-                <YAxis tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
+                <XAxis type="number" tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="stage" tickLine={false} axisLine={false} width={110} />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill="#38bdf8" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Leads by source</CardTitle></CardHeader>
-          <CardContent className="h-80">
+            </CardContent>
+          </Card>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle>Revenue trend and forecast</CardTitle></CardHeader>
+              <CardContent className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={revenueTrend}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                    <YAxis tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={3} dot={false} />
+                    <Line type="monotone" dataKey="forecast" stroke="#2563eb" strokeWidth={3} strokeDasharray="4 4" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Leads by source</CardTitle></CardHeader>
+              <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={sourceData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={104}>
@@ -564,32 +787,20 @@ function CRMDashboard() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
-        <Card>
-          <CardHeader><CardTitle>Revenue trend and forecast</CardTitle></CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueTrend}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <YAxis tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value) * 100000)} />
-                <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={3} dot={false} />
-                <Line type="monotone" dataKey="forecast" stroke="#2563eb" strokeWidth={3} strokeDasharray="4 4" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <DashboardTopCompanies deals={crmDeals} />
+          <Card>
           <CardHeader><CardTitle>AI Insights</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {insightRows.map((text) => <Insight key={text} text={text} />)}
           </CardContent>
-        </Card>
+          </Card>
+          <DashboardActionPanel onQuickCreate={() => setShowQuickCreate(true)} onPipeline={() => navigate("/crm/pipeline")} onReports={() => navigate("/crm/reports")} />
+        </div>
       </div>
 
       <DashboardStatistics
@@ -609,6 +820,8 @@ function CRMDashboard() {
         overdueFollowUps={overdueFollowUps}
         staleOpenDeals={staleOpenDeals}
       />
+      </>
+      )}
       {showQuickCreate ? (
         <DashboardQuickCreateDialog
           kind={quickCreateKind}
@@ -619,9 +832,10 @@ function CRMDashboard() {
             setQuickCreateError(null);
           }}
           onClose={() => setShowQuickCreate(false)}
-          onCreate={createQuickRecord}
-        />
+        onCreate={createQuickRecord}
+      />
       ) : null}
+      </main>
     </div>
   );
 }
@@ -745,12 +959,193 @@ function DashboardStatistics({
   );
 }
 
+function SimpleDashboardView({
+  chartData,
+  convertedLeads,
+  crmDeals,
+  crmLeads,
+  lostDeals,
+  openDeals,
+  overdueFollowUps,
+  pipelineValue,
+  weighted,
+  wonDeals,
+  wonRevenue,
+  onOpenPipeline,
+  onQuickCreate,
+}: {
+  chartData: Array<{ stage: string; value: number }>;
+  convertedLeads: number;
+  crmDeals: CRMDeal[];
+  crmLeads: CRMLead[];
+  lostDeals: number;
+  openDeals: number;
+  overdueFollowUps: number;
+  pipelineValue: number;
+  weighted: number;
+  wonDeals: number;
+  wonRevenue: number;
+  onOpenPipeline: () => void;
+  onQuickCreate: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SimpleDashboardCard title="Contacts Created - This Month" value={convertedLeads || crmLeads.length} detail="Last Month: 0" tone="emerald" />
+        <SimpleDashboardCard title="Deals Won - This Month" value={wonDeals} detail={wonDeals ? formatCurrency(wonRevenue) : "No closed-won deals yet"} tone="emerald" />
+        <SimpleDashboardCard title="Deals Lost - This Month" value={lostDeals} detail={lostDeals ? "Review lost reasons" : "No lost deals yet"} tone="red" />
+        <SimpleDashboardCard title="Open Pipeline" value={formatCurrency(pipelineValue)} detail={`${openDeals} active deals`} tone="blue" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1fr_26rem]">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <div>
+              <CardTitle>Open Deals by Stage - This Month</CardTitle>
+              <p className="text-sm text-muted-foreground">Simple stage overview for daily sales reviews.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={onOpenPipeline}><LayoutGrid className="h-4 w-4" />Pipeline</Button>
+          </CardHeader>
+          <CardContent className="h-[26rem]">
+            {chartData.some((item) => item.value > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis type="number" tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="stage" tickLine={false} axisLine={false} width={110} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Bar dataKey="value" fill="#38bdf8" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <DashboardNoData label="No open deal stage data yet" />
+            )}
+          </CardContent>
+        </Card>
+        <div className="space-y-4">
+          <DashboardTopCompanies deals={crmDeals} />
+          <Card>
+            <CardHeader><CardTitle>Today&apos;s focus</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <SimpleFocusRow label="Overdue follow-ups" value={overdueFollowUps} />
+              <SimpleFocusRow label="Weighted forecast" value={formatCurrency(weighted)} />
+              <SimpleFocusRow label="Open deals" value={openDeals} />
+              <Button className="w-full justify-start" onClick={onQuickCreate}><Plus className="h-4 w-4" />Add lead, deal, or task</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SimpleDashboardCard({ title, value, detail, tone }: { title: string; value: string | number; detail: string; tone: "emerald" | "red" | "blue" }) {
+  const toneClass = tone === "emerald" ? "text-emerald-600" : tone === "red" ? "text-red-600" : "text-sky-600";
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <p className="font-semibold text-slate-950">{title}</p>
+        <p className={`mt-5 text-4xl font-semibold tracking-tight ${toneClass}`}>{value}</p>
+        <p className="mt-2 text-sm text-slate-500">{detail}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SimpleFocusRow({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border bg-slate-50/70 px-3 py-2 text-sm">
+      <span className="text-slate-600">{label}</span>
+      <span className="font-semibold text-slate-950">{value}</span>
+    </div>
+  );
+}
+
+function DashboardKpiCard({ title, value, previous, delta, tone = "emerald" }: { title: string; value: string | number; previous: string; delta: number; tone?: "emerald" | "red" | "amber" | "blue" | "violet" }) {
+  const toneClasses = {
+    emerald: "text-emerald-600 bg-emerald-50",
+    red: "text-red-600 bg-red-50",
+    amber: "text-amber-600 bg-amber-50",
+    blue: "text-sky-600 bg-sky-50",
+    violet: "text-violet-600 bg-violet-50",
+  };
+  const deltaLabel = delta > 0 ? `+${delta}%` : delta < 0 ? `${delta}%` : "0%";
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-sm font-semibold text-slate-950">{title}</p>
+        <div className="mt-4 flex items-end gap-2">
+          <p className="text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+          <span className={`mb-1 rounded-full px-2 py-0.5 text-xs font-semibold ${toneClasses[tone]}`}>{deltaLabel}</span>
+        </div>
+        <p className="mt-2 text-sm text-slate-500">{previous}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DashboardTopCompanies({ deals }: { deals: CRMDeal[] }) {
+  const companies = Array.from(deals.reduce((map, deal) => {
+    const key = deal.company || "Unassigned";
+    const current = map.get(key) || { company: key, amount: 0, count: 0 };
+    current.amount += deal.amount;
+    current.count += 1;
+    map.set(key, current);
+    return map;
+  }, new Map<string, { company: string; amount: number; count: number }>()).values()).sort((a, b) => b.amount - a.amount).slice(0, 5);
+  return (
+    <Card>
+      <CardHeader><CardTitle>Top 5 Company</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        {companies.length ? companies.map((company, index) => (
+          <div key={company.company} className="flex items-center justify-between gap-3 rounded-md border bg-slate-50/70 p-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">{index + 1}</span>
+              <div>
+                <p className="font-medium text-slate-950">{company.company}</p>
+                <p className="text-xs text-slate-500">{company.count} deal(s)</p>
+              </div>
+            </div>
+            <p className="font-semibold text-slate-950">{formatCurrency(company.amount)}</p>
+          </div>
+        )) : <DashboardNoData label="No company data yet" />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DashboardActionPanel({ onQuickCreate, onPipeline, onReports }: { onQuickCreate: () => void; onPipeline: () => void; onReports: () => void }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>Dashboard actions</CardTitle></CardHeader>
+      <CardContent className="grid gap-2">
+        <Button className="justify-start" onClick={onQuickCreate}><Plus className="h-4 w-4" />Add component</Button>
+        <Button variant="outline" className="justify-start" onClick={onPipeline}><LayoutGrid className="h-4 w-4" />Open pipeline board</Button>
+        <Button variant="outline" className="justify-start" onClick={onReports}><BarChart3 className="h-4 w-4" />Open detailed reports</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DashboardNoData({ label }: { label: string }) {
+  return <div className="rounded-md border border-dashed bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{label}</div>;
+}
+
+function RefreshIcon() {
+  return <Clock className="h-4 w-4" />;
+}
+
 function PipelinePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
   const pipelineState = useCrmRecords<CRMRecord>("pipelines", emptyRecords, { sort_by: "created_at", sort_order: "asc" });
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
   const [selectedPipelineId, setSelectedPipelineId] = useState<number | null>(null);
+  const [activeTemplateKey, setActiveTemplateKey] = useState("sales-pipeline");
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [templateGroup, setTemplateGroup] = useState<"All" | "Teams" | "Industries">("All");
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
+  const [templateMessage, setTemplateMessage] = useState<string | null>(null);
   const activePipelineId = selectedPipelineId || Number(pipelineState.data.find((pipeline) => pipeline.is_default)?.id || pipelineState.data[0]?.id || 0);
   const pipelineStages = useMemo(() => stageState.data.filter((stage) => Number(stage.pipeline_id || stage.pipelineId || 0) === activePipelineId), [stageState.data, activePipelineId]);
   const stageByName = useMemo(() => new Map(pipelineStages.map((stage) => [String(stage.name), stage])), [pipelineStages]);
@@ -758,13 +1153,60 @@ function PipelinePage() {
   const [deals, setDeals] = useState<CRMDeal[]>(initialDeals);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [filter, setFilter] = useState("");
+  const isTemplateLibrary = location.pathname.includes("/crm/templates");
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activeDeal = deals.find((deal) => deal.id === activeId);
   const visibleDeals = deals.filter((deal) => [deal.name, deal.company, deal.owner].join(" ").toLowerCase().includes(filter.toLowerCase()));
+  const selectedTemplate = crmBusinessTemplates.find((template) => template.key === activeTemplateKey) || crmBusinessTemplates[0];
+  const filteredTemplates = crmBusinessTemplates.filter((template) => {
+    const matchesGroup = templateGroup === "All" || template.group === templateGroup;
+    const text = [template.name, template.category, template.fields.join(" "), template.reports.join(" ")].join(" ").toLowerCase();
+    return matchesGroup && text.includes(templateSearch.toLowerCase());
+  });
+  const openDeals = visibleDeals.filter((deal) => !["Won", "Lost", "Closed Won", "Closed Lost"].includes(deal.stage));
+  const pipelineValue = openDeals.reduce((sum, deal) => sum + deal.amount, 0);
+  const weightedValue = openDeals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
+  const dueSoon = visibleDeals.filter((deal) => {
+    if (!deal.closeDate || ["Won", "Lost", "Closed Won", "Closed Lost"].includes(deal.stage)) return false;
+    const close = new Date(deal.closeDate);
+    const now = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(now.getDate() + 7);
+    return close >= now && close <= nextWeek;
+  }).length;
 
   useEffect(() => {
     setDeals(initialDeals);
   }, [initialDeals]);
+
+  const applyTemplate = async () => {
+    setApplyingTemplate(true);
+    setTemplateMessage(null);
+    try {
+      const pipelineResponse = await crmApi.create<CRMApiRecord>("pipelines", {
+        name: selectedTemplate.name,
+        description: `${selectedTemplate.category} CRM template`,
+      });
+      const pipeline = normalizeApiRecord("pipelines", pipelineResponse.data) as CRMRecord;
+      const pipelineId = Number(pipeline.id);
+      for (const [index, stage] of selectedTemplate.stages.entries()) {
+        await crmApi.createPipelineStage<CRMApiRecord>(pipelineId, {
+          name: stage.name,
+          probability: stage.probability,
+          color: stage.color,
+          position: index + 1,
+          is_won: Boolean(stage.isWon),
+          is_lost: Boolean(stage.isLost),
+        });
+      }
+      setSelectedPipelineId(pipelineId);
+      setTemplateMessage(`${selectedTemplate.name} pipeline created. Refresh to load persisted stages if they do not appear immediately.`);
+    } catch (error: any) {
+      setTemplateMessage(error?.response?.data?.detail || "Template could not be applied.");
+    } finally {
+      setApplyingTemplate(false);
+    }
+  };
 
   const onDragStart = (event: DragStartEvent) => setActiveId(event.active.id as number);
   const onDragEnd = (event: DragEndEvent) => {
@@ -783,51 +1225,290 @@ function PipelinePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Sales Pipeline" description="Switch between custom pipelines and drag deals between organization-scoped stages." action="Pipeline settings" onAction={() => navigate("/crm/pipeline-settings")} />
-      {dealState.error || stageState.error || pipelineState.error ? <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">{dealState.error || stageState.error || pipelineState.error}</div> : null}
-      {dealState.loading || stageState.loading || pipelineState.loading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading CRM pipeline...</div> : null}
-      <div className="grid gap-3 lg:grid-cols-[18rem_1fr]">
-        <label className="space-y-1 text-sm">
-          <span className="font-medium">Pipeline</span>
-          <select className="h-10 w-full rounded-md border bg-background px-3" value={activePipelineId || ""} onChange={(event) => setSelectedPipelineId(Number(event.target.value))}>
-            {pipelineState.data.map((pipeline) => <option key={String(pipeline.id)} value={Number(pipeline.id)}>{String(pipeline.name)}</option>)}
-          </select>
-        </label>
-        <Toolbar search={filter} onSearch={setFilter} />
-      </div>
-      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {pipelineStages.map((stageRecord) => {
-            const stage = String(stageRecord.name);
-            const stageDeals = visibleDeals.filter((deal) => deal.stage === stage);
-            return <PipelineColumn key={stageRecord.id as string | number} stage={stage} stageRecord={stageRecord} deals={stageDeals} />;
-          })}
-          {!pipelineStages.length ? <div className="flex h-48 min-w-80 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">No stages configured for this pipeline.</div> : null}
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">
+      <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">VyaparaCRM</Badge>
+              <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">{isTemplateLibrary ? "Organization templates" : "Template-ready"}</Badge>
+            </div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{isTemplateLibrary ? "Customized CRM templates" : "Sales command pipeline"}</h1>
+            <p className="max-w-3xl text-sm text-slate-600">
+              {isTemplateLibrary
+                ? "Clone a ready-made CRM workspace for sales, service, finance, professional firms, retail, healthcare, education, automotive, IT, and local businesses."
+                : "A faster CRM board with industry templates, weighted forecast, deal hygiene, and CRM-to-SRM handoff readiness in one workspace."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => navigate("/crm/deals")}><ListFilter className="h-4 w-4" />Deal list</Button>
+            <Button variant={isTemplateLibrary ? "default" : "outline"} onClick={() => navigate("/crm/templates")}><LayoutGrid className="h-4 w-4" />Templates</Button>
+            <Button variant="outline" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-4 w-4" />Reports</Button>
+            <Button onClick={() => navigate("/crm/pipeline-settings")}><Plus className="h-4 w-4" />Pipeline settings</Button>
+          </div>
         </div>
-        <DragOverlay>{activeDeal ? <DealCard deal={activeDeal} overlay /> : null}</DragOverlay>
-      </DndContext>
+      </div>
+      <div className="grid gap-0 xl:grid-cols-[21rem_1fr]">
+        <aside className="border-r bg-white px-4 py-4 xl:h-[calc(100vh-9rem)] xl:overflow-y-auto">
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-950">Business templates</h2>
+                <Badge variant="outline">{crmBusinessTemplates.length}</Badge>
+              </div>
+              <div className="mt-3 flex gap-2">
+                {(["All", "Teams", "Industries"] as const).map((group) => (
+                  <Button key={group} variant={templateGroup === group ? "default" : "outline"} size="sm" onClick={() => setTemplateGroup(group)}>{group}</Button>
+                ))}
+              </div>
+              <div className="relative mt-3">
+                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input className="pl-9" value={templateSearch} onChange={(event) => setTemplateSearch(event.target.value)} placeholder="Search templates" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              {filteredTemplates.map((template) => (
+                <button
+                  key={template.key}
+                  type="button"
+                  className={`w-full rounded-md border px-3 py-2 text-left transition hover:border-slate-300 hover:bg-slate-50 ${template.key === activeTemplateKey ? "border-slate-900 bg-slate-50 shadow-sm" : "border-transparent bg-white"}`}
+                  onClick={() => setActiveTemplateKey(template.key)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white" style={{ backgroundColor: template.accent }}>{template.name.slice(0, 2).toUpperCase()}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-slate-950">{template.name}</span>
+                      <span className="block truncate text-xs text-slate-500">{template.category}</span>
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+        <main className="min-w-0 space-y-4 px-4 py-4 sm:px-6 lg:px-8">
+          {dealState.error || stageState.error || pipelineState.error ? <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">{dealState.error || stageState.error || pipelineState.error}</div> : null}
+          {templateMessage ? <div className="rounded-md border bg-white px-4 py-2 text-sm text-slate-700">{templateMessage}</div> : null}
+          {dealState.loading || stageState.loading || pipelineState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM pipeline...</div> : null}
+          <div className="grid gap-3 md:grid-cols-4">
+            <PipelineMetric label={isTemplateLibrary ? "Templates" : "Open pipeline"} value={isTemplateLibrary ? crmBusinessTemplates.length : formatCurrency(pipelineValue)} detail={isTemplateLibrary ? "Ready to clone" : `${openDeals.length} active deals`} />
+            <PipelineMetric label={isTemplateLibrary ? "Industries" : "Weighted forecast"} value={isTemplateLibrary ? crmBusinessTemplates.filter((template) => template.group === "Industries").length : formatCurrency(weightedValue)} detail={isTemplateLibrary ? "Vertical pipelines" : "Probability adjusted"} />
+            <PipelineMetric label={isTemplateLibrary ? "Teams" : "Due in 7 days"} value={isTemplateLibrary ? crmBusinessTemplates.filter((template) => template.group === "Teams").length : dueSoon} detail={isTemplateLibrary ? "Department workflows" : "Close-date watchlist"} />
+            <PipelineMetric label="Template stages" value={selectedTemplate.stages.length} detail={selectedTemplate.name} />
+          </div>
+          <section className="grid gap-4 2xl:grid-cols-[1fr_23rem]">
+            <div className="space-y-3">
+              <div className="flex flex-col gap-3 rounded-md border bg-white p-3 lg:flex-row lg:items-center lg:justify-between">
+                {isTemplateLibrary ? (
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">Previewing {selectedTemplate.name}</p>
+                    <p className="text-xs text-slate-500">{selectedTemplate.category} / {selectedTemplate.group} template</p>
+                  </div>
+                ) : (
+                  <label className="min-w-64 space-y-1 text-sm">
+                    <span className="font-medium text-slate-700">Active pipeline</span>
+                    <select className="h-10 w-full rounded-md border bg-background px-3" value={activePipelineId || ""} onChange={(event) => setSelectedPipelineId(Number(event.target.value))}>
+                      {pipelineState.data.map((pipeline) => <option key={String(pipeline.id)} value={Number(pipeline.id)}>{String(pipeline.name)}</option>)}
+                    </select>
+                  </label>
+                )}
+                <div className="w-full lg:max-w-xl">
+                  {isTemplateLibrary ? (
+                    <Button variant="outline" className="w-full justify-start" onClick={() => setTemplateSearch(selectedTemplate.name)}>
+                      <Search className="h-4 w-4" />Search similar templates
+                    </Button>
+                  ) : (
+                    <Toolbar search={filter} onSearch={setFilter} />
+                  )}
+                </div>
+              </div>
+              {isTemplateLibrary ? (
+                <TemplatePreviewBoard template={selectedTemplate} onApply={applyTemplate} applying={applyingTemplate} />
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+                  <div className="flex gap-4 overflow-x-auto pb-4">
+                    {pipelineStages.map((stageRecord) => {
+                      const stage = String(stageRecord.name);
+                      const stageDeals = visibleDeals.filter((deal) => deal.stageId === Number(stageRecord.id) || deal.stage === stage);
+                      return <PipelineColumn key={stageRecord.id as string | number} stage={stage} stageRecord={stageRecord} deals={stageDeals} />;
+                    })}
+                    {!pipelineStages.length ? <TemplatePreviewBoard template={selectedTemplate} onApply={applyTemplate} applying={applyingTemplate} /> : null}
+                  </div>
+                  <DragOverlay>{activeDeal ? <DealCard deal={activeDeal} overlay /> : null}</DragOverlay>
+                </DndContext>
+              )}
+            </div>
+            <TemplateDetailPanel template={selectedTemplate} applying={applyingTemplate} onApply={applyTemplate} />
+          </section>
+        </main>
+      </div>
     </div>
   );
+}
+
+function PipelineMetric({ label, value, detail }: { label: string; value: string | number; detail: string }) {
+  return (
+    <div className="rounded-md border bg-white p-4">
+      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
+function TemplateDetailPanel({ template, applying, onApply }: { template: CRMBusinessTemplate; applying: boolean; onApply: () => void }) {
+  return (
+    <aside className="rounded-md border bg-white p-4">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-white" style={{ backgroundColor: template.accent }}>{template.name.slice(0, 2).toUpperCase()}</span>
+        <div>
+          <p className="text-sm font-semibold text-slate-950">{template.name}</p>
+          <p className="text-xs text-slate-500">{template.group} / {template.category}</p>
+        </div>
+      </div>
+      <p className="mt-4 text-sm leading-6 text-slate-600">{template.description || defaultTemplateDescription(template)}</p>
+      <Button className="mt-4 w-full" onClick={onApply} disabled={applying}>{applying ? "Creating pipeline..." : "Use this template"}</Button>
+      <div className="mt-5 space-y-4">
+        <TemplateList title="Stages" items={template.stages.map((stage) => `${stage.name} (${stage.probability}%)`)} />
+        <TemplateList title="Fields" items={template.fields} />
+        <TemplateList title="Automations" items={template.automations} />
+        <TemplateList title="Dashboards" items={template.reports} />
+      </div>
+    </aside>
+  );
+}
+
+function TemplateList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase text-slate-500">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.map((item) => <Badge key={item} variant="outline" className="bg-slate-50">{item}</Badge>)}
+      </div>
+    </div>
+  );
+}
+
+function TemplatePreviewBoard({ template, applying, onApply }: { template: CRMBusinessTemplate; applying: boolean; onApply: () => void }) {
+  const sampleRecord = template.sampleRecord || sampleTemplateRecord(template);
+  const fieldEntity = template.fieldEntity || templateFieldEntity(template);
+  return (
+    <div className="relative overflow-hidden rounded-md border bg-white">
+      <div className="flex gap-3 overflow-x-auto bg-slate-100/70 p-3 pb-40">
+        {template.stages.map((stage, index) => (
+          <section key={stage.name} className="flex min-h-[18rem] w-72 shrink-0 flex-col rounded-md border bg-white shadow-sm">
+            <header className="border-t-4 p-3" style={{ borderTopColor: stage.color }}>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="truncate text-sm font-semibold text-slate-950">{stage.name}</h2>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{index === 0 ? "3" : stage.isWon || stage.isLost ? "1" : "0"}</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{stage.probability}% probability</p>
+            </header>
+            <div className="space-y-2 p-3">
+              {index === 0 ? <TemplateSampleCard template={template} sampleRecord={sampleRecord} /> : null}
+              <TemplateSkeletonCard strong={index === 1} />
+              <TemplateSkeletonCard />
+            </div>
+          </section>
+        ))}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 border-t bg-white/95 px-4 py-8 text-center backdrop-blur">
+        <div className="mx-auto max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{template.group} / {template.category}</p>
+          <h2 className="mt-2 text-2xl font-semibold text-slate-950">{template.name}</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">{template.description || defaultTemplateDescription(template)}</p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <Button onClick={onApply} disabled={applying}>{applying ? "Creating pipeline..." : "Use this template"}</Button>
+            <Button variant="outline" type="button"><FileCheck2 className="h-4 w-4" />View {fieldEntity} fields</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TemplateSampleCard({ template, sampleRecord }: { template: CRMBusinessTemplate; sampleRecord: string }) {
+  return (
+    <div className="rounded-md border bg-white p-3 shadow-sm">
+      <p className="text-sm font-semibold text-slate-950">{sampleRecord}</p>
+      <p className="mt-1 text-xs text-slate-500">{template.category} / Sample record</p>
+      <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+        <span className="font-semibold text-slate-900">{formatCurrency(940)}</span>
+        <span className="h-1 w-1 rounded-full bg-slate-300" />
+        <span>Apr 14</span>
+      </div>
+    </div>
+  );
+}
+
+function TemplateSkeletonCard({ strong = false }: { strong?: boolean }) {
+  return (
+    <div className="rounded-md border bg-white p-3">
+      <div className={`h-3 rounded bg-slate-200 ${strong ? "w-4/5" : "w-3/4"}`} />
+      <div className="mt-3 h-3 w-2/3 rounded bg-slate-100" />
+      <div className="mt-3 flex gap-2">
+        <div className="h-3 w-16 rounded bg-slate-100" />
+        <div className="h-3 w-12 rounded bg-slate-100" />
+      </div>
+    </div>
+  );
+}
+
+function defaultTemplateDescription(template: CRMBusinessTemplate) {
+  return `${template.name} organizations can use this template to manage their ${template.category.toLowerCase()} workflow from first inquiry to completion.`;
+}
+
+function templateFieldEntity(template: CRMBusinessTemplate) {
+  if (template.name.includes("Donation")) return "Donation";
+  if (template.name.includes("Patient")) return "Patient";
+  if (template.name.includes("Car") || template.name.includes("Automobile")) return "Deal";
+  if (template.name.includes("Recruitment")) return "Candidate";
+  if (template.name.includes("School") || template.name.includes("Education")) return "Admission";
+  if (template.name.includes("Tax")) return "Tax case";
+  if (template.name.includes("Audit")) return "Audit";
+  if (template.name.includes("CA Firm")) return "Client";
+  return "Deal";
+}
+
+function sampleTemplateRecord(template: CRMBusinessTemplate) {
+  if (template.name.includes("Donation")) return "New donation pledge";
+  if (template.name.includes("Used Car")) return "New buyer request";
+  if (template.name.includes("Startup")) return "Investor intro";
+  if (template.name.includes("Testimonials")) return "New testimonial";
+  if (template.name.includes("Recruitment")) return "Senior developer candidate";
+  if (template.name.includes("CA Firm")) return "GST return retainer";
+  if (template.name.includes("Audit")) return "FY audit engagement";
+  if (template.name.includes("IT Company")) return "ERP rollout opportunity";
+  return `New ${templateFieldEntity(template).toLowerCase()}`;
 }
 
 function PipelineColumn({ stage, stageRecord, deals }: { stage: string; stageRecord: CRMRecord; deals: CRMDeal[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage}` });
   const value = deals.reduce((sum, deal) => sum + deal.amount, 0);
   const weighted = deals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
+  const color = String(stageRecord.color || "#2563eb");
   return (
-    <section ref={setNodeRef} className={`flex h-[calc(100vh-14rem)] w-80 shrink-0 flex-col rounded-lg border bg-muted/35 ${isOver ? "ring-2 ring-primary/40" : ""}`}>
-      <header className="border-b bg-background p-3">
+    <section ref={setNodeRef} className={`flex h-[calc(100vh-21rem)] w-80 shrink-0 flex-col rounded-md border bg-white shadow-sm ${isOver ? "ring-2 ring-slate-900/20" : ""}`}>
+      <header className="border-t-4 p-3" style={{ borderTopColor: color }}>
         <div className="flex items-center justify-between gap-2">
-          <h2 className="truncate text-sm font-semibold">{stage}</h2>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{deals.length}</span>
+          <h2 className="truncate text-sm font-semibold text-slate-950">{stage}</h2>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{deals.length}</span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{Number(stageRecord.probability || 0)}% / {formatCurrency(value)} total / {formatCurrency(weighted)} weighted</p>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded bg-slate-50 p-2">
+            <p className="text-slate-500">Value</p>
+            <p className="font-semibold text-slate-950">{formatCurrency(value)}</p>
+          </div>
+          <div className="rounded bg-slate-50 p-2">
+            <p className="text-slate-500">Weighted</p>
+            <p className="font-semibold text-slate-950">{formatCurrency(weighted)}</p>
+          </div>
+        </div>
       </header>
       <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 space-y-3 overflow-y-auto p-3">
           {deals.map((deal) => <DealCard key={deal.id} deal={deal} />)}
-          {!deals.length ? <div className="flex h-28 items-center justify-center rounded-lg border border-dashed bg-background/60 text-sm text-muted-foreground">Drop deal here</div> : null}
+          {!deals.length ? <div className="flex h-28 items-center justify-center rounded-md border border-dashed bg-slate-50 text-sm text-slate-500">Drop deal here</div> : null}
         </div>
       </SortableContext>
     </section>
@@ -840,23 +1521,26 @@ function DealCard({ deal, overlay = false }: { deal: CRMDeal; overlay?: boolean 
     <article
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-lg border bg-card p-3 shadow-sm ${isDragging ? "opacity-50" : ""} ${overlay ? "w-72 shadow-xl" : ""}`}
+      className={`rounded-md border bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md ${isDragging ? "opacity-50" : ""} ${overlay ? "w-72 shadow-xl" : ""}`}
     >
       <div className="flex items-start gap-2">
-        <button type="button" className="rounded p-1 text-muted-foreground hover:bg-muted" {...attributes} {...listeners} aria-label="Drag deal">
+        <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100" {...attributes} {...listeners} aria-label="Drag deal">
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-sm font-semibold">{deal.name}</h3>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{deal.company} / {deal.contact}</p>
+          <h3 className="line-clamp-2 text-sm font-semibold text-slate-950">{deal.name}</h3>
+          <p className="mt-1 truncate text-xs text-slate-500">{deal.company || "No company"} / {deal.contact || "No contact"}</p>
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between text-xs">
-        <span className="font-semibold">{formatCurrency(deal.amount)}</span>
+        <span className="font-semibold text-slate-950">{formatCurrency(deal.amount)}</span>
         <Badge variant="outline">{deal.probability}%</Badge>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">Close {formatDate(deal.closeDate)}</p>
-      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">Next: {deal.nextStep}</p>
+      <div className="mt-3 flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-600">
+        <span>Close {formatDate(deal.closeDate)}</span>
+        <span>{deal.owner || "Unassigned"}</span>
+      </div>
+      <p className="mt-2 line-clamp-2 text-xs text-slate-500">Next: {deal.nextStep || "No next step captured"}</p>
     </article>
   );
 }
@@ -1327,6 +2011,17 @@ function CRMCalendarPage() {
   }, [events, filters.status]);
   const ownerIds = useMemo(() => uniqueCalendarValues(events.map((event) => event.ownerId).filter(Boolean).map(String)), [events]);
   const statuses = useMemo(() => uniqueCalendarValues(events.map((event) => String(event.status || "")).filter(Boolean)), [events]);
+  const calendarStats = useMemo(() => {
+    const dueToday = visibleEvents.filter((event) => dateKey(new Date(event.start)) === dateKey(new Date())).length;
+    const synced = visibleEvents.filter((event) => event.source === "meetings" && event.syncStatus && event.syncStatus !== "not_synced").length;
+    return {
+      tasks: visibleEvents.filter((event) => event.source === "tasks" || event.type === "task").length,
+      meetings: visibleEvents.filter((event) => event.source === "meetings" || event.type === "meeting").length,
+      calls: visibleEvents.filter((event) => event.source === "calls" || event.type === "call").length,
+      dueToday,
+      synced,
+    };
+  }, [visibleEvents]);
 
   const moveCursor = (direction: number) => {
     setCursor((date) => {
@@ -1361,34 +2056,70 @@ function CRMCalendarPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Calendar" description="Tasks, meetings, calls, follow-ups, quotation expiries, and expected deal closes in one CRM schedule." action="Create activity" onAction={() => setCreateDate(new Date())} />
-      <Card>
-        <CardContent className="space-y-4 p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => moveCursor(-1)} aria-label="Previous period"><ChevronLeft className="h-4 w-4" /></Button>
-              <Button variant="outline" size="icon" onClick={() => moveCursor(1)} aria-label="Next period"><ChevronRight className="h-4 w-4" /></Button>
-              <Button variant="outline" onClick={() => setCursor(new Date())}>Today</Button>
-              <h2 className="px-2 text-lg font-semibold">{calendarTitle(cursor, view)}</h2>
-            </div>
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">
+      <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate("/crm/calendar-integrations")}><CalendarDays className="h-4 w-4" />Integrations</Button>
-              {(["month", "week", "day", "agenda"] as CalendarView[]).map((item) => (
-                <Button key={item} variant={view === item ? "default" : "outline"} size="sm" onClick={() => setView(item)}>{item[0].toUpperCase() + item.slice(1)}</Button>
-              ))}
+              <Badge variant="outline">CRM Activities</Badge>
+              <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Calendar command center</Badge>
             </div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">CRM calendar</h1>
+            <p className="max-w-3xl text-sm text-slate-600">Plan follow-ups, tasks, events, calls, quote expiries, and deal closes in a sales-ready schedule with sync visibility.</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-4">
-            <FilterSelect label="Owner" value={filters.ownerId} values={ownerIds} onChange={(ownerId) => setFilters((current) => ({ ...current, ownerId }))} allLabel="All owners" />
-            <FilterSelect label="Type" value={filters.type} values={["task", "meeting", "call", "follow_up", "quotation", "deal"]} onChange={(type) => setFilters((current) => ({ ...current, type }))} allLabel="All types" />
-            <FilterSelect label="Status" value={filters.status} values={statuses} onChange={(status) => setFilters((current) => ({ ...current, status }))} allLabel="All statuses" />
-            <div className="flex items-end">
-              <Button variant="outline" className="w-full" onClick={() => setFilters({ ownerId: "all", type: "all", status: "all" })}><X className="h-4 w-4" />Clear</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => navigate("/crm/tasks")}><CheckCircle2 className="h-4 w-4" />Tasks</Button>
+            <Button variant="outline" onClick={() => navigate("/crm/calendar-integrations")}><CalendarDays className="h-4 w-4" />Sync setup</Button>
+            <Button onClick={() => setCreateDate(new Date())}><Plus className="h-4 w-4" />Create activity</Button>
+          </div>
+        </div>
+      </div>
+      <div className="border-b bg-white px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap gap-1">
+          {[
+            { label: "Calendar", value: "all", icon: CalendarDays },
+            { label: "Tasks", value: "task", icon: CheckCircle2 },
+            { label: "Events", value: "meeting", icon: Bell },
+            { label: "Calls", value: "call", icon: Phone },
+          ].map((item) => {
+            const Icon = item.icon;
+            const active = filters.type === item.value || (item.value === "all" && filters.type === "all");
+            return (
+              <button key={item.value} type="button" onClick={() => setFilters((current) => ({ ...current, type: item.value }))} className={`flex h-12 items-center gap-2 border-b-2 px-4 text-sm font-medium transition ${active ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-600 hover:text-slate-950"}`}>
+                <Icon className="h-4 w-4" />{item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="grid gap-0 xl:grid-cols-[1fr_22rem]">
+        <main className="min-w-0 space-y-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="rounded-md border bg-white p-3">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => setCursor(new Date())}>Today</Button>
+                <Button variant="ghost" size="icon" onClick={() => moveCursor(-1)} aria-label="Previous period"><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => moveCursor(1)} aria-label="Next period"><ChevronRight className="h-4 w-4" /></Button>
+                <h2 className="px-2 text-lg font-semibold text-slate-950">{calendarTitle(cursor, view)}</h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate("/crm/calendar-integrations")}><CalendarDays className="h-4 w-4" />Booking pages</Button>
+                <div className="flex rounded-full border bg-slate-50 p-1">
+                  {(["month", "week", "day", "agenda"] as CalendarView[]).map((item) => (
+                    <button key={item} type="button" className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${view === item ? "bg-white text-emerald-700 shadow-sm" : "text-slate-600 hover:text-slate-950"}`} onClick={() => setView(item)}>{item[0].toUpperCase() + item.slice(1)}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-4">
+              <CalendarStat label="Due today" value={calendarStats.dueToday} />
+              <CalendarStat label="Tasks" value={calendarStats.tasks} tone="amber" />
+              <CalendarStat label="Events" value={calendarStats.meetings} tone="blue" />
+              <CalendarStat label="Calls" value={calendarStats.calls} tone="violet" />
             </div>
           </div>
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-          {loading ? <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">Loading CRM calendar...</div> : null}
+          {loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM calendar...</div> : null}
           <DndContext onDragEnd={onDragEnd}>
             {view === "agenda" ? (
               <CalendarAgenda events={visibleEvents} onOpen={setSelected} />
@@ -1398,10 +2129,36 @@ function CRMCalendarPage() {
               <CalendarTimeGrid cursor={cursor} view={view} events={visibleEvents} onCreate={setCreateDate} onOpen={setSelected} />
             )}
           </DndContext>
-        </CardContent>
-      </Card>
+        </main>
+        <CalendarSidebar
+          cursor={cursor}
+          events={visibleEvents}
+          filters={filters}
+          ownerIds={ownerIds}
+          statuses={statuses}
+          stats={calendarStats}
+          onCursorChange={setCursor}
+          onFiltersChange={setFilters}
+          onIntegrations={() => navigate("/crm/calendar-integrations")}
+        />
+      </div>
       {selected ? <CalendarEventDialog event={selected} onClose={() => setSelected(null)} onOpenRecord={(path) => navigate(path)} onComplete={() => markCalendarTaskComplete(selected, setEvents, setError)} onSynced={loadCalendar} /> : null}
       {createDate ? <CalendarCreateDialog date={createDate} onClose={() => setCreateDate(null)} onCreated={() => { setCreateDate(null); loadCalendar(); }} /> : null}
+    </div>
+  );
+}
+
+function CalendarStat({ label, value, tone = "emerald" }: { label: string; value: number; tone?: "emerald" | "amber" | "blue" | "violet" }) {
+  const tones = {
+    emerald: "bg-emerald-50 text-emerald-700",
+    amber: "bg-amber-50 text-amber-700",
+    blue: "bg-sky-50 text-sky-700",
+    violet: "bg-violet-50 text-violet-700",
+  };
+  return (
+    <div className="rounded-md border bg-slate-50/70 p-3">
+      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-lg font-semibold ${tones[tone]}`}>{value}</p>
     </div>
   );
 }
@@ -1409,9 +2166,9 @@ function CRMCalendarPage() {
 function CalendarMonth({ cursor, events, onCreate, onOpen }: { cursor: Date; events: CRMCalendarEvent[]; onCreate: (date: Date) => void; onOpen: (event: CRMCalendarEvent) => void }) {
   const days = monthDays(cursor);
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <div className="grid grid-cols-7 border-b bg-muted/40 text-xs font-medium text-muted-foreground">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <div key={day} className="px-3 py-2">{day}</div>)}
+    <div className="overflow-hidden rounded-md border bg-white shadow-sm">
+      <div className="grid grid-cols-7 border-b bg-slate-50 text-center text-xs font-semibold uppercase text-slate-500">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <div key={day} className="px-3 py-3">{day}</div>)}
       </div>
       <div className="grid grid-cols-7">
         {days.map((day) => (
@@ -1435,11 +2192,13 @@ function CalendarTimeGrid({ cursor, view, events, onCreate, onOpen }: { cursor: 
 
 function CalendarDayCell({ date, events, muted = false, tall = false, onCreate, onOpen }: { date: Date; events: CRMCalendarEvent[]; muted?: boolean; tall?: boolean; onCreate: (date: Date) => void; onOpen: (event: CRMCalendarEvent) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: `day-${dateKey(date)}` });
+  const today = dateKey(date) === dateKey(new Date());
+  const weekend = [0, 6].includes(date.getDay());
   return (
-    <section ref={setNodeRef} className={`min-h-36 border-r border-b p-2 last:border-r-0 ${tall ? "min-h-[28rem]" : ""} ${muted ? "bg-muted/20 text-muted-foreground" : "bg-background"} ${isOver ? "ring-2 ring-primary/50" : ""}`}>
-      <button type="button" className="mb-2 flex w-full items-center justify-between rounded px-1 py-0.5 text-left text-xs hover:bg-muted" onClick={() => onCreate(date)}>
-        <span className="font-medium">{date.toLocaleDateString(undefined, { weekday: tall ? "short" : undefined, month: tall ? "short" : undefined, day: "numeric" })}</span>
-        <Plus className="h-3.5 w-3.5" />
+    <section ref={setNodeRef} className={`min-h-36 border-r border-b p-2 last:border-r-0 ${tall ? "min-h-[28rem] rounded-md border bg-white" : ""} ${muted ? "bg-slate-50/70 text-slate-400" : weekend ? "bg-slate-50/60" : "bg-white"} ${isOver ? "ring-2 ring-emerald-500/50" : ""}`}>
+      <button type="button" className="mb-2 flex w-full items-center justify-between rounded px-1 py-0.5 text-left text-xs hover:bg-slate-100" onClick={() => onCreate(date)}>
+        <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 font-semibold ${today ? "bg-emerald-600 text-white" : "text-slate-700"}`}>{date.toLocaleDateString(undefined, { weekday: tall ? "short" : undefined, month: tall ? "short" : undefined, day: "numeric" })}</span>
+        <Plus className="h-3.5 w-3.5 text-slate-400" />
       </button>
       <div className="space-y-1">
         {events.map((event) => <CalendarEventPill key={event.id} event={event} onOpen={onOpen} />)}
@@ -1450,19 +2209,101 @@ function CalendarDayCell({ date, events, muted = false, tall = false, onCreate, 
 
 function CalendarEventPill({ event, onOpen }: { event: CRMCalendarEvent; onOpen: (event: CRMCalendarEvent) => void }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: event.id });
+  const tone = calendarEventTone(event);
   return (
     <button
       ref={setNodeRef}
       type="button"
-      style={{ borderLeftColor: event.color, transform: CSS.Transform.toString(transform) }}
-      className="w-full rounded border border-l-4 bg-card px-2 py-1 text-left text-xs shadow-sm hover:bg-muted"
+      style={{ borderLeftColor: event.color || tone.border, transform: CSS.Transform.toString(transform) }}
+      className={`w-full rounded border border-l-4 px-2 py-1.5 text-left text-xs shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${tone.className}`}
       onClick={() => onOpen(event)}
       {...attributes}
       {...listeners}
     >
       <span className="block truncate font-medium">{event.title}</span>
-      <span className="block truncate text-muted-foreground">{timeLabel(event.start)} / {event.category}</span>
+      <span className="block truncate opacity-80">{timeLabel(event.start)} / {event.category || event.type}</span>
       {event.source === "meetings" && event.syncStatus ? <span className="mt-1 inline-flex rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground">{labelFor(event.syncStatus)}</span> : null}
+    </button>
+  );
+}
+
+function CalendarSidebar({ cursor, events, filters, ownerIds, statuses, stats, onCursorChange, onFiltersChange, onIntegrations }: { cursor: Date; events: CRMCalendarEvent[]; filters: CalendarFilters; ownerIds: string[]; statuses: string[]; stats: { tasks: number; meetings: number; calls: number; dueToday: number; synced: number }; onCursorChange: (date: Date) => void; onFiltersChange: React.Dispatch<React.SetStateAction<CalendarFilters>>; onIntegrations: () => void }) {
+  return (
+    <aside className="border-l bg-white px-4 py-4 xl:h-[calc(100vh-13rem)] xl:overflow-y-auto">
+      <MiniCalendar cursor={cursor} events={events} onSelect={onCursorChange} />
+      <div className="mt-5 space-y-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-950">My preferences</h3>
+            <Button variant="ghost" size="sm" onClick={() => onFiltersChange({ ownerId: "all", type: "all", status: "all" })}>Reset</Button>
+          </div>
+          <div className="mt-3 grid gap-3">
+            <FilterSelect label="Owner" value={filters.ownerId} values={ownerIds} onChange={(ownerId) => onFiltersChange((current) => ({ ...current, ownerId }))} allLabel="All owners" />
+            <FilterSelect label="Status" value={filters.status} values={statuses} onChange={(status) => onFiltersChange((current) => ({ ...current, status }))} allLabel="All statuses" />
+          </div>
+        </div>
+        <div className="rounded-md border p-3">
+          <h3 className="text-sm font-semibold text-slate-950">Activity types</h3>
+          <div className="mt-3 space-y-2">
+            <CalendarTypeToggle label="Tasks" color="bg-amber-500" active={filters.type === "all" || filters.type === "task"} onClick={() => onFiltersChange((current) => ({ ...current, type: current.type === "task" ? "all" : "task" }))} />
+            <CalendarTypeToggle label="Events" color="bg-sky-500" active={filters.type === "all" || filters.type === "meeting"} onClick={() => onFiltersChange((current) => ({ ...current, type: current.type === "meeting" ? "all" : "meeting" }))} />
+            <CalendarTypeToggle label="Calls" color="bg-violet-500" active={filters.type === "all" || filters.type === "call"} onClick={() => onFiltersChange((current) => ({ ...current, type: current.type === "call" ? "all" : "call" }))} />
+          </div>
+        </div>
+        <div className="rounded-md border p-3">
+          <h3 className="text-sm font-semibold text-slate-950">Sync options</h3>
+          <div className="mt-3 grid gap-2 text-sm">
+            <div className="flex items-center justify-between rounded bg-slate-50 px-3 py-2"><span>Synced meetings</span><Badge variant="outline">{stats.synced}</Badge></div>
+            <div className="flex items-center justify-between rounded bg-slate-50 px-3 py-2"><span>Visible activities</span><Badge variant="outline">{events.length}</Badge></div>
+          </div>
+          <Button variant="outline" className="mt-3 w-full" onClick={onIntegrations}><CalendarDays className="h-4 w-4" />Google / Microsoft setup</Button>
+        </div>
+        <div className="rounded-md border bg-emerald-50/60 p-3">
+          <h3 className="text-sm font-semibold text-emerald-950">Sales day focus</h3>
+          <p className="mt-2 text-sm text-emerald-800">{stats.dueToday} items are due today. Keep calls, meetings, and deal follow-ups visible before closing the day.</p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function MiniCalendar({ cursor, events, onSelect }: { cursor: Date; events: CRMCalendarEvent[]; onSelect: (date: Date) => void }) {
+  const days = monthDays(cursor).filter((day) => day.getMonth() === cursor.getMonth());
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-slate-950">{cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h3>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" onClick={() => { const next = new Date(cursor); next.setMonth(next.getMonth() - 1); onSelect(next); }}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => { const next = new Date(cursor); next.setMonth(next.getMonth() + 1); onSelect(next); }}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <span key={day}>{day}</span>)}
+      </div>
+      <div className="mt-2 grid grid-cols-7 gap-1 text-center text-sm">
+        {Array.from({ length: mondayIndex(new Date(cursor.getFullYear(), cursor.getMonth(), 1)) }).map((_, index) => <span key={`blank-${index}`} />)}
+        {days.map((day) => {
+          const hasEvent = eventsForDay(events, day).length > 0;
+          const active = dateKey(day) === dateKey(cursor);
+          const today = dateKey(day) === dateKey(new Date());
+          return (
+            <button key={day.toISOString()} type="button" onClick={() => onSelect(day)} className={`relative h-9 rounded-full font-medium transition ${active ? "bg-emerald-600 text-white" : today ? "bg-emerald-50 text-emerald-700" : "hover:bg-slate-100"}`}>
+              {day.getDate()}
+              {hasEvent ? <span className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${active ? "bg-white" : "bg-amber-500"}`} /> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CalendarTypeToggle({ label, color, active, onClick }: { label: string; color: string; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition ${active ? "bg-slate-50 text-slate-950" : "text-slate-400"}`}>
+      <span className={`h-4 w-4 rounded ${color} ${active ? "opacity-100" : "opacity-30"}`} />
+      <span>{label}</span>
     </button>
   );
 }
@@ -1708,6 +2549,389 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
         <RecordPanel record={selectedRecord || rows[0] || null} kind={kind} />
       </div>
       {showCreate ? <CreateRecordDialog kind={kind} saving={createSaving} error={createError} onClose={() => setShowCreate(false)} onCreate={createRecord} /> : null}
+    </div>
+  );
+}
+
+function ProductCatalogPage() {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [selectedView, setSelectedView] = useState(savedViews[0]);
+  const [filters, setFilters] = useState<CRMFilters>({ owner: "all", status: "all", type: "all", territory: "all" });
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<CRMRecord | null>(null);
+  const [localRows, setLocalRows] = useState<CRMRecord[]>([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createSaving, setCreateSaving] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [importExportError, setImportExportError] = useState<string | null>(null);
+  const { data: apiRows, loading, error } = useCrmRecords<CRMRecord>("products", emptyRecords);
+  const records = localRows.length ? localRows : apiRows;
+  const rows = useMemo(() => filterRecords(records, search, selectedView, filters), [records, search, selectedView, filters]);
+  const owners = useMemo(() => uniqueValues(records, "owner"), [records]);
+  const statuses = useMemo(() => uniqueValues(records, "status"), [records]);
+  const types = useMemo(() => uniqueValues(records, "type"), [records]);
+  const territories = useMemo(() => uniqueValues(records, "territoryId"), [records]);
+  const metrics = useMemo(() => productCatalogMetrics(rows), [rows]);
+
+  const createProduct = (draft: CRMRecord, customFields?: CRMApiRecord) => {
+    setCreateSaving(true);
+    setCreateError(null);
+    crmApi
+      .create<CRMApiRecord>("products", { ...createPayloadForKind("products", draft), customFields: customFields || {} })
+      .then((response) => {
+        const created = normalizeApiRecord("products", response.data);
+        setLocalRows((items) => [created, ...items.filter((item) => Number(item.id) !== Number(created.id)), ...apiRows.filter((item) => Number(item.id) !== Number(created.id))]);
+        setSelectedRecord(created);
+        setShowCreate(false);
+      })
+      .catch((err) => setCreateError(err?.response?.data?.detail || "Product could not be created."))
+      .finally(() => setCreateSaving(false));
+  };
+
+  const importRows = (items: CRMRecord[]) => {
+    setImportExportError(null);
+    crmApi
+      .importRows<{ created: number; items?: CRMApiRecord[]; errors?: Array<{ row: number; error: string }> }>("products", items as CRMApiRecord[])
+      .then((response) => {
+        if (response.data.errors?.length) {
+          setImportExportError(response.data.errors.map((item) => `Row ${item.row}: ${item.error}`).join("; "));
+          return;
+        }
+        const imported = (response.data.items || []).map((item) => normalizeApiRecord("products", item));
+        setLocalRows([...imported, ...records]);
+      })
+      .catch((err) => setImportExportError(err?.response?.data?.detail || "Product import failed."));
+  };
+
+  const exportProducts = () => {
+    setImportExportError(null);
+    crmApi
+      .exportEntity("products")
+      .then((response) => {
+        const url = URL.createObjectURL(response.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "products.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      })
+      .catch((err) => setImportExportError(err?.response?.data?.detail || "Product export failed."));
+  };
+
+  const saveInlineCell = (row: CRMRecord, key: string, value: string | number | boolean | null) => {
+    const config = listInlineEditConfig.products?.[key];
+    if (!config || !row.id) return Promise.resolve();
+    const previous = records;
+    const nextRows = records.map((item) => (Number(item.id) === Number(row.id) ? { ...item, [key]: value } : item));
+    setLocalRows(nextRows);
+    setSelectedRecord((current) => (current && Number(current.id) === Number(row.id) ? { ...current, [key]: value } : current));
+    return crmApi.update("products", Number(row.id), { [config.apiField]: normalizeInlineValue(config, value) }).catch((err) => {
+      setLocalRows(previous);
+      setSelectedRecord((current) => (current && Number(current.id) === Number(row.id) ? row : current));
+      throw new Error(err?.response?.data?.detail || "Product update failed.");
+    });
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">
+      <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">CRM Catalog</Badge>
+              <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Quote-ready products</Badge>
+            </div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Products</h1>
+            <p className="max-w-3xl text-sm text-slate-600">Manage sellable products, SKUs, pricing, margins, categories, and quote/SRM handoff readiness from one catalog.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => navigate("/crm/price-books")}><IndianRupee className="h-4 w-4" />Price books</Button>
+            <Button variant="outline" onClick={exportProducts}><Download className="h-4 w-4" />Export</Button>
+            <Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4" />Add product</Button>
+          </div>
+        </div>
+      </div>
+      <main className="space-y-5 px-4 py-4 sm:px-6 lg:px-8">
+        <Toolbar
+          search={search}
+          onSearch={setSearch}
+          selectedView={selectedView}
+          onViewChange={setSelectedView}
+          onToggleFilters={() => setShowFilters((value) => !value)}
+          contacts={[]}
+          onImportContacts={importRows}
+          onExportServer={exportProducts}
+          importLabel="Import Products"
+          exportLabel="Export Products"
+        />
+        {importExportError ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{importExportError}</div> : null}
+        {showFilters ? (
+          <FilterPanel
+            filters={filters}
+            onChange={setFilters}
+            owners={owners}
+            statuses={statuses}
+            types={types}
+            territories={territories}
+            onClear={() => setFilters({ owner: "all", status: "all", type: "all", territory: "all" })}
+          />
+        ) : null}
+        {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+        {loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading product catalog...</div> : null}
+        <div className="grid gap-3 md:grid-cols-4">
+          <ProductCatalogMetric label="Products" value={rows.length} detail={`${metrics.active} active`} />
+          <ProductCatalogMetric label="Catalog value" value={formatCurrency(metrics.catalogValue)} detail="List price total" />
+          <ProductCatalogMetric label="Avg margin" value={`${metrics.averageMargin}%`} detail="List price vs cost" />
+          <ProductCatalogMetric label="Categories" value={metrics.categories} detail="Selling groups" />
+        </div>
+        {rows.length ? (
+          <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
+            <div className="space-y-4">
+              <div className="grid gap-3 lg:grid-cols-3">
+                {rows.slice(0, 6).map((product) => <ProductCatalogCard key={String(product.id || product.name)} product={product} onOpen={() => product.id ? navigate(`/crm/products/${product.id}`) : setSelectedRecord(product)} onSelect={() => setSelectedRecord(product)} />)}
+              </div>
+              <SmartCRMTable rows={rows} title="Products" kind="products" onSelect={setSelectedRecord} onOpen={(row) => navigate(`/crm/products/${row.id}`)} onInlineSave={saveInlineCell} loading={loading} error={error} />
+            </div>
+            <ProductCatalogSidePanel record={selectedRecord || rows[0]} />
+          </div>
+        ) : (
+          <ProductCatalogEmptyState onCreate={() => setShowCreate(true)} onImport={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()} />
+        )}
+      </main>
+      {showCreate ? <CreateRecordDialog kind="products" saving={createSaving} error={createError} onClose={() => setShowCreate(false)} onCreate={createProduct} /> : null}
+    </div>
+  );
+}
+
+function ProductCatalogMetric({ label, value, detail }: { label: string; value: string | number; detail: string }) {
+  return (
+    <div className="rounded-md border bg-white p-4">
+      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
+function productCatalogMetrics(rows: CRMRecord[]) {
+  const active = rows.filter((row) => String(row.status || "Active").toLowerCase() === "active").length;
+  const catalogValue = rows.reduce((sum, row) => sum + Number(row.price || row.listPrice || row.list_price || row.unit_price || 0), 0);
+  const margins = rows
+    .map((row) => {
+      const price = Number(row.price || row.listPrice || row.list_price || row.unit_price || 0);
+      const cost = Number(row.cost || row.costPrice || row.cost_price || 0);
+      return price ? Math.round(((price - cost) / price) * 100) : 0;
+    })
+    .filter((margin) => margin > 0);
+  const averageMargin = margins.length ? Math.round(margins.reduce((sum, margin) => sum + margin, 0) / margins.length) : 0;
+  const categories = new Set(rows.map((row) => String(row.category || "")).filter(Boolean)).size;
+  return { active, catalogValue, averageMargin, categories };
+}
+
+function ProductCatalogCard({ product, onOpen, onSelect }: { product: CRMRecord; onOpen: () => void; onSelect: () => void }) {
+  const price = Number(product.price || product.listPrice || product.list_price || product.unit_price || 0);
+  const cost = Number(product.cost || product.costPrice || product.cost_price || 0);
+  const margin = price ? Math.round(((price - cost) / price) * 100) : 0;
+  return (
+    <button type="button" className="rounded-md border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md" onClick={onSelect} onDoubleClick={onOpen}>
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700"><PackageIcon /></span>
+        <Badge className={statusColor(String(product.status || "Active"))}>{String(product.status || "Active")}</Badge>
+      </div>
+      <h3 className="mt-4 line-clamp-2 text-base font-semibold text-slate-950">{String(product.name || "Untitled product")}</h3>
+      <p className="mt-1 text-sm text-slate-500">{String(product.productCode || product.product_code || product.sku || "No SKU")}</p>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <div className="rounded bg-slate-50 p-2">
+          <p className="text-xs text-slate-500">List price</p>
+          <p className="font-semibold text-slate-950">{formatCurrency(price)}</p>
+        </div>
+        <div className="rounded bg-slate-50 p-2">
+          <p className="text-xs text-slate-500">Margin</p>
+          <p className="font-semibold text-slate-950">{margin}%</p>
+        </div>
+      </div>
+      <p className="mt-3 truncate text-xs text-slate-500">{String(product.category || "Uncategorized")} / Quote and SRM ready</p>
+    </button>
+  );
+}
+
+function ProductCatalogSidePanel({ record }: { record: CRMRecord }) {
+  const price = Number(record.price || record.listPrice || record.list_price || record.unit_price || 0);
+  const cost = Number(record.cost || record.costPrice || record.cost_price || 0);
+  const margin = price ? Math.round(((price - cost) / price) * 100) : 0;
+  const readiness = [
+    { label: "SKU configured", done: Boolean(record.productCode || record.product_code || record.sku) },
+    { label: "Price available", done: price > 0 },
+    { label: "Cost captured", done: cost > 0 },
+    { label: "Active for quoting", done: String(record.status || "Active").toLowerCase() === "active" },
+  ];
+  return (
+    <aside className="rounded-md border bg-white p-4">
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700"><PackageIcon /></span>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-slate-950">{String(record.name || "Product")}</p>
+          <p className="text-sm text-slate-500">{String(record.category || "Catalog item")}</p>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3">
+        <InfoTile label="List price" value={formatCurrency(price)} />
+        <InfoTile label="Cost" value={formatCurrency(cost)} />
+        <InfoTile label="Margin" value={`${margin}%`} />
+      </div>
+      <div className="mt-5">
+        <p className="text-xs font-semibold uppercase text-slate-500">Quote readiness</p>
+        <div className="mt-3 space-y-2">
+          {readiness.map((item) => (
+            <div key={item.label} className="flex items-center justify-between rounded bg-slate-50 px-3 py-2 text-sm">
+              <span>{item.label}</span>
+              {item.done ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-amber-600" />}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5 rounded-md border bg-emerald-50/60 p-3">
+        <p className="text-sm font-semibold text-emerald-950">Sales usage</p>
+        <p className="mt-1 text-sm text-emerald-800">Use products inside deals, quotes, price books, approvals, and SRM commercial handoff.</p>
+      </div>
+    </aside>
+  );
+}
+
+function ProductCatalogEmptyState({ onCreate, onImport }: { onCreate: () => void; onImport: () => void }) {
+  return (
+    <section className="rounded-md border bg-white px-6 py-12 text-center shadow-sm">
+      <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+        <PackageIcon large />
+      </div>
+      <h2 className="mt-6 text-2xl font-semibold text-slate-950">Build your sellable catalog</h2>
+      <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">Products are the items your team sells, quotes, discounts, bundles, and hands off to SRM for billing. Start with one product or import your full SKU catalog.</p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Button onClick={onCreate}><Plus className="h-4 w-4" />Add product</Button>
+        <Button variant="outline" onClick={onImport}><Upload className="h-4 w-4" />Import from file</Button>
+      </div>
+      <div className="mx-auto mt-8 grid max-w-4xl gap-3 text-left md:grid-cols-3">
+        {[
+          ["Quote faster", "Reusable prices, tax-ready line items, and approval thresholds."],
+          ["Control margins", "Capture list price and cost before proposals go out."],
+          ["Handoff cleanly", "Products can flow into quotes, SRM orders, invoices, and revenue reports."],
+        ].map(([title, text]) => (
+          <div key={title} className="rounded-md border bg-slate-50/70 p-4">
+            <p className="font-semibold text-slate-950">{title}</p>
+            <p className="mt-1 text-sm text-slate-600">{text}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PackageIcon({ large = false }: { large?: boolean }) {
+  return <Package className={large ? "h-14 w-14" : "h-5 w-5"} />;
+}
+
+function quoteIdFromPath() {
+  const match = window.location.pathname.match(/\/crm\/quotes\/(\d+)/);
+  return Number(match?.[1] || 1);
+}
+
+function QuoteBuilderPage() {
+  const quoteId = quoteIdFromPath();
+  const [quote, setQuote] = useState<CRMRecord | null>(null);
+  const [line, setLine] = useState<CRMRecord>({ item_type: "service", name: "Implementation", quantity: 1, unit_price: 50000, discount_type: "amount", discount_value: 0, tax_rate: 18, estimated_cost: 25000, billing_type: "fixed" });
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const load = () => {
+    setError(null);
+    crmApi.get<CRMApiRecord>("quotes", quoteId).then((response) => setQuote(response.data)).catch((err) => setError(err?.response?.data?.detail || "Quote could not be loaded."));
+  };
+  useEffect(load, [quoteId]);
+  const run = (label: string, action: () => Promise<{ data: CRMApiRecord }>) => {
+    setSaving(true);
+    setError(null);
+    action().then((response) => setQuote(response.data.quote && typeof response.data.quote === "object" ? response.data.quote as CRMRecord : response.data)).catch((err) => setError(err?.response?.data?.detail || `${label} failed.`)).finally(() => setSaving(false));
+  };
+  const addLine = () => run("Add line", () => crmApi.addQuoteLine(quoteId, line));
+  const lines = Array.isArray(quote?.lines) ? quote?.lines as CRMRecord[] : [];
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Quote Builder" description={descriptionFor("quoteBuilder")} action="Recalculate" onAction={() => run("Calculate", () => crmApi.calculateQuote(quoteId))} />
+      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="grid gap-3 p-4 md:grid-cols-4">
+              <InfoTile label="Quote" value={String(quote?.quoteNumber || quote?.quote_number || `#${quoteId}`)} />
+              <InfoTile label="Status" value={String(quote?.status || "Draft")} />
+              <InfoTile label="Grand total" value={formatCurrency(Number(quote?.grandTotal || quote?.grand_total || quote?.total_amount || 0))} />
+              <InfoTile label="Margin" value={formatCurrency(Number(quote?.expectedMargin || quote?.expected_margin || 0))} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Quote Lines</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2 md:grid-cols-6">
+                <Input value={String(line.name || "")} onChange={(event) => setLine((current) => ({ ...current, name: event.target.value }))} placeholder="Line item" />
+                <Input type="number" value={Number(line.quantity || 1)} onChange={(event) => setLine((current) => ({ ...current, quantity: Number(event.target.value) }))} />
+                <Input type="number" value={Number(line.unit_price || 0)} onChange={(event) => setLine((current) => ({ ...current, unit_price: Number(event.target.value) }))} />
+                <Input type="number" value={Number(line.discount_value || 0)} onChange={(event) => setLine((current) => ({ ...current, discount_value: Number(event.target.value) }))} />
+                <Input type="number" value={Number(line.tax_rate || 0)} onChange={(event) => setLine((current) => ({ ...current, tax_rate: Number(event.target.value) }))} />
+                <Button onClick={addLine} disabled={saving}><Plus className="h-4 w-4" />Add</Button>
+              </div>
+              <SmartCRMTable rows={lines.map((item) => normalizeApiRecord("quoteBuilder", item))} title="Quote lines" kind="quoteBuilder" onSelect={() => undefined} />
+            </CardContent>
+          </Card>
+        </div>
+        <Card>
+          <CardHeader><CardTitle>Quote Actions</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <Button className="w-full justify-start" variant="outline" onClick={() => run("Submit", () => crmApi.submitQuote(quoteId))}>Submit for approval</Button>
+            <Button className="w-full justify-start" variant="outline" onClick={() => run("Approve", () => crmApi.approveQuote(quoteId))}>Approve</Button>
+            <Button className="w-full justify-start" variant="outline" onClick={() => run("Send", () => crmApi.sendQuote(quoteId))}>Send</Button>
+            <Button className="w-full justify-start" variant="outline" onClick={() => run("Accept", () => crmApi.acceptQuote(quoteId))}>Accept and convert to SRM</Button>
+            <Button className="w-full justify-start" variant="outline" onClick={() => run("New version", () => crmApi.newQuoteVersion(quoteId))}>Create new version</Button>
+            <Button className="w-full justify-start" variant="outline" onClick={() => crmApi.quotePdf(quoteId, true)}>Generate PDF</Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function QuoteApprovalsPage() {
+  const { data, loading, error } = useCrmRecords<CRMRecord>("quote-approvals", emptyRecords);
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Quote Approvals" description={descriptionFor("quoteApprovals")} />
+      <SmartCRMTable rows={data} title="Quote approvals" kind="quoteApprovals" onSelect={() => undefined} loading={loading} error={error} />
+    </div>
+  );
+}
+
+function CPQPage() {
+  const { data, loading, error } = useCrmRecords<CRMRecord>("cpq-rules", emptyRecords);
+  const [amount, setAmount] = useState(250000);
+  const [discount, setDiscount] = useState(0);
+  const [result, setResult] = useState<CRMRecord | null>(null);
+  return (
+    <div className="space-y-6">
+      <PageHeader title="CPQ Rules" description={descriptionFor("cpq")} action="Evaluate" onAction={() => crmApi.evaluateCpq({ amount, discount }).then((response) => setResult(response.data))} />
+      <Card><CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto]"><Input type="number" value={amount} onChange={(event) => setAmount(Number(event.target.value))} /><Input type="number" value={discount} onChange={(event) => setDiscount(Number(event.target.value))} /><Button onClick={() => crmApi.evaluateCpq({ amount, discount }).then((response) => setResult(response.data))}><Sparkles className="h-4 w-4" />Evaluate</Button></CardContent></Card>
+      {result ? <Card><CardContent className="grid gap-3 p-4 md:grid-cols-3"><InfoTile label="Rules checked" value={String(result.ruleCount || 0)} /><InfoTile label="Warnings" value={String((result.warnings as CRMRecord[] | undefined)?.length || 0)} /><InfoTile label="Recommendations" value={String((result.recommendations as CRMRecord[] | undefined)?.length || 0)} /></CardContent></Card> : null}
+      <SmartCRMTable rows={data} title="CPQ rules" kind="cpq" onSelect={() => undefined} loading={loading} error={error} />
+    </div>
+  );
+}
+
+function GuidedSellingPage() {
+  const { data, loading, error } = useCrmRecords<CRMRecord>("guided-selling-flows", emptyRecords);
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Guided Selling" description={descriptionFor("guidedSelling")} action="Create flow" />
+      <SmartCRMTable rows={data} title="Guided selling flows" kind="guidedSelling" onSelect={() => undefined} loading={loading} error={error} />
     </div>
   );
 }
@@ -2503,7 +3727,7 @@ function ReportTable({ title, rows, columns }: { title: string; rows: CRMApiReco
               <tr key={`${title}-${index}`} className="border-t">
                 {columns.map((column) => {
                   const value = row[column];
-                  const isCurrency = ["amount", "wonRevenue", "lostAmount"].includes(column);
+                  const isCurrency = ["amount", "wonRevenue", "lostAmount", "pipelineAmount", "weightedAmount", "committedAmount", "bestCaseAmount", "upsideAmount", "closedWonAmount", "invoicedAmount", "collectedAmount", "targetAmount", "achievedAmount"].includes(column);
                   const isRate = column.toLowerCase().includes("rate");
                   return <td key={column} className="px-3 py-2">{isCurrency ? formatCurrency(Number(value || 0)) : isRate ? `${Number(value || 0).toFixed(1)}%` : String(value ?? "-")}</td>;
                 })}
@@ -2653,58 +3877,180 @@ function SalesAutomationPage() {
 }
 
 function ForecastingPage() {
-  const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
-  const crmDeals = useMemo(() => dealState.data.map((record) => recordToDeal(record, emptyRecords)), [dealState.data]);
-  const weighted = crmDeals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
-  const target = 6500000;
-  const commit = crmDeals.filter((deal) => deal.probability >= 70).reduce((sum, deal) => sum + deal.amount, 0);
-  const bestCase = crmDeals.filter((deal) => deal.probability >= 40).reduce((sum, deal) => sum + deal.amount, 0);
-  const atRisk = crmDeals.filter((deal) => deal.probability < 40 && !["Won", "Lost"].includes(deal.stage)).reduce((sum, deal) => sum + deal.amount, 0);
-  const forecastRows = [
-    { view: "Commit", amount: commit, confidence: "High", owner: "Sales Manager" },
-    { view: "Best case", amount: bestCase, confidence: "Medium", owner: "Revenue Ops" },
-    { view: "At risk", amount: atRisk, confidence: "Low", owner: "Deal owners" },
-    { view: "Weighted pipeline", amount: weighted, confidence: "Model", owner: "CRM Forecast" },
-  ];
+  const [forecast, setForecast] = useState<{ summary: CRMApiRecord; items: CRMApiRecord[] } | null>(null);
+  const [teamRows, setTeamRows] = useState<CRMApiRecord[]>([]);
+  const [territoryRows, setTerritoryRows] = useState<CRMApiRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const load = () => {
+    setLoading(true);
+    setError(null);
+    Promise.all([crmApi.forecast(), crmApi.forecastByTeam(), crmApi.forecastByTerritory()])
+      .then(([main, byTeam, byTerritory]) => {
+        setForecast({ summary: main.data.summary || {}, items: main.data.items || [] });
+        setTeamRows(byTeam.data.items || []);
+        setTerritoryRows(byTerritory.data.items || []);
+      })
+      .catch((err) => setError(err?.response?.data?.detail || "Forecast data could not be loaded."))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+  const summary = forecast?.summary || {};
+  const scenarios = (summary.scenarios as CRMApiRecord) || {};
+  const snapshot = () => {
+    crmApi.createForecastSnapshot({ snapshotName: "Manual CRM forecast snapshot" }).then(load).catch((err) => setError(err?.response?.data?.detail || "Forecast snapshot could not be created."));
+  };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Forecasting" description="Weighted pipeline, monthly targets, quota tracking, and commit/best-case/at-risk sales views." action="Export forecast" />
-      <div className="grid gap-3 md:grid-cols-4">
-        <Metric icon={Target} label="Monthly target" value={formatCurrency(target)} tone="blue" />
-        <Metric icon={IndianRupee} label="Weighted forecast" value={formatCurrency(weighted)} tone="emerald" />
-        <Metric icon={CheckCircle2} label="Commit" value={formatCurrency(commit)} tone="violet" />
-        <Metric icon={AlertTriangle} label="At risk" value={formatCurrency(atRisk)} tone="red" />
+      <PageHeader title="Forecasting" description="Weighted forecast by owner, team, territory, pipeline, expected close date, and SRM invoice/collection actuals." action="Snapshot forecast" onAction={snapshot} />
+      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <Metric icon={IndianRupee} label="Total pipeline" value={formatCurrency(Number(summary.pipelineAmount || 0))} tone="blue" />
+        <Metric icon={Target} label="Weighted forecast" value={formatCurrency(Number(summary.weightedAmount || 0))} tone="emerald" />
+        <Metric icon={CheckCircle2} label="Committed" value={formatCurrency(Number(summary.committedAmount || 0))} tone="violet" />
+        <Metric icon={Sparkles} label="Best case" value={formatCurrency(Number(summary.bestCaseAmount || 0))} tone="blue" />
+        <Metric icon={AlertTriangle} label="Upside" value={formatCurrency(Number(summary.upsideAmount || 0))} tone="red" />
+        <Metric icon={FileCheck2} label="Invoiced" value={formatCurrency(Number(summary.invoicedAmount || 0))} tone="emerald" />
+        <Metric icon={IndianRupee} label="Collected" value={formatCurrency(Number(summary.collectedAmount || 0))} tone="violet" />
       </div>
       <Card>
-        <CardHeader><CardTitle>Forecast Views</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {forecastRows.map((row) => (
-            <div key={row.view} className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_12rem_8rem_10rem] md:items-center">
-              <p className="font-medium">{row.view}</p>
-              <span className="font-semibold">{formatCurrency(row.amount)}</span>
-              <Badge variant={row.confidence === "Low" ? "destructive" : "outline"}>{row.confidence}</Badge>
-              <span className="text-sm text-muted-foreground">{row.owner}</span>
+        <CardHeader><CardTitle>Scenario Forecast</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          {["conservative", "expected", "aggressive"].map((scenario) => (
+            <div key={scenario} className="rounded-lg border p-4">
+              <p className="text-sm text-muted-foreground">{labelFor(scenario)}</p>
+              <p className="mt-2 text-2xl font-semibold">{formatCurrency(Number(scenarios[scenario] || 0))}</p>
+              <Badge className="mt-3" variant="outline">{scenario === "expected" ? "Weighted model" : "Scenario"}</Badge>
             </div>
           ))}
         </CardContent>
       </Card>
+      {loading ? <p className="text-sm text-muted-foreground">Loading forecast...</p> : null}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <ReportTable title="Forecast by Owner" rows={forecast?.items || []} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount", "invoicedAmount", "collectedAmount"]} />
+        <ReportTable title="Forecast by Team" rows={teamRows} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount"]} />
+        <ReportTable title="Forecast by Territory" rows={territoryRows} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount"]} />
+      </div>
+    </div>
+  );
+}
+
+function SalesTargetsPage() {
+  const [targets, setTargets] = useState<CRMApiRecord[]>([]);
+  const [performance, setPerformance] = useState<CRMApiRecord[]>([]);
+  const [draft, setDraft] = useState<CRMApiRecord>({ periodType: "monthly", periodStart: "2026-06-01", periodEnd: "2026-06-30", targetOwnerType: "user", targetOwnerId: 100, targetAmount: 1000000, currency: "INR" });
+  const [error, setError] = useState<string | null>(null);
+  const load = () => {
+    Promise.all([crmApi.targets(), crmApi.targetPerformance()])
+      .then(([targetRows, performanceRows]) => {
+        setTargets(targetRows.data.items || []);
+        setPerformance(performanceRows.data.items || []);
+      })
+      .catch((err) => setError(err?.response?.data?.detail || "Targets could not be loaded."));
+  };
+  useEffect(load, []);
+  const create = () => crmApi.createTarget(draft).then(load).catch((err) => setError(err?.response?.data?.detail || "Target could not be created."));
+  const patchDraft = (key: string, value: CRMApiRecord[string]) => setDraft((current) => ({ ...current, [key]: value }));
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Sales Targets" description="Create monthly, quarterly, or yearly quotas and compare achieved, invoiced, and collected amounts." action="Create target" onAction={create} />
+      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <Card>
-        <CardHeader><CardTitle>Quota Tracking</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
-          {["Ananya Rao", "Karan Shah", "Meera Iyer"].map((owner) => {
-            const amount = crmDeals.filter((deal) => deal.owner === owner).reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
-            const pct = Math.min(100, Math.round((amount / 2000000) * 100));
-            return (
-              <div key={owner} className="rounded-lg border p-4">
-                <div className="flex items-center justify-between"><p className="font-medium">{owner}</p><Badge>{pct}%</Badge></div>
-                <div className="mt-3 h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} /></div>
-                <p className="mt-2 text-sm text-muted-foreground">{formatCurrency(amount)} weighted quota coverage</p>
-              </div>
-            );
-          })}
+        <CardContent className="grid gap-3 p-4 md:grid-cols-3 xl:grid-cols-[8rem_9rem_9rem_10rem_8rem_10rem_6rem] xl:items-end">
+          <Field label="Period"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.periodType)} onChange={(event) => patchDraft("periodType", event.target.value)}>{["monthly", "quarterly", "yearly"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</select></Field>
+          <Field label="Start"><Input type="date" value={String(draft.periodStart || "")} onChange={(event) => patchDraft("periodStart", event.target.value)} /></Field>
+          <Field label="End"><Input type="date" value={String(draft.periodEnd || "")} onChange={(event) => patchDraft("periodEnd", event.target.value)} /></Field>
+          <Field label="Owner type"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.targetOwnerType)} onChange={(event) => patchDraft("targetOwnerType", event.target.value)}>{["user", "team", "territory", "company"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</select></Field>
+          <Field label="Owner ID"><Input type="number" value={Number(draft.targetOwnerId || 0)} onChange={(event) => patchDraft("targetOwnerId", Number(event.target.value))} /></Field>
+          <Field label="Target"><Input type="number" value={Number(draft.targetAmount || 0)} onChange={(event) => patchDraft("targetAmount", Number(event.target.value))} /></Field>
+          <Button onClick={create}>Save</Button>
         </CardContent>
       </Card>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <ReportTable title="Targets" rows={targets} columns={["periodType", "periodStart", "periodEnd", "targetOwnerType", "targetOwnerId", "targetAmount", "currency"]} />
+        <ReportTable title="Target Performance" rows={performance} columns={["targetOwnerType", "targetOwnerId", "targetAmount", "achievedAmount", "achievementPercent", "invoicedAmount", "collectionPercent"]} />
+      </div>
+    </div>
+  );
+}
+
+function SalesPerformancePage() {
+  const [rows, setRows] = useState<CRMApiRecord[]>([]);
+  const [summary, setSummary] = useState<CRMApiRecord>({});
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    crmApi.salesPerformance().then((response) => {
+      setRows(response.data.items || []);
+      setSummary(response.data.summary || {});
+    }).catch((err) => setError(err?.response?.data?.detail || "Sales performance could not be loaded."));
+  }, []);
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Sales Performance" description="Owner-level pipeline, weighted forecast, activity, conversion, SRM invoice, and collection performance." action="Refresh" onAction={() => window.location.reload()} />
+      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      <div className="grid gap-3 md:grid-cols-4">
+        <Metric icon={IndianRupee} label="Pipeline" value={formatCurrency(Number(summary.pipelineAmount || 0))} tone="blue" />
+        <Metric icon={Target} label="Weighted" value={formatCurrency(Number(summary.weightedAmount || 0))} tone="emerald" />
+        <Metric icon={CheckCircle2} label="Closed won" value={formatCurrency(Number(summary.closedWonAmount || 0))} tone="violet" />
+        <Metric icon={FileCheck2} label="Collected" value={formatCurrency(Number(summary.collectedAmount || 0))} tone="emerald" />
+      </div>
+      <ReportTable title="Sales Performance by Owner" rows={rows} columns={["owner", "dealCount", "wonDeals", "lostDeals", "activityCount", "conversionRate", "weightedAmount", "invoicedAmount", "collectedAmount"]} />
+    </div>
+  );
+}
+
+function FunnelAnalyticsPage() {
+  const [rows, setRows] = useState<CRMApiRecord[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    crmApi.funnel().then((response) => setRows(response.data.items || [])).catch((err) => setError(err?.response?.data?.detail || "Funnel could not be loaded."));
+  }, []);
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Sales Funnel" description="Lead-to-cash funnel from lead qualification through SRM sales orders, invoice generation, and receipt collection." action="Export funnel" />
+      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      <Card>
+        <CardHeader><CardTitle>Lead-to-Cash Conversion</CardTitle></CardHeader>
+        <CardContent className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows} layout="vertical" margin={{ left: 28 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis type="category" dataKey="stage" width={140} />
+              <Tooltip formatter={(value, name) => name === "amount" ? formatCurrency(Number(value)) : value} />
+              <Bar dataKey="count" fill="#2563eb" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+      <ReportTable title="Funnel Details" rows={rows} columns={["stage", "count", "amount", "conversionRate", "stageToStageRate"]} />
+    </div>
+  );
+}
+
+function LostAnalysisPage() {
+  const [report, setReport] = useState<CRMApiRecord | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    crmApi.lostAnalysis().then((response) => setReport(response.data)).catch((err) => setError(err?.response?.data?.detail || "Lost analysis could not be loaded."));
+  }, []);
+  const summary = (report?.summary as CRMApiRecord) || {};
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Lost Analysis" description="Lost reasons, competitors, lost amount, owner trends, and AI pattern-detection readiness." action="Review lost deals" />
+      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      <div className="grid gap-3 md:grid-cols-3">
+        <Metric icon={AlertTriangle} label="Lost deals" value={String(summary.lostDeals || 0)} tone="red" />
+        <Metric icon={IndianRupee} label="Lost amount" value={formatCurrency(Number(summary.lostAmount || 0))} tone="red" />
+        <Metric icon={Sparkles} label="AI pattern detection" value="Placeholder" tone="violet" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <ReportTable title="Lost Reasons" rows={(report?.lostReasonBreakdown as CRMApiRecord[]) || []} columns={["reason", "count", "amount"]} />
+        <ReportTable title="Top Competitors" rows={(report?.topCompetitors as CRMApiRecord[]) || []} columns={["competitor", "count"]} />
+        <ReportTable title="Owner Trends" rows={(report?.ownerTrends as CRMApiRecord[]) || []} columns={["key", "lost", "lostAmount", "winRate"]} />
+      </div>
+      <ReportTable title="Lost Deals" rows={(report?.deals as CRMApiRecord[]) || []} columns={["name", "status", "lostReason", "amount", "ownerId"]} />
     </div>
   );
 }
@@ -3275,6 +4621,9 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header }: 
     setCustomValues({});
   }, [initialDraft]);
   const patchDraft = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
+  if (kind === "deals") {
+    return <CreateDealDialog saving={saving} error={error} onClose={onClose} onCreate={onCreate} />;
+  }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <Card className="w-full max-w-lg">
@@ -3302,6 +4651,289 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header }: 
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={() => onCreate(draft, customValues)} disabled={saving}>{saving ? "Creating..." : "Create"}</Button></div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void }) {
+  const [mode, setMode] = useState<"simple" | "advanced">("simple");
+  const [stageOpen, setStageOpen] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<CRMRecord>(() => ({
+    name: "",
+    company: "",
+    contact: "",
+    stage: "Negotiation/Review",
+    stageId: 4,
+    pipelineId: 1,
+    amount: "",
+    probability: 75,
+    status: "Open",
+    nextFollowUp: new Date().toISOString().slice(0, 10),
+    description: "",
+    owner: "",
+    source: "Manual Entry",
+  }));
+  const [lines, setLines] = useState<DealProductLine[]>([{ id: 1, product: "", listPrice: 0, quantity: 1, discount: 0 }]);
+  const selectedStage = createDealStages.find((stage) => stage.name === draft.stage) || createDealStages[3];
+  const lineItems = lines.filter((line) => line.product.trim() || line.listPrice || line.quantity > 1 || line.discount);
+  const lineSubtotal = lines.reduce((sum, line) => sum + Number(line.listPrice || 0) * Number(line.quantity || 0), 0);
+  const lineDiscount = lines.reduce((sum, line) => sum + Number(line.listPrice || 0) * Number(line.quantity || 0) * (Number(line.discount || 0) / 100), 0);
+  const lineTotal = Math.max(0, lineSubtotal - lineDiscount);
+  const displayAmount = lineTotal || Number(draft.amount || 0);
+  const patchDraft = (key: string, value: CRMApiValue) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setLocalError(null);
+  };
+  const selectStage = (stageName: string) => {
+    const stage = createDealStages.find((item) => item.name === stageName) || createDealStages[0];
+    setDraft((current) => ({
+      ...current,
+      stage: stage.name,
+      stageId: stage.id,
+      probability: stage.probability,
+      status: stage.isWon ? "Won" : stage.isLost ? "Lost" : "Open",
+    }));
+    setLocalError(null);
+    setStageOpen(false);
+  };
+  const updateLine = (id: number, key: keyof DealProductLine, value: string | number) => {
+    setLines((current) => current.map((line) => line.id === id ? { ...line, [key]: key === "product" ? String(value) : Number(value || 0) } : line));
+  };
+  const addLine = () => setLines((current) => [...current, { id: Date.now(), product: "", listPrice: 0, quantity: 1, discount: 0 }]);
+  const removeLine = (id: number) => setLines((current) => current.length === 1 ? current : current.filter((line) => line.id !== id));
+  const saveDeal = () => {
+    const missing = [
+      ["Company name", draft.company],
+      ["Contact name", draft.contact],
+      ["Deal name", draft.name],
+      ["Closing date", draft.nextFollowUp],
+    ].filter(([, value]) => !String(value || "").trim());
+    if (missing.length) {
+      setLocalError(`${missing.map(([label]) => label).join(", ")} ${missing.length === 1 ? "is" : "are"} required.`);
+      return;
+    }
+    onCreate({
+      ...draft,
+      amount: displayAmount,
+      probability: selectedStage.probability,
+      stageId: selectedStage.id,
+      status: selectedStage.isWon ? "Won" : selectedStage.isLost ? "Lost" : "Open",
+      products: lineItems.map((line) => line.product).filter(Boolean),
+      associatedProducts: lineItems,
+      nextStep: String(draft.description || ""),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-sm">
+      <div className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg border bg-background shadow-2xl">
+        <div className="flex flex-col gap-3 border-b px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="rounded-md bg-emerald-100 p-2 text-emerald-700"><Target className="h-4 w-4" /></div>
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">Create Deal</h2>
+                <p className="text-sm text-muted-foreground">Capture the opportunity, products, value, and next sales commitment in one place.</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-md border bg-muted p-1">
+              {(["simple", "advanced"] as const).map((item) => (
+                <button key={item} type="button" className={`rounded px-3 py-1.5 text-sm font-medium capitalize transition ${mode === item ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`} onClick={() => setMode(item)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_19rem]">
+            <div className="space-y-6 px-5 py-5">
+              {(error || localError) ? <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{localError || error}</div> : null}
+              <section className="grid gap-4 lg:grid-cols-2">
+                <DealField label="Company Name" required>
+                  <IconInput icon={<Building2 className="h-4 w-4" />} value={String(draft.company || "")} onChange={(value) => patchDraft("company", value)} placeholder="Acme India Pvt Ltd" required />
+                </DealField>
+                <DealField label="Contact Name" required>
+                  <IconInput icon={<Users className="h-4 w-4" />} value={String(draft.contact || "")} onChange={(value) => patchDraft("contact", value)} placeholder="Meera Shah" required />
+                </DealField>
+                <DealField label="Deal Name" required>
+                  <Input className="border-l-4 border-l-red-400" value={String(draft.name || "")} onChange={(event) => patchDraft("name", event.target.value)} placeholder="ERP rollout - Phase 1" />
+                </DealField>
+                <DealField label="Stage">
+                  <DealStagePicker selectedStage={selectedStage} open={stageOpen} onToggle={() => setStageOpen((current) => !current)} onSelect={selectStage} />
+                </DealField>
+                <DealField label="Amount">
+                  <Input type="number" value={String(draft.amount || "")} onChange={(event) => patchDraft("amount", event.target.value)} placeholder="500000" />
+                </DealField>
+                <DealField label="Closing Date" required>
+                  <Input className="border-l-4 border-l-red-400" type="date" value={String(draft.nextFollowUp || "")} onChange={(event) => patchDraft("nextFollowUp", event.target.value)} />
+                </DealField>
+                <DealField label="Description" className="lg:col-span-2">
+                  <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.description || "")} onChange={(event) => patchDraft("description", event.target.value)} placeholder="Commercial context, competitors, risks, buyer priorities..." />
+                </DealField>
+              </section>
+              {mode === "advanced" ? (
+                <section className="grid gap-4 rounded-md border bg-muted/20 p-4 lg:grid-cols-3">
+                  <DealField label="Owner">
+                    <Input value={String(draft.owner || "")} onChange={(event) => patchDraft("owner", event.target.value)} placeholder="Sales owner" />
+                  </DealField>
+                  <DealField label="Source">
+                    <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(draft.source || "")} onChange={(event) => patchDraft("source", event.target.value)}>
+                      {["Manual Entry", "Website", "Referral", "Partner", "Event", "Outbound"].map((source) => <option key={source}>{source}</option>)}
+                    </select>
+                  </DealField>
+                  <DealField label="Probability">
+                    <Input type="number" value={String(draft.probability || 0)} onChange={(event) => patchDraft("probability", event.target.value)} />
+                  </DealField>
+                </section>
+              ) : null}
+              <section className="space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold">Associated Products</h3>
+                    <p className="text-sm text-muted-foreground">Add products or services to auto-calculate deal value.</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button>
+                </div>
+                <div className="overflow-x-auto rounded-md border">
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-3">Product</th>
+                        <th className="px-3 py-3">List Price (INR)</th>
+                        <th className="px-3 py-3">Quantity</th>
+                        <th className="px-3 py-3">Discount (%)</th>
+                        <th className="px-3 py-3 text-right">Total (INR)</th>
+                        <th className="px-3 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map((line) => {
+                        const total = Math.max(0, Number(line.listPrice || 0) * Number(line.quantity || 0) * (1 - Number(line.discount || 0) / 100));
+                        return (
+                          <tr key={line.id} className="border-t">
+                            <td className="px-3 py-2"><Input value={line.product} onChange={(event) => updateLine(line.id, "product", event.target.value)} placeholder="Search Product" /></td>
+                            <td className="px-3 py-2"><Input type="number" value={String(line.listPrice || "")} onChange={(event) => updateLine(line.id, "listPrice", event.target.value)} placeholder="0" /></td>
+                            <td className="px-3 py-2"><Input type="number" min={1} value={String(line.quantity || 1)} onChange={(event) => updateLine(line.id, "quantity", event.target.value)} /></td>
+                            <td className="px-3 py-2"><Input type="number" min={0} max={100} value={String(line.discount || "")} onChange={(event) => updateLine(line.id, "discount", event.target.value)} placeholder="0" /></td>
+                            <td className="px-3 py-2 text-right font-medium">{formatCurrency(total)}</td>
+                            <td className="px-3 py-2 text-right"><Button type="button" variant="ghost" size="sm" onClick={() => removeLine(line.id)} disabled={lines.length === 1}><X className="h-4 w-4" /></Button></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+            <aside className="border-t bg-muted/20 p-5 lg:border-l lg:border-t-0">
+              <div className="space-y-4">
+                <div className={`rounded-md border p-4 ${selectedStage.tone}`}>
+                  <p className="text-xs font-semibold uppercase tracking-wide">Selected stage</p>
+                  <p className="mt-1 text-lg font-semibold">{selectedStage.name}</p>
+                  <p className="mt-1 text-sm">{selectedStage.probability}% probability</p>
+                </div>
+                <div className="rounded-md border bg-background p-4">
+                  <p className="text-sm font-semibold">Deal value</p>
+                  <p className="mt-2 text-2xl font-semibold">{formatCurrency(displayAmount)}</p>
+                  <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                    <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(lineSubtotal)}</span></div>
+                    <div className="flex justify-between"><span>Discount</span><span>{formatCurrency(lineDiscount)}</span></div>
+                    <div className="flex justify-between font-medium text-foreground"><span>Total</span><span>{formatCurrency(lineTotal || Number(draft.amount || 0))}</span></div>
+                  </div>
+                </div>
+                <div className="rounded-md border bg-background p-4 text-sm">
+                  <p className="font-semibold">Quality checks</p>
+                  <ul className="mt-3 space-y-2 text-muted-foreground">
+                    <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />Mandatory buyer and close-date fields are validated.</li>
+                    <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />Closed Won/Lost stages map to final deal status.</li>
+                    <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />Product totals recalculate before save.</li>
+                  </ul>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 border-t bg-background px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <Button type="button" variant="link" className="justify-start px-0 text-blue-700">Customize Fields</Button>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button onClick={saveDeal} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700"><Save className="h-4 w-4" />{saving ? "Saving..." : "Save"}</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DealField({ label, required, className, children }: { label: string; required?: boolean; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={`space-y-2 ${className || ""}`}>
+      <span className="block text-sm font-medium">{label}{required ? <span className="text-red-600"> *</span> : null}</span>
+      {children}
+    </div>
+  );
+}
+
+function IconInput({ icon, value, onChange, placeholder, required }: { icon: React.ReactNode; value: string; onChange: (value: string) => void; placeholder?: string; required?: boolean }) {
+  return (
+    <div className="relative">
+      <Input className={`pr-10 ${required ? "border-l-4 border-l-red-400" : ""}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">{icon}</span>
+    </div>
+  );
+}
+
+function DealStagePicker({ selectedStage, open, onToggle, onSelect }: { selectedStage: typeof createDealStages[number]; open: boolean; onToggle: () => void; onSelect: (stageName: string) => void }) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        className="flex h-11 w-full items-center justify-between rounded-md border border-emerald-400 bg-background px-3 text-left text-sm shadow-sm transition hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={`h-2.5 w-2.5 rounded-full ${selectedStage.isWon ? "bg-emerald-500" : selectedStage.isLost ? "bg-red-500" : "bg-blue-500"}`} />
+          <span className="truncate font-medium">{selectedStage.name}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open ? (
+        <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-emerald-300 bg-background shadow-xl">
+          <div className="border-l-2 border-l-emerald-400 py-1">
+            {createDealStages.map((stage) => {
+              const selected = stage.name === selectedStage.name;
+              return (
+                <button
+                  key={stage.name}
+                  type="button"
+                  className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition ${selected ? "bg-sky-100 text-sky-950" : "hover:bg-muted/70"}`}
+                  onClick={() => onSelect(stage.name)}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{stage.name}</span>
+                    <span className="block text-xs text-muted-foreground">{stage.probability}% probability</span>
+                  </span>
+                  {stage.isWon ? (
+                    <span className="rounded-full bg-emerald-100 p-1 text-emerald-700"><CheckCircle2 className="h-4 w-4" /></span>
+                  ) : stage.isLost ? (
+                    <span className="rounded-full bg-red-100 p-1 text-red-700"><X className="h-4 w-4" /></span>
+                  ) : selected ? (
+                    <CheckCircle2 className="h-4 w-4 text-sky-700" />
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-slate-300" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3526,13 +5158,13 @@ function calendarRange(cursor: Date, view: CalendarView) {
   if (view === "month") {
     const start = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
     const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59);
-    start.setDate(start.getDate() - start.getDay());
-    end.setDate(end.getDate() + (6 - end.getDay()));
+    start.setDate(start.getDate() - mondayIndex(start));
+    end.setDate(end.getDate() + (6 - mondayIndex(end)));
     return { start, end };
   }
   if (view === "week") {
     const start = startOfDay(cursor);
-    start.setDate(start.getDate() - start.getDay());
+    start.setDate(start.getDate() - mondayIndex(start));
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
     end.setHours(23, 59, 59, 999);
@@ -3548,6 +5180,10 @@ function startOfDay(date: Date) {
   const output = new Date(date);
   output.setHours(0, 0, 0, 0);
   return output;
+}
+
+function mondayIndex(date: Date) {
+  return (date.getDay() + 6) % 7;
 }
 
 function monthDays(cursor: Date) {
@@ -3601,6 +5237,15 @@ function timeLabel(value: string) {
   return Number.isNaN(date.getTime()) ? "-" : date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
+function calendarEventTone(event: CRMCalendarEvent) {
+  const value = [event.source, event.type, event.category].join(" ").toLowerCase();
+  if (value.includes("call")) return { border: "#8b5cf6", className: "border-violet-100 bg-violet-50 text-violet-950" };
+  if (value.includes("meeting") || value.includes("event")) return { border: "#0ea5e9", className: "border-sky-100 bg-sky-50 text-sky-950" };
+  if (value.includes("quotation") || value.includes("quote")) return { border: "#f59e0b", className: "border-amber-100 bg-amber-50 text-amber-950" };
+  if (value.includes("deal")) return { border: "#10b981", className: "border-emerald-100 bg-emerald-50 text-emerald-950" };
+  return { border: "#f59e0b", className: "border-amber-100 bg-amber-50 text-amber-950" };
+}
+
 function dateWithTime(date: Date, time: string) {
   const [hours, minutes] = time.split(":").map(Number);
   const output = new Date(date);
@@ -3646,6 +5291,10 @@ function detailPathFor(kind: CRMPageKind) {
   if (kind === "contacts") return "/crm/contacts";
   if (kind === "companies") return "/crm/accounts";
   if (kind === "deals") return "/crm/deals";
+  if (kind === "products") return "/crm/products";
+  if (kind === "services") return "/crm/services";
+  if (kind === "priceBooks") return "/crm/price-books";
+  if (kind === "quotes") return "/crm/quotes";
   if (kind === "quotations") return "/crm/quotations";
   return "";
 }
@@ -3674,10 +5323,25 @@ function normalizeApiRecord(kind: string, record: CRMApiRecord): CRMRecord {
     return { id, subject: String(record.title || "Meeting"), type: "Meeting", location: String(record.location || ""), due: String(record.start_time || ""), status: String(record.status || "Scheduled"), syncStatus: String(record.syncStatus || record.sync_status || "not_synced"), externalProvider: String(record.externalProvider || record.external_provider || "") };
   }
   if (kind === "products") {
-    return { id, name: String(record.name || "Product"), sku: String(record.sku || ""), category: String(record.category || ""), price: Number(record.unit_price || 0), status: String(record.status || "Active") };
+    return { id, name: String(record.name || "Product"), productCode: String(record.productCode || record.product_code || record.sku || ""), sku: String(record.sku || record.productCode || ""), category: String(record.category || ""), price: Number(record.listPrice || record.list_price || record.unit_price || 0), cost: Number(record.costPrice || record.cost_price || 0), status: String(record.status || "Active") };
   }
-  if (kind === "quotations") {
-    return { id, quote: String(record.quote_number || ""), dealId: Number(record.deal_id || 0), companyId: Number(record.company_id || 0), status: String(record.status || "Draft"), issueDate: String(record.issue_date || ""), expiryDate: String(record.expiry_date || ""), total: Number(record.total_amount || 0) };
+  if (kind === "services") {
+    return { id, name: String(record.name || "Service"), serviceCode: String(record.serviceCode || record.service_code || ""), category: String(record.category || ""), billingType: String(record.billingType || record.billing_type || "fixed"), price: Number(record.defaultRate || record.default_rate || 0), cost: Number(record.defaultCost || record.default_cost || 0), status: record.active === false ? "Inactive" : "Active" };
+  }
+  if (kind === "priceBooks") {
+    return { id, name: String(record.name || "Price Book"), currency: String(record.currency || "INR"), region: String(record.region || ""), segment: String(record.customerSegment || record.customer_segment || ""), status: String(record.status || "active") };
+  }
+  if (kind === "quotations" || kind === "quotes" || kind === "quoteBuilder") {
+    return { id, quote: String(record.quoteNumber || record.quote_number || ""), dealId: Number(record.dealId || record.deal_id || 0), companyId: Number(record.companyId || record.company_id || 0), status: String(record.status || "Draft"), approvalStatus: String(record.approvalStatus || record.approval_status || "not_submitted"), issueDate: String(record.quoteDate || record.quote_date || record.issue_date || ""), expiryDate: String(record.validUntil || record.valid_until || record.expiry_date || ""), total: Number(record.grandTotal || record.grand_total || record.total_amount || 0), margin: Number(record.expectedMargin || record.expected_margin || 0) };
+  }
+  if (kind === "quoteApprovals") {
+    return { id, quoteId: Number(record.quoteId || record.quote_id || 0), status: String(record.status || "pending"), reason: String(record.reason || ""), comments: String(record.comments || ""), approver: String(record.approverUserId || record.approver_user_id || record.approved_by || "") };
+  }
+  if (kind === "cpq") {
+    return { id, name: String(record.name || "CPQ Rule"), type: String(record.ruleType || record.rule_type || "recommendation"), status: record.active === false ? "Inactive" : "Active" };
+  }
+  if (kind === "guidedSelling") {
+    return { id, name: String(record.name || "Guided Selling Flow"), status: record.active === false ? "Inactive" : "Active" };
   }
   if (kind === "campaigns") {
     return { id, name: String(record.name || "Campaign"), type: String(record.campaign_type || ""), status: String(record.status || "Planned"), startDate: String(record.start_date || ""), endDate: String(record.end_date || ""), budget: Number(record.budget_amount || 0), expectedRevenue: Number(record.expected_revenue || 0) };
@@ -3753,11 +5417,15 @@ function createPayloadForKind(kind: CRMPageKind, record: CRMRecord): CRMApiRecor
     return { first_name: firstName || name, last_name: rest.join(" "), full_name: name, email: record.email, phone: record.phone, lifecycle_stage: record.stage || "Lead", source: record.source, status: record.status, next_follow_up_at: record.nextFollowUp, ownerId };
   }
   if (kind === "companies") return { name: record.name, industry: record.industry, account_type: record.type, status: record.status, annual_revenue: record.revenue, ownerId };
-  if (kind === "deals") return { name: record.name, pipeline_id: record.pipelineId || 1, stage_id: record.stageId || 1, amount: record.amount, probability: record.probability, status: record.status || "Open", expected_close_date: record.nextFollowUp, ownerId };
+  if (kind === "deals") return { name: record.name, pipeline_id: record.pipelineId || 1, stage_id: record.stageId || 1, amount: record.amount, probability: record.probability, status: record.status || "Open", expected_close_date: record.nextFollowUp, description: record.description || record.nextStep, lead_source: record.source, source: record.source, ownerId };
   if (kind === "activities") return { activity_type: record.type || "Task", subject: record.subject || record.name || "Activity", status: record.status, priority: record.priority, due_date: record.nextFollowUp, ownerId };
   if (kind === "tasks") return { title: record.subject || record.name || "Task", status: record.status, priority: record.priority, due_date: record.nextFollowUp, ownerId };
   if (kind === "products") return { name: record.name, sku: record.sku, category: record.category, unit_price: record.price, status: record.status, ownerId };
-  if (kind === "quotations") return { quote_number: record.quote || `QT-${Date.now()}`, issue_date: record.issueDate || new Date().toISOString().slice(0, 10), expiry_date: record.expiryDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10), status: record.status || "Draft", total_amount: record.total };
+  if (kind === "services") return { service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
+  if (kind === "priceBooks") return { name: record.name, currency: record.currency || "INR", region: record.region, customer_segment: record.segment, status: record.status || "active", active: record.status !== "inactive" };
+  if (kind === "quotations" || kind === "quotes") return { quote_number: record.quote || `QT-${Date.now()}`, quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10), status: record.status || "Draft", grand_total: record.total };
+  if (kind === "cpq") return { name: record.name || "CPQ Rule", rule_type: record.type || "recommendation", condition: { minAmount: Number(record.amount || 0) }, action: { message: "Review recommended configuration" }, active: true };
+  if (kind === "guidedSelling") return { name: record.name || "Guided Selling Flow", questions: [], recommendations: [], active: true };
   if (kind === "campaigns") return { name: record.name, campaign_type: record.type || "Email", status: record.status || "Planned", start_date: record.startDate || new Date().toISOString().slice(0, 10), end_date: record.endDate || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), budget_amount: record.budget || 0, expected_revenue: record.expectedRevenue || 0, ownerId };
   if (kind === "tickets") return { ticket_number: record.number || `TCK-${Date.now()}`, subject: record.subject || record.name || "Customer request", priority: record.priority || "Medium", status: record.status || "Open", category: record.category || "General", source: record.source || "Manual", due_date: record.nextFollowUp, ownerId };
   if (kind === "files") return { file_name: record.fileName || `crm-file-${Date.now()}.txt`, original_name: record.name || "CRM file", storage_path: record.storagePath || "metadata-only", mime_type: record.type || "text/plain", size_bytes: record.size || 0, visibility: record.visibility || "Internal" };
@@ -3943,7 +5611,14 @@ function descriptionFor(kind: CRMPageKind) {
     calendarIntegrations: "Google, Outlook, and development calendar sync configuration.",
     webhooks: "Outbound signed events for Zapier, n8n, and CRM integrations.",
     campaigns: "Campaign planning, lead generation, ROI, and conversion tracking.",
-    products: "Products and services used in deals and quotations.",
+    products: "Products used in deals, price books, quotes, and SRM handoff.",
+    services: "Service catalog with billing type, default rate, delivery cost, and quote readiness.",
+    priceBooks: "Regional and segment price books with product and service pricing.",
+    quotes: "Draft, calculate, approve, send, accept, and convert quotes to SRM.",
+    quoteBuilder: "Build quote lines, calculate totals, manage versions, and trigger SRM conversion.",
+    quoteApprovals: "Review quote approval requests, discount exceptions, and decision comments.",
+    cpq: "Configure CPQ validation, discount, bundle, and recommendation rules.",
+    guidedSelling: "Question flows and recommendation sets for guided selling.",
     quotations: "Draft, send, accept, reject, and convert quotations.",
     approvalSettings: "Configure deal discount, quotation, stage, high-value, contract, and price approvals.",
     myApprovals: "Review CRM approvals assigned to you and record decisions.",
@@ -3954,7 +5629,11 @@ function descriptionFor(kind: CRMPageKind) {
     reports: "",
     automation: "Owner assignment, reminders, quote expiry, critical ticket escalation, and stale lead rules.",
     leadCash: "Lead-to-cash conversion from lead to contact, account, deal, quote, and invoice handoff.",
-    forecasting: "Weighted pipeline, monthly target tracking, quota coverage, and commit/best-case/at-risk views.",
+    forecasting: "Weighted forecasts by owner, team, territory, expected close date, and SRM invoice/collection actuals.",
+    targets: "Create sales quotas and compare achieved, invoiced, and collected values.",
+    salesPerformance: "Owner performance across pipeline, weighted forecast, activities, conversion, invoices, and collections.",
+    funnel: "Lead-to-cash funnel across CRM stages and SRM order, invoice, and receipt milestones.",
+    lostAnalysis: "Lost reasons, competitors, lost amount, owner trends, and AI pattern-detection readiness.",
     customer360: "Unified customer view across contacts, companies, deals, tickets, activities, quotations, files, and campaigns.",
     importExport: "Field mapping, duplicate detection, validation preview, rollback, and import history.",
     settings: "Lead sources, statuses, pipelines, quote settings, ticket categories, notifications, and import/export.",
@@ -3966,7 +5645,7 @@ function descriptionFor(kind: CRMPageKind) {
 }
 
 function actionFor(kind: CRMPageKind) {
-  if (["leads", "contacts", "companies", "deals", "activities", "tasks", "campaigns", "products", "quotations", "tickets"].includes(kind)) return `Create ${pageTitles[kind].replace("CRM ", "").replace(/s$/, "")}`;
+  if (["leads", "contacts", "companies", "deals", "activities", "tasks", "campaigns", "products", "services", "priceBooks", "quotes", "quotations", "tickets", "cpq", "guidedSelling"].includes(kind)) return `Create ${pageTitles[kind].replace("CRM ", "").replace(/s$/, "")}`;
   if (kind === "approvalSettings") return "Create workflow";
   if (kind === "pipelineSettings") return "Back to board";
   if (kind === "leadScoring") return "Recalculate all";
