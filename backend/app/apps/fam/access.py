@@ -65,6 +65,25 @@ FAM_VIEW_PERMISSIONS = {
     "fam_cogs_post",
     "fam_inventory_reports_view",
     "fam_inventory_ai_use",
+    "fam_inventory_reconciliation_view",
+    "fam_inventory_gl_post",
+    "fam_inventory_stock_reserve",
+    "fam_inventory_stock_adjust",
+    "fam_inventory_audit_view",
+    "fam_inventory_accounting_view",
+    "fam_inventory_accounting_manage",
+    "fam_inventory_post_accounting",
+    "fam_inventory_cogs_post",
+    "fam_inventory_reconciliation_manage",
+    "fam_inventory_adjustment_post",
+    "fam_grni_view",
+    "fam_grni_manage",
+    "fam_import_manage",
+    "fam_export_view",
+    "fam_integrity_view",
+    "fam_period_close_manage",
+    "fam_ai_accounting_use",
+    "fam_final_certification_view",
 }
 FAM_ADMIN_PERMISSIONS = {"fam_admin"}
 FAM_SETTINGS_PERMISSIONS = {"fam_admin", "fam_settings_manage"}
@@ -121,9 +140,28 @@ FAM_STOCK_POST_PERMISSIONS = {"fam_admin", "fam_stock_post", "fam_inventory_mana
 FAM_STOCK_ADJUST_PERMISSIONS = {"fam_admin", "fam_stock_adjust", "fam_inventory_manage"}
 FAM_STOCK_TRANSFER_PERMISSIONS = {"fam_admin", "fam_stock_transfer", "fam_inventory_manage"}
 FAM_INVENTORY_VALUATION_VIEW_PERMISSIONS = {"fam_admin", "fam_inventory_valuation_view", "fam_inventory_view", "fam_inventory_manage"}
-FAM_COGS_POST_PERMISSIONS = {"fam_admin", "fam_cogs_post", "fam_inventory_manage"}
+FAM_COGS_POST_PERMISSIONS = {"fam_admin", "fam_cogs_post", "fam_inventory_gl_post", "fam_inventory_manage"}
 FAM_INVENTORY_REPORTS_VIEW_PERMISSIONS = {"fam_admin", "fam_inventory_reports_view", "fam_inventory_view", "fam_inventory_manage"}
 FAM_INVENTORY_AI_USE_PERMISSIONS = {"fam_admin", "fam_inventory_ai_use", "fam_inventory_manage"}
+FAM_INVENTORY_RECONCILIATION_VIEW_PERMISSIONS = {"fam_admin", "fam_inventory_reconciliation_view", "fam_inventory_reports_view", "fam_inventory_manage"}
+FAM_INVENTORY_GL_POST_PERMISSIONS = {"fam_admin", "fam_inventory_gl_post", "fam_cogs_post", "fam_inventory_manage"}
+FAM_INVENTORY_STOCK_RESERVE_PERMISSIONS = {"fam_admin", "fam_inventory_stock_reserve", "fam_inventory_manage"}
+FAM_INVENTORY_STOCK_ADJUST_PERMISSIONS = {"fam_admin", "fam_inventory_stock_adjust", "fam_inventory_manage"}
+FAM_INVENTORY_AUDIT_VIEW_PERMISSIONS = {"fam_admin", "fam_inventory_audit_view", "fam_audit_view", "fam_inventory_manage"}
+FAM_INVENTORY_ACCOUNTING_VIEW_PERMISSIONS = {"fam_admin", "fam_inventory_accounting_view", "fam_inventory_accounting_manage", "fam_inventory_post_accounting", "fam_inventory_manage"}
+FAM_INVENTORY_ACCOUNTING_MANAGE_PERMISSIONS = {"fam_admin", "fam_inventory_accounting_manage", "fam_inventory_post_accounting", "fam_inventory_manage"}
+FAM_INVENTORY_POST_ACCOUNTING_PERMISSIONS = {"fam_admin", "fam_inventory_post_accounting", "fam_inventory_gl_post", "fam_inventory_accounting_manage"}
+FAM_INVENTORY_COGS_POST_PERMISSIONS = {"fam_admin", "fam_inventory_cogs_post", "fam_cogs_post", "fam_inventory_gl_post", "fam_inventory_accounting_manage"}
+FAM_INVENTORY_RECONCILIATION_MANAGE_PERMISSIONS = {"fam_admin", "fam_inventory_reconciliation_manage", "fam_inventory_reconciliation_view", "fam_inventory_accounting_manage"}
+FAM_INVENTORY_ADJUSTMENT_POST_PERMISSIONS = {"fam_admin", "fam_inventory_adjustment_post", "fam_stock_adjust", "fam_inventory_accounting_manage"}
+FAM_GRNI_VIEW_PERMISSIONS = {"fam_admin", "fam_grni_view", "fam_inventory_reconciliation_view", "fam_ap_view"}
+FAM_GRNI_MANAGE_PERMISSIONS = {"fam_admin", "fam_grni_manage", "fam_inventory_accounting_manage", "fam_purchase_manage"}
+FAM_IMPORT_MANAGE_PERMISSIONS = {"fam_admin", "fam_import_manage"}
+FAM_EXPORT_VIEW_PERMISSIONS = {"fam_admin", "fam_export_view", "fam_chart_view", "fam_ledger_entries_view"}
+FAM_INTEGRITY_VIEW_PERMISSIONS = {"fam_admin", "fam_integrity_view", "fam_audit_view"}
+FAM_PERIOD_CLOSE_MANAGE_PERMISSIONS = {"fam_admin", "fam_period_close_manage"}
+FAM_AI_ACCOUNTING_USE_PERMISSIONS = {"fam_admin", "fam_ai_accounting_use"}
+FAM_FINAL_CERTIFICATION_VIEW_PERMISSIONS = {"fam_admin", "fam_final_certification_view", "fam_audit_view"}
 
 
 def normalize_role(role: str | None) -> str:

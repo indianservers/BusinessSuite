@@ -988,7 +988,15 @@ class FAMStockItem(Base):
     unit_id = Column(Integer, ForeignKey("fam_units_of_measure.id", ondelete="SET NULL"), nullable=True, index=True)
     default_warehouse_id = Column(Integer, ForeignKey("fam_warehouses.id", ondelete="SET NULL"), nullable=True, index=True)
     inventory_ledger_id = Column(Integer, ForeignKey("fam_ledgers.id", ondelete="SET NULL"), nullable=True, index=True)
+    purchase_ledger_id = Column(Integer, ForeignKey("fam_ledgers.id", ondelete="SET NULL"), nullable=True, index=True)
+    sales_ledger_id = Column(Integer, ForeignKey("fam_ledgers.id", ondelete="SET NULL"), nullable=True, index=True)
     cogs_ledger_id = Column(Integer, ForeignKey("fam_ledgers.id", ondelete="SET NULL"), nullable=True, index=True)
+    adjustment_gain_ledger_id = Column(Integer, ForeignKey("fam_ledgers.id", ondelete="SET NULL"), nullable=True, index=True)
+    adjustment_loss_ledger_id = Column(Integer, ForeignKey("fam_ledgers.id", ondelete="SET NULL"), nullable=True, index=True)
+    grni_ledger_id = Column(Integer, ForeignKey("fam_ledgers.id", ondelete="SET NULL"), nullable=True, index=True)
+    cost_center_id = Column(Integer, ForeignKey("fam_cost_centers.id", ondelete="SET NULL"), nullable=True, index=True)
+    branch_id = Column(Integer, ForeignKey("fam_branches.id", ondelete="SET NULL"), nullable=True, index=True)
+    valuation_method = Column(String(40), default="weighted_average", index=True)
     sku = Column(String(80), nullable=False, index=True)
     item_name = Column(String(220), nullable=False, index=True)
     barcode = Column(String(120), nullable=True, index=True)
@@ -1160,3 +1168,134 @@ class FAMInventoryReport(Base):
     result_json = Column(JSON, nullable=True)
     generated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     generated_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class FAMInventoryReservation(Base):
+    __tablename__ = "fam_inventory_reservations"
+    __table_args__ = (UniqueConstraint("company_id", "source_module", "source_record_type", "source_record_id", "stock_item_id", name="uq_fam_inventory_reservation_source_item"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    reservation_number = Column(String(120), nullable=False, index=True)
+    stock_item_id = Column(Integer, ForeignKey("fam_stock_items.id", ondelete="RESTRICT"), nullable=False, index=True)
+    warehouse_id = Column(Integer, ForeignKey("fam_warehouses.id", ondelete="SET NULL"), nullable=True, index=True)
+    quantity = Column(Numeric(14, 3), nullable=False)
+    reserved_quantity = Column(Numeric(14, 3), nullable=False)
+    source_module = Column(String(40), nullable=False, index=True)
+    source_record_type = Column(String(80), nullable=False, index=True)
+    source_record_id = Column(String(120), nullable=False, index=True)
+    status = Column(String(30), default="active", index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    released_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    notes = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class FAMInventoryIntegrationLink(Base):
+    __tablename__ = "fam_inventory_integration_links"
+    __table_args__ = (UniqueConstraint("company_id", "stock_item_id", "target_module", "target_record_type", "target_record_id", name="uq_fam_inventory_link_target"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    stock_item_id = Column(Integer, ForeignKey("fam_stock_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_module = Column(String(40), nullable=False, index=True)
+    target_record_type = Column(String(80), nullable=False, index=True)
+    target_record_id = Column(String(120), nullable=False, index=True)
+    link_type = Column(String(60), default="catalog", index=True)
+    metadata_json = Column(JSON, nullable=True)
+    active = Column(Boolean, default=True, index=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class FAMInventoryControlSetting(Base):
+    __tablename__ = "fam_inventory_control_settings"
+    __table_args__ = (UniqueConstraint("company_id", "setting_key", name="uq_fam_inventory_control_setting"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    setting_key = Column(String(120), nullable=False, index=True)
+    setting_value_json = Column(JSON, nullable=True)
+    description = Column(Text, nullable=True)
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), index=True)
+
+
+class FAMImportJob(Base):
+    __tablename__ = "fam_import_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    import_type = Column(String(80), nullable=False, index=True)
+    file_name = Column(String(220), nullable=False)
+    file_content = Column(Text, nullable=True)
+    status = Column(String(30), default="uploaded", index=True)
+    mapping_json = Column(JSON, nullable=True)
+    validation_result_json = Column(JSON, nullable=True)
+    error_json = Column(JSON, nullable=True)
+    row_count = Column(Integer, default=0)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    posted_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    posted_at = Column(DateTime(timezone=True), nullable=True, index=True)
+
+
+class FAMExportJob(Base):
+    __tablename__ = "fam_export_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    export_type = Column(String(80), nullable=False, index=True)
+    export_format = Column(String(20), default="csv", index=True)
+    status = Column(String(30), default="ready", index=True)
+    file_name = Column(String(220), nullable=True)
+    file_content = Column(Text, nullable=True)
+    result_json = Column(JSON, nullable=True)
+    error_json = Column(JSON, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class FAMIntegrityRun(Base):
+    __tablename__ = "fam_integrity_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    status = Column(String(30), default="completed", index=True)
+    result_json = Column(JSON, nullable=True)
+    run_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    run_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class FAMPeriodCloseRun(Base):
+    __tablename__ = "fam_period_close_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    financial_year_id = Column(Integer, ForeignKey("fam_financial_years.id", ondelete="SET NULL"), nullable=True, index=True)
+    accounting_period_id = Column(Integer, ForeignKey("fam_accounting_periods.id", ondelete="SET NULL"), nullable=True, index=True)
+    status = Column(String(30), default="checked", index=True)
+    checklist_json = Column(JSON, nullable=True)
+    locked_period_id = Column(Integer, ForeignKey("fam_accounting_periods.id", ondelete="SET NULL"), nullable=True, index=True)
+    approval_note = Column(Text, nullable=True)
+    run_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    run_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    locked_at = Column(DateTime(timezone=True), nullable=True, index=True)
+
+
+class FAMAIAccountingLog(Base):
+    __tablename__ = "fam_ai_accounting_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=False, index=True)
+    request_type = Column(String(80), nullable=False, index=True)
+    prompt = Column(Text, nullable=True)
+    context_json = Column(JSON, nullable=True)
+    response_json = Column(JSON, nullable=True)
+    confidence = Column(Numeric(7, 3), default=0)
+    evidence_json = Column(JSON, nullable=True)
+    provider = Column(String(80), nullable=True)
+    status = Column(String(30), default="not_configured", index=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

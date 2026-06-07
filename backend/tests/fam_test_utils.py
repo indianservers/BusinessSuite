@@ -76,7 +76,8 @@ FAM_ADMIN_PERMISSIONS = [
     "fam_expense_manage",
     "fam_tds_view",
     "fam_tds_manage",
-    "fam_vendor_payment_manage", "fam_inventory_view", "fam_inventory_manage", "fam_stock_post", "fam_stock_adjust", "fam_stock_transfer", "fam_inventory_valuation_view", "fam_cogs_post", "fam_inventory_reports_view", "fam_inventory_ai_use",
+    "fam_vendor_payment_manage", "fam_inventory_view", "fam_inventory_manage", "fam_stock_post", "fam_stock_adjust", "fam_stock_transfer", "fam_inventory_valuation_view", "fam_cogs_post", "fam_inventory_reports_view", "fam_inventory_ai_use", "fam_inventory_reconciliation_view", "fam_inventory_gl_post", "fam_inventory_stock_reserve", "fam_inventory_stock_adjust", "fam_inventory_audit_view", "fam_inventory_accounting_view", "fam_inventory_accounting_manage", "fam_inventory_post_accounting", "fam_inventory_cogs_post", "fam_inventory_reconciliation_manage", "fam_inventory_adjustment_post", "fam_grni_view", "fam_grni_manage",
+    "fam_import_manage", "fam_export_view", "fam_integrity_view", "fam_period_close_manage", "fam_ai_accounting_use", "fam_final_certification_view",
 ]
 
 

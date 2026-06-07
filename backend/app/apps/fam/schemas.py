@@ -472,7 +472,15 @@ class InventoryItemPayload(FAMBaseSchema):
     unit_id: int | None = None
     default_warehouse_id: int | None = None
     inventory_ledger_id: int | None = None
+    purchase_ledger_id: int | None = None
+    sales_ledger_id: int | None = None
     cogs_ledger_id: int | None = None
+    adjustment_gain_ledger_id: int | None = None
+    adjustment_loss_ledger_id: int | None = None
+    grni_ledger_id: int | None = None
+    cost_center_id: int | None = None
+    branch_id: int | None = None
+    valuation_method: str = "weighted_average"
     barcode: str | None = None
     description: str | None = None
     hsn_code: str | None = None
@@ -562,14 +570,108 @@ class COGSPostPayload(FAMBaseSchema):
     quantity: Decimal
     posting_date: date
     reference_number: str | None = None
+    warehouse_id: int | None = None
+    source_module: str = "fam"
+    source_record_type: str | None = None
+    source_record_id: str | None = None
     inventory_ledger_id: int | None = None
     cogs_ledger_id: int | None = None
+
+
+class InventoryReservationPayload(FAMBaseSchema):
+    stock_item_id: int
+    quantity: Decimal
+    warehouse_id: int | None = None
+    source_module: str
+    source_record_type: str
+    source_record_id: str
+    expires_at: datetime | None = None
+    notes: str | None = None
+
+
+class InventoryReleaseReservationPayload(FAMBaseSchema):
+    reservation_id: int | None = None
+    stock_item_id: int | None = None
+    source_module: str | None = None
+    source_record_type: str | None = None
+    source_record_id: str | None = None
+    notes: str | None = None
+
+
+class InventoryIntegrationLinkPayload(FAMBaseSchema):
+    stock_item_id: int
+    target_module: str
+    target_record_type: str
+    target_record_id: str
+    link_type: str = "catalog"
+    metadata_json: dict[str, Any] | None = None
+
+
+class InventoryControlSettingPayload(FAMBaseSchema):
+    setting_key: str
+    setting_value_json: dict[str, Any]
+    description: str | None = None
+
+
+class InventoryLedgerMappingPayload(FAMBaseSchema):
+    inventory_ledger_id: int | None = None
+    purchase_ledger_id: int | None = None
+    sales_ledger_id: int | None = None
+    cogs_ledger_id: int | None = None
+    adjustment_gain_ledger_id: int | None = None
+    adjustment_loss_ledger_id: int | None = None
+    grni_ledger_id: int | None = None
+    gst_rate_id: int | None = None
+    hsn_code: str | None = None
+    valuation_method: str = "weighted_average"
+    cost_center_id: int | None = None
+    branch_id: int | None = None
+    default_warehouse_id: int | None = None
+
+
+class InventoryOpeningAccountingPayload(FAMBaseSchema):
+    opening_stock_id: int | None = None
+    opening_difference_ledger_id: int | None = None
+    posting_date: date | None = None
+
+
+class InventoryBatchCOGSPayload(FAMBaseSchema):
+    items: list[COGSPostPayload] = Field(default_factory=list)
 
 
 class InventoryAIRequestPayload(FAMBaseSchema):
     prompt: str
     scope: str = "inventory"
     stock_item_id: int | None = None
+
+
+class FAMImportUploadPayload(FAMBaseSchema):
+    import_type: str
+    file_name: str
+    file_content: str
+
+
+class FAMImportMapPayload(FAMBaseSchema):
+    mapping_json: dict[str, Any] = Field(default_factory=dict)
+
+
+class FAMExportPayload(FAMBaseSchema):
+    export_type: str
+    export_format: str = "csv"
+    filters_json: dict[str, Any] = Field(default_factory=dict)
+
+
+class FAMPeriodCloseLockPayload(FAMBaseSchema):
+    accounting_period_id: int | None = None
+    financial_year_id: int | None = None
+    approval_note: str | None = None
+
+
+class FAMAIAccountingPayload(FAMBaseSchema):
+    prompt: str | None = None
+    voucher_id: int | None = None
+    report_type: str | None = None
+    context_json: dict[str, Any] = Field(default_factory=dict)
 
 
 class FAMResponse(FAMBaseSchema):

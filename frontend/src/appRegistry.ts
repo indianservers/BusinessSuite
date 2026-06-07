@@ -14,7 +14,7 @@ export type FrontendAppModule = {
   routes: FrontendRoute[];
 };
 
-const rawInstalledApps = import.meta.env.VITE_INSTALLED_APPS || "hrms,crm,project_management,srm,fam,inventory";
+const rawInstalledApps = import.meta.env.VITE_INSTALLED_APPS || "hrms,crm,project_management,srm,fam";
 const validAppKeys: FrontendAppKey[] = ["hrms", "crm", "project_management", "srm", "fam", "inventory"];
 
 export function normalizeAppKey(value: string) {

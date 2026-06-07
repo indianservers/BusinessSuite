@@ -147,6 +147,19 @@ COMMON_PERMISSIONS = [
     ("fam_cogs_post", "Post FAM inventory COGS vouchers", "fam"),
     ("fam_inventory_reports_view", "View FAM inventory reports", "fam"),
     ("fam_inventory_ai_use", "Use audited FAM inventory AI insights", "fam"),
+    ("fam_inventory_reconciliation_view", "View FAM inventory to GL and SRM reconciliation", "fam"),
+    ("fam_inventory_gl_post", "Post FAM inventory GL entries", "fam"),
+    ("fam_inventory_stock_reserve", "Reserve and release FAM inventory stock", "fam"),
+    ("fam_inventory_stock_adjust", "Control FAM inventory stock adjustment settings", "fam"),
+    ("fam_inventory_audit_view", "View FAM inventory audit trail", "fam"),
+    ("fam_inventory_accounting_view", "View FAM inventory accounting integration", "fam"),
+    ("fam_inventory_accounting_manage", "Manage FAM inventory ledger mappings", "fam"),
+    ("fam_inventory_post_accounting", "Post inventory accounting vouchers", "fam"),
+    ("fam_inventory_cogs_post", "Post inventory COGS vouchers", "fam"),
+    ("fam_inventory_reconciliation_manage", "Manage inventory reconciliation controls", "fam"),
+    ("fam_inventory_adjustment_post", "Post inventory adjustment accounting", "fam"),
+    ("fam_grni_view", "View GRNI reconciliation", "fam"),
+    ("fam_grni_manage", "Manage GRNI accounting", "fam"),
 ]
 
 COMMON_ROLES = [

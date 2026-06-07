@@ -82,9 +82,11 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
   vendorPayments: { title: "Vendor Payments", description: "Prepare and post vendor payment runs against AP bills through bank or cash ledgers.", icon: Landmark },
   payablesDashboard: { title: "Payables Dashboard", description: "Vendor outstanding, AP aging buckets, draft bills, posted bills, and paid bills.", icon: BarChart3 },
   inventory: { title: "Inventory", description: "Merged AI Inventory Management Software capabilities inside FAM statutory books.", icon: Package },
+  inventoryAccounting: { title: "Inventory Accounting", description: "Inventory valuation, GL, GRNI, COGS, GST and item ledger mapping controls.", icon: Landmark },
   inventoryDashboard: { title: "Inventory Dashboard", description: "Stock value, low-stock alerts, warehouses, and recent stock movements.", icon: Package },
   inventoryItems: { title: "Stock Items", description: "GST-ready item master with HSN, units, stock groups, reorder levels, rates, and valuation ledgers.", icon: Package },
   inventoryItemDetail: { title: "Stock Item Detail", description: "Item master, stock quantity, valuation, and latest item ledger entries.", icon: Package },
+  inventoryLedgerMapping: { title: "Item Ledger Mapping", description: "Map stock item ledgers for inventory asset, purchases, sales, COGS, GRNI, GST, branch and valuation.", icon: GitBranch },
   inventoryCategories: { title: "Inventory Categories", description: "Category view mapped to FAM stock groups from the source inventory app.", icon: Layers3 },
   inventoryStockGroups: { title: "Stock Groups", description: "Hierarchical inventory groups for item classification.", icon: Layers3 },
   inventoryUnits: { title: "Units of Measure", description: "Units, symbols, and decimal settings for stock items.", icon: FileText },
@@ -97,7 +99,24 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
   inventoryDeliveryNotes: { title: "Delivery Notes", description: "Issue stock for delivery and keep inventory movement evidence.", icon: FileText },
   inventoryStockSummary: { title: "Stock Summary", description: "Item-wise quantity, average cost, stock value, and low-stock flags.", icon: BookOpen },
   inventoryItemLedger: { title: "Item Ledger", description: "Movement lines, balances, rates, and values for a stock item.", icon: ScrollText },
+  inventoryWarehouseStock: { title: "Warehouse Stock", description: "Warehouse-wise stock quantities and values from posted inventory movements.", icon: Building2 },
+  inventoryStockAging: { title: "Stock Aging", description: "Age inventory by last stock movement date to identify slow-moving stock.", icon: ScrollText },
+  inventoryReorderReport: { title: "Reorder Report", description: "Items below reorder and minimum levels with available quantity after reservations.", icon: AlertTriangle },
+  inventoryDeadStock: { title: "Dead Stock", description: "Items with no recent movement based on audited inventory ledger activity.", icon: AlertTriangle },
+  inventoryFastSlowMoving: { title: "Fast/Slow Moving Items", description: "Rank items by outward movement quantity for velocity analysis.", icon: BarChart3 },
   inventoryValuation: { title: "Inventory Valuation", description: "Weighted-average valuation layers and total inventory value.", icon: BarChart3 },
+  inventoryGrossMargin: { title: "Gross Margin", description: "Inventory revenue, COGS, and gross margin by item.", icon: BadgeIndianRupee },
+  inventoryReconciliation: { title: "Inventory Reconciliation", description: "Inventory-to-GL and Inventory-to-SRM reconciliation checks.", icon: ShieldCheck },
+  inventoryReconciliationGl: { title: "Inventory to GL", description: "Reconcile inventory valuation total with inventory asset ledger balance.", icon: ShieldCheck },
+  inventoryReconciliationGrni: { title: "GRNI Reconciliation", description: "Compare goods received not invoiced with purchase bill evidence.", icon: ShieldCheck },
+  inventoryReconciliationCogs: { title: "COGS Reconciliation", description: "Compare stock issue value with posted COGS vouchers.", icon: ShieldCheck },
+  inventoryReconciliationGst: { title: "GST Item Reconciliation", description: "Check stock item HSN/GST mappings against GST item register readiness.", icon: ShieldCheck },
+  inventoryCogs: { title: "COGS Report", description: "Delivery and stock issue value with COGS voucher posting evidence.", icon: BadgeIndianRupee },
+  inventoryGrni: { title: "GRNI", description: "Goods received not invoiced outstanding and clearing status.", icon: Landmark },
+  inventoryHsnSummary: { title: "HSN Summary", description: "Item-wise HSN grouping, quantity, value, and GST readiness.", icon: ScrollText },
+  inventoryAudit: { title: "Inventory Audit", description: "Audit trail for stock postings, reservations, controls, and integration links.", icon: ScrollText },
+  inventoryCrmLink: { title: "CRM Inventory Link", description: "CRM product catalog links, stock availability, reorder status, and margin signals.", icon: Package },
+  inventorySrmLink: { title: "SRM Inventory Link", description: "SRM reservations, posted inventory movements, and duplicate deduction controls.", icon: Package },
   inventoryReorderAlerts: { title: "Reorder Alerts", description: "Items at or below reorder/minimum stock thresholds.", icon: AlertTriangle },
   inventoryReports: { title: "Inventory Reports", description: "Stock summary, valuation, reorder alerts, and generated report audit evidence.", icon: BarChart3 },
   inventoryAI: { title: "Inventory AI", description: "Audited AI insight requests with honest provider readiness status.", icon: Sparkles },
@@ -812,8 +831,18 @@ function InventoryDashboardView() {
   const source = useQuery({ queryKey: ["fam", "inventorySourceAudit"], queryFn: famApi.inventorySourceAudit });
   const data = (dashboard.data || {}) as FAMRecord;
   const kpis: Array<[string, React.ReactNode]> = [["Items", text(data.items_count)], ["Warehouses", text(data.warehouses_count)], ["Stock value", money(data.total_stock_value)], ["Low stock", text(data.low_stock_count)]];
-  const links: Array<[string, string]> = [["Items", "/fam/inventory/items"], ["Warehouses", "/fam/inventory/warehouses"], ["Stock In", "/fam/inventory/stock-in"], ["Stock Out", "/fam/inventory/stock-out"], ["Transfers", "/fam/inventory/stock-transfers"], ["Adjustments", "/fam/inventory/stock-adjustments"], ["Summary", "/fam/inventory/stock-summary"], ["Valuation", "/fam/inventory/valuation"], ["AI", "/fam/inventory/ai"]];
+  const links: Array<[string, string]> = [["Accounting", "/fam/inventory/accounting"], ["Items", "/fam/inventory/items"], ["Warehouses", "/fam/inventory/warehouses"], ["Stock In", "/fam/inventory/stock-in"], ["Stock Out", "/fam/inventory/stock-out"], ["Transfers", "/fam/inventory/stock-transfers"], ["Adjustments", "/fam/inventory/stock-adjustments"], ["Summary", "/fam/inventory/stock-summary"], ["Valuation", "/fam/inventory/valuation"], ["AI", "/fam/inventory/ai"]];
   return <div className="space-y-4"><State label="inventory dashboard" isLoading={dashboard.isLoading} isError={dashboard.isError} /><div className="grid gap-3 md:grid-cols-4">{kpis.map(([label, value]) => <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Inventory workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{links.map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Source merge audit</CardTitle></CardHeader><CardContent><State label="source audit" isLoading={source.isLoading} isError={source.isError} /><DataTable rows={((source.data as FAMRecord | undefined)?.files as FAMRecord[] | undefined) || []} columns={["path", "exists"]} /></CardContent></Card></div>;
+}
+
+function InventoryAccountingView() {
+  const query = useQuery({ queryKey: ["fam", "inventoryAccounting"], queryFn: famApi.inventoryAccounting });
+  const data = (query.data || {}) as FAMRecord;
+  const gl = (data.gl_reconciliation || {}) as FAMRecord;
+  const grni = (data.grni_reconciliation || {}) as FAMRecord;
+  const cogs = (data.cogs_reconciliation || {}) as FAMRecord;
+  const gst = (data.gst_reconciliation || {}) as FAMRecord;
+  return <div className="space-y-4"><State label="inventory accounting" isLoading={query.isLoading} isError={query.isError} /><MetricGrid items={[["Status", text(data.status)], ["Unmapped items", text(data.unmapped_items)], ["GL difference", money(gl.difference)], ["GRNI outstanding", money(grni.grni_outstanding)], ["COGS difference", money(cogs.difference)], ["GST exceptions", text(gst.exceptions)]]} /><Card><CardHeader><CardTitle className="text-base">Accounting controls</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{[["Ledger Mapping", "/fam/inventory/items/1/ledger-mapping"], ["GL Reconciliation", "/fam/inventory/reconciliation/gl"], ["GRNI", "/fam/inventory/reconciliation/grni"], ["COGS", "/fam/inventory/reconciliation/cogs"], ["GST", "/fam/inventory/reconciliation/gst"], ["HSN Summary", "/fam/inventory/reports/hsn-summary"]].map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card></div>;
 }
 
 function InventoryItemsView() {
@@ -822,6 +851,18 @@ function InventoryItemsView() {
   const [draft, setDraft] = useState<FAMRecord>({ sku: "ITEM-001", item_name: "Demo Stock Item", purchase_rate: 100, sales_rate: 150, reorder_level: 5, min_stock: 2, track_inventory: true });
   const mutation = useMutation({ mutationFn: () => famApi.createInventoryItem(draft), onSuccess: () => { toast({ title: "Stock item saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create item</CardTitle></CardHeader><CardContent className="space-y-3">{["sku", "item_name", "hsn_code", "stock_group_id", "unit_id", "default_warehouse_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save item</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Stock items</CardTitle></CardHeader><CardContent><State label="stock items" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "hsn_code", "current_quantity", "average_cost", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/fam/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
+}
+
+function InventoryLedgerMappingView() {
+  const { id } = useParams();
+  const itemId = id || "1";
+  const queryClient = useQueryClient();
+  const query = useQuery({ queryKey: ["fam", "inventoryLedgerMapping", itemId], queryFn: () => famApi.inventoryLedgerMapping(itemId) });
+  const [draft, setDraft] = useState<FAMRecord>({});
+  const data = { ...((query.data || {}) as FAMRecord), ...draft };
+  const fields = ["inventory_ledger_id", "purchase_ledger_id", "sales_ledger_id", "cogs_ledger_id", "adjustment_gain_ledger_id", "adjustment_loss_ledger_id", "grni_ledger_id", "gst_rate_id", "hsn_code", "valuation_method", "cost_center_id", "branch_id", "default_warehouse_id"];
+  const mutation = useMutation({ mutationFn: () => famApi.updateInventoryLedgerMapping(itemId, data), onSuccess: () => { toast({ title: "Inventory ledger mapping saved" }); setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  return <Card><CardHeader><CardTitle className="text-base">{text(data.sku || "Item")} ledger mapping</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3"><State label="ledger mapping" isLoading={query.isLoading} isError={query.isError} />{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(data[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}><Save className="h-4 w-4" />Save mapping</Button></div></CardContent></Card>;
 }
 
 function InventoryItemDetailView({ ledger = false }: { ledger?: boolean }) {
@@ -872,11 +913,92 @@ function InventoryAdjustmentView() {
   return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["adjustment_date", "warehouse_id", "reason"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{["stock_item_id", "quantity_in", "quantity_out", "rate"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post adjustment</Button></div></CardContent></Card>;
 }
 
-function InventorySummaryView({ kind }: { kind: "summary" | "valuation" | "reorder" | "reports" }) {
-  const query = useQuery({ queryKey: ["fam", `inventory-${kind}`], queryFn: () => kind === "valuation" ? famApi.inventoryValuation() : kind === "reorder" ? famApi.inventoryReorderAlerts() : kind === "reports" ? famApi.inventoryReports() : famApi.inventoryStockSummary() });
+type InventoryReportKind = "summary" | "valuation" | "reorder" | "reports" | "warehouse" | "aging" | "dead" | "fastSlow" | "grossMargin" | "cogs" | "hsnSummary" | "audit" | "crmLink" | "srmLink";
+
+function InventorySummaryView({ kind }: { kind: InventoryReportKind }) {
+  const query = useQuery({
+    queryKey: ["fam", `inventory-${kind}`],
+    queryFn: () => {
+      if (kind === "valuation") return famApi.inventoryValuation();
+      if (kind === "reorder") return famApi.inventoryReorderAlerts();
+      if (kind === "reports") return famApi.inventoryReports();
+      if (kind === "warehouse") return famApi.inventoryWarehouseStock();
+      if (kind === "aging") return famApi.inventoryStockAging();
+      if (kind === "dead") return famApi.inventoryDeadStock();
+      if (kind === "fastSlow") return famApi.inventoryFastSlowMoving();
+      if (kind === "grossMargin") return famApi.inventoryGrossMargin();
+      if (kind === "cogs") return famApi.inventoryCogsReport();
+      if (kind === "hsnSummary") return famApi.inventoryHsnSummary();
+      if (kind === "audit") return famApi.inventoryAudit();
+      if (kind === "crmLink") return famApi.inventoryCrmLink();
+      if (kind === "srmLink") return famApi.inventorySrmLink();
+      return famApi.inventoryStockSummary();
+    },
+  });
   const data = (query.data || {}) as FAMRecord;
   const rows = kind === "reports" ? ((data.summary as FAMRecord | undefined)?.items as FAMRecord[] | undefined) || [] : listItems(query.data);
-  return <Card><CardHeader><CardTitle className="text-base">{kind === "valuation" ? `Total value ${money(data.total_inventory_value)}` : "Inventory records"}</CardTitle></CardHeader><CardContent className="space-y-3"><State label="inventory report" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={["sku", "item_name", "current_quantity", "average_cost", "stock_value", "is_low_stock"]} /></CardContent></Card>;
+  const columns = kind === "audit"
+    ? ["action", "record_type", "record_id", "performed_at"]
+    : kind === "warehouse"
+      ? ["warehouse_name", "sku", "item_name", "quantity", "stock_value"]
+      : kind === "grossMargin"
+        ? ["sku", "item_name", "revenue", "cogs", "gross_margin", "gross_margin_percent"]
+        : kind === "cogs"
+          ? ["movement_number", "movement_date", "movement_type", "cogs_value", "voucher_posted", "status"]
+          : kind === "hsnSummary"
+            ? ["hsn_code", "items", "quantity", "stock_value"]
+        : kind === "srmLink"
+          ? ["reservation_number", "source_record_type", "source_record_id", "status"]
+          : ["sku", "item_name", "current_quantity", "available_quantity", "average_cost", "stock_value", "is_low_stock"];
+  return <Card><CardHeader><CardTitle className="text-base">{kind === "valuation" ? `Total value ${money(data.total_inventory_value)}` : "Inventory records"}</CardTitle></CardHeader><CardContent className="space-y-3"><State label="inventory report" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={columns} /></CardContent></Card>;
+}
+
+function InventoryReconciliationView() {
+  const gl = useQuery({ queryKey: ["fam", "inventory-gl-reconciliation"], queryFn: famApi.inventoryGlReconciliation });
+  const srm = useQuery({ queryKey: ["fam", "inventory-srm-reconciliation"], queryFn: famApi.inventorySrmReconciliation });
+  const glData = (gl.data || {}) as FAMRecord;
+  const srmData = (srm.data || {}) as FAMRecord;
+  return <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader><CardTitle className="text-base">Inventory to GL</CardTitle></CardHeader><CardContent className="space-y-3"><State label="GL reconciliation" isLoading={gl.isLoading} isError={gl.isError} /><MetricGrid items={[["Stock valuation", money(glData.stock_valuation)], ["Ledger balance", money(glData.ledger_balance)], ["Difference", money(glData.difference)], ["Status", text(glData.status)]]} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Inventory to SRM</CardTitle></CardHeader><CardContent className="space-y-3"><State label="SRM reconciliation" isLoading={srm.isLoading} isError={srm.isError} /><MetricGrid items={[["SRM sales orders", text(srmData.srm_sales_orders)], ["SRM invoices", text(srmData.srm_invoices)], ["Reservations", text(srmData.inventory_reservations)], ["Posted movements", text(srmData.posted_inventory_movements)]]} /><p className="text-sm text-muted-foreground">{text(srmData.duplicate_deduction_guard)}</p></CardContent></Card></div>;
+}
+
+function InventoryReconciliationDetailView({ kind }: { kind: "gl" | "grni" | "cogs" | "gst" }) {
+  const query = useQuery({
+    queryKey: ["fam", "inventory-reconciliation", kind],
+    queryFn: () => {
+      if (kind === "grni") return famApi.inventoryGrniReconciliation();
+      if (kind === "cogs") return famApi.inventoryCogsReconciliation();
+      if (kind === "gst") return famApi.inventoryGstReconciliation();
+      return famApi.inventoryGlReconciliation();
+    },
+  });
+  const data = (query.data || {}) as FAMRecord;
+  const rows = listItems(query.data);
+  const columns = kind === "gst"
+    ? ["sku", "hsn_code", "gst_rate_id", "gst_rate_configured", "gst_register_lines", "status"]
+    : kind === "cogs"
+      ? ["movement_number", "stock_issue_value", "cogs_posted", "difference", "status"]
+      : kind === "grni"
+        ? ["movement_number", "reference_number", "grni_value", "purchase_bill_status", "status"]
+        : ["inventory_ledger_id", "stock_valuation", "ledger_balance", "difference", "status"];
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Inventory {kind.toUpperCase()} reconciliation</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <State label={`${kind} reconciliation`} isLoading={query.isLoading} isError={query.isError} />
+        <MetricGrid items={[
+          ["Status", text(data.status)],
+          ["Difference", money(data.difference)],
+          ["Outstanding", money(data.grni_outstanding || data.stock_issue_value || data.stock_valuation)],
+          ["Exceptions", text(data.exceptions || 0)],
+        ]} />
+        <DataTable rows={rows.length ? rows : [data]} columns={columns} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function MetricGrid({ items }: { items: Array<[string, React.ReactNode]> }) {
+  return <div className="grid gap-3 sm:grid-cols-2">{items.map(([label, value]) => <div key={label} className="rounded-md border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p></div>)}</div>;
 }
 
 function InventoryAIView() {
@@ -896,7 +1018,7 @@ function parseJson(value: unknown) {
   }
 }
 
-const numericFields = new Set(["financial_year_id", "ledger_id", "ledger_group_id", "voucher_type_id", "debit_amount", "credit_amount", "opening_balance_dr", "opening_balance_cr", "opening_balance", "sequence_order", "numbering_sequence", "cost_center_id", "party_id", "payment_terms_days", "credit_limit", "original_amount", "outstanding_amount", "from_bill_reference_id", "to_bill_reference_id", "allocated_amount", "invoice_id", "receipt_id", "allocation_id", "source_record_id", "roundoff_ledger_id", "bank_account_id", "default_ledger_id", "statement_line_id", "voucher_id", "ledger_entry_id", "matched_amount", "expense_ledger_id", "from_ledger_id", "to_ledger_id", "amount", "cgst_rate", "sgst_rate", "igst_rate", "cess_rate", "default_gst_rate_id", "period_month", "period_year", "threshold_amount", "taxable_value", "vendor_id", "quantity", "quantity_in", "quantity_out", "rate", "gst_rate_id", "gst_amount", "tds_section_id", "tds_amount", "line_total", "subtotal", "discount_total", "gst_total", "grand_total", "employee_id", "total_amount", "default_rate", "section_id", "taxable_amount", "tds_rate", "bank_ledger_id", "purchase_bill_id", "bill_reference_id", "stock_group_id", "unit_id", "default_warehouse_id", "inventory_ledger_id", "cogs_ledger_id", "warehouse_id", "from_warehouse_id", "to_warehouse_id", "stock_item_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock", "max_stock", "parent_group_id", "branch_id", "adjustment_ledger_id"]);
+const numericFields = new Set(["financial_year_id", "ledger_id", "ledger_group_id", "voucher_type_id", "debit_amount", "credit_amount", "opening_balance_dr", "opening_balance_cr", "opening_balance", "sequence_order", "numbering_sequence", "cost_center_id", "party_id", "payment_terms_days", "credit_limit", "original_amount", "outstanding_amount", "from_bill_reference_id", "to_bill_reference_id", "allocated_amount", "invoice_id", "receipt_id", "allocation_id", "source_record_id", "roundoff_ledger_id", "bank_account_id", "default_ledger_id", "statement_line_id", "voucher_id", "ledger_entry_id", "matched_amount", "expense_ledger_id", "from_ledger_id", "to_ledger_id", "amount", "cgst_rate", "sgst_rate", "igst_rate", "cess_rate", "default_gst_rate_id", "period_month", "period_year", "threshold_amount", "taxable_value", "vendor_id", "quantity", "quantity_in", "quantity_out", "rate", "gst_rate_id", "gst_amount", "tds_section_id", "tds_amount", "line_total", "subtotal", "discount_total", "gst_total", "grand_total", "employee_id", "total_amount", "default_rate", "section_id", "taxable_amount", "tds_rate", "bank_ledger_id", "purchase_bill_id", "bill_reference_id", "stock_group_id", "unit_id", "default_warehouse_id", "inventory_ledger_id", "purchase_ledger_id", "sales_ledger_id", "cogs_ledger_id", "adjustment_gain_ledger_id", "adjustment_loss_ledger_id", "grni_ledger_id", "warehouse_id", "from_warehouse_id", "to_warehouse_id", "stock_item_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock", "max_stock", "parent_group_id", "branch_id", "adjustment_ledger_id"]);
 
 function getListConfig(kind: FAMViewKind) {
   if (kind === "financialYears") return { label: "financial year", query: famApi.financialYears, create: famApi.createFinancialYear, initial: { name: "FY 2027-28", start_date: "2027-04-01", end_date: "2028-03-31", status: "open", is_current: false }, fields: ["name", "start_date", "end_date"], columns: ["name", "start_date", "end_date", "status", "is_current"] };
@@ -987,8 +1109,10 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "vendorPayments") content = <VendorPaymentsView />;
   else if (kind === "payablesDashboard") content = <PayablesDashboardView />;
   else if (kind === "inventory" || kind === "inventoryDashboard") content = <InventoryDashboardView />;
+  else if (kind === "inventoryAccounting") content = <InventoryAccountingView />;
   else if (kind === "inventoryItems") content = <InventoryItemsView />;
   else if (kind === "inventoryItemDetail") content = <InventoryItemDetailView />;
+  else if (kind === "inventoryLedgerMapping") content = <InventoryLedgerMappingView />;
   else if (kind === "inventoryCategories" || kind === "inventoryStockGroups") content = <InventoryMasterView kind="groups" />;
   else if (kind === "inventoryUnits") content = <InventoryMasterView kind="units" />;
   else if (kind === "inventoryWarehouses") content = <InventoryMasterView kind="warehouses" />;
@@ -1000,7 +1124,24 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "inventoryStockAdjustments") content = <InventoryAdjustmentView />;
   else if (kind === "inventoryStockSummary") content = <InventorySummaryView kind="summary" />;
   else if (kind === "inventoryItemLedger") content = <InventoryItemDetailView ledger />;
+  else if (kind === "inventoryWarehouseStock") content = <InventorySummaryView kind="warehouse" />;
+  else if (kind === "inventoryStockAging") content = <InventorySummaryView kind="aging" />;
+  else if (kind === "inventoryReorderReport") content = <InventorySummaryView kind="reorder" />;
+  else if (kind === "inventoryDeadStock") content = <InventorySummaryView kind="dead" />;
+  else if (kind === "inventoryFastSlowMoving") content = <InventorySummaryView kind="fastSlow" />;
   else if (kind === "inventoryValuation") content = <InventorySummaryView kind="valuation" />;
+  else if (kind === "inventoryGrossMargin") content = <InventorySummaryView kind="grossMargin" />;
+  else if (kind === "inventoryCogs") content = <InventorySummaryView kind="cogs" />;
+  else if (kind === "inventoryGrni") content = <InventoryReconciliationDetailView kind="grni" />;
+  else if (kind === "inventoryHsnSummary") content = <InventorySummaryView kind="hsnSummary" />;
+  else if (kind === "inventoryReconciliation") content = <InventoryReconciliationView />;
+  else if (kind === "inventoryReconciliationGl") content = <InventoryReconciliationDetailView kind="gl" />;
+  else if (kind === "inventoryReconciliationGrni") content = <InventoryReconciliationDetailView kind="grni" />;
+  else if (kind === "inventoryReconciliationCogs") content = <InventoryReconciliationDetailView kind="cogs" />;
+  else if (kind === "inventoryReconciliationGst") content = <InventoryReconciliationDetailView kind="gst" />;
+  else if (kind === "inventoryAudit") content = <InventorySummaryView kind="audit" />;
+  else if (kind === "inventoryCrmLink") content = <InventorySummaryView kind="crmLink" />;
+  else if (kind === "inventorySrmLink") content = <InventorySummaryView kind="srmLink" />;
   else if (kind === "inventoryReorderAlerts") content = <InventorySummaryView kind="reorder" />;
   else if (kind === "inventoryReports") content = <InventorySummaryView kind="reports" />;
   else if (kind === "inventoryAI") content = <InventoryAIView />;

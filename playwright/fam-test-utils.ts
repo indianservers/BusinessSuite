@@ -75,8 +75,10 @@ export const famRoutes = [
   "/fam/payables/dashboard",
   "/fam/inventory",
   "/fam/inventory/dashboard",
+  "/fam/inventory/accounting",
   "/fam/inventory/items",
   "/fam/inventory/items/1",
+  "/fam/inventory/items/1/ledger-mapping",
   "/fam/inventory/categories",
   "/fam/inventory/stock-groups",
   "/fam/inventory/units",
@@ -89,9 +91,28 @@ export const famRoutes = [
   "/fam/inventory/delivery-notes",
   "/fam/inventory/stock-summary",
   "/fam/inventory/item-ledger/1",
+  "/fam/inventory/warehouse-stock",
+  "/fam/inventory/stock-aging",
+  "/fam/inventory/reorder-report",
+  "/fam/inventory/dead-stock",
+  "/fam/inventory/fast-slow-moving",
   "/fam/inventory/valuation",
+  "/fam/inventory/gross-margin",
+  "/fam/inventory/cogs",
+  "/fam/inventory/grni",
+  "/fam/inventory/reconciliation",
+  "/fam/inventory/reconciliation/gl",
+  "/fam/inventory/reconciliation/grni",
+  "/fam/inventory/reconciliation/cogs",
+  "/fam/inventory/reconciliation/gst",
+  "/fam/inventory/audit",
+  "/fam/inventory/crm-link",
+  "/fam/inventory/srm-link",
   "/fam/inventory/reorder-alerts",
   "/fam/inventory/reports",
+  "/fam/inventory/reports/cogs",
+  "/fam/inventory/reports/gross-margin",
+  "/fam/inventory/reports/hsn-summary",
   "/fam/inventory/ai",
 ];
 
@@ -219,6 +240,9 @@ function famResponse(path: string, method: string, url: URL) {
     if (path === "/fam/inventory/stock-adjustments") return { id: 1, adjustment_number: "ADJ-001", status: "draft" };
     if (path.includes("/fam/inventory/stock-adjustments/1/post")) return { id: 1, adjustment_number: "ADJ-001", status: "posted", voucher_id: 1 };
     if (path === "/fam/inventory/cogs/post") return { amount: 200, voucher: { ...voucher(), status: "posted" } };
+    if (path === "/fam/inventory/post-cogs") return { amount: 200, voucher: { ...voucher(), status: "posted" } };
+    if (path === "/fam/inventory/reserve-stock") return { id: 1, reservation_number: "RSV-001", stock_item_id: 1, reserved_quantity: 2, source_module: "srm", status: "active" };
+    if (path === "/fam/inventory/release-reservation") return { id: 1, reservation_number: "RSV-001", stock_item_id: 1, reserved_quantity: 0, source_module: "srm", status: "released" };
     if (path === "/fam/inventory/ai") return { id: 1, status: "not_configured", response: { message: "Inventory AI provider is not configured. No recommendation was generated." } };
     if (path.includes("/fam/vouchers/1/post")) return { ...voucher(), status: "posted" };
     if (path.includes("/fam/vouchers/1/cancel")) return { ...voucher(), status: "cancelled" };
@@ -230,7 +254,9 @@ function famResponse(path: string, method: string, url: URL) {
   }
   if (path.includes("/module-info")) return { key: "fam", name: "Finance & Accounting Management", shortName: "FAM" };
   if (path.includes("/fam/inventory/source-audit")) return { source_root: "C:\\Indian Servers\\AI Inventory Management Software", source_exists: true, merged_under: "FAM", files: [{ path: "app/services/stock_service.py", exists: true }, { path: "app/models/product.py", exists: true }] };
+  if (path.includes("/fam/inventory/accounting")) return { status: "ready", unmapped_items: 0, valuation: { total_inventory_value: 1000 }, gl_reconciliation: { stock_valuation: 1000, ledger_balance: 1000, difference: 0, status: "matched" }, grni_reconciliation: { grni_outstanding: 250, status: "open" }, cogs_reconciliation: { stock_issue_value: 500, cogs_posted: 500, difference: 0, status: "matched" }, gst_reconciliation: { exceptions: 0, status: "matched" } };
   if (path.includes("/fam/inventory/dashboard") || path === "/fam/inventory") return { items_count: 1, warehouses_count: 1, total_stock_value: 1000, low_stock_count: 1, recent_movements: [{ id: 1, movement_number: "MOV-001", movement_type: "opening_stock", status: "posted" }] };
+  if (path.includes("/fam/inventory/items/1/ledger-mapping")) return { id: 1, sku: "SKU-1", item_name: "Inventory Item", inventory_ledger_id: 1, purchase_ledger_id: 2, sales_ledger_id: 3, cogs_ledger_id: 4, adjustment_gain_ledger_id: 5, adjustment_loss_ledger_id: 6, grni_ledger_id: 7, gst_rate_id: 1, hsn_code: "9983", valuation_method: "weighted_average", cost_center_id: 1, branch_id: 1, default_warehouse_id: 1 };
   if (path.includes("/fam/inventory/items/1")) return { ...inventoryItem(), ledger: [inventoryLedgerLine()] };
   if (path.includes("/fam/inventory/items")) return { items: [inventoryItem()], total: 1 };
   if (path.includes("/fam/inventory/stock-groups") || path.includes("/fam/inventory/categories")) return { items: [inventoryGroup()], total: 1 };
@@ -239,6 +265,21 @@ function famResponse(path: string, method: string, url: URL) {
   if (path.includes("/fam/inventory/stock-movements")) return { items: [{ id: 1, movement_number: "MOV-001", movement_type: "stock_in", status: "posted" }], total: 1 };
   if (path.includes("/fam/inventory/item-ledger/1")) return { items: [inventoryLedgerLine()], total: 1 };
   if (path.includes("/fam/inventory/stock-summary")) return { items: [inventorySummary()], total: 1, total_stock_value: 1000 };
+  if (path.includes("/fam/inventory/reports/warehouse-stock") || path.includes("/fam/inventory/warehouse-stock")) return { items: [{ warehouse_name: "Main Warehouse", sku: "SKU-1", item_name: "Inventory Item", quantity: 10, stock_value: 1000 }], total: 1 };
+  if (path.includes("/fam/inventory/reports/stock-aging") || path.includes("/fam/inventory/stock-aging")) return { items: [{ ...inventorySummary(), last_movement_date: "2026-06-06", age_days: 1 }], total: 1 };
+  if (path.includes("/fam/inventory/reports/dead-stock") || path.includes("/fam/inventory/dead-stock")) return { items: [{ ...inventorySummary(), age_days: 120 }], total: 1, threshold_days: 90 };
+  if (path.includes("/fam/inventory/reports/fast-slow-moving") || path.includes("/fam/inventory/fast-slow-moving")) return { items: [{ ...inventorySummary(), quantity_out: 12, movement_class: "fast" }], total: 1 };
+  if (path.includes("/fam/inventory/reports/gross-margin") || path.includes("/fam/inventory/gross-margin")) return { items: [{ ...inventorySummary(), revenue: 1500, cogs: 1000, gross_margin: 500, gross_margin_percent: 33.33 }], total: 1 };
+  if (path.includes("/fam/inventory/reports/cogs") || path.includes("/fam/inventory/cogs")) return { items: [{ movement_number: "MOV-OUT-001", movement_date: "2026-06-06", movement_type: "delivery_note", cogs_value: 500, voucher_posted: true, status: "posted" }], total: 1, total_cogs: 500 };
+  if (path.includes("/fam/inventory/reports/hsn-summary")) return { items: [{ hsn_code: "9983", items: 1, quantity: 10, stock_value: 1000 }], total: 1 };
+  if (path.includes("/fam/inventory/reconciliation/gl")) return { inventory_ledger_id: 1, stock_valuation: 1000, ledger_balance: 1000, difference: 0, status: "matched" };
+  if (path.includes("/fam/inventory/reconciliation/grni") || path.includes("/fam/inventory/grni")) return { items: [{ movement_number: "GRN-001", reference_number: "PO-001", grni_value: 250, purchase_bill_status: "pending", status: "open" }], total: 1, grni_outstanding: 250, status: "open" };
+  if (path.includes("/fam/inventory/reconciliation/cogs")) return { items: [{ movement_number: "MOV-OUT-001", stock_issue_value: 500, cogs_posted: 500, difference: 0, status: "matched" }], total: 1, stock_issue_value: 500, cogs_posted: 500, difference: 0, status: "matched" };
+  if (path.includes("/fam/inventory/reconciliation/gst")) return { items: [{ sku: "SKU-1", hsn_code: "9983", gst_rate_id: 1, gst_rate_configured: true, gst_register_lines: 1, status: "ready" }], total: 1, exceptions: 0, status: "matched" };
+  if (path.includes("/fam/inventory/reconciliation/srm")) return { srm_sales_orders: 1, srm_invoices: 1, inventory_reservations: 1, posted_inventory_movements: 1, duplicate_deduction_guard: "duplicate stock deduction is blocked by source reference" };
+  if (path.includes("/fam/inventory/audit")) return { items: [{ action: "POST", record_type: "inventory_movement", record_id: 1, performed_at: "2026-06-07T00:00:00Z" }], total: 1 };
+  if (path.includes("/fam/inventory/crm-link")) return { items: [{ ...inventorySummary(), crm_product: { id: 1, sku: "SKU-1", name: "Inventory Item" }, links: [] }], total: 1 };
+  if (path.includes("/fam/inventory/srm-link")) return { items: [{ reservation_number: "RSV-001", source_record_type: "sales_order", source_record_id: "SO-1", status: "active" }], total: 1 };
   if (path.includes("/fam/inventory/valuation")) return { items: [inventorySummary()], total: 1, total_inventory_value: 1000, valuation_method: "weighted_average" };
   if (path.includes("/fam/inventory/reorder-alerts")) return { items: [inventorySummary({ is_low_stock: true })], total: 1 };
   if (path.includes("/fam/inventory/reports")) return { summary: { items: [inventorySummary()], total: 1 }, valuation: { total_inventory_value: 1000, valuation_method: "weighted_average" }, reorder_alerts: { items: [inventorySummary({ is_low_stock: true })], total: 1 } };

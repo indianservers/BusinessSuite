@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
-    INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam", "inventory"]
+    INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(48)
