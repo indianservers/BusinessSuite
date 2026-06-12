@@ -189,11 +189,16 @@ def init_common_db(db: Session) -> None:
             db.flush()
         role.permissions = [perm_map[name] for name in role_data["permissions"] if name in perm_map]
 
+    admin_email = "admin@gowthamaeducationalinstitutions.com"
     role = db.query(Role).filter(Role.name == "super_admin").first()
-    user = db.query(User).filter(User.email == "admin@platform.local").first()
+    user = db.query(User).filter(User.email == admin_email).first()
+    legacy_user = db.query(User).filter(User.email == "admin@platform.local").first()
+    if legacy_user and not user:
+        legacy_user.email = admin_email
+        user = legacy_user
     if not user and role:
         user = User(
-            email="admin@platform.local",
+            email=admin_email,
             hashed_password=get_password_hash("Admin@123456"),
             is_active=True,
             is_superuser=True,
@@ -201,6 +206,11 @@ def init_common_db(db: Session) -> None:
         )
         db.add(user)
         db.flush()
+    elif user and role:
+        user.hashed_password = get_password_hash("Admin@123456")
+        user.is_active = True
+        user.is_superuser = True
+        user.role_id = role.id
 
     if user:
         SharedIdentityService.ensure_person_for_user(

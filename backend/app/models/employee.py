@@ -12,6 +12,7 @@ class Employee(Base):
         Index("idx_employees_directory_email", "work_email", "personal_email"),
         Index("idx_employees_department_status", "department_id", "status", "deleted_at"),
         Index("idx_employees_manager_status", "reporting_manager_id", "status", "deleted_at"),
+        {"mysql_row_format": "DYNAMIC"},
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -21,64 +22,64 @@ class Employee(Base):
     # Personal Info
     salutation = Column(String(20))  # Mr, Mrs, Ms, Dr, Prof, Er, Adv, Rev, CA, CS, Mx
     first_name = Column(String(80), nullable=False)
-    middle_name = Column(String(80))
+    middle_name = Column(Text)
     last_name = Column(String(80), nullable=False)
-    gender = Column(String(20))
+    gender = Column(Text)
     date_of_birth = Column(Date)
-    place_of_birth = Column(String(150))
-    marital_status = Column(String(20))  # Single, Married, Divorced, Widowed, Separated
-    blood_group = Column(String(10))
-    nationality = Column(String(50), default="Indian")
-    domicile_state = Column(String(100))  # State of domicile (for govt jobs)
-    religion = Column(String(50))
-    category = Column(String(20))  # General, OBC, SC, ST, EWS
-    sub_caste = Column(String(100))
-    gender_identity = Column(String(50))
-    disability_status = Column(String(50))  # None, Visual, Hearing, Locomotor, Other
+    place_of_birth = Column(Text)
+    marital_status = Column(Text)  # Single, Married, Divorced, Widowed, Separated
+    blood_group = Column(Text)
+    nationality = Column(Text, default="Indian")
+    domicile_state = Column(Text)  # State of domicile (for govt jobs)
+    religion = Column(Text)
+    category = Column(Text)  # General, OBC, SC, ST, EWS
+    sub_caste = Column(Text)
+    gender_identity = Column(Text)
+    disability_status = Column(Text)  # None, Visual, Hearing, Locomotor, Other
     disability_percentage = Column(Numeric(5, 2))  # % disability for certificate/reservation
-    disability_certificate_number = Column(String(50))
+    disability_certificate_number = Column(Text)
     ex_serviceman = Column(Boolean, default=False)  # Ex-armed forces personnel
-    veteran_status = Column(String(50))
+    veteran_status = Column(Text)
 
     # Family Info
-    father_name = Column(String(150))   # Required for govt forms, BGV, PF nominations
-    mother_name = Column(String(150))
-    spouse_name = Column(String(150))
-    spouse_occupation = Column(String(100))
+    father_name = Column(Text)   # Required for govt forms, BGV, PF nominations
+    mother_name = Column(Text)
+    spouse_name = Column(Text)
+    spouse_occupation = Column(Text)
     number_of_dependants = Column(Integer, default=0)
 
     # Contact
     work_email = Column(String(150), index=True)
     personal_email = Column(String(150))
     phone_number = Column(String(20))
-    alternate_phone = Column(String(20))
-    whatsapp_number = Column(String(20))  # May differ from phone
-    office_extension = Column(String(20))
-    emergency_contact_name = Column(String(100))
+    alternate_phone = Column(Text)
+    whatsapp_number = Column(Text)  # May differ from phone
+    office_extension = Column(Text)
+    emergency_contact_name = Column(Text)
     emergency_contact_number = Column(String(20))
-    emergency_contact_relation = Column(String(50))
+    emergency_contact_relation = Column(Text)
 
     # Address
     present_address = Column(Text)
-    present_city = Column(String(100))
-    present_state = Column(String(100))
-    present_pincode = Column(String(20))
-    present_country = Column(String(80), default="India")
+    present_city = Column(Text)
+    present_state = Column(Text)
+    present_pincode = Column(Text)
+    present_country = Column(Text, default="India")
     permanent_address = Column(Text)
-    permanent_city = Column(String(100))
-    permanent_state = Column(String(100))
-    permanent_pincode = Column(String(20))
-    permanent_country = Column(String(80), default="India")
+    permanent_city = Column(Text)
+    permanent_state = Column(Text)
+    permanent_pincode = Column(Text)
+    permanent_country = Column(Text, default="India")
 
     # Identity Documents
-    passport_number = Column(String(30))
+    passport_number = Column(Text)
     passport_expiry = Column(Date)
-    passport_issue_place = Column(String(100))
-    driving_license_number = Column(String(30))
+    passport_issue_place = Column(Text)
+    driving_license_number = Column(Text)
     driving_license_expiry = Column(Date)
-    driving_license_class = Column(String(50))  # LMV, HMV, Transport, etc.
-    voter_id_number = Column(String(30))
-    ration_card_number = Column(String(30))
+    driving_license_class = Column(Text)  # LMV, HMV, Transport, etc.
+    voter_id_number = Column(Text)
+    ration_card_number = Column(Text)
 
     # Job Info
     date_of_joining = Column(Date, nullable=False)
@@ -93,11 +94,11 @@ class Employee(Base):
     grade_band_id = Column(Integer, ForeignKey("grade_bands.id", ondelete="SET NULL"), nullable=True)
     position_id = Column(Integer, ForeignKey("positions.id", ondelete="SET NULL"), nullable=True)
     reporting_manager_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
-    functional_area = Column(String(100))  # Finance, IT, HR, Operations, Teaching, Medical, Legal, Engineering
-    employment_type = Column(String(50), default="Full-time")  # Full-time, Part-time, Contract, Intern, Visiting, Deputation
-    worker_type = Column(String(50), default="Employee")  # Employee, Contractor, Consultant, Gig, Apprentice, Trainee
+    functional_area = Column(Text)  # Finance, IT, HR, Operations, Teaching, Medical, Legal, Engineering
+    employment_type = Column(Text, default="Full-time")  # Full-time, Part-time, Contract, Intern, Visiting, Deputation
+    worker_type = Column(Text, default="Employee")  # Employee, Contractor, Consultant, Gig, Apprentice, Trainee
     status = Column(String(30), default="Active")  # Active, Probation, On Leave, Resigned, Terminated, Suspended, Absconding
-    work_location = Column(String(50), default="Office")  # Office, Remote, Hybrid, Field, On-Site
+    work_location = Column(Text, default="Office")  # Office, Remote, Hybrid, Field, On-Site
     shift_id = Column(Integer, ForeignKey("shifts.id", ondelete="SET NULL"), nullable=True)
     probation_period_months = Column(Integer, default=6)
     probation_start_date = Column(Date)
@@ -108,91 +109,91 @@ class Employee(Base):
     next_promotion_due_date = Column(Date)   # Useful for govt/academic cadres
     flexi_timing_applicable = Column(Boolean, default=False)
     work_from_home_eligible = Column(Boolean, default=False)
-    desk_code = Column(String(50))
-    seat_number = Column(String(50))         # Classroom/ward/cabin seat or room number
-    timezone = Column(String(80), default="Asia/Kolkata")
-    manager_chain_path = Column(String(500))
+    desk_code = Column(Text)
+    seat_number = Column(Text)         # Classroom/ward/cabin seat or room number
+    timezone = Column(Text, default="Asia/Kolkata")
+    manager_chain_path = Column(Text)
 
     # Contract / Bond (for contract staff and bonded employees)
     contract_start_date = Column(Date)
     contract_end_date = Column(Date)
-    contract_reference_number = Column(String(100))
-    contractor_company = Column(String(200))  # For third-party contract employees
+    contract_reference_number = Column(Text)
+    contractor_company = Column(Text)  # For third-party contract employees
     bond_applicable = Column(Boolean, default=False)
     bond_amount = Column(Numeric(12, 2))
     bond_end_date = Column(Date)
     bond_remarks = Column(Text)
 
     # Academic / Teaching Profile (Professor, Lecturer, School Teacher)
-    academic_rank = Column(String(80))       # Professor, Assoc. Professor, Asst. Professor, Lecturer, Teaching Asst., Visiting Faculty, Principal, HOD
+    academic_rank = Column(Text)       # Professor, Assoc. Professor, Asst. Professor, Lecturer, Teaching Asst., Visiting Faculty, Principal, HOD
     subjects_taught = Column(JSON)           # ["Mathematics", "Physics"] — teachers/professors
-    class_assigned = Column(String(100))     # Class teacher of "Grade 5 - Section A"
+    class_assigned = Column(Text)     # Class teacher of "Grade 5 - Section A"
     teaching_experience_years = Column(Numeric(4, 1))
     research_areas = Column(Text)
     publications_count = Column(Integer, default=0)
     h_index = Column(Integer)               # Academic citation metric
-    orcid_id = Column(String(50))           # Open Researcher ID
-    google_scholar_url = Column(String(300))
+    orcid_id = Column(Text)           # Open Researcher ID
+    google_scholar_url = Column(Text)
 
     # Medical / Healthcare Profile (Doctor, Nurse, Paramedic)
-    medical_specialty = Column(String(150))  # Cardiology, Orthopedics, Pediatrics, General Surgery
-    medical_sub_specialty = Column(String(150))
-    clinical_grade = Column(String(80))      # Senior Consultant, Consultant, Registrar, House Surgeon, Staff Nurse, Senior Sister
+    medical_specialty = Column(Text)  # Cardiology, Orthopedics, Pediatrics, General Surgery
+    medical_sub_specialty = Column(Text)
+    clinical_grade = Column(Text)      # Senior Consultant, Consultant, Registrar, House Surgeon, Staff Nurse, Senior Sister
 
     # Government / Public Sector Profile
-    service_number = Column(String(80))      # Govt service number / employee number
-    service_type = Column(String(100))       # IAS, IPS, IRS, State Service, Central Service, PSU
-    cadre = Column(String(100))              # Allocated state/central cadre
+    service_number = Column(Text)      # Govt service number / employee number
+    service_type = Column(Text)       # IAS, IPS, IRS, State Service, Central Service, PSU
+    cadre = Column(Text)              # Allocated state/central cadre
     pay_level = Column(String(20))           # 7th CPC Pay Level (Level 1–18)
     pay_band = Column(String(50))            # For pre-7th CPC employees
     grade_pay = Column(Numeric(10, 2))       # Grade pay amount
 
     # Industrial / Factory / Trades Worker Profile
-    worker_category = Column(String(30))     # Skilled, Semi-Skilled, Unskilled, Highly Skilled
-    trade = Column(String(100))              # Electrician, Welder, Fitter, Turner, Machinist, Plumber, Carpenter
-    apprentice_type = Column(String(80))     # Type of apprenticeship if applicable
-    factory_gate_number = Column(String(50)) # Gate/badge number for shop-floor workers
+    worker_category = Column(Text)     # Skilled, Semi-Skilled, Unskilled, Highly Skilled
+    trade = Column(Text)              # Electrician, Welder, Fitter, Turner, Machinist, Plumber, Carpenter
+    apprentice_type = Column(Text)     # Type of apprenticeship if applicable
+    factory_gate_number = Column(Text) # Gate/badge number for shop-floor workers
 
     # Professional Registration (Doctor, Lawyer, CA, Nurse, Teacher, Engineer)
-    professional_reg_number = Column(String(100))   # MCI/NMC no., Bar Council no., ICAI membership, Nursing Council no., CTET
-    professional_reg_body = Column(String(200))     # "Maharashtra Medical Council", "Bar Council of India", "ICAI"
+    professional_reg_number = Column(Text)   # MCI/NMC no., Bar Council no., ICAI membership, Nursing Council no., CTET
+    professional_reg_body = Column(Text)     # "Maharashtra Medical Council", "Bar Council of India", "ICAI"
     professional_reg_expiry = Column(Date)          # Renewal/expiry date of registration
 
     # Background Verification
-    background_verification_status = Column(String(30), default="Not Started")  # Not Started, In Progress, Completed, Failed, On Hold
+    background_verification_status = Column(Text, default="Not Started")  # Not Started, In Progress, Completed, Failed, On Hold
     background_verification_date = Column(Date)
-    background_verification_agency = Column(String(150))
+    background_verification_agency = Column(Text)
 
     # Bank Details (encrypted in production)
-    bank_name = Column(String(100))
-    bank_branch = Column(String(100))
-    account_number = Column(String(100))
-    account_type = Column(String(30), default="Savings")  # Savings, Current, NRO, NRE, Salary
-    ifsc_code = Column(String(20))
-    micr_code = Column(String(20))
+    bank_name = Column(Text)
+    bank_branch = Column(Text)
+    account_number = Column(Text)
+    account_type = Column(Text, default="Savings")  # Savings, Current, NRO, NRE, Salary
+    ifsc_code = Column(Text)
+    micr_code = Column(Text)
 
     # Tax / Compliance
-    pan_number = Column(String(20))
-    aadhaar_number = Column(String(20))
-    uan_number = Column(String(30))
-    pf_number = Column(String(50))
-    esic_number = Column(String(50))
-    salary_currency = Column(String(3), default="INR")
+    pan_number = Column(Text)
+    aadhaar_number = Column(Text)
+    uan_number = Column(Text)
+    pf_number = Column(Text)
+    esic_number = Column(Text)
+    salary_currency = Column(Text, default="INR")
     is_nri = Column(Boolean, default=False)   # Non-Resident Indian — affects TDS rates
-    nri_bank_account_type = Column(String(10))  # NRO or NRE
-    tax_regime_preference = Column(String(10))  # Old or New (for TDS computation)
-    form_16_delivery = Column(String(20), default="Email")  # Email, Download, Post
+    nri_bank_account_type = Column(Text)  # NRO or NRE
+    tax_regime_preference = Column(Text)  # Old or New (for TDS computation)
+    form_16_delivery = Column(Text, default="Email")  # Email, Download, Post
 
     # Professional / Social Profiles
-    linkedin_url = Column(String(300))
-    github_username = Column(String(100))     # For tech employees
-    portfolio_url = Column(String(300))       # For designers, creatives, academics
-    research_gate_url = Column(String(300))   # For researchers/academics
+    linkedin_url = Column(Text)
+    github_username = Column(Text)     # For tech employees
+    portfolio_url = Column(Text)       # For designers, creatives, academics
+    research_gate_url = Column(Text)   # For researchers/academics
     languages_known = Column(JSON)            # [{"language": "Hindi", "proficiency": "Native"}, ...]
 
     # Profile
-    profile_photo_url = Column(String(500))
-    preferred_display_name = Column(String(150))
+    profile_photo_url = Column(Text)
+    preferred_display_name = Column(Text)
     directory_visibility = Column(String(20), default="public", index=True)  # public, team, hidden
     skills_tags = Column(Text)
     profile_completeness = Column(Integer, default=0)

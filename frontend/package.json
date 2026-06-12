@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:lowmem": "tsc && node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test:rbac": "playwright test --config=playwright.config.ts",
     "preview": "vite preview"
