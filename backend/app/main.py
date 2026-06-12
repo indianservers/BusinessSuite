@@ -13,6 +13,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.core.middleware.audit import AuditLogMiddleware
+from app.core.middleware.business_os import BusinessOSModuleAccessMiddleware
 from app.core.middleware.request_id import RequestIDMiddleware
 from app.module_registry import is_app_enabled
 
@@ -43,6 +44,9 @@ async def lifespan(app: FastAPI):
             init_db(db)
         else:
             init_common_db(db)
+        from app.apps.business_os.services.module_service import ensure_business_os_seed
+
+        ensure_business_os_seed(db, company_id=1)
         if is_app_enabled("crm"):
             from app.apps.crm.schema import ensure_crm_schema
 
@@ -121,6 +125,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Audit logging
 app.add_middleware(AuditLogMiddleware)
+app.add_middleware(BusinessOSModuleAccessMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 

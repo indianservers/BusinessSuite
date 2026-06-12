@@ -1,11 +1,12 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuthStore } from "@/store/authStore";
 import AppLayout from "@/components/layout/AppLayout";
 import { canAccessRoute } from "@/lib/roles";
-import { getInstalledAppKeys, type FrontendRoute } from "@/appRegistry";
+import { getInstalledAppKeys, setBusinessOsEnabledModules, type FrontendRoute } from "@/appRegistry";
+import { api } from "@/services/api";
 import { getLoginPathForContext } from "@/lib/products";
 import { hrmsRoutes } from "@/apps/hrms/routes";
 import { crmRoutes } from "@/apps/crm/routes";
@@ -13,6 +14,7 @@ import { projectManagementRoutes } from "@/apps/project-management/routes";
 import { srmRoutes } from "@/apps/srm/routes";
 import { famRoutes } from "@/apps/fam/routes";
 import { inventoryRoutes } from "@/apps/inventory/routes";
+import InventoryBridgePage from "@/apps/inventory/InventoryBridgePage";
 import { aiAgentRoutes } from "@/pages/ai-agents/routes";
 import { aiCopilotRoutes } from "@/apps/ai-copilot/routes";
 import { adminSecurityRoutes } from "@/apps/admin-security/routes";
@@ -25,6 +27,8 @@ const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
 const AutomationStudioPage = React.lazy(() => import("@/apps/automation/AutomationStudioPage"));
 const CustomizationStudioPage = React.lazy(() => import("@/apps/customization/CustomizationStudioPage"));
 const AnalyticsPage = React.lazy(() => import("@/apps/analytics/AnalyticsPage"));
+const BusinessOSAdminPage = React.lazy(() => import("@/apps/business-os/BusinessOSAdminPage"));
+const BusinessOSWorkspacePage = React.lazy(() => import("@/apps/business-os/BusinessOSWorkspacePage"));
 
 const appRoutes: Record<string, FrontendRoute[]> = {
   hrms: hrmsRoutes,
@@ -70,6 +74,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const { isAuthenticated, isHydrated } = useAuthStore();
+  const [moduleVersion, setModuleVersion] = useState(0);
+  useEffect(() => {
+    const onChange = () => setModuleVersion((value) => value + 1);
+    window.addEventListener("business-os-modules-changed", onChange as EventListener);
+    return () => window.removeEventListener("business-os-modules-changed", onChange as EventListener);
+  }, []);
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) return;
+    api.get("/business-os/modules").then((response) => {
+      setBusinessOsEnabledModules(response.data.enabled_modules || []);
+    }).catch(() => undefined);
+  }, [isHydrated, isAuthenticated]);
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
     { path: "admin/automation", element: <AutomationStudioPage /> },
@@ -94,6 +110,14 @@ export default function App() {
     { path: "admin/customization/formulas", element: <CustomizationStudioPage /> },
     { path: "admin/customization/rollups", element: <CustomizationStudioPage /> },
     { path: "admin/customization/audit", element: <CustomizationStudioPage /> },
+    { path: "admin/business-os/modules", element: <BusinessOSAdminPage /> },
+    { path: "admin/business-os/integrations", element: <BusinessOSAdminPage /> },
+    { path: "admin/business-os/lifecycle", element: <BusinessOSAdminPage /> },
+    { path: "business-os", element: <BusinessOSWorkspacePage /> },
+    { path: "business-os/dashboard", element: <BusinessOSWorkspacePage /> },
+    { path: "business-os/customer-720", element: <BusinessOSWorkspacePage /> },
+    { path: "business-os/reports", element: <BusinessOSWorkspacePage /> },
+    { path: "business-os/ai", element: <BusinessOSWorkspacePage /> },
     { path: "analytics", element: <AnalyticsPage /> },
     { path: "analytics/report-builder", element: <AnalyticsPage /> },
     { path: "analytics/reports", element: <AnalyticsPage /> },
@@ -110,6 +134,7 @@ export default function App() {
     { path: "analytics/anomalies", element: <AnalyticsPage /> },
   ];
   const routes = [...enabledRoutes, ...commonRoutes, ...aiAgentRoutes, ...aiCopilotRoutes, ...adminSecurityRoutes, ...saasRoutes];
+  void moduleVersion;
 
   return (
     <>
@@ -125,6 +150,10 @@ export default function App() {
           <Route path="/portal/customer/*" element={<PortalPage />} />
           <Route path="/portal/partner/login" element={<PortalPage />} />
           <Route path="/portal/partner/*" element={<PortalPage />} />
+          <Route path="/inventory" element={<Navigate to="/Inventory" replace />} caseSensitive />
+          <Route path="/inventory/dashboard" element={<Navigate to="/Inventory/dashboard" replace />} caseSensitive />
+          <Route path="/Inventory" element={<InventoryBridgePage />} />
+          <Route path="/Inventory/dashboard" element={<InventoryBridgePage />} />
           <Route path="/" element={<ModuleIndexPage />} />
           <Route
             path="/*"
@@ -135,7 +164,7 @@ export default function App() {
             }
           >
             {routes.map((route) => (
-              <Route key={route.path} path={route.path} element={route.element} />
+              <Route key={route.path} path={route.path} element={route.element} caseSensitive={route.caseSensitive} />
             ))}
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

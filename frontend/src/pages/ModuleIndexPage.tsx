@@ -2,11 +2,13 @@ import { Link } from "react-router-dom";
 import { Briefcase, Building2, FolderKanban, Landmark, LogIn, Package, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { moduleDefaultCredentials } from "@/lib/defaultCredentials";
 import { useAuthStore } from "@/store/authStore";
 
 const modules = [
   {
     key: "hrms",
+    credentialKey: "hrms",
     name: "AI HRMS",
     label: "Human Resource Management",
     description: "Employees, payroll, attendance, leave, recruitment, and self-service.",
@@ -17,6 +19,7 @@ const modules = [
   },
   {
     key: "crm",
+    credentialKey: "crm",
     name: "VyaparaCRM",
     label: "Customer Relationship Management",
     description: "Leads, customers, deals, activities, campaigns, quotes, and sales follow-ups.",
@@ -27,6 +30,7 @@ const modules = [
   },
   {
     key: "pms",
+    credentialKey: "project_management",
     name: "KaryaFlow PMS",
     label: "Project Management Software",
     description: "Projects, tasks, sprints, milestones, reports, workload, risks, and delivery plans.",
@@ -37,6 +41,7 @@ const modules = [
   },
   {
     key: "srm",
+    credentialKey: "srm",
     name: "Sales & Revenue Management",
     label: "SRM",
     description: "Manage sales orders, contracts, billing, invoices, collections, and revenue profitability.",
@@ -47,6 +52,7 @@ const modules = [
   },
   {
     key: "fam",
+    credentialKey: "fam",
     name: "Finance & Accounting Management",
     label: "FAM",
     description: "Manage financial settings, chart of accounts, ledgers, opening balances, branches, cost centers, and audit-ready books.",
@@ -57,15 +63,16 @@ const modules = [
   },
   {
     key: "inventory",
+    credentialKey: null,
     name: "Vyapara ERP Inventory",
     label: "Inventory",
     description: "Products, stock, warehouses, purchases, sales, POS, reports, and GST-ready inventory operations from the cloned Vyapara ERP app.",
     icon: Package,
-    homePath: "/inventory",
+    homePath: "/Inventory",
     loginPath: "/login",
     tone: "bg-teal-700",
   },
-];
+] as const;
 
 export default function ModuleIndexPage() {
   const { isAuthenticated, isHydrated } = useAuthStore();
@@ -93,6 +100,7 @@ export default function ModuleIndexPage() {
       <section className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-2 lg:grid-cols-3">
         {modules.map((module) => {
           const Icon = module.icon;
+          const defaultLogin = module.credentialKey ? moduleDefaultCredentials[module.credentialKey][0] : null;
           return (
             <Card key={module.key} className="overflow-hidden transition duration-200 hover:-translate-y-1 hover:shadow-lg">
               <CardContent className="flex h-full flex-col p-0">
@@ -103,10 +111,22 @@ export default function ModuleIndexPage() {
                 </div>
                 <div className="flex flex-1 flex-col p-5">
                   <p className="text-sm text-muted-foreground">{module.description}</p>
+                  {defaultLogin ? (
+                    <dl className="mt-4 grid gap-1 rounded-md border bg-muted/40 p-3 text-xs">
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="font-medium text-muted-foreground">Default email</dt>
+                        <dd className="text-right font-semibold text-foreground">{defaultLogin.email}</dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="font-medium text-muted-foreground">Default password</dt>
+                        <dd className="text-right font-semibold text-foreground">{defaultLogin.password}</dd>
+                      </div>
+                    </dl>
+                  ) : null}
                   <div className="mt-6 grid gap-2">
                     <Button asChild>
-                      <Link to={isHydrated && isAuthenticated ? module.homePath : module.loginPath}>
-                        {!isHydrated ? "Loading..." : isAuthenticated || module.key === "srm" ? `Open ${module.label}` : "Sign in"}
+                      <Link to={module.key === "inventory" ? module.homePath : isHydrated && isAuthenticated ? module.homePath : module.loginPath}>
+                        {!isHydrated ? "Loading..." : isAuthenticated || module.key === "srm" || module.key === "inventory" ? `Open ${module.label}` : "Sign in"}
                       </Link>
                     </Button>
                   </div>

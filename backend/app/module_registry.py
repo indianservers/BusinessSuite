@@ -31,11 +31,13 @@ COMMON_ROUTER_MODULES = (
     "app.apps.ai_copilot.api.router",
     "app.apps.admin_security.api.router",
     "app.apps.saas.api.router",
+    "app.apps.business_os.api.router",
     "app.ai_agents.api",
 )
 
 COMMON_MODEL_MODULES = (
     "app.models.user",
+    "app.models.company",
     "app.common.models",
     "app.models.audit",
     "app.models.approval_os",
@@ -49,6 +51,7 @@ COMMON_MODEL_MODULES = (
     "app.apps.ai_copilot.models",
     "app.apps.admin_security.models",
     "app.apps.saas.models",
+    "app.apps.business_os.models",
     "app.ai_agents.models",
 )
 

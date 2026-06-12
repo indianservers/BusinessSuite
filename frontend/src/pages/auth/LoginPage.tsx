@@ -13,6 +13,7 @@ import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/config/runtime";
+import { moduleDefaultCredentials } from "@/lib/defaultCredentials";
 import { getDefaultPathForUser } from "@/lib/products";
 
 const loginSchema = z.object({
@@ -30,12 +31,7 @@ const moduleLogins = {
     description: "Enter your HRMS credentials",
     afterLogin: "/hrms",
     accent: "blue",
-    demoLogins: [
-      { label: "HRMS Admin", email: "admin@aihrms.com", password: "Admin@123456", description: "HRMS configuration and system access" },
-      { label: "HR Manager", email: "hr@aihrms.com", password: "HR@123456", description: "Employees, leave, payroll, recruitment, HR operations" },
-      { label: "Manager", email: "manager@aihrms.com", password: "Manager@123456", description: "Team leave, attendance, performance, reports" },
-      { label: "Employee", email: "employee@aihrms.com", password: "Employee@123456", description: "Self-service attendance, leave, payslip, helpdesk" },
-    ],
+    demoLogins: moduleDefaultCredentials.hrms,
   },
   crm: {
     product: "VyaparaCRM",
@@ -44,13 +40,7 @@ const moduleLogins = {
     description: "Enter your CRM credentials",
     afterLogin: "/crm",
     accent: "emerald",
-    demoLogins: [
-      { label: "CRM Admin", email: "admin@vyaparacrm.com", password: "Password@123", description: "CRM users, settings, reports, automation" },
-      { label: "Sales Manager", email: "manager@vyaparacrm.com", password: "Password@123", description: "Pipeline, deals, forecasts, sales team" },
-      { label: "Sales Executive", email: "executive@vyaparacrm.com", password: "Password@123", description: "Leads, contacts, activities, assigned deals" },
-      { label: "Support Agent", email: "support@vyaparacrm.com", password: "Password@123", description: "Customer records and support tickets" },
-      { label: "Marketing", email: "marketing@vyaparacrm.com", password: "Password@123", description: "Campaigns, imports, segments, performance" },
-    ],
+    demoLogins: moduleDefaultCredentials.crm,
   },
   project_management: {
     product: "KaryaFlow",
@@ -59,12 +49,7 @@ const moduleLogins = {
     description: "Enter your PMS credentials",
     afterLogin: "/pms",
     accent: "violet",
-    demoLogins: [
-      { label: "PMS Admin", email: "admin@karyaflow.com", password: "Password@123", description: "Project settings, users, workflows, reports" },
-      { label: "Project Manager", email: "manager@karyaflow.com", password: "Password@123", description: "Projects, tasks, milestones, approvals" },
-      { label: "Team Member", email: "member@karyaflow.com", password: "Password@123", description: "Assigned work, board updates, files, time logs" },
-      { label: "Client", email: "client@karyaflow.com", password: "Password@123", description: "Client portal, deliverables, approvals" },
-    ],
+    demoLogins: moduleDefaultCredentials.project_management,
   },
   srm: {
     product: "RevenueFlow SRM",
@@ -73,13 +58,7 @@ const moduleLogins = {
     description: "Enter your SRM credentials",
     afterLogin: "/srm",
     accent: "amber",
-    demoLogins: [
-      { label: "SRM Admin", email: "admin@srm.local", password: "Password@123", description: "SRM settings, approvals, lifecycle controls" },
-      { label: "Sales Manager", email: "sales.manager@srm.local", password: "Password@123", description: "Team sales orders, engagements, revenue dashboards" },
-      { label: "Sales Executive", email: "sales.executive@srm.local", password: "Password@123", description: "Assigned sales orders and engagement handoffs" },
-      { label: "Finance Manager", email: "finance@srm.local", password: "Password@123", description: "Invoices, approvals, receipts, profitability" },
-      { label: "Collections", email: "collections@srm.local", password: "Password@123", description: "Aging, reminders, receipts, allocations" },
-    ],
+    demoLogins: moduleDefaultCredentials.srm,
   },
   fam: {
     product: "FinanceFlow FAM",
@@ -88,13 +67,7 @@ const moduleLogins = {
     description: "Enter your FAM credentials",
     afterLogin: "/fam",
     accent: "cyan",
-    demoLogins: [
-      { label: "FAM Admin", email: "admin@fam.local", password: "Password@123", description: "Company books, settings, chart, audit controls" },
-      { label: "Accountant", email: "accountant@fam.local", password: "Password@123", description: "Ledgers, opening balances, cost centers, branches" },
-      { label: "Finance Manager", email: "finance.manager@fam.local", password: "Password@123", description: "Operational finance setup and books review" },
-      { label: "Auditor", email: "auditor@fam.local", password: "Password@123", description: "Read-only books and audit logs" },
-      { label: "Viewer", email: "viewer@fam.local", password: "Password@123", description: "Read-only financial foundation pages" },
-    ],
+    demoLogins: moduleDefaultCredentials.fam,
   },
 } as const;
 

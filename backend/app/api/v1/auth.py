@@ -37,7 +37,24 @@ from app.schemas.auth import (
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 MODULE_ROLE_MAP = {
-    "hrms": {"super_admin", "hr_manager", "ceo", "manager", "employee"},
+    "hrms": {
+        "super_admin",
+        "admin",
+        "hr_manager",
+        "hr_admin",
+        "hr",
+        "hr_company_admin",
+        "hr_workflow_admin",
+        "hr_custom_field_admin",
+        "ceo",
+        "founder",
+        "director",
+        "executive",
+        "manager",
+        "team_lead",
+        "department_head",
+        "employee",
+    },
     "crm": {
         "crm_super_admin",
         "crm_org_admin",
@@ -65,6 +82,14 @@ MODULE_ROLE_MAP = {
         "srm_business_owner",
         "srm_viewer",
     },
+    "fam": {
+        "fam_admin",
+        "accountant",
+        "finance_manager",
+        "auditor",
+        "business_owner",
+        "fam_viewer",
+    },
 }
 
 
@@ -74,7 +99,7 @@ def _normalize_module(module: str | None) -> str | None:
     value = module.strip().lower().replace("-", "_")
     if value in {"pms", "project", "project_management"}:
         return "project_management"
-    if value in {"crm", "hrms", "srm"}:
+    if value in {"crm", "hrms", "srm", "fam"}:
         return value
     return None
 

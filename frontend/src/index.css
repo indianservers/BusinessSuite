@@ -83,6 +83,11 @@
     color: hsl(var(--foreground));
   }
 
+  .product-shell,
+  .product-shell * {
+    min-width: 0;
+  }
+
   .product-shell.product-hrms {
     color-scheme: light;
     --background: 0 0% 100%;
@@ -239,6 +244,7 @@
 
   .product-shell table {
     border-collapse: collapse;
+    max-width: 100%;
   }
 
   .product-shell th,
@@ -248,6 +254,27 @@
 
   .product-shell td {
     overflow-wrap: anywhere;
+  }
+
+  .product-shell th {
+    overflow-wrap: normal;
+  }
+
+  .crm-desktop-table {
+    @apply w-full table-fixed text-sm;
+  }
+
+  .crm-desktop-table th {
+    @apply whitespace-nowrap px-3 py-2 text-left font-medium;
+  }
+
+  .crm-desktop-table td {
+    @apply px-3 py-2 align-middle;
+  }
+
+  .crm-desktop-table th,
+  .crm-desktop-table td {
+    min-width: 0;
   }
 
   .product-shell .card-action-bar {

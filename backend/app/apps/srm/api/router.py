@@ -9,6 +9,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.apps.fam.models import FAMPostingJob, FAMSRMMapping
+from app.apps.business_os.models import BOSLifecycleEvent
+from app.apps.business_os.services.module_service import company_id_for as bos_company_id_for, is_module_enabled
 from app.apps.srm.access import engagement_query, get_engagement_for_user, get_sales_order_for_user, organization_id_for, sales_order_query
 from app.apps.srm.models import (
     SRMAuditLog,
@@ -335,6 +337,15 @@ def _ensure_billing_plan_from_sales_order(db: Session, user: User, order: SRMSal
 
 
 def create_sales_order_from_crm_deal_service(deal_id: int, db: Session, current_user: User) -> dict:
+    company_id = bos_company_id_for(current_user)
+    if not is_module_enabled(db, "crm", company_id):
+        db.add(BOSLifecycleEvent(company_id=company_id, module_key="crm", entity_type="deal", entity_id=str(deal_id), event_name="crm_deal_won_handoff_skipped", status="skipped", message="CRM is not enabled", source_module="crm", target_module="srm", actor_user_id=current_user.id))
+        db.commit()
+        return {"status": "skipped", "idempotent": True, "message": "CRM is not enabled", "sales_order": None, "engagement": None, "contract": None, "billing_plan": None, "pms_project": None}
+    if not is_module_enabled(db, "srm", company_id):
+        db.add(BOSLifecycleEvent(company_id=company_id, module_key="crm", entity_type="deal", entity_id=str(deal_id), event_name="crm_deal_won_handoff_skipped", status="skipped", message="SRM not enabled", source_module="crm", target_module="srm", actor_user_id=current_user.id))
+        db.commit()
+        return {"status": "skipped", "idempotent": True, "message": "SRM not enabled", "sales_order": None, "engagement": None, "contract": None, "billing_plan": None, "pms_project": None}
     existing_records = _find_handoff_records(db, deal_id)
     if existing_records["sales_order"]:
         _audit(db, current_user, "sales_order", existing_records["sales_order"].id, "crm_won_handoff_idempotent", after={"crm_deal_id": deal_id})
@@ -1033,6 +1044,11 @@ def engagement_lifecycle(engagement_id: int, db: Session = Depends(get_db), curr
 
 @router.post("/engagements/{engagement_id}/create-pms-project")
 def create_pms_project(engagement_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    company_id = bos_company_id_for(current_user)
+    if not is_module_enabled(db, "project_management", company_id):
+        db.add(BOSLifecycleEvent(company_id=company_id, module_key="srm", entity_type="engagement", entity_id=str(engagement_id), event_name="srm_pms_handoff_skipped", status="skipped", message="PMS is not enabled", source_module="srm", target_module="project_management", actor_user_id=current_user.id))
+        db.commit()
+        return {"status": "skipped", "idempotent": True, "message": "PMS is not enabled", "engagement": None, "project": None}
     engagement = get_engagement_for_user(db, engagement_id, current_user)
     if engagement.pms_project_id:
         try:

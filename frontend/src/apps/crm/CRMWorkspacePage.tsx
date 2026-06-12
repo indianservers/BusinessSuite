@@ -212,8 +212,33 @@ type CRMBusinessTemplate = {
   sampleRecord?: string;
   stages: Array<{ name: string; probability: number; color: string; isWon?: boolean; isLost?: boolean }>;
   fields: string[];
+  customFields?: CRMTemplateCustomField[];
+  sampleDeals?: CRMTemplateSampleDeal[];
   automations: string[];
   reports: string[];
+};
+
+type CRMTemplateCustomField = {
+  entityType: "leads" | "contacts" | "companies" | "deals" | "quotations" | "tasks";
+  fieldName: string;
+  fieldKey: string;
+  fieldType: "text" | "long_text" | "number" | "currency" | "date" | "datetime" | "dropdown" | "multi_select" | "checkbox" | "email" | "phone" | "url" | "user" | "owner";
+  options?: string[];
+  isRequired?: boolean;
+  isUnique?: boolean;
+  isVisible?: boolean;
+  isFilterable?: boolean;
+};
+
+type CRMTemplateSampleDeal = {
+  name: string;
+  company: string;
+  amount: number;
+  stageIndex?: number;
+  closeDate: string;
+  source: string;
+  nextStep: string;
+  customFields?: Record<string, CRMApiValue>;
 };
 
 const crmBusinessTemplates: CRMBusinessTemplate[] = [
@@ -262,6 +287,287 @@ const crmBusinessTemplates: CRMBusinessTemplate[] = [
   { key: "restaurant-catering", name: "Restaurant & Catering", group: "Industries", category: "Hospitality", accent: "#be123c", description: "Convert event enquiries into menus, tastings, bookings, advance payments, and final delivery.", fieldEntity: "Event", sampleRecord: "Corporate lunch booking", stages: [{ name: "Event Inquiry", probability: 10, color: "#be123c" }, { name: "Menu Shared", probability: 30, color: "#d97706" }, { name: "Tasting/Review", probability: 55, color: "#7c3aed" }, { name: "Advance Paid", probability: 85, color: "#2563eb" }, { name: "Event Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Event date", "Guest count", "Menu", "Venue", "Advance"], automations: ["Tasting reminder", "Advance follow-up", "Kitchen prep task"], reports: ["Event pipeline", "Menu demand", "Advance pending"] },
   { key: "travel-agency", name: "Travel Agency", group: "Industries", category: "Travel", accent: "#0284c7", description: "Track travel enquiries, itineraries, quotes, booking payments, visa steps, and departure readiness.", fieldEntity: "Trip", sampleRecord: "Dubai family package", stages: [{ name: "Travel Inquiry", probability: 10, color: "#0284c7" }, { name: "Itinerary Planned", probability: 35, color: "#2563eb" }, { name: "Quote Approved", probability: 60, color: "#d97706" }, { name: "Booked", probability: 85, color: "#7c3aed" }, { name: "Travel Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Destination", "Travel dates", "Passengers", "Visa status", "Payment"], automations: ["Quote follow-up", "Visa checklist", "Departure reminder"], reports: ["Package pipeline", "Destination demand", "Payment aging"] },
 ];
+
+const advancedIndustryTemplates: CRMBusinessTemplate[] = [
+  {
+    key: "solar-epc",
+    name: "Solar EPC",
+    group: "Industries",
+    category: "Renewable Energy",
+    accent: "#f59e0b",
+    description: "Manage rooftop and commercial solar enquiries from site survey through subsidy documents, PPA approval, installation, and commissioning.",
+    fieldEntity: "Project",
+    sampleRecord: "Warehouse rooftop solar",
+    stages: [{ name: "Energy Inquiry", probability: 10, color: "#f59e0b" }, { name: "Site Survey", probability: 30, color: "#2563eb" }, { name: "Proposal & ROI", probability: 55, color: "#7c3aed" }, { name: "PPA/Approval", probability: 80, color: "#d97706" }, { name: "Commissioned", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Site capacity", "Roof area", "DISCOM", "Subsidy status", "Commissioning date"],
+    customFields: [
+      { entityType: "deals", fieldName: "Site Capacity (kW)", fieldKey: "site_capacity_kw", fieldType: "number", isRequired: true, isFilterable: true },
+      { entityType: "deals", fieldName: "DISCOM", fieldKey: "discom", fieldType: "dropdown", options: ["BESCOM", "MSEDCL", "TANGEDCO", "Torrent", "Other"], isFilterable: true },
+      { entityType: "deals", fieldName: "Subsidy Status", fieldKey: "subsidy_status", fieldType: "dropdown", options: ["Not applicable", "Documents pending", "Submitted", "Approved"], isFilterable: true },
+    ],
+    sampleDeals: [
+      { name: "250 kW rooftop EPC", company: "Sunrise Warehousing", amount: 18500000, stageIndex: 1, closeDate: "2026-07-18", source: "Energy audit", nextStep: "Complete shadow analysis and single-line diagram", customFields: { site_capacity_kw: 250, discom: "BESCOM", subsidy_status: "Submitted" } },
+      { name: "Housing society solar retrofit", company: "Lakeview Residency", amount: 4200000, stageIndex: 2, closeDate: "2026-08-05", source: "Referral", nextStep: "Share ROI model and net-metering checklist", customFields: { site_capacity_kw: 60, discom: "MSEDCL", subsidy_status: "Documents pending" } },
+    ],
+    automations: ["Survey assignment", "ROI proposal reminder", "Subsidy document chase"],
+    reports: ["Capacity pipeline", "DISCOM approval aging", "Commissioning forecast"],
+  },
+  {
+    key: "construction-contracting",
+    name: "Construction Contracting",
+    group: "Industries",
+    category: "Construction",
+    accent: "#92400e",
+    description: "Track civil contracting opportunities from BOQ receipt to site visit, tender quote, LOI, mobilization advance, and project handoff.",
+    fieldEntity: "Tender",
+    sampleRecord: "Commercial fit-out tender",
+    stages: [{ name: "BOQ Received", probability: 10, color: "#92400e" }, { name: "Site Visit", probability: 30, color: "#2563eb" }, { name: "Tender Submitted", probability: 55, color: "#7c3aed" }, { name: "LOI/Negotiation", probability: 80, color: "#d97706" }, { name: "Mobilized", probability: 100, color: "#059669", isWon: true }, { name: "Not Awarded", probability: 0, color: "#dc2626", isLost: true }],
+    fields: ["BOQ value", "Site location", "Tender due date", "EMD amount", "Mobilization advance"],
+    customFields: [
+      { entityType: "deals", fieldName: "BOQ Value", fieldKey: "boq_value", fieldType: "currency", isRequired: true, isFilterable: true },
+      { entityType: "deals", fieldName: "Tender Due Date", fieldKey: "tender_due_date", fieldType: "date", isFilterable: true },
+      { entityType: "deals", fieldName: "EMD Amount", fieldKey: "emd_amount", fieldType: "currency" },
+    ],
+    sampleDeals: [
+      { name: "Mall interior civil package", company: "Orion Developers", amount: 32000000, stageIndex: 2, closeDate: "2026-07-02", source: "Tender portal", nextStep: "Submit final BOQ clarifications", customFields: { boq_value: 32000000, tender_due_date: "2026-06-28", emd_amount: 500000 } },
+      { name: "Factory expansion work", company: "Prakash Foods", amount: 58000000, stageIndex: 1, closeDate: "2026-08-16", source: "Architect referral", nextStep: "Complete site measurements", customFields: { boq_value: 58000000, tender_due_date: "2026-07-20", emd_amount: 750000 } },
+    ],
+    automations: ["Tender due reminder", "Site visit checklist", "PMS mobilization handoff"],
+    reports: ["Tender value", "Award ratio", "EMD exposure"],
+  },
+  {
+    key: "diagnostic-lab",
+    name: "Diagnostic Lab",
+    group: "Industries",
+    category: "Healthcare Diagnostics",
+    accent: "#0e7490",
+    description: "Manage doctor referrals, corporate health checks, home sample collections, report delivery, and repeat package sales.",
+    fieldEntity: "Test booking",
+    sampleRecord: "Corporate health camp",
+    stages: [{ name: "Referral/Inquiry", probability: 10, color: "#0e7490" }, { name: "Package Suggested", probability: 30, color: "#2563eb" }, { name: "Sample Scheduled", probability: 55, color: "#7c3aed" }, { name: "Payment/Collection", probability: 80, color: "#d97706" }, { name: "Report Delivered", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Test package", "Sample type", "Collection slot", "Referring doctor", "Report SLA"],
+    customFields: [
+      { entityType: "deals", fieldName: "Test Package", fieldKey: "test_package", fieldType: "dropdown", options: ["Full body", "Diabetes", "Cardiac", "Pre-employment", "Custom panel"], isFilterable: true },
+      { entityType: "deals", fieldName: "Collection Slot", fieldKey: "collection_slot", fieldType: "datetime", isRequired: true },
+      { entityType: "deals", fieldName: "Report SLA", fieldKey: "report_sla", fieldType: "dropdown", options: ["Same day", "24 hours", "48 hours"], isFilterable: true },
+    ],
+    sampleDeals: [
+      { name: "Pre-employment test batch", company: "TalentBridge HR", amount: 145000, stageIndex: 2, closeDate: "2026-06-22", source: "Corporate referral", nextStep: "Confirm sample collection team roster", customFields: { test_package: "Pre-employment", collection_slot: "2026-06-19T09:30", report_sla: "24 hours" } },
+      { name: "Cardiac panel home collection", company: "Mehta Family", amount: 18500, stageIndex: 1, closeDate: "2026-06-14", source: "Doctor referral", nextStep: "Share fasting instructions", customFields: { test_package: "Cardiac", collection_slot: "2026-06-13T07:00", report_sla: "Same day" } },
+    ],
+    automations: ["Collection reminder", "Doctor report notification", "SLA escalation"],
+    reports: ["Package conversion", "Collection SLA", "Referral revenue"],
+  },
+  {
+    key: "hotel-banquet",
+    name: "Hotel Banquet Sales",
+    group: "Industries",
+    category: "Hospitality",
+    accent: "#be123c",
+    description: "Convert banquet enquiries into property visits, menu negotiations, room blocks, advance payments, and event execution.",
+    fieldEntity: "Event",
+    sampleRecord: "Wedding reception booking",
+    stages: [{ name: "Event Inquiry", probability: 10, color: "#be123c" }, { name: "Property Visit", probability: 30, color: "#2563eb" }, { name: "Menu & Package", probability: 55, color: "#7c3aed" }, { name: "Advance Paid", probability: 85, color: "#d97706" }, { name: "Event Closed", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Event date", "Guest count", "Hall", "Room block", "Advance amount"],
+    customFields: [
+      { entityType: "deals", fieldName: "Event Date", fieldKey: "event_date", fieldType: "date", isRequired: true, isFilterable: true },
+      { entityType: "deals", fieldName: "Guest Count", fieldKey: "guest_count", fieldType: "number", isRequired: true },
+      { entityType: "deals", fieldName: "Banquet Hall", fieldKey: "banquet_hall", fieldType: "dropdown", options: ["Grand Ballroom", "Terrace", "Boardroom", "Lawn"], isFilterable: true },
+    ],
+    sampleDeals: [
+      { name: "Wedding reception 450 pax", company: "Rao Family", amount: 2750000, stageIndex: 2, closeDate: "2026-07-28", source: "Walk-in", nextStep: "Send revised menu and room block quote", customFields: { event_date: "2026-11-22", guest_count: 450, banquet_hall: "Grand Ballroom" } },
+      { name: "Annual sales meet", company: "Vertex Pharma", amount: 940000, stageIndex: 1, closeDate: "2026-07-12", source: "Corporate account", nextStep: "Schedule AV requirement review", customFields: { event_date: "2026-08-09", guest_count: 160, banquet_hall: "Boardroom" } },
+    ],
+    automations: ["Visit reminder", "Advance payment follow-up", "Event ops handoff"],
+    reports: ["Banquet revenue", "Hall utilization", "Advance aging"],
+  },
+  {
+    key: "wholesale-distribution",
+    name: "Wholesale Distribution",
+    group: "Industries",
+    category: "Distribution",
+    accent: "#0f766e",
+    description: "Handle dealer onboarding, price negotiation, credit terms, stock allocation, dispatch, and repeat order cycles.",
+    fieldEntity: "Dealer order",
+    sampleRecord: "Distributor first order",
+    stages: [{ name: "Dealer Inquiry", probability: 10, color: "#0f766e" }, { name: "KYC/Credit Check", probability: 30, color: "#2563eb" }, { name: "Price Negotiation", probability: 55, color: "#d97706" }, { name: "PO Received", probability: 85, color: "#7c3aed" }, { name: "Dispatched", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Dealer grade", "Credit limit", "SKU mix", "Margin", "Dispatch warehouse"],
+    customFields: [
+      { entityType: "deals", fieldName: "Dealer Grade", fieldKey: "dealer_grade", fieldType: "dropdown", options: ["A", "B", "C", "New"], isFilterable: true },
+      { entityType: "deals", fieldName: "Credit Limit", fieldKey: "credit_limit", fieldType: "currency", isFilterable: true },
+      { entityType: "deals", fieldName: "Dispatch Warehouse", fieldKey: "dispatch_warehouse", fieldType: "dropdown", options: ["Bengaluru", "Mumbai", "Delhi NCR", "Chennai"], isFilterable: true },
+    ],
+    sampleDeals: [
+      { name: "North dealer onboarding order", company: "Shree Traders", amount: 1250000, stageIndex: 1, closeDate: "2026-06-30", source: "Distributor meet", nextStep: "Complete GST and credit review", customFields: { dealer_grade: "New", credit_limit: 800000, dispatch_warehouse: "Delhi NCR" } },
+      { name: "Q2 repeat bulk order", company: "Urban Retail Mart", amount: 2860000, stageIndex: 3, closeDate: "2026-07-04", source: "Account manager", nextStep: "Confirm stock allocation", customFields: { dealer_grade: "A", credit_limit: 3500000, dispatch_warehouse: "Mumbai" } },
+    ],
+    automations: ["KYC reminder", "Credit approval route", "Dispatch notification"],
+    reports: ["Dealer pipeline", "Credit exposure", "Warehouse dispatch forecast"],
+  },
+  {
+    key: "agriculture-equipment",
+    name: "Agriculture Equipment",
+    group: "Industries",
+    category: "Agri Sales",
+    accent: "#16a34a",
+    description: "Manage farm equipment enquiries, demo visits, subsidy paperwork, finance, booking, and delivery readiness.",
+    fieldEntity: "Equipment deal",
+    sampleRecord: "Tractor implement sale",
+    stages: [{ name: "Farmer Inquiry", probability: 10, color: "#16a34a" }, { name: "Demo Visit", probability: 30, color: "#2563eb" }, { name: "Finance/Subsidy", probability: 55, color: "#d97706" }, { name: "Booking", probability: 85, color: "#7c3aed" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Equipment model", "Land size", "Subsidy scheme", "Finance partner", "Delivery village"],
+    customFields: [
+      { entityType: "deals", fieldName: "Equipment Model", fieldKey: "equipment_model", fieldType: "dropdown", options: ["Tractor", "Rotavator", "Harvester", "Sprayer", "Pump set"], isFilterable: true },
+      { entityType: "deals", fieldName: "Land Size Acres", fieldKey: "land_size_acres", fieldType: "number" },
+      { entityType: "deals", fieldName: "Subsidy Scheme", fieldKey: "subsidy_scheme", fieldType: "text" },
+    ],
+    sampleDeals: [
+      { name: "Rotavator and tractor package", company: "Patil Farms", amount: 1750000, stageIndex: 2, closeDate: "2026-07-15", source: "Field demo", nextStep: "Submit subsidy documents", customFields: { equipment_model: "Tractor", land_size_acres: 18, subsidy_scheme: "State farm mechanization" } },
+      { name: "Drip pump upgrade", company: "Green Acres Co-op", amount: 420000, stageIndex: 1, closeDate: "2026-06-26", source: "Dealer referral", nextStep: "Schedule village demo", customFields: { equipment_model: "Pump set", land_size_acres: 42, subsidy_scheme: "Micro irrigation support" } },
+    ],
+    automations: ["Demo schedule", "Finance document reminder", "Delivery checklist"],
+    reports: ["Model demand", "Subsidy pending", "Dealer conversion"],
+  },
+  {
+    key: "government-tenders",
+    name: "Government Tenders",
+    group: "Industries",
+    category: "Public Sector Sales",
+    accent: "#475569",
+    description: "Track e-procurement opportunities with EMD, eligibility, bid submission, technical evaluation, financial bid, and award status.",
+    fieldEntity: "Tender",
+    sampleRecord: "Municipal software tender",
+    stages: [{ name: "Tender Identified", probability: 10, color: "#475569" }, { name: "Eligibility Check", probability: 25, color: "#2563eb" }, { name: "Bid Submitted", probability: 50, color: "#7c3aed" }, { name: "Financial Opened", probability: 75, color: "#d97706" }, { name: "Awarded", probability: 100, color: "#059669", isWon: true }, { name: "Lost/Disqualified", probability: 0, color: "#dc2626", isLost: true }],
+    fields: ["Tender ID", "Department", "EMD", "Bid due date", "L1 status"],
+    customFields: [
+      { entityType: "deals", fieldName: "Tender ID", fieldKey: "tender_id", fieldType: "text", isRequired: true, isUnique: true, isFilterable: true },
+      { entityType: "deals", fieldName: "Bid Due Date", fieldKey: "bid_due_date", fieldType: "date", isRequired: true, isFilterable: true },
+      { entityType: "deals", fieldName: "EMD Value", fieldKey: "emd_value", fieldType: "currency" },
+    ],
+    sampleDeals: [
+      { name: "Municipal CRM tender", company: "City Corporation", amount: 9200000, stageIndex: 2, closeDate: "2026-07-09", source: "GeM portal", nextStep: "Upload financial bid attachments", customFields: { tender_id: "GEM/2026/B/CRM-1187", bid_due_date: "2026-07-03", emd_value: 250000 } },
+      { name: "State training platform RFP", company: "Skill Mission Office", amount: 14800000, stageIndex: 1, closeDate: "2026-08-01", source: "E-procurement", nextStep: "Confirm turnover eligibility documents", customFields: { tender_id: "RFP-SM-2026-44", bid_due_date: "2026-07-18", emd_value: 500000 } },
+    ],
+    automations: ["Bid due reminder", "EMD approval", "Eligibility checklist"],
+    reports: ["Tender value", "Bid aging", "Award ratio"],
+  },
+  {
+    key: "gym-fitness",
+    name: "Gym & Fitness Studio",
+    group: "Industries",
+    category: "Fitness",
+    accent: "#dc2626",
+    description: "Convert walk-ins and digital enquiries into trials, membership plans, personal training packages, and renewal follow-ups.",
+    fieldEntity: "Membership",
+    sampleRecord: "Annual membership enquiry",
+    stages: [{ name: "Inquiry", probability: 10, color: "#dc2626" }, { name: "Trial Booked", probability: 30, color: "#2563eb" }, { name: "Plan Suggested", probability: 55, color: "#7c3aed" }, { name: "Payment Pending", probability: 80, color: "#d97706" }, { name: "Member Active", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Fitness goal", "Plan", "Trial date", "Trainer", "Renewal date"],
+    customFields: [
+      { entityType: "deals", fieldName: "Fitness Goal", fieldKey: "fitness_goal", fieldType: "dropdown", options: ["Weight loss", "Strength", "Rehab", "General fitness", "Athletic training"], isFilterable: true },
+      { entityType: "deals", fieldName: "Trial Date", fieldKey: "trial_date", fieldType: "date", isFilterable: true },
+      { entityType: "deals", fieldName: "Plan Type", fieldKey: "plan_type", fieldType: "dropdown", options: ["Monthly", "Quarterly", "Annual", "PT package"], isFilterable: true },
+    ],
+    sampleDeals: [
+      { name: "Annual fitness membership", company: "Aditi Sharma", amount: 42000, stageIndex: 2, closeDate: "2026-06-20", source: "Instagram ad", nextStep: "Share annual plan and PT bundle", customFields: { fitness_goal: "Strength", trial_date: "2026-06-12", plan_type: "Annual" } },
+      { name: "Personal training package", company: "Vikram Menon", amount: 36000, stageIndex: 1, closeDate: "2026-06-18", source: "Walk-in", nextStep: "Book trainer consultation", customFields: { fitness_goal: "Weight loss", trial_date: "2026-06-11", plan_type: "PT package" } },
+    ],
+    automations: ["Trial reminder", "Payment follow-up", "Renewal alert"],
+    reports: ["Membership pipeline", "Trainer conversion", "Renewal forecast"],
+  },
+  {
+    key: "salon-spa",
+    name: "Salon & Spa",
+    group: "Industries",
+    category: "Beauty & Wellness",
+    accent: "#db2777",
+    description: "Track bridal packages, recurring memberships, appointment deposits, stylist allocation, and package completion.",
+    fieldEntity: "Booking",
+    sampleRecord: "Bridal package booking",
+    stages: [{ name: "Inquiry", probability: 10, color: "#db2777" }, { name: "Consultation", probability: 30, color: "#7c3aed" }, { name: "Package Shared", probability: 55, color: "#2563eb" }, { name: "Deposit Paid", probability: 85, color: "#d97706" }, { name: "Service Completed", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Service package", "Appointment date", "Stylist", "Deposit", "Occasion"],
+    customFields: [
+      { entityType: "deals", fieldName: "Service Package", fieldKey: "service_package", fieldType: "dropdown", options: ["Bridal", "Hair color", "Spa day", "Membership", "Grooming"], isFilterable: true },
+      { entityType: "deals", fieldName: "Appointment Date", fieldKey: "appointment_date", fieldType: "datetime", isRequired: true },
+      { entityType: "deals", fieldName: "Stylist", fieldKey: "stylist", fieldType: "text" },
+    ],
+    sampleDeals: [
+      { name: "Bridal makeup package", company: "Nisha Kapoor", amount: 85000, stageIndex: 3, closeDate: "2026-06-25", source: "Referral", nextStep: "Confirm trial makeup date", customFields: { service_package: "Bridal", appointment_date: "2026-07-10T11:00", stylist: "Rhea" } },
+      { name: "Quarterly spa membership", company: "Corporate Wellness Club", amount: 240000, stageIndex: 2, closeDate: "2026-07-08", source: "Corporate lead", nextStep: "Share membership terms", customFields: { service_package: "Membership", appointment_date: "2026-07-01T16:00", stylist: "Team allocation" } },
+    ],
+    automations: ["Consultation reminder", "Deposit follow-up", "Stylist task"],
+    reports: ["Package pipeline", "Deposit aging", "Stylist utilization"],
+  },
+  {
+    key: "export-import",
+    name: "Export / Import Trading",
+    group: "Industries",
+    category: "International Trade",
+    accent: "#0369a1",
+    description: "Manage export enquiries, proforma invoices, compliance documents, LC/payment terms, shipment booking, and collection follow-up.",
+    fieldEntity: "Trade order",
+    sampleRecord: "UAE export order",
+    stages: [{ name: "Buyer Inquiry", probability: 10, color: "#0369a1" }, { name: "PI Shared", probability: 35, color: "#2563eb" }, { name: "Docs/LC Review", probability: 60, color: "#7c3aed" }, { name: "Shipment Booked", probability: 85, color: "#d97706" }, { name: "Documents Released", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Country", "Incoterm", "Port", "HS code", "Payment terms"],
+    customFields: [
+      { entityType: "deals", fieldName: "Destination Country", fieldKey: "destination_country", fieldType: "text", isFilterable: true },
+      { entityType: "deals", fieldName: "Incoterm", fieldKey: "incoterm", fieldType: "dropdown", options: ["EXW", "FOB", "CIF", "DAP", "DDP"], isFilterable: true },
+      { entityType: "deals", fieldName: "Payment Terms", fieldKey: "payment_terms", fieldType: "dropdown", options: ["Advance", "LC", "CAD", "Open credit"], isFilterable: true },
+    ],
+    sampleDeals: [
+      { name: "Spices export to Dubai", company: "Al Noor Trading", amount: 3850000, stageIndex: 2, closeDate: "2026-07-19", source: "Trade fair", nextStep: "Review LC draft and certificate requirements", customFields: { destination_country: "UAE", incoterm: "CIF", payment_terms: "LC" } },
+      { name: "Textile shipment to Kenya", company: "Nairobi Retail Group", amount: 2100000, stageIndex: 1, closeDate: "2026-07-05", source: "Buyer portal", nextStep: "Send proforma invoice", customFields: { destination_country: "Kenya", incoterm: "FOB", payment_terms: "Advance" } },
+    ],
+    automations: ["PI follow-up", "Document checklist", "Shipment reminder"],
+    reports: ["Country pipeline", "Payment terms risk", "Shipment forecast"],
+  },
+  {
+    key: "subscription-saas",
+    name: "Subscription SaaS",
+    group: "Industries",
+    category: "SaaS Sales",
+    accent: "#4f46e5",
+    description: "Run SaaS trials, product-qualified leads, security reviews, annual subscriptions, renewals, and expansion opportunities.",
+    fieldEntity: "Subscription",
+    sampleRecord: "Annual SaaS subscription",
+    stages: [{ name: "PQL/Lead", probability: 10, color: "#4f46e5" }, { name: "Trial Active", probability: 30, color: "#2563eb" }, { name: "Security Review", probability: 55, color: "#7c3aed" }, { name: "Commercials", probability: 80, color: "#d97706" }, { name: "Subscribed", probability: 100, color: "#059669", isWon: true }, { name: "Churned/Lost", probability: 0, color: "#dc2626", isLost: true }],
+    fields: ["Plan", "Seats", "ARR", "Trial end", "Security owner"],
+    customFields: [
+      { entityType: "deals", fieldName: "Seat Count", fieldKey: "seat_count", fieldType: "number", isRequired: true, isFilterable: true },
+      { entityType: "deals", fieldName: "ARR", fieldKey: "arr", fieldType: "currency", isFilterable: true },
+      { entityType: "deals", fieldName: "Trial End Date", fieldKey: "trial_end_date", fieldType: "date", isFilterable: true },
+    ],
+    sampleDeals: [
+      { name: "Enterprise annual plan", company: "CloudLedger", amount: 1800000, stageIndex: 2, closeDate: "2026-07-11", source: "Product signup", nextStep: "Complete security questionnaire", customFields: { seat_count: 120, arr: 1800000, trial_end_date: "2026-06-29" } },
+      { name: "Mid-market team rollout", company: "Horizon Design Co", amount: 540000, stageIndex: 1, closeDate: "2026-06-27", source: "Webinar", nextStep: "Review trial usage with champion", customFields: { seat_count: 35, arr: 540000, trial_end_date: "2026-06-20" } },
+    ],
+    automations: ["Trial usage alert", "Security review task", "Renewal reminder"],
+    reports: ["ARR forecast", "Trial conversion", "Expansion pipeline"],
+  },
+  {
+    key: "home-services",
+    name: "Home Services",
+    group: "Industries",
+    category: "Field Services",
+    accent: "#0891b2",
+    description: "Manage plumbing, electrical, appliance, and home repair jobs from inquiry to inspection, estimate, job completion, and payment.",
+    fieldEntity: "Job",
+    sampleRecord: "Apartment plumbing repair",
+    stages: [{ name: "Service Inquiry", probability: 10, color: "#0891b2" }, { name: "Technician Assigned", probability: 30, color: "#2563eb" }, { name: "Estimate Shared", probability: 55, color: "#d97706" }, { name: "Job Scheduled", probability: 85, color: "#7c3aed" }, { name: "Paid & Closed", probability: 100, color: "#059669", isWon: true }],
+    fields: ["Service type", "Address", "Technician", "Visit slot", "Warranty"],
+    customFields: [
+      { entityType: "deals", fieldName: "Service Type", fieldKey: "service_type", fieldType: "dropdown", options: ["Plumbing", "Electrical", "Appliance", "Painting", "Cleaning"], isFilterable: true },
+      { entityType: "deals", fieldName: "Visit Slot", fieldKey: "visit_slot", fieldType: "datetime", isRequired: true },
+      { entityType: "deals", fieldName: "Technician", fieldKey: "technician", fieldType: "text" },
+    ],
+    sampleDeals: [
+      { name: "Kitchen plumbing repair", company: "Prestige Lakeside A-1204", amount: 8500, stageIndex: 1, closeDate: "2026-06-12", source: "Phone call", nextStep: "Assign technician and confirm slot", customFields: { service_type: "Plumbing", visit_slot: "2026-06-11T15:00", technician: "Mahesh" } },
+      { name: "AC service annual package", company: "Kapoor Residence", amount: 28000, stageIndex: 2, closeDate: "2026-06-18", source: "Renewal", nextStep: "Share estimate and service schedule", customFields: { service_type: "Appliance", visit_slot: "2026-06-15T10:30", technician: "Ravi" } },
+    ],
+    automations: ["Technician assignment", "Visit reminder", "Payment collection"],
+    reports: ["Service pipeline", "Technician workload", "Payment aging"],
+  },
+];
+
+const allCrmBusinessTemplates = [...crmBusinessTemplates, ...advancedIndustryTemplates];
 
 type QuickFormField = {
   key: string;
@@ -672,7 +978,7 @@ function CRMDashboard() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">
+    <div className="min-h-[calc(100vh-5rem)] max-w-full overflow-hidden bg-slate-50/70">
       <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -1157,8 +1463,8 @@ function PipelinePage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activeDeal = deals.find((deal) => deal.id === activeId);
   const visibleDeals = deals.filter((deal) => [deal.name, deal.company, deal.owner].join(" ").toLowerCase().includes(filter.toLowerCase()));
-  const selectedTemplate = crmBusinessTemplates.find((template) => template.key === activeTemplateKey) || crmBusinessTemplates[0];
-  const filteredTemplates = crmBusinessTemplates.filter((template) => {
+  const selectedTemplate = allCrmBusinessTemplates.find((template) => template.key === activeTemplateKey) || allCrmBusinessTemplates[0];
+  const filteredTemplates = allCrmBusinessTemplates.filter((template) => {
     const matchesGroup = templateGroup === "All" || template.group === templateGroup;
     const text = [template.name, template.category, template.fields.join(" "), template.reports.join(" ")].join(" ").toLowerCase();
     return matchesGroup && text.includes(templateSearch.toLowerCase());
@@ -1189,8 +1495,9 @@ function PipelinePage() {
       });
       const pipeline = normalizeApiRecord("pipelines", pipelineResponse.data) as CRMRecord;
       const pipelineId = Number(pipeline.id);
+      const createdStages: CRMRecord[] = [];
       for (const [index, stage] of selectedTemplate.stages.entries()) {
-        await crmApi.createPipelineStage<CRMApiRecord>(pipelineId, {
+        const stageResponse = await crmApi.createPipelineStage<CRMApiRecord>(pipelineId, {
           name: stage.name,
           probability: stage.probability,
           color: stage.color,
@@ -1198,9 +1505,40 @@ function PipelinePage() {
           is_won: Boolean(stage.isWon),
           is_lost: Boolean(stage.isLost),
         });
+        createdStages.push(normalizeApiRecord("pipeline-stages", stageResponse.data) as CRMRecord);
+      }
+      let fieldCount = 0;
+      for (const field of selectedTemplate.customFields || []) {
+        try {
+          await crmApi.create<CRMApiRecord>("custom-fields", { ...field, displayOrder: fieldCount + 1 });
+          fieldCount += 1;
+        } catch (fieldError: any) {
+          if (fieldError?.response?.status !== 409) throw fieldError;
+        }
+      }
+      let dealCount = 0;
+      for (const deal of templateSampleDeals(selectedTemplate)) {
+        const stage = createdStages[Math.min(Math.max(deal.stageIndex || 0, 0), createdStages.length - 1)] || createdStages[0];
+        if (!stage) continue;
+        const isWon = Boolean(stage.isWon ?? stage.is_won);
+        const isLost = Boolean(stage.isLost ?? stage.is_lost);
+        await crmApi.create<CRMApiRecord>("deals", {
+          name: deal.name,
+          pipeline_id: pipelineId,
+          stage_id: Number(stage.id),
+          amount: deal.amount,
+          probability: Number(stage.probability || 0),
+          status: isWon ? "Won" : isLost ? "Lost" : "Open",
+          expected_close_date: deal.closeDate,
+          description: deal.nextStep,
+          lead_source: deal.source,
+          source: deal.source,
+          customFields: deal.customFields || {},
+        });
+        dealCount += 1;
       }
       setSelectedPipelineId(pipelineId);
-      setTemplateMessage(`${selectedTemplate.name} pipeline created. Refresh to load persisted stages if they do not appear immediately.`);
+      setTemplateMessage(`${selectedTemplate.name} pipeline created with ${createdStages.length} stages, ${fieldCount} custom fields, and ${dealCount} sample deals. Refresh to load persisted board data if it does not appear immediately.`);
     } catch (error: any) {
       setTemplateMessage(error?.response?.data?.detail || "Template could not be applied.");
     } finally {
@@ -1248,13 +1586,13 @@ function PipelinePage() {
           </div>
         </div>
       </div>
-      <div className="grid gap-0 xl:grid-cols-[21rem_1fr]">
+      <div className="grid min-w-0 gap-0 xl:grid-cols-[21rem_minmax(0,1fr)]">
         <aside className="border-r bg-white px-4 py-4 xl:h-[calc(100vh-9rem)] xl:overflow-y-auto">
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-slate-950">Business templates</h2>
-                <Badge variant="outline">{crmBusinessTemplates.length}</Badge>
+                <Badge variant="outline">{allCrmBusinessTemplates.length}</Badge>
               </div>
               <div className="mt-3 flex gap-2">
                 {(["All", "Teams", "Industries"] as const).map((group) => (
@@ -1291,12 +1629,12 @@ function PipelinePage() {
           {templateMessage ? <div className="rounded-md border bg-white px-4 py-2 text-sm text-slate-700">{templateMessage}</div> : null}
           {dealState.loading || stageState.loading || pipelineState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM pipeline...</div> : null}
           <div className="grid gap-3 md:grid-cols-4">
-            <PipelineMetric label={isTemplateLibrary ? "Templates" : "Open pipeline"} value={isTemplateLibrary ? crmBusinessTemplates.length : formatCurrency(pipelineValue)} detail={isTemplateLibrary ? "Ready to clone" : `${openDeals.length} active deals`} />
-            <PipelineMetric label={isTemplateLibrary ? "Industries" : "Weighted forecast"} value={isTemplateLibrary ? crmBusinessTemplates.filter((template) => template.group === "Industries").length : formatCurrency(weightedValue)} detail={isTemplateLibrary ? "Vertical pipelines" : "Probability adjusted"} />
-            <PipelineMetric label={isTemplateLibrary ? "Teams" : "Due in 7 days"} value={isTemplateLibrary ? crmBusinessTemplates.filter((template) => template.group === "Teams").length : dueSoon} detail={isTemplateLibrary ? "Department workflows" : "Close-date watchlist"} />
+            <PipelineMetric label={isTemplateLibrary ? "Templates" : "Open pipeline"} value={isTemplateLibrary ? allCrmBusinessTemplates.length : formatCurrency(pipelineValue)} detail={isTemplateLibrary ? "Ready to clone" : `${openDeals.length} active deals`} />
+            <PipelineMetric label={isTemplateLibrary ? "Industries" : "Weighted forecast"} value={isTemplateLibrary ? allCrmBusinessTemplates.filter((template) => template.group === "Industries").length : formatCurrency(weightedValue)} detail={isTemplateLibrary ? "Vertical pipelines" : "Probability adjusted"} />
+            <PipelineMetric label={isTemplateLibrary ? "Teams" : "Due in 7 days"} value={isTemplateLibrary ? allCrmBusinessTemplates.filter((template) => template.group === "Teams").length : dueSoon} detail={isTemplateLibrary ? "Department workflows" : "Close-date watchlist"} />
             <PipelineMetric label="Template stages" value={selectedTemplate.stages.length} detail={selectedTemplate.name} />
           </div>
-          <section className="grid gap-4 2xl:grid-cols-[1fr_23rem]">
+          <section className="grid min-w-0 gap-4 min-[1800px]:grid-cols-[minmax(0,1fr)_23rem]">
             <div className="space-y-3">
               <div className="flex flex-col gap-3 rounded-md border bg-white p-3 lg:flex-row lg:items-center lg:justify-between">
                 {isTemplateLibrary ? (
@@ -1326,7 +1664,7 @@ function PipelinePage() {
                 <TemplatePreviewBoard template={selectedTemplate} onApply={applyTemplate} applying={applyingTemplate} />
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                  <div className="flex gap-4 overflow-x-auto pb-4">
+                  <div className="grid auto-cols-[18rem] grid-flow-col gap-4 overflow-x-auto pb-4">
                     {pipelineStages.map((stageRecord) => {
                       const stage = String(stageRecord.name);
                       const stageDeals = visibleDeals.filter((deal) => deal.stageId === Number(stageRecord.id) || deal.stage === stage);
@@ -1371,6 +1709,9 @@ function TemplateDetailPanel({ template, applying, onApply }: { template: CRMBus
       <div className="mt-5 space-y-4">
         <TemplateList title="Stages" items={template.stages.map((stage) => `${stage.name} (${stage.probability}%)`)} />
         <TemplateList title="Fields" items={template.fields} />
+        {template.customFields?.length ? (
+          <TemplateList title="Custom field specs" items={template.customFields.map((field) => `${field.fieldName} / ${labelFor(field.fieldType)} / ${labelFor(field.entityType)}`)} />
+        ) : null}
         <TemplateList title="Automations" items={template.automations} />
         <TemplateList title="Dashboards" items={template.reports} />
       </div>
@@ -1390,27 +1731,30 @@ function TemplateList({ title, items }: { title: string; items: string[] }) {
 }
 
 function TemplatePreviewBoard({ template, applying, onApply }: { template: CRMBusinessTemplate; applying: boolean; onApply: () => void }) {
-  const sampleRecord = template.sampleRecord || sampleTemplateRecord(template);
+  const sampleDeals = templateSampleDeals(template);
   const fieldEntity = template.fieldEntity || templateFieldEntity(template);
   return (
     <div className="relative overflow-hidden rounded-md border bg-white">
-      <div className="flex gap-3 overflow-x-auto bg-slate-100/70 p-3 pb-40">
-        {template.stages.map((stage, index) => (
-          <section key={stage.name} className="flex min-h-[18rem] w-72 shrink-0 flex-col rounded-md border bg-white shadow-sm">
-            <header className="border-t-4 p-3" style={{ borderTopColor: stage.color }}>
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="truncate text-sm font-semibold text-slate-950">{stage.name}</h2>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{index === 0 ? "3" : stage.isWon || stage.isLost ? "1" : "0"}</span>
+      <div className="grid auto-cols-[17rem] grid-flow-col gap-3 overflow-x-auto bg-slate-100/70 p-3 pb-40">
+        {template.stages.map((stage, index) => {
+          const stageDeals = sampleDeals.filter((deal) => (deal.stageIndex || 0) === index);
+          return (
+            <section key={stage.name} className="flex min-h-[18rem] flex-col rounded-md border bg-white shadow-sm">
+              <header className="border-t-4 p-3" style={{ borderTopColor: stage.color }}>
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="truncate text-sm font-semibold text-slate-950">{stage.name}</h2>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{stageDeals.length || (stage.isWon || stage.isLost ? "1" : "0")}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{stage.probability}% probability</p>
+              </header>
+              <div className="space-y-2 p-3">
+                {stageDeals.map((deal) => <TemplateSampleCard key={deal.name} template={template} sampleDeal={deal} />)}
+                <TemplateSkeletonCard strong={index === 1} />
+                <TemplateSkeletonCard />
               </div>
-              <p className="mt-1 text-xs text-slate-500">{stage.probability}% probability</p>
-            </header>
-            <div className="space-y-2 p-3">
-              {index === 0 ? <TemplateSampleCard template={template} sampleRecord={sampleRecord} /> : null}
-              <TemplateSkeletonCard strong={index === 1} />
-              <TemplateSkeletonCard />
-            </div>
-          </section>
-        ))}
+            </section>
+          );
+        })}
       </div>
       <div className="absolute inset-x-0 bottom-0 border-t bg-white/95 px-4 py-8 text-center backdrop-blur">
         <div className="mx-auto max-w-2xl">
@@ -1427,16 +1771,22 @@ function TemplatePreviewBoard({ template, applying, onApply }: { template: CRMBu
   );
 }
 
-function TemplateSampleCard({ template, sampleRecord }: { template: CRMBusinessTemplate; sampleRecord: string }) {
+function TemplateSampleCard({ template, sampleDeal }: { template: CRMBusinessTemplate; sampleDeal: CRMTemplateSampleDeal }) {
+  const fieldTags = Object.entries(sampleDeal.customFields || {}).slice(0, 2);
   return (
     <div className="rounded-md border bg-white p-3 shadow-sm">
-      <p className="text-sm font-semibold text-slate-950">{sampleRecord}</p>
-      <p className="mt-1 text-xs text-slate-500">{template.category} / Sample record</p>
+      <p className="text-sm font-semibold text-slate-950">{sampleDeal.name}</p>
+      <p className="mt-1 text-xs text-slate-500">{sampleDeal.company} / {template.category}</p>
       <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-        <span className="font-semibold text-slate-900">{formatCurrency(940)}</span>
+        <span className="font-semibold text-slate-900">{formatCurrency(sampleDeal.amount)}</span>
         <span className="h-1 w-1 rounded-full bg-slate-300" />
-        <span>Apr 14</span>
+        <span>{formatDate(sampleDeal.closeDate)}</span>
       </div>
+      {fieldTags.length ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {fieldTags.map(([key, value]) => <Badge key={key} variant="outline" className="bg-slate-50 text-[10px]">{labelFor(key)}: {String(value)}</Badge>)}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1482,13 +1832,39 @@ function sampleTemplateRecord(template: CRMBusinessTemplate) {
   return `New ${templateFieldEntity(template).toLowerCase()}`;
 }
 
+function templateSampleDeals(template: CRMBusinessTemplate): CRMTemplateSampleDeal[] {
+  if (template.sampleDeals?.length) return template.sampleDeals;
+  const entity = template.fieldEntity || templateFieldEntity(template);
+  const baseName = template.sampleRecord || sampleTemplateRecord(template);
+  return [
+    {
+      name: baseName,
+      company: `${template.name} customer`,
+      amount: 240000,
+      stageIndex: 0,
+      closeDate: "2026-07-15",
+      source: "Template demo",
+      nextStep: `Qualify ${entity.toLowerCase()} requirements`,
+    },
+    {
+      name: `${template.name} expansion opportunity`,
+      company: `${template.category} account`,
+      amount: 640000,
+      stageIndex: Math.min(2, template.stages.length - 1),
+      closeDate: "2026-08-05",
+      source: "Referral",
+      nextStep: "Prepare proposal and stakeholder review",
+    },
+  ];
+}
+
 function PipelineColumn({ stage, stageRecord, deals }: { stage: string; stageRecord: CRMRecord; deals: CRMDeal[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage}` });
   const value = deals.reduce((sum, deal) => sum + deal.amount, 0);
   const weighted = deals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
   const color = String(stageRecord.color || "#2563eb");
   return (
-    <section ref={setNodeRef} className={`flex h-[calc(100vh-21rem)] w-80 shrink-0 flex-col rounded-md border bg-white shadow-sm ${isOver ? "ring-2 ring-slate-900/20" : ""}`}>
+    <section ref={setNodeRef} className={`flex h-[calc(100vh-21rem)] min-w-[17rem] flex-col rounded-md border bg-white shadow-sm ${isOver ? "ring-2 ring-slate-900/20" : ""}`}>
       <header className="border-t-4 p-3" style={{ borderTopColor: color }}>
         <div className="flex items-center justify-between gap-2">
           <h2 className="truncate text-sm font-semibold text-slate-950">{stage}</h2>
@@ -1591,7 +1967,7 @@ function CustomFieldsSettingsPageLegacy() {
             <label className="space-y-1 text-sm"><span className="font-medium">Type</span><select className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.fieldType || "text")} onChange={(event) => setDraft((current) => ({ ...current, fieldType: event.target.value }))}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="boolean">Boolean</option><option value="select">Select</option></select></label>
           </div>
           <div className="overflow-hidden rounded-md border">
-            <table className="w-full text-sm">
+            <table className="crm-desktop-table">
               <thead className="bg-muted/60 text-left"><tr><th className="px-3 py-2">Entity</th><th className="px-3 py-2">Label</th><th className="px-3 py-2">Key</th><th className="px-3 py-2">Type</th><th className="px-3 py-2">Status</th></tr></thead>
               <tbody>
                 {fields.map((field) => (
@@ -3351,7 +3727,7 @@ function CRMFeatureChecklistPage() {
       <Card>
         <CardHeader><CardTitle>Integration Readiness</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+            <table className="crm-desktop-table">
             <thead className="text-left text-xs uppercase text-muted-foreground">
               <tr className="border-b">
                 <th className="px-3 py-2">Feature</th>
@@ -3502,7 +3878,7 @@ function MergeWizardModal({ group, onClose, onMerged }: { group: CRMDuplicateGro
             ))}
           </div>
           <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="crm-desktop-table">
               <thead className="bg-muted/60">
                 <tr>
                   <th className="px-3 py-2 text-left">Field</th>
@@ -3689,7 +4065,7 @@ function CRMReports() {
       <Card>
         <CardHeader><CardTitle>Closed Deals</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="crm-desktop-table">
             <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
               <tr>{["Deal", "Status", "Source", "Owner", "Pipeline", "Amount", "Closed"].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
             </thead>
@@ -3718,7 +4094,7 @@ function ReportTable({ title, rows, columns }: { title: string; rows: CRMApiReco
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent className="overflow-x-auto p-0">
-        <table className="w-full text-sm">
+        <table className="crm-desktop-table">
           <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
             <tr>{columns.map((column) => <th key={column} className="px-3 py-2">{labelFor(column)}</th>)}</tr>
           </thead>
@@ -4176,13 +4552,13 @@ function Toolbar({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 xl:flex-row xl:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border px-3 py-2">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search records, owners, companies..." className="border-0 p-0 shadow-none focus-visible:ring-0" />
       </div>
       {selectedView && onViewChange ? (
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex flex-wrap gap-2">
           {savedViews.map((view) => (
             <Button key={view} type="button" size="sm" variant={selectedView === view ? "default" : "outline"} onClick={() => onViewChange(view)}>
               {view}
@@ -4249,6 +4625,24 @@ function FilterPanel({
   );
 }
 
+const preferredGridColumns: Partial<Record<CRMPageKind, string[]>> = {
+  leads: ["leadId", "name", "company", "status", "rating", "leadScore", "owner", "nextFollowUp"],
+  contacts: ["contactId", "name", "company", "email", "phone", "status", "owner", "nextFollowUp"],
+  companies: ["name", "industry", "accountType", "status", "owner", "revenue", "nextFollowUp"],
+  deals: ["name", "company", "stage", "amount", "probability", "owner", "closeDate", "nextStep"],
+  activities: ["subject", "type", "status", "priority", "owner", "nextFollowUp"],
+  tasks: ["name", "subject", "status", "priority", "owner", "nextFollowUp"],
+  campaigns: ["name", "type", "status", "budget", "expectedRevenue", "owner", "startDate"],
+  products: ["name", "sku", "category", "price", "status", "owner"],
+  services: ["serviceCode", "name", "category", "billingType", "price", "status"],
+  priceBooks: ["name", "currency", "region", "segment", "status"],
+  quotations: ["quote", "name", "company", "status", "total", "issueDate", "expiryDate"],
+  quotes: ["quote", "name", "company", "status", "total", "issueDate", "expiryDate"],
+  tickets: ["number", "subject", "priority", "status", "company", "owner", "nextFollowUp"],
+  files: ["fileName", "name", "type", "size", "visibility", "owner"],
+  admin: ["adminArea", "name", "email", "permission", "status"],
+};
+
 function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBulkDelete, loading, error }: { rows: CRMRecord[]; title: string; kind: CRMPageKind; onSelect: (row: CRMRecord) => void; onOpen?: (row: CRMRecord) => void; onInlineSave?: (row: CRMRecord, key: string, value: string | number | boolean | null) => Promise<unknown>; onBulkDelete?: (rows: CRMRecord[]) => Promise<unknown>; loading?: boolean; error?: string | null }) {
   const [sort, setSort] = useState<SortState>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
@@ -4269,6 +4663,11 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
     if (!sort) return rows;
     return [...rows].sort((a, b) => compareValues(a[sort.key], b[sort.key], sort.direction));
   }, [rows, sort]);
+  const visibleColumns = useMemo(() => {
+    const preferred = preferredGridColumns[kind] || [];
+    const ordered = [...preferred.filter((key) => columns.includes(key)), ...columns.filter((key) => !preferred.includes(key))];
+    return ordered.slice(0, 8);
+  }, [columns, kind]);
   const selectableRows = visibleRows.filter((row) => row.id !== undefined && row.id !== null);
   const selectedRows = selectableRows.filter((row) => selectedIds[String(row.id)]);
   const allSelected = Boolean(selectableRows.length) && selectedRows.length === selectableRows.length;
@@ -4335,6 +4734,7 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
           {selectedRows.length ? <p className="text-sm text-muted-foreground">{selectedRows.length} selected</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">
+          {columns.length > visibleColumns.length ? <Badge variant="outline" className="h-8 rounded-md px-2.5">Showing {visibleColumns.length} of {columns.length} fields</Badge> : null}
           {onBulkDelete && selectedRows.length ? <Button variant="outline" size="sm" onClick={bulkDelete} disabled={bulkSaving}>{bulkSaving ? "Deleting..." : "Delete selected"}</Button> : null}
           <Button variant="outline" size="sm" onClick={() => exportRows(`${title.toLowerCase().replace(/\s+/g, "-")}.csv`, visibleRows)}>
             <Download className="h-4 w-4" />Export Grid
@@ -4344,15 +4744,15 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
       <CardContent className="p-0">
         {error ? <div className="border-t bg-amber-50 px-4 py-2 text-sm text-amber-800">{error}</div> : null}
         {bulkError ? <div className="border-t bg-red-50 px-4 py-2 text-sm text-red-700">{bulkError}</div> : null}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] table-fixed text-sm">
+        <div className="max-w-full overflow-x-auto">
+          <table className="crm-desktop-table">
             <thead className="sticky top-0 bg-muted/70 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="w-12 px-4 py-3">
+                <th className="w-10 px-3 py-3">
                   <input type="checkbox" checked={allSelected} disabled={!selectableRows.length} onChange={(event) => toggleAllRows(event.target.checked)} aria-label={`Select all ${title}`} />
                 </th>
-                {columns.map((key) => (
-                  <th key={key} style={{ width: widths[key] || 160 }} className="relative px-4 py-3 font-medium">
+                {visibleColumns.map((key) => (
+                  <th key={key} style={{ width: widths[key] || undefined }} className="relative px-3 py-3 font-medium">
                     <div className="flex items-center gap-1">
                       <button className="flex min-w-0 items-center gap-1 truncate" onClick={() => toggleSort(key)}>
                         <span className="truncate">{key.replace(/([A-Z])/g, " $1")}</span>
@@ -4368,22 +4768,22 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(columns.length + 1, 1)}>Loading CRM records...</td></tr>
+                <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(visibleColumns.length + 1, 1)}>Loading CRM records...</td></tr>
               ) : null}
               {!loading && visibleRows.map((row, index) => (
                 <tr key={index} className="border-t hover:bg-muted/35">
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3">
                     <input type="checkbox" checked={Boolean(selectedIds[String(row.id)])} disabled={row.id === undefined || row.id === null} onChange={(event) => toggleRow(row, event.target.checked)} aria-label={`Select record ${String(row.id || index + 1)}`} />
                   </td>
-                  {columns.map((key) => (
-                    <td key={key} style={{ width: widths[key] || 160 }} className="px-4 py-3">
+                  {visibleColumns.map((key) => (
+                    <td key={key} style={{ width: widths[key] || undefined }} className="px-3 py-3">
                       <InlineTableCell row={row} fieldKey={key} kind={kind} value={row[key]} onSelect={onSelect} onOpen={onOpen} onSave={onInlineSave} />
                     </td>
                   ))}
                 </tr>
               ))}
               {!loading && !visibleRows.length ? (
-                <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(columns.length + 1, 1)}>No CRM records found</td></tr>
+                <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(visibleColumns.length + 1, 1)}>No CRM records found</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -4800,7 +5200,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
                   <Button type="button" variant="outline" size="sm" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button>
                 </div>
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full min-w-[760px] text-sm">
+                  <table className="crm-desktop-table">
                     <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                       <tr>
                         <th className="px-3 py-3">Product</th>

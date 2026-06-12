@@ -32,12 +32,12 @@ export default function AppLayout() {
 
       {/* Main content */}
       <div
-        className={`flex flex-1 flex-col overflow-hidden transition-all duration-300 ${
+        className={`flex min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300 ${
           sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-5 lg:p-8 animate-fade-in">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-5 lg:p-8 animate-fade-in">
           <Breadcrumbs />
           <ErrorBoundary>
             <Outlet />

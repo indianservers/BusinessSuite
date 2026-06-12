@@ -42,7 +42,7 @@ export default function InventoryBridgePage() {
             </div>
           </div>
           <Button asChild variant="outline">
-            <a href="/inventory/dashboard">
+            <a href="/Inventory/dashboard">
               <ExternalLink className="h-4 w-4" />
               Inventory bridge
             </a>

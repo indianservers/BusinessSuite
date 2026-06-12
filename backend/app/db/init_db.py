@@ -1,7 +1,7 @@
 from datetime import date
 from sqlalchemy.orm import Session
 from app.core.security import get_password_hash
-from app.models.user import User, Role, Permission
+from app.models.user import User, Role, Permission, UserSession, MFAMethod, LoginAttempt
 from app.models.target import FeatureCatalog, FeaturePlan, IndustryTarget
 from app.models.company import Branch, Company, Department, Designation
 from app.models.employee import Employee
@@ -543,39 +543,69 @@ DEMO_USERS = [
         "is_superuser": False,
     },
     {
-        "email": "admin@srm.local",
+        "email": "admin@srmflow.com",
         "password": "Password@123",
         "role": "srm_admin",
         "is_superuser": False,
     },
     {
-        "email": "sales.manager@srm.local",
+        "email": "sales.manager@srmflow.com",
         "password": "Password@123",
         "role": "srm_sales_manager",
         "is_superuser": False,
     },
     {
-        "email": "sales.executive@srm.local",
+        "email": "sales.executive@srmflow.com",
         "password": "Password@123",
         "role": "srm_sales_executive",
         "is_superuser": False,
     },
     {
-        "email": "finance@srm.local",
+        "email": "finance@srmflow.com",
         "password": "Password@123",
         "role": "srm_finance_manager",
         "is_superuser": False,
     },
     {
-        "email": "collections@srm.local",
+        "email": "collections@srmflow.com",
         "password": "Password@123",
         "role": "srm_collection_executive",
         "is_superuser": False,
     },
     {
-        "email": "owner@srm.local",
+        "email": "owner@srmflow.com",
         "password": "Password@123",
         "role": "srm_business_owner",
+        "is_superuser": False,
+    },
+    {
+        "email": "admin@financeflow.com",
+        "password": "Password@123",
+        "role": "fam_admin",
+        "is_superuser": False,
+    },
+    {
+        "email": "accountant@financeflow.com",
+        "password": "Password@123",
+        "role": "accountant",
+        "is_superuser": False,
+    },
+    {
+        "email": "finance.manager@financeflow.com",
+        "password": "Password@123",
+        "role": "finance_manager",
+        "is_superuser": False,
+    },
+    {
+        "email": "auditor@financeflow.com",
+        "password": "Password@123",
+        "role": "auditor",
+        "is_superuser": False,
+    },
+    {
+        "email": "viewer@financeflow.com",
+        "password": "Password@123",
+        "role": "fam_viewer",
         "is_superuser": False,
     },
 ]
@@ -1039,27 +1069,31 @@ def init_db(db: Session) -> None:
         company = Company(name="Demo Company", legal_name="Demo Company Pvt Ltd")
         db.add(company)
         db.flush()
+    company_id = company.id
 
-    branch = db.query(Branch).filter(Branch.company_id == company.id, Branch.name == "Head Office").first()
+    branch = db.query(Branch).filter(Branch.company_id == company_id, Branch.name == "Head Office").first()
     if not branch:
-        branch = Branch(name="Head Office", code="HO", company_id=company.id, city="Bengaluru", state="Karnataka")
+        branch = Branch(name="Head Office", code="HO", company_id=company_id, city="Bengaluru", state="Karnataka")
         db.add(branch)
         db.flush()
+    branch_id = branch.id
 
-    department = db.query(Department).filter(Department.branch_id == branch.id, Department.name == "People Operations").first()
+    department = db.query(Department).filter(Department.branch_id == branch_id, Department.name == "People Operations").first()
     if not department:
-        department = Department(name="People Operations", code="HR", branch_id=branch.id)
+        department = Department(name="People Operations", code="HR", branch_id=branch_id)
         db.add(department)
         db.flush()
+    department_id = department.id
 
-    designation = db.query(Designation).filter(Designation.department_id == department.id, Designation.name == "HRMS User").first()
+    designation = db.query(Designation).filter(Designation.department_id == department_id, Designation.name == "HRMS User").first()
     if not designation:
-        designation = Designation(name="HRMS User", code="USER", department_id=department.id)
+        designation = Designation(name="HRMS User", code="USER", department_id=department_id)
         db.add(designation)
         db.flush()
+    designation_id = designation.id
 
     # Seed role-based demo users: Admin, HR, Manager, and Employee.
-    seeded_users = {}
+    seeded_user_ids = {}
     for item in DEMO_USERS:
         user = db.query(User).filter(User.email == item["email"]).first()
         if not user:
@@ -1073,10 +1107,21 @@ def init_db(db: Session) -> None:
             db.add(user)
             db.flush()
         else:
+            user.hashed_password = get_password_hash(item["password"])
             user.role_id = role_map[item["role"]].id
             user.is_superuser = item["is_superuser"]
             user.is_active = True
-        seeded_users[item["role"]] = user
+            user.password_reset_token = None
+            user.password_reset_expires = None
+            user.mfa_enabled = False
+            user.mfa_enforced_at = None
+            user.sso_provider_id = None
+            db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
+            db.query(MFAMethod).filter(MFAMethod.user_id == user.id).delete(synchronize_session=False)
+            db.query(LoginAttempt).filter(LoginAttempt.user_id == user.id).delete(synchronize_session=False)
+            db.query(LoginAttempt).filter(LoginAttempt.email == item["email"]).delete(synchronize_session=False)
+        seeded_user_ids[item["role"]] = user.id
+    db.commit()
 
     from app.module_registry import is_app_enabled
 
@@ -1085,7 +1130,7 @@ def init_db(db: Session) -> None:
         from app.apps.crm.seed import seed_crm_demo_data
 
         ensure_crm_schema(db)
-        seed_crm_demo_data(db, organization_id=company.id)
+        seed_crm_demo_data(db, organization_id=company_id)
 
     manager_employee = db.query(Employee).filter(Employee.employee_id == "DEMO-MGR-001").first()
     if not manager_employee:
@@ -1095,10 +1140,10 @@ def init_db(db: Session) -> None:
             last_name="Manager",
             personal_email="manager@aihrms.com",
             date_of_joining=date(2024, 1, 1),
-            user_id=seeded_users["manager"].id,
-            branch_id=branch.id,
-            department_id=department.id,
-            designation_id=designation.id,
+            user_id=seeded_user_ids["manager"],
+            branch_id=branch_id,
+            department_id=department_id,
+            designation_id=designation_id,
             status="Active",
         )
         db.add(manager_employee)
@@ -1112,10 +1157,10 @@ def init_db(db: Session) -> None:
             last_name="Employee",
             personal_email="employee@aihrms.com",
             date_of_joining=date(2024, 2, 1),
-            user_id=seeded_users["employee"].id,
-            branch_id=branch.id,
-            department_id=department.id,
-            designation_id=designation.id,
+            user_id=seeded_user_ids["employee"],
+            branch_id=branch_id,
+            department_id=department_id,
+            designation_id=designation_id,
             reporting_manager_id=manager_employee.id,
             status="Active",
         )

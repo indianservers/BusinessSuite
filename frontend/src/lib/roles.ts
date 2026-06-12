@@ -50,7 +50,7 @@ import {
   Users,
   Webhook,
 } from "lucide-react";
-import { getInstalledAppKeys } from "@/appRegistry";
+import { getInstalledAppKeys, isFrontendModuleEnabled } from "@/appRegistry";
 
 export type RoleKey = "admin" | "ceo" | "hr" | "manager" | "employee";
 
@@ -952,7 +952,7 @@ const famNav: RoleNavItem[] = [
 ];
 
 const inventoryNav: RoleNavItem[] = [
-  { label: "Inventory", icon: Package, to: "/inventory", group: "Inventory", exact: true },
+  { label: "Inventory", icon: Package, to: "/Inventory", group: "Inventory", exact: true },
 ];
 
 
@@ -1034,6 +1034,7 @@ function withPrefix(items: RoleNavItem[], prefix: string) {
 }
 
 export function getActiveModule(pathname: string) {
+  const normalizedPathname = pathname.toLowerCase();
   if (pathname === "/" || pathname === "") return "suite";
   if (isAdminSecurityPath(pathname)) return "admin_security";
   if (pathname.startsWith("/mobile") || pathname.startsWith("/developer") || pathname.startsWith("/marketplace") || pathname.startsWith("/admin/sandbox") || pathname.startsWith("/admin/company-settings") || pathname.startsWith("/admin/feature-flags") || pathname.startsWith("/admin/subscription") || pathname.startsWith("/admin/usage")) return "saas";
@@ -1043,7 +1044,7 @@ export function getActiveModule(pathname: string) {
   if (pathname.startsWith("/pms")) return "project_management";
   if (pathname.startsWith("/srm")) return "srm";
   if (pathname.startsWith("/fam")) return "fam";
-  if (pathname.startsWith("/inventory")) return "inventory";
+  if (normalizedPathname.startsWith("/inventory")) return "inventory";
   return "hrms";
 }
 
@@ -1130,7 +1131,13 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
       suiteNav.push({ label: "FinanceFlow", icon: Landmark, to: "/fam", group: "Applications", exact: true });
     }
     if (installedApps.includes("inventory") && key !== "employee") {
-      suiteNav.push({ label: "Inventory", icon: Package, to: "/inventory", group: "Applications", exact: true });
+      suiteNav.push({ label: "Inventory", icon: Package, to: "/Inventory", group: "Applications", exact: true });
+    }
+    if (key !== "employee") {
+      suiteNav.push({ label: "Business OS", icon: Network, to: "/business-os", group: "Applications", exact: true });
+    }
+    if (key === "admin" || isSuperuser) {
+      suiteNav.push({ label: "Business OS Admin", icon: Network, to: "/admin/business-os/modules", group: "Applications", exact: true });
     }
     if (key !== "employee") {
       suiteNav.push({ label: "AI Agents", icon: Sparkles, to: "/ai-agents", group: "Applications", badge: "AI", exact: true });
@@ -1211,9 +1218,19 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  const lowercasePathname = pathname.toLowerCase();
   if (pathname === "/") return true;
+  if (pathname.startsWith("/crm") && !isFrontendModuleEnabled("crm")) return false;
+  if (pathname.startsWith("/pms") && !isFrontendModuleEnabled("project_management")) return false;
+  if (pathname.startsWith("/srm") && !isFrontendModuleEnabled("srm")) return false;
+  if (pathname.startsWith("/fam") && !isFrontendModuleEnabled("fam")) return false;
+  if (lowercasePathname.startsWith("/inventory") && !isFrontendModuleEnabled("inventory")) return false;
+  if (pathname.startsWith("/hrms") && !isFrontendModuleEnabled("hrms")) return false;
+  if ((pathname === "/ai" || pathname.startsWith("/ai/") || pathname.startsWith("/ai-agents")) && !isFrontendModuleEnabled("ai")) return false;
   if (isAdminSecurityPath(pathname)) return canAccessAdminSecurityPath(pathname, role, isSuperuser);
+  if (pathname === "/business-os" || pathname.startsWith("/business-os/")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname === "/admin/automation" || pathname.startsWith("/admin/automation/")) return isAutomationAdminRole(role, isSuperuser);
+  if (pathname.startsWith("/admin/business-os")) return isSuperuser || ["super_admin", "admin", "fam_admin", "crm_org_admin", "crm_super_admin"].includes(normalizeRole(role));
   if (pathname.startsWith("/mobile") || pathname.startsWith("/developer") || pathname.startsWith("/marketplace") || pathname.startsWith("/admin/sandbox") || pathname.startsWith("/admin/company-settings") || pathname.startsWith("/admin/feature-flags") || pathname.startsWith("/admin/subscription") || pathname.startsWith("/admin/usage")) return canAccessSaaSPath(pathname, role, isSuperuser);
   if (pathname === "/ai" || pathname.startsWith("/ai/")) return canAccessAiCopilotPath(pathname === "/ai" ? "/ai/copilot" : pathname, role, isSuperuser);
   if (pathname === "/admin/customization" || pathname.startsWith("/admin/customization/")) {
@@ -1230,7 +1247,7 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
   if (pathname.startsWith("/pms")) return canAccessPmsPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/srm")) return canAccessSrmPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/fam")) return canAccessFamPath(pathname, role, isSuperuser);
-  if (pathname.startsWith("/inventory")) return getRoleKey(role, isSuperuser) !== "employee";
+  if (lowercasePathname.startsWith("/inventory")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname.startsWith("/hrms/") && !isHrmsRole(role, isSuperuser)) return false;
   const normalizedPathname = pathname.startsWith("/hrms/")
     ? pathname.replace(/^\/hrms/, "")
@@ -1249,6 +1266,7 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
 }
 
 export function getRequiredPermissionForPath(pathname: string) {
+  const lowercasePathname = pathname.toLowerCase();
   const normalizedPathname = pathname.startsWith("/hrms/")
     ? pathname.replace(/^\/hrms/, "")
     : pathname;
@@ -1267,9 +1285,11 @@ export function getRequiredPermissionForPath(pathname: string) {
   if (match) return routeAccess[match].map((role) => role.toUpperCase()).join(", ");
   if (pathname === "/ai" || pathname.startsWith("/ai/")) return "AI Copilot Access";
   if (pathname.startsWith("/ai-agents")) return "AI Agents Access";
+  if (pathname.startsWith("/business-os")) return "Business OS Access";
+  if (pathname.startsWith("/admin/business-os")) return "Business OS Admin";
   if (pathname.startsWith("/srm")) return "SRM Access";
   if (pathname.startsWith("/fam")) return "FAM Access";
-  if (pathname.startsWith("/inventory")) return "Inventory Access";
+  if (lowercasePathname.startsWith("/inventory")) return "Inventory Access";
   if (isAdminSecurityPath(pathname)) return "Enterprise Admin Security";
   return "Admin";
 }

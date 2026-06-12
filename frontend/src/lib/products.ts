@@ -61,7 +61,7 @@ export const products: Record<ProductKey, ProductMeta> = {
     name: "Vyapara ERP Inventory",
     shortName: "Inventory",
     loginPath: "/login",
-    homePath: "/inventory",
+    homePath: "/Inventory",
     themeClass: "product-inventory",
     searchPlaceholder: "Search products, stock, invoices...  Cmd+K",
   },
@@ -72,11 +72,12 @@ export function normalizeRole(role?: string | null) {
 }
 
 export function getProductKeyFromPath(pathname: string): ProductKey | null {
+  const normalizedPathname = pathname.toLowerCase();
   if (pathname.startsWith("/crm")) return "crm";
   if (pathname.startsWith("/pms")) return "project_management";
   if (pathname.startsWith("/srm")) return "srm";
   if (pathname.startsWith("/fam")) return "fam";
-  if (pathname.startsWith("/inventory")) return "inventory";
+  if (normalizedPathname.startsWith("/inventory")) return "inventory";
   if (pathname.startsWith("/hrms")) return "hrms";
   return null;
 }
