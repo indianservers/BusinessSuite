@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from app.apps.crm.models import CRMApprovalRequest, CRMCalendarIntegration, CRMContact, CRMDeal, CRMDealContact, CRMEnrichmentLog, CRMLead, CRMMessage, CRMNoteMention, CRMPipeline, CRMPipelineStage, CRMQuotationItem, CRMTask, CRMTerritoryUser, CRMWebhookDelivery
 from app.core.security import get_password_hash
@@ -236,6 +236,72 @@ def test_crm_secondary_list_pages_use_backend_resources(client, superuser_header
 
         deleted = client.delete(f"/api/v1/crm/{entity}/{created.json()['id']}", headers=superuser_headers)
         assert deleted.status_code == 200
+
+
+def test_crm_ticket_queue_prioritizes_urgent_assigned_work_and_csat_flow(client, superuser_headers):
+    low = client.post(
+        "/api/v1/crm/tickets",
+        headers=superuser_headers,
+        json={"ticketNumber": "TCK-LOW", "subject": "Low question", "priority": "Low", "status": "Open", "dueDate": "2026-07-01T09:00:00+00:00"},
+    )
+    critical = client.post(
+        "/api/v1/crm/tickets",
+        headers=superuser_headers,
+        json={"ticketNumber": "TCK-CRIT", "subject": "Critical outage", "priority": "Critical", "status": "Open", "dueDate": "2026-06-01T09:00:00+00:00"},
+    )
+    assert low.status_code == 201, low.text
+    assert critical.status_code == 201, critical.text
+
+    listed = client.get("/api/v1/crm/tickets", headers=superuser_headers)
+    assert listed.status_code == 200
+    assert listed.json()["items"][0]["ticketNumber"] == "TCK-CRIT"
+
+    closed = client.patch(
+        f"/api/v1/crm/tickets/{critical.json()['id']}",
+        headers=superuser_headers,
+        json={"status": "Resolved"},
+    )
+    assert closed.status_code == 200, closed.text
+    assert closed.json()["resolvedAt"] is not None
+    assert closed.json()["csatRequestedAt"] is not None
+
+    rated = client.patch(
+        f"/api/v1/crm/tickets/{critical.json()['id']}",
+        headers=superuser_headers,
+        json={"satisfactionRating": 5, "satisfactionComment": "Fast response"},
+    )
+    assert rated.status_code == 200, rated.text
+    assert rated.json()["satisfactionRating"] == 5
+    assert rated.json()["satisfactionComment"] == "Fast response"
+    assert rated.json()["csatSubmittedAt"] is not None
+
+
+def test_crm_stale_leads_can_be_flagged_and_reassigned(client, db, superuser_headers):
+    old = datetime.now(timezone.utc) - timedelta(days=2)
+    lead = CRMLead(
+        organization_id=1,
+        first_name="Idle",
+        full_name="Idle Lead",
+        email="idle@example.com",
+        status="New",
+        owner_user_id=None,
+        last_contacted_at=old,
+        created_at=old,
+    )
+    db.add(lead)
+    db.commit()
+
+    response = client.post(
+        "/api/v1/crm/automation/stale-records/reassign",
+        headers=superuser_headers,
+        json={"entityType": "leads", "thresholdHours": 24, "reassignToUserId": 1},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["total"] >= 1
+    db.refresh(lead)
+    assert lead.owner_user_id == 1
+    assert "stale_auto_flag" in (lead.tags_text or "")
 
 
 def test_crm_custom_field_values_are_persisted_and_org_scoped(client, superuser_headers):

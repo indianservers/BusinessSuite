@@ -11,6 +11,32 @@ export default function KeyboardShortcuts() {
       if (event.key === "?" && !event.ctrlKey && !event.metaKey) setOpen(true);
       if (event.key === "Escape") setOpen(false);
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.altKey && event.key.toLowerCase() === "h") {
+        event.preventDefault();
+        if (window.location.pathname.startsWith("/crm")) navigate("/crm");
+        else if (window.location.pathname.startsWith("/hrms")) navigate("/hrms");
+        else if (window.location.pathname.startsWith("/pms")) navigate("/pms");
+        else navigate("/dashboard");
+      }
+      if (event.altKey && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        if (window.location.pathname.startsWith("/crm")) navigate("/crm/tickets");
+        else if (window.location.pathname.startsWith("/hrms")) navigate("/hrms/leave-requests");
+        else if (window.location.pathname.startsWith("/pms")) navigate("/pms/enterprise-engine");
+        else navigate("/approvals");
+      }
+      if (event.altKey && event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        if (window.location.pathname.startsWith("/crm")) navigate("/crm/reports");
+        else if (window.location.pathname.startsWith("/hrms")) navigate("/hrms/reports");
+        else if (window.location.pathname.startsWith("/pms")) navigate("/pms/reports");
+        else navigate("/reports");
+      }
+      if (event.key.toLowerCase() === "n" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (window.location.pathname.startsWith("/crm")) navigate("/crm/leads");
+        if (window.location.pathname.startsWith("/hrms")) navigate("/hrms/employees/new");
+        if (window.location.pathname.startsWith("/pms")) navigate("/pms/projects/new");
+      }
       if (event.key.toLowerCase() === "c" && window.location.pathname.startsWith("/pms")) navigate("/pms/projects/new");
       if (event.key === "/" && window.location.pathname.startsWith("/pms")) {
         event.preventDefault();
@@ -40,7 +66,9 @@ export default function KeyboardShortcuts() {
                 ["?", "Open this help"],
                 ["Esc", "Close dialogs"],
                 ["Alt + H", "Go dashboard"],
-                ["Alt + P", "Go payroll"],
+                ["Alt + A", "Open approvals or assigned work"],
+                ["Alt + R", "Open reports"],
+                ["N", "Create in current module"],
                 ["PMS: C", "Create project/work item"],
                 ["PMS: /", "Open issue navigator"],
                 ["PMS: A", "Assign/open enterprise engine"],

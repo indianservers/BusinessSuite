@@ -7,6 +7,7 @@ import { reportsApi } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
 import { canAccessRoute } from "@/lib/roles";
+import { getWowFeaturesForContext } from "@/lib/wowFeatures";
 
 type Result = { type: string; title: string; subtitle?: string; url: string };
 
@@ -25,6 +26,12 @@ export default function GlobalSearch() {
     enabled,
   });
   const staticResults = useMemo<Result[]>(() => {
+    const wowResults: Result[] = getWowFeaturesForContext(product.key).map((feature) => ({
+      type: feature.impact,
+      title: feature.title,
+      subtitle: feature.subtitle,
+      url: feature.path,
+    }));
     if (product.key === "crm") {
       return [
         { type: "Page", title: "CRM Dashboard", url: "/crm" },
@@ -32,6 +39,7 @@ export default function GlobalSearch() {
         { type: "Page", title: "Deals", subtitle: "Pipeline and opportunities", url: "/crm/deals" },
         { type: "Page", title: "Contacts", subtitle: "Customer contacts", url: "/crm/contacts" },
         { type: "Page", title: "Reports", subtitle: "Sales analytics", url: "/crm/reports" },
+        ...wowResults,
       ];
     }
     if (product.key === "project_management") {
@@ -41,6 +49,7 @@ export default function GlobalSearch() {
         { type: "Page", title: "Backlog", subtitle: "Issues and planning", url: "/pms/backlog" },
         { type: "Page", title: "Sprints", subtitle: "Sprint execution", url: "/pms/sprints" },
         { type: "Page", title: "Reports", subtitle: "Delivery analytics", url: "/pms/reports" },
+        ...wowResults,
       ];
     }
     if (product.key === "srm") {
@@ -51,6 +60,7 @@ export default function GlobalSearch() {
         { type: "Page", title: "Invoices", subtitle: "Drafts, approvals, sending, and PDF", url: "/srm/invoices" },
         { type: "Page", title: "Collections", subtitle: "Receipts, allocations, aging, reminders", url: "/srm/collections" },
         { type: "Page", title: "Profitability", subtitle: "Margin and cash performance", url: "/srm/profitability" },
+        ...wowResults,
       ];
     }
     if (product.key === "fam") {
@@ -85,6 +95,7 @@ export default function GlobalSearch() {
         { type: "Page", title: "Contra", subtitle: "Bank/cash transfers through contra vouchers", url: "/fam/contra" },
         { type: "Page", title: "Bank Charges", subtitle: "Post bank fees through payment vouchers", url: "/fam/bank-charges" },
         { type: "Page", title: "Accounting Audit", subtitle: "Setup and chart audit logs", url: "/fam/audit" },
+        ...wowResults,
       ];
     }
     return [
@@ -93,6 +104,7 @@ export default function GlobalSearch() {
       { type: "Page", title: "ESS Profile", subtitle: "Photo, completeness, change requests", url: "/hrms/profile" },
       { type: "Page", title: "Talent", subtitle: "OKR, 360, competencies", url: "/hrms/performance" },
       { type: "Page", title: "Org Chart", subtitle: "Company hierarchy", url: "/hrms/company" },
+      ...wowResults,
     ];
   }, [product.key]);
   const results: Result[] = (enabled ? (data?.results || []) : staticResults).filter((item: Result) =>
