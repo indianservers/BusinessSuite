@@ -6,6 +6,7 @@ import BackToTop from "@/components/app/BackToTop";
 import Breadcrumbs from "@/components/app/Breadcrumbs";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
 import SessionTimeoutWarning from "@/components/app/SessionTimeoutWarning";
+import WorkspaceEnhancements from "@/components/app/WorkspaceEnhancements";
 import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
 
@@ -39,6 +40,7 @@ export default function AppLayout() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-5 lg:p-8 animate-fade-in">
           <Breadcrumbs />
+          <WorkspaceEnhancements />
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

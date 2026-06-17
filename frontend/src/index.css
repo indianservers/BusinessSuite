@@ -195,7 +195,7 @@
     @apply w-full min-w-[760px] text-sm;
   }
   .ui-table th {
-    @apply whitespace-nowrap bg-muted/50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground;
+    @apply sticky top-0 z-10 whitespace-nowrap bg-muted/80 px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground backdrop-blur;
   }
   .ui-table td {
     @apply px-4 py-3 align-middle;
@@ -220,6 +220,32 @@
   }
   .stat-card {
     @apply rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md;
+  }
+  html[data-ui-density="compact"] .ui-table th,
+  html[data-ui-density="compact"] .ui-table td {
+    @apply px-3 py-2;
+  }
+  html[data-ui-density="spacious"] .ui-table th,
+  html[data-ui-density="spacious"] .ui-table td {
+    @apply px-5 py-4;
+  }
+  html[data-ui-density="compact"] .ui-toolbar {
+    @apply gap-1 p-2;
+  }
+  html[data-ui-density="spacious"] .ui-toolbar {
+    @apply gap-3 p-4;
+  }
+  html[data-ui-density="compact"] .stat-card {
+    @apply p-3;
+  }
+  html[data-ui-density="spacious"] .stat-card {
+    @apply p-5;
+  }
+  .workspace-kpi-strip {
+    @apply grid gap-3 md:grid-cols-2 xl:grid-cols-4;
+  }
+  .workspace-soft-panel {
+    @apply rounded-lg border bg-card shadow-sm;
   }
   .nav-link {
     @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors;
@@ -288,7 +314,7 @@
   }
 
   .product-shell main {
-    @apply px-3 py-4;
+    @apply px-3 pb-20 pt-4;
   }
 
   .ui-table-wrap {

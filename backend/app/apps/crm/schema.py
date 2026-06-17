@@ -120,6 +120,12 @@ DEAL_REPORT_COLUMNS = {
     "closed_at": "DATETIME",
 }
 
+TICKET_CSAT_COLUMNS = {
+    "satisfaction_comment": "TEXT",
+    "csat_requested_at": "DATETIME",
+    "csat_submitted_at": "DATETIME",
+}
+
 TERRITORY_COLUMNS = {
     "rules_json": "JSON",
     "priority": "INTEGER",
@@ -369,6 +375,11 @@ def ensure_crm_schema(db: Session) -> None:
                     columns.add(column_name)
             db.execute(text("UPDATE crm_deals SET lost_reason = COALESCE(lost_reason, loss_reason)"))
             db.execute(text("UPDATE crm_deals SET source = COALESCE(source, lead_source)"))
+        if table_name == "crm_tickets":
+            for column_name, column_type in TICKET_CSAT_COLUMNS.items():
+                if column_name not in columns:
+                    db.execute(text(f"ALTER TABLE crm_tickets ADD COLUMN {column_name} {column_type}"))
+                    columns.add(column_name)
         if table_name in {"crm_leads", "crm_companies", "crm_contacts", "crm_deals", "crm_quotations", "crm_activities", "crm_tasks"}:
             for column_name, column_type in CRM_SCOPE_COLUMNS.items():
                 if column_name not in columns:

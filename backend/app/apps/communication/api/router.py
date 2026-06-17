@@ -83,6 +83,37 @@ def _timeline(db: Session, record_type: str, record_id: int, channel: str, event
     )
 
 
+def _log_whatsapp_placeholder(db: Session, record_type: str, record_id: int, phone: str, body: str, template: CommunicationWhatsAppTemplate | None = None) -> None:
+    db.add(
+        CommunicationDeliveryLog(
+            channel="whatsapp",
+            related_message_id=None,
+            provider="placeholder",
+            status="queued",
+            request_json={
+                "to_phone": phone,
+                "related_record_type": record_type,
+                "related_record_id": record_id,
+                "template_id": template.id if template else None,
+                "template_key": template.template_key if template else None,
+                "body": body,
+            },
+            response_json={"placeholder_only": True, "next_action": "Configure a WhatsApp provider adapter to send this queued response."},
+        )
+    )
+    _timeline(
+        db,
+        record_type,
+        record_id,
+        "whatsapp",
+        "queued",
+        template.name if template else "Webform WhatsApp auto-response",
+        f"WhatsApp auto-response queued for {phone}",
+        None,
+        {"template_id": template.id if template else None, "placeholder_only": True},
+    )
+
+
 def _require_template(db: Session, template_id: int | None) -> CommunicationEmailTemplate | None:
     if not template_id:
         return None
@@ -319,16 +350,24 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
     submission = CommunicationWebformSubmission(webform_id=webform.id, payload_json=values, created_record_type=created_type, created_record_id=created_id, duplicate_detected=duplicate, ip_address=request.client.host if request.client else None)
     db.add(submission)
     _timeline(db, created_type, created_id, "webform", "submitted", webform.name, "Webform submission created CRM record", None, {"webform_id": webform.id, "duplicate_detected": duplicate})
-    if webform.auto_response_rule_id and email:
+    auto_responses: list[dict[str, Any]] = []
+    if webform.auto_response_rule_id:
         rule = db.query(CommunicationAutoResponseRule).filter(CommunicationAutoResponseRule.id == webform.auto_response_rule_id, CommunicationAutoResponseRule.active == True).first()
-        template = _require_template(db, rule.template_id if rule else None)
-        if template:
+        template = _require_template(db, rule.template_id if rule and rule.template_id else None)
+        if template and email:
             message = CommunicationEmailMessage(related_record_type=created_type, related_record_id=created_id, to_email=email, subject=merge_template(template.subject, values), body=merge_template(template.body_html or template.body_text or "", values), status="queued")
             db.add(message)
             db.flush()
             deliver_email(db, message, None)
+            auto_responses.append({"channel": "email", "status": message.status, "message_id": message.id})
+        whatsapp_template_id = (rule.condition_json or {}).get("whatsapp_template_id") if rule else None
+        if whatsapp_template_id and phone:
+            whatsapp_template = db.query(CommunicationWhatsAppTemplate).filter(CommunicationWhatsAppTemplate.id == int(whatsapp_template_id), CommunicationWhatsAppTemplate.active == True).first()
+            if whatsapp_template:
+                _log_whatsapp_placeholder(db, created_type, created_id, phone, merge_template(whatsapp_template.body_text, values), whatsapp_template)
+                auto_responses.append({"channel": "whatsapp", "status": "queued", "template_id": whatsapp_template.id})
     db.commit()
-    return {"status": "accepted", "created_record_type": created_type, "created_record_id": created_id, "duplicate_detected": duplicate}
+    return {"status": "accepted", "created_record_type": created_type, "created_record_id": created_id, "duplicate_detected": duplicate, "auto_responses": auto_responses}
 
 
 @communication_router.get("/auto-response-rules")
@@ -493,4 +532,3 @@ def list_delivery_logs(db: Session = Depends(get_db), current_user: User = Depen
 
 router.include_router(communication_router)
 router.include_router(public_router)
-

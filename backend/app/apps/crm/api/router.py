@@ -12,7 +12,7 @@ import secrets
 import smtplib
 import csv
 import io
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from difflib import SequenceMatcher
 from email.message import EmailMessage
@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import asc, desc, or_
+from sqlalchemy import asc, case, desc, or_
 from sqlalchemy.inspection import inspect as sa_inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.sqltypes import Boolean, Date, DateTime, Integer, Numeric
@@ -302,6 +302,16 @@ class CRMTerritoryAutoAssignPayload(BaseModel):
     entityType: str | None = None
     entityId: int | None = None
     overrideManual: bool = False
+
+
+class CRMStaleRecordsPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    entityType: str = "lead"
+    thresholdHours: int = 24
+    reassignToUserId: int | None = None
+    status: str | None = None
+    limit: int = 100
 
 
 class CRMEnrichmentPreviewPayload(BaseModel):
@@ -2003,6 +2013,13 @@ def _serialize(record: Any) -> dict[str, Any]:
         "actual_close_date": "actualCloseDate",
         "expected_revenue": "expectedRevenue",
         "lead_source": "leadSource",
+        "ticket_number": "ticketNumber",
+        "due_date": "dueDate",
+        "resolved_at": "resolvedAt",
+        "satisfaction_rating": "satisfactionRating",
+        "satisfaction_comment": "satisfactionComment",
+        "csat_requested_at": "csatRequestedAt",
+        "csat_submitted_at": "csatSubmittedAt",
         "quote_number": "quoteNumber",
         "quote_id": "quoteId",
         "quotation_id": "quoteId",
@@ -2395,6 +2412,19 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
             data["question_json"] = data.pop("questions")
         if "recommendations" in data and "recommendation_json" not in data:
             data["recommendation_json"] = data.pop("recommendations")
+    if resource.model is CRMTicket:
+        if "ticketNumber" in data and "ticket_number" not in data:
+            data["ticket_number"] = data.pop("ticketNumber")
+        if "dueDate" in data and "due_date" not in data:
+            data["due_date"] = data.pop("dueDate")
+        if "satisfactionRating" in data and "satisfaction_rating" not in data:
+            data["satisfaction_rating"] = data.pop("satisfactionRating")
+        if "satisfactionComment" in data and "satisfaction_comment" not in data:
+            data["satisfaction_comment"] = data.pop("satisfactionComment")
+        if "csatRequestedAt" in data and "csat_requested_at" not in data:
+            data["csat_requested_at"] = data.pop("csatRequestedAt")
+        if "csatSubmittedAt" in data and "csat_submitted_at" not in data:
+            data["csat_submitted_at"] = data.pop("csatSubmittedAt")
     if "assigned_user_id" in data and "owner_user_id" not in data:
         data["owner_user_id"] = data.pop("assigned_user_id")
     if "team_id" in data and "assigned_team_id" not in data:
@@ -3734,6 +3764,21 @@ def _validate_deal_pipeline_stage(db: Session, pipeline_id: int | None, stage_id
     stage = _get_record(db, _get_resource("pipeline-stages"), int(stage_id), organization_id)
     if stage.pipeline_id != int(pipeline_id):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Deal stage must belong to the selected pipeline")
+
+
+def _is_closed_ticket_status(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"resolved", "closed", "done", "completed"}
+
+
+def _apply_ticket_csat_flow(ticket: CRMTicket, data: dict[str, Any]) -> None:
+    now = datetime.now(timezone.utc)
+    if _is_closed_ticket_status(getattr(ticket, "status", None)):
+        if not ticket.resolved_at:
+            ticket.resolved_at = now
+        if not ticket.csat_requested_at:
+            ticket.csat_requested_at = now
+    if data.get("satisfaction_rating") is not None and not ticket.csat_submitted_at:
+        ticket.csat_submitted_at = now
 
 
 DEFAULT_LEAD_SCORING_RULES = [
@@ -6796,6 +6841,88 @@ def follow_up_overdue_report(
     return overdue_activities_dashboard(ownerId, db, current_user)
 
 
+@router.post("/automation/stale-records/reassign")
+def reassign_stale_records(
+    payload: CRMStaleRecordsPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    entity = _canonical_entity(payload.entityType)
+    if entity not in {"leads", "deals"}:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Stale reassignment supports leads and deals")
+    threshold_hours = max(1, int(payload.thresholdHours or 24))
+    limit = max(1, min(int(payload.limit or 100), 500))
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=threshold_hours)
+    target_user_id = payload.reassignToUserId
+    if target_user_id is not None and not db.query(User).filter(User.id == target_user_id, User.is_active.is_(True)).first():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Reassignment user is not active")
+
+    resource = _get_resource(entity)
+    query = _base_query(db, resource, organization_id).order_by(asc(resource.model.id)).limit(limit * 3)
+    if payload.status:
+        query = query.filter(resource.model.status == payload.status)
+    candidates = []
+    for record in query.all():
+        if entity == "leads" and (record.is_converted or str(record.status or "").lower() in {"closed", "lost", "converted", "disqualified"}):
+            continue
+        if entity == "deals" and _deal_status(record) in {"won", "lost"}:
+            continue
+        activity_at = (
+            getattr(record, "last_contacted_at", None)
+            or getattr(record, "last_activity_at", None)
+            or getattr(record, "updated_at", None)
+            or getattr(record, "created_at", None)
+        )
+        if activity_at and activity_at.tzinfo is None:
+            activity_at = activity_at.replace(tzinfo=timezone.utc)
+        if not activity_at or activity_at <= cutoff:
+            candidates.append((record, activity_at))
+        if len(candidates) >= limit:
+            break
+
+    updated = []
+    for record, activity_at in candidates:
+        before_owner = getattr(record, "owner_user_id", None)
+        tags = {tag.strip() for tag in str(getattr(record, "tags_text", "") or "").split(",") if tag.strip()}
+        tags.add("stale_auto_flag")
+        record.tags_text = ", ".join(sorted(tags))
+        if target_user_id is not None:
+            record.owner_user_id = target_user_id
+        record.updated_by_user_id = current_user.id
+        record.updated_at = datetime.now(timezone.utc)
+        db.add(
+            CRMTimelineEvent(
+                organization_id=organization_id,
+                record_type=ENTITY_TYPE_BY_CANONICAL[entity],
+                record_id=record.id,
+                event_type="stale_auto_reassignment" if target_user_id is not None else "stale_auto_flag",
+                title="Stale record action",
+                description=f"No recorded activity for {threshold_hours}+ hours",
+                actor_user_id=current_user.id,
+                metadata_json={
+                    "threshold_hours": threshold_hours,
+                    "previous_owner_id": before_owner,
+                    "new_owner_id": target_user_id,
+                    "last_activity_at": activity_at.isoformat() if activity_at else None,
+                },
+            )
+        )
+        _create_crm_audit_log(
+            db,
+            user_id=current_user.id,
+            entity_type=entity,
+            entity_id=record.id,
+            action="STALE_REASSIGN" if target_user_id is not None else "STALE_FLAG",
+            old_values={"owner_user_id": before_owner},
+            new_values={"owner_user_id": getattr(record, "owner_user_id", None), "tags_text": record.tags_text},
+            description=f"CRM stale {'reassignment' if target_user_id is not None else 'flag'} after {threshold_hours} hours",
+        )
+        updated.append(_serialize(record) | {"staleHours": threshold_hours})
+    db.commit()
+    return {"items": updated, "total": len(updated), "thresholdHours": threshold_hours, "reassignedToUserId": target_user_id}
+
+
 @router.get("/reports/monthly-revenue-forecast")
 def monthly_revenue_forecast_report(
     startDate: str | None = None,
@@ -7829,10 +7956,24 @@ def list_records(
     sort_key = sort_by or resource.default_sort
     if sort_key not in columns:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Cannot sort by {sort_key}")
-    sort_column = getattr(resource.model, sort_key)
-    query = query.order_by(asc(sort_column) if sort_order == "asc" else desc(sort_column))
-    rows = query.offset((page - 1) * per_page).limit(per_page).all()
     canonical = CANONICAL_ENTITY_BY_MODEL.get(resource.model)
+    if resource.model is CRMTicket and not sort_by:
+        priority_order = case(
+            (CRMTicket.priority.in_(["Critical", "Urgent"]), 0),
+            (CRMTicket.priority == "High", 1),
+            (CRMTicket.priority.in_(["Medium", "Normal"]), 2),
+            (CRMTicket.priority == "Low", 3),
+            else_=4,
+        )
+        closed_order = case(
+            (CRMTicket.status.in_(["Resolved", "Closed", "Done", "Completed"]), 1),
+            else_=0,
+        )
+        query = query.order_by(asc(closed_order), asc(priority_order), asc(CRMTicket.due_date), desc(CRMTicket.created_at))
+    else:
+        sort_column = getattr(resource.model, sort_key)
+        query = query.order_by(asc(sort_column) if sort_order == "asc" else desc(sort_column))
+    rows = query.offset((page - 1) * per_page).limit(per_page).all()
     items = _custom_field_columns_for_rows(db, canonical, rows, organization_id) if canonical in CUSTOM_FIELD_SUPPORTED_ENTITIES else [_serialize(row) for row in rows]
 
     return {
@@ -7949,6 +8090,8 @@ def create_record(
     record = resource.model(**data)
     if resource.model is CRMDeal:
         _apply_deal_close_fields(record, data)
+    if resource.model is CRMTicket:
+        _apply_ticket_csat_flow(record, data)
     db.add(record)
     db.flush()
     if resource.model is CRMDeal:
@@ -8032,6 +8175,8 @@ def update_record(
             setattr(record, key, value)
     if resource.model is CRMDeal:
         _apply_deal_close_fields(record, data)
+    if resource.model is CRMTicket:
+        _apply_ticket_csat_flow(record, data)
     if resource.model is CRMMeeting and any(key in data for key in {"title", "description", "location", "start_time", "end_time", "status"}):
         if getattr(record, "external_event_id", None):
             record.sync_status = "pending"
