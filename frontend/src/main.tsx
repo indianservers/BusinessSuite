@@ -4,19 +4,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
-import { useThemeStore } from "./store/themeStore.ts";
+import { applyTheme, useThemeStore } from "./store/themeStore.ts";
 
-// Initialize theme
 const { theme } = useThemeStore.getState();
-const root = document.documentElement;
-root.classList.remove("light", "dark");
-if (theme === "system") {
-  root.classList.add(
-    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-  );
-} else {
-  root.classList.add(theme);
-}
+applyTheme(theme);
+
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (useThemeStore.getState().theme === "system") {
+    applyTheme("system");
+  }
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {

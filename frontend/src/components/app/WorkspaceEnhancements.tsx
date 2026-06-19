@@ -79,7 +79,7 @@ export default function WorkspaceEnhancements() {
   const activeModule = getActiveModule(location.pathname);
   const [open, setOpen] = useState(false);
   const [density, setDensity] = useState<Density>(() => (localStorage.getItem(densityKey) as Density) || "comfortable");
-  const [recent, setRecent] = useState<RecentItem[]>(() => readRecent());
+  const [recent, setRecent] = useState<RecentItem[]>(() => readRecent(useAuthStore.getState().user));
   const [savedView, setSavedView] = useState(() => localStorage.getItem(savedViewKey) || "My work");
   const [setupDismissed, setSetupDismissed] = useState(() => localStorage.getItem(dismissedSetupKey) === "true");
   const [command, setCommand] = useState("");
@@ -96,10 +96,10 @@ export default function WorkspaceEnhancements() {
       module: product.shortName,
       visitedAt: Date.now(),
     };
-    const next = [item, ...readRecent().filter((entry) => entry.path !== item.path)].slice(0, 8);
-    localStorage.setItem(recentKey, JSON.stringify(next));
+    const next = [item, ...readRecent(user).filter((entry) => entry.path !== item.path)].slice(0, 8);
+    localStorage.setItem(recentStorageKey(user), JSON.stringify(next));
     setRecent(next);
-  }, [location.pathname, product.shortName]);
+  }, [location.pathname, product.shortName, user]);
 
   useEffect(() => {
     localStorage.setItem(savedViewKey, savedView);
@@ -358,13 +358,17 @@ export default function WorkspaceEnhancements() {
   );
 }
 
-function filterAllowed(items: ActionItem[], user: AuthUser) {
+function filterAllowed<T extends ActionItem>(items: T[], user: AuthUser): T[] {
   return items.filter((item) => canAccessRoute(item.path, user?.role, user?.is_superuser));
 }
 
-function readRecent(): RecentItem[] {
+function recentStorageKey(user: AuthUser) {
+  return user?.id ? `${recentKey}:${user.id}` : `${recentKey}:anonymous`;
+}
+
+function readRecent(user?: AuthUser): RecentItem[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(recentKey) || "[]");
+    const raw = JSON.parse(localStorage.getItem(recentStorageKey(user || null)) || "[]");
     return Array.isArray(raw) ? raw : [];
   } catch {
     return [];

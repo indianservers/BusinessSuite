@@ -2,7 +2,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
-import { Bell, Briefcase, Eye, EyeOff, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Sun, UserCircle } from "lucide-react";
+import { AlertTriangle, Bell, Briefcase, CheckCircle2, Clock, Eye, EyeOff, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Sun, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [newPassword, setNewPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [notificationTrayOpen, setNotificationTrayOpen] = useState(false);
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
   const initials = user?.name ? getNameInitials(user.name) : user?.email?.slice(0, 2).toUpperCase() || "?";
   const unreadCount = useQuery({
@@ -49,10 +50,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     navigate(product.loginPath, { replace: true });
   };
   const isHrms = location.pathname.startsWith("/hrms");
-  const profilePath = isHrms ? "/hrms/profile" : location.pathname.startsWith("/crm") ? "/crm/profile" : "/pms/profile";
+  const isCrm = location.pathname.startsWith("/crm");
+  const profilePath = isHrms ? "/hrms/profile" : isCrm ? "/crm/profile" : location.pathname.startsWith("/srm") ? "/srm/profile" : location.pathname.startsWith("/fam") ? "/fam/profile" : "/pms/profile";
   const selfServicePath = isHrms ? "/hrms/ess" : profilePath;
   const notificationsPath = isHrms ? "/hrms/notifications" : profilePath;
   const canOpenNotifications = canAccessRoute(notificationsPath, user?.role, user?.is_superuser);
+  const notificationItems = getNotificationItems(product.key);
   const changePassword = useMutation({
     mutationFn: () => authApi.changePassword(currentPassword, newPassword),
     onSuccess: () => {
@@ -61,7 +64,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       setCurrentPassword("");
       setNewPassword("");
     },
-    onError: () => toast({ title: "Unable to change password", variant: "destructive" }),
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast({
+        title: "Unable to change password",
+        description: detail || "Please check the current password and password policy.",
+        variant: "destructive",
+      });
+    },
   });
   const submitPasswordChange = (event: FormEvent) => {
     event.preventDefault();
@@ -85,20 +95,52 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <div className="ml-auto flex items-center gap-2">
         {/* Notifications */}
-        {canOpenNotifications ? (
-          <Button variant="ghost" size="icon" className="relative" onClick={() => navigate(notificationsPath)}>
-            <Bell className="h-5 w-5" />
-            {!!unreadCount.data && unreadCount.data > 0 && (
+        {canOpenNotifications || notificationItems.length ? (
+          <DropdownMenu.Root open={notificationTrayOpen} onOpenChange={setNotificationTrayOpen}>
+            <DropdownMenu.Trigger asChild>
+              <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications" title="Notifications">
+                <Bell className="h-5 w-5" />
+                {!!unreadCount.data && unreadCount.data > 0 && (
               <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
                 {unreadCount.data > 99 ? "99+" : unreadCount.data}
               </span>
-            )}
-          </Button>
+                )}
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content align="end" sideOffset={8} className="z-50 w-80 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+                <div className="px-3 py-2">
+                  <p className="text-sm font-medium">Notifications</p>
+                  <p className="text-xs text-muted-foreground">{product.shortName} workspace alerts</p>
+                </div>
+                <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                {(notificationItems.length ? notificationItems : [{ label: "Open notifications", detail: "View your notification center", path: notificationsPath, icon: Bell }]).map((item) => (
+                  <DropdownMenu.Item
+                    key={item.path + item.label}
+                    className="flex cursor-pointer items-start gap-3 rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent"
+                    onSelect={() => navigate(item.path)}
+                  >
+                    <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span>
+                      <span className="block font-medium">{item.label}</span>
+                      <span className="block text-xs text-muted-foreground">{item.detail}</span>
+                    </span>
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         ) : null}
         <KeyboardShortcuts />
 
         {/* Theme toggle */}
-        <Button variant="ghost" size="icon" onClick={toggleTheme}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        >
           {theme === "dark" ? (
             <Sun className="h-5 w-5" />
           ) : (
@@ -218,4 +260,21 @@ function getPasswordStrength(password: string) {
   if (score <= 1) return { level: 1, label: "Weak password", color: "bg-red-500" };
   if (score === 2) return { level: 2, label: "Medium password", color: "bg-amber-500" };
   return { level: 3, label: "Strong password", color: "bg-emerald-500" };
+}
+
+function getNotificationItems(productKey: string) {
+  if (productKey === "crm") {
+    return [
+      { label: "Overdue follow-ups", detail: "Review CRM tasks that need action", path: "/crm/tasks", icon: Clock },
+      { label: "Quote approvals", detail: "Approve or reject pending quote requests", path: "/crm/quote-approvals", icon: CheckCircle2 },
+      { label: "Critical tickets", detail: "Open support and SLA risk queue", path: "/crm/tickets", icon: AlertTriangle },
+    ];
+  }
+  if (productKey === "srm") {
+    return [
+      { label: "Collection alerts", detail: "Review overdue invoices and receipts", path: "/srm/collections", icon: AlertTriangle },
+      { label: "Approvals", detail: "Open revenue approvals", path: "/srm/reports", icon: CheckCircle2 },
+    ];
+  }
+  return [];
 }

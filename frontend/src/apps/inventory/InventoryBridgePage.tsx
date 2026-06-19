@@ -1,9 +1,37 @@
-import { ExternalLink, Package, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BarChart3, Boxes, GitCompareArrows, Package, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const canonicalPath = "C:\\Indian Servers\\AI Inventory Management Software";
 const clonedPath = "backend/app/apps/inventory/vyapara_erp";
+
+const entryPoints = [
+  {
+    label: "Inventory Dashboard",
+    description: "Stock value, low-stock alerts, and inventory health.",
+    to: "/fam/inventory/dashboard",
+    icon: BarChart3,
+  },
+  {
+    label: "Items & SKUs",
+    description: "Maintain item masters, codes, units, and reorder controls.",
+    to: "/fam/inventory/items",
+    icon: Package,
+  },
+  {
+    label: "Stock Summary",
+    description: "Review warehouse stock, movement, and balances.",
+    to: "/fam/inventory/stock-summary",
+    icon: Boxes,
+  },
+  {
+    label: "Reconciliation",
+    description: "Compare physical stock with system balances.",
+    to: "/fam/inventory/reconciliation",
+    icon: GitCompareArrows,
+  },
+];
 
 export default function InventoryBridgePage() {
   return (
@@ -41,11 +69,30 @@ export default function InventoryBridgePage() {
               <p className="mt-1 break-all font-mono text-xs">{clonedPath}</p>
             </div>
           </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {entryPoints.map((entry) => {
+              const Icon = entry.icon;
+              return (
+                <Link
+                  key={entry.to}
+                  to={entry.to}
+                  className="rounded-lg border p-3 transition-colors hover:border-primary/50 hover:bg-muted/60"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span className="block font-medium text-foreground">{entry.label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">{entry.description}</span>
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
           <Button asChild variant="outline">
-            <a href="/Inventory/dashboard">
-              <ExternalLink className="h-4 w-4" />
-              Inventory bridge
-            </a>
+            <Link to="/fam/inventory/dashboard">Open stock dashboard</Link>
           </Button>
         </CardContent>
       </Card>

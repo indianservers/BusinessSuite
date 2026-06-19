@@ -68,7 +68,7 @@ const modules = [
     label: "Inventory",
     description: "Products, stock, warehouses, purchases, sales, POS, reports, and GST-ready inventory operations from the cloned Vyapara ERP app.",
     icon: Package,
-    homePath: "/Inventory",
+    homePath: "/inventory",
     loginPath: "/login",
     tone: "bg-teal-700",
   },

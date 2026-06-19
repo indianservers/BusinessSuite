@@ -22,6 +22,7 @@ const loginSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
+type AuthView = "login" | "forgot" | "reset";
 
 const moduleLogins = {
   hrms: {
@@ -132,6 +133,14 @@ function getLoginModule(pathname: string): keyof typeof moduleLogins {
   return "hrms";
 }
 
+function getLoginPathForModule(module: keyof typeof moduleLogins) {
+  if (module === "crm") return "/crm/login";
+  if (module === "project_management") return "/pms/login";
+  if (module === "srm") return "/srm/login";
+  if (module === "fam") return "/fam/login";
+  return "/hrms/login";
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -145,6 +154,10 @@ export default function LoginPage() {
   const [mfaMethod, setMfaMethod] = useState<"totp" | "recovery">("totp");
   const [mfaCode, setMfaCode] = useState("");
   const [inlineError, setInlineError] = useState("");
+  const [authView, setAuthView] = useState<AuthView>("login");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const {
     register,
@@ -155,6 +168,7 @@ export default function LoginPage() {
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
   const emailValue = watch("email");
   const apiBaseUrl = getApiBaseUrl();
+  const resetToken = useMemo(() => new URLSearchParams(location.search).get("token"), [location.search]);
 
   const getPostLoginPath = useCallback((role?: string | null, isSuperuser = false) => (
     loginModule === "hrms" ? getDefaultPathForUser(role, isSuperuser) : loginConfig.afterLogin
@@ -197,6 +211,13 @@ export default function LoginPage() {
     }
   }, [getPostLoginPath, navigate, setTokens, setUser]);
 
+  useEffect(() => {
+    if (resetToken) {
+      setAuthView("reset");
+      setInlineError("");
+    }
+  }, [resetToken]);
+
   const onSubmit = async (data: LoginForm) => {
     try {
       const res = await authApi.login(data.email, data.password, loginConfig.authModule);
@@ -235,6 +256,45 @@ export default function LoginPage() {
     },
   });
 
+  const forgotPassword = useMutation({
+    mutationFn: () => authApi.forgotPassword(recoveryEmail || emailValue || ""),
+    onSuccess: (res) => {
+      toast({
+        title: "Reset link sent",
+        description: res.data?.message || "If the email exists, a reset link has been sent.",
+      });
+      setAuthView("login");
+    },
+    onError: (err: unknown) => {
+      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not send reset link";
+      setInlineError(message);
+    },
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: () => {
+      if (!resetToken) throw new Error("Reset token is missing");
+      if (newPassword !== confirmPassword) throw new Error("Passwords do not match");
+      return authApi.resetPassword(resetToken, newPassword);
+    },
+    onSuccess: (res) => {
+      toast({
+        title: "Password reset",
+        description: res.data?.message || "Please sign in with your new password.",
+      });
+      setNewPassword("");
+      setConfirmPassword("");
+      navigate(getLoginPathForModule(loginModule), { replace: true });
+    },
+    onError: (err: unknown) => {
+      const message =
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not reset password";
+      setInlineError(message);
+    },
+  });
+
   const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname)}`;
 
   return (
@@ -255,9 +315,9 @@ export default function LoginPage() {
         {/* Card */}
         <Card className="border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-white text-xl">Sign in</CardTitle>
+            <CardTitle className="text-white text-xl">{authView === "reset" ? "Reset password" : authView === "forgot" ? "Recover access" : "Sign in"}</CardTitle>
             <CardDescription className={loginTheme.textMuted}>
-              {loginConfig.description}
+              {authView === "reset" ? "Choose a new password for your account" : authView === "forgot" ? "Send a secure reset link to your email" : loginConfig.description}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -289,6 +349,78 @@ export default function LoginPage() {
                   Back to login
                 </button>
               </div>
+            ) : authView === "forgot" ? (
+              <form
+                className="space-y-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setInlineError("");
+                  forgotPassword.mutate();
+                }}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="recovery-email" className={loginTheme.text}>Email address</Label>
+                  <Input
+                    id="recovery-email"
+                    type="email"
+                    value={recoveryEmail || emailValue || ""}
+                    onChange={(event) => setRecoveryEmail(event.target.value)}
+                    placeholder="name@company.com"
+                    className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
+                    required
+                  />
+                </div>
+                {inlineError && <p className="text-xs text-red-400">{inlineError}</p>}
+                <Button type="submit" className={`h-11 w-full text-white ${loginTheme.button}`} disabled={forgotPassword.isPending}>
+                  {forgotPassword.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Send reset link
+                </Button>
+                <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => { setAuthView("login"); setInlineError(""); }}>
+                  Back to login
+                </button>
+              </form>
+            ) : authView === "reset" ? (
+              <form
+                className="space-y-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setInlineError("");
+                  resetPassword.mutate();
+                }}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="new-password" className={loginTheme.text}>New password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    minLength={8}
+                    className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password" className={loginTheme.text}>Confirm password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    minLength={8}
+                    className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
+                    required
+                  />
+                </div>
+                {inlineError && <p className="text-xs text-red-400">{inlineError}</p>}
+                <Button type="submit" className={`h-11 w-full text-white ${loginTheme.button}`} disabled={resetPassword.isPending}>
+                  {resetPassword.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Reset password
+                </Button>
+                <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => navigate(getLoginPathForModule(loginModule), { replace: true })}>
+                  Back to login
+                </button>
+              </form>
             ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
@@ -342,6 +474,9 @@ export default function LoginPage() {
                 ) : null}
                 {isSubmitting ? "Signing in..." : "Sign in"}
               </Button>
+              <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => { setRecoveryEmail(emailValue || ""); setAuthView("forgot"); setInlineError(""); }}>
+                Forgot password?
+              </button>
               {hintedProvider && (
                 <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-100">
                   Your organization uses SSO. Sign in with {hintedProvider.button_label || hintedProvider.name} instead.
@@ -351,7 +486,7 @@ export default function LoginPage() {
             </form>
             )}
 
-            {loginPhase === "credentials" && !!ssoProviders?.length && (
+            {loginPhase === "credentials" && authView === "login" && !!ssoProviders?.length && (
               <div className="mt-4 space-y-3">
                 <div className="flex items-center gap-3 text-xs text-blue-200/50"><span className="h-px flex-1 bg-white/10" />or continue with<span className="h-px flex-1 bg-white/10" /></div>
                 {ssoProviders.map((provider) => (
@@ -362,8 +497,9 @@ export default function LoginPage() {
                 ))}
               </div>
             )}
-            {inlineError && loginPhase === "credentials" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
+            {inlineError && loginPhase === "credentials" && authView === "login" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
 
+            {authView === "login" && (
             <div className="mt-4 space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
               <p className="text-xs font-medium text-blue-200/80">Role logins</p>
               {loginConfig.demoLogins.map((login) => (
@@ -388,6 +524,7 @@ export default function LoginPage() {
                 </button>
               ))}
             </div>
+            )}
           </CardContent>
         </Card>
 

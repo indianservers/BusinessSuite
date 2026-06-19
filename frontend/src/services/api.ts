@@ -3,6 +3,8 @@ import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
 
 const BASE_URL = getApiBaseUrl();
+type RefreshResponse = { access_token: string; refresh_token: string };
+let refreshPromise: Promise<RefreshResponse> | null = null;
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -23,25 +25,33 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    const original = error.config as typeof error.config & { _retry?: boolean };
+    const original = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
 
-    if (error.response?.status === 401 && !original?._retry) {
+    if (error.response?.status === 401 && original && !original._retry) {
       original._retry = true;
       const { refreshToken, setTokens, logout } = useAuthStore.getState();
 
       if (refreshToken) {
         try {
-          const res = await axios.post(`${BASE_URL}/auth/refresh`, {
-            refresh_token: refreshToken,
-          });
-          const { access_token, refresh_token } = res.data;
-          setTokens(access_token, refresh_token);
-          if (original?.headers) {
-            original.headers.Authorization = `Bearer ${access_token}`;
+          if (!refreshPromise) {
+            refreshPromise = axios
+              .post<RefreshResponse>(`${BASE_URL}/auth/refresh`, {
+                refresh_token: refreshToken,
+              })
+              .then((res) => res.data)
+              .finally(() => {
+                refreshPromise = null;
+              });
           }
-          return api(original!);
+          const { access_token, refresh_token } = await refreshPromise;
+          setTokens(access_token, refresh_token);
+          original.headers = original.headers || {};
+          original.headers.Authorization = `Bearer ${access_token}`;
+          return api(original);
         } catch {
-          logout();
+          if (useAuthStore.getState().refreshToken === refreshToken) {
+            logout();
+          }
         }
       } else {
         logout();
@@ -58,6 +68,9 @@ export const authApi = {
     api.post("/auth/login", { email, password, module, trusted_device_token: trustedDeviceToken }),
   refresh: (refreshToken: string) =>
     api.post("/auth/refresh", { refresh_token: refreshToken }),
+  forgotPassword: (email: string) => api.post("/auth/forgot-password", { email }),
+  resetPassword: (token: string, newPassword: string) =>
+    api.post("/auth/reset-password", { token, new_password: newPassword }),
   me: () => api.get("/auth/me"),
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post("/auth/change-password", {

@@ -1067,6 +1067,12 @@ def dashboard(db: Session = Depends(get_db), current_user: User = Depends(Requir
         return float(db.query(func.coalesce(func.sum(column), 0)).filter(FAMLedger.company_id == company_id, FAMLedger.nature == nature, FAMLedger.active == True).scalar() or 0)
 
     cash_bank = db.query(func.coalesce(func.sum(FAMLedger.current_balance_dr - FAMLedger.current_balance_cr), 0)).filter(FAMLedger.company_id == company_id, FAMLedger.ledger_type.in_(["cash", "bank"]), FAMLedger.active == True).scalar() or 0
+    receivable_types = ["invoice", "debit_note", "opening"]
+    payable_types = ["bill", "credit_note", "opening"]
+    receivables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(receivable_types), FAMBillReference.outstanding_amount > 0).scalar() or 0
+    payables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(payable_types), FAMBillReference.outstanding_amount > 0).scalar() or 0
+    overdue_receivables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(receivable_types), FAMBillReference.outstanding_amount > 0, FAMBillReference.due_date < date.today()).scalar() or 0
+    overdue_payables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(payable_types), FAMBillReference.outstanding_amount > 0, FAMBillReference.due_date < date.today()).scalar() or 0
     recent = db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id).order_by(FAMAuditLog.performed_at.desc(), FAMAuditLog.id.desc()).limit(8).all()
     return {
         "currentFinancialYear": serialize(current_fy) if current_fy else None,
@@ -1075,9 +1081,12 @@ def dashboard(db: Session = Depends(get_db), current_user: User = Depends(Requir
         "totalIncome": total_for("income", "cr"),
         "totalExpenses": total_for("expense", "dr"),
         "cashAndBankBalance": float(cash_bank),
-        "receivablesPlaceholder": "Pending SRM/FAM posting integration",
-        "payablesPlaceholder": "Pending purchase/accounting voucher phase",
-        "gstCompliancePlaceholder": "Configured later; no fake GST integration",
+        "receivablesOutstanding": float(receivables),
+        "payablesOutstanding": float(payables),
+        "overdueReceivables": float(overdue_receivables),
+        "overduePayables": float(overdue_payables),
+        "gstComplianceStatus": "not_configured",
+        "gstComplianceMessage": "GST portal filing remains disabled until GST provider credentials are configured.",
         "booksStatus": current_fy.status if current_fy else "open",
         "recentAccountingActivity": [serialize(item) for item in recent],
     }
@@ -4251,8 +4260,9 @@ def export_rows(db: Session, company_id: int, export_type: str) -> tuple[str, li
     if export_type in {"trial_balance", "ledger_report", "profit_and_loss", "balance_sheet"}:
         return "ready", [serialize(item) for item in db.query(FAMLedger).filter(FAMLedger.company_id == company_id, FAMLedger.active == True).all()]
     if export_type in {"receivables_aging", "payables_aging"}:
-        bill_type = "invoice" if export_type == "receivables_aging" else "bill"
-        return "ready", [serialize(item) for item in db.query(FAMBillReference).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type == bill_type).all()]
+        bill_types = ["invoice", "debit_note", "opening"] if export_type == "receivables_aging" else ["bill", "credit_note", "opening"]
+        rows = db.query(FAMBillReference).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(bill_types)).order_by(FAMBillReference.due_date, FAMBillReference.bill_number).all()
+        return "ready", [serialize(item) for item in rows]
     if export_type == "gst_summary":
         return "ready", [serialize(item) for item in db.query(FAMGSTTransactionLine).filter(FAMGSTTransactionLine.company_id == company_id).all()]
     return "unsupported", []

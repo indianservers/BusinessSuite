@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   Building2,
   CalendarDays,
@@ -144,23 +145,12 @@ export default function SettingsPage() {
       if (type === "salaryComponents") return payrollApi.createComponent(payload);
       return authApi.createRole(payload);
     },
-    onSuccess: (_, { type }) => {
-      toast({ title: "Setting saved" });
-      const keyMap: Record<SettingKey, string[]> = {
-        companies: ["companies"],
-        branches: ["branches"],
-        departments: ["departments"],
-        designations: ["designations"],
-        shifts: ["shifts"],
-        holidays: ["holidays"],
-        leaveTypes: ["leave-types"],
-        salaryComponents: ["salary-components"],
-        roles: ["roles"],
-      };
-      keyMap[type].forEach((key) => qc.invalidateQueries({ queryKey: [key] }));
+    onSuccess: async (_, { type }) => {
+      await refreshSettingQueries(qc, type);
       setModal(null);
       setEditing(null);
       setForm({});
+      toast({ title: "Setting saved", description: "The latest records are now visible." });
     },
     onError: (err: any) => {
       toast({
@@ -173,20 +163,9 @@ export default function SettingsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: ({ type, id }: { type: SettingKey; id: number }) => deleteSetting(type, id),
-    onSuccess: (_, { type }) => {
-      toast({ title: "Setting removed" });
-      const keys: Record<SettingKey, string> = {
-        companies: "companies",
-        branches: "branches",
-        departments: "departments",
-        designations: "designations",
-        shifts: "shifts",
-        holidays: "holidays",
-        leaveTypes: "leave-types",
-        salaryComponents: "salary-components",
-        roles: "roles",
-      };
-      qc.invalidateQueries({ queryKey: [keys[type]] });
+    onSuccess: async (_, { type }) => {
+      await refreshSettingQueries(qc, type);
+      toast({ title: "Setting removed", description: "The list has been refreshed." });
     },
     onError: (err: any) => toast({ title: "Could not remove", description: apiError(err), variant: "destructive" }),
   });
@@ -403,6 +382,25 @@ function deleteSetting(type: SettingKey, id: number) {
   if (type === "salaryComponents") return payrollApi.deleteComponent(id);
   if (type === "roles") return authApi.deleteRole(id);
   return Promise.reject(new Error("Delete not supported for this setting"));
+}
+
+function settingQueryKeys(type: SettingKey) {
+  const keyMap: Record<SettingKey, string[]> = {
+    companies: ["companies", "branches", "departments", "designations"],
+    branches: ["branches", "departments", "designations"],
+    departments: ["departments", "designations"],
+    designations: ["designations"],
+    shifts: ["shifts"],
+    holidays: ["holidays"],
+    leaveTypes: ["leave-types"],
+    salaryComponents: ["salary-components"],
+    roles: ["roles"],
+  };
+  return keyMap[type];
+}
+
+function refreshSettingQueries(qc: QueryClient, type: SettingKey) {
+  return Promise.all(settingQueryKeys(type).map((key) => qc.invalidateQueries({ queryKey: [key] })));
 }
 
 function apiError(err: any) {

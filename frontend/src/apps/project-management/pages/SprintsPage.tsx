@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDate, statusColor } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import { projectsAPI, reportsAPI, sprintsAPI, tasksAPI } from "../services/api";
 import type { PMSProject, PMSSprint, PMSSprintActionItem, PMSTaskListItem, ProjectVelocity, SprintBurndown, WorkloadResponse } from "../types";
 
@@ -26,6 +27,9 @@ export default function SprintsPage() {
   const [backlogTasks, setBacklogTasks] = useState<PMSTaskListItem[]>([]);
   const [completeTarget, setCompleteTarget] = useState<PMSSprint | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [actionSprintId, setActionSprintId] = useState<number | null>(null);
+  const [creatingSprint, setCreatingSprint] = useState(false);
   const [completeDraft, setCompleteDraft] = useState({
     incompleteAction: "move_to_next_sprint",
     carryForwardSprintId: "",
@@ -44,24 +48,29 @@ export default function SprintsPage() {
       const firstId = String(items[0]?.id || "");
       setProjectId(firstId);
       if (firstId) loadProject(Number(firstId));
-    });
+    }).catch((err) => setError(apiError(err, "Unable to load projects.")));
   }, []);
 
   const loadProject = async (id: number) => {
-    const [sprintItems, velocityData, workloadData, taskData] = await Promise.all([
-      sprintsAPI.list(id),
-      sprintsAPI.velocity(id).catch(() => null),
-      reportsAPI.workload(id, { group_by: "sprint" }).catch(() => null),
-      tasksAPI.listAll({ projectId: id, pageSize: 200, sortBy: "updatedDate", sortOrder: "desc" }).catch(() => null),
-    ]);
-    setSprints(sprintItems);
-    setVelocity(velocityData);
-    setWorkload(workloadData);
-    setBacklogTasks(taskData?.items || []);
-    if (sprintItems[0]) {
-      sprintsAPI.burndown(sprintItems[0].id).then(setBurndown).catch(() => setBurndown(null));
-    } else {
-      setBurndown(null);
+    try {
+      setError(null);
+      const [sprintItems, velocityData, workloadData, taskData] = await Promise.all([
+        sprintsAPI.list(id),
+        sprintsAPI.velocity(id).catch(() => null),
+        reportsAPI.workload(id, { group_by: "sprint" }).catch(() => null),
+        tasksAPI.listAll({ projectId: id, pageSize: 200, sortBy: "updatedDate", sortOrder: "desc" }).catch(() => null),
+      ]);
+      setSprints(sprintItems);
+      setVelocity(velocityData);
+      setWorkload(workloadData);
+      setBacklogTasks(taskData?.items || []);
+      if (sprintItems[0]) {
+        sprintsAPI.burndown(sprintItems[0].id).then(setBurndown).catch(() => setBurndown(null));
+      } else {
+        setBurndown(null);
+      }
+    } catch (err: any) {
+      setError(apiError(err, "Unable to load sprint planning data."));
     }
   };
 
@@ -73,16 +82,25 @@ export default function SprintsPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!projectId || !name || !startDate || !endDate) return;
-    const sprint = await sprintsAPI.create(Number(projectId), {
-      name,
-      goal,
-      status: "Planned",
-      start_date: startDate,
-      end_date: endDate,
-      capacity_hours: Number(capacityHours || 0),
-    } as any);
-    setSprints((items) => [sprint, ...items]);
-    setName("");
+    try {
+      setCreatingSprint(true);
+      setError(null);
+      const sprint = await sprintsAPI.create(Number(projectId), {
+        name,
+        goal,
+        status: "Planned",
+        start_date: startDate,
+        end_date: endDate,
+        capacity_hours: Number(capacityHours || 0),
+      } as any);
+      setSprints((items) => [sprint, ...items]);
+      setName("");
+      toast({ title: "Sprint created" });
+    } catch (err: any) {
+      setError(apiError(err, "Could not create sprint."));
+    } finally {
+      setCreatingSprint(false);
+    }
   };
 
   const refreshSprint = (updated: PMSSprint) => {
@@ -92,7 +110,16 @@ export default function SprintsPage() {
   };
 
   const startSprint = async (sprint: PMSSprint) => {
-    refreshSprint(await sprintsAPI.start(sprint.id));
+    try {
+      setActionSprintId(sprint.id);
+      setError(null);
+      refreshSprint(await sprintsAPI.start(sprint.id));
+      toast({ title: "Sprint started" });
+    } catch (err: any) {
+      setError(apiError(err, "Could not start sprint."));
+    } finally {
+      setActionSprintId(null);
+    }
   };
 
   const openSprintReview = async (sprint: PMSSprint) => {
@@ -140,11 +167,20 @@ export default function SprintsPage() {
       create_action_item_tasks: completeDraft.createActionItemTasks,
       action_items: actionItems,
     };
-    const review = completeTarget.status === "Completed"
-      ? await sprintsAPI.updateReview(completeTarget.id, payload)
-      : { sprint: await sprintsAPI.complete(completeTarget.id, payload) };
-    refreshSprint(review.sprint);
-    setCompleteTarget(null);
+    try {
+      setActionSprintId(completeTarget.id);
+      setError(null);
+      const review = completeTarget.status === "Completed"
+        ? await sprintsAPI.updateReview(completeTarget.id, payload)
+        : { sprint: await sprintsAPI.complete(completeTarget.id, payload) };
+      refreshSprint(review.sprint);
+      setCompleteTarget(null);
+      toast({ title: completeTarget.status === "Completed" ? "Sprint review saved" : "Sprint completed" });
+    } catch (err: any) {
+      setError(apiError(err, "Could not save sprint review."));
+    } finally {
+      setActionSprintId(null);
+    }
   };
 
   const completeTasks = completeTarget ? backlogTasks.filter((task) => task.sprint_id === completeTarget.id && ["Done", "Completed", "Closed", "Resolved"].includes(task.status)) : [];
@@ -172,10 +208,11 @@ export default function SprintsPage() {
             <Field label="Capacity"><Input type="number" value={capacityHours} onChange={(event) => setCapacityHours(event.target.value)} /></Field>
             <Field label="Start"><Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></Field>
             <Field label="End"><Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></Field>
-            <Button type="submit">Create</Button>
+            <Button type="submit" disabled={creatingSprint}>{creatingSprint ? "Creating..." : "Create"}</Button>
           </form>
         </CardContent>
       </Card>
+      {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Burndown</CardTitle></CardHeader>
@@ -247,7 +284,7 @@ export default function SprintsPage() {
                 <Fact icon={AlertTriangle} label="Scope changes" value={sprint.scope_change_count || 0} />
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => startSprint(sprint)} disabled={sprint.status === "Active" || sprint.status === "Completed"}><Play className="h-4 w-4" />Start</Button>
+                <Button size="sm" onClick={() => startSprint(sprint)} disabled={actionSprintId === sprint.id || sprint.status === "Active" || sprint.status === "Completed"}><Play className="h-4 w-4" />Start</Button>
                 <Button size="sm" variant="outline" onClick={() => openSprintReview(sprint)}><CheckCircle2 className="h-4 w-4" />{sprint.status === "Completed" ? "Review" : "Complete"}</Button>
                 <Button size="sm" variant="ghost" onClick={() => sprintsAPI.burndown(sprint.id).then(setBurndown)}><BarChart3 className="h-4 w-4" />Burndown</Button>
               </div>
@@ -322,8 +359,8 @@ export default function SprintsPage() {
             </div>
             <div className="flex justify-end gap-2 border-t p-5">
               <Button variant="outline" onClick={() => setCompleteTarget(null)}>Cancel</Button>
-              <Button onClick={saveSprintReview} disabled={completeTarget.status !== "Completed" && completeDraft.incompleteAction === "move_to_next_sprint" && !completeDraft.carryForwardSprintId}>
-                {completeTarget.status === "Completed" ? "Save review" : "Complete sprint"}
+              <Button onClick={saveSprintReview} disabled={actionSprintId === completeTarget.id || (completeTarget.status !== "Completed" && completeDraft.incompleteAction === "move_to_next_sprint" && !completeDraft.carryForwardSprintId)}>
+                {actionSprintId === completeTarget.id ? "Saving..." : completeTarget.status === "Completed" ? "Save review" : "Complete sprint"}
               </Button>
             </div>
           </div>
@@ -331,6 +368,12 @@ export default function SprintsPage() {
       ) : null}
     </div>
   );
+}
+
+function apiError(err: any, fallback: string) {
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  return fallback;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

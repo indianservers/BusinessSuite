@@ -99,8 +99,9 @@ export default function CreateProjectPage() {
                 <Input id="due-date" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="budget">Budget</Label>
-                <Input id="budget" type="number" min="0" value={budget} onChange={(event) => setBudget(event.target.value)} />
+                <Label htmlFor="budget">Budget limit</Label>
+                <Input id="budget" type="number" min="0" step="0.01" value={budget} onChange={(event) => setBudget(event.target.value)} placeholder="Optional cap" />
+                <p className="text-xs text-muted-foreground">Used for budget vs actual tracking.</p>
               </div>
             </div>
             <div className="flex justify-end gap-2">

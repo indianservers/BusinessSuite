@@ -141,6 +141,7 @@ export default function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset-password" element={<LoginPage />} />
           <Route path="/hrms/login" element={<LoginPage />} />
           <Route path="/crm/login" element={<LoginPage />} />
           <Route path="/pms/login" element={<LoginPage />} />
@@ -150,10 +151,10 @@ export default function App() {
           <Route path="/portal/customer/*" element={<PortalPage />} />
           <Route path="/portal/partner/login" element={<PortalPage />} />
           <Route path="/portal/partner/*" element={<PortalPage />} />
-          <Route path="/inventory" element={<Navigate to="/Inventory" replace />} caseSensitive />
-          <Route path="/inventory/dashboard" element={<Navigate to="/Inventory/dashboard" replace />} caseSensitive />
-          <Route path="/Inventory" element={<InventoryBridgePage />} />
-          <Route path="/Inventory/dashboard" element={<InventoryBridgePage />} />
+          <Route path="/Inventory" element={<Navigate to="/inventory" replace />} caseSensitive />
+          <Route path="/Inventory/dashboard" element={<Navigate to="/inventory/dashboard" replace />} caseSensitive />
+          <Route path="/inventory" element={<InventoryBridgePage />} caseSensitive />
+          <Route path="/inventory/dashboard" element={<InventoryBridgePage />} caseSensitive />
           <Route path="/" element={<ModuleIndexPage />} />
           <Route
             path="/*"

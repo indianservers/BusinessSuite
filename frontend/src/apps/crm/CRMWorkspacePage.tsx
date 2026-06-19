@@ -902,6 +902,8 @@ export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
 function CRMDashboard() {
   const navigate = useNavigate();
   const leadState = useCrmRecords<CRMRecord>("leads", emptyRecords);
+  const contactState = useCrmRecords<CRMRecord>("contacts", emptyRecords);
+  const companyState = useCrmRecords<CRMRecord>("companies", emptyRecords);
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
   const [dashboardMode, setDashboardMode] = useState<"simple" | "advanced">("simple");
@@ -910,26 +912,32 @@ function CRMDashboard() {
   const [quickCreateSaving, setQuickCreateSaving] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
   const crmLeads = useMemo(() => leadState.data.map(recordToLead), [leadState.data]);
-  const crmDeals = useMemo(() => dealState.data.map((record) => recordToDeal(record, stageState.data)), [dealState.data, stageState.data]);
+  const companyNames = useMemo(() => companyNameLookup(companyState.data), [companyState.data]);
+  const crmDeals = useMemo(() => dealState.data.map((record) => recordToDeal(record, stageState.data, companyNames)), [dealState.data, stageState.data, companyNames]);
   const stageNames = useMemo(() => stageState.data.map((stage) => String(stage.name)).filter(Boolean), [stageState.data]);
-  const wonRevenue = crmDeals.filter((deal) => deal.stage === "Won").reduce((sum, deal) => sum + deal.amount, 0);
-  const pipelineValue = crmDeals.filter((deal) => !["Won", "Lost"].includes(deal.stage)).reduce((sum, deal) => sum + deal.amount, 0);
-  const weighted = crmDeals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
+  const openCrmDeals = crmDeals.filter(isOpenDeal);
+  const wonCrmDeals = crmDeals.filter((deal) => isWonDeal(deal.stage));
+  const lostCrmDeals = crmDeals.filter((deal) => isLostDeal(deal.stage));
+  const wonRevenue = wonCrmDeals.reduce((sum, deal) => sum + deal.amount, 0);
+  const pipelineValue = openCrmDeals.reduce((sum, deal) => sum + deal.amount, 0);
+  const weighted = openCrmDeals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
   const overdueFollowUps = crmLeads.filter((lead) => lead.nextFollowUp && new Date(lead.nextFollowUp) < new Date() && lead.status !== "Converted").length;
-  const openDeals = crmDeals.filter((deal) => !["Won", "Lost"].includes(deal.stage)).length;
-  const wonDeals = crmDeals.filter((deal) => deal.stage === "Won").length;
-  const lostDeals = crmDeals.filter((deal) => deal.stage === "Lost").length;
+  const openDeals = openCrmDeals.length;
+  const wonDeals = wonCrmDeals.length;
+  const lostDeals = lostCrmDeals.length;
+  const contactsCreated = countRecordsThisMonth(contactState.data);
   const convertedLeads = crmLeads.filter((lead) => lead.status === "Converted").length;
   const hotLeads = crmLeads.filter((lead) => lead.rating === "Hot" || lead.scoreLabel === "Hot").length;
   const averageDealSize = crmDeals.length ? crmDeals.reduce((sum, deal) => sum + deal.amount, 0) / crmDeals.length : 0;
   const winRate = wonDeals + lostDeals ? Math.round((wonDeals / (wonDeals + lostDeals)) * 100) : 0;
   const conversionRate = crmLeads.length ? Math.round((convertedLeads / crmLeads.length) * 100) : 0;
   const weightedCoverage = pipelineValue ? Math.round((weighted / pipelineValue) * 100) : 0;
-  const staleOpenDeals = crmDeals.filter((deal) => deal.closeDate && new Date(deal.closeDate) < new Date() && !["Won", "Lost"].includes(deal.stage)).length;
-  const chartData = stageNames.map((stage) => ({
+  const staleOpenDeals = openCrmDeals.filter((deal) => deal.closeDate && new Date(deal.closeDate) < new Date()).length;
+  const chartStages = stageNames.length ? stageNames : Array.from(new Set(crmDeals.map((deal) => deal.stage).filter(Boolean)));
+  const chartData = chartStages.map((stage) => ({
     stage,
-    value: crmDeals.filter((deal) => deal.stage === stage).reduce((sum, deal) => sum + deal.amount, 0),
-  }));
+    value: openCrmDeals.filter((deal) => deal.stage === stage).reduce((sum, deal) => sum + deal.amount, 0),
+  })).filter((row) => row.value > 0 || !stageNames.length);
   const sourceData = ["Website", "Referral", "Event", "Partner", "Phone Call", "Email Campaign"].map((source) => ({
     name: source,
     value: crmLeads.filter((lead) => lead.source === source).length,
@@ -952,9 +960,9 @@ function CRMDashboard() {
   }, [dealState.data]);
   const insightRows = [
     `${crmLeads.filter((lead) => lead.rating === "Hot" || lead.scoreLabel === "Hot").length} hot leads are visible from current CRM data.`,
-    `${crmDeals.filter((deal) => !["Won", "Lost"].includes(deal.stage)).length} open deals carry ${formatCurrency(pipelineValue)} in pipeline value.`,
-    `${crmDeals.filter((deal) => deal.closeDate && new Date(deal.closeDate) < new Date() && !["Won", "Lost"].includes(deal.stage)).length} open deals are past expected close date.`,
-    `${crmDeals.filter((deal) => deal.probability >= 70 && !["Won", "Lost"].includes(deal.stage)).length} high-probability deals should be reviewed for approvals and quotation follow-up.`,
+    `${openDeals} ${pluralize("open deal", openDeals)} ${openDeals === 1 ? "carries" : "carry"} ${formatCurrency(pipelineValue)} in pipeline value.`,
+    `${staleOpenDeals} ${pluralize("open deal", staleOpenDeals)} ${staleOpenDeals === 1 ? "is" : "are"} past expected close date.`,
+    `${openCrmDeals.filter((deal) => deal.probability >= 70).length} high-probability ${pluralize("deal", openCrmDeals.filter((deal) => deal.probability >= 70).length)} should be reviewed for approvals and quotation follow-up.`,
   ];
   const createQuickRecord = (draft: CRMRecord, customFields?: CRMApiRecord) => {
     const apiEntity = apiEntityForKind[quickCreateKind];
@@ -1010,17 +1018,17 @@ function CRMDashboard() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-4 w-4" />Reports</Button>
             <Button variant="outline" onClick={() => navigate("/crm/templates")}><LayoutGrid className="h-4 w-4" />Templates</Button>
-            <Button onClick={() => setShowQuickCreate(true)}><Plus className="h-4 w-4" />Component</Button>
+            <Button onClick={() => setShowQuickCreate(true)}><Plus className="h-4 w-4" />Quick create</Button>
           </div>
         </div>
       </div>
       <main className="space-y-5 px-4 py-4 sm:px-6 lg:px-8">
-      {leadState.error || dealState.error || stageState.error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{leadState.error || dealState.error || stageState.error}</div> : null}
-      {leadState.loading || dealState.loading || stageState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM dashboard...</div> : null}
+      {leadState.error || contactState.error || companyState.error || dealState.error || stageState.error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{leadState.error || contactState.error || companyState.error || dealState.error || stageState.error}</div> : null}
+      {leadState.loading || contactState.loading || companyState.loading || dealState.loading || stageState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM dashboard...</div> : null}
       {dashboardMode === "simple" ? (
         <SimpleDashboardView
           chartData={chartData}
-          convertedLeads={convertedLeads}
+          contactsCreated={contactsCreated}
           crmDeals={crmDeals}
           crmLeads={crmLeads}
           lostDeals={lostDeals}
@@ -1036,7 +1044,7 @@ function CRMDashboard() {
       ) : (
       <>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <DashboardKpiCard title="Contacts created" value={convertedLeads || crmLeads.length} previous="Last month" delta={conversionRate || 0} />
+        <DashboardKpiCard title="Contacts created" value={contactsCreated} previous={`${contactState.data.length} total contacts`} delta={conversionRate || 0} />
         <DashboardKpiCard title="Deals won" value={wonDeals} previous={formatCurrency(wonRevenue)} delta={winRate} tone="emerald" />
         <DashboardKpiCard title="Deals lost" value={lostDeals} previous="This month" delta={lostDeals ? -100 : 0} tone="red" />
         <DashboardKpiCard title="Tasks closed" value={Math.max(0, crmLeads.length - overdueFollowUps)} previous={`${overdueFollowUps} overdue`} delta={overdueFollowUps ? -overdueFollowUps : 0} tone="amber" />
@@ -1058,7 +1066,7 @@ function CRMDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ left: 24 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis type="number" tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
+                <XAxis type="number" tickFormatter={formatChartCurrency} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="stage" tickLine={false} axisLine={false} width={110} />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Bar dataKey="value" fill="#38bdf8" radius={[0, 6, 6, 0]} />
@@ -1074,7 +1082,7 @@ function CRMDashboard() {
                   <LineChart data={revenueTrend}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                    <YAxis tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
+                    <YAxis tickFormatter={formatChartCurrency} tickLine={false} axisLine={false} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                     <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={3} dot={false} />
                     <Line type="monotone" dataKey="forecast" stroke="#2563eb" strokeWidth={3} strokeDasharray="4 4" dot={false} />
@@ -1267,7 +1275,7 @@ function DashboardStatistics({
 
 function SimpleDashboardView({
   chartData,
-  convertedLeads,
+  contactsCreated,
   crmDeals,
   crmLeads,
   lostDeals,
@@ -1281,7 +1289,7 @@ function SimpleDashboardView({
   onQuickCreate,
 }: {
   chartData: Array<{ stage: string; value: number }>;
-  convertedLeads: number;
+  contactsCreated: number;
   crmDeals: CRMDeal[];
   crmLeads: CRMLead[];
   lostDeals: number;
@@ -1297,7 +1305,7 @@ function SimpleDashboardView({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SimpleDashboardCard title="Contacts Created - This Month" value={convertedLeads || crmLeads.length} detail="Last Month: 0" tone="emerald" />
+        <SimpleDashboardCard title="Contacts Created - This Month" value={contactsCreated} detail={`${crmLeads.length} leads tracked`} tone="emerald" />
         <SimpleDashboardCard title="Deals Won - This Month" value={wonDeals} detail={wonDeals ? formatCurrency(wonRevenue) : "No closed-won deals yet"} tone="emerald" />
         <SimpleDashboardCard title="Deals Lost - This Month" value={lostDeals} detail={lostDeals ? "Review lost reasons" : "No lost deals yet"} tone="red" />
         <SimpleDashboardCard title="Open Pipeline" value={formatCurrency(pipelineValue)} detail={`${openDeals} active deals`} tone="blue" />
@@ -1316,7 +1324,7 @@ function SimpleDashboardView({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ left: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis type="number" tickFormatter={(value) => `${Number(value) / 100000}L`} tickLine={false} axisLine={false} />
+                  <XAxis type="number" tickFormatter={formatChartCurrency} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="stage" tickLine={false} axisLine={false} width={110} />
                   <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                   <Bar dataKey="value" fill="#38bdf8" radius={[0, 6, 6, 0]} />
@@ -1424,7 +1432,7 @@ function DashboardActionPanel({ onQuickCreate, onPipeline, onReports }: { onQuic
     <Card>
       <CardHeader><CardTitle>Dashboard actions</CardTitle></CardHeader>
       <CardContent className="grid gap-2">
-        <Button className="justify-start" onClick={onQuickCreate}><Plus className="h-4 w-4" />Add component</Button>
+        <Button className="justify-start" onClick={onQuickCreate}><Plus className="h-4 w-4" />Create CRM record</Button>
         <Button variant="outline" className="justify-start" onClick={onPipeline}><LayoutGrid className="h-4 w-4" />Open pipeline board</Button>
         <Button variant="outline" className="justify-start" onClick={onReports}><BarChart3 className="h-4 w-4" />Open detailed reports</Button>
       </CardContent>
@@ -1438,6 +1446,47 @@ function DashboardNoData({ label }: { label: string }) {
 
 function RefreshIcon() {
   return <Clock className="h-4 w-4" />;
+}
+
+function isWonDeal(stage: string) {
+  return ["won", "closed won", "service active", "delivered", "paid"].includes(stage.trim().toLowerCase());
+}
+
+function isLostDeal(stage: string) {
+  return ["lost", "closed lost", "rejected"].includes(stage.trim().toLowerCase());
+}
+
+function isOpenDeal(deal: CRMDeal) {
+  return !isWonDeal(deal.stage) && !isLostDeal(deal.stage);
+}
+
+function formatChartCurrency(value: number | string) {
+  const amount = Number(value || 0);
+  if (Math.abs(amount) >= 100000) return `₹${Math.round(amount / 100000)}L`;
+  if (Math.abs(amount) >= 1000) return `₹${Math.round(amount / 1000)}K`;
+  return `₹${amount}`;
+}
+
+function countRecordsThisMonth(records: CRMRecord[]) {
+  const now = new Date();
+  const dated = records.filter((record) => {
+    const raw = String(record.createdAt || record.created_at || record.createdDate || record.created_date || "");
+    if (!raw) return false;
+    const date = new Date(raw);
+    return !Number.isNaN(date.getTime()) && date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  });
+  return dated.length || records.length;
+}
+
+function companyNameLookup(companies: CRMRecord[]) {
+  const entries: Array<[number, string]> = companies
+    .map((company) => [Number(company.id || 0), String(company.name || company.companyName || company.company_name || "")] as [number, string])
+    .filter(([id, name]) => Boolean(id && name));
+  return new Map<number, string>(entries);
+}
+
+function pluralize(label: string, count: number) {
+  return count === 1 ? label : `${label}s`;
 }
 
 function PipelinePage() {
@@ -1459,6 +1508,8 @@ function PipelinePage() {
   const [deals, setDeals] = useState<CRMDeal[]>(initialDeals);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [filter, setFilter] = useState("");
+  const [transitioningDealId, setTransitioningDealId] = useState<number | null>(null);
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   const isTemplateLibrary = location.pathname.includes("/crm/templates");
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activeDeal = deals.find((deal) => deal.id === activeId);
@@ -1547,6 +1598,25 @@ function PipelinePage() {
   };
 
   const onDragStart = (event: DragStartEvent) => setActiveId(event.active.id as number);
+  const transitionDealToStage = (dealId: number, targetStageRecord: CRMRecord) => {
+    const targetStage = String(targetStageRecord.name || "");
+    if (!targetStage || !activePipelineId) return;
+    const probability = Number(targetStageRecord.probability ?? stageProbability(targetStage));
+    const { status } = stageStatusFor(targetStageRecord);
+    const previousDeals = deals;
+    const dealName = deals.find((deal) => deal.id === dealId)?.name || "Deal";
+    setTransitioningDealId(dealId);
+    setTransitionMessage(null);
+    setDeals((items) => items.map((deal) => (deal.id === dealId ? { ...deal, stage: targetStage, stageId: Number(targetStageRecord.id), pipelineId: activePipelineId, probability, status } : deal)));
+    crmApi
+      .update("deals", dealId, { pipeline_id: activePipelineId, stage_id: Number(targetStageRecord.id), probability, status })
+      .then(() => setTransitionMessage(`${dealName} moved to ${targetStage}.`))
+      .catch((error) => {
+        setDeals(previousDeals);
+        setTransitionMessage(error?.response?.data?.detail || `Could not move ${dealName}.`);
+      })
+      .finally(() => setTransitioningDealId(null));
+  };
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
@@ -1555,11 +1625,7 @@ function PipelinePage() {
     if (!targetStage) return;
     const targetStageRecord = stageByName.get(targetStage);
     if (!targetStageRecord) return;
-    const probability = Number(targetStageRecord.probability ?? stageProbability(targetStage));
-    const status = targetStageRecord.is_won ? "Won" : targetStageRecord.is_lost ? "Lost" : "Open";
-    const previousDeals = deals;
-    setDeals((items) => items.map((deal) => (deal.id === active.id ? { ...deal, stage: targetStage, stageId: Number(targetStageRecord.id), pipelineId: activePipelineId, probability } : deal)));
-    crmApi.update("deals", Number(active.id), { pipeline_id: activePipelineId, stage_id: Number(targetStageRecord.id), probability, status }).catch(() => setDeals(previousDeals));
+    transitionDealToStage(Number(active.id), targetStageRecord);
   };
 
   return (
@@ -1627,6 +1693,7 @@ function PipelinePage() {
         <main className="min-w-0 space-y-4 px-4 py-4 sm:px-6 lg:px-8">
           {dealState.error || stageState.error || pipelineState.error ? <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">{dealState.error || stageState.error || pipelineState.error}</div> : null}
           {templateMessage ? <div className="rounded-md border bg-white px-4 py-2 text-sm text-slate-700">{templateMessage}</div> : null}
+          {transitionMessage ? <div className="rounded-md border bg-white px-4 py-2 text-sm text-slate-700">{transitionMessage}</div> : null}
           {dealState.loading || stageState.loading || pipelineState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM pipeline...</div> : null}
           <div className="grid gap-3 md:grid-cols-4">
             <PipelineMetric label={isTemplateLibrary ? "Templates" : "Open pipeline"} value={isTemplateLibrary ? allCrmBusinessTemplates.length : formatCurrency(pipelineValue)} detail={isTemplateLibrary ? "Ready to clone" : `${openDeals.length} active deals`} />
@@ -1668,7 +1735,7 @@ function PipelinePage() {
                     {pipelineStages.map((stageRecord) => {
                       const stage = String(stageRecord.name);
                       const stageDeals = visibleDeals.filter((deal) => deal.stageId === Number(stageRecord.id) || deal.stage === stage);
-                      return <PipelineColumn key={stageRecord.id as string | number} stage={stage} stageRecord={stageRecord} deals={stageDeals} />;
+                      return <PipelineColumn key={stageRecord.id as string | number} stage={stage} stageRecord={stageRecord} deals={stageDeals} stages={pipelineStages} transitioningDealId={transitioningDealId} onTransition={transitionDealToStage} />;
                     })}
                     {!pipelineStages.length ? <TemplatePreviewBoard template={selectedTemplate} onApply={applyTemplate} applying={applyingTemplate} /> : null}
                   </div>
@@ -1858,7 +1925,21 @@ function templateSampleDeals(template: CRMBusinessTemplate): CRMTemplateSampleDe
   ];
 }
 
-function PipelineColumn({ stage, stageRecord, deals }: { stage: string; stageRecord: CRMRecord; deals: CRMDeal[] }) {
+function PipelineColumn({
+  stage,
+  stageRecord,
+  deals,
+  stages,
+  transitioningDealId,
+  onTransition,
+}: {
+  stage: string;
+  stageRecord: CRMRecord;
+  deals: CRMDeal[];
+  stages: CRMRecord[];
+  transitioningDealId: number | null;
+  onTransition: (dealId: number, stage: CRMRecord) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage}` });
   const value = deals.reduce((sum, deal) => sum + deal.amount, 0);
   const weighted = deals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
@@ -1883,7 +1964,7 @@ function PipelineColumn({ stage, stageRecord, deals }: { stage: string; stageRec
       </header>
       <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 space-y-3 overflow-y-auto p-3">
-          {deals.map((deal) => <DealCard key={deal.id} deal={deal} />)}
+          {deals.map((deal) => <DealCard key={deal.id} deal={deal} stages={stages} transitioning={transitioningDealId === deal.id} onTransition={onTransition} />)}
           {!deals.length ? <div className="flex h-28 items-center justify-center rounded-md border border-dashed bg-slate-50 text-sm text-slate-500">Drop deal here</div> : null}
         </div>
       </SortableContext>
@@ -1891,8 +1972,32 @@ function PipelineColumn({ stage, stageRecord, deals }: { stage: string; stageRec
   );
 }
 
-function DealCard({ deal, overlay = false }: { deal: CRMDeal; overlay?: boolean }) {
+function DealCard({
+  deal,
+  stages = [],
+  transitioning = false,
+  overlay = false,
+  onTransition,
+}: {
+  deal: CRMDeal;
+  stages?: CRMRecord[];
+  transitioning?: boolean;
+  overlay?: boolean;
+  onTransition?: (dealId: number, stage: CRMRecord) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id });
+  const sortedStages = useMemo(() => [...stages].sort((a, b) => Number(a.position || 0) - Number(b.position || 0)), [stages]);
+  const currentIndex = sortedStages.findIndex((stage) => Number(stage.id) === Number(deal.stageId) || String(stage.name) === deal.stage);
+  const previousStage = currentIndex > 0 ? sortedStages[currentIndex - 1] : null;
+  const nextStage = currentIndex >= 0 && currentIndex < sortedStages.length - 1 ? sortedStages[currentIndex + 1] : null;
+  const wonStage = sortedStages.find((stage) => stageStatusFor(stage).status === "Won") || null;
+  const lostStage = sortedStages.find((stage) => stageStatusFor(stage).status === "Lost") || null;
+  const canMoveWon = wonStage && Number(wonStage.id) !== Number(deal.stageId);
+  const canMoveLost = lostStage && Number(lostStage.id) !== Number(deal.stageId);
+  const move = (stage: CRMRecord | null) => {
+    if (!stage || !onTransition || transitioning) return;
+    onTransition(deal.id, stage);
+  };
   return (
     <article
       ref={setNodeRef}
@@ -1917,8 +2022,31 @@ function DealCard({ deal, overlay = false }: { deal: CRMDeal; overlay?: boolean 
         <span>{deal.owner || "Unassigned"}</span>
       </div>
       <p className="mt-2 line-clamp-2 text-xs text-slate-500">Next: {deal.nextStep || "No next step captured"}</p>
+      {!overlay && onTransition && sortedStages.length ? (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs" disabled={!previousStage || transitioning} onClick={() => move(previousStage)}>
+            <ChevronLeft className="h-3.5 w-3.5" />Prev
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs" disabled={!nextStage || transitioning} onClick={() => move(nextStage)}>
+            <ChevronRight className="h-3.5 w-3.5" />Next
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs text-emerald-700" disabled={!canMoveWon || transitioning} onClick={() => move(wonStage)}>
+            <CheckCircle2 className="h-3.5 w-3.5" />Won
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs text-red-700" disabled={!canMoveLost || transitioning} onClick={() => move(lostStage)}>
+            <X className="h-3.5 w-3.5" />Lost
+          </Button>
+        </div>
+      ) : null}
+      {transitioning ? <p className="mt-2 text-xs text-slate-500">Saving stage...</p> : null}
     </article>
   );
+}
+
+function stageStatusFor(stage: CRMRecord) {
+  const isWon = Boolean(stage.is_won ?? stage.isWon);
+  const isLost = Boolean(stage.is_lost ?? stage.isLost);
+  return { status: isWon ? "Won" : isLost ? "Lost" : "Open" };
 }
 
 function CustomFieldsSettingsPageLegacy() {
@@ -4650,6 +4778,8 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const columns = useMemo(() => {
     const keys = Array.from(rows.reduce((set, row) => {
       Object.keys(row).forEach((key) => set.add(key));
@@ -4663,12 +4793,14 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
     if (!sort) return rows;
     return [...rows].sort((a, b) => compareValues(a[sort.key], b[sort.key], sort.direction));
   }, [rows, sort]);
+  const pageCount = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+  const pagedRows = useMemo(() => visibleRows.slice((page - 1) * pageSize, page * pageSize), [visibleRows, page, pageSize]);
   const visibleColumns = useMemo(() => {
     const preferred = preferredGridColumns[kind] || [];
     const ordered = [...preferred.filter((key) => columns.includes(key)), ...columns.filter((key) => !preferred.includes(key))];
     return ordered.slice(0, 8);
   }, [columns, kind]);
-  const selectableRows = visibleRows.filter((row) => row.id !== undefined && row.id !== null);
+  const selectableRows = pagedRows.filter((row) => row.id !== undefined && row.id !== null);
   const selectedRows = selectableRows.filter((row) => selectedIds[String(row.id)]);
   const allSelected = Boolean(selectableRows.length) && selectedRows.length === selectableRows.length;
 
@@ -4677,7 +4809,15 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
       const visibleIds = new Set(selectableRows.map((row) => String(row.id)));
       return Object.fromEntries(Object.entries(current).filter(([id]) => visibleIds.has(id)));
     });
-  }, [visibleRows]);
+  }, [pagedRows]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows, pageSize, sort]);
 
   const toggleSort = (key: string) => {
     setSort((current) => {
@@ -4770,7 +4910,7 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
               {loading ? (
                 <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(visibleColumns.length + 1, 1)}>Loading CRM records...</td></tr>
               ) : null}
-              {!loading && visibleRows.map((row, index) => (
+              {!loading && pagedRows.map((row, index) => (
                 <tr key={index} className="border-t hover:bg-muted/35">
                   <td className="px-3 py-3">
                     <input type="checkbox" checked={Boolean(selectedIds[String(row.id)])} disabled={row.id === undefined || row.id === null} onChange={(event) => toggleRow(row, event.target.checked)} aria-label={`Select record ${String(row.id || index + 1)}`} />
@@ -4787,6 +4927,19 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
               ) : null}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-col gap-3 border-t px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
+          <span className="text-muted-foreground">
+            Showing {visibleRows.length ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, visibleRows.length)} of {visibleRows.length}
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <select className="h-9 rounded-md border bg-background px-2" value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} aria-label="Rows per page">
+              {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}
+            </select>
+            <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1}>Previous</Button>
+            <Badge variant="outline" className="h-9 rounded-md px-3">Page {page} / {pageCount}</Badge>
+            <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={page >= pageCount}>Next</Button>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -5784,13 +5937,14 @@ function recordToLead(record: CRMRecord): CRMLead {
   };
 }
 
-function recordToDeal(record: CRMRecord, stages: CRMRecord[]): CRMDeal {
+function recordToDeal(record: CRMRecord, stages: CRMRecord[], companyNames = new Map<number, string>()): CRMDeal {
   const stageId = Number(record.stageId || record.stage_id || 0);
   const stage = stages.find((item) => Number(item.id) === stageId);
+  const companyId = Number(record.companyId || record.company_id || 0);
   return {
     id: Number(record.id || 0),
     name: String(record.name || "Deal"),
-    company: String(record.company || record.companyId || record.company_id || ""),
+    company: String(record.company || record.companyName || record.company_name || companyNames.get(companyId) || (companyId ? `Company #${companyId}` : "")),
     contact: String(record.contact || record.contactId || record.contact_id || ""),
     owner: String(record.owner || record.ownerId || ""),
     pipelineId: Number(record.pipelineId || record.pipeline_id || stage?.pipeline_id || 0),

@@ -1362,11 +1362,28 @@ function formatInlineMarkdown(value: string) {
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/_([^_]+)_/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_match, label: string, href: string) => {
+      const safeHref = sanitizeMarkdownUrl(href);
+      return safeHref ? `<a href="${escapeHtmlAttribute(safeHref)}" target="_blank" rel="noreferrer noopener">${label}</a>` : label;
+    });
 }
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function escapeHtmlAttribute(value: string) {
+  return escapeHtml(value).replace(/`/g, "&#096;");
+}
+
+function sanitizeMarkdownUrl(value: string) {
+  const decoded = value.replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#039;/g, "'");
+  try {
+    const url = new URL(decoded);
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 const activityFilters: Array<{ key: ActivityFilter; label: string }> = [

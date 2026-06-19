@@ -2,6 +2,8 @@ import React, { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClipboardList, Globe2, Kanban, Plus, Send, Sparkles } from "lucide-react";
 import { ProductWorkflowCenter } from "@/components/product/ProductWorkflowCenter";
+import { canAccessRoute } from "@/lib/roles";
+import { useAuthStore } from "@/store/authStore";
 import { useProjectStore, useUIStore } from "./store";
 import { projectIntakeAPI, projectsAPI } from "./services/api";
 import { PMSProject, PMSProjectIntake } from "./types";
@@ -14,6 +16,7 @@ const ProjectManagementHomePage: React.FC = () => {
   const navigate = useNavigate();
   const { projects, setProjects, setSelectedProject } = useProjectStore();
   const { setSidebarOpen } = useUIStore();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intakes, setIntakes] = useState<PMSProjectIntake[]>([]);
@@ -55,6 +58,9 @@ const ProjectManagementHomePage: React.FC = () => {
   const handleCreateProject = () => {
     navigate("/pms/projects/new");
   };
+  const canCreateProject = canAccessRoute("/pms/projects/new", user?.role, user?.is_superuser);
+  const canOpenCommandCenter = canAccessRoute("/pms/command-center", user?.role, user?.is_superuser);
+  const canOpenProductLaunch = canAccessRoute("/pms/product-launch", user?.role, user?.is_superuser);
 
   const handleSubmitIntake = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -104,27 +110,33 @@ const ProjectManagementHomePage: React.FC = () => {
                 <p className="text-gray-500 mt-1">Project Management & Collaboration Platform</p>
               </div>
             </div>
-            <button
-              onClick={handleCreateProject}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all flex items-center gap-2 font-medium"
-            >
-              <Plus size={20} />
-              New Project
-            </button>
-            <button
-              onClick={() => navigate("/pms/command-center")}
-              className="border border-blue-200 bg-white px-5 py-3 text-blue-700 rounded-lg hover:bg-blue-50 transition-all flex items-center gap-2 font-medium"
-            >
-              <Globe2 size={20} />
-              Command Center
-            </button>
-            <button
-              onClick={() => navigate("/pms/product-launch")}
-              className="border border-amber-200 bg-amber-50 px-5 py-3 text-amber-800 rounded-lg hover:bg-amber-100 transition-all flex items-center gap-2 font-medium"
-            >
-              <Globe2 size={20} />
-              Product Launch
-            </button>
+            {canCreateProject ? (
+              <button
+                onClick={handleCreateProject}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all flex items-center gap-2 font-medium"
+              >
+                <Plus size={20} />
+                New Project
+              </button>
+            ) : null}
+            {canOpenCommandCenter ? (
+              <button
+                onClick={() => navigate("/pms/command-center")}
+                className="border border-blue-200 bg-white px-5 py-3 text-blue-700 rounded-lg hover:bg-blue-50 transition-all flex items-center gap-2 font-medium"
+              >
+                <Globe2 size={20} />
+                Command Center
+              </button>
+            ) : null}
+            {canOpenProductLaunch ? (
+              <button
+                onClick={() => navigate("/pms/product-launch")}
+                className="border border-amber-200 bg-amber-50 px-5 py-3 text-amber-800 rounded-lg hover:bg-amber-100 transition-all flex items-center gap-2 font-medium"
+              >
+                <Globe2 size={20} />
+                Product Launch
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -141,20 +153,24 @@ const ProjectManagementHomePage: React.FC = () => {
               <h2 className="mt-2 text-xl font-bold text-gray-900">Boards, goals, dependencies, releases, reports, automation, forms, apps, workflows, security, and AI planning</h2>
               <p className="mt-1 text-sm text-gray-600">Open the command center or product launch workspace for the complete project experience.</p>
             </div>
-            <button
-              onClick={() => navigate("/pms/product-launch")}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600"
-            >
-              <Globe2 className="h-4 w-4" />
-              Open Product Launch
-            </button>
-            <button
-              onClick={() => navigate("/pms/command-center")}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800"
-            >
-              <Globe2 className="h-4 w-4" />
-              Open Command Center
-            </button>
+            {canOpenProductLaunch ? (
+              <button
+                onClick={() => navigate("/pms/product-launch")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600"
+              >
+                <Globe2 className="h-4 w-4" />
+                Open Product Launch
+              </button>
+            ) : null}
+            {canOpenCommandCenter ? (
+              <button
+                onClick={() => navigate("/pms/command-center")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800"
+              >
+                <Globe2 className="h-4 w-4" />
+                Open Command Center
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -229,13 +245,15 @@ const ProjectManagementHomePage: React.FC = () => {
             <p className="text-gray-600 mb-8 max-w-md mx-auto">
               Create your first project to get started with KaryaFlow's powerful project management capabilities.
             </p>
-            <button
-              onClick={handleCreateProject}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 font-medium"
-            >
-              <Plus size={20} />
-              Create Your First Project
-            </button>
+            {canCreateProject ? (
+              <button
+                onClick={handleCreateProject}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 font-medium"
+              >
+                <Plus size={20} />
+                Create Your First Project
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

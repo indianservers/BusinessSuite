@@ -190,4 +190,6 @@ export const famApi = {
   branches: () => list("/fam/branches"),
   createBranch: (data: FAMRecord) => create("/fam/branches", data),
   auditLogs: () => list("/fam/audit-logs"),
+  createExport: (data: FAMRecord) => create("/fam/exports", data),
+  downloadExport: (id: number | string) => api.get(`/fam/exports/${id}/download`).then((res) => res.data),
 };

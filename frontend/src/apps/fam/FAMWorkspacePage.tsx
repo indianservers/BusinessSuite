@@ -144,9 +144,58 @@ function listItems(data: unknown): FAMRecord[] {
 
 function statusTone(value: unknown) {
   const status = String(value || "").toLowerCase();
-  if (["open", "active", "posted"].includes(status)) return "default";
-  if (["locked", "closed", "inactive"].includes(status)) return "secondary";
+  if (["open", "active", "posted", "ready", "configured", "passed", "matched"].includes(status)) return "default";
+  if (["locked", "closed", "inactive", "not_configured", "manual_import_only", "gateway_not_connected"].includes(status)) return "secondary";
+  if (["failed", "error", "overdue", "unsupported"].includes(status)) return "destructive";
   return "outline";
+}
+
+function apiErrorMessage(err: unknown, fallback = "Action failed") {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (err as Error)?.message || fallback;
+}
+
+function downloadTextFile(fileName: string, content: string, contentType = "text/csv") {
+  const blob = new Blob([content], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function ExportButton({ exportType, label }: { exportType: string; label?: string }) {
+  const [message, setMessage] = useState("");
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const job = await famApi.createExport({ export_type: exportType, export_format: "csv", filters_json: {} }) as FAMRecord;
+      if (job.status !== "ready") throw new Error(text((job.error_json as FAMRecord | undefined)?.message || "Export is not ready"));
+      const file = await famApi.downloadExport(String(job.id || "")) as FAMRecord;
+      downloadTextFile(String(file.file_name || `${exportType}.csv`), String(file.file_content || ""), String(file.content_type || "text/csv"));
+      return file;
+    },
+    onSuccess: () => {
+      const textValue = `${label || exportType.replace(/_/g, " ")} exported`;
+      setMessage(textValue);
+      toast({ title: textValue });
+    },
+    onError: (err: unknown) => {
+      const textValue = apiErrorMessage(err, "Export failed");
+      setMessage(textValue);
+      toast({ title: "Export failed", description: textValue, variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button variant="outline" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+        <FileText className="h-4 w-4" />{mutation.isPending ? "Exporting..." : label || "Export CSV"}
+      </Button>
+      {message ? <span className="text-xs text-muted-foreground">{message}</span> : null}
+    </div>
+  );
 }
 
 function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetching?: boolean; onRefresh?: () => void }) {
@@ -181,8 +230,10 @@ function DashboardView() {
     ["Total income", money(data.totalIncome)],
     ["Total expenses", money(data.totalExpenses)],
     ["Cash and bank", money(data.cashAndBankBalance)],
-    ["Receivables", text(data.receivablesPlaceholder)],
-    ["Payables", text(data.payablesPlaceholder)],
+    ["Receivables", money(data.receivablesOutstanding)],
+    ["Payables", money(data.payablesOutstanding)],
+    ["Overdue AR", money(data.overdueReceivables)],
+    ["Overdue AP", money(data.overduePayables)],
   ];
   return (
     <div className="space-y-5">
@@ -204,8 +255,9 @@ function DashboardView() {
           <CardHeader><CardTitle className="text-base">Books status</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             <Badge variant={statusTone(data.booksStatus)}>{text(data.booksStatus)}</Badge>
-            <p className="text-muted-foreground">GST compliance placeholder is visible but not connected to fake filings.</p>
-            <p>{text(data.gstCompliancePlaceholder)}</p>
+            <p className="text-muted-foreground">GST portal filing is disabled until provider credentials are configured.</p>
+            <Badge variant={statusTone(data.gstComplianceStatus)}>{text(data.gstComplianceStatus)}</Badge>
+            <p>{text(data.gstComplianceMessage)}</p>
           </CardContent>
         </Card>
       </div>
@@ -419,7 +471,8 @@ function VouchersView() {
 function DayBookView() {
   const query = useQuery({ queryKey: ["fam", "dayBook"], queryFn: famApi.dayBook });
   const data = (query.data || {}) as FAMRecord;
-  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Vouchers</p><p className="text-lg font-semibold">{text(data.total)}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Debit total</p><p className="text-lg font-semibold">{money(data.debitTotal)}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Credit total</p><p className="text-lg font-semibold">{money(data.creditTotal)}</p></CardContent></Card></div><Card><CardContent className="p-5"><State label="day book" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(data)} columns={["voucher_date", "voucher_number", "status", "reference_number", "total_debit", "total_credit"]} /></CardContent></Card></div>;
+  const rows = listItems(data);
+  return <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="grid flex-1 gap-3 md:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Vouchers</p><p className="text-lg font-semibold">{text(data.total)}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Debit total</p><p className="text-lg font-semibold">{money(data.debitTotal)}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Credit total</p><p className="text-lg font-semibold">{money(data.creditTotal)}</p></CardContent></Card></div><div className="flex flex-wrap gap-2"><Button asChild><Link to="/fam/vouchers/new"><Plus className="h-4 w-4" />New Voucher</Link></Button><ExportButton exportType="day_book" label="Export Day Book CSV" /></div></div><Card><CardContent className="p-5"><State label="day book" isLoading={query.isLoading} isError={query.isError} />{!query.isLoading && !query.isError && !rows.length ? <div className="mb-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Day Book is available. Create or post vouchers to populate this register.</div> : null}<DataTable rows={rows} columns={["voucher_date", "voucher_number", "status", "reference_number", "total_debit", "total_credit"]} /></CardContent></Card></div>;
 }
 
 function LedgerEntriesView({ detail }: { detail?: boolean }) {
@@ -462,13 +515,13 @@ function AgingView({ kind }: { kind: "ar" | "ap" }) {
   const query = useQuery({ queryKey: ["fam", kind, "aging"], queryFn: kind === "ar" ? famApi.arAging : famApi.apAging });
   const data = (query.data || {}) as FAMRecord;
   const buckets = data.buckets as Record<string, number> | undefined;
-  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-6">{["Not due", "0-30", "31-60", "61-90", "91-180", ">180"].map((bucket) => <Card key={bucket}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{bucket}</p><p className="text-lg font-semibold">{money(buckets?.[bucket])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">{kind.toUpperCase()} aging details</CardTitle></CardHeader><CardContent><State label={`${kind} aging`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["bill_number", "party_id", "due_date", "aging_bucket", "overdue_days", "outstanding_amount", "status"]} /></CardContent></Card></div>;
+  return <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="text-sm text-muted-foreground">Bill-wise aging is exportable for collections, audit, and review.</div><ExportButton exportType={kind === "ar" ? "receivables_aging" : "payables_aging"} label={`Export ${kind.toUpperCase()} aging CSV`} /></div><div className="grid gap-3 md:grid-cols-6">{["Not due", "0-30", "31-60", "61-90", "91-180", ">180"].map((bucket) => <Card key={bucket}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{bucket}</p><p className="text-lg font-semibold">{money(buckets?.[bucket])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">{kind.toUpperCase()} aging details</CardTitle></CardHeader><CardContent><State label={`${kind} aging`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["bill_number", "party_id", "due_date", "aging_bucket", "overdue_days", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
 function OutstandingView({ kind }: { kind: "ar" | "ap" }) {
   const query = useQuery({ queryKey: ["fam", kind, "outstanding"], queryFn: kind === "ar" ? famApi.arOutstanding : famApi.apOutstanding });
   const data = (query.data || {}) as FAMRecord;
-  return <div className="space-y-4"><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">{kind.toUpperCase()} total outstanding</p><p className="text-2xl font-semibold">{money(data.totalOutstanding)}</p></CardContent></Card><Card><CardContent className="p-5"><State label={`${kind} outstanding`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(data)} columns={["bill_number", "party_id", "bill_date", "due_date", "bill_type", "outstanding_amount", "status"]} /></CardContent></Card><p className="text-xs text-muted-foreground">Export placeholder: backend export endpoint is not implemented in this phase.</p></div>;
+  return <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><Card className="sm:min-w-72"><CardContent className="p-4"><p className="text-xs text-muted-foreground">{kind.toUpperCase()} total outstanding</p><p className="text-2xl font-semibold">{money(data.totalOutstanding)}</p></CardContent></Card><ExportButton exportType={kind === "ar" ? "receivables_aging" : "payables_aging"} label={`Export ${kind.toUpperCase()} outstanding CSV`} /></div><Card><CardContent className="p-5"><State label={`${kind} outstanding`} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(data)} columns={["bill_number", "party_id", "bill_date", "due_date", "bill_type", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
 function BillReferencesView() {
@@ -490,14 +543,21 @@ function BillAllocationsView() {
 function SRMIntegrationView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "srmIntegration"], queryFn: famApi.srmIntegrationStatus });
+  const rules = useQuery({ queryKey: ["fam", "postingRules"], queryFn: famApi.postingRules });
   const data = (query.data || {}) as FAMRecord;
   const [draft, setDraft] = useState<FAMRecord>({ invoice_id: 1, receipt_id: 1, allocation_id: 1, reverse_type: "invoice", reverse_id: 1 });
-  const action = useMutation({ mutationFn: (run: () => Promise<FAMRecord>) => run(), onSuccess: () => { toast({ title: "Accounting integration updated" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const [message, setMessage] = useState("");
+  const action = useMutation({
+    mutationFn: (run: () => Promise<FAMRecord>) => run(),
+    onSuccess: () => { setMessage("Accounting integration updated"); toast({ title: "Accounting integration updated" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
+    onError: (err: unknown) => { const textValue = apiErrorMessage(err, "Posting failed pre-flight checks"); setMessage(textValue); toast({ title: "Posting failed", description: textValue, variant: "destructive" }); },
+  });
   const kpis: Array<[string, unknown]> = [["Pending postings", data.pending_postings], ["Failed postings", data.failed_postings], ["Posted today", data.posted_today], ["Unmapped customers", data.unmapped_customers], ["Duplicate prevention", data.duplicate_prevention_status]];
   return (
     <div className="space-y-4">
       <State label="SRM accounting integration" isLoading={query.isLoading} isError={query.isError} />
       <div className="grid gap-3 md:grid-cols-5">{kpis.map(([label, value]) => <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{text(value)}</p></CardContent></Card>)}</div>
+      <Card><CardHeader><CardTitle className="text-base">Posting pre-flight checks</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3"><MetricGrid items={[["Posting rules", text(listItems(rules.data).length)], ["Unmapped customers", text(data.unmapped_customers)], ["Failed queue", text(data.failed_postings)]]} /><p className="text-sm text-muted-foreground md:col-span-2">Ledger mapping errors are blocked by the API with clear messages before vouchers are posted. Fix posting rules, party ledgers, and required bank/tax ledgers before retrying failed jobs.</p>{message ? <p className="text-sm text-muted-foreground md:col-span-3">{message}</p> : null}</CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">Manual posting controls</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-4">
         <Field label="invoice id"><Input value={String(draft.invoice_id || "")} onChange={(event) => setDraft((current) => ({ ...current, invoice_id: Number(event.target.value) }))} /></Field>
         <Field label="receipt id"><Input value={String(draft.receipt_id || "")} onChange={(event) => setDraft((current) => ({ ...current, receipt_id: Number(event.target.value) }))} /></Field>
@@ -631,7 +691,14 @@ function BankChargesView() {
 
 function GSTHomeView() {
   const links = [["Registrations", "/fam/gst/registrations"], ["Rates", "/fam/gst/rates"], ["HSN/SAC", "/fam/gst/hsn-sac"], ["Sales Register", "/fam/gst/sales-register"], ["Purchase Register", "/fam/gst/purchase-register"], ["GSTR-1", "/fam/gst/gstr1"], ["GSTR-3B", "/fam/gst/gstr3b"], ["E-Invoice", "/fam/gst/einvoice"], ["E-Way Bill", "/fam/gst/ewaybill"], ["Reconciliation", "/fam/gst/reconciliation"]];
-  return <div className="grid gap-3 md:grid-cols-3">{links.map(([label, href]) => <Card key={href}><CardContent className="flex items-center justify-between p-4"><span className="font-medium">{label}</span><Button asChild variant="outline"><Link to={href}>Open</Link></Button></CardContent></Card>)}</div>;
+  return (
+    <div className="space-y-4">
+      <ComplianceReadinessPanel />
+      <div className="grid gap-3 md:grid-cols-3">
+        {links.map(([label, href]) => <Card key={href}><CardContent className="flex items-center justify-between p-4"><span className="font-medium">{label}</span><Button asChild variant="outline"><Link to={href}>Open</Link></Button></CardContent></Card>)}
+      </div>
+    </div>
+  );
 }
 
 function GSTMasterView({ kind }: { kind: "registrations" | "rates" | "hsn" }) {
@@ -648,7 +715,93 @@ function GSTMasterView({ kind }: { kind: "registrations" | "rates" | "hsn" }) {
 }
 
 function GSTSettingsView() {
-  return <div className="grid gap-4 md:grid-cols-2"><ProviderSettingsView kind="einvoice" /><ProviderSettingsView kind="ewaybill" /></div>;
+  return <div className="space-y-4"><ComplianceReadinessPanel /><div className="grid gap-4 md:grid-cols-2"><ProviderSettingsView kind="einvoice" /><ProviderSettingsView kind="ewaybill" /></div></div>;
+}
+
+function ComplianceReadinessPanel() {
+  const einvoice = useQuery({ queryKey: ["fam", "einvoice", "settings"], queryFn: famApi.einvoiceSettings });
+  const ewaybill = useQuery({ queryKey: ["fam", "ewaybill", "settings"], queryFn: famApi.ewaybillSettings });
+  const tds = useQuery({ queryKey: ["fam", "tdsPayable"], queryFn: famApi.tdsPayable });
+  const bank = useQuery({ queryKey: ["fam", "bankReconciliation"], queryFn: famApi.bankReconciliation });
+  const srm = useQuery({ queryKey: ["fam", "srmIntegrationStatus"], queryFn: famApi.srmIntegrationStatus });
+  const einvoiceReady = providerReady(einvoice.data);
+  const ewayReady = providerReady(ewaybill.data);
+  const bankData = (bank.data || {}) as FAMRecord;
+  const tdsData = (tds.data || {}) as FAMRecord;
+  const srmData = (srm.data || {}) as FAMRecord;
+  const rows = [
+    {
+      label: "GST Returns",
+      status: "prepare_only",
+      ready: false,
+      detail: "GSTR-1 and GSTR-3B can be prepared and exported. GST portal filing remains blocked until a portal provider is connected.",
+      action: "/fam/gst/gstr1",
+    },
+    {
+      label: "E-Invoice IRN",
+      status: einvoiceReady ? "configured" : "not_configured",
+      ready: einvoiceReady,
+      detail: einvoiceReady ? "Provider credentials and active flag are set. IRN generation queues provider jobs." : "Add provider name, API URL, credentials flag, and active status before IRN jobs can queue.",
+      action: "/fam/gst/einvoice",
+    },
+    {
+      label: "E-Way Bill",
+      status: ewayReady ? "configured" : "not_configured",
+      ready: ewayReady,
+      detail: ewayReady ? "Provider credentials and threshold are configured. Eligible movement jobs can queue." : "Configure provider credentials, active status, and threshold before EWB jobs can queue.",
+      action: "/fam/gst/ewaybill",
+    },
+    {
+      label: "TDS Compliance",
+      status: tdsData.filing_status || "not_configured",
+      ready: false,
+      detail: `TDS payable is tracked at ${money(tdsData.tds_payable)}. Return filing/export remains a prepared-register workflow until filing integration exists.`,
+      action: "/fam/tds/payable",
+    },
+    {
+      label: "Bank Feeds",
+      status: "manual_import_only",
+      ready: false,
+      detail: `${text(bankData.unmatched_count)} unmatched statement lines. Bank feeds use CSV import, matching, and reconciliation; automatic API/OFX feeds are not enabled.`,
+      action: "/fam/bank-statements",
+    },
+    {
+      label: "SRM Posting",
+      status: Number(srmData.failed_postings || 0) ? "warning" : "preflight_ready",
+      ready: !Number(srmData.failed_postings || 0),
+      detail: `${text(srmData.pending_postings)} pending, ${text(srmData.failed_postings)} failed. Posting rules and ledger mappings are validated before voucher creation.`,
+      action: "/fam/integrations/srm",
+    },
+  ];
+  const loading = einvoice.isLoading || ewaybill.isLoading || tds.isLoading || bank.isLoading || srm.isLoading;
+  const error = einvoice.isError || ewaybill.isError || tds.isError || bank.isError || srm.isError;
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Statutory and integration readiness</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <State label="readiness" isLoading={loading} isError={error} />
+        <div className="grid gap-3 lg:grid-cols-2">
+          {rows.map((row) => (
+            <div key={row.label} className="rounded-lg border p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">{row.label}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{row.detail}</p>
+                </div>
+                <Badge variant={row.ready ? "default" : statusTone(row.status)}>{text(row.status)}</Badge>
+              </div>
+              <Button asChild variant="outline" size="sm" className="mt-3"><Link to={row.action}>Open</Link></Button>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function providerReady(data: unknown) {
+  const record = (data || {}) as FAMRecord;
+  return Boolean(record.credentials_configured && record.active);
 }
 
 function GSTRegisterView({ kind }: { kind: "sales" | "purchase" }) {
@@ -660,9 +813,10 @@ function GSTRegisterView({ kind }: { kind: "sales" | "purchase" }) {
 function GSTReturnView({ kind }: { kind: "gstr1" | "gstr3b" }) {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", kind], queryFn: kind === "gstr1" ? famApi.gstr1 : famApi.gstr3b });
+  const data = (query.data || {}) as FAMRecord;
   const [draft, setDraft] = useState<FAMRecord>({ period_month: 6, period_year: 2026 });
   const mutation = useMutation({ mutationFn: () => kind === "gstr1" ? famApi.prepareGstr1(draft) : famApi.prepareGstr3b(draft), onSuccess: () => { toast({ title: `${kind.toUpperCase()} prepared` }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[20rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Prepare {kind.toUpperCase()}</CardTitle></CardHeader><CardContent className="space-y-3">{["period_month", "period_year"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field])} onChange={(event) => setDraft((current) => ({ ...current, [field]: Number(event.target.value) }))} /></Field>)}<p className="text-xs text-muted-foreground">Working return only. GST portal filing is not integrated.</p><Button className="w-full" onClick={() => mutation.mutate()}>Prepare</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Prepared records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section", "taxable_value", "cgst_amount", "sgst_amount", "igst_amount", "cess_amount", "record_count"]} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[20rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Prepare {kind.toUpperCase()}</CardTitle></CardHeader><CardContent className="space-y-3">{["period_month", "period_year"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field])} onChange={(event) => setDraft((current) => ({ ...current, [field]: Number(event.target.value) }))} /></Field>)}<Badge variant={statusTone(data.portal_status)}>{text(data.portal_status || "not_configured")}</Badge><p className="text-xs text-muted-foreground">Working return only. GST portal filing is not integrated until a GST provider is connected.</p><Button className="w-full" onClick={() => mutation.mutate()}>Prepare</Button><ExportButton exportType="gst_summary" label="Export GST summary CSV" /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Prepared records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section", "taxable_value", "cgst_amount", "sgst_amount", "igst_amount", "cess_amount", "record_count"]} /></CardContent></Card></div>;
 }
 
 function GSTReconciliationView() {
@@ -675,10 +829,59 @@ function ProviderSettingsView({ kind }: { kind: "einvoice" | "ewaybill" }) {
   const isEinvoice = kind === "einvoice";
   const query = useQuery({ queryKey: ["fam", kind, "settings"], queryFn: isEinvoice ? famApi.einvoiceSettings : famApi.ewaybillSettings });
   const [draft, setDraft] = useState<FAMRecord>({});
+  const [voucherId, setVoucherId] = useState("1");
+  const [message, setMessage] = useState("");
   const effective = { ...((query.data || {}) as FAMRecord), ...draft };
-  const save = useMutation({ mutationFn: () => isEinvoice ? famApi.updateEinvoiceSettings(effective) : famApi.updateEwaybillSettings(effective), onSuccess: () => { toast({ title: "Provider settings saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  const generate = useMutation({ mutationFn: () => isEinvoice ? famApi.generateEinvoice(1) : famApi.generateEwaybill(1), onSuccess: (data) => toast({ title: text((data as FAMRecord).message) }) });
-  return <Card><CardHeader><CardTitle className="text-base">{isEinvoice ? "E-Invoice" : "E-Way Bill"} provider</CardTitle></CardHeader><CardContent className="space-y-3"><State label={`${kind} settings`} isLoading={query.isLoading} isError={query.isError} /><Badge variant={effective.credentials_configured ? "default" : "secondary"}>{effective.credentials_configured ? "configured" : "not configured"}</Badge>{["provider_name", "api_base_url", ...(isEinvoice ? ["applicable_from"] : ["threshold_amount"])].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<div className="flex flex-wrap gap-2"><Button onClick={() => save.mutate()}>Save settings</Button><Button variant="outline" onClick={() => generate.mutate()}>Generate test job</Button></div><p className="text-xs text-muted-foreground">No IRN or EWB number is generated unless a real provider is configured.</p></CardContent></Card>;
+  const save = useMutation({
+    mutationFn: () => isEinvoice ? famApi.updateEinvoiceSettings(effective) : famApi.updateEwaybillSettings(effective),
+    onSuccess: () => { setMessage("Provider settings saved"); toast({ title: "Provider settings saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
+    onError: (err: unknown) => { const textValue = apiErrorMessage(err, "Provider settings failed"); setMessage(textValue); toast({ title: "Provider settings failed", description: textValue, variant: "destructive" }); },
+  });
+  const generate = useMutation({
+    mutationFn: () => isEinvoice ? famApi.generateEinvoice(voucherId) : famApi.generateEwaybill(voucherId),
+    onSuccess: (data) => {
+      const record = data as FAMRecord;
+      const textValue = text(record.message || record.status || "Provider job created");
+      setMessage(textValue);
+      toast({ title: textValue });
+      queryClient.invalidateQueries({ queryKey: ["fam"] });
+    },
+    onError: (err: unknown) => { const textValue = apiErrorMessage(err, "Provider job failed"); setMessage(textValue); toast({ title: "Provider job failed", description: textValue, variant: "destructive" }); },
+  });
+  const checks = [
+    ["Provider name", Boolean(effective.provider_name)],
+    ["API base URL", Boolean(effective.api_base_url)],
+    ["Credentials marked configured", Boolean(effective.credentials_configured)],
+    ["Provider active", Boolean(effective.active)],
+    [isEinvoice ? "Applicable date captured" : "Threshold captured", isEinvoice ? Boolean(effective.applicable_from) : Number(effective.threshold_amount || 0) > 0],
+  ] as Array<[string, boolean]>;
+  const ready = checks.every(([, passed]) => passed);
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">{isEinvoice ? "E-Invoice" : "E-Way Bill"} provider</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <State label={`${kind} settings`} isLoading={query.isLoading} isError={query.isError} />
+        <Badge variant={ready ? "default" : "secondary"}>{ready ? "configured" : "not configured"}</Badge>
+        {["provider_name", "api_base_url", ...(isEinvoice ? ["applicable_from"] : ["threshold_amount"])].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
+        <div className="grid gap-3 sm:grid-cols-2"><label className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"><span>Credentials configured</span><input type="checkbox" checked={Boolean(effective.credentials_configured)} onChange={(event) => setDraft((current) => ({ ...current, credentials_configured: event.target.checked }))} /></label><label className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"><span>Active</span><input type="checkbox" checked={Boolean(effective.active)} onChange={(event) => setDraft((current) => ({ ...current, active: event.target.checked }))} /></label></div>
+        <div className="rounded-lg border p-3">
+          <p className="text-sm font-medium">Provider preflight</p>
+          <div className="mt-3 grid gap-2">
+            {checks.map(([label, passed]) => (
+              <div key={label} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                <span>{label}</span>
+                <Badge variant={passed ? "default" : "secondary"}>{passed ? "Ready" : "Missing"}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Field label="Voucher ID"><Input inputMode="numeric" value={voucherId} onChange={(event) => setVoucherId(event.target.value)} /></Field>
+        <div className="flex flex-wrap gap-2"><Button onClick={() => save.mutate()} disabled={save.isPending}>Save settings</Button><Button variant="outline" onClick={() => generate.mutate()} disabled={generate.isPending || !voucherId}>Generate test job</Button></div>
+        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+        <p className="text-xs text-muted-foreground">No IRN or EWB number is generated unless a real provider is configured. Test jobs return not_configured when credentials are missing.</p>
+      </CardContent>
+    </Card>
+  );
 }
 
 function PurchasesHomeView() {
@@ -794,7 +997,7 @@ function TDSTransactionsView() {
 function TDSPayableView() {
   const query = useQuery({ queryKey: ["fam", "tdsPayable"], queryFn: famApi.tdsPayable });
   const data = (query.data || {}) as FAMRecord;
-  return <div className="space-y-4"><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">TDS payable</p><p className="text-2xl font-semibold">{money(data.total_payable || data.totalPayable)}</p></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Section-wise payable</CardTitle></CardHeader><CardContent><State label="TDS payable" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["section_id", "section_code", "vendor_id", "taxable_amount", "tds_amount", "status"]} /><p className="mt-3 text-xs text-muted-foreground">Filing/export is unsupported unless a future backend endpoint is added.</p></CardContent></Card></div>;
+  return <div className="space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><Card className="sm:min-w-72"><CardContent className="p-4"><p className="text-xs text-muted-foreground">TDS payable</p><p className="text-2xl font-semibold">{money(data.total_payable || data.totalPayable)}</p></CardContent></Card><ExportButton exportType="tds_summary" label="Export TDS summary CSV" /></div><Card><CardHeader><CardTitle className="text-base">Section-wise payable</CardTitle></CardHeader><CardContent><State label="TDS payable" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.items as FAMRecord[] | undefined) || []} columns={["section_id", "section_code", "vendor_id", "taxable_amount", "tds_amount", "status"]} /><p className="mt-3 text-xs text-muted-foreground">TDS filing/challan integration is not implemented in this phase; CSV summary export is available.</p></CardContent></Card></div>;
 }
 
 function PurchaseRegisterView() {

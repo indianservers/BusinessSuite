@@ -18,11 +18,12 @@ export default function GlobalSearch() {
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [focusedIndex, setFocusedIndex] = useState(-1);
-  const enabled = product.key === "hrms" && open && query.trim().length >= 2;
+  const enabled = product.key === "hrms" && open && debouncedQuery.trim().length >= 2;
   const { data } = useQuery({
-    queryKey: ["global-search", query],
-    queryFn: () => reportsApi.globalSearch(query).then((r) => r.data),
+    queryKey: ["global-search", debouncedQuery],
+    queryFn: () => reportsApi.globalSearch(debouncedQuery).then((r) => r.data),
     enabled,
   });
   const staticResults = useMemo<Result[]>(() => {
@@ -116,6 +117,11 @@ export default function GlobalSearch() {
   }, [query]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -168,15 +174,15 @@ export default function GlobalSearch() {
         <Search className="h-4 w-4" />
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 p-4 pt-[12vh]" onClick={() => setOpen(false)}>
-          <div className="mx-auto max-w-2xl rounded-lg border bg-background shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-3 pt-4 sm:p-4 sm:pt-[12vh]" onClick={() => setOpen(false)}>
+          <div className="mx-auto max-h-[calc(100dvh-2rem)] max-w-2xl overflow-hidden rounded-lg border bg-background shadow-2xl sm:max-h-[78vh]" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={submit} className="border-b p-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleSearchKeyDown} placeholder="Search anything..." className="border-0 pl-9 text-base focus-visible:ring-0" />
               </div>
             </form>
-            <div className="max-h-[420px] overflow-y-auto p-2">
+            <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto p-2 sm:max-h-[420px]">
               {results.length ? results.map((item, index) => (
                 <button
                   key={`${item.type}-${item.title}-${index}`}

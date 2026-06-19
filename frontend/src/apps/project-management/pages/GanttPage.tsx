@@ -118,6 +118,7 @@ export default function GanttPage() {
     });
     return map;
   }, [data?.warnings]);
+  const scheduleFocus = useMemo(() => buildScheduleFocus(tasks, dependencies, warningByTask), [tasks, dependencies, warningByTask]);
 
   const createDependency = async () => {
     if (!sourceTaskId || !targetTaskId || sourceTaskId === targetTaskId) return;
@@ -287,15 +288,61 @@ export default function GanttPage() {
                 {warning.message}
               </div>
             ))}
-            <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2 font-medium text-foreground"><ZoomIn className="h-4 w-4" />Critical path placeholder</div>
-              Tasks with dependency conflicts or blocked status are visually emphasized until full critical path calculation is added.
+            <div className="rounded-md border p-3 text-sm">
+              <div className="flex items-center gap-2 font-medium text-foreground"><ZoomIn className="h-4 w-4" />Schedule focus</div>
+              <p className="mt-1 text-xs text-muted-foreground">Prioritized from blocked status, dependency pressure, warnings, and due dates.</p>
+              <div className="mt-3 space-y-2">
+                {scheduleFocus.map((item) => (
+                  <Link key={item.task.id} to={`/pms/tasks/${item.task.id}`} className="block rounded-md border p-2 hover:bg-muted/50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{item.task.task_key} - {item.task.title}</p>
+                        <p className="text-xs text-muted-foreground">{item.reason}</p>
+                      </div>
+                      <Badge className={statusColor(item.task.status)}>{item.task.status}</Badge>
+                    </div>
+                  </Link>
+                ))}
+                {!scheduleFocus.length ? <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">No blocked, warning, or dependency-heavy tasks in the current view.</p> : null}
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
+}
+
+function buildScheduleFocus(tasks: PMSTaskListItem[], dependencies: PMSTaskDependency[], warningByTask: Map<number, string[]>) {
+  const dependencyCount = new Map<number, number>();
+  dependencies.forEach((dependency) => {
+    const sourceId = dependency.source_task_id ?? dependency.depends_on_task_id;
+    const targetId = dependency.target_task_id ?? dependency.task_id;
+    if (sourceId) dependencyCount.set(sourceId, (dependencyCount.get(sourceId) || 0) + 1);
+    if (targetId) dependencyCount.set(targetId, (dependencyCount.get(targetId) || 0) + 1);
+  });
+  const today = startOfDay(new Date()).getTime();
+  return tasks
+    .map((task) => {
+      const warnings = warningByTask.get(task.id) || [];
+      const deps = dependencyCount.get(task.id) || 0;
+      const due = task.due_date ? startOfDay(new Date(task.due_date)).getTime() : Number.POSITIVE_INFINITY;
+      const daysToDue = Number.isFinite(due) ? Math.ceil((due - today) / 86400000) : 999;
+      const blocked = task.status === "Blocked";
+      const overdue = daysToDue < 0 && !["Done", "Cancelled"].includes(task.status);
+      const score = (blocked ? 100 : 0) + (overdue ? 90 : 0) + warnings.length * 30 + deps * 8 + (daysToDue <= 7 ? 10 : 0);
+      const reason = [
+        blocked ? "Blocked" : null,
+        overdue ? `${Math.abs(daysToDue)} day${Math.abs(daysToDue) === 1 ? "" : "s"} overdue` : null,
+        warnings.length ? `${warnings.length} schedule warning${warnings.length === 1 ? "" : "s"}` : null,
+        deps ? `${deps} linked dependenc${deps === 1 ? "y" : "ies"}` : null,
+        !overdue && Number.isFinite(due) ? `Due ${formatDate(task.due_date || null)}` : null,
+      ].filter(Boolean).join(" / ");
+      return { task, score, reason: reason || "On schedule" };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 }
 
 function SelectFilter({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {

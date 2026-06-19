@@ -103,9 +103,11 @@ export default function CompanyPage() {
       const payload = cleanPayload(form);
       return form.id ? companyApi.updateCompany(form.id, payload) : companyApi.createCompany(payload);
     },
-    onSuccess: () => {
-      toast({ title: "Company details saved" });
-      qc.invalidateQueries({ queryKey: ["companies"] });
+    onSuccess: async (res) => {
+      const savedId = res.data?.id;
+      if (savedId) setSelectedId(savedId);
+      await qc.invalidateQueries({ queryKey: ["companies"] });
+      toast({ title: "Company details saved", description: "The company list has been refreshed." });
     },
     onError: (err: any) => toast({ title: "Could not save company", description: apiError(err), variant: "destructive" }),
   });
@@ -121,10 +123,10 @@ export default function CompanyPage() {
       }
       return data.id ? companyApi.updateDesignation(data.id, payload) : companyApi.createDesignation(payload);
     },
-    onSuccess: (_, variables) => {
-      toast({ title: `${titleFor(variables.kind)} saved` });
+    onSuccess: async (_, variables) => {
+      await invalidateOrg();
       resetOrgForm(variables.kind);
-      invalidateOrg();
+      toast({ title: `${titleFor(variables.kind)} saved`, description: "The latest organization data is visible." });
     },
     onError: (err: any) => toast({ title: "Could not save record", description: apiError(err), variant: "destructive" }),
   });
@@ -135,9 +137,9 @@ export default function CompanyPage() {
       if (kind === "department") return companyApi.deleteDepartment(id);
       return companyApi.deleteDesignation(id);
     },
-    onSuccess: (_, variables) => {
-      toast({ title: `${titleFor(variables.kind)} deactivated` });
-      invalidateOrg();
+    onSuccess: async (_, variables) => {
+      await invalidateOrg();
+      toast({ title: `${titleFor(variables.kind)} deactivated`, description: "The organization list has been refreshed." });
     },
     onError: (err: any) => toast({ title: "Could not deactivate record", description: apiError(err), variant: "destructive" }),
   });
@@ -148,9 +150,9 @@ export default function CompanyPage() {
       formData.append("file", file);
       return companyApi.uploadLogo(selectedCompanyId, formData);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["companies"] });
       toast({ title: "Company logo uploaded" });
-      qc.invalidateQueries({ queryKey: ["companies"] });
     },
     onError: (err: any) => toast({ title: "Could not upload logo", description: apiError(err), variant: "destructive" }),
   });
@@ -160,9 +162,11 @@ export default function CompanyPage() {
   const departmentName = (id: number) => (departments.data || []).find((dept: any) => dept.id === id)?.name || "Department";
 
   function invalidateOrg() {
-    qc.invalidateQueries({ queryKey: ["branches"] });
-    qc.invalidateQueries({ queryKey: ["departments"] });
-    qc.invalidateQueries({ queryKey: ["designations"] });
+    return Promise.all([
+      qc.invalidateQueries({ queryKey: ["branches"] }),
+      qc.invalidateQueries({ queryKey: ["departments"] }),
+      qc.invalidateQueries({ queryKey: ["designations"] }),
+    ]);
   }
 
   function resetOrgForm(kind: OrgKind) {

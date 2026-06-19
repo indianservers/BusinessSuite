@@ -8,22 +8,24 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
 }
 
+export function getResolvedTheme(theme: Theme) {
+  if (theme !== "system") return theme;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+export function applyTheme(theme: Theme) {
+  const root = window.document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(getResolvedTheme(theme));
+}
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       theme: "light",
       setTheme: (theme) => {
         set({ theme });
-        const root = window.document.documentElement;
-        root.classList.remove("light", "dark");
-        if (theme === "system") {
-          const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
-          root.classList.add(systemTheme);
-        } else {
-          root.classList.add(theme);
-        }
+        applyTheme(theme);
       },
     }),
     { name: "hrms-theme" }

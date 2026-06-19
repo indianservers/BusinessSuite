@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import {
   WorkIssues,
   teamMembers,
@@ -30,35 +31,41 @@ import {
 
 type PMSOpsMode = "dependencies" | "resources" | "agile" | "financials" | "risk";
 
-const pageMeta: Record<PMSOpsMode, { title: string; description: string; action: string }> = {
+const pageMeta: Record<PMSOpsMode, { title: string; description: string; action: string; actionPath: string }> = {
   dependencies: {
     title: "Dependency Management",
     description: "Blockers, critical path, cross-project dependencies, and delivery impact analysis.",
     action: "Add dependency",
+    actionPath: "/pms/timeline-plus",
   },
   resources: {
     title: "Resource Planning",
     description: "Workload, availability, capacity, skill matching, and over-allocation warnings.",
     action: "Rebalance workload",
+    actionPath: "/pms/workload",
   },
   agile: {
     title: "Agile Execution",
     description: "Backlog grooming, sprint planning, velocity, burndown, and release confidence.",
     action: "Plan sprint",
+    actionPath: "/pms/sprints",
   },
   financials: {
     title: "Project Financials",
     description: "Budget, cost tracking, billable hours, margin, and client billing readiness.",
     action: "Review billing",
+    actionPath: "/pms/reports",
   },
   risk: {
     title: "Risk & Decision Register",
     description: "Risks, assumptions, decisions, issues, mitigation owners, and escalation tracking.",
     action: "Log risk",
+    actionPath: "/pms/risks",
   },
 };
 
 export default function PMSOperationsPage({ mode }: { mode: PMSOpsMode }) {
+  const navigate = useNavigate();
   const meta = pageMeta[mode];
   return (
     <div className="space-y-6">
@@ -67,7 +74,7 @@ export default function PMSOperationsPage({ mode }: { mode: PMSOpsMode }) {
           <h1 className="page-title">{meta.title}</h1>
           <p className="page-description">{meta.description}</p>
         </div>
-        <Button>{meta.action}</Button>
+        <Button onClick={() => navigate(meta.actionPath)}>{meta.action}</Button>
       </div>
 
       {mode === "dependencies" ? <DependencyManagement /> : null}

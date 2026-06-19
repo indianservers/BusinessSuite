@@ -1,4 +1,4 @@
-import { useMemo, useState, type ElementType } from "react";
+import { useMemo, useState, type ElementType, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -11,10 +11,12 @@ import {
   FolderKanban,
   HandCoins,
   Link2,
+  Plus,
   Receipt,
   Search,
   Settings,
   Sparkles,
+  Trash2,
   TrendingUp,
   WalletCards,
 } from "lucide-react";
@@ -151,6 +153,41 @@ function statusTone(status: unknown) {
   if (["pending_approval", "draft", "partially_paid", "queued", "watch"].includes(value)) return "secondary";
   if (["rejected", "cancelled", "overdue", "at_risk", "high"].includes(value)) return "destructive";
   return "outline";
+}
+
+function apiErrorMessage(err: unknown, fallback = "Action failed") {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (err as Error)?.message || fallback;
+}
+
+function numericField(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function amountField(value: string, fallback = 0) {
+  const parsed = numericField(value);
+  return parsed ?? fallback;
+}
+
+type InvoiceLineDraft = {
+  description: string;
+  quantity: string;
+  unit_price: string;
+  tax_amount: string;
+};
+
+function createInvoiceLineDraft(): InvoiceLineDraft {
+  return { description: "", quantity: "1", unit_price: "0", tax_amount: "0" };
+}
+
+function invoiceLineAmount(line: InvoiceLineDraft) {
+  return amountField(line.quantity) * amountField(line.unit_price) + amountField(line.tax_amount);
+}
+
+function compactRecord(record: SRMRecord) {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== "")) as SRMRecord;
 }
 
 function SectionState({ label, isLoading, isError, isEmpty, onRetry }: { label: string; isLoading?: boolean; isError?: boolean; isEmpty?: boolean; onRetry?: () => void }) {
@@ -444,6 +481,306 @@ function ActionMessage({ message }: { message?: string }) {
   return <div className="rounded-lg border bg-muted/40 p-3 text-sm" role="status">{message}</div>;
 }
 
+function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueAction> }) {
+  const [source, setSource] = useState({
+    salesOrderId: "",
+    engagementId: "",
+    billingMilestoneId: "",
+    pmsMilestoneId: "",
+    timesheetEngagementId: "",
+    timeLogIds: "",
+    hourlyRate: "1000",
+    currency: "INR",
+  });
+  const update = (key: keyof typeof source, value: string) => setSource((current) => ({ ...current, [key]: value }));
+  const timeLogIds = source.timeLogIds.split(",").map((value) => Number(value.trim())).filter((value) => Number.isFinite(value) && value > 0);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Generate Invoice From Source</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Sales order ID</span>
+            <Input inputMode="numeric" value={source.salesOrderId} onChange={(event) => update("salesOrderId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Engagement ID</span>
+            <Input inputMode="numeric" value={source.engagementId} onChange={(event) => update("engagementId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Billing milestone ID</span>
+            <Input inputMode="numeric" value={source.billingMilestoneId} onChange={(event) => update("billingMilestoneId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">PMS milestone ID</span>
+            <Input inputMode="numeric" value={source.pmsMilestoneId} onChange={(event) => update("pmsMilestoneId", event.target.value)} />
+          </label>
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Timesheet engagement ID</span>
+            <Input inputMode="numeric" value={source.timesheetEngagementId} onChange={(event) => update("timesheetEngagementId", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm md:col-span-2">
+            <span className="font-medium">Time log IDs</span>
+            <Input placeholder="901, 902, 903" value={source.timeLogIds} onChange={(event) => update("timeLogIds", event.target.value)} />
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Hourly rate</span>
+            <Input inputMode="decimal" value={source.hourlyRate} onChange={(event) => update("hourlyRate", event.target.value)} />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" disabled={action.isPending || !numericField(source.salesOrderId)} onClick={() => action.mutate({ label: "Sales order draft", run: () => srmApi.draftInvoiceFromSalesOrder(Number(source.salesOrderId)) })}>Draft from Sales Order</Button>
+          <Button variant="outline" disabled={action.isPending || !numericField(source.engagementId)} onClick={() => action.mutate({ label: "Engagement draft", run: () => srmApi.draftInvoiceFromEngagement(Number(source.engagementId)) })}>Draft from Engagement</Button>
+          <Button variant="outline" disabled={action.isPending || !numericField(source.billingMilestoneId)} onClick={() => action.mutate({ label: "Billing milestone draft", run: () => srmApi.draftInvoiceFromBillingMilestone(Number(source.billingMilestoneId)) })}>Draft from Billing Milestone</Button>
+          <Button variant="outline" disabled={action.isPending || !numericField(source.pmsMilestoneId)} onClick={() => action.mutate({ label: "PMS milestone draft", run: () => srmApi.draftInvoiceFromPmsMilestone(Number(source.pmsMilestoneId)) })}>Draft from PMS Milestone</Button>
+          <Button
+            variant="outline"
+            disabled={action.isPending || !numericField(source.timesheetEngagementId) || !timeLogIds.length}
+            onClick={() => action.mutate({
+              label: "Timesheet draft",
+              run: () => srmApi.draftInvoiceFromTimesheets({
+                engagement_id: Number(source.timesheetEngagementId),
+                time_log_ids: timeLogIds,
+                hourly_rate: amountField(source.hourlyRate),
+                currency: source.currency,
+              }),
+            })}
+          >
+            Draft from Timesheets
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
+  const [form, setForm] = useState({
+    template: "services",
+    customer_id: "",
+    sales_order_id: "",
+    engagement_id: "",
+    currency: "INR",
+    issue_date: "",
+    due_date: "",
+    terms: "Due on receipt",
+    notes: "",
+  });
+  const [lines, setLines] = useState<InvoiceLineDraft[]>([createInvoiceLineDraft()]);
+  const [message, setMessage] = useState("");
+  const queryClient = useQueryClient();
+  const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const updateLine = (index: number, key: keyof InvoiceLineDraft, value: string) => setLines((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, [key]: value } : line));
+  const preparedLines = lines
+    .filter((line) => line.description.trim())
+    .map((line) => ({
+      description: line.description.trim(),
+      quantity: amountField(line.quantity, 1),
+      unit_price: amountField(line.unit_price),
+      tax_amount: amountField(line.tax_amount),
+      line_total: invoiceLineAmount(line),
+    }));
+  const subtotal = preparedLines.reduce((sum, line) => sum + Number(line.quantity) * Number(line.unit_price), 0);
+  const tax = preparedLines.reduce((sum, line) => sum + Number(line.tax_amount), 0);
+  const total = subtotal + tax;
+  const create = useMutation({
+    mutationFn: () => {
+      if (!numericField(form.customer_id) && !numericField(form.sales_order_id) && !numericField(form.engagement_id)) {
+        throw new Error("Enter a customer, sales order, or engagement ID before generating the invoice.");
+      }
+      if (!preparedLines.length) throw new Error("Add at least one invoice line with a description.");
+      return srmApi.manualInvoice(compactRecord({
+        customer_id: numericField(form.customer_id),
+        sales_order_id: numericField(form.sales_order_id),
+        engagement_id: numericField(form.engagement_id),
+        currency: form.currency,
+        issue_date: form.issue_date,
+        due_date: form.due_date,
+        lines: preparedLines,
+      }));
+    },
+    onSuccess: () => {
+      const text = "Manual invoice created from entered details";
+      setMessage(text);
+      toast({ title: text });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+      onCreated?.();
+    },
+    onError: (err: unknown) => {
+      const text = apiErrorMessage(err, "Invoice creation failed");
+      setMessage(text);
+      toast({ title: "Invoice creation failed", description: text, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Template</span>
+              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.template} onChange={(event) => update("template", event.target.value)}>
+                <option value="services">Services invoice</option>
+                <option value="milestone">Milestone invoice</option>
+                <option value="time_materials">Time and materials</option>
+              </select>
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Customer ID</span>
+              <Input inputMode="numeric" value={form.customer_id} onChange={(event) => update("customer_id", event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Sales order ID</span>
+              <Input inputMode="numeric" value={form.sales_order_id} onChange={(event) => update("sales_order_id", event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Engagement ID</span>
+              <Input inputMode="numeric" value={form.engagement_id} onChange={(event) => update("engagement_id", event.target.value)} />
+            </label>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Currency</span>
+              <Input value={form.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Issue date</span>
+              <Input type="date" value={form.issue_date} onChange={(event) => update("issue_date", event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Due date</span>
+              <Input type="date" value={form.due_date} onChange={(event) => update("due_date", event.target.value)} />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Terms</span>
+              <Input value={form.terms} onChange={(event) => update("terms", event.target.value)} />
+            </label>
+          </div>
+          <div className="space-y-2">
+            {lines.map((line, index) => (
+              <div key={index} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
+                <Input aria-label="Line description" placeholder="Line description" value={line.description} onChange={(event) => updateLine(index, "description", event.target.value)} />
+                <Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(index, "quantity", event.target.value)} />
+                <Input aria-label="Unit price" inputMode="decimal" value={line.unit_price} onChange={(event) => updateLine(index, "unit_price", event.target.value)} />
+                <Input aria-label="Tax amount" inputMode="decimal" value={line.tax_amount} onChange={(event) => updateLine(index, "tax_amount", event.target.value)} />
+                <Button type="button" variant="outline" size="icon" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))} aria-label="Remove invoice line">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" onClick={() => setLines((current) => [...current, createInvoiceLineDraft()])}>
+              <Plus className="h-4 w-4" />Add Line
+            </Button>
+          </div>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium">Notes</span>
+            <textarea className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.notes} onChange={(event) => update("notes", event.target.value)} />
+          </label>
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-sm font-semibold">{form.template.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</p>
+                <p className="text-xs text-muted-foreground">Customer {form.customer_id || "-"} · Sales order {form.sales_order_id || "-"} · Engagement {form.engagement_id || "-"}</p>
+                <p className="text-xs text-muted-foreground">Issue {form.issue_date || "-"} · Due {form.due_date || "-"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs uppercase text-muted-foreground">Preview total</p>
+                <p className="text-2xl font-semibold">{money(total)}</p>
+              </div>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead className="text-left text-xs uppercase text-muted-foreground">
+                  <tr><th className="py-2">Description</th><th>Qty</th><th>Unit</th><th>Tax</th><th className="text-right">Line total</th></tr>
+                </thead>
+                <tbody>
+                  {preparedLines.length ? preparedLines.map((line, index) => (
+                    <tr key={`${line.description}-${index}`} className="border-t">
+                      <td className="py-2">{line.description}</td>
+                      <td>{line.quantity}</td>
+                      <td>{money(line.unit_price)}</td>
+                      <td>{money(line.tax_amount)}</td>
+                      <td className="text-right">{money(line.line_total)}</td>
+                    </tr>
+                  )) : <tr><td colSpan={5} className="py-3 text-center text-muted-foreground">Add line items to preview invoice totals.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-3 grid gap-1 text-sm sm:ml-auto sm:w-72">
+              <div className="flex justify-between"><span>Subtotal</span><span>{money(subtotal)}</span></div>
+              <div className="flex justify-between"><span>Tax</span><span>{money(tax)}</span></div>
+              <div className="flex justify-between font-semibold"><span>Total</span><span>{money(total)}</span></div>
+              <p className="pt-2 text-xs text-muted-foreground">{form.terms}</p>
+              {form.notes ? <p className="text-xs text-muted-foreground">{form.notes}</p> : null}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" disabled={create.isPending}>{create.isPending ? "Creating..." : "Create Invoice"}</Button>
+            <ActionMessage message={message} />
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InvoiceLineEditor({ invoiceId, onSaved }: { invoiceId: number; onSaved?: () => void }) {
+  const [line, setLine] = useState<InvoiceLineDraft>(createInvoiceLineDraft());
+  const [message, setMessage] = useState("");
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: () => {
+      if (!invoiceId) throw new Error("Select an invoice before adding a line.");
+      if (!line.description.trim()) throw new Error("Line description is required.");
+      return srmApi.addInvoiceLine(invoiceId, {
+        description: line.description.trim(),
+        quantity: amountField(line.quantity, 1),
+        unit_price: amountField(line.unit_price),
+        tax_amount: amountField(line.tax_amount),
+        line_total: invoiceLineAmount(line),
+      });
+    },
+    onSuccess: () => {
+      const text = "Invoice line added";
+      setMessage(text);
+      toast({ title: text });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+      setLine(createInvoiceLineDraft());
+      onSaved?.();
+    },
+    onError: (err: unknown) => {
+      const text = apiErrorMessage(err, "Unable to add invoice line");
+      setMessage(text);
+      toast({ title: "Invoice line failed", description: text, variant: "destructive" });
+    },
+  });
+
+  return (
+    <form className="space-y-3 rounded-lg border p-3" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
+      <div className="grid gap-2 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
+        <Input placeholder="Line description" value={line.description} onChange={(event) => setLine((current) => ({ ...current, description: event.target.value }))} />
+        <Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => setLine((current) => ({ ...current, quantity: event.target.value }))} />
+        <Input aria-label="Unit price" inputMode="decimal" value={line.unit_price} onChange={(event) => setLine((current) => ({ ...current, unit_price: event.target.value }))} />
+        <Input aria-label="Tax amount" inputMode="decimal" value={line.tax_amount} onChange={(event) => setLine((current) => ({ ...current, tax_amount: event.target.value }))} />
+        <Button type="submit" disabled={save.isPending || !invoiceId}>{save.isPending ? "Adding..." : "Add Line"}</Button>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+        <span className="text-muted-foreground">Line preview total: {money(invoiceLineAmount(line))}</span>
+        <ActionMessage message={message} />
+      </div>
+    </form>
+  );
+}
+
 function InvoiceDraftsView() {
   const canManage = useCanManageRevenue();
   const query = useQuery({ queryKey: ["srm", "invoiceDrafts"], queryFn: srmApi.invoiceDrafts });
@@ -454,19 +791,10 @@ function InvoiceDraftsView() {
       <PageHeader meta={viewMeta.invoiceDrafts} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       <ActionMessage message={!canManage ? "Read-only revenue access: create, approve, send, and allocation actions are hidden for this role." : action.message} />
       {canManage ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Generate Invoice Drafts</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <Button variant="outline" onClick={() => action.mutate({ label: "Sales order draft", run: () => srmApi.draftInvoiceFromSalesOrder(1) })}>Draft from Sales Order</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Engagement draft", run: () => srmApi.draftInvoiceFromEngagement(2) })}>Draft from Engagement</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Billing milestone draft", run: () => srmApi.draftInvoiceFromBillingMilestone(1) })}>Draft from Billing Milestone</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "PMS milestone draft", run: () => srmApi.draftInvoiceFromPmsMilestone(301) })}>Draft from PMS Milestone</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Timesheet draft", run: () => srmApi.draftInvoiceFromTimesheets({ engagement_id: 2, time_log_ids: [901], hourly_rate: 1000, currency: "INR" }) })}>Draft from Timesheets</Button>
-            <Button onClick={() => action.mutate({ label: "Manual invoice draft", run: () => srmApi.manualInvoice({ customer_id: 10, currency: "INR", lines: [{ description: "Manual revenue line", quantity: 1, unit_price: 25000, tax_amount: 4500 }] }) })}>Create Manual Invoice</Button>
-          </CardContent>
-        </Card>
+        <>
+          <SourceDraftControls action={action} />
+          <ManualInvoiceComposer onCreated={() => query.refetch()} />
+        </>
       ) : null}
       <div className="grid gap-4 xl:grid-cols-2">
         <RecordList title="Invoice Drafts" records={records} primaryKey="source_type" secondaryKey="status" amountKey="total_amount" />
@@ -489,6 +817,7 @@ function InvoicesView() {
     <div className="space-y-5">
       <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); detail.refetch(); }} />
       <ActionMessage message={!canManage ? "Read-only revenue access: invoice approval, send/export, and line edits are hidden for this role." : action.message} />
+      {canManage ? <ManualInvoiceComposer onCreated={() => { list.refetch(); detail.refetch(); }} /> : null}
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Invoice Number" value={invoice.invoice_number} />
         <MetricCard label="Total Amount" value={money(invoice.total_amount)} />
@@ -509,11 +838,13 @@ function InvoicesView() {
           <CardHeader>
             <CardTitle className="text-base">Invoice Actions</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => action.mutate({ label: "Invoice approval", run: () => srmApi.approveInvoice(invoiceId) })}>Approve Invoice</Button>
-            <Button onClick={() => action.mutate({ label: "Invoice send/export", run: () => srmApi.sendInvoice(invoiceId) })}>Send / Export Invoice</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Invoice line", run: () => srmApi.addInvoiceLine(invoiceId, { description: "Additional line", quantity: 1, unit_price: 5000, tax_amount: 900 }) })}>Add Invoice Line</Button>
-            <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled={action.isPending || !invoiceId} onClick={() => action.mutate({ label: "Invoice approval", run: () => srmApi.approveInvoice(invoiceId) })}>Approve Invoice</Button>
+              <Button disabled={action.isPending || !invoiceId} onClick={() => action.mutate({ label: "Invoice send/export", run: () => srmApi.sendInvoice(invoiceId) })}>Send / Export Invoice</Button>
+              <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button>
+            </div>
+            <InvoiceLineEditor invoiceId={invoiceId} onSaved={() => detail.refetch()} />
           </CardContent>
         </Card>
       ) : (
@@ -650,6 +981,44 @@ function previewRows(value: unknown): SRMRecord[] {
   return [];
 }
 
+function reportRows(value: unknown): SRMRecord[] {
+  if (Array.isArray(value)) return value as SRMRecord[];
+  if (value && typeof value === "object") {
+    const record = value as SRMRecord;
+    const nested = Object.values(record).find(Array.isArray);
+    if (Array.isArray(nested)) return nested as SRMRecord[];
+    return [record];
+  }
+  return [];
+}
+
+function exportReportCsv(title: string, rows: SRMRecord[]) {
+  if (!rows.length) return false;
+  const columns = Array.from(rows.reduce((set, row) => {
+    Object.keys(row).forEach((key) => set.add(key));
+    return set;
+  }, new Set<string>()));
+  const csv = [
+    columns.map(csvCell).join(","),
+    ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "srm-report"}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+function csvCell(value: unknown) {
+  const text = value === null || value === undefined ? "" : typeof value === "object" ? JSON.stringify(value) : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 function ReportsView() {
   const query = useQuery({ queryKey: ["srm", "reports"], queryFn: srmApi.reports });
   const [selected, setSelected] = useState(reportDefinitions[0].key);
@@ -657,6 +1026,15 @@ function ReportsView() {
   const data = (query.data || {}) as SRMRecord;
   const selectedDefinition = reportDefinitions.find((item) => item.key === selected) || reportDefinitions[0];
   const rows = previewRows(data[selectedDefinition.key]);
+  const exportRows = reportRows(data[selectedDefinition.key]);
+  const exportSelected = (report = selectedDefinition) => {
+    const availableRows = reportRows(data[report.key]);
+    if (exportReportCsv(report.title, availableRows)) {
+      setMessage(`${report.title} CSV exported with ${availableRows.length} row${availableRows.length === 1 ? "" : "s"}.`);
+    } else {
+      setMessage(`${report.title} has no rows available to export.`);
+    }
+  };
   return (
     <div className="space-y-5">
       <PageHeader meta={viewMeta.reports} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
@@ -675,7 +1053,7 @@ function ReportsView() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => { setSelected(report.key); setMessage(`${report.title} preview loaded`); }}>View details</Button>
-                  <Button size="sm" variant="secondary" onClick={() => setMessage(`${report.title} export is not yet supported by the current SRM API.`)}>Export</Button>
+                  <Button size="sm" variant="secondary" disabled={query.isLoading} onClick={() => exportSelected(report)}>Export</Button>
                 </div>
               </CardContent>
             </Card>
@@ -716,7 +1094,10 @@ function ReportsView() {
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-muted-foreground">Export is shown as a future enhancement unless a backend export endpoint is added.</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{exportRows.length ? `${exportRows.length} row${exportRows.length === 1 ? "" : "s"} available for CSV export.` : "No rows available for CSV export."}</span>
+              <Button size="sm" variant="outline" disabled={query.isLoading || !exportRows.length} onClick={() => exportSelected()}>Export CSV</Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -821,8 +1202,233 @@ function SettingsView() {
   );
 }
 
+function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState("");
+  const [salesOrder, setSalesOrder] = useState({
+    title: "",
+    customer_id: "",
+    currency: "INR",
+    expected_start_date: "",
+    expected_end_date: "",
+    terms: "",
+    line_description: "",
+    quantity: "1",
+    unit_price: "0",
+    tax_amount: "0",
+  });
+  const [contract, setContract] = useState({
+    title: "",
+    sales_order_id: "",
+    customer_id: "",
+    contract_type: "services",
+    effective_date: "",
+    expiry_date: "",
+    contract_value: "0",
+    currency: "INR",
+    terms: "",
+  });
+  const [engagement, setEngagement] = useState({
+    name: "",
+    sales_order_id: "",
+    contract_id: "",
+    customer_id: "",
+    billing_type: "fixed_fee",
+    budget_amount: "0",
+    currency: "INR",
+    planned_start_date: "",
+    planned_end_date: "",
+  });
+  const [billingPlan, setBillingPlan] = useState({
+    engagement_id: "",
+    name: "",
+    billing_type: "fixed_fee",
+    currency: "INR",
+    total_amount: "0",
+    recurrence_rule: "",
+    milestone_name: "",
+    milestone_due_date: "",
+    milestone_amount: "0",
+  });
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (kind === "salesOrders") {
+        if (!salesOrder.title.trim()) throw new Error("Sales order title is required.");
+        const quantity = amountField(salesOrder.quantity, 1);
+        const unitPrice = amountField(salesOrder.unit_price);
+        const taxAmount = amountField(salesOrder.tax_amount);
+        const subtotal = quantity * unitPrice;
+        return srmApi.createSalesOrder(compactRecord({
+          title: salesOrder.title.trim(),
+          customer_id: numericField(salesOrder.customer_id),
+          currency: salesOrder.currency,
+          subtotal,
+          tax_amount: taxAmount,
+          total_amount: subtotal + taxAmount,
+          expected_start_date: salesOrder.expected_start_date,
+          expected_end_date: salesOrder.expected_end_date,
+          terms: salesOrder.terms,
+          lines: salesOrder.line_description.trim() ? [{
+            description: salesOrder.line_description.trim(),
+            quantity,
+            unit_price: unitPrice,
+            tax_amount: taxAmount,
+            line_total: subtotal + taxAmount,
+          }] : [],
+        }));
+      }
+      if (kind === "contracts") {
+        if (!contract.title.trim()) throw new Error("Contract title is required.");
+        return srmApi.createContract(compactRecord({
+          title: contract.title.trim(),
+          sales_order_id: numericField(contract.sales_order_id),
+          customer_id: numericField(contract.customer_id),
+          contract_type: contract.contract_type,
+          effective_date: contract.effective_date,
+          expiry_date: contract.expiry_date,
+          contract_value: amountField(contract.contract_value),
+          currency: contract.currency,
+          terms: contract.terms,
+        }));
+      }
+      if (kind === "engagements") {
+        if (!engagement.name.trim()) throw new Error("Engagement name is required.");
+        return srmApi.createEngagement(compactRecord({
+          name: engagement.name.trim(),
+          sales_order_id: numericField(engagement.sales_order_id),
+          contract_id: numericField(engagement.contract_id),
+          customer_id: numericField(engagement.customer_id),
+          billing_type: engagement.billing_type,
+          budget_amount: amountField(engagement.budget_amount),
+          currency: engagement.currency,
+          planned_start_date: engagement.planned_start_date,
+          planned_end_date: engagement.planned_end_date,
+        }));
+      }
+      if (kind === "billingPlans") {
+        if (!numericField(billingPlan.engagement_id)) throw new Error("Engagement ID is required for a billing plan.");
+        if (!billingPlan.name.trim()) throw new Error("Billing plan name is required.");
+        return srmApi.createBillingPlan(compactRecord({
+          engagement_id: Number(billingPlan.engagement_id),
+          name: billingPlan.name.trim(),
+          billing_type: billingPlan.billing_type,
+          currency: billingPlan.currency,
+          total_amount: amountField(billingPlan.total_amount),
+          recurrence_rule: billingPlan.recurrence_rule,
+          milestones: billingPlan.milestone_name.trim() ? [{
+            name: billingPlan.milestone_name.trim(),
+            due_date: billingPlan.milestone_due_date || undefined,
+            amount: amountField(billingPlan.milestone_amount),
+          }] : [],
+        }));
+      }
+      throw new Error("Create form is not available for this SRM view.");
+    },
+    onSuccess: () => {
+      const text = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
+      setMessage(text);
+      toast({ title: text });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+      onSaved?.();
+    },
+    onError: (err: unknown) => {
+      const text = apiErrorMessage(err, "Create failed");
+      setMessage(text);
+      toast({ title: "SRM create failed", description: text, variant: "destructive" });
+    },
+  });
+
+  if (!["salesOrders", "contracts", "engagements", "billingPlans"].includes(kind)) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Create {viewMeta[kind].title.slice(0, -1)}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
+          {kind === "salesOrders" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Title</span><Input value={salesOrder.title} onChange={(event) => setSalesOrder((current) => ({ ...current, title: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={salesOrder.customer_id} onChange={(event) => setSalesOrder((current) => ({ ...current, customer_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><Input value={salesOrder.currency} onChange={(event) => setSalesOrder((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Line item</span><Input value={salesOrder.line_description} onChange={(event) => setSalesOrder((current) => ({ ...current, line_description: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Qty</span><Input inputMode="decimal" value={salesOrder.quantity} onChange={(event) => setSalesOrder((current) => ({ ...current, quantity: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Unit price</span><Input inputMode="decimal" value={salesOrder.unit_price} onChange={(event) => setSalesOrder((current) => ({ ...current, unit_price: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Tax</span><Input inputMode="decimal" value={salesOrder.tax_amount} onChange={(event) => setSalesOrder((current) => ({ ...current, tax_amount: event.target.value }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="space-y-2 text-sm"><span className="font-medium">Start date</span><Input type="date" value={salesOrder.expected_start_date} onChange={(event) => setSalesOrder((current) => ({ ...current, expected_start_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">End date</span><Input type="date" value={salesOrder.expected_end_date} onChange={(event) => setSalesOrder((current) => ({ ...current, expected_end_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Terms</span><Input value={salesOrder.terms} onChange={(event) => setSalesOrder((current) => ({ ...current, terms: event.target.value }))} /></label>
+              </div>
+            </>
+          ) : null}
+          {kind === "contracts" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Title</span><Input value={contract.title} onChange={(event) => setContract((current) => ({ ...current, title: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Sales order ID</span><Input inputMode="numeric" value={contract.sales_order_id} onChange={(event) => setContract((current) => ({ ...current, sales_order_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={contract.customer_id} onChange={(event) => setContract((current) => ({ ...current, customer_id: event.target.value }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="space-y-2 text-sm"><span className="font-medium">Type</span><Input value={contract.contract_type} onChange={(event) => setContract((current) => ({ ...current, contract_type: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Effective</span><Input type="date" value={contract.effective_date} onChange={(event) => setContract((current) => ({ ...current, effective_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Expiry</span><Input type="date" value={contract.expiry_date} onChange={(event) => setContract((current) => ({ ...current, expiry_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Value</span><Input inputMode="decimal" value={contract.contract_value} onChange={(event) => setContract((current) => ({ ...current, contract_value: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><Input value={contract.currency} onChange={(event) => setContract((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} /></label>
+              </div>
+              <label className="space-y-2 text-sm"><span className="font-medium">Terms</span><Input value={contract.terms} onChange={(event) => setContract((current) => ({ ...current, terms: event.target.value }))} /></label>
+            </>
+          ) : null}
+          {kind === "engagements" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Name</span><Input value={engagement.name} onChange={(event) => setEngagement((current) => ({ ...current, name: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Sales order ID</span><Input inputMode="numeric" value={engagement.sales_order_id} onChange={(event) => setEngagement((current) => ({ ...current, sales_order_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Contract ID</span><Input inputMode="numeric" value={engagement.contract_id} onChange={(event) => setEngagement((current) => ({ ...current, contract_id: event.target.value }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={engagement.customer_id} onChange={(event) => setEngagement((current) => ({ ...current, customer_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Billing type</span><Input value={engagement.billing_type} onChange={(event) => setEngagement((current) => ({ ...current, billing_type: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Budget</span><Input inputMode="decimal" value={engagement.budget_amount} onChange={(event) => setEngagement((current) => ({ ...current, budget_amount: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Start</span><Input type="date" value={engagement.planned_start_date} onChange={(event) => setEngagement((current) => ({ ...current, planned_start_date: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">End</span><Input type="date" value={engagement.planned_end_date} onChange={(event) => setEngagement((current) => ({ ...current, planned_end_date: event.target.value }))} /></label>
+              </div>
+            </>
+          ) : null}
+          {kind === "billingPlans" ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="space-y-2 text-sm"><span className="font-medium">Engagement ID</span><Input inputMode="numeric" value={billingPlan.engagement_id} onChange={(event) => setBillingPlan((current) => ({ ...current, engagement_id: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Plan name</span><Input value={billingPlan.name} onChange={(event) => setBillingPlan((current) => ({ ...current, name: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Billing type</span><Input value={billingPlan.billing_type} onChange={(event) => setBillingPlan((current) => ({ ...current, billing_type: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Total</span><Input inputMode="decimal" value={billingPlan.total_amount} onChange={(event) => setBillingPlan((current) => ({ ...current, total_amount: event.target.value }))} /></label>
+              </div>
+              <div className="grid gap-3 md:grid-cols-4">
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><Input value={billingPlan.currency} onChange={(event) => setBillingPlan((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Recurrence</span><Input placeholder="monthly, quarterly" value={billingPlan.recurrence_rule} onChange={(event) => setBillingPlan((current) => ({ ...current, recurrence_rule: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Milestone</span><Input value={billingPlan.milestone_name} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_name: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Milestone amount</span><Input inputMode="decimal" value={billingPlan.milestone_amount} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_amount: event.target.value }))} /></label>
+              </div>
+            </>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Saving..." : `Create ${viewMeta[kind].title.slice(0, -1)}`}</Button>
+            <ActionMessage message={message} />
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta }) {
   const queryClient = useQueryClient();
+  const canManage = useCanManageRevenue();
   const query = useQuery({
     queryKey: ["srm", kind],
     queryFn: () => srmApi[meta.endpoint as SRMQueryEndpoint](),
@@ -848,7 +1454,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
       toast({ title: "SRM updated" });
     },
     onError: (err: unknown) => {
-      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Action failed";
+      const message = apiErrorMessage(err);
       toast({ title: "SRM action failed", description: message, variant: "destructive" });
     },
   });
@@ -856,6 +1462,8 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
   return (
     <div className="space-y-5">
       <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <ActionMessage message={!canManage ? "Read-only revenue access: create and workflow actions are hidden for this role." : undefined} />
+      {canManage ? <CommercialCreateCard kind={kind} onSaved={() => query.refetch()} /> : null}
       <SectionState label={meta.title} isError={query.isError} onRetry={() => query.refetch()} />
       {!query.isError ? (
         <Card>
@@ -890,18 +1498,18 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                         <td className="px-4 py-3">{formatValue(record.updated_at || record.created_at || record.snapshot_at)}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
-                            {kind === "salesOrders" && id ? (
+                            {canManage && kind === "salesOrders" && id ? (
                               <>
-                                <Button size="sm" variant="outline" onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</Button>
-                                <Button size="sm" variant="outline" onClick={() => action.mutate({ name: "confirmSalesOrder", id })}>Confirm</Button>
-                                <Button size="sm" onClick={() => action.mutate({ name: "draftInvoiceFromSalesOrder", id })}>Draft</Button>
+                                <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</Button>
+                                <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "confirmSalesOrder", id })}>Confirm</Button>
+                                <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "draftInvoiceFromSalesOrder", id })}>Draft</Button>
                               </>
                             ) : null}
-                            {kind === "engagements" && id ? <Button size="sm" onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</Button> : null}
-                            {kind === "invoices" && id ? (
+                            {canManage && kind === "engagements" && id ? <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</Button> : null}
+                            {canManage && kind === "invoices" && id ? (
                               <>
-                                <Button size="sm" variant="outline" onClick={() => action.mutate({ name: "approveInvoice", id })}>Approve</Button>
-                                <Button size="sm" onClick={() => action.mutate({ name: "sendInvoice", id })}>Send</Button>
+                                <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "approveInvoice", id })}>Approve</Button>
+                                <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "sendInvoice", id })}>Send</Button>
                               </>
                             ) : null}
                           </div>
