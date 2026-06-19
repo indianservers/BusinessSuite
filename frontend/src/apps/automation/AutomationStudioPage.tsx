@@ -35,6 +35,11 @@ function parseJson(value: string, fallback: unknown) {
   }
 }
 
+function actionError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Action failed. Please try again.";
+}
+
 export default function AutomationStudioPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -90,18 +95,21 @@ function QueryState({ isLoading, isError, onRetry }: { isLoading: boolean; isErr
   return null;
 }
 
-function RecordList({ items, empty }: { items?: AutomationRecord[]; empty: string }) {
+function RecordList({ items, empty, actions }: { items?: AutomationRecord[]; empty: string; actions?: (item: AutomationRecord) => React.ReactNode }) {
   if (!items?.length) return <div className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">{empty}</div>;
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {items.map((item) => (
         <Card key={String(item.id)}>
-          <CardContent className="flex items-start justify-between gap-3 p-4">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-start justify-between gap-3">
             <div>
               <p className="font-medium">{String(item.name || item.module_name || item.record_type || `Record ${item.id}`)}</p>
               <p className="mt-1 text-xs text-muted-foreground">{String(item.module_name || "automation")} / {String(item.record_type || item.trigger_type || item.status || "configured")}</p>
             </div>
             <Badge variant="outline">{String(item.status || (item.is_active ? "active" : "draft"))}</Badge>
+            </div>
+            {actions ? <div className="flex flex-wrap gap-2">{actions(item)}</div> : null}
           </CardContent>
         </Card>
       ))}
@@ -135,6 +143,11 @@ function WorkflowSection() {
     mutationFn: () => automationApi.testWorkflow(Number(first?.id), { record: { discount_percent: 20 }, record_id: 1001, depth: 0 }),
     onSuccess: () => { toast({ title: "Workflow test logged" }); refresh(); },
   });
+  const stateChange = useMutation({
+    mutationFn: ({ id, active }: { id: number; active: boolean }) => active ? automationApi.activateWorkflow(id) : automationApi.deactivateWorkflow(id),
+    onSuccess: () => { toast({ title: "Workflow status updated" }); refresh(); },
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
   return (
     <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
       <Card>
@@ -149,7 +162,19 @@ function WorkflowSection() {
       <div className="space-y-4">
         <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Workflow Registry</h2><Button variant="outline" size="sm" disabled={!first || run.isPending} onClick={() => run.mutate()}><Play className="h-4 w-4" />Test First</Button></div>
         <QueryState isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
-        <RecordList items={query.data?.items} empty="No workflows configured yet." />
+        <RecordList
+          items={query.data?.items}
+          empty="No workflows configured yet."
+          actions={(item) => {
+            const id = Number(item.id || 0);
+            return (
+              <>
+                <Button size="sm" variant="outline" disabled={!id || stateChange.isPending} onClick={() => stateChange.mutate({ id, active: !item.is_active })}>{item.is_active ? "Deactivate" : "Activate"}</Button>
+                <Button size="sm" variant="outline" disabled={!id || run.isPending} onClick={() => automationApi.testWorkflow(id, { record: { discount_percent: 20 }, record_id: 1001, depth: 0 }).then(() => { toast({ title: "Workflow test logged" }); refresh(); }).catch((error) => toast({ title: actionError(error), variant: "destructive" }))}>Test</Button>
+              </>
+            );
+          }}
+        />
       </div>
     </div>
   );
@@ -169,7 +194,12 @@ function BlueprintSection() {
     }),
     onSuccess: () => { toast({ title: "Blueprint saved" }); refresh(); },
   });
-  return <SimpleSection title="Blueprints" description="Allowed stage transitions with required-field and approval gates." button="Create Blueprint" onAction={() => create.mutate()} query={query} empty="No blueprints configured yet." />;
+  const test = useMutation({
+    mutationFn: (id: number) => automationApi.validateTransition(id, { from_stage_key: "qualified", to_stage_key: "proposal", record: { amount: 50000 } }),
+    onSuccess: () => toast({ title: "Transition validated" }),
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
+  return <SimpleSection title="Blueprints" description="Allowed stage transitions with required-field and approval gates." button="Create Blueprint" onAction={() => create.mutate()} query={query} empty="No blueprints configured yet." actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || test.isPending} onClick={() => test.mutate(Number(item.id))}>Validate Transition</Button>} />;
 }
 
 function ApprovalSection() {
@@ -180,7 +210,35 @@ function ApprovalSection() {
     mutationFn: () => automationApi.createApproval({ module_name: "crm", record_type: "quote", record_id: 501, payload_json: { discount_percent: 20 } }),
     onSuccess: () => { toast({ title: "Approval request created" }); refresh(); },
   });
-  return <SimpleSection title="Approvals" description="Approval queue for quote discount, margin, sales order, and write-off compatible flows." button="Create Request" onAction={() => create.mutate()} query={query} empty="No approval requests found." />;
+  const action = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: "submit" | "approve" | "reject" }) => {
+      if (name === "submit") return automationApi.submitApproval(id);
+      if (name === "approve") return automationApi.approveApproval(id);
+      return automationApi.rejectApproval(id, "Rejected from Automation Studio");
+    },
+    onSuccess: () => { toast({ title: "Approval updated" }); refresh(); },
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
+  return (
+    <SimpleSection
+      title="Approvals"
+      description="Approval queue for quote discount, margin, sales order, and write-off compatible flows."
+      button="Create Request"
+      onAction={() => create.mutate()}
+      query={query}
+      empty="No approval requests found."
+      actions={(item) => {
+        const id = Number(item.id || 0);
+        return (
+          <>
+            <Button size="sm" variant="outline" disabled={!id || action.isPending} onClick={() => action.mutate({ id, name: "submit" })}>Submit</Button>
+            <Button size="sm" variant="outline" disabled={!id || action.isPending} onClick={() => action.mutate({ id, name: "approve" })}>Approve</Button>
+            <Button size="sm" variant="outline" disabled={!id || action.isPending} onClick={() => action.mutate({ id, name: "reject" })}>Reject</Button>
+          </>
+        );
+      }}
+    />
+  );
 }
 
 function AssignmentSection() {
@@ -191,7 +249,12 @@ function AssignmentSection() {
     mutationFn: () => automationApi.createAssignmentRule({ name: "Enterprise source assignment", module_name: "crm", record_type: "lead", condition_json: [{ field: "source", operator: "equals", value: "website" }], assignment_json: { owner_strategy: "territory" } }),
     onSuccess: () => { toast({ title: "Assignment rule saved" }); refresh(); },
   });
-  return <SimpleSection title="Assignment Rules" description="Territory, source, and owner assignment tests for incoming records." button="Create Rule" onAction={() => create.mutate()} query={query} empty="No assignment rules configured yet." />;
+  const test = useMutation({
+    mutationFn: (id: number) => automationApi.testAssignmentRule(id, { record: { source: "website", region: "west" } }),
+    onSuccess: () => toast({ title: "Assignment tested" }),
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
+  return <SimpleSection title="Assignment Rules" description="Territory, source, and owner assignment tests for incoming records." button="Create Rule" onAction={() => create.mutate()} query={query} empty="No assignment rules configured yet." actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || test.isPending} onClick={() => test.mutate(Number(item.id))}>Test Rule</Button>} />;
 }
 
 function CadenceSection() {
@@ -202,7 +265,35 @@ function CadenceSection() {
     mutationFn: () => automationApi.createCadence({ name: "New lead nurture", module_name: "crm", target_type: "lead", stop_rules_json: { stop_on: ["won", "lost", "converted"] }, steps: [{ step_type: "email", delay_hours: 2, payload_json: { template_id: "intro" } }, { step_type: "task", delay_hours: 24, payload_json: { title: "Follow up" } }] }),
     onSuccess: () => { toast({ title: "Cadence saved" }); refresh(); },
   });
-  return <SimpleSection title="Cadences" description="Task, email, and WhatsApp-placeholder steps with enroll, pause, and resume support." button="Create Cadence" onAction={() => create.mutate()} query={query} empty="No cadences configured yet." />;
+  const action = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: "enroll" | "pause" | "resume" }) => {
+      if (name === "enroll") return automationApi.enrollCadence(id, { record_type: "lead", record_id: 1 });
+      if (name === "pause") return automationApi.pauseCadence(id);
+      return automationApi.resumeCadence(id);
+    },
+    onSuccess: () => { toast({ title: "Cadence updated" }); refresh(); },
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
+  return (
+    <SimpleSection
+      title="Cadences"
+      description="Task, email, and WhatsApp-placeholder steps with enroll, pause, and resume support."
+      button="Create Cadence"
+      onAction={() => create.mutate()}
+      query={query}
+      empty="No cadences configured yet."
+      actions={(item) => {
+        const id = Number(item.id || 0);
+        return (
+          <>
+            <Button size="sm" variant="outline" disabled={!id || action.isPending} onClick={() => action.mutate({ id, name: "enroll" })}>Enroll Lead</Button>
+            <Button size="sm" variant="outline" disabled={!id || action.isPending} onClick={() => action.mutate({ id, name: "pause" })}>Pause</Button>
+            <Button size="sm" variant="outline" disabled={!id || action.isPending} onClick={() => action.mutate({ id, name: "resume" })}>Resume</Button>
+          </>
+        );
+      }}
+    />
+  );
 }
 
 function WebhookSection() {
@@ -213,15 +304,27 @@ function WebhookSection() {
     mutationFn: () => automationApi.createWebhook({ name: "Revenue operations hook", target_url: "https://example.com/hooks/revenue", event_types_json: ["quote.approved", "deal.won"] }),
     onSuccess: () => { toast({ title: "Webhook saved" }); refresh(); },
   });
-  return <SimpleSection title="Webhooks" description="Webhook endpoints are configured records; workflow actions cannot inject arbitrary URLs." button="Create Webhook" onAction={() => create.mutate()} query={query} empty="No webhook endpoints configured yet." />;
+  const test = useMutation({
+    mutationFn: (id: number) => automationApi.testWebhook(id, { event_type: "deal.won", payload: { id: 1001, amount: 50000 } }),
+    onSuccess: () => { toast({ title: "Webhook test logged" }); refresh(); },
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
+  return <SimpleSection title="Webhooks" description="Webhook endpoints are configured records; workflow actions cannot inject arbitrary URLs." button="Create Webhook" onAction={() => create.mutate()} query={query} empty="No webhook endpoints configured yet." actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || test.isPending} onClick={() => test.mutate(Number(item.id))}>Test Webhook</Button>} />;
 }
 
 function LogSection() {
+  const { toast } = useToast();
+  const refresh = useRefresh(["automation-logs"]);
   const query = useQuery({ queryKey: ["automation-logs"], queryFn: automationApi.logs });
-  return <SimpleSection title="Execution Logs" description="All workflow tests, failures, retries, webhook tests, and guarded action outcomes." query={query} empty="No execution logs found." />;
+  const retry = useMutation({
+    mutationFn: (id: number) => automationApi.retryLog(id),
+    onSuccess: () => { toast({ title: "Retry logged" }); refresh(); },
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
+  });
+  return <SimpleSection title="Execution Logs" description="All workflow tests, failures, retries, webhook tests, and guarded action outcomes." query={query} empty="No execution logs found." actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || retry.isPending} onClick={() => retry.mutate(Number(item.id))}>Retry</Button>} />;
 }
 
-function SimpleSection({ title, description, button, onAction, query, empty }: { title: string; description: string; button?: string; onAction?: () => void; query: ReturnType<typeof useQuery<{ items: AutomationRecord[]; total: number }>>; empty: string }) {
+function SimpleSection({ title, description, button, onAction, query, empty, actions }: { title: string; description: string; button?: string; onAction?: () => void; query: ReturnType<typeof useQuery<{ items: AutomationRecord[]; total: number }>>; empty: string; actions?: (item: AutomationRecord) => React.ReactNode }) {
   const items = useMemo(() => query.data?.items || [], [query.data]);
   return (
     <div className="space-y-4">
@@ -230,7 +333,7 @@ function SimpleSection({ title, description, button, onAction, query, empty }: {
         {button ? <Button onClick={onAction}><CheckCircle2 className="h-4 w-4" />{button}</Button> : null}
       </div>
       <QueryState isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
-      <RecordList items={items} empty={empty} />
+      <RecordList items={items} empty={empty} actions={actions} />
     </div>
   );
 }

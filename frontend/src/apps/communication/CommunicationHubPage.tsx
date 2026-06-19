@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
-type SectionKey = "hub" | "templates" | "emails" | "webforms" | "campaigns" | "consents" | "whatsapp" | "delivery-logs" | "timeline";
+type SectionKey = "hub" | "templates" | "emails" | "webforms" | "campaigns" | "consents" | "whatsapp" | "auto-responses" | "delivery-logs" | "timeline";
 
 const sections: Array<{ key: SectionKey; label: string; path: string; icon: typeof Mail }> = [
   { key: "hub", label: "Hub", path: "/crm/communication-hub", icon: TableProperties },
@@ -19,7 +19,9 @@ const sections: Array<{ key: SectionKey; label: string; path: string; icon: type
   { key: "campaigns", label: "Campaigns", path: "/crm/campaigns", icon: Megaphone },
   { key: "consents", label: "Consent", path: "/crm/consents", icon: ShieldCheck },
   { key: "whatsapp", label: "WhatsApp", path: "/crm/whatsapp", icon: MessageCircle },
+  { key: "auto-responses", label: "Auto Responses", path: "/crm/auto-responses", icon: Send },
   { key: "delivery-logs", label: "Logs", path: "/crm/delivery-logs", icon: ScrollText },
+  { key: "timeline", label: "Timeline", path: "/crm/communication-timeline", icon: TableProperties },
 ];
 
 function activeSection(pathname: string): SectionKey {
@@ -29,8 +31,15 @@ function activeSection(pathname: string): SectionKey {
   if (pathname.includes("/campaigns")) return "campaigns";
   if (pathname.includes("/consents")) return "consents";
   if (pathname.includes("/whatsapp")) return "whatsapp";
+  if (pathname.includes("/auto-responses")) return "auto-responses";
   if (pathname.includes("/delivery-logs")) return "delivery-logs";
+  if (pathname.includes("/communication-timeline")) return "timeline";
   return "hub";
+}
+
+function actionError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Action failed. Please try again.";
 }
 
 export default function CommunicationHubPage() {
@@ -59,7 +68,9 @@ export default function CommunicationHubPage() {
         {active === "campaigns" ? <Campaigns selectedId={params.id} /> : null}
         {active === "consents" ? <Consents /> : null}
         {active === "whatsapp" ? <WhatsApp /> : null}
+        {active === "auto-responses" ? <AutoResponses /> : null}
         {active === "delivery-logs" ? <GenericSection title="Delivery Logs" description="Provider attempts, blocked sends, failures, and stubbed delivery evidence." queryKey="communication-logs" queryFn={communicationApi.deliveryLogs} /> : null}
+        {active === "timeline" ? <Timeline /> : null}
       </div>
     </div>
   );
@@ -94,10 +105,12 @@ function Emails() {
       toast({ title: `Email ${String(data.status)}` });
       query.refetch();
     },
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
   const draft = useMutation({
     mutationFn: () => communicationApi.draftEmail({ related_record_type: "lead", related_record_id: 1, to_email: "lead@example.com", subject: "Draft follow up", body: "Draft only." }),
     onSuccess: (data: CommunicationRecord) => toast({ title: `Draft ${data.id}` }),
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
   return <SectionFrame title="Individual Emails" description="Send or draft one-to-one CRM emails with provider availability and opt-out enforcement." action="Send Email" onAction={() => send.mutate()} query={query}><Button variant="outline" onClick={() => draft.mutate()}>Create Draft</Button></SectionFrame>;
 }
@@ -114,6 +127,7 @@ function Webforms({ selectedId }: { selectedId?: string }) {
   const submit = useMutation({
     mutationFn: () => communicationApi.submitWebform(slug, { values: { first_name: "Website", last_name: "Lead", email: `website-${Date.now()}@example.com`, phone: "9999999999" }, anti_spam: "" }),
     onSuccess: (data: CommunicationRecord) => toast({ title: `Submission ${String(data.created_record_type)}` }),
+    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
   return <SectionFrame title="Webforms" description="Public slug forms map submissions into CRM records with duplicate detection and timeline evidence." action="Create Webform" onAction={() => create.mutate()} query={query}><Button variant="outline" onClick={() => submit.mutate()}>Submit Demo Lead</Button></SectionFrame>;
 }
@@ -130,9 +144,11 @@ function Campaigns({ selectedId }: { selectedId?: string }) {
     onSuccess: () => { toast({ title: "Campaign saved" }); refresh(); },
   });
   const firstId = Number(query.data?.items?.[0]?.id || 0);
-  const preview = useMutation({ mutationFn: () => communicationApi.previewCampaign(firstId), onSuccess: (data: CommunicationRecord) => toast({ title: `Preview ${String(data.total)} recipients` }) });
-  const send = useMutation({ mutationFn: () => communicationApi.sendCampaign(firstId), onSuccess: (data: CommunicationRecord) => { toast({ title: `Campaign ${String(data.status)}` }); refresh(); } });
-  return <SectionFrame title="Campaigns" description="Segment, preview, consent-check, rate-limit, send, and track CRM campaigns." action="Create Campaign" onAction={() => create.mutate()} query={query}><Button variant="outline" disabled={!firstId} onClick={() => preview.mutate()}>Preview</Button><Button variant="outline" disabled={!firstId} onClick={() => send.mutate()}>Send</Button></SectionFrame>;
+  const preview = useMutation({ mutationFn: () => communicationApi.previewCampaign(firstId), onSuccess: (data: CommunicationRecord) => toast({ title: `Preview ${String(data.total)} recipients` }), onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
+  const send = useMutation({ mutationFn: () => communicationApi.sendCampaign(firstId), onSuccess: (data: CommunicationRecord) => { toast({ title: `Campaign ${String(data.status)}` }); refresh(); }, onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
+  const schedule = useMutation({ mutationFn: () => communicationApi.scheduleCampaign(firstId, { scheduled_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() }), onSuccess: () => { toast({ title: "Campaign scheduled" }); refresh(); }, onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
+  const cancel = useMutation({ mutationFn: () => communicationApi.cancelCampaign(firstId), onSuccess: () => { toast({ title: "Campaign cancelled" }); refresh(); }, onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
+  return <SectionFrame title="Campaigns" description="Segment, preview, consent-check, rate-limit, send, schedule, cancel, and track CRM campaigns." action="Create Campaign" onAction={() => create.mutate()} query={query}><Button variant="outline" disabled={!firstId || preview.isPending} onClick={() => preview.mutate()}>Preview</Button><Button variant="outline" disabled={!firstId || schedule.isPending} onClick={() => schedule.mutate()}>Schedule</Button><Button variant="outline" disabled={!firstId || cancel.isPending} onClick={() => cancel.mutate()}>Cancel</Button><Button variant="outline" disabled={!firstId || send.isPending} onClick={() => send.mutate()}>Send</Button></SectionFrame>;
 }
 
 function Consents() {
@@ -144,11 +160,19 @@ function WhatsApp() {
   return <GenericSection title="WhatsApp Placeholder" description="Template management only. Delivery remains placeholder-only until a real WhatsApp provider is configured." queryKey="communication-whatsapp" queryFn={communicationApi.whatsappTemplates} action="Create WhatsApp Template" mutation={() => communicationApi.createWhatsAppTemplate({ name: "Reminder", template_key: "crm_reminder", body_text: "Hello {{name}}, this is a CRM reminder.", active: true })} />;
 }
 
+function AutoResponses() {
+  return <GenericSection title="Auto Response Rules" description="Webform and campaign events can trigger templated CRM follow-ups with auditable delivery logs." queryKey="communication-auto-responses" queryFn={communicationApi.autoResponseRules} action="Create Auto Response" mutation={() => communicationApi.createAutoResponseRule({ name: "Lead webform acknowledgement", trigger_event: "webform.submitted", template_id: 1, active: true, delay_minutes: 0 })} />;
+}
+
+function Timeline() {
+  return <GenericSection title="Communication Timeline" description="Unified email, campaign, webform, consent, and WhatsApp records for the selected CRM object." queryKey="communication-timeline-lead-1" queryFn={() => communicationApi.timeline("lead", 1)} />;
+}
+
 function GenericSection({ title, description, queryKey, queryFn, action, mutation }: { title: string; description: string; queryKey: string; queryFn: () => Promise<CommunicationList>; action?: string; mutation?: () => Promise<unknown> }) {
   const { toast } = useToast();
   const query = useQuery({ queryKey: [queryKey], queryFn });
   const refresh = useRefresh(queryKey);
-  const create = useMutation({ mutationFn: mutation || (() => Promise.resolve()), onSuccess: () => { toast({ title: `${title.split(" ")[0]} saved` }); refresh(); } });
+  const create = useMutation({ mutationFn: mutation || (() => Promise.resolve()), onSuccess: () => { toast({ title: `${title.split(" ")[0]} saved` }); refresh(); }, onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
   return <SectionFrame title={title} description={description} action={action} onAction={action ? () => create.mutate() : undefined} query={query} />;
 }
 
