@@ -79,6 +79,7 @@ export const srmRoutes: FrontendRoute[] = [
   inventoryRoute("srm/inventory/reorder-alerts", "inventoryReorderAlerts"),
   inventoryRoute("srm/inventory/reports", "inventoryReports"),
   inventoryRoute("srm/inventory/ai", "inventoryAI"),
+  inventorySourceRoute("srm/inventory/source"),
   inventorySourceRoute("srm/sales-inventory/source"),
   ...inventorySourceAppPaths.map((path) => inventorySourceRoute(path.replace(/^\//, ""))),
   route("srm/reports", "reports"),

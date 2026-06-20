@@ -1,9 +1,11 @@
 import { useMemo, useState, type ElementType, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BarChart3,
   BriefcaseBusiness,
+  Boxes,
   CheckCircle2,
   CreditCard,
   FileCheck2,
@@ -11,11 +13,13 @@ import {
   FolderKanban,
   HandCoins,
   Link2,
+  Package,
   Plus,
   Receipt,
   Search,
   Settings,
   Sparkles,
+  Store,
   Trash2,
   TrendingUp,
   WalletCards,
@@ -26,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
+import { inventoryEntryPoints, inventorySourceFeatureCount, mappedInventorySourceFeatureCount } from "@/apps/inventory/sourceCatalog";
 import { srmApi } from "../api";
 import type { SRMRecord, SRMViewKind } from "../types";
 
@@ -256,6 +261,7 @@ function DashboardView() {
   return (
     <div className="space-y-5">
       <PageHeader meta={viewMeta.dashboard} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <SalesInventoryLaunchpad />
       <SectionState label="dashboard" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
       {!query.isLoading && !query.isError ? (
         <>
@@ -281,6 +287,85 @@ function DashboardView() {
           </div>
         </>
       ) : null}
+    </div>
+  );
+}
+
+const coreLaunchpad = [
+  {
+    title: "Sales",
+    description: "Sales orders, invoices, delivery documents, quotations, returns, and customer commitments.",
+    icon: Receipt,
+    to: "/srm/sales-orders",
+    action: "Open sales",
+  },
+  {
+    title: "POS",
+    description: "Counter billing, register sessions, held bills, cashier closing, and POS configuration.",
+    icon: Store,
+    to: "/srm/pos/terminal",
+    action: "Open POS",
+  },
+  {
+    title: "Inventory",
+    description: "Products, stock, warehouses, purchases, transfers, manufacturing, batches, and reports.",
+    icon: Package,
+    to: "/srm/inventory/dashboard",
+    action: "Open inventory",
+  },
+  {
+    title: "Source Map",
+    description: `${mappedInventorySourceFeatureCount}/${inventorySourceFeatureCount} cloned Vyapara ERP sales, POS, and inventory entry points are mapped into Sales & Inventory.`,
+    icon: Boxes,
+    to: "/srm/inventory/source",
+    action: "View mapped features",
+  },
+];
+
+function SalesInventoryLaunchpad() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sales, Inventory & POS Operations</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {coreLaunchpad.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.title} to={item.to} className="rounded-lg border p-4 transition hover:border-primary/60 hover:bg-muted/60">
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="mt-3 block text-sm font-semibold">{item.title}</span>
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.description}</span>
+                <span className="mt-3 block text-xs font-semibold text-primary">{item.action}</span>
+              </Link>
+            );
+          })}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Quick Entry Points</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {inventoryEntryPoints.map((entry) => {
+            const Icon = entry.icon;
+            return (
+              <Button key={entry.to} asChild variant="outline" className="h-auto justify-start gap-3 px-3 py-2 text-left">
+                <Link to={entry.to}>
+                  <Icon className="h-4 w-4" />
+                  <span>
+                    <span className="block text-sm font-medium">{entry.label}</span>
+                    <span className="block text-xs font-normal text-muted-foreground">{entry.description}</span>
+                  </span>
+                </Link>
+              </Button>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 }

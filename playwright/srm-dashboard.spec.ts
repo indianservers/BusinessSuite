@@ -6,7 +6,12 @@ test.describe("SRM dashboard", () => {
     await authenticate(page, "srm_admin");
     await page.goto("/srm/dashboard", { waitUntil: "domcontentloaded" });
 
-    await expect(page.getByRole("heading", { name: "SRM Dashboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sales & Inventory Dashboard" })).toBeVisible();
+    await expect(page.getByText("Sales, Inventory & POS Operations", { exact: true })).toBeVisible();
+    await expect(page.locator('a[href="/srm/sales-orders"]').filter({ hasText: "Open sales" }).first()).toBeVisible();
+    await expect(page.locator('a[href="/srm/pos/terminal"]').filter({ hasText: "Open POS" }).first()).toBeVisible();
+    await expect(page.locator('a[href="/srm/inventory/dashboard"]').filter({ hasText: "Open inventory" }).first()).toBeVisible();
+    await expect(page.locator('a[href="/srm/inventory/source"]').filter({ hasText: "View mapped features" }).first()).toBeVisible();
     await expect(page.getByText("Total sales orders", { exact: true })).toBeVisible();
     await expect(page.getByText("Pending approvals", { exact: true })).toBeVisible();
     await expect(page.getByText("Total invoiced", { exact: true })).toBeVisible();
