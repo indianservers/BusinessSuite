@@ -3,7 +3,7 @@ import { Briefcase, Building2, FolderKanban, Landmark, LogIn, Receipt, Sparkles,
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { moduleDefaultCredentials } from "@/lib/defaultCredentials";
-import { BUSINESS_SUITE_DISPLAY_NAME, products, type ProductKey } from "@/lib/products";
+import { BUSINESS_SUITE_NAME, BUSINESS_SUITE_VERSION, products, type ProductKey } from "@/lib/products";
 import { useAuthStore } from "@/store/authStore";
 
 type ModuleIndexItem = {
@@ -92,7 +92,7 @@ export default function ModuleIndexPage() {
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5" />
-              {BUSINESS_SUITE_DISPLAY_NAME}
+              {BUSINESS_SUITE_NAME} {BUSINESS_SUITE_VERSION}
             </div>
             <h1 className="text-3xl font-semibold tracking-tight">Choose a module</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -148,6 +148,19 @@ export default function ModuleIndexPage() {
           );
         })}
       </section>
+
+      <footer className="border-t bg-card/70">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-5 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <div className="font-medium text-foreground">{BUSINESS_SUITE_NAME} {BUSINESS_SUITE_VERSION}</div>
+          <div className="flex flex-wrap gap-2">
+            {Object.values(products).map((product) => (
+              <span key={product.key} className="rounded-full border bg-background px-2.5 py-1">
+                {product.shortName} {product.version}
+              </span>
+            ))}
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

@@ -148,6 +148,8 @@ export default function App() {
           <Route path="/portal/customer/*" element={<PortalPage />} />
           <Route path="/portal/partner/login" element={<PortalPage />} />
           <Route path="/portal/partner/*" element={<PortalPage />} />
+          <Route path="/Inventory/login" element={<Navigate to="/srm/login" replace />} caseSensitive />
+          <Route path="/inventory/login" element={<Navigate to="/srm/login" replace />} caseSensitive />
           <Route path="/Inventory" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
           <Route path="/Inventory/*" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
           <Route path="/inventory" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
