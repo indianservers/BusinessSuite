@@ -16,6 +16,7 @@ import {
   Package,
   Plus,
   Receipt,
+  RotateCcw,
   Search,
   Settings,
   Sparkles,
@@ -32,6 +33,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/authStore";
 import { inventoryEntryPoints, inventorySourceFeatureCount, mappedInventorySourceFeatureCount } from "@/apps/inventory/sourceCatalog";
 import { srmApi } from "../api";
+import { syncSrmNow, useSrmRealtimeInvalidation } from "../realtime";
 import type { SRMRecord, SRMViewKind } from "../types";
 
 type SRMQueryEndpoint =
@@ -65,6 +67,21 @@ const viewMeta: Record<SRMViewKind, ViewMeta> = {
     description: "Track approved commercial commitments before delivery and billing.",
     icon: Receipt,
     endpoint: "salesOrders",
+  },
+  posSessions: {
+    title: "POS Sessions",
+    description: "Open, monitor, and audit real POS register sessions from the SRM database.",
+    icon: Store,
+  },
+  cashierClosing: {
+    title: "Cashier Closing",
+    description: "Close register sessions with expected cash, counted cash, and variance evidence.",
+    icon: BarChart3,
+  },
+  posReturns: {
+    title: "POS Returns",
+    description: "Create and audit POS returns, refunds, and stock-in reversal movements.",
+    icon: RotateCcw,
   },
   contracts: {
     title: "Contracts",
@@ -135,6 +152,7 @@ const viewMeta: Record<SRMViewKind, ViewMeta> = {
 
 function asList(data: unknown): SRMRecord[] {
   if (Array.isArray(data)) return data as SRMRecord[];
+  if (data && typeof data === "object" && Array.isArray((data as { items?: unknown }).items)) return (data as { items: SRMRecord[] }).items;
   if (data && typeof data === "object") return [data as SRMRecord];
   return [];
 }
@@ -1287,6 +1305,241 @@ function SettingsView() {
   );
 }
 
+function POSSessionView() {
+  const queryClient = useQueryClient();
+  const canManage = useCanManageRevenue();
+  const [openingCash, setOpeningCash] = useState("5000");
+  const [cashAmount, setCashAmount] = useState("");
+  const [cashReason, setCashReason] = useState("");
+  const [movementType, setMovementType] = useState("cash_in");
+  const query = useQuery({ queryKey: ["srm", "posSessions"], queryFn: srmApi.posSessions });
+  const active = useQuery({ queryKey: ["srm", "activePosSession"], queryFn: srmApi.activePosSession });
+  const activeSession = ((active.data as SRMRecord | undefined)?.session || null) as SRMRecord | null;
+  const open = useMutation({
+    mutationFn: () => srmApi.openPosSession({ branch: "Main Branch", register_name: "Main POS Register", opening_cash: amountField(openingCash) }),
+    onSuccess: () => {
+      toast({ title: "POS session opened" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const movement = useMutation({
+    mutationFn: () => srmApi.createPosCashMovement({ session_id: activeSession?.id, movement_type: movementType, amount: amountField(cashAmount), reason: cashReason }),
+    onSuccess: () => {
+      setCashAmount("");
+      setCashReason("");
+      toast({ title: "Cash movement saved" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const rows = asList(query.data);
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={viewMeta.posSessions} isFetching={query.isFetching || active.isFetching} onRefresh={() => { query.refetch(); active.refetch(); }} />
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Active session" value={activeSession ? formatValue(activeSession.session_number) : "None"} />
+        <MetricCard label="Expected cash" value={money((active.data as SRMRecord | undefined)?.expected_cash)} />
+        <MetricCard label="Cash sales" value={money((active.data as SRMRecord | undefined)?.cash_sales)} />
+        <MetricCard label="Sales count" value={formatValue((active.data as SRMRecord | undefined)?.sales_count || 0)} />
+      </div>
+      {canManage ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Open register session</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <Input value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} placeholder="Opening cash" />
+              <Button onClick={() => open.mutate()} disabled={open.isPending || Boolean(activeSession)}>Open Session</Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Cash movement</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-[9rem_1fr_1fr_auto]">
+              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={movementType} onChange={(event) => setMovementType(event.target.value)}>
+                <option value="cash_in">Cash In</option>
+                <option value="cash_out">Cash Out</option>
+              </select>
+              <Input value={cashAmount} onChange={(event) => setCashAmount(event.target.value)} placeholder="Amount" />
+              <Input value={cashReason} onChange={(event) => setCashReason(event.target.value)} placeholder="Reason" />
+              <Button onClick={() => movement.mutate()} disabled={movement.isPending || !activeSession || !amountField(cashAmount)}>Save</Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+      <SectionState label="POS sessions" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
+      {!query.isError ? (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-sm">
+                <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                  <tr><th className="px-4 py-3">Session</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Register</th><th className="px-4 py-3">Opening</th><th className="px-4 py-3">Cash Sales</th><th className="px-4 py-3">Expected</th><th className="px-4 py-3">Variance</th></tr>
+                </thead>
+                <tbody>
+                  {rows.length ? rows.map((row, index) => {
+                    const session = (row.session || {}) as SRMRecord;
+                    const closing = (row.closing || {}) as SRMRecord;
+                    return (
+                      <tr key={String(session.id || index)} className="border-b last:border-0">
+                        <td className="px-4 py-3 font-medium">{formatValue(session.session_number)}</td>
+                        <td className="px-4 py-3"><Badge variant={statusTone(session.status)}>{formatValue(session.status)}</Badge></td>
+                        <td className="px-4 py-3">{formatValue(session.register_name)}</td>
+                        <td className="px-4 py-3">{money(session.opening_cash)}</td>
+                        <td className="px-4 py-3">{money(row.cash_sales)}</td>
+                        <td className="px-4 py-3">{money(row.expected_cash)}</td>
+                        <td className="px-4 py-3">{closing.variance !== undefined ? money(closing.variance) : "-"}</td>
+                      </tr>
+                    );
+                  }) : <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No POS sessions found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+    </div>
+  );
+}
+
+function CashierClosingView() {
+  const queryClient = useQueryClient();
+  const canManage = useCanManageRevenue();
+  const [countedCash, setCountedCash] = useState("");
+  const [notes, setNotes] = useState("");
+  const active = useQuery({ queryKey: ["srm", "activePosSession"], queryFn: srmApi.activePosSession });
+  const activeData = (active.data || {}) as SRMRecord;
+  const session = (activeData.session || null) as SRMRecord | null;
+  const close = useMutation({
+    mutationFn: () => srmApi.closePosSession({ session_id: session?.id, counted_cash: amountField(countedCash), notes }),
+    onSuccess: () => {
+      toast({ title: "Cashier closing posted" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const expected = Number(activeData.expected_cash || 0);
+  const counted = amountField(countedCash);
+  return (
+    <div className="space-y-5">
+      <PageHeader meta={viewMeta.cashierClosing} isFetching={active.isFetching} onRefresh={() => active.refetch()} />
+      <SectionState label="active POS session" isLoading={active.isLoading} isError={active.isError} onRetry={() => active.refetch()} />
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Session" value={session ? session.session_number : "No open session"} />
+        <MetricCard label="Opening cash" value={money(session?.opening_cash)} />
+        <MetricCard label="Expected cash" value={money(expected)} />
+        <MetricCard label="Variance preview" value={money(counted - expected)} />
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Close active session</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+          <Input value={countedCash} onChange={(event) => setCountedCash(event.target.value)} placeholder="Counted cash" />
+          <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Closing notes" />
+          <Button onClick={() => close.mutate()} disabled={!canManage || close.isPending || !session || !countedCash}>Close Session</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Closing evidence</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-4">
+          <MetricCard label="Cash sales" value={money(activeData.cash_sales)} />
+          <MetricCard label="Cash in" value={money(activeData.cash_in)} />
+          <MetricCard label="Cash out" value={money(activeData.cash_out)} />
+          <MetricCard label="Sales count" value={formatValue(activeData.sales_count || 0)} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function POSReturnsView() {
+  const queryClient = useQueryClient();
+  const query = useQuery({ queryKey: ["srm", "posReturns"], queryFn: srmApi.posReturns });
+  const [draft, setDraft] = useState({
+    order_number: "",
+    sales_order_line_id: "",
+    product_id: "",
+    quantity: "1",
+    unit_price: "0",
+    tax_amount: "0",
+    refund_method: "cash",
+    reason: "",
+  });
+  const mutation = useMutation({
+    mutationFn: () => srmApi.createPosReturn({
+      order_number: draft.order_number,
+      refund_method: draft.refund_method,
+      reason: draft.reason,
+      lines: [{
+        sales_order_line_id: amountField(draft.sales_order_line_id),
+        product_id: amountField(draft.product_id),
+        quantity: amountField(draft.quantity, 1),
+        unit_price: amountField(draft.unit_price),
+        tax_amount: amountField(draft.tax_amount),
+        restock: true,
+        condition: "sellable",
+      }],
+    }),
+    onSuccess: async (result) => {
+      toast({ title: "POS return created" });
+      setDraft((current) => ({ ...current, sales_order_line_id: "", product_id: "", quantity: "1", tax_amount: "0", reason: "" }));
+      await syncSrmNow(queryClient, {
+        type: "pos_return_completed",
+        source: "srm-pos-returns",
+        ids: { return_id: Number((result as SRMRecord | undefined)?.id || 0) || undefined },
+      });
+    },
+    onError: (error) => toast({ title: "Return failed", description: apiErrorMessage(error), variant: "destructive" }),
+  });
+  const rows = asList(query.data);
+  return (
+    <div className="space-y-4">
+      <PageHeader meta={viewMeta.posReturns} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Create return</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <label className="space-y-2 text-sm"><span className="font-medium">POS order number</span><Input value={draft.order_number} onChange={(event) => setDraft((current) => ({ ...current, order_number: event.target.value }))} placeholder="POS-00001" /></label>
+            <label className="space-y-2 text-sm"><span className="font-medium">Sales order line ID</span><Input value={draft.sales_order_line_id} onChange={(event) => setDraft((current) => ({ ...current, sales_order_line_id: event.target.value }))} /></label>
+            <label className="space-y-2 text-sm"><span className="font-medium">Product ID</span><Input value={draft.product_id} onChange={(event) => setDraft((current) => ({ ...current, product_id: event.target.value }))} /></label>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="space-y-2 text-sm"><span className="font-medium">Qty</span><Input value={draft.quantity} onChange={(event) => setDraft((current) => ({ ...current, quantity: event.target.value }))} /></label>
+              <label className="space-y-2 text-sm"><span className="font-medium">Rate</span><Input value={draft.unit_price} onChange={(event) => setDraft((current) => ({ ...current, unit_price: event.target.value }))} /></label>
+              <label className="space-y-2 text-sm"><span className="font-medium">Tax</span><Input value={draft.tax_amount} onChange={(event) => setDraft((current) => ({ ...current, tax_amount: event.target.value }))} /></label>
+            </div>
+            <label className="space-y-2 text-sm"><span className="font-medium">Refund method</span><Input value={draft.refund_method} onChange={(event) => setDraft((current) => ({ ...current, refund_method: event.target.value }))} /></label>
+            <label className="space-y-2 text-sm"><span className="font-medium">Reason</span><Input value={draft.reason} onChange={(event) => setDraft((current) => ({ ...current, reason: event.target.value }))} /></label>
+            <Button className="w-full" onClick={() => mutation.mutate()} disabled={!draft.order_number || mutation.isPending}>Create return</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Return register</CardTitle></CardHeader>
+          <CardContent>
+            <SectionState label="POS returns" isLoading={query.isLoading} isError={query.isError} isEmpty={!query.isLoading && !rows.length} onRetry={() => query.refetch()} />
+            {rows.length ? (
+              <div className="overflow-auto rounded-lg border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-left">
+                    <tr>
+                      {["Return #", "Status", "Refund", "Amount", "Created"].map((head) => <th key={head} className="px-3 py-2 font-medium">{head}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={String(row.id)} className="border-t">
+                        <td className="px-3 py-2 font-medium">{formatValue(row.return_number)}</td>
+                        <td className="px-3 py-2"><Badge variant={statusTone(row.status)}>{formatValue(row.status)}</Badge></td>
+                        <td className="px-3 py-2">{formatValue(row.refund_method)} / {formatValue(row.refund_status)}</td>
+                        <td className="px-3 py-2">{money(row.refund_amount)}</td>
+                        <td className="px-3 py-2">{formatValue(row.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
@@ -1297,6 +1550,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
     expected_start_date: "",
     expected_end_date: "",
     terms: "",
+    product_id: "",
     line_description: "",
     quantity: "1",
     unit_price: "0",
@@ -1353,7 +1607,9 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
           expected_start_date: salesOrder.expected_start_date,
           expected_end_date: salesOrder.expected_end_date,
           terms: salesOrder.terms,
-          lines: salesOrder.line_description.trim() ? [{
+          lines: salesOrder.line_description.trim() || numericField(salesOrder.product_id) ? [{
+            product_id: numericField(salesOrder.product_id),
+            service_type: numericField(salesOrder.product_id) ? "product" : "service",
             description: salesOrder.line_description.trim(),
             quantity,
             unit_price: unitPrice,
@@ -1409,11 +1665,15 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
       }
       throw new Error("Create form is not available for this SRM view.");
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       const text = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
       setMessage(text);
       toast({ title: text });
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
+      await syncSrmNow(queryClient, {
+        type: kind === "salesOrders" ? "sales_order_changed" : "inventory_changed",
+        source: `srm-${kind}-create`,
+        ids: { id: Number((result as SRMRecord | undefined)?.id || 0) || undefined },
+      });
       onSaved?.();
     },
     onError: (err: unknown) => {
@@ -1439,7 +1699,8 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
                 <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={salesOrder.customer_id} onChange={(event) => setSalesOrder((current) => ({ ...current, customer_id: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><Input value={salesOrder.currency} onChange={(event) => setSalesOrder((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} /></label>
               </div>
-              <div className="grid gap-3 md:grid-cols-5">
+              <div className="grid gap-3 md:grid-cols-6">
+                <label className="space-y-2 text-sm"><span className="font-medium">Product ID</span><Input inputMode="numeric" value={salesOrder.product_id} onChange={(event) => setSalesOrder((current) => ({ ...current, product_id: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Line item</span><Input value={salesOrder.line_description} onChange={(event) => setSalesOrder((current) => ({ ...current, line_description: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Qty</span><Input inputMode="decimal" value={salesOrder.quantity} onChange={(event) => setSalesOrder((current) => ({ ...current, quantity: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Unit price</span><Input inputMode="decimal" value={salesOrder.unit_price} onChange={(event) => setSalesOrder((current) => ({ ...current, unit_price: event.target.value }))} /></label>
@@ -1518,7 +1779,11 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
     queryKey: ["srm", kind],
     queryFn: () => srmApi[meta.endpoint as SRMQueryEndpoint](),
     enabled: Boolean(meta.endpoint),
+    refetchInterval: kind === "salesOrders" ? 3000 : 10000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
+  useSrmRealtimeInvalidation(queryClient, Boolean(meta.endpoint));
   const records = asList(query.data);
   const action = useMutation({
     mutationFn: async ({ name, id }: { name: string; id: number }) => {
@@ -1534,8 +1799,8 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
       if (!fn) throw new Error(`Unsupported SRM action: ${name}`);
       return fn(id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    onSuccess: async () => {
+      await syncSrmNow(queryClient, { type: kind === "salesOrders" ? "sales_order_changed" : "inventory_changed", source: `srm-${kind}-action` });
       toast({ title: "SRM updated" });
     },
     onError: (err: unknown) => {
@@ -1572,6 +1837,9 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                     const id = Number(record.id || 0);
                     const name = record.title || record.name || record.invoice_number || record.order_number || record.contract_number || record.engagement_number || `Record ${index + 1}`;
                     const amount = record.total_amount || record.contract_value || record.budget_amount || record.outstanding_total || record.invoice_total || record.order_amount || record.total_outstanding;
+                    const status = String(record.status || "").toLowerCase();
+                    const metadata = (record.metadata_json || {}) as SRMRecord;
+                    const isPosSale = metadata.source === "pos";
                     return (
                       <tr key={`${kind}-${id || index}`} className="border-b last:border-0">
                         <td className="px-4 py-3 font-medium">{formatValue(name)}</td>
@@ -1585,9 +1853,12 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                           <div className="flex justify-end gap-2">
                             {canManage && kind === "salesOrders" && id ? (
                               <>
-                                <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</Button>
-                                <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "confirmSalesOrder", id })}>Confirm</Button>
-                                <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "draftInvoiceFromSalesOrder", id })}>Draft</Button>
+                                {isPosSale ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">POS posted</span> : null}
+                                {!isPosSale && status === "draft" ? <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</Button> : null}
+                                {!isPosSale && status === "pending_approval" ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">Awaiting approval</span> : null}
+                                {!isPosSale && status === "approved" ? <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "confirmSalesOrder", id })}>Confirm</Button> : null}
+                                {!isPosSale && status === "confirmed" ? <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "draftInvoiceFromSalesOrder", id })}>Draft invoice</Button> : null}
+                                {!isPosSale && ["cancelled", "closed"].includes(status) ? <span className="text-xs text-muted-foreground">No action</span> : null}
                               </>
                             ) : null}
                             {canManage && kind === "engagements" && id ? <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</Button> : null}
@@ -1615,8 +1886,13 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
 }
 
 export default function SRMWorkspacePage({ kind }: { kind: SRMViewKind }) {
+  const queryClient = useQueryClient();
+  useSrmRealtimeInvalidation(queryClient);
   const meta = viewMeta[kind];
   if (kind === "dashboard") return <DashboardView />;
+  if (kind === "posSessions") return <POSSessionView />;
+  if (kind === "cashierClosing") return <CashierClosingView />;
+  if (kind === "posReturns") return <POSReturnsView />;
   if (kind === "customer360") return <Customer360View />;
   if (kind === "invoiceDrafts") return <InvoiceDraftsView />;
   if (kind === "invoices") return <InvoicesView />;

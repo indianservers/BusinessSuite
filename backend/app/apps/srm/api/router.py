@@ -14,6 +14,8 @@ from app.apps.business_os.services.module_service import company_id_for as bos_c
 from app.apps.srm.access import engagement_query, get_engagement_for_user, get_sales_order_for_user, organization_id_for, sales_order_query
 from app.apps.srm.models import (
     SRMAuditLog,
+    SRMBillOfMaterial,
+    SRMBOMComponent,
     SRMBillingMilestone,
     SRMBillingPlan,
     SRMCollectionReminder,
@@ -21,29 +23,66 @@ from app.apps.srm.models import (
     SRMCustomerAging,
     SRMEngagement,
     SRMEngagementLink,
+    SRMGoodsReceipt,
+    SRMGoodsReceiptLine,
+    SRMInventoryBatch,
+    SRMInventoryBalance,
+    SRMInventoryMovement,
     SRMInvoice,
     SRMInvoiceDraft,
     SRMInvoiceHistory,
     SRMInvoiceLine,
     SRMProfitabilitySnapshot,
+    SRMPOSCashMovement,
+    SRMPOSCashierClosing,
+    SRMPOSHeldBill,
+    SRMPOSReturn,
+    SRMPOSReturnLine,
+    SRMPOSSession,
+    SRMPriceList,
+    SRMPriceListLine,
+    SRMProductionOrder,
+    SRMProduct,
+    SRMProductCategory,
+    SRMPurchaseOrder,
+    SRMPurchaseOrderLine,
     SRMReceipt,
     SRMReceiptAllocation,
     SRMRevenueEvent,
     SRMSalesOrder,
     SRMSalesOrderLine,
+    SRMSerialNumber,
     SRMSetting,
+    SRMWarehouse,
 )
 from app.apps.srm.schemas import (
     SRMBillingPlanCreate,
     SRMBillingPlanUpdate,
     SRMBillingMilestoneInput,
+    SRMBillOfMaterialCreate,
     SRMContractCreate,
     SRMContractUpdate,
     SRMEngagementCreate,
     SRMEngagementLinkCreate,
     SRMEngagementUpdate,
+    SRMGoodsReceiptCreate,
+    SRMInventoryBatchCreate,
     SRMInvoiceLineInput,
     SRMManualInvoiceCreate,
+    SRMPOSCashMovementCreate,
+    SRMPOSCashierClosingCreate,
+    SRMPOSHeldBillCreate,
+    SRMPOSReturnCreate,
+    SRMPOSSessionCreate,
+    SRMOpeningStockCreate,
+    SRMPriceListCreate,
+    SRMPriceLookupRequest,
+    SRMProductCategoryCreate,
+    SRMProductCreate,
+    SRMProductUpdate,
+    SRMProductionOrderCreate,
+    SRMProductionPostRequest,
+    SRMPurchaseOrderCreate,
     SRMInvoicePatch,
     SRMReceiptAllocationRequest,
     SRMReceiptCreate,
@@ -52,8 +91,13 @@ from app.apps.srm.schemas import (
     SRMSalesOrderLineInput,
     SRMSalesOrderLineUpdate,
     SRMSalesOrderUpdate,
+    SRMSerialNumberCreate,
     SRMSettingUpsert,
+    SRMStockAdjustmentCreate,
+    SRMStockMovementCreate,
+    SRMStockTransferCreate,
     SRMTimeLogInvoiceRequest,
+    SRMWarehouseCreate,
     SRMWriteOffRequest,
 )
 from app.core.deps import RequirePermission, get_current_user, get_db
@@ -561,6 +605,1501 @@ def list_sales_orders(db: Session = Depends(get_db), current_user: User = Depend
     return [_serialize(item) | {"lines": [_serialize(line) for line in item.lines]} for item in sales_order_query(db, current_user).order_by(SRMSalesOrder.id.desc()).limit(200).all()]
 
 
+def _get_pos_session(db: Session, session_id: int, user: User) -> SRMPOSSession:
+    item = db.query(SRMPOSSession).filter(
+        SRMPOSSession.id == session_id,
+        SRMPOSSession.organization_id == _org(user),
+        SRMPOSSession.deleted_at == None,
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="POS session not found")
+    return item
+
+
+def _pos_session_summary(db: Session, session: SRMPOSSession) -> dict:
+    orders = db.query(SRMSalesOrder).filter(
+        SRMSalesOrder.organization_id == session.organization_id,
+        SRMSalesOrder.deleted_at == None,
+    ).all()
+    pos_orders = []
+    for order in orders:
+        metadata = order.metadata_json or {}
+        if metadata.get("source") == "pos" and int(metadata.get("pos_session_id") or 0) == session.id:
+            pos_orders.append(order)
+    cash_sales = sum(_decimal(order.total_amount) for order in pos_orders if (order.metadata_json or {}).get("payment_mode") in {"Cash", "Split"})
+    cash_in = _sum_decimal(db, SRMPOSCashMovement.amount, SRMPOSCashMovement.session_id == session.id, SRMPOSCashMovement.movement_type == "cash_in")
+    cash_out = _sum_decimal(db, SRMPOSCashMovement.amount, SRMPOSCashMovement.session_id == session.id, SRMPOSCashMovement.movement_type == "cash_out")
+    expected_cash = _decimal(session.opening_cash) + cash_sales + cash_in - cash_out
+    return {
+        "session": _serialize(session),
+        "sales_count": len(pos_orders),
+        "cash_sales": float(cash_sales),
+        "cash_in": float(cash_in),
+        "cash_out": float(cash_out),
+        "expected_cash": float(expected_cash),
+        "movements": [_serialize(item) for item in session.cash_movements],
+        "closing": _serialize(session.closings[-1]) if session.closings else None,
+    }
+
+
+def _held_bill_payload(item: SRMPOSHeldBill) -> dict:
+    data = _serialize(item)
+    data["holdNo"] = item.hold_number
+    data["cart"] = item.cart_json or []
+    return data
+
+
+def _product_payload(product: SRMProduct) -> dict:
+    data = _serialize(product)
+    data["category"] = _serialize(product.category)
+    data["default_warehouse"] = _serialize(product.default_warehouse)
+    return data
+
+
+def _product_or_404(db: Session, org_id: int | None, product_id: int) -> SRMProduct:
+    product = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.id == product_id, SRMProduct.deleted_at.is_(None)).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="SRM product not found")
+    return product
+
+
+def _warehouse_or_404(db: Session, org_id: int | None, warehouse_id: int) -> SRMWarehouse:
+    warehouse = db.query(SRMWarehouse).filter(SRMWarehouse.organization_id == org_id, SRMWarehouse.id == warehouse_id).first()
+    if not warehouse:
+        raise HTTPException(status_code=404, detail="SRM warehouse not found")
+    return warehouse
+
+
+def _refresh_product_quantity(db: Session, product: SRMProduct) -> None:
+    total = _sum_decimal(
+        db,
+        SRMInventoryBalance.quantity,
+        SRMInventoryBalance.organization_id == product.organization_id,
+        SRMInventoryBalance.product_id == product.id,
+    )
+    product.current_quantity = total
+
+
+def _balance_for_update(db: Session, org_id: int | None, product: SRMProduct, warehouse_id: int, rate: Decimal = Decimal("0")) -> SRMInventoryBalance:
+    balance = db.query(SRMInventoryBalance).filter(
+        SRMInventoryBalance.organization_id == org_id,
+        SRMInventoryBalance.product_id == product.id,
+        SRMInventoryBalance.warehouse_id == warehouse_id,
+    ).first()
+    if not balance:
+        balance = SRMInventoryBalance(organization_id=org_id, product_id=product.id, warehouse_id=warehouse_id, quantity=0, average_cost=rate or product.average_cost)
+        db.add(balance)
+        db.flush()
+    return balance
+
+
+def _post_stock_movement(
+    db: Session,
+    org_id: int | None,
+    product: SRMProduct,
+    warehouse_id: int,
+    movement_type: str,
+    quantity_in: Decimal,
+    quantity_out: Decimal,
+    rate: Decimal,
+    movement_date: date,
+    reference_number: str | None,
+    notes: str | None,
+    user: User,
+) -> SRMInventoryMovement:
+    if _decimal(quantity_in) < 0 or _decimal(quantity_out) < 0:
+        raise HTTPException(status_code=400, detail="Stock quantities cannot be negative")
+    if _decimal(quantity_in) <= 0 and _decimal(quantity_out) <= 0:
+        raise HTTPException(status_code=400, detail="Stock movement quantity is required")
+    balance = _balance_for_update(db, org_id, product, warehouse_id, rate)
+    if _decimal(quantity_out) > 0 and _decimal(balance.quantity) < _decimal(quantity_out):
+        raise HTTPException(status_code=409, detail=f"Insufficient stock for {product.item_name}")
+    balance.quantity = _decimal(balance.quantity) + _decimal(quantity_in) - _decimal(quantity_out)
+    if _decimal(quantity_in) > 0 and _decimal(rate) > 0:
+        balance.average_cost = rate
+        product.average_cost = rate
+    movement = SRMInventoryMovement(
+        organization_id=org_id,
+        movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", org_id),
+        movement_type=movement_type,
+        movement_date=movement_date,
+        product_id=product.id,
+        warehouse_id=warehouse_id,
+        quantity_in=quantity_in,
+        quantity_out=quantity_out,
+        rate=rate,
+        value=(_decimal(quantity_in) or _decimal(quantity_out)) * _decimal(rate),
+        reference_number=reference_number,
+        notes=notes,
+        created_by=user.id,
+    )
+    db.add(movement)
+    db.flush()
+    _refresh_product_quantity(db, product)
+    return movement
+
+
+def _issue_inventory_for_sales_order(db: Session, order: SRMSalesOrder, user: User) -> list[SRMInventoryMovement]:
+    metadata = order.metadata_json or {}
+    if metadata.get("inventory_issued_at"):
+        return []
+    is_pos = metadata.get("source") == "pos"
+    if not is_pos and order.status != "confirmed":
+        return []
+    movements: list[SRMInventoryMovement] = []
+    for line in order.lines:
+        if line.service_type != "product" or not line.product_id:
+            continue
+        product = db.query(SRMProduct).filter(
+            SRMProduct.organization_id == order.organization_id,
+            SRMProduct.id == line.product_id,
+            SRMProduct.deleted_at.is_(None),
+        ).first()
+        if not product or not product.track_inventory:
+            continue
+        warehouse_id = product.default_warehouse_id
+        line_metadata = line.metadata_json or {}
+        if line_metadata.get("warehouse_id"):
+            warehouse_id = int(line_metadata["warehouse_id"])
+        if not warehouse_id:
+            raise HTTPException(status_code=400, detail=f"Default warehouse is required for {product.item_name}")
+        balance = db.query(SRMInventoryBalance).filter(
+            SRMInventoryBalance.organization_id == order.organization_id,
+            SRMInventoryBalance.product_id == product.id,
+            SRMInventoryBalance.warehouse_id == warehouse_id,
+        ).first()
+        requested = _decimal(line.quantity)
+        available = _decimal(balance.quantity if balance else 0)
+        if requested > available:
+            raise HTTPException(status_code=409, detail=f"Insufficient stock for {product.item_name}: available {available}, requested {requested}")
+        if not balance:
+            raise HTTPException(status_code=409, detail=f"No stock balance found for {product.item_name}")
+        balance.quantity = available - requested
+        movement = SRMInventoryMovement(
+            organization_id=order.organization_id,
+            movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", order.organization_id),
+            movement_type="pos_sale" if is_pos else "sales_order_issue",
+            movement_date=date.today(),
+            product_id=product.id,
+            warehouse_id=warehouse_id,
+            quantity_out=requested,
+            rate=line.unit_price or product.sales_rate or 0,
+            value=requested * _decimal(line.unit_price or product.sales_rate or 0),
+            reference_number=order.order_number,
+            notes=f"{'POS sale' if is_pos else 'Sales order issue'} {order.order_number}",
+            created_by=user.id,
+        )
+        db.add(movement)
+        db.flush()
+        _refresh_product_quantity(db, product)
+        movements.append(movement)
+    if movements:
+        order.metadata_json = {**metadata, "inventory_issued_at": datetime.now(timezone.utc).isoformat(), "inventory_issue_movement_ids": [movement.id for movement in movements]}
+    return movements
+
+
+def _validate_pos_stock_available(db: Session, data: SRMSalesOrderCreate, org_id: int | None) -> None:
+    if (data.metadata_json or {}).get("source") != "pos":
+        return
+    for line in data.lines:
+        if line.service_type != "product" or not line.product_id:
+            continue
+        product = db.query(SRMProduct).filter(
+            SRMProduct.organization_id == org_id,
+            SRMProduct.id == line.product_id,
+            SRMProduct.deleted_at.is_(None),
+        ).first()
+        if not product or not product.track_inventory:
+            continue
+        warehouse_id = product.default_warehouse_id
+        line_metadata = line.metadata_json or {}
+        if line_metadata.get("warehouse_id"):
+            warehouse_id = int(line_metadata["warehouse_id"])
+        if not warehouse_id:
+            raise HTTPException(status_code=400, detail=f"Default warehouse is required for {product.item_name}")
+        balance = db.query(SRMInventoryBalance).filter(
+            SRMInventoryBalance.organization_id == org_id,
+            SRMInventoryBalance.product_id == product.id,
+            SRMInventoryBalance.warehouse_id == warehouse_id,
+        ).first()
+        requested = _decimal(line.quantity)
+        available = _decimal(balance.quantity if balance else 0)
+        if requested > available:
+            raise HTTPException(status_code=409, detail=f"Insufficient stock for {product.item_name}: available {available}, requested {requested}")
+
+
+def _return_payload(item: SRMPOSReturn) -> dict:
+    return _serialize(item) | {"lines": [_serialize(line) for line in item.lines]}
+
+
+def _returned_quantity_for_order_line(db: Session, order_line_id: int) -> Decimal:
+    return _sum_decimal(
+        db,
+        SRMPOSReturnLine.quantity,
+        SRMPOSReturnLine.sales_order_line_id == order_line_id,
+        SRMPOSReturnLine.restock.is_(True),
+    )
+
+
+def _resolve_return_order(db: Session, data: SRMPOSReturnCreate, org_id: int | None) -> SRMSalesOrder:
+    query = db.query(SRMSalesOrder).filter(SRMSalesOrder.organization_id == org_id, SRMSalesOrder.deleted_at.is_(None))
+    if data.sales_order_id:
+        order = query.filter(SRMSalesOrder.id == data.sales_order_id).first()
+    elif data.order_number:
+        order = query.filter(SRMSalesOrder.order_number == data.order_number).first()
+    else:
+        order = None
+    if not order:
+        raise HTTPException(status_code=404, detail="Original POS sale not found")
+    if (order.metadata_json or {}).get("source") != "pos":
+        raise HTTPException(status_code=400, detail="Only POS sales can be returned through POS returns")
+    return order
+
+
+def _restock_return_line(db: Session, return_doc: SRMPOSReturn, line: SRMPOSReturnLine, order: SRMSalesOrder, user: User) -> SRMInventoryMovement | None:
+    if not line.restock or not line.product_id:
+        return None
+    product = db.query(SRMProduct).filter(
+        SRMProduct.organization_id == order.organization_id,
+        SRMProduct.id == line.product_id,
+        SRMProduct.deleted_at.is_(None),
+    ).first()
+    if not product or not product.track_inventory:
+        return None
+    warehouse_id = line.warehouse_id or product.default_warehouse_id
+    if not warehouse_id:
+        raise HTTPException(status_code=400, detail=f"Return warehouse is required for {product.item_name}")
+    balance = db.query(SRMInventoryBalance).filter(
+        SRMInventoryBalance.organization_id == order.organization_id,
+        SRMInventoryBalance.product_id == product.id,
+        SRMInventoryBalance.warehouse_id == warehouse_id,
+    ).first()
+    if not balance:
+        balance = SRMInventoryBalance(organization_id=order.organization_id, product_id=product.id, warehouse_id=warehouse_id, quantity=0, average_cost=product.average_cost)
+        db.add(balance)
+        db.flush()
+    quantity = _decimal(line.quantity)
+    balance.quantity = _decimal(balance.quantity) + quantity
+    movement = SRMInventoryMovement(
+        organization_id=order.organization_id,
+        movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", order.organization_id),
+        movement_type="pos_return",
+        movement_date=date.today(),
+        product_id=product.id,
+        warehouse_id=warehouse_id,
+        quantity_in=quantity,
+        rate=line.unit_price or product.sales_rate or 0,
+        value=quantity * _decimal(line.unit_price or product.sales_rate or 0),
+        reference_number=return_doc.return_number,
+        notes=f"POS return {return_doc.return_number} for {order.order_number}",
+        created_by=user.id,
+    )
+    db.add(movement)
+    db.flush()
+    _refresh_product_quantity(db, product)
+    return movement
+
+
+def _purchase_order_payload(item: SRMPurchaseOrder) -> dict:
+    return _serialize(item) | {"lines": [_serialize(line) for line in item.lines]}
+
+
+def _goods_receipt_payload(item: SRMGoodsReceipt) -> dict:
+    return _serialize(item) | {"lines": [_serialize(line) for line in item.lines]}
+
+
+def _price_list_line_payload(line: SRMPriceListLine) -> dict:
+    data = _serialize(line)
+    data["product"] = _product_payload(line.product) if line.product else None
+    return data
+
+
+def _price_list_payload(item: SRMPriceList) -> dict:
+    data = _serialize(item)
+    data["lines"] = [_price_list_line_payload(line) for line in item.lines]
+    return data
+
+
+def _batch_payload(item: SRMInventoryBatch) -> dict:
+    data = _serialize(item)
+    data["product"] = _product_payload(item.product) if item.product else None
+    data["warehouse"] = _serialize(item.warehouse)
+    data["serial_count"] = len(item.serials or [])
+    return data
+
+
+def _serial_payload(item: SRMSerialNumber) -> dict:
+    data = _serialize(item)
+    data["product"] = _product_payload(item.product) if item.product else None
+    data["warehouse"] = _serialize(item.warehouse)
+    data["batch"] = _serialize(item.batch)
+    return data
+
+
+def _bom_component_payload(item: SRMBOMComponent) -> dict:
+    data = _serialize(item)
+    data["component_product"] = _product_payload(item.component_product) if item.component_product else None
+    data["warehouse"] = _serialize(item.warehouse)
+    return data
+
+
+def _bom_payload(item: SRMBillOfMaterial) -> dict:
+    data = _serialize(item)
+    data["finished_product"] = _product_payload(item.finished_product) if item.finished_product else None
+    data["components"] = [_bom_component_payload(row) for row in item.components]
+    return data
+
+
+def _production_order_payload(item: SRMProductionOrder) -> dict:
+    data = _serialize(item)
+    data["bom"] = _bom_payload(item.bom) if item.bom else None
+    data["finished_product"] = _product_payload(item.finished_product) if item.finished_product else None
+    data["warehouse"] = _serialize(item.warehouse)
+    return data
+
+
+def _matching_price_line(db: Session, org_id: int | None, product_id: int, channel: str | None, customer_type: str | None, price_date: date, quantity: Decimal) -> SRMPriceListLine | None:
+    query = (
+        db.query(SRMPriceListLine)
+        .join(SRMPriceList, SRMPriceList.id == SRMPriceListLine.price_list_id)
+        .filter(
+            SRMPriceList.organization_id == org_id,
+            SRMPriceList.deleted_at.is_(None),
+            SRMPriceList.active.is_(True),
+            SRMPriceListLine.active.is_(True),
+            SRMPriceListLine.product_id == product_id,
+            SRMPriceListLine.min_quantity <= quantity,
+            (SRMPriceList.effective_from.is_(None)) | (SRMPriceList.effective_from <= price_date),
+            (SRMPriceList.effective_to.is_(None)) | (SRMPriceList.effective_to >= price_date),
+        )
+    )
+    if channel:
+        query = query.filter((SRMPriceList.channel == channel) | (SRMPriceList.channel == "all"))
+    if customer_type:
+        query = query.filter((SRMPriceList.customer_type == customer_type) | (SRMPriceList.customer_type == "all"))
+    return query.order_by(SRMPriceList.priority.asc(), SRMPriceListLine.min_quantity.desc(), SRMPriceList.id.desc()).first()
+
+
+def _received_quantity_for_po_line(db: Session, po_line_id: int) -> Decimal:
+    return _sum_decimal(
+        db,
+        SRMGoodsReceiptLine.accepted_quantity,
+        SRMGoodsReceiptLine.purchase_order_line_id == po_line_id,
+    )
+
+
+def _update_purchase_order_receipt_status(db: Session, po: SRMPurchaseOrder) -> None:
+    any_received = False
+    fully_received = bool(po.lines)
+    for line in po.lines:
+        received = _received_quantity_for_po_line(db, line.id)
+        line.received_quantity = received
+        if received > 0:
+            any_received = True
+        if received < _decimal(line.quantity):
+            fully_received = False
+    po.status = "received" if fully_received else ("partially_received" if any_received else po.status)
+
+
+def _stock_in_from_grn_line(db: Session, receipt: SRMGoodsReceipt, line: SRMGoodsReceiptLine, user: User) -> SRMInventoryMovement | None:
+    if not line.product_id or _decimal(line.accepted_quantity) <= 0:
+        return None
+    product = db.query(SRMProduct).filter(
+        SRMProduct.organization_id == receipt.organization_id,
+        SRMProduct.id == line.product_id,
+        SRMProduct.deleted_at.is_(None),
+    ).first()
+    if not product or not product.track_inventory:
+        return None
+    warehouse_id = line.warehouse_id or product.default_warehouse_id
+    if not warehouse_id:
+        raise HTTPException(status_code=400, detail=f"Receipt warehouse is required for {product.item_name}")
+    balance = db.query(SRMInventoryBalance).filter(
+        SRMInventoryBalance.organization_id == receipt.organization_id,
+        SRMInventoryBalance.product_id == product.id,
+        SRMInventoryBalance.warehouse_id == warehouse_id,
+    ).first()
+    if not balance:
+        balance = SRMInventoryBalance(organization_id=receipt.organization_id, product_id=product.id, warehouse_id=warehouse_id, quantity=0, average_cost=line.unit_price or product.average_cost)
+        db.add(balance)
+        db.flush()
+    quantity = _decimal(line.accepted_quantity)
+    balance.quantity = _decimal(balance.quantity) + quantity
+    balance.average_cost = line.unit_price or balance.average_cost
+    movement = SRMInventoryMovement(
+        organization_id=receipt.organization_id,
+        movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", receipt.organization_id),
+        movement_type="grn_receipt",
+        movement_date=receipt.receipt_date,
+        product_id=product.id,
+        warehouse_id=warehouse_id,
+        quantity_in=quantity,
+        rate=line.unit_price or product.purchase_rate or 0,
+        value=quantity * _decimal(line.unit_price or product.purchase_rate or 0),
+        reference_number=receipt.grn_number,
+        notes=f"GRN {receipt.grn_number}",
+        created_by=user.id,
+    )
+    db.add(movement)
+    db.flush()
+    _refresh_product_quantity(db, product)
+    if line.unit_price:
+        product.average_cost = line.unit_price
+    return movement
+
+
+def _post_production_inventory(db: Session, order: SRMProductionOrder, completed_quantity: Decimal, warehouse_id: int | None, user: User) -> list[SRMInventoryMovement]:
+    bom = order.bom
+    if not bom or not bom.components:
+        raise HTTPException(status_code=400, detail="BOM components are required before posting production")
+    if _decimal(completed_quantity) <= 0:
+        raise HTTPException(status_code=400, detail="Completed quantity must be greater than zero")
+    output_ratio = _decimal(completed_quantity) / _decimal(bom.output_quantity or 1)
+    movements: list[SRMInventoryMovement] = []
+    component_cost = Decimal("0")
+    for component in bom.components:
+        product = component.component_product
+        if not product:
+            raise HTTPException(status_code=400, detail="BOM component product is missing")
+        component_warehouse_id = component.warehouse_id or product.default_warehouse_id
+        if not component_warehouse_id:
+            raise HTTPException(status_code=400, detail=f"Warehouse is required for component {product.item_name}")
+        required_quantity = _decimal(component.quantity) * output_ratio
+        balance = db.query(SRMInventoryBalance).filter(
+            SRMInventoryBalance.organization_id == order.organization_id,
+            SRMInventoryBalance.product_id == product.id,
+            SRMInventoryBalance.warehouse_id == component_warehouse_id,
+        ).first()
+        available = _decimal(balance.quantity if balance else 0)
+        if available < required_quantity:
+            raise HTTPException(status_code=409, detail=f"Insufficient component stock for {product.item_name}")
+        rate = _decimal(component.unit_cost or product.average_cost or product.purchase_rate or 0)
+        balance.quantity = available - required_quantity
+        movement = SRMInventoryMovement(
+            organization_id=order.organization_id,
+            movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", order.organization_id),
+            movement_type="production_consumption",
+            movement_date=date.today(),
+            product_id=product.id,
+            warehouse_id=component_warehouse_id,
+            quantity_out=required_quantity,
+            rate=rate,
+            value=required_quantity * rate,
+            reference_number=order.production_number,
+            notes=f"Production consumption for {order.production_number}",
+            created_by=user.id,
+        )
+        db.add(movement)
+        db.flush()
+        movements.append(movement)
+        component_cost += required_quantity * rate
+        _refresh_product_quantity(db, product)
+    finished = order.finished_product
+    finished_warehouse_id = warehouse_id or order.warehouse_id or (finished.default_warehouse_id if finished else None)
+    if not finished or not finished_warehouse_id:
+        raise HTTPException(status_code=400, detail="Finished product warehouse is required")
+    finished_balance = db.query(SRMInventoryBalance).filter(
+        SRMInventoryBalance.organization_id == order.organization_id,
+        SRMInventoryBalance.product_id == finished.id,
+        SRMInventoryBalance.warehouse_id == finished_warehouse_id,
+    ).first()
+    unit_cost = component_cost / _decimal(completed_quantity)
+    if not finished_balance:
+        finished_balance = SRMInventoryBalance(organization_id=order.organization_id, product_id=finished.id, warehouse_id=finished_warehouse_id, quantity=0, average_cost=unit_cost)
+        db.add(finished_balance)
+        db.flush()
+    finished_balance.quantity = _decimal(finished_balance.quantity) + _decimal(completed_quantity)
+    finished_balance.average_cost = unit_cost
+    finished_movement = SRMInventoryMovement(
+        organization_id=order.organization_id,
+        movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", order.organization_id),
+        movement_type="production_output",
+        movement_date=date.today(),
+        product_id=finished.id,
+        warehouse_id=finished_warehouse_id,
+        quantity_in=completed_quantity,
+        rate=unit_cost,
+        value=component_cost,
+        reference_number=order.production_number,
+        notes=f"Production output for {order.production_number}",
+        created_by=user.id,
+    )
+    db.add(finished_movement)
+    db.flush()
+    movements.append(finished_movement)
+    _refresh_product_quantity(db, finished)
+    finished.average_cost = unit_cost
+    order.completed_quantity = _decimal(order.completed_quantity) + _decimal(completed_quantity)
+    order.total_component_cost = _decimal(order.total_component_cost) + component_cost
+    order.status = "completed" if _decimal(order.completed_quantity) >= _decimal(order.planned_quantity) else "partially_completed"
+    order.completed_at = datetime.now(timezone.utc)
+    db.flush()
+    return movements
+
+
+@router.get("/inventory/categories")
+def list_srm_product_categories(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    rows = db.query(SRMProductCategory).filter(SRMProductCategory.organization_id == org_id).order_by(SRMProductCategory.category_name).all()
+    return {"items": [_serialize(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/inventory/categories", status_code=201)
+def create_srm_product_category(data: SRMProductCategoryCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if db.query(SRMProductCategory).filter(SRMProductCategory.organization_id == org_id, SRMProductCategory.category_code == data.category_code).first():
+        raise HTTPException(status_code=409, detail="SRM category code already exists")
+    row = SRMProductCategory(organization_id=org_id, created_by=current_user.id, **data.model_dump())
+    db.add(row)
+    db.flush()
+    _audit(db, current_user, "product_category", row.id, "CREATE", None, _serialize(row))
+    db.commit()
+    db.refresh(row)
+    return _serialize(row)
+
+
+@router.get("/inventory/warehouses")
+def list_srm_warehouses(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    rows = db.query(SRMWarehouse).filter(SRMWarehouse.organization_id == org_id).order_by(SRMWarehouse.warehouse_name).all()
+    return {"items": [_serialize(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/inventory/warehouses", status_code=201)
+def create_srm_warehouse(data: SRMWarehouseCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if db.query(SRMWarehouse).filter(SRMWarehouse.organization_id == org_id, SRMWarehouse.warehouse_code == data.warehouse_code).first():
+        raise HTTPException(status_code=409, detail="SRM warehouse code already exists")
+    row = SRMWarehouse(organization_id=org_id, created_by=current_user.id, **data.model_dump())
+    db.add(row)
+    db.flush()
+    _audit(db, current_user, "warehouse", row.id, "CREATE", None, _serialize(row))
+    db.commit()
+    db.refresh(row)
+    return _serialize(row)
+
+
+@router.get("/inventory/items")
+def list_srm_products(search: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None))
+    if search:
+        normalized = f"%{search.lower()}%"
+        query = query.filter(
+            func.lower(SRMProduct.sku).like(normalized)
+            | func.lower(SRMProduct.item_name).like(normalized)
+            | func.lower(SRMProduct.category_name).like(normalized)
+            | func.lower(SRMProduct.barcode).like(normalized)
+        )
+    rows = query.order_by(SRMProduct.item_name).all()
+    return {"items": [_product_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/inventory/items", status_code=201)
+def create_srm_product(data: SRMProductCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.sku == data.sku, SRMProduct.deleted_at.is_(None)).first():
+        raise HTTPException(status_code=409, detail="SRM product SKU already exists")
+    if data.barcode and db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.barcode == data.barcode, SRMProduct.deleted_at.is_(None)).first():
+        raise HTTPException(status_code=409, detail="SRM product barcode already exists")
+    row = SRMProduct(organization_id=org_id, created_by=current_user.id, **data.model_dump())
+    if not row.mrp:
+        row.mrp = row.sales_rate
+    db.add(row)
+    db.flush()
+    _audit(db, current_user, "product", row.id, "CREATE", None, _product_payload(row))
+    db.commit()
+    db.refresh(row)
+    return _product_payload(row)
+
+
+@router.get("/inventory/items/{product_id}")
+def get_srm_product(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    product = _product_or_404(db, org_id, product_id)
+    movements = db.query(SRMInventoryMovement).filter(SRMInventoryMovement.organization_id == org_id, SRMInventoryMovement.product_id == product.id).order_by(SRMInventoryMovement.id.desc()).limit(25).all()
+    balances = db.query(SRMInventoryBalance).filter(SRMInventoryBalance.organization_id == org_id, SRMInventoryBalance.product_id == product.id).all()
+    return {**_product_payload(product), "ledger": [_serialize(row) for row in movements], "balances": [_serialize(row) for row in balances]}
+
+
+@router.put("/inventory/items/{product_id}")
+def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    product = _product_or_404(db, org_id, product_id)
+    before = _product_payload(product)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(product, key, value)
+    if not product.mrp:
+        product.mrp = product.sales_rate
+    _audit(db, current_user, "product", product.id, "UPDATE", before, _product_payload(product))
+    db.commit()
+    db.refresh(product)
+    return _product_payload(product)
+
+
+@router.post("/inventory/opening-stock", status_code=201)
+def create_srm_opening_stock(data: SRMOpeningStockCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    product = _product_or_404(db, org_id, data.product_id)
+    warehouse = _warehouse_or_404(db, org_id, data.warehouse_id)
+    movement = SRMInventoryMovement(
+        organization_id=org_id,
+        movement_number=_next_number(db, SRMInventoryMovement, "INV", "movement_number", org_id),
+        movement_type="opening_stock",
+        movement_date=data.movement_date or date.today(),
+        product_id=product.id,
+        warehouse_id=warehouse.id,
+        quantity_in=data.quantity,
+        rate=data.rate,
+        value=_decimal(data.quantity) * _decimal(data.rate),
+        reference_number=data.reference_number,
+        notes=data.notes,
+        created_by=current_user.id,
+    )
+    balance = db.query(SRMInventoryBalance).filter(SRMInventoryBalance.organization_id == org_id, SRMInventoryBalance.product_id == product.id, SRMInventoryBalance.warehouse_id == warehouse.id).first()
+    if not balance:
+        balance = SRMInventoryBalance(organization_id=org_id, product_id=product.id, warehouse_id=warehouse.id, quantity=0, average_cost=data.rate)
+        db.add(balance)
+        db.flush()
+    balance.quantity = _decimal(balance.quantity) + _decimal(data.quantity)
+    balance.average_cost = data.rate
+    db.add(movement)
+    db.flush()
+    _refresh_product_quantity(db, product)
+    if data.rate:
+        product.average_cost = data.rate
+    _audit(db, current_user, "inventory_movement", movement.id, "OPENING_STOCK", None, _serialize(movement))
+    db.commit()
+    db.refresh(movement)
+    db.refresh(product)
+    return {"movement": _serialize(movement), "product": _product_payload(product), "balance": _serialize(balance)}
+
+
+@router.post("/inventory/stock-movements", status_code=201)
+def create_srm_stock_movement(data: SRMStockMovementCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    movement_type = data.movement_type or "stock_in"
+    if movement_type not in {"stock_in", "stock_out", "purchase_receipt", "delivery_note"}:
+        raise HTTPException(status_code=400, detail="Unsupported stock movement type")
+    product = _product_or_404(db, org_id, data.product_id)
+    warehouse = _warehouse_or_404(db, org_id, data.warehouse_id)
+    quantity_in = data.quantity if movement_type in {"stock_in", "purchase_receipt"} else Decimal("0")
+    quantity_out = data.quantity if movement_type in {"stock_out", "delivery_note"} else Decimal("0")
+    movement = _post_stock_movement(
+        db,
+        org_id,
+        product,
+        warehouse.id,
+        movement_type,
+        quantity_in,
+        quantity_out,
+        data.rate,
+        data.movement_date or date.today(),
+        data.reference_number,
+        data.notes,
+        current_user,
+    )
+    _audit(db, current_user, "inventory_movement", movement.id, movement_type.upper(), None, _serialize(movement))
+    db.commit()
+    db.refresh(product)
+    return {"movement": _serialize(movement), "product": _product_payload(product)}
+
+
+@router.post("/inventory/stock-transfers", status_code=201)
+def create_srm_stock_transfer(data: SRMStockTransferCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if data.from_warehouse_id == data.to_warehouse_id:
+        raise HTTPException(status_code=400, detail="Transfer warehouses must be different")
+    product = _product_or_404(db, org_id, data.product_id)
+    from_warehouse = _warehouse_or_404(db, org_id, data.from_warehouse_id)
+    to_warehouse = _warehouse_or_404(db, org_id, data.to_warehouse_id)
+    movement_date = data.movement_date or date.today()
+    ref = data.reference_number or _next_number(db, SRMInventoryMovement, "TRF", "movement_number", org_id)
+    out_movement = _post_stock_movement(db, org_id, product, from_warehouse.id, "stock_transfer_out", Decimal("0"), data.quantity, data.rate, movement_date, ref, data.notes, current_user)
+    in_movement = _post_stock_movement(db, org_id, product, to_warehouse.id, "stock_transfer_in", data.quantity, Decimal("0"), data.rate, movement_date, ref, data.notes, current_user)
+    _audit(db, current_user, "inventory_transfer", out_movement.id, "TRANSFER_OUT", None, _serialize(out_movement))
+    _audit(db, current_user, "inventory_transfer", in_movement.id, "TRANSFER_IN", None, _serialize(in_movement))
+    db.commit()
+    db.refresh(product)
+    return {"reference_number": ref, "movements": [_serialize(out_movement), _serialize(in_movement)], "product": _product_payload(product)}
+
+
+@router.post("/inventory/stock-adjustments", status_code=201)
+def create_srm_stock_adjustment(data: SRMStockAdjustmentCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if _decimal(data.quantity_in) > 0 and _decimal(data.quantity_out) > 0:
+        raise HTTPException(status_code=400, detail="Use either quantity_in or quantity_out for one adjustment")
+    product = _product_or_404(db, org_id, data.product_id)
+    warehouse = _warehouse_or_404(db, org_id, data.warehouse_id)
+    movement_type = "stock_adjustment_in" if _decimal(data.quantity_in) > 0 else "stock_adjustment_out"
+    movement = _post_stock_movement(
+        db,
+        org_id,
+        product,
+        warehouse.id,
+        movement_type,
+        data.quantity_in,
+        data.quantity_out,
+        data.rate,
+        data.movement_date or date.today(),
+        data.reference_number,
+        data.notes or data.reason,
+        current_user,
+    )
+    _audit(db, current_user, "inventory_adjustment", movement.id, movement_type.upper(), None, _serialize(movement))
+    db.commit()
+    db.refresh(product)
+    return {"movement": _serialize(movement), "product": _product_payload(product)}
+
+
+@router.get("/inventory/batches")
+def list_inventory_batches(product_id: int | None = None, status: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    query = db.query(SRMInventoryBatch).filter(SRMInventoryBatch.organization_id == org_id)
+    if product_id:
+        query = query.filter(SRMInventoryBatch.product_id == product_id)
+    if status:
+        query = query.filter(SRMInventoryBatch.status == status)
+    rows = query.order_by(SRMInventoryBatch.expiry_date.asc().nullslast(), SRMInventoryBatch.id.desc()).limit(200).all()
+    return {"items": [_batch_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/inventory/batches", status_code=201)
+def create_inventory_batch(data: SRMInventoryBatchCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    product = _product_or_404(db, org_id, data.product_id)
+    warehouse_id = data.warehouse_id or product.default_warehouse_id
+    warehouse = _warehouse_or_404(db, org_id, warehouse_id) if warehouse_id else None
+    if data.expiry_date and data.manufacture_date and data.expiry_date < data.manufacture_date:
+        raise HTTPException(status_code=400, detail="Expiry date cannot be before manufacture date")
+    if _decimal(data.quantity) < 0:
+        raise HTTPException(status_code=400, detail="Batch quantity cannot be negative")
+    if db.query(SRMInventoryBatch).filter(SRMInventoryBatch.organization_id == org_id, SRMInventoryBatch.product_id == product.id, SRMInventoryBatch.batch_number == data.batch_number).first():
+        raise HTTPException(status_code=409, detail="Batch number already exists for this product")
+    available = data.available_quantity if data.available_quantity is not None else data.quantity
+    if _decimal(available) < 0 or _decimal(available) > _decimal(data.quantity):
+        raise HTTPException(status_code=400, detail="Available quantity must be between zero and batch quantity")
+    batch = SRMInventoryBatch(
+        organization_id=org_id,
+        product_id=product.id,
+        warehouse_id=warehouse.id if warehouse else None,
+        batch_number=data.batch_number,
+        manufacture_date=data.manufacture_date,
+        expiry_date=data.expiry_date,
+        received_date=data.received_date or date.today(),
+        quantity=data.quantity,
+        available_quantity=available,
+        unit_cost=data.unit_cost,
+        status=data.status,
+        notes=data.notes,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    product.batch_tracking = True
+    if data.expiry_date:
+        product.expiry_tracking = True
+    db.add(batch)
+    db.flush()
+    _audit(db, current_user, "inventory_batch", batch.id, "created", None, _batch_payload(batch))
+    db.commit()
+    db.refresh(batch)
+    return _batch_payload(batch)
+
+
+@router.get("/inventory/batches/{batch_id}")
+def get_inventory_batch(batch_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    batch = db.query(SRMInventoryBatch).filter(SRMInventoryBatch.organization_id == _org(current_user), SRMInventoryBatch.id == batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    return _batch_payload(batch) | {"serials": [_serial_payload(row) for row in batch.serials]}
+
+
+@router.get("/inventory/serial-numbers")
+def list_serial_numbers(product_id: int | None = None, status: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    query = db.query(SRMSerialNumber).filter(SRMSerialNumber.organization_id == org_id)
+    if product_id:
+        query = query.filter(SRMSerialNumber.product_id == product_id)
+    if status:
+        query = query.filter(SRMSerialNumber.status == status)
+    rows = query.order_by(SRMSerialNumber.id.desc()).limit(300).all()
+    return {"items": [_serial_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/inventory/serial-numbers", status_code=201)
+def create_serial_number(data: SRMSerialNumberCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    product = _product_or_404(db, org_id, data.product_id)
+    batch = None
+    if data.batch_id:
+        batch = db.query(SRMInventoryBatch).filter(SRMInventoryBatch.organization_id == org_id, SRMInventoryBatch.id == data.batch_id).first()
+        if not batch:
+            raise HTTPException(status_code=404, detail="Batch not found")
+        if batch.product_id != product.id:
+            raise HTTPException(status_code=400, detail="Serial batch must belong to the same product")
+    warehouse_id = data.warehouse_id or (batch.warehouse_id if batch else None) or product.default_warehouse_id
+    warehouse = _warehouse_or_404(db, org_id, warehouse_id) if warehouse_id else None
+    if db.query(SRMSerialNumber).filter(SRMSerialNumber.organization_id == org_id, SRMSerialNumber.serial_number == data.serial_number).first():
+        raise HTTPException(status_code=409, detail="Serial number already exists")
+    serial = SRMSerialNumber(
+        organization_id=org_id,
+        product_id=product.id,
+        warehouse_id=warehouse.id if warehouse else None,
+        batch_id=batch.id if batch else None,
+        serial_number=data.serial_number,
+        status=data.status,
+        received_date=data.received_date or date.today(),
+        reference_number=data.reference_number,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    product.serial_tracking = True
+    db.add(serial)
+    db.flush()
+    _audit(db, current_user, "serial_number", serial.id, "created", None, _serial_payload(serial))
+    db.commit()
+    db.refresh(serial)
+    return _serial_payload(serial)
+
+
+@router.get("/inventory/manufacturing/bom")
+def list_boms(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    rows = db.query(SRMBillOfMaterial).filter(SRMBillOfMaterial.organization_id == _org(current_user), SRMBillOfMaterial.deleted_at.is_(None)).order_by(SRMBillOfMaterial.id.desc()).limit(100).all()
+    return {"items": [_bom_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/inventory/manufacturing/bom", status_code=201)
+def create_bom(data: SRMBillOfMaterialCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if not data.components:
+        raise HTTPException(status_code=400, detail="BOM components are required")
+    if _decimal(data.output_quantity) <= 0:
+        raise HTTPException(status_code=400, detail="BOM output quantity must be greater than zero")
+    finished = _product_or_404(db, org_id, data.finished_product_id)
+    bom_number = data.bom_number or _next_number(db, SRMBillOfMaterial, "BOM", "bom_number", org_id)
+    if db.query(SRMBillOfMaterial).filter(SRMBillOfMaterial.organization_id == org_id, SRMBillOfMaterial.bom_number == bom_number, SRMBillOfMaterial.deleted_at.is_(None)).first():
+        raise HTTPException(status_code=409, detail="BOM number already exists")
+    bom = SRMBillOfMaterial(
+        organization_id=org_id,
+        bom_number=bom_number,
+        bom_name=data.bom_name,
+        finished_product_id=finished.id,
+        output_quantity=data.output_quantity,
+        status=data.status,
+        notes=data.notes,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    db.add(bom)
+    db.flush()
+    for component_data in data.components:
+        component_product = _product_or_404(db, org_id, component_data.component_product_id)
+        if component_product.id == finished.id:
+            raise HTTPException(status_code=400, detail="Finished product cannot also be a component")
+        if _decimal(component_data.quantity) <= 0:
+            raise HTTPException(status_code=400, detail="Component quantity must be greater than zero")
+        warehouse_id = component_data.warehouse_id or component_product.default_warehouse_id
+        line_total = component_data.line_total if component_data.line_total is not None else _decimal(component_data.quantity) * _decimal(component_data.unit_cost or component_product.average_cost or component_product.purchase_rate or 0)
+        component = SRMBOMComponent(
+            bom_id=bom.id,
+            component_product_id=component_product.id,
+            warehouse_id=warehouse_id,
+            quantity=component_data.quantity,
+            scrap_percent=component_data.scrap_percent,
+            unit_cost=component_data.unit_cost or component_product.average_cost or component_product.purchase_rate or 0,
+            line_total=line_total,
+            metadata_json=component_data.metadata_json,
+        )
+        db.add(component)
+    db.flush()
+    _audit(db, current_user, "bill_of_material", bom.id, "created", None, _bom_payload(bom))
+    db.commit()
+    db.refresh(bom)
+    return _bom_payload(bom)
+
+
+@router.get("/inventory/manufacturing/bom/{bom_id}")
+def get_bom(bom_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    bom = db.query(SRMBillOfMaterial).filter(SRMBillOfMaterial.organization_id == _org(current_user), SRMBillOfMaterial.id == bom_id, SRMBillOfMaterial.deleted_at.is_(None)).first()
+    if not bom:
+        raise HTTPException(status_code=404, detail="BOM not found")
+    return _bom_payload(bom)
+
+
+@router.get("/inventory/manufacturing/orders")
+def list_production_orders(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    rows = db.query(SRMProductionOrder).filter(SRMProductionOrder.organization_id == _org(current_user)).order_by(SRMProductionOrder.id.desc()).limit(100).all()
+    return {"items": [_production_order_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/inventory/manufacturing/orders", status_code=201)
+def create_production_order(data: SRMProductionOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    bom = db.query(SRMBillOfMaterial).filter(SRMBillOfMaterial.organization_id == org_id, SRMBillOfMaterial.id == data.bom_id, SRMBillOfMaterial.deleted_at.is_(None)).first()
+    if not bom:
+        raise HTTPException(status_code=404, detail="BOM not found")
+    if _decimal(data.planned_quantity) <= 0:
+        raise HTTPException(status_code=400, detail="Planned quantity must be greater than zero")
+    production_number = data.production_number or _next_number(db, SRMProductionOrder, "MFG", "production_number", org_id)
+    if db.query(SRMProductionOrder).filter(SRMProductionOrder.organization_id == org_id, SRMProductionOrder.production_number == production_number).first():
+        raise HTTPException(status_code=409, detail="Production order number already exists")
+    order = SRMProductionOrder(
+        organization_id=org_id,
+        production_number=production_number,
+        bom_id=bom.id,
+        finished_product_id=bom.finished_product_id,
+        warehouse_id=data.warehouse_id or bom.finished_product.default_warehouse_id,
+        planned_quantity=data.planned_quantity,
+        order_date=data.order_date or date.today(),
+        notes=data.notes,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    db.add(order)
+    db.flush()
+    _audit(db, current_user, "production_order", order.id, "created", None, _production_order_payload(order))
+    db.commit()
+    db.refresh(order)
+    return _production_order_payload(order)
+
+
+@router.post("/inventory/manufacturing/orders/{order_id}/post")
+def post_production_order(order_id: int, data: SRMProductionPostRequest, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    order = db.query(SRMProductionOrder).filter(SRMProductionOrder.organization_id == _org(current_user), SRMProductionOrder.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Production order not found")
+    if order.status == "completed":
+        raise HTTPException(status_code=409, detail="Production order is already completed")
+    completed_quantity = data.completed_quantity or (_decimal(order.planned_quantity) - _decimal(order.completed_quantity))
+    movements = _post_production_inventory(db, order, completed_quantity, data.warehouse_id, current_user)
+    _audit(db, current_user, "production_order", order.id, "posted", None, _production_order_payload(order))
+    for movement in movements:
+        _audit(db, current_user, "inventory_movement", movement.id, movement.movement_type.upper(), None, _serialize(movement))
+    db.commit()
+    db.refresh(order)
+    return {"production_order": _production_order_payload(order), "movements": [_serialize(row) for row in movements]}
+
+
+@router.get("/procurement/purchase-orders")
+def list_purchase_orders(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    rows = db.query(SRMPurchaseOrder).filter(SRMPurchaseOrder.organization_id == _org(current_user), SRMPurchaseOrder.deleted_at.is_(None)).order_by(SRMPurchaseOrder.id.desc()).limit(100).all()
+    return {"items": [_purchase_order_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/procurement/purchase-orders", status_code=201)
+def create_purchase_order(data: SRMPurchaseOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if not data.lines:
+        raise HTTPException(status_code=400, detail="Purchase order lines are required")
+    if data.po_number and db.query(SRMPurchaseOrder).filter(SRMPurchaseOrder.organization_id == org_id, SRMPurchaseOrder.po_number == data.po_number, SRMPurchaseOrder.deleted_at.is_(None)).first():
+        raise HTTPException(status_code=409, detail="Purchase order number already exists")
+    po = SRMPurchaseOrder(
+        organization_id=org_id,
+        po_number=data.po_number or _next_number(db, SRMPurchaseOrder, "PO", "po_number", org_id),
+        vendor_id=data.vendor_id,
+        vendor_name=data.vendor_name,
+        status="ordered",
+        order_date=data.order_date or date.today(),
+        expected_date=data.expected_date,
+        notes=data.notes,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    db.add(po)
+    db.flush()
+    subtotal = Decimal("0")
+    tax = Decimal("0")
+    total = Decimal("0")
+    for line_data in data.lines:
+        if _decimal(line_data.quantity) <= 0:
+            raise HTTPException(status_code=400, detail="Purchase order quantity must be greater than zero")
+        product = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.id == line_data.product_id, SRMProduct.deleted_at.is_(None)).first() if line_data.product_id else None
+        warehouse_id = line_data.warehouse_id or (product.default_warehouse_id if product else None)
+        line_total = line_data.line_total if line_data.line_total is not None else _decimal(line_data.quantity) * _decimal(line_data.unit_price) + _decimal(line_data.tax_amount)
+        line = SRMPurchaseOrderLine(
+            purchase_order_id=po.id,
+            product_id=line_data.product_id,
+            warehouse_id=warehouse_id,
+            item_code=line_data.item_code or (product.sku if product else None),
+            description=line_data.description or (product.item_name if product else None),
+            quantity=line_data.quantity,
+            unit_price=line_data.unit_price,
+            tax_amount=line_data.tax_amount,
+            line_total=line_total,
+            metadata_json=line_data.metadata_json,
+        )
+        db.add(line)
+        subtotal += _decimal(line.quantity) * _decimal(line.unit_price)
+        tax += _decimal(line.tax_amount)
+        total += _decimal(line.line_total)
+    po.subtotal = subtotal
+    po.tax_amount = tax
+    po.total_amount = total
+    db.flush()
+    _audit(db, current_user, "purchase_order", po.id, "created", None, _purchase_order_payload(po))
+    db.commit()
+    db.refresh(po)
+    return _purchase_order_payload(po)
+
+
+@router.get("/procurement/purchase-orders/{po_id}")
+def get_purchase_order(po_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    po = db.query(SRMPurchaseOrder).filter(SRMPurchaseOrder.organization_id == _org(current_user), SRMPurchaseOrder.id == po_id, SRMPurchaseOrder.deleted_at.is_(None)).first()
+    if not po:
+        raise HTTPException(status_code=404, detail="Purchase order not found")
+    return _purchase_order_payload(po)
+
+
+@router.get("/procurement/grn")
+def list_goods_receipts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    rows = db.query(SRMGoodsReceipt).filter(SRMGoodsReceipt.organization_id == _org(current_user)).order_by(SRMGoodsReceipt.id.desc()).limit(100).all()
+    return {"items": [_goods_receipt_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/procurement/grn", status_code=201)
+def create_goods_receipt(data: SRMGoodsReceiptCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if not data.lines:
+        raise HTTPException(status_code=400, detail="GRN lines are required")
+    po = db.query(SRMPurchaseOrder).filter(SRMPurchaseOrder.organization_id == org_id, SRMPurchaseOrder.id == data.purchase_order_id, SRMPurchaseOrder.deleted_at.is_(None)).first() if data.purchase_order_id else None
+    po_lines = {line.id: line for line in po.lines} if po else {}
+    receipt = SRMGoodsReceipt(
+        organization_id=org_id,
+        grn_number=data.grn_number or _next_number(db, SRMGoodsReceipt, "GRN", "grn_number", org_id),
+        purchase_order_id=po.id if po else None,
+        vendor_id=data.vendor_id or (po.vendor_id if po else None),
+        vendor_name=data.vendor_name or (po.vendor_name if po else None),
+        receipt_date=data.receipt_date or date.today(),
+        reference_number=data.reference_number,
+        notes=data.notes,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    db.add(receipt)
+    db.flush()
+    subtotal = Decimal("0")
+    tax = Decimal("0")
+    total = Decimal("0")
+    movements: list[SRMInventoryMovement] = []
+    for line_data in data.lines:
+        po_line = po_lines.get(line_data.purchase_order_line_id or 0)
+        product_id = line_data.product_id or (po_line.product_id if po_line else None)
+        product = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.id == product_id, SRMProduct.deleted_at.is_(None)).first() if product_id else None
+        accepted = line_data.accepted_quantity if line_data.accepted_quantity is not None else line_data.quantity
+        if _decimal(accepted) < 0 or _decimal(line_data.rejected_quantity) < 0:
+            raise HTTPException(status_code=400, detail="GRN quantities cannot be negative")
+        if po_line:
+            already_received = _received_quantity_for_po_line(db, po_line.id)
+            if already_received + _decimal(accepted) > _decimal(po_line.quantity):
+                raise HTTPException(status_code=409, detail=f"Received quantity exceeds ordered quantity for {po_line.description}")
+        warehouse_id = line_data.warehouse_id or (po_line.warehouse_id if po_line else None) or (product.default_warehouse_id if product else None)
+        line_total = line_data.line_total if line_data.line_total is not None else _decimal(accepted) * _decimal(line_data.unit_price or (po_line.unit_price if po_line else 0)) + _decimal(line_data.tax_amount)
+        line = SRMGoodsReceiptLine(
+            goods_receipt_id=receipt.id,
+            purchase_order_line_id=po_line.id if po_line else None,
+            product_id=product_id,
+            warehouse_id=warehouse_id,
+            item_code=line_data.item_code or (po_line.item_code if po_line else None) or (product.sku if product else None),
+            description=line_data.description or (po_line.description if po_line else None) or (product.item_name if product else None),
+            quantity=line_data.quantity,
+            accepted_quantity=accepted,
+            rejected_quantity=line_data.rejected_quantity,
+            unit_price=line_data.unit_price or (po_line.unit_price if po_line else 0),
+            tax_amount=line_data.tax_amount,
+            line_total=line_total,
+            metadata_json=line_data.metadata_json,
+        )
+        db.add(line)
+        db.flush()
+        movement = _stock_in_from_grn_line(db, receipt, line, current_user)
+        if movement:
+            movements.append(movement)
+        subtotal += _decimal(line.accepted_quantity) * _decimal(line.unit_price)
+        tax += _decimal(line.tax_amount)
+        total += _decimal(line.line_total)
+    receipt.subtotal = subtotal
+    receipt.tax_amount = tax
+    receipt.total_amount = total
+    if po:
+        _update_purchase_order_receipt_status(db, po)
+    _audit(db, current_user, "goods_receipt", receipt.id, "posted", None, _goods_receipt_payload(receipt))
+    for movement in movements:
+        _audit(db, current_user, "inventory_movement", movement.id, "GRN_RECEIPT", None, _serialize(movement))
+    db.commit()
+    db.refresh(receipt)
+    return _goods_receipt_payload(receipt)
+
+
+@router.get("/procurement/grn/{grn_id}")
+def get_goods_receipt(grn_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    receipt = db.query(SRMGoodsReceipt).filter(SRMGoodsReceipt.organization_id == _org(current_user), SRMGoodsReceipt.id == grn_id).first()
+    if not receipt:
+        raise HTTPException(status_code=404, detail="GRN not found")
+    return _goods_receipt_payload(receipt)
+
+
+@router.get("/pricing/price-lists")
+def list_price_lists(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    rows = db.query(SRMPriceList).filter(SRMPriceList.organization_id == _org(current_user), SRMPriceList.deleted_at.is_(None)).order_by(SRMPriceList.priority.asc(), SRMPriceList.id.desc()).limit(100).all()
+    return {"items": [_price_list_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/pricing/price-lists", status_code=201)
+def create_price_list(data: SRMPriceListCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if not data.lines:
+        raise HTTPException(status_code=400, detail="Price list lines are required")
+    code = data.price_list_code or _next_number(db, SRMPriceList, "PL", "price_list_code", org_id)
+    if db.query(SRMPriceList).filter(SRMPriceList.organization_id == org_id, SRMPriceList.price_list_code == code, SRMPriceList.deleted_at.is_(None)).first():
+        raise HTTPException(status_code=409, detail="Price list code already exists")
+    if data.effective_from and data.effective_to and data.effective_to < data.effective_from:
+        raise HTTPException(status_code=400, detail="Effective-to date cannot be before effective-from date")
+    price_list = SRMPriceList(
+        organization_id=org_id,
+        price_list_code=code,
+        price_list_name=data.price_list_name,
+        channel=data.channel,
+        customer_type=data.customer_type,
+        currency=data.currency,
+        effective_from=data.effective_from,
+        effective_to=data.effective_to,
+        priority=data.priority,
+        active=data.active,
+        notes=data.notes,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    db.add(price_list)
+    db.flush()
+    for line_data in data.lines:
+        product = _product_or_404(db, org_id, line_data.product_id)
+        if _decimal(line_data.min_quantity) <= 0:
+            raise HTTPException(status_code=400, detail="Minimum quantity must be greater than zero")
+        if _decimal(line_data.price) < 0:
+            raise HTTPException(status_code=400, detail="Price cannot be negative")
+        line = SRMPriceListLine(
+            price_list_id=price_list.id,
+            product_id=product.id,
+            sku=product.sku,
+            item_name=product.item_name,
+            min_quantity=line_data.min_quantity,
+            price=line_data.price,
+            discount_percent=line_data.discount_percent,
+            discount_amount=line_data.discount_amount,
+            tax_inclusive=line_data.tax_inclusive,
+            active=line_data.active,
+            metadata_json=line_data.metadata_json,
+        )
+        db.add(line)
+    db.flush()
+    _audit(db, current_user, "price_list", price_list.id, "created", None, _price_list_payload(price_list))
+    db.commit()
+    db.refresh(price_list)
+    return _price_list_payload(price_list)
+
+
+@router.get("/pricing/price-lists/{price_list_id}")
+def get_price_list(price_list_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    row = db.query(SRMPriceList).filter(SRMPriceList.organization_id == _org(current_user), SRMPriceList.id == price_list_id, SRMPriceList.deleted_at.is_(None)).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Price list not found")
+    return _price_list_payload(row)
+
+
+@router.post("/pricing/lookup")
+def lookup_prices(data: SRMPriceLookupRequest, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    price_date = data.price_date or date.today()
+    quantity = _decimal(data.quantity or 1)
+    rows = []
+    for product_id in data.product_ids:
+        product = _product_or_404(db, org_id, product_id)
+        line = _matching_price_line(db, org_id, product.id, data.channel, data.customer_type, price_date, quantity)
+        list_row = line.price_list if line else None
+        price = _decimal(line.price if line else product.sales_rate)
+        discount_amount = _decimal(line.discount_amount if line else 0)
+        discount_percent = _decimal(line.discount_percent if line else 0)
+        net_price = price - discount_amount
+        if discount_percent:
+            net_price = net_price - (net_price * discount_percent / Decimal("100"))
+        rows.append({
+            "product_id": product.id,
+            "sku": product.sku,
+            "item_name": product.item_name,
+            "base_price": float(price),
+            "net_price": float(net_price),
+            "discount_percent": float(discount_percent),
+            "discount_amount": float(discount_amount),
+            "currency": list_row.currency if list_row else "INR",
+            "price_list_id": list_row.id if list_row else None,
+            "price_list_code": list_row.price_list_code if list_row else None,
+            "price_list_name": list_row.price_list_name if list_row else "Default product sales rate",
+            "tax_inclusive": bool(line.tax_inclusive) if line else False,
+        })
+    return {"items": rows, "total": len(rows), "price_date": price_date.isoformat()}
+
+
+@router.get("/pos/sessions")
+def list_pos_sessions(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    sessions = db.query(SRMPOSSession).filter(SRMPOSSession.organization_id == _org(current_user), SRMPOSSession.deleted_at == None).order_by(SRMPOSSession.id.desc()).limit(100).all()
+    return [_pos_session_summary(db, item) for item in sessions]
+
+
+@router.post("/pos/sessions", status_code=201)
+def open_pos_session(data: SRMPOSSessionCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    open_session = db.query(SRMPOSSession).filter(SRMPOSSession.organization_id == org_id, SRMPOSSession.cashier_user_id == current_user.id, SRMPOSSession.status == "open", SRMPOSSession.deleted_at == None).first()
+    if open_session:
+        return _pos_session_summary(db, open_session)
+    item = SRMPOSSession(
+        organization_id=org_id,
+        session_number=_next_number(db, SRMPOSSession, "POS", "session_number", org_id),
+        branch=data.branch,
+        register_name=data.register_name,
+        cashier_user_id=current_user.id,
+        opening_cash=data.opening_cash,
+        expected_cash=data.opening_cash,
+        notes=data.notes,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    db.add(item)
+    db.flush()
+    _audit(db, current_user, "pos_session", item.id, "opened", after=_serialize(item))
+    db.commit()
+    db.refresh(item)
+    return _pos_session_summary(db, item)
+
+
+@router.get("/pos/sessions/active")
+def active_pos_session(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    item = db.query(SRMPOSSession).filter(SRMPOSSession.organization_id == _org(current_user), SRMPOSSession.cashier_user_id == current_user.id, SRMPOSSession.status == "open", SRMPOSSession.deleted_at == None).order_by(SRMPOSSession.id.desc()).first()
+    if not item:
+        return {"session": None, "sales_count": 0, "cash_sales": 0, "cash_in": 0, "cash_out": 0, "expected_cash": 0, "movements": [], "closing": None}
+    return _pos_session_summary(db, item)
+
+
+@router.post("/pos/cash-movements", status_code=201)
+def create_pos_cash_movement(data: SRMPOSCashMovementCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    session = _get_pos_session(db, data.session_id, current_user)
+    if session.status != "open":
+        raise HTTPException(status_code=400, detail="Cannot add cash movement to a closed session")
+    movement_type = data.movement_type if data.movement_type in {"cash_in", "cash_out"} else "cash_in"
+    item = SRMPOSCashMovement(
+        organization_id=_org(current_user),
+        session_id=session.id,
+        movement_type=movement_type,
+        amount=data.amount,
+        reason=data.reason,
+        created_by=current_user.id,
+    )
+    db.add(item)
+    db.flush()
+    summary = _pos_session_summary(db, session)
+    session.expected_cash = summary["expected_cash"]
+    _audit(db, current_user, "pos_cash_movement", item.id, "created", after=_serialize(item))
+    db.commit()
+    db.refresh(session)
+    return _pos_session_summary(db, session)
+
+
+@router.post("/pos/cashier-closing", status_code=201)
+def close_pos_session(data: SRMPOSCashierClosingCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    session = _get_pos_session(db, data.session_id, current_user)
+    if session.status == "closed":
+        return _pos_session_summary(db, session)
+    summary = _pos_session_summary(db, session)
+    expected_cash = _decimal(summary["expected_cash"])
+    variance = _decimal(data.counted_cash) - expected_cash
+    closing = SRMPOSCashierClosing(
+        organization_id=_org(current_user),
+        session_id=session.id,
+        opening_cash=session.opening_cash,
+        cash_sales=summary["cash_sales"],
+        cash_in=summary["cash_in"],
+        cash_out=summary["cash_out"],
+        expected_cash=expected_cash,
+        counted_cash=data.counted_cash,
+        variance=variance,
+        notes=data.notes,
+        closed_by=current_user.id,
+    )
+    session.status = "closed"
+    session.expected_cash = expected_cash
+    session.counted_cash = data.counted_cash
+    session.cash_variance = variance
+    session.closed_at = datetime.now(timezone.utc)
+    db.add(closing)
+    db.flush()
+    _audit(db, current_user, "pos_session", session.id, "closed", after=_serialize(session))
+    db.commit()
+    db.refresh(session)
+    return _pos_session_summary(db, session)
+
+
+@router.get("/pos/held-bills")
+def list_pos_held_bills(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    rows = db.query(SRMPOSHeldBill).filter(
+        SRMPOSHeldBill.organization_id == _org(current_user),
+        SRMPOSHeldBill.status == "held",
+        SRMPOSHeldBill.deleted_at.is_(None),
+    ).order_by(SRMPOSHeldBill.id.desc()).limit(100).all()
+    return {"items": [_held_bill_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/pos/held-bills", status_code=201)
+def create_pos_held_bill(data: SRMPOSHeldBillCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if not data.cart_json:
+        raise HTTPException(status_code=400, detail="Held bill cart cannot be empty")
+    if data.session_id:
+        _get_pos_session(db, data.session_id, current_user)
+    row = SRMPOSHeldBill(
+        organization_id=org_id,
+        session_id=data.session_id,
+        hold_number=_next_number(db, SRMPOSHeldBill, "HOLD", "hold_number", org_id),
+        customer_id=data.customer_id,
+        customer_name=data.customer_name,
+        notes=data.notes,
+        cart_json=data.cart_json,
+        amount=data.amount,
+        item_count=data.item_count or len(data.cart_json),
+        created_by=current_user.id,
+    )
+    db.add(row)
+    db.flush()
+    _audit(db, current_user, "pos_held_bill", row.id, "held", None, _held_bill_payload(row))
+    db.commit()
+    db.refresh(row)
+    return _held_bill_payload(row)
+
+
+@router.post("/pos/held-bills/{held_bill_id}/recall")
+def recall_pos_held_bill(held_bill_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    row = db.query(SRMPOSHeldBill).filter(
+        SRMPOSHeldBill.organization_id == _org(current_user),
+        SRMPOSHeldBill.id == held_bill_id,
+        SRMPOSHeldBill.status == "held",
+        SRMPOSHeldBill.deleted_at.is_(None),
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Held bill not found")
+    before = _held_bill_payload(row)
+    row.status = "recalled"
+    row.recalled_by = current_user.id
+    row.recalled_at = datetime.now(timezone.utc)
+    _audit(db, current_user, "pos_held_bill", row.id, "recalled", before, _held_bill_payload(row))
+    db.commit()
+    db.refresh(row)
+    return _held_bill_payload(row)
+
+
+@router.delete("/pos/held-bills/{held_bill_id}")
+def delete_pos_held_bill(held_bill_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    row = db.query(SRMPOSHeldBill).filter(
+        SRMPOSHeldBill.organization_id == _org(current_user),
+        SRMPOSHeldBill.id == held_bill_id,
+        SRMPOSHeldBill.status == "held",
+        SRMPOSHeldBill.deleted_at.is_(None),
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Held bill not found")
+    before = _held_bill_payload(row)
+    row.status = "cancelled"
+    row.deleted_at = datetime.now(timezone.utc)
+    _audit(db, current_user, "pos_held_bill", row.id, "cancelled", before, _held_bill_payload(row))
+    db.commit()
+    return {"status": "cancelled", "id": held_bill_id}
+
+
+@router.get("/pos/returns")
+def list_pos_returns(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    rows = db.query(SRMPOSReturn).filter(SRMPOSReturn.organization_id == _org(current_user)).order_by(SRMPOSReturn.id.desc()).limit(100).all()
+    return {"items": [_return_payload(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/pos/returns", status_code=201)
+def create_pos_return(data: SRMPOSReturnCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    org_id = _org(current_user)
+    if not data.lines:
+        raise HTTPException(status_code=400, detail="Return lines are required")
+    order = _resolve_return_order(db, data, org_id)
+    order_lines_by_id = {line.id: line for line in order.lines}
+    order_lines_by_product = {line.product_id: line for line in order.lines if line.product_id}
+    return_doc = SRMPOSReturn(
+        organization_id=org_id,
+        return_number=_next_number(db, SRMPOSReturn, "RET", "return_number", org_id),
+        sales_order_id=order.id,
+        session_id=data.session_id,
+        customer_id=data.customer_id or order.customer_id,
+        customer_name=data.customer_name,
+        refund_method=data.refund_method,
+        refund_status=data.refund_status,
+        reason=data.reason,
+        metadata_json=data.metadata_json,
+        created_by=current_user.id,
+    )
+    db.add(return_doc)
+    db.flush()
+    subtotal = Decimal("0")
+    tax = Decimal("0")
+    total = Decimal("0")
+    movements: list[SRMInventoryMovement] = []
+    for line_data in data.lines:
+        source_line = order_lines_by_id.get(line_data.sales_order_line_id or 0)
+        if not source_line and line_data.product_id:
+            source_line = order_lines_by_product.get(line_data.product_id)
+        if not source_line:
+            raise HTTPException(status_code=400, detail="Return line does not match original sale")
+        already_returned = _returned_quantity_for_order_line(db, source_line.id)
+        requested = _decimal(line_data.quantity)
+        if requested <= 0:
+            raise HTTPException(status_code=400, detail="Return quantity must be greater than zero")
+        if already_returned + requested > _decimal(source_line.quantity):
+            raise HTTPException(status_code=409, detail=f"Return quantity exceeds sold quantity for {source_line.description}")
+        line_total = line_data.line_total if line_data.line_total is not None else requested * _decimal(line_data.unit_price or source_line.unit_price) + _decimal(line_data.tax_amount)
+        line = SRMPOSReturnLine(
+            return_id=return_doc.id,
+            sales_order_line_id=source_line.id,
+            product_id=line_data.product_id or source_line.product_id,
+            warehouse_id=line_data.warehouse_id or ((source_line.metadata_json or {}).get("warehouse_id") if source_line.metadata_json else None),
+            item_code=line_data.item_code or source_line.item_code,
+            description=line_data.description or source_line.description,
+            quantity=requested,
+            unit_price=line_data.unit_price or source_line.unit_price,
+            tax_amount=line_data.tax_amount,
+            line_total=line_total,
+            condition=line_data.condition,
+            restock=line_data.restock,
+            metadata_json=line_data.metadata_json,
+        )
+        db.add(line)
+        db.flush()
+        movement = _restock_return_line(db, return_doc, line, order, current_user)
+        if movement:
+            movements.append(movement)
+        subtotal += requested * _decimal(line.unit_price)
+        tax += _decimal(line.tax_amount)
+        total += _decimal(line.line_total)
+    return_doc.subtotal = subtotal
+    return_doc.tax_amount = tax
+    return_doc.refund_amount = total
+    _audit(db, current_user, "pos_return", return_doc.id, "created", None, _return_payload(return_doc))
+    for movement in movements:
+        _audit(db, current_user, "inventory_movement", movement.id, "POS_RETURN", None, _serialize(movement))
+    db.commit()
+    db.refresh(return_doc)
+    return _return_payload(return_doc)
+
+
+@router.get("/pos/returns/{return_id}")
+def get_pos_return(return_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+    row = db.query(SRMPOSReturn).filter(SRMPOSReturn.organization_id == _org(current_user), SRMPOSReturn.id == return_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="POS return not found")
+    return _return_payload(row)
+
+
 @router.post("/sales-orders", status_code=201)
 def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     org_id = _org(current_user)
@@ -568,6 +2107,7 @@ def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db),
         existing = db.query(SRMSalesOrder).filter(SRMSalesOrder.organization_id == org_id, SRMSalesOrder.order_number == data.order_number, SRMSalesOrder.deleted_at == None).first()
         if existing:
             raise HTTPException(status_code=409, detail="Sales order number already exists")
+    _validate_pos_stock_available(db, data, org_id)
     item = SRMSalesOrder(
         organization_id=org_id,
         order_number=data.order_number or _next_number(db, SRMSalesOrder, "SO", "order_number", org_id),
@@ -601,7 +2141,10 @@ def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db),
         item.discount_amount = discount
         item.tax_amount = tax
         item.total_amount = total
+    issued_movements = _issue_inventory_for_sales_order(db, item, current_user)
     _audit(db, current_user, "sales_order", item.id, "created", after=_serialize(item))
+    for movement in issued_movements:
+        _audit(db, current_user, "inventory_movement", movement.id, movement.movement_type.upper(), None, _serialize(movement))
     db.commit()
     db.refresh(item)
     return _serialize(item) | {"lines": [_serialize(line) for line in item.lines]}
@@ -765,6 +2308,7 @@ def confirm_sales_order(sales_order_id: int, db: Session = Depends(get_db), curr
     if item.status not in {"approved", "confirmed"}:
         raise HTTPException(status_code=400, detail="Only approved sales orders can be confirmed")
     item.status = "confirmed"
+    issued_movements = _issue_inventory_for_sales_order(db, item, current_user)
     engagement = db.query(SRMEngagement).filter(SRMEngagement.sales_order_id == item.id).first()
     if not engagement:
         engagement = SRMEngagement(
@@ -793,6 +2337,8 @@ def confirm_sales_order(sales_order_id: int, db: Session = Depends(get_db), curr
     contract = db.query(SRMContract).filter(SRMContract.sales_order_id == item.id, SRMContract.deleted_at == None).first()
     billing_plan = _ensure_billing_plan_from_sales_order(db, current_user, item, engagement, contract)
     _audit(db, current_user, "sales_order", item.id, "confirmed", after={"engagement_id": engagement.id, "billing_plan_id": billing_plan.id})
+    for movement in issued_movements:
+        _audit(db, current_user, "inventory_movement", movement.id, movement.movement_type.upper(), None, _serialize(movement))
     db.commit()
     return _serialize(item) | {"engagement": _serialize(engagement), "billing_plan": _serialize(billing_plan)}
 

@@ -3,6 +3,9 @@ export type SRMRecord = Record<string, unknown>;
 export type SRMViewKind =
   | "dashboard"
   | "salesOrders"
+  | "posSessions"
+  | "cashierClosing"
+  | "posReturns"
   | "contracts"
   | "engagements"
   | "billingPlans"

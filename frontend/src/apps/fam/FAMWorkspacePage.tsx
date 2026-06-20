@@ -1,13 +1,16 @@
 import { cloneElement, isValidElement, useMemo, useState, type ElementType } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
-import { AlertTriangle, BadgeIndianRupee, BarChart3, BookOpen, Building2, CalendarDays, Copy, FileText, GitBranch, Landmark, Layers3, LockKeyhole, Package, Plus, RefreshCw, RotateCcw, Save, ScrollText, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { AlertTriangle, BadgeIndianRupee, BarChart3, BookOpen, Building2, CalendarDays, Copy, FileText, GitBranch, Landmark, Layers3, LockKeyhole, Package, Plus, Receipt, RefreshCw, RotateCcw, Save, ScrollText, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { inventorySourceFeatures } from "@/apps/inventory/sourceCatalog";
+import { srmApi } from "@/apps/srm/api";
+import { syncSrmNow, useSrmRealtimeInvalidation } from "@/apps/srm/realtime";
 import { famApi } from "./api";
 import type { FAMRecord, FAMViewKind } from "./types";
 
@@ -85,6 +88,7 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
   inventoryAccounting: { title: "Inventory Accounting", description: "Inventory valuation, GL, GRNI, COGS, GST and item ledger mapping controls.", icon: Landmark },
   inventoryDashboard: { title: "Inventory Dashboard", description: "Stock value, low-stock alerts, warehouses, and recent stock movements.", icon: Package },
   inventoryItems: { title: "Stock Items", description: "GST-ready item master with HSN, units, stock groups, reorder levels, rates, and valuation ledgers.", icon: Package },
+  inventoryProducts: { title: "Products & Barcodes", description: "Operational product master with SKU, barcode, rates, tax, stock tracking, and labels.", icon: Package },
   inventoryItemDetail: { title: "Stock Item Detail", description: "Item master, stock quantity, valuation, and latest item ledger entries.", icon: Package },
   inventoryLedgerMapping: { title: "Item Ledger Mapping", description: "Map stock item ledgers for inventory asset, purchases, sales, COGS, GRNI, GST, branch and valuation.", icon: GitBranch },
   inventoryCategories: { title: "Inventory Categories", description: "Category view mapped to FAM stock groups from the source inventory app.", icon: Layers3 },
@@ -95,8 +99,13 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
   inventoryStockOut: { title: "Stock Out", description: "Post outward stock movements with stock availability validation.", icon: RotateCcw },
   inventoryStockTransfers: { title: "Stock Transfers", description: "Move stock between warehouses with idempotent posted movement records.", icon: RotateCcw },
   inventoryStockAdjustments: { title: "Stock Adjustments", description: "Post stock gains/losses and optional accounting vouchers.", icon: ShieldCheck },
+  inventoryOpeningStock: { title: "Opening Stock", description: "Capture opening balances for operational stock and warehouse quantities.", icon: Package },
   inventoryPurchaseReceipts: { title: "Purchase Receipts", description: "Receive purchased items into inventory without duplicating purchase bill accounting.", icon: Landmark },
   inventoryDeliveryNotes: { title: "Delivery Notes", description: "Issue stock for delivery and keep inventory movement evidence.", icon: FileText },
+  inventoryBatches: { title: "Batches & Serials", description: "Batch, expiry, and serial tracking source map for controlled inventory.", icon: ShieldCheck },
+  inventoryPriceLists: { title: "Price Lists", description: "Price list source map for customer, segment, and channel pricing.", icon: Receipt },
+  inventoryPurchaseOrders: { title: "Purchase Orders", description: "Procurement source map for replenishment orders, vendor fulfilment, and GRN handoff.", icon: Receipt },
+  inventoryManufacturing: { title: "Manufacturing", description: "Manufacturing source map for BOM, assembly, repacking, and production orders.", icon: Layers3 },
   inventoryStockSummary: { title: "Stock Summary", description: "Item-wise quantity, average cost, stock value, and low-stock flags.", icon: BookOpen },
   inventoryItemLedger: { title: "Item Ledger", description: "Movement lines, balances, rates, and values for a stock item.", icon: ScrollText },
   inventoryWarehouseStock: { title: "Warehouse Stock", description: "Warehouse-wise stock quantities and values from posted inventory movements.", icon: Building2 },
@@ -119,6 +128,7 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
   inventorySrmLink: { title: "SRM Inventory Link", description: "SRM reservations, posted inventory movements, and duplicate deduction controls.", icon: Package },
   inventoryReorderAlerts: { title: "Reorder Alerts", description: "Items at or below reorder/minimum stock thresholds.", icon: AlertTriangle },
   inventoryReports: { title: "Inventory Reports", description: "Stock summary, valuation, reorder alerts, and generated report audit evidence.", icon: BarChart3 },
+  inventoryCompleteReports: { title: "Complete Inventory Reports", description: "Complete stock report index for valuation, reorder, expiry, movement, and velocity.", icon: BarChart3 },
   inventoryAI: { title: "Inventory AI", description: "Audited AI insight requests with honest provider readiness status.", icon: Sparkles },
   costCenters: { title: "Cost Centers", description: "Track accounting dimensions by department, project, branch, or operating unit.", icon: Building2 },
   branches: { title: "Branches", description: "GST/location-aware branches for India-first books setup.", icon: Landmark },
@@ -1050,10 +1060,14 @@ function InventoryAccountingView() {
 
 function InventoryItemsView() {
   const queryClient = useQueryClient();
-  const query = useQuery({ queryKey: ["fam", "inventoryItems"], queryFn: () => famApi.inventoryItems() });
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const api = isSrmInventory ? srmApi : famApi;
+  const query = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventoryItems"], queryFn: () => api.inventoryItems(), refetchInterval: isSrmInventory ? 3000 : false, refetchIntervalInBackground: isSrmInventory, refetchOnWindowFocus: true });
   const [draft, setDraft] = useState<FAMRecord>({ sku: "ITEM-001", item_name: "Demo Stock Item", purchase_rate: 100, sales_rate: 150, reorder_level: 5, min_stock: 2, track_inventory: true });
-  const mutation = useMutation({ mutationFn: () => famApi.createInventoryItem(draft), onSuccess: () => { toast({ title: "Stock item saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create item</CardTitle></CardHeader><CardContent className="space-y-3">{["sku", "item_name", "hsn_code", "stock_group_id", "unit_id", "default_warehouse_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save item</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Stock items</CardTitle></CardHeader><CardContent><State label="stock items" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "hsn_code", "current_quantity", "average_cost", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/srm/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
+  const mutation = useMutation({ mutationFn: () => api.createInventoryItem(draft), onSuccess: () => { toast({ title: isSrmInventory ? "SRM product saved" : "Stock item saved" }); queryClient.invalidateQueries({ queryKey: [isSrmInventory ? "srm" : "fam"] }); } });
+  const fields = isSrmInventory ? ["sku", "item_name", "barcode", "category_name", "unit_code", "hsn_code", "gst_rate", "purchase_rate", "sales_rate", "mrp", "reorder_level", "min_stock"] : ["sku", "item_name", "hsn_code", "stock_group_id", "unit_id", "default_warehouse_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock"];
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "Create SRM product" : "Create item"}</CardTitle></CardHeader><CardContent className="space-y-3">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) || ["gst_rate", "mrp"].includes(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>{isSrmInventory ? "Save product" : "Save item"}</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "SRM products" : "Stock items"}</CardTitle></CardHeader><CardContent><State label={isSrmInventory ? "SRM products" : "stock items"} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "category_name", "hsn_code", "current_quantity", "sales_rate", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/srm/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
 }
 
 function InventoryLedgerMappingView() {
@@ -1070,7 +1084,9 @@ function InventoryLedgerMappingView() {
 
 function InventoryItemDetailView({ ledger = false }: { ledger?: boolean }) {
   const { id } = useParams();
-  const query = useQuery({ queryKey: ["fam", ledger ? "inventoryItemLedger" : "inventoryItem", id], queryFn: () => ledger ? famApi.inventoryItemLedger(id || "0") : famApi.inventoryItem(id || "0") });
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const query = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", ledger ? "inventoryItemLedger" : "inventoryItem", id], queryFn: () => isSrmInventory && !ledger ? srmApi.inventoryItem(id || "0") : ledger ? famApi.inventoryItemLedger(id || "0") : famApi.inventoryItem(id || "0"), refetchInterval: isSrmInventory ? 3000 : false, refetchIntervalInBackground: isSrmInventory, refetchOnWindowFocus: true });
   const data = (query.data || {}) as FAMRecord;
   const rows = ledger ? listItems(query.data) : ((data.ledger as FAMRecord[] | undefined) || []);
   const stats: Array<[string, React.ReactNode]> = [["SKU", text(data.sku)], ["Quantity", text(data.current_quantity)], ["Average cost", text(data.average_cost)], ["Stock value", money(data.stock_value)]];
@@ -1092,28 +1108,537 @@ function InventoryMasterView({ kind }: { kind: "groups" | "units" | "warehouses"
 
 function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "delivery" }) {
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
   const movementType = mode === "in" ? "stock_in" : mode === "out" ? "stock_out" : mode === "purchase" ? "purchase_receipt" : "delivery_note";
   const quantityKey = mode === "out" || mode === "delivery" ? "quantity_out" : "quantity_in";
-  const [draft, setDraft] = useState<FAMRecord>({ movement_date: "2026-06-06", movement_type: movementType, lines: [{ stock_item_id: 1, warehouse_id: 1, [quantityKey]: 1, rate: 100 }] });
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: "2026-06-20", movement_type: movementType, product_id: 1, warehouse_id: 1, quantity: 1, rate: 100 } : { movement_date: "2026-06-06", movement_type: movementType, lines: [{ stock_item_id: 1, warehouse_id: 1, [quantityKey]: 1, rate: 100 }] });
   const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
-  const mutation = useMutation({ mutationFn: async () => { const movement = await famApi.createInventoryStockMovement(draft); return famApi.postInventoryStockMovement(String((movement as FAMRecord).id), draft); }, onSuccess: () => { toast({ title: "Stock movement posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <Card><CardHeader><CardTitle className="text-base">Post {movementType.replace(/_/g, " ")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["movement_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /></Field>)}{["stock_item_id", "warehouse_id", quantityKey, "rate"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post movement</Button></div></CardContent></Card>;
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (isSrmInventory) return srmApi.createInventoryStockMovement(draft);
+      const movement = await famApi.createInventoryStockMovement(draft);
+      return famApi.postInventoryStockMovement(String((movement as FAMRecord).id), draft);
+    },
+    onSuccess: async () => {
+      toast({ title: "Stock movement posted" });
+      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: `srm-${movementType}` });
+      else queryClient.invalidateQueries({ queryKey: ["fam"] });
+    },
+  });
+  const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate"] : ["stock_item_id", "warehouse_id", quantityKey, "rate"];
+  return <Card><CardHeader><CardTitle className="text-base">Post {movementType.replace(/_/g, " ")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["movement_date", "reference_number", "notes"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /></Field>)}{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: Number(event.target.value) })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post movement</Button></div></CardContent></Card>;
+}
+
+function InventoryOpeningStockView() {
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { product_id: 1, warehouse_id: 1, quantity: 1, rate: 100, movement_date: "2026-06-20" } : { stock_item_id: 1, warehouse_id: 1, opening_quantity: 1, opening_rate: 100, opening_date: "2026-06-20" });
+  const mutation = useMutation({
+    mutationFn: () => isSrmInventory ? srmApi.createInventoryOpeningStock(draft) : famApi.createInventoryOpeningStock(draft),
+    onSuccess: async () => {
+      toast({ title: "Opening stock saved" });
+      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-opening-stock" });
+      else queryClient.invalidateQueries({ queryKey: ["fam"] });
+    },
+  });
+  const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate", "movement_date"] : ["stock_item_id", "warehouse_id", "opening_quantity", "opening_rate", "opening_date"];
+  return (
+    <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Create opening stock</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {fields.map((field) => (
+            <Field key={field} label={field.replace(/_/g, " ")}>
+              <Input
+                type={field.includes("date") ? "date" : "text"}
+                value={String(draft[field] ?? "")}
+                onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : Number(event.target.value) }))}
+              />
+            </Field>
+          ))}
+          <Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save opening stock</Button>
+        </CardContent>
+      </Card>
+      <InventorySummaryView kind="summary" />
+    </div>
+  );
+}
+
+function InventorySourceBridgeView({ kind }: { kind: FAMViewKind }) {
+  const keywords: Partial<Record<FAMViewKind, string[]>> = {
+    inventoryBatches: ["batch", "serial", "expiry"],
+    inventoryPriceLists: ["price list"],
+    inventoryPurchaseOrders: ["purchase order", "grn"],
+    inventoryManufacturing: ["manufacturing", "bom", "repacking", "composite"],
+  };
+  const terms = keywords[kind] || [];
+  const matches = inventorySourceFeatures.filter((feature) => {
+    const haystack = `${feature.label} ${feature.route} ${feature.appPath} ${feature.group}`.toLowerCase();
+    return terms.some((term) => haystack.includes(term));
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Mapped operational entry points</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {matches.length ? matches.map((feature) => (
+          <div key={`${feature.group}-${feature.appPath}`} className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-medium">{feature.label}</p>
+              <p className="text-xs text-muted-foreground">{feature.group} / owner: {feature.owner} / source: {feature.route}</p>
+            </div>
+            <Button asChild variant="outline" size="sm"><Link to={feature.appPath || "/srm/inventory/source"}>Open</Link></Button>
+          </div>
+        )) : (
+          <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">No mapped source entries found for this inventory area.</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function InventoryBatchesView() {
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const batches = useQuery({ queryKey: ["srm", "inventoryBatches"], queryFn: srmApi.inventoryBatches, enabled: isSrmInventory });
+  const serials = useQuery({ queryKey: ["srm", "serialNumbers"], queryFn: srmApi.serialNumbers, enabled: isSrmInventory });
+  const [batchDraft, setBatchDraft] = useState<FAMRecord>({
+    product_id: 1,
+    warehouse_id: 1,
+    batch_number: "BATCH-001",
+    manufacture_date: "2026-06-20",
+    expiry_date: "2027-06-20",
+    quantity: 10,
+    available_quantity: 10,
+    unit_cost: 50,
+    status: "available",
+  });
+  const [serialDraft, setSerialDraft] = useState<FAMRecord>({
+    product_id: 1,
+    warehouse_id: 1,
+    batch_id: "",
+    serial_number: "SER-001",
+    status: "available",
+    received_date: "2026-06-20",
+  });
+  const createBatch = useMutation({
+    mutationFn: () => srmApi.createInventoryBatch({
+      ...batchDraft,
+      batch_id: undefined,
+      received_date: batchDraft.received_date || batchDraft.manufacture_date,
+    }),
+    onSuccess: () => {
+      toast({ title: "Batch saved" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const createSerial = useMutation({
+    mutationFn: () => srmApi.createSerialNumber({
+      ...serialDraft,
+      batch_id: serialDraft.batch_id ? Number(serialDraft.batch_id) : undefined,
+    }),
+    onSuccess: () => {
+      toast({ title: "Serial number saved" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryBatches" />;
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Create batch / expiry lot</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {["product_id", "warehouse_id", "batch_number", "manufacture_date", "expiry_date", "quantity", "available_quantity", "unit_cost", "status", "notes"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input
+                  type={field.includes("date") ? "date" : "text"}
+                  value={String(batchDraft[field] ?? "")}
+                  onChange={(event) => setBatchDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
+                />
+              </Field>
+            ))}
+            <div className="md:col-span-2"><Button onClick={() => createBatch.mutate()} disabled={createBatch.isPending}>Save batch</Button></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Register serial number</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {["product_id", "warehouse_id", "batch_id", "serial_number", "status", "received_date", "reference_number"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input
+                  type={field.includes("date") ? "date" : "text"}
+                  value={String(serialDraft[field] ?? "")}
+                  onChange={(event) => setSerialDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
+                />
+              </Field>
+            ))}
+            <div className="md:col-span-2"><Button onClick={() => createSerial.mutate()} disabled={createSerial.isPending}>Save serial</Button></div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Batches</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <State label="batches" isLoading={batches.isLoading} isError={batches.isError} />
+            <DataTable rows={listItems(batches.data)} columns={["batch_number", "product_id", "warehouse_id", "manufacture_date", "expiry_date", "quantity", "available_quantity", "status", "serial_count"]} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Serial numbers</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <State label="serial numbers" isLoading={serials.isLoading} isError={serials.isError} />
+            <DataTable rows={listItems(serials.data)} columns={["serial_number", "product_id", "batch_id", "warehouse_id", "status", "received_date", "reference_number"]} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function InventoryPriceListsView() {
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const priceLists = useQuery({ queryKey: ["srm", "priceLists"], queryFn: srmApi.priceLists, enabled: isSrmInventory });
+  const [draft, setDraft] = useState<FAMRecord>({
+    price_list_name: "Retail price list",
+    channel: "retail",
+    customer_type: "cash",
+    currency: "INR",
+    effective_from: "2026-06-20",
+    priority: 100,
+    product_id: 1,
+    min_quantity: 1,
+    price: 100,
+    discount_percent: 0,
+    discount_amount: 0,
+  });
+  const createList = useMutation({
+    mutationFn: () => srmApi.createPriceList({
+      price_list_code: draft.price_list_code || undefined,
+      price_list_name: draft.price_list_name,
+      channel: draft.channel,
+      customer_type: draft.customer_type,
+      currency: draft.currency,
+      effective_from: draft.effective_from,
+      effective_to: draft.effective_to || undefined,
+      priority: draft.priority,
+      active: true,
+      notes: draft.notes,
+      lines: [{
+        product_id: draft.product_id,
+        min_quantity: draft.min_quantity,
+        price: draft.price,
+        discount_percent: draft.discount_percent || 0,
+        discount_amount: draft.discount_amount || 0,
+        tax_inclusive: Boolean(draft.tax_inclusive),
+      }],
+    }),
+    onSuccess: () => {
+      toast({ title: "Price list saved" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const lookup = useMutation({
+    mutationFn: () => srmApi.lookupPrices({
+      product_ids: [Number(draft.product_id || 1)],
+      channel: draft.channel,
+      customer_type: draft.customer_type,
+      price_date: draft.effective_from,
+      quantity: draft.min_quantity || 1,
+    }),
+  });
+  if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryPriceLists" />;
+  const lookupRows = listItems(lookup.data);
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[28rem_1fr]">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Create price list</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {["price_list_code", "price_list_name", "channel", "customer_type", "currency", "effective_from", "effective_to", "priority", "product_id", "min_quantity", "price", "discount_percent", "discount_amount"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input
+                  type={field.includes("effective") ? "date" : "text"}
+                  value={String(draft[field] ?? "")}
+                  onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("effective") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
+                />
+              </Field>
+            ))}
+            <label className="flex items-center gap-2 text-sm md:col-span-2">
+              <input type="checkbox" checked={Boolean(draft.tax_inclusive)} onChange={(event) => setDraft((current) => ({ ...current, tax_inclusive: event.target.checked }))} />
+              Tax inclusive price
+            </label>
+            <div className="flex gap-2 md:col-span-2">
+              <Button onClick={() => createList.mutate()} disabled={createList.isPending}>Save price list</Button>
+              <Button variant="outline" onClick={() => lookup.mutate()} disabled={lookup.isPending}>Test lookup</Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Price lookup</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <State label="price lookup" isLoading={lookup.isPending} isError={lookup.isError} />
+            <DataTable rows={lookupRows} columns={["sku", "item_name", "price_list_name", "base_price", "net_price", "currency"]} />
+          </CardContent>
+        </Card>
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Price lists</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <State label="price lists" isLoading={priceLists.isLoading} isError={priceLists.isError} />
+          <DataTable rows={listItems(priceLists.data)} columns={["price_list_code", "price_list_name", "channel", "customer_type", "currency", "priority", "active"]} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function InventoryManufacturingView() {
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const boms = useQuery({ queryKey: ["srm", "boms"], queryFn: srmApi.boms, enabled: isSrmInventory });
+  const orders = useQuery({ queryKey: ["srm", "productionOrders"], queryFn: srmApi.productionOrders, enabled: isSrmInventory });
+  const [bomDraft, setBomDraft] = useState<FAMRecord>({
+    bom_name: "Assembly BOM",
+    finished_product_id: 1,
+    output_quantity: 1,
+    component_product_id: 1,
+    warehouse_id: 1,
+    quantity: 1,
+    unit_cost: 10,
+  });
+  const [orderDraft, setOrderDraft] = useState<FAMRecord>({ bom_id: 1, warehouse_id: 1, planned_quantity: 1, completed_quantity: 1, order_id: 1 });
+  const createBom = useMutation({
+    mutationFn: () => srmApi.createBom({
+      bom_number: bomDraft.bom_number || undefined,
+      bom_name: bomDraft.bom_name,
+      finished_product_id: bomDraft.finished_product_id,
+      output_quantity: bomDraft.output_quantity,
+      status: "active",
+      notes: bomDraft.notes,
+      components: [{
+        component_product_id: bomDraft.component_product_id,
+        warehouse_id: bomDraft.warehouse_id,
+        quantity: bomDraft.quantity,
+        unit_cost: bomDraft.unit_cost,
+      }],
+    }),
+    onSuccess: () => {
+      toast({ title: "BOM saved" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const createOrder = useMutation({
+    mutationFn: () => srmApi.createProductionOrder({
+      bom_id: orderDraft.bom_id,
+      warehouse_id: orderDraft.warehouse_id,
+      planned_quantity: orderDraft.planned_quantity,
+      order_date: orderDraft.order_date,
+      notes: orderDraft.notes,
+    }),
+    onSuccess: () => {
+      toast({ title: "Production order created" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const postOrder = useMutation({
+    mutationFn: () => srmApi.postProductionOrder(String(orderDraft.order_id || 1), {
+      completed_quantity: orderDraft.completed_quantity,
+      warehouse_id: orderDraft.warehouse_id,
+    }),
+    onSuccess: () => {
+      toast({ title: "Production posted and stock updated" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryManufacturing" />;
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Create BOM</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {["bom_number", "bom_name", "finished_product_id", "output_quantity", "component_product_id", "warehouse_id", "quantity", "unit_cost", "notes"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input value={String(bomDraft[field] ?? "")} onChange={(event) => setBomDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
+              </Field>
+            ))}
+            <Button onClick={() => createBom.mutate()} disabled={createBom.isPending}>Save BOM</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Create production order</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {["bom_id", "warehouse_id", "planned_quantity", "order_date", "notes"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input type={field.includes("date") ? "date" : "text"} value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
+              </Field>
+            ))}
+            <Button onClick={() => createOrder.mutate()} disabled={createOrder.isPending}>Create order</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Post production</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {["order_id", "completed_quantity", "warehouse_id"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: Number(event.target.value) }))} />
+              </Field>
+            ))}
+            <Button onClick={() => postOrder.mutate()} disabled={postOrder.isPending}>Post stock</Button>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle className="text-base">BOMs</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <State label="BOMs" isLoading={boms.isLoading} isError={boms.isError} />
+            <DataTable rows={listItems(boms.data)} columns={["bom_number", "bom_name", "finished_product_id", "output_quantity", "status"]} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Production orders</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <State label="production orders" isLoading={orders.isLoading} isError={orders.isError} />
+            <DataTable rows={listItems(orders.data)} columns={["production_number", "bom_id", "finished_product_id", "planned_quantity", "completed_quantity", "status", "total_component_cost"]} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function InventoryPurchaseOrdersView() {
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const purchaseOrders = useQuery({ queryKey: ["srm", "purchaseOrders"], queryFn: srmApi.purchaseOrders, enabled: isSrmInventory });
+  const goodsReceipts = useQuery({ queryKey: ["srm", "goodsReceipts"], queryFn: srmApi.goodsReceipts, enabled: isSrmInventory });
+  const [poDraft, setPoDraft] = useState<FAMRecord>({ vendor_id: 1, vendor_name: "Default Supplier", product_id: 1, warehouse_id: 1, quantity: 1, unit_price: 100, tax_amount: 0 });
+  const [grnDraft, setGrnDraft] = useState<FAMRecord>({ purchase_order_id: 1, purchase_order_line_id: 1, quantity: 1, accepted_quantity: 1, unit_price: 100, tax_amount: 0 });
+  const createPo = useMutation({
+    mutationFn: () => srmApi.createPurchaseOrder({
+      vendor_id: poDraft.vendor_id,
+      vendor_name: poDraft.vendor_name,
+      lines: [{
+        product_id: poDraft.product_id,
+        warehouse_id: poDraft.warehouse_id,
+        quantity: poDraft.quantity,
+        unit_price: poDraft.unit_price,
+        tax_amount: poDraft.tax_amount,
+      }],
+    }),
+    onSuccess: () => {
+      toast({ title: "Purchase order created" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  const createGrn = useMutation({
+    mutationFn: () => srmApi.createGoodsReceipt({
+      purchase_order_id: grnDraft.purchase_order_id,
+      reference_number: grnDraft.reference_number,
+      lines: [{
+        purchase_order_line_id: grnDraft.purchase_order_line_id,
+        quantity: grnDraft.quantity,
+        accepted_quantity: grnDraft.accepted_quantity,
+        rejected_quantity: grnDraft.rejected_quantity || 0,
+        unit_price: grnDraft.unit_price,
+        tax_amount: grnDraft.tax_amount,
+      }],
+    }),
+    onSuccess: () => {
+      toast({ title: "GRN posted and stock updated" });
+      queryClient.invalidateQueries({ queryKey: ["srm"] });
+    },
+  });
+  if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryPurchaseOrders" />;
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Create purchase order</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {["vendor_id", "vendor_name", "product_id", "warehouse_id", "quantity", "unit_price", "tax_amount"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input value={String(poDraft[field] ?? "")} onChange={(event) => setPoDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
+              </Field>
+            ))}
+            <div className="md:col-span-2"><Button onClick={() => createPo.mutate()} disabled={createPo.isPending}>Create PO</Button></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Post GRN</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {["purchase_order_id", "purchase_order_line_id", "quantity", "accepted_quantity", "rejected_quantity", "unit_price", "tax_amount", "reference_number"].map((field) => (
+              <Field key={field} label={field.replace(/_/g, " ")}>
+                <Input value={String(grnDraft[field] ?? "")} onChange={(event) => setGrnDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
+              </Field>
+            ))}
+            <div className="md:col-span-2"><Button onClick={() => createGrn.mutate()} disabled={createGrn.isPending}>Post GRN</Button></div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card><CardHeader><CardTitle className="text-base">Purchase orders</CardTitle></CardHeader><CardContent><State label="purchase orders" isLoading={purchaseOrders.isLoading} isError={purchaseOrders.isError} /><DataTable rows={listItems(purchaseOrders.data)} columns={["po_number", "vendor_name", "status", "order_date", "subtotal", "tax_amount", "total_amount"]} /></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-base">Goods receipts</CardTitle></CardHeader><CardContent><State label="goods receipts" isLoading={goodsReceipts.isLoading} isError={goodsReceipts.isError} /><DataTable rows={listItems(goodsReceipts.data)} columns={["grn_number", "vendor_name", "status", "receipt_date", "reference_number", "total_amount"]} /></CardContent></Card>
+      </div>
+    </div>
+  );
 }
 
 function InventoryTransferView() {
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<FAMRecord>({ transfer_date: "2026-06-06", from_warehouse_id: 1, to_warehouse_id: 2, lines: [{ stock_item_id: 1, quantity: 1, rate: 100 }] });
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: "2026-06-20", product_id: 1, from_warehouse_id: 1, to_warehouse_id: 2, quantity: 1, rate: 100 } : { transfer_date: "2026-06-06", from_warehouse_id: 1, to_warehouse_id: 2, lines: [{ stock_item_id: 1, quantity: 1, rate: 100 }] });
   const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
-  const mutation = useMutation({ mutationFn: async () => { const transfer = await famApi.createInventoryTransfer(draft); return famApi.postInventoryTransfer(String((transfer as FAMRecord).id)); }, onSuccess: () => { toast({ title: "Transfer posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <Card><CardHeader><CardTitle className="text-base">Stock transfer</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["transfer_date", "from_warehouse_id", "to_warehouse_id"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{["stock_item_id", "quantity", "rate"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post transfer</Button></div></CardContent></Card>;
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (isSrmInventory) return srmApi.createInventoryStockTransfer(draft);
+      const transfer = await famApi.createInventoryTransfer(draft);
+      return famApi.postInventoryTransfer(String((transfer as FAMRecord).id));
+    },
+    onSuccess: async () => {
+      toast({ title: "Transfer posted" });
+      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-stock-transfer" });
+      else queryClient.invalidateQueries({ queryKey: ["fam"] });
+    },
+  });
+  const headerFields = isSrmInventory ? ["movement_date", "from_warehouse_id", "to_warehouse_id"] : ["transfer_date", "from_warehouse_id", "to_warehouse_id"];
+  const lineFields = isSrmInventory ? ["product_id", "quantity", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity", "rate"];
+  return <Card><CardHeader><CardTitle className="text-base">Stock transfer</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post transfer</Button></div></CardContent></Card>;
 }
 
 function InventoryAdjustmentView() {
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<FAMRecord>({ adjustment_date: "2026-06-06", warehouse_id: 1, reason: "Cycle count", lines: [{ stock_item_id: 1, quantity_in: 1, quantity_out: 0, rate: 100 }] });
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: "2026-06-20", product_id: 1, warehouse_id: 1, reason: "Cycle count", quantity_in: 1, quantity_out: 0, rate: 100 } : { adjustment_date: "2026-06-06", warehouse_id: 1, reason: "Cycle count", lines: [{ stock_item_id: 1, quantity_in: 1, quantity_out: 0, rate: 100 }] });
   const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
-  const mutation = useMutation({ mutationFn: async () => { const adjustment = await famApi.createInventoryAdjustment(draft); return famApi.postInventoryAdjustment(String((adjustment as FAMRecord).id), draft); }, onSuccess: () => { toast({ title: "Adjustment posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["adjustment_date", "warehouse_id", "reason"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{["stock_item_id", "quantity_in", "quantity_out", "rate"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post adjustment</Button></div></CardContent></Card>;
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (isSrmInventory) return srmApi.createInventoryStockAdjustment(draft);
+      const adjustment = await famApi.createInventoryAdjustment(draft);
+      return famApi.postInventoryAdjustment(String((adjustment as FAMRecord).id), draft);
+    },
+    onSuccess: async () => {
+      toast({ title: "Adjustment posted" });
+      if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-stock-adjustment" });
+      else queryClient.invalidateQueries({ queryKey: ["fam"] });
+    },
+  });
+  const headerFields = isSrmInventory ? ["movement_date", "warehouse_id", "reason"] : ["adjustment_date", "warehouse_id", "reason"];
+  const lineFields = isSrmInventory ? ["product_id", "quantity_in", "quantity_out", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity_in", "quantity_out", "rate"];
+  return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post adjustment</Button></div></CardContent></Card>;
 }
 
 type InventoryReportKind = "summary" | "valuation" | "reorder" | "reports" | "warehouse" | "aging" | "dead" | "fastSlow" | "grossMargin" | "cogs" | "hsnSummary" | "audit" | "crmLink" | "srmLink";
@@ -1221,7 +1746,7 @@ function parseJson(value: unknown) {
   }
 }
 
-const numericFields = new Set(["financial_year_id", "ledger_id", "ledger_group_id", "voucher_type_id", "debit_amount", "credit_amount", "opening_balance_dr", "opening_balance_cr", "opening_balance", "sequence_order", "numbering_sequence", "cost_center_id", "party_id", "payment_terms_days", "credit_limit", "original_amount", "outstanding_amount", "from_bill_reference_id", "to_bill_reference_id", "allocated_amount", "invoice_id", "receipt_id", "allocation_id", "source_record_id", "roundoff_ledger_id", "bank_account_id", "default_ledger_id", "statement_line_id", "voucher_id", "ledger_entry_id", "matched_amount", "expense_ledger_id", "from_ledger_id", "to_ledger_id", "amount", "cgst_rate", "sgst_rate", "igst_rate", "cess_rate", "default_gst_rate_id", "period_month", "period_year", "threshold_amount", "taxable_value", "vendor_id", "quantity", "quantity_in", "quantity_out", "rate", "gst_rate_id", "gst_amount", "tds_section_id", "tds_amount", "line_total", "subtotal", "discount_total", "gst_total", "grand_total", "employee_id", "total_amount", "default_rate", "section_id", "taxable_amount", "tds_rate", "bank_ledger_id", "purchase_bill_id", "bill_reference_id", "stock_group_id", "unit_id", "default_warehouse_id", "inventory_ledger_id", "purchase_ledger_id", "sales_ledger_id", "cogs_ledger_id", "adjustment_gain_ledger_id", "adjustment_loss_ledger_id", "grni_ledger_id", "warehouse_id", "from_warehouse_id", "to_warehouse_id", "stock_item_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock", "max_stock", "parent_group_id", "branch_id", "adjustment_ledger_id"]);
+const numericFields = new Set(["financial_year_id", "ledger_id", "ledger_group_id", "voucher_type_id", "debit_amount", "credit_amount", "opening_balance_dr", "opening_balance_cr", "opening_balance", "sequence_order", "numbering_sequence", "cost_center_id", "party_id", "payment_terms_days", "credit_limit", "original_amount", "outstanding_amount", "from_bill_reference_id", "to_bill_reference_id", "allocated_amount", "invoice_id", "receipt_id", "allocation_id", "source_record_id", "roundoff_ledger_id", "bank_account_id", "default_ledger_id", "statement_line_id", "voucher_id", "ledger_entry_id", "matched_amount", "expense_ledger_id", "from_ledger_id", "to_ledger_id", "amount", "cgst_rate", "sgst_rate", "igst_rate", "cess_rate", "default_gst_rate_id", "period_month", "period_year", "threshold_amount", "taxable_value", "vendor_id", "quantity", "quantity_in", "quantity_out", "available_quantity", "rate", "unit_cost", "gst_rate_id", "gst_amount", "tds_section_id", "tds_amount", "line_total", "subtotal", "discount_total", "gst_total", "grand_total", "employee_id", "total_amount", "default_rate", "section_id", "taxable_amount", "tds_rate", "bank_ledger_id", "purchase_bill_id", "bill_reference_id", "stock_group_id", "unit_id", "default_warehouse_id", "inventory_ledger_id", "purchase_ledger_id", "sales_ledger_id", "cogs_ledger_id", "adjustment_gain_ledger_id", "adjustment_loss_ledger_id", "grni_ledger_id", "warehouse_id", "from_warehouse_id", "to_warehouse_id", "stock_item_id", "product_id", "batch_id", "bom_id", "order_id", "finished_product_id", "component_product_id", "output_quantity", "planned_quantity", "completed_quantity", "purchase_rate", "sales_rate", "price", "discount_percent", "discount_amount", "min_quantity", "priority", "reorder_level", "min_stock", "max_stock", "parent_group_id", "branch_id", "adjustment_ledger_id"]);
 
 function getListConfig(kind: FAMViewKind) {
   if (kind === "financialYears") return { label: "financial year", query: famApi.financialYears, create: famApi.createFinancialYear, initial: { name: "FY 2027-28", start_date: "2027-04-01", end_date: "2028-03-31", status: "open", is_current: false }, fields: ["name", "start_date", "end_date"], columns: ["name", "start_date", "end_date", "status", "is_current"] };
@@ -1247,6 +1772,9 @@ function AuditRow({ item }: { item: FAMRecord }) {
 export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   const meta = viewMeta[kind];
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const isSrmInventoryContext = location.pathname.startsWith("/srm/inventory");
+  useSrmRealtimeInvalidation(queryClient, isSrmInventoryContext);
   let content: React.ReactNode = null;
   if (kind === "dashboard") content = <DashboardView />;
   else if (kind === "settings") content = <SettingsView />;
@@ -1313,7 +1841,7 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "payablesDashboard") content = <PayablesDashboardView />;
   else if (kind === "inventory" || kind === "inventoryDashboard") content = <InventoryDashboardView />;
   else if (kind === "inventoryAccounting") content = <InventoryAccountingView />;
-  else if (kind === "inventoryItems") content = <InventoryItemsView />;
+  else if (kind === "inventoryItems" || kind === "inventoryProducts") content = <InventoryItemsView />;
   else if (kind === "inventoryItemDetail") content = <InventoryItemDetailView />;
   else if (kind === "inventoryLedgerMapping") content = <InventoryLedgerMappingView />;
   else if (kind === "inventoryCategories" || kind === "inventoryStockGroups") content = <InventoryMasterView kind="groups" />;
@@ -1325,6 +1853,7 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "inventoryDeliveryNotes") content = <InventoryMovementView mode="delivery" />;
   else if (kind === "inventoryStockTransfers") content = <InventoryTransferView />;
   else if (kind === "inventoryStockAdjustments") content = <InventoryAdjustmentView />;
+  else if (kind === "inventoryOpeningStock") content = <InventoryOpeningStockView />;
   else if (kind === "inventoryStockSummary") content = <InventorySummaryView kind="summary" />;
   else if (kind === "inventoryItemLedger") content = <InventoryItemDetailView ledger />;
   else if (kind === "inventoryWarehouseStock") content = <InventorySummaryView kind="warehouse" />;
@@ -1346,7 +1875,11 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else if (kind === "inventoryCrmLink") content = <InventorySummaryView kind="crmLink" />;
   else if (kind === "inventorySrmLink") content = <InventorySummaryView kind="srmLink" />;
   else if (kind === "inventoryReorderAlerts") content = <InventorySummaryView kind="reorder" />;
-  else if (kind === "inventoryReports") content = <InventorySummaryView kind="reports" />;
+  else if (kind === "inventoryReports" || kind === "inventoryCompleteReports") content = <InventorySummaryView kind="reports" />;
+  else if (kind === "inventoryPurchaseOrders") content = <InventoryPurchaseOrdersView />;
+  else if (kind === "inventoryPriceLists") content = <InventoryPriceListsView />;
+  else if (kind === "inventoryBatches") content = <InventoryBatchesView />;
+  else if (kind === "inventoryManufacturing") content = <InventoryManufacturingView />;
   else if (kind === "inventoryAI") content = <InventoryAIView />;
   else if (kind === "audit") content = <AuditView />;
   else content = <ListCreateView kind={kind} />;
@@ -1354,8 +1887,11 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   return (
     <section className="space-y-5">
       <PageHeader meta={meta} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["fam"] })} />
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-        <ShieldCheck className="mr-2 inline h-4 w-4" />FAM is the statutory books engine. SRM remains the operational revenue engine; no SRM invoice screens are duplicated here.
+      <div className={`rounded-lg border px-4 py-3 text-sm ${isSrmInventoryContext ? "border-blue-200 bg-blue-50 text-blue-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+        <ShieldCheck className="mr-2 inline h-4 w-4" />
+        {isSrmInventoryContext
+          ? "Sales & Inventory owns operational stock, products, warehouses, POS, and fulfilment. Accounting postings sync to FAM only when required."
+          : "FAM is the statutory books engine. SRM remains the operational revenue engine; no SRM invoice screens are duplicated here."}
       </div>
       {content}
     </section>
