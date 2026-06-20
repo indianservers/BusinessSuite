@@ -1,5 +1,11 @@
-const CACHE_VERSION = "ai-hrms-shell-v2";
-const SHELL_ASSETS = ["/", "/app-config.js", "/manifest.webmanifest"];
+const CACHE_VERSION = "business-suite-shell-v3";
+const SHELL_ASSETS = ["/app-config.js", "/manifest.webmanifest"];
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(SHELL_ASSETS)));
