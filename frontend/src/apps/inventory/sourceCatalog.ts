@@ -38,7 +38,7 @@ export const inventoryEntryPoints = [
   {
     label: "POS Terminal",
     description: "Open register session, scan/search products, hold bills, split tender, and complete retail sale.",
-    to: "/srm/pos/terminal",
+    to: "/srm/pos",
     icon: Store,
   },
   {
@@ -77,7 +77,7 @@ export const inventorySourceGroups: InventorySourceGroup[] = [
   {
     title: "POS & Counter Sales",
     features: [
-      { label: "POS terminal", route: "/pos/terminal", appPath: "/srm/pos/terminal", icon: Store, owner: "POS" },
+      { label: "POS terminal", route: "/pos/terminal", appPath: "/srm/pos", icon: Store, owner: "POS" },
       { label: "Open register session", route: "/pos/", appPath: "/srm/pos", icon: Store, owner: "POS" },
       { label: "Held bills", route: "/pos/held", appPath: "/srm/pos/held-bills", icon: ShoppingCart, owner: "POS" },
       { label: "POS sessions", route: "/pos/sessions", appPath: "/srm/pos/sessions", icon: FileText, owner: "POS" },

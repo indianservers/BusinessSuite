@@ -14,6 +14,7 @@ export default function AppLayout() {
   const location = useLocation();
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
+  const isPosTerminal = location.pathname === "/srm/pos" || location.pathname === "/srm/pos/terminal";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("sidebarCollapsed") === "true");
 
@@ -38,9 +39,9 @@ export default function AppLayout() {
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-5 lg:p-8 animate-fade-in">
-          <Breadcrumbs />
-          <WorkspaceEnhancements />
+        <main className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : "p-4 md:p-5 lg:p-8"}`}>
+          {isPosTerminal ? null : <Breadcrumbs />}
+          {isPosTerminal ? null : <WorkspaceEnhancements />}
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

@@ -6,6 +6,7 @@ import { inventorySourceAppPaths } from "@/apps/inventory/sourceCatalog";
 
 const SRMWorkspacePage = React.lazy(() => import("./pages/SRMWorkspacePage"));
 const SRMCommercialDetailPage = React.lazy(() => import("./pages/SRMCommercialDetailPage"));
+const SRMPOSPage = React.lazy(() => import("./pages/SRMPOSPage"));
 const FAMWorkspacePage = React.lazy(() => import("@/apps/fam/FAMWorkspacePage"));
 const InventoryBridgePage = React.lazy(() => import("@/apps/inventory/InventoryBridgePage"));
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
@@ -43,6 +44,8 @@ export const srmRoutes: FrontendRoute[] = [
   route("srm/revenue-recognition", "revenueRecognition"),
   route("srm/profitability", "profitability"),
   route("srm/customer-360", "customer360"),
+  { path: "srm/pos", element: <SRMPOSPage /> },
+  { path: "srm/pos/terminal", element: <SRMPOSPage /> },
   inventoryRoute("srm/inventory", "inventory"),
   inventoryRoute("srm/inventory/dashboard", "inventoryDashboard"),
   inventoryRoute("srm/inventory/items", "inventoryItems"),

@@ -303,7 +303,7 @@ const coreLaunchpad = [
     title: "POS",
     description: "Counter billing, register sessions, held bills, cashier closing, and POS configuration.",
     icon: Store,
-    to: "/srm/pos/terminal",
+    to: "/srm/pos",
     action: "Open POS",
   },
   {
