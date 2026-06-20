@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { getRoleLabel } from "@/lib/roles";
-import { getProductForContext } from "@/lib/products";
+import { BUSINESS_SUITE_DISPLAY_NAME, getProductDisplayName, getProductForContext } from "@/lib/products";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 export default function ModuleProfilePage() {
@@ -40,8 +40,13 @@ export default function ModuleProfilePage() {
               <div className="rounded-lg border p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Module</p>
                 <p className="mt-1 font-medium">{product.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{getProductDisplayName(product)}</p>
               </div>
               <div className="rounded-lg border p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Suite</p>
+                <p className="mt-1 font-medium">{BUSINESS_SUITE_DISPLAY_NAME}</p>
+              </div>
+              <div className="rounded-lg border p-4 sm:col-span-2">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Role</p>
                 <p className="mt-1 font-medium">{roleLabel}</p>
               </div>

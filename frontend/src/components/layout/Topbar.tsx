@@ -12,7 +12,7 @@ import KeyboardShortcuts from "@/components/app/KeyboardShortcuts";
 import { useThemeStore } from "@/store/themeStore";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute, getRoleLabel } from "@/lib/roles";
-import { getProductForContext } from "@/lib/products";
+import { BUSINESS_SUITE_DISPLAY_NAME, getProductDisplayName, getProductForContext } from "@/lib/products";
 import { authApi, notificationsApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 
@@ -94,6 +94,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <GlobalSearch />
 
       <div className="ml-auto flex items-center gap-2">
+        <div className="hidden rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
+          {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
+        </div>
         {/* Notifications */}
         {canOpenNotifications || notificationItems.length ? (
           <DropdownMenu.Root open={notificationTrayOpen} onOpenChange={setNotificationTrayOpen}>

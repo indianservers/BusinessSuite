@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Sparkles, UserCircle, X, LogOut } from "luci
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel, getRoleNav } from "@/lib/roles";
-import { getProductForContext } from "@/lib/products";
+import { BUSINESS_SUITE_DISPLAY_NAME, getProductDisplayName, getProductForContext } from "@/lib/products";
 
 interface SidebarProps {
   open: boolean;
@@ -57,7 +57,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
               </div>
               <div>
                 <p className="text-sm font-bold text-sidebar-foreground">{product.name}</p>
-                <p className="text-[10px] text-sidebar-foreground/50">{roleLabel}</p>
+                <p className="text-[10px] text-sidebar-foreground/50">{getProductDisplayName(product)} / {roleLabel}</p>
               </div>
             </div>
           )}
@@ -148,6 +148,11 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
 
         {/* User section */}
         <div className="border-t border-sidebar-border p-4">
+          {!collapsed && (
+            <div className="mb-3 rounded-md border border-sidebar-border/70 px-3 py-2 text-[10px] font-medium text-sidebar-foreground/55">
+              {BUSINESS_SUITE_DISPLAY_NAME}
+            </div>
+          )}
           <NavLink
             to={profilePath}
             end

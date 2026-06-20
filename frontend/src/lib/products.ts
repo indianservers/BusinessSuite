@@ -4,17 +4,23 @@ export type ProductMeta = {
   key: ProductKey;
   name: string;
   shortName: string;
+  version: string;
   loginPath: string;
   homePath: string;
   themeClass: string;
   searchPlaceholder: string;
 };
 
+export const BUSINESS_SUITE_VERSION = "1.01";
+export const BUSINESS_SUITE_NAME = "Business Suite";
+export const BUSINESS_SUITE_DISPLAY_NAME = `${BUSINESS_SUITE_NAME} ${BUSINESS_SUITE_VERSION}`;
+
 export const products: Record<ProductKey, ProductMeta> = {
   hrms: {
     key: "hrms",
     name: "AI HRMS",
     shortName: "HRMS",
+    version: "1.01",
     loginPath: "/hrms/login",
     homePath: "/hrms",
     themeClass: "product-hrms",
@@ -24,6 +30,7 @@ export const products: Record<ProductKey, ProductMeta> = {
     key: "crm",
     name: "VyaparaCRM",
     shortName: "CRM",
+    version: "1.01",
     loginPath: "/crm/login",
     homePath: "/crm",
     themeClass: "product-crm",
@@ -33,6 +40,7 @@ export const products: Record<ProductKey, ProductMeta> = {
     key: "project_management",
     name: "KaryaFlow PMS",
     shortName: "PMS",
+    version: "1.01",
     loginPath: "/pms/login",
     homePath: "/pms",
     themeClass: "product-pms",
@@ -42,6 +50,7 @@ export const products: Record<ProductKey, ProductMeta> = {
     key: "srm",
     name: "RevenueFlow SRM",
     shortName: "SRM",
+    version: "1.01",
     loginPath: "/srm/login",
     homePath: "/srm",
     themeClass: "product-srm",
@@ -51,6 +60,7 @@ export const products: Record<ProductKey, ProductMeta> = {
     key: "fam",
     name: "FinanceFlow FAM",
     shortName: "FAM",
+    version: "1.01",
     loginPath: "/fam/login",
     homePath: "/fam",
     themeClass: "product-fam",
@@ -60,12 +70,17 @@ export const products: Record<ProductKey, ProductMeta> = {
     key: "inventory",
     name: "Vyapara ERP Inventory",
     shortName: "Inventory",
+    version: "1.01",
     loginPath: "/login",
-    homePath: "/Inventory",
+    homePath: "/inventory",
     themeClass: "product-inventory",
     searchPlaceholder: "Search products, stock, invoices...  Cmd+K",
   },
 };
+
+export function getProductDisplayName(product: ProductMeta) {
+  return `${product.shortName} ${product.version}`;
+}
 
 export function normalizeRole(role?: string | null) {
   return (role || "").toLowerCase().replace(/\s+/g, "_");

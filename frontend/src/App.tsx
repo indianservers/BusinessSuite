@@ -7,7 +7,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { canAccessRoute } from "@/lib/roles";
 import { getInstalledAppKeys, setBusinessOsEnabledModules, type FrontendRoute } from "@/appRegistry";
 import { api } from "@/services/api";
-import { getLoginPathForContext } from "@/lib/products";
+import { BUSINESS_SUITE_DISPLAY_NAME, getLoginPathForContext } from "@/lib/products";
 import { hrmsRoutes } from "@/apps/hrms/routes";
 import { crmRoutes } from "@/apps/crm/routes";
 import { projectManagementRoutes } from "@/apps/project-management/routes";
@@ -51,7 +51,7 @@ function LoadingFallback() {
           <Sparkles className="h-7 w-7" />
         </div>
         <div>
-          <p className="text-lg font-semibold">Business Suite</p>
+          <p className="text-lg font-semibold">{BUSINESS_SUITE_DISPLAY_NAME}</p>
           <p className="text-sm text-muted-foreground">Loading your workspace...</p>
         </div>
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

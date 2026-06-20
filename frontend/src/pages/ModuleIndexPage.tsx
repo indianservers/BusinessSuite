@@ -1,11 +1,25 @@
 import { Link } from "react-router-dom";
-import { Briefcase, Building2, FolderKanban, Landmark, LogIn, Package, Receipt, Sparkles } from "lucide-react";
+import { Briefcase, Building2, FolderKanban, Landmark, LogIn, Package, Receipt, Sparkles, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { moduleDefaultCredentials } from "@/lib/defaultCredentials";
+import { BUSINESS_SUITE_DISPLAY_NAME, products, type ProductKey } from "@/lib/products";
 import { useAuthStore } from "@/store/authStore";
 
-const modules = [
+type ModuleIndexItem = {
+  key: string;
+  credentialKey: keyof typeof moduleDefaultCredentials | null;
+  name: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  homePath: string;
+  loginPath: string;
+  tone: string;
+  productKey: ProductKey;
+};
+
+const modules: ModuleIndexItem[] = [
   {
     key: "hrms",
     credentialKey: "hrms",
@@ -16,6 +30,7 @@ const modules = [
     homePath: "/hrms",
     loginPath: "/hrms/login",
     tone: "bg-blue-600",
+    productKey: "hrms",
   },
   {
     key: "crm",
@@ -27,6 +42,7 @@ const modules = [
     homePath: "/crm",
     loginPath: "/crm/login",
     tone: "bg-emerald-600",
+    productKey: "crm",
   },
   {
     key: "pms",
@@ -38,6 +54,7 @@ const modules = [
     homePath: "/pms",
     loginPath: "/pms/login",
     tone: "bg-violet-600",
+    productKey: "project_management",
   },
   {
     key: "srm",
@@ -49,6 +66,7 @@ const modules = [
     homePath: "/srm",
     loginPath: "/srm/login",
     tone: "bg-amber-600",
+    productKey: "srm",
   },
   {
     key: "fam",
@@ -60,6 +78,7 @@ const modules = [
     homePath: "/fam",
     loginPath: "/fam/login",
     tone: "bg-cyan-700",
+    productKey: "fam",
   },
   {
     key: "inventory",
@@ -71,8 +90,9 @@ const modules = [
     homePath: "/inventory",
     loginPath: "/login",
     tone: "bg-teal-700",
+    productKey: "inventory",
   },
-] as const;
+];
 
 export default function ModuleIndexPage() {
   const { isAuthenticated, isHydrated } = useAuthStore();
@@ -84,7 +104,7 @@ export default function ModuleIndexPage() {
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5" />
-              Business Suite
+              {BUSINESS_SUITE_DISPLAY_NAME}
             </div>
             <h1 className="text-3xl font-semibold tracking-tight">Choose a module</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -101,13 +121,17 @@ export default function ModuleIndexPage() {
         {modules.map((module) => {
           const Icon = module.icon;
           const defaultLogin = module.credentialKey ? moduleDefaultCredentials[module.credentialKey][0] : null;
+          const product = products[module.productKey];
           return (
             <Card key={module.key} className="overflow-hidden transition duration-200 hover:-translate-y-1 hover:shadow-lg">
               <CardContent className="flex h-full flex-col p-0">
                 <div className={`${module.tone} p-5 text-white`}>
                   <Icon className="h-8 w-8" />
                   <h2 className="mt-4 text-xl font-semibold">{module.name}</h2>
-                  <p className="text-sm text-white/80">{module.label}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/80">
+                    <span>{module.label}</span>
+                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-semibold text-white">{product.shortName} {product.version}</span>
+                  </div>
                 </div>
                 <div className="flex flex-1 flex-col p-5">
                   <p className="text-sm text-muted-foreground">{module.description}</p>
