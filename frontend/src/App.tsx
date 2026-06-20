@@ -13,8 +13,6 @@ import { crmRoutes } from "@/apps/crm/routes";
 import { projectManagementRoutes } from "@/apps/project-management/routes";
 import { srmRoutes } from "@/apps/srm/routes";
 import { famRoutes } from "@/apps/fam/routes";
-import { inventoryRoutes } from "@/apps/inventory/routes";
-import InventoryBridgePage from "@/apps/inventory/InventoryBridgePage";
 import { aiAgentRoutes } from "@/pages/ai-agents/routes";
 import { aiCopilotRoutes } from "@/apps/ai-copilot/routes";
 import { adminSecurityRoutes } from "@/apps/admin-security/routes";
@@ -36,7 +34,6 @@ const appRoutes: Record<string, FrontendRoute[]> = {
   project_management: projectManagementRoutes,
   srm: srmRoutes,
   fam: famRoutes,
-  inventory: inventoryRoutes,
 };
 
 function getEnabledRoutes() {
@@ -151,10 +148,10 @@ export default function App() {
           <Route path="/portal/customer/*" element={<PortalPage />} />
           <Route path="/portal/partner/login" element={<PortalPage />} />
           <Route path="/portal/partner/*" element={<PortalPage />} />
-          <Route path="/Inventory" element={<Navigate to="/inventory" replace />} caseSensitive />
-          <Route path="/Inventory/dashboard" element={<Navigate to="/inventory/dashboard" replace />} caseSensitive />
-          <Route path="/inventory" element={<InventoryBridgePage />} caseSensitive />
-          <Route path="/inventory/dashboard" element={<InventoryBridgePage />} caseSensitive />
+          <Route path="/Inventory" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
+          <Route path="/Inventory/*" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
+          <Route path="/inventory" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
+          <Route path="/inventory/*" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
           <Route path="/" element={<ModuleIndexPage />} />
           <Route
             path="/*"

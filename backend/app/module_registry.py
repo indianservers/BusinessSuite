@@ -141,7 +141,7 @@ APP_MODULES: dict[str, AppModule] = {
     ),
     "srm": AppModule(
         key="srm",
-        label="Sales & Revenue Management",
+        label="Sales & Inventory Management",
         router_modules=("app.apps.srm.api.router",),
         model_modules=("app.apps.srm.models",),
     ),
@@ -150,10 +150,6 @@ APP_MODULES: dict[str, AppModule] = {
         label="Finance & Accounting Management",
         router_modules=("app.apps.fam.api.router",),
         model_modules=("app.apps.fam.models",),
-    ),
-    "inventory": AppModule(
-        key="inventory",
-        label="Inventory",
     ),
 }
 

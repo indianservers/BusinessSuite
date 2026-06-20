@@ -53,10 +53,10 @@ const moduleLogins = {
     demoLogins: moduleDefaultCredentials.project_management,
   },
   srm: {
-    product: "RevenueFlow SRM",
+    product: "Sales & Inventory",
     authModule: "srm",
-    tagline: "Sales & Revenue Management",
-    description: "Enter your SRM credentials",
+    tagline: "Sales, Inventory and POS",
+    description: "Enter your Sales & Inventory credentials",
     afterLogin: "/srm",
     accent: "amber",
     demoLogins: moduleDefaultCredentials.srm,

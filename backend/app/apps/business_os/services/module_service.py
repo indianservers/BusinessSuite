@@ -18,9 +18,8 @@ from app.models.user import User
 
 CORE_MODULES = {
     "fam": {"display_name": "Accounts / FAM", "home_path": "/fam", "is_financial_backbone": True, "optional": True},
-    "inventory": {"display_name": "Inventory", "home_path": "/Inventory", "is_financial_backbone": False, "optional": True},
     "crm": {"display_name": "CRM", "home_path": "/crm", "is_financial_backbone": False, "optional": True},
-    "srm": {"display_name": "SRM", "home_path": "/srm", "is_financial_backbone": False, "optional": True},
+    "srm": {"display_name": "Sales & Inventory", "home_path": "/srm", "is_financial_backbone": False, "optional": True},
     "project_management": {"display_name": "PMS", "home_path": "/pms", "is_financial_backbone": False, "optional": True},
     "hrms": {"display_name": "HRMS", "home_path": "/hrms", "is_financial_backbone": False, "optional": True},
     "ai": {"display_name": "AI", "home_path": "/ai/copilot", "is_financial_backbone": False, "optional": True},
@@ -28,23 +27,21 @@ CORE_MODULES = {
     "communication": {"display_name": "Communication", "home_path": "/admin/communication", "is_financial_backbone": False, "optional": True},
 }
 
-DEFAULT_ENABLED_MODULES = {"fam", "inventory", "crm", "srm", "project_management", "hrms", "ai", "portals", "communication"}
+DEFAULT_ENABLED_MODULES = {"fam", "crm", "srm", "project_management", "hrms", "ai", "portals", "communication"}
 
 SUPPORTED_COMBINATIONS = [
     {"name": "Accounts only", "modules": ["fam"]},
-    {"name": "Accounts + Inventory", "modules": ["fam", "inventory"]},
+    {"name": "Accounts + Sales & Inventory", "modules": ["fam", "srm"]},
     {"name": "CRM only", "modules": ["crm"]},
     {"name": "CRM + SRM", "modules": ["crm", "srm"]},
     {"name": "SRM only", "modules": ["srm"]},
     {"name": "PMS only", "modules": ["project_management"]},
     {"name": "SRM + PMS", "modules": ["srm", "project_management"]},
     {"name": "PMS + FAM invoicing", "modules": ["project_management", "fam"]},
-    {"name": "Accounts + Inventory + SRM", "modules": ["fam", "inventory", "srm"]},
     {"name": "Full Business OS", "modules": sorted(DEFAULT_ENABLED_MODULES)},
 ]
 
 DEFAULT_DEPENDENCIES = [
-    ("inventory", "fam", "optional", "Inventory can post accounting entries when Accounts/FAM is enabled."),
     ("srm", "crm", "optional", "SRM can consume CRM won-deal handoffs when CRM is enabled."),
     ("srm", "fam", "optional", "SRM can post invoices, receipts, and allocations to FAM when enabled."),
     ("project_management", "srm", "optional", "PMS can receive SRM engagement project handoffs when SRM is enabled."),
@@ -61,14 +58,13 @@ DEFAULT_INTEGRATIONS = [
     ("srm_invoice_to_fam", "srm", "fam", "invoice_approved", "post_sales_invoice"),
     ("srm_receipt_to_fam", "srm", "fam", "receipt_confirmed", "post_receipt"),
     ("pms_timesheet_to_fam_invoice", "project_management", "fam", "timesheet_approved", "create_invoice_draft"),
-    ("inventory_sales_to_srm", "inventory", "srm", "sales_order_confirmed", "reserve_stock"),
 ]
 
 DEFAULT_POSTING_RULES = [
     ("srm_invoice_posting", "srm", "fam", "sales_invoice"),
     ("srm_receipt_posting", "srm", "fam", "receipt"),
-    ("inventory_grni_posting", "inventory", "fam", "inventory_grni"),
-    ("inventory_cogs_posting", "inventory", "fam", "inventory_cogs"),
+    ("srm_inventory_grni_posting", "srm", "fam", "inventory_grni"),
+    ("srm_inventory_cogs_posting", "srm", "fam", "inventory_cogs"),
     ("pms_invoice_posting", "project_management", "fam", "pms_invoice"),
 ]
 
@@ -83,6 +79,8 @@ def normalize_module_key(value: str) -> str:
         return "fam"
     if value in {"pms", "projects"}:
         return "project_management"
+    if value in {"inventory", "sales_inventory", "sales_and_inventory"}:
+        return "srm"
     if value in {"portal"}:
         return "portals"
     if value in {"communications"}:
@@ -132,7 +130,15 @@ def ensure_business_os_seed(db: Session, company_id: int = 1) -> None:
 
 def enabled_module_keys(db: Session, company_id: int = 1) -> set[str]:
     ensure_business_os_seed(db, company_id)
-    rows = db.query(BOSEnabledModule).filter(BOSEnabledModule.company_id == company_id, BOSEnabledModule.enabled.is_(True)).all()
+    rows = (
+        db.query(BOSEnabledModule)
+        .filter(
+            BOSEnabledModule.company_id == company_id,
+            BOSEnabledModule.enabled.is_(True),
+            BOSEnabledModule.module_key.in_(CORE_MODULES.keys()),
+        )
+        .all()
+    )
     return {row.module_key for row in rows}
 
 

@@ -6,7 +6,6 @@ export type FrontendAppKey =
   | "project_management"
   | "srm"
   | "fam"
-  | "inventory"
   | "ai"
   | "portals"
   | "communication";
@@ -25,14 +24,13 @@ export type FrontendAppModule = {
 };
 
 const rawInstalledApps =
-  import.meta.env.VITE_INSTALLED_APPS || "hrms,crm,project_management,srm,fam,inventory,ai,portals,communication";
+  import.meta.env.VITE_INSTALLED_APPS || "hrms,crm,project_management,srm,fam,ai,portals,communication";
 const validAppKeys: FrontendAppKey[] = [
   "hrms",
   "crm",
   "project_management",
   "srm",
   "fam",
-  "inventory",
   "ai",
   "portals",
   "communication",

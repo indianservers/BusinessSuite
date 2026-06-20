@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Briefcase, Building2, FolderKanban, Landmark, LogIn, Package, Receipt, Sparkles, type LucideIcon } from "lucide-react";
+import { Briefcase, Building2, FolderKanban, Landmark, LogIn, Receipt, Sparkles, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { moduleDefaultCredentials } from "@/lib/defaultCredentials";
@@ -59,9 +59,9 @@ const modules: ModuleIndexItem[] = [
   {
     key: "srm",
     credentialKey: "srm",
-    name: "Sales & Revenue Management",
-    label: "SRM",
-    description: "Manage sales orders, contracts, billing, invoices, collections, and revenue profitability.",
+    name: "Sales & Inventory Management",
+    label: "Sales, Inventory & POS",
+    description: "Manage sales orders, POS, products, stock, delivery, billing, invoices, collections, and profitability.",
     icon: Receipt,
     homePath: "/srm",
     loginPath: "/srm/login",
@@ -80,18 +80,6 @@ const modules: ModuleIndexItem[] = [
     tone: "bg-cyan-700",
     productKey: "fam",
   },
-  {
-    key: "inventory",
-    credentialKey: null,
-    name: "Vyapara ERP Inventory",
-    label: "Inventory",
-    description: "Products, stock, warehouses, purchases, sales, POS, reports, and GST-ready inventory operations from the cloned Vyapara ERP app.",
-    icon: Package,
-    homePath: "/inventory",
-    loginPath: "/login",
-    tone: "bg-teal-700",
-    productKey: "inventory",
-  },
 ];
 
 export default function ModuleIndexPage() {
@@ -108,7 +96,7 @@ export default function ModuleIndexPage() {
             </div>
             <h1 className="text-3xl font-semibold tracking-tight">Choose a module</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Open CRM, HRMS, PMS, SRM, FAM, or Inventory from one index page. Sign in to the module you want to use.
+              Open CRM, HRMS, PMS, Sales & Inventory, or FAM from one index page. Sign in to the module you want to use.
             </p>
           </div>
           <Button asChild variant="outline">
@@ -149,8 +137,8 @@ export default function ModuleIndexPage() {
                   ) : null}
                   <div className="mt-6 grid gap-2">
                     <Button asChild>
-                      <Link to={module.key === "inventory" ? module.homePath : isHydrated && isAuthenticated ? module.homePath : module.loginPath}>
-                        {!isHydrated ? "Loading..." : isAuthenticated || module.key === "srm" || module.key === "inventory" ? `Open ${module.label}` : "Sign in"}
+                      <Link to={isHydrated && isAuthenticated ? module.homePath : module.loginPath}>
+                        {!isHydrated ? "Loading..." : isAuthenticated || module.key === "srm" ? `Open ${module.label}` : "Sign in"}
                       </Link>
                     </Button>
                   </div>

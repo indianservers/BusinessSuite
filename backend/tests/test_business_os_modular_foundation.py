@@ -49,4 +49,5 @@ def test_business_os_supported_combinations_include_required_standalone_sets(cli
     assert combos["CRM only"] == {"crm"}
     assert combos["SRM only"] == {"srm"}
     assert combos["PMS only"] == {"project_management"}
-    assert combos["Full Business OS"].issuperset({"fam", "inventory", "crm", "srm", "project_management", "hrms", "ai"})
+    assert "inventory" not in combos["Full Business OS"]
+    assert combos["Full Business OS"].issuperset({"fam", "crm", "srm", "project_management", "hrms", "ai"})

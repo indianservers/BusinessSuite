@@ -62,7 +62,7 @@ from app.models.notification import Notification
 from app.models.user import User
 
 
-router = APIRouter(prefix="/srm", tags=["Sales & Revenue Management"])
+router = APIRouter(prefix="/srm", tags=["Sales & Inventory Management"])
 
 SALES_ORDER_STATUSES = {"draft", "pending_approval", "approved", "confirmed", "cancelled", "closed"}
 CONTRACT_STATUSES = {"draft", "under_review", "active", "expired", "terminated", "renewed"}
@@ -536,7 +536,7 @@ def _profitability_payload(snapshot: SRMProfitabilitySnapshot) -> dict:
 def module_info(current_user: User = Depends(RequirePermission("srm_view", "srm_admin"))):
     return {
         "key": "srm",
-        "label": "Sales & Revenue Management",
+        "label": "Sales & Inventory Management",
         "api_prefix": "/api/v1/srm",
         "routes": [
             "/srm/dashboard",

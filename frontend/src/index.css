@@ -182,8 +182,7 @@
   .dark .product-shell.product-crm,
   .dark .product-shell.product-pms,
   .dark .product-shell.product-srm,
-  .dark .product-shell.product-fam,
-  .dark .product-shell.product-inventory {
+  .dark .product-shell.product-fam {
     color-scheme: dark;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;

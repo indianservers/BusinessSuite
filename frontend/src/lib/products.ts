@@ -1,4 +1,4 @@
-export type ProductKey = "hrms" | "crm" | "project_management" | "srm" | "fam" | "inventory";
+export type ProductKey = "hrms" | "crm" | "project_management" | "srm" | "fam";
 
 export type ProductMeta = {
   key: ProductKey;
@@ -48,13 +48,13 @@ export const products: Record<ProductKey, ProductMeta> = {
   },
   srm: {
     key: "srm",
-    name: "RevenueFlow SRM",
-    shortName: "SRM",
-    version: "1.01",
+    name: "Sales & Inventory Management",
+    shortName: "Sales + Inventory",
+    version: "1.02",
     loginPath: "/srm/login",
     homePath: "/srm",
     themeClass: "product-srm",
-    searchPlaceholder: "Search orders, invoices, collections...  Cmd+K",
+    searchPlaceholder: "Search sales, POS, stock, invoices...  Cmd+K",
   },
   fam: {
     key: "fam",
@@ -65,16 +65,6 @@ export const products: Record<ProductKey, ProductMeta> = {
     homePath: "/fam",
     themeClass: "product-fam",
     searchPlaceholder: "Search ledgers, groups, balances...  Cmd+K",
-  },
-  inventory: {
-    key: "inventory",
-    name: "Vyapara ERP Inventory",
-    shortName: "Inventory",
-    version: "1.01",
-    loginPath: "/login",
-    homePath: "/inventory",
-    themeClass: "product-inventory",
-    searchPlaceholder: "Search products, stock, invoices...  Cmd+K",
   },
 };
 
@@ -92,7 +82,6 @@ export function getProductKeyFromPath(pathname: string): ProductKey | null {
   if (pathname.startsWith("/pms")) return "project_management";
   if (pathname.startsWith("/srm")) return "srm";
   if (pathname.startsWith("/fam")) return "fam";
-  if (normalizedPathname.startsWith("/inventory")) return "inventory";
   if (pathname.startsWith("/hrms")) return "hrms";
   return null;
 }

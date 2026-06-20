@@ -150,7 +150,7 @@ function srmResponse(path: string, method: string) {
     if (path.includes("/settings/")) return { id: 1, key: path.split("/").pop(), value_json: { value: "saved" } };
     return { id: 1, status: "updated" };
   }
-  if (path.includes("/module-info")) return { key: "srm", label: "Sales & Revenue Management", api_prefix: "/api/v1/srm" };
+  if (path.includes("/module-info")) return { key: "srm", label: "Sales & Inventory Management", api_prefix: "/api/v1/srm" };
   if (path.includes("/by-crm-deal/501")) return handoffPayload(true);
   if (path.includes("/engagements/2/lifecycle")) {
     return {

@@ -97,7 +97,7 @@ class FAMAdapter(BaseModuleAdapter):
 
 
 class InventoryAdapter(BaseModuleAdapter):
-    module_key = "inventory"
+    module_key = "srm"
 
 
 class HRMSAdapter(BaseModuleAdapter):

@@ -102,7 +102,7 @@ export default function BusinessOSAdminPage() {
             <Network className="h-5 w-5 text-primary" />
             <h1 className="text-2xl font-semibold tracking-tight">Business OS Modular Foundation</h1>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Enable only the modules each tenant needs. FAM can act as the financial backbone, but CRM, SRM, PMS, Inventory, HRMS, AI, Portals, and Communication remain optional.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Enable only the modules each tenant needs. FAM can act as the financial backbone, while CRM, Sales & Inventory with POS, PMS, HRMS, AI, Portals, and Communication remain optional.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => load()}><RefreshCw className="h-4 w-4" />Refresh</Button>
@@ -185,7 +185,7 @@ export default function BusinessOSAdminPage() {
                 </div>
               </div>
             )) : <p className="text-sm text-muted-foreground">No lifecycle events selected. Module enable/disable actions will appear here.</p>}
-            <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground"><Link2 className="mr-2 inline h-4 w-4" />Entity lifecycle APIs are available for CRM, SRM, PMS, FAM, and Inventory links without showing fake records.</div>
+            <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground"><Link2 className="mr-2 inline h-4 w-4" />Entity lifecycle APIs are available for CRM, SRM inventory, PMS, and FAM links without showing fake records.</div>
           </CardContent>
         </Card>
       ) : null}

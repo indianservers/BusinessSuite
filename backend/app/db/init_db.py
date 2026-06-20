@@ -145,7 +145,7 @@ SYSTEM_PERMISSIONS = [
     ("pms_time_manage", "Manage time logs and approvals", "project_management"),
     ("pms_client_portal", "Access project client portal", "project_management"),
     ("pms_admin", "Manage project settings and admin areas", "project_management"),
-    # Sales & Revenue Management
+    # Sales & Inventory Management
     ("srm_view", "View sales and revenue management records", "srm"),
     ("srm_manage", "Manage SRM sales orders, contracts, engagements, and billing", "srm"),
     ("srm_admin", "Administer SRM settings and lifecycle controls", "srm"),

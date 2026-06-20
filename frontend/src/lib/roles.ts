@@ -540,7 +540,7 @@ function isSrmSalesRole(role?: string | null, isSuperuser = false) {
 
 const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/revenue-recognition", "/srm/profitability", "/srm/reports"];
 const srmCollectionOnlyPaths = ["/srm/collections"];
-const srmSalesOnlyPaths = ["/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360"];
+const srmSalesOnlyPaths = ["/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
 
 function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isSrmRole(role, isSuperuser)) return false;
@@ -612,7 +612,7 @@ function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = 
   if (["/fam/day-book", "/fam/ledger-entries"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`)) || /^\/fam\/ledgers\/[^/]+\/entries$/.test(normalizedPath)) {
     return isFamReadOnlyRole(role, isSuperuser);
   }
-  if (["/fam/parties", "/fam/customers", "/fam/vendors", "/fam/ar", "/fam/ap", "/fam/bill-references", "/fam/bill-allocations", "/fam/integrations/srm", "/fam/posting-jobs", "/fam/banking", "/fam/bank-accounts", "/fam/payment-modes", "/fam/bank-statements", "/fam/bank-reconciliation", "/fam/bank-book", "/fam/cash-book", "/fam/contra", "/fam/bank-charges", "/fam/gst", "/fam/gst/settings", "/fam/gst/registrations", "/fam/gst/rates", "/fam/gst/hsn-sac", "/fam/gst/sales-register", "/fam/gst/purchase-register", "/fam/gst/gstr1", "/fam/gst/gstr3b", "/fam/gst/reconciliation", "/fam/gst/einvoice", "/fam/gst/ewaybill", "/fam/purchases", "/fam/purchase-bills", "/fam/expenses", "/fam/tds", "/fam/purchase-register", "/fam/expense-register", "/fam/vendor-payments", "/fam/payables/dashboard", "/fam/inventory"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+  if (["/fam/parties", "/fam/customers", "/fam/vendors", "/fam/ar", "/fam/ap", "/fam/bill-references", "/fam/bill-allocations", "/fam/integrations/srm", "/fam/posting-jobs", "/fam/banking", "/fam/bank-accounts", "/fam/payment-modes", "/fam/bank-statements", "/fam/bank-reconciliation", "/fam/bank-book", "/fam/cash-book", "/fam/contra", "/fam/bank-charges", "/fam/gst", "/fam/gst/settings", "/fam/gst/registrations", "/fam/gst/rates", "/fam/gst/hsn-sac", "/fam/gst/sales-register", "/fam/gst/purchase-register", "/fam/gst/gstr1", "/fam/gst/gstr3b", "/fam/gst/reconciliation", "/fam/gst/einvoice", "/fam/gst/ewaybill", "/fam/purchases", "/fam/purchase-bills", "/fam/expenses", "/fam/tds", "/fam/purchase-register", "/fam/expense-register", "/fam/vendor-payments", "/fam/payables/dashboard"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
     return isFamOperationalRole(role, isSuperuser) || isFamReadOnlyRole(role, isSuperuser);
   }
   if (normalizedPath === "/fam/posting-rules" || normalizedPath.startsWith("/fam/posting-rules/")) return isFamAdminRole(role, isSuperuser) || ["finance_manager", "fam_finance_manager"].includes(normalizeRole(role));
@@ -867,10 +867,14 @@ const projectManagementNav: RoleNavItem[] = [
 ];
 
 const srmNav: RoleNavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, to: "/srm/dashboard", group: "Sales & Revenue", exact: true },
-  { label: "Sales Orders", icon: Receipt, to: "/srm/sales-orders", group: "Sales & Revenue" },
-  { label: "Contracts", icon: FileCheck2, to: "/srm/contracts", group: "Sales & Revenue" },
-  { label: "Engagements", icon: Briefcase, to: "/srm/engagements", group: "Sales & Revenue" },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/srm/dashboard", group: "Sales & Inventory", exact: true },
+  { label: "Sales Orders", icon: Receipt, to: "/srm/sales-orders", group: "Sales & Inventory" },
+  { label: "Source Sales Docs", icon: FileText, to: "/srm/sales-inventory/source", group: "Sales & Inventory" },
+  { label: "Contracts", icon: FileCheck2, to: "/srm/contracts", group: "Sales & Inventory" },
+  { label: "Engagements", icon: Briefcase, to: "/srm/engagements", group: "Sales & Inventory" },
+  { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
+  { label: "POS Sessions", icon: FileText, to: "/srm/pos/sessions", group: "Sales & Inventory" },
+  { label: "Cashier Closing", icon: BarChart3, to: "/srm/pos/cashier-closing", group: "Sales & Inventory" },
   { label: "Billing Plans", icon: CalendarDays, to: "/srm/billing-plans", group: "Billing" },
   { label: "Invoice Drafts", icon: FileText, to: "/srm/invoice-drafts", group: "Billing" },
   { label: "Invoices", icon: DollarSign, to: "/srm/invoices", group: "Billing" },
@@ -878,6 +882,23 @@ const srmNav: RoleNavItem[] = [
   { label: "Revenue Recognition", icon: CheckCircle2, to: "/srm/revenue-recognition", group: "Revenue" },
   { label: "Profitability", icon: BarChart3, to: "/srm/profitability", group: "Revenue" },
   { label: "Customer 360", icon: Users, to: "/srm/customer-360", group: "Revenue" },
+  { label: "Inventory Dashboard", icon: Package, to: "/srm/inventory/dashboard", group: "Sales & Inventory" },
+  { label: "Stock Items", icon: Package, to: "/srm/inventory/items", group: "Sales & Inventory" },
+  { label: "Products & Barcodes", icon: Package, to: "/srm/inventory/products", group: "Sales & Inventory" },
+  { label: "Price Lists", icon: Receipt, to: "/srm/inventory/price-lists", group: "Sales & Inventory" },
+  { label: "Warehouses", icon: Building2, to: "/srm/inventory/warehouses", group: "Sales & Inventory" },
+  { label: "Stock Summary", icon: BookOpen, to: "/srm/inventory/stock-summary", group: "Sales & Inventory" },
+  { label: "Opening Stock", icon: Upload, to: "/srm/inventory/opening-stock", group: "Sales & Inventory" },
+  { label: "Delivery Notes", icon: FileText, to: "/srm/inventory/delivery-notes", group: "Sales & Inventory" },
+  { label: "Stock Transfers", icon: RefreshCw, to: "/srm/inventory/stock-transfers", group: "Sales & Inventory" },
+  { label: "Batches & Serials", icon: ShieldCheck, to: "/srm/inventory/batches", group: "Sales & Inventory" },
+  { label: "Purchase Orders", icon: Receipt, to: "/srm/inventory/purchase-orders", group: "Sales & Inventory" },
+  { label: "Manufacturing", icon: Layers3, to: "/srm/inventory/manufacturing", group: "Sales & Inventory" },
+  { label: "Reorder Alerts", icon: Bell, to: "/srm/inventory/reorder-alerts", group: "Sales & Inventory" },
+  { label: "Inventory Margin", icon: BarChart3, to: "/srm/inventory/gross-margin", group: "Sales & Inventory" },
+  { label: "Inventory Reconciliation", icon: ShieldCheck, to: "/srm/inventory/reconciliation", group: "Sales & Inventory" },
+  { label: "Complete Inventory Reports", icon: BarChart3, to: "/srm/inventory/reports/complete", group: "Sales & Inventory" },
+  { label: "Inventory & POS Source", icon: FileSearch, to: "/srm/inventory/source", group: "Sales & Inventory" },
   { label: "Reports", icon: BarChart3, to: "/srm/reports", group: "Insights" },
   { label: "Settings", icon: Settings, to: "/srm/settings", group: "Admin" },
 ];
@@ -910,26 +931,6 @@ const famNav: RoleNavItem[] = [
   { label: "Expense Register", icon: BookOpen, to: "/fam/expense-register", group: "Purchases" },
   { label: "Vendor Payments", icon: Landmark, to: "/fam/vendor-payments", group: "Payables" },
   { label: "Payables Dashboard", icon: BarChart3, to: "/fam/payables/dashboard", group: "Payables" },
-  { label: "Inventory Dashboard", icon: Package, to: "/fam/inventory/dashboard", group: "Inventory" },
-  { label: "Inventory Accounting", icon: Landmark, to: "/fam/inventory/accounting", group: "Inventory" },
-  { label: "Stock Items", icon: Package, to: "/fam/inventory/items", group: "Inventory" },
-  { label: "Warehouses", icon: Building2, to: "/fam/inventory/warehouses", group: "Inventory" },
-  { label: "Stock Groups", icon: Layers3, to: "/fam/inventory/stock-groups", group: "Inventory" },
-  { label: "Units", icon: FileText, to: "/fam/inventory/units", group: "Inventory" },
-  { label: "Stock Summary", icon: BookOpen, to: "/fam/inventory/stock-summary", group: "Inventory" },
-  { label: "Warehouse Stock", icon: Building2, to: "/fam/inventory/warehouse-stock", group: "Inventory" },
-  { label: "Valuation", icon: BarChart3, to: "/fam/inventory/valuation", group: "Inventory" },
-  { label: "Gross Margin", icon: BarChart3, to: "/fam/inventory/gross-margin", group: "Inventory" },
-  { label: "COGS", icon: DollarSign, to: "/fam/inventory/cogs", group: "Inventory" },
-  { label: "GRNI", icon: Landmark, to: "/fam/inventory/grni", group: "Inventory" },
-  { label: "HSN Summary", icon: ScrollText, to: "/fam/inventory/reports/hsn-summary", group: "Inventory" },
-  { label: "Reconciliation", icon: ShieldCheck, to: "/fam/inventory/reconciliation", group: "Inventory" },
-  { label: "GRNI Reconciliation", icon: ShieldCheck, to: "/fam/inventory/reconciliation/grni", group: "Inventory" },
-  { label: "COGS Reconciliation", icon: ShieldCheck, to: "/fam/inventory/reconciliation/cogs", group: "Inventory" },
-  { label: "GST Reconciliation", icon: ShieldCheck, to: "/fam/inventory/reconciliation/gst", group: "Inventory" },
-  { label: "Inventory Audit", icon: FileText, to: "/fam/inventory/audit", group: "Inventory" },
-  { label: "Reorder Alerts", icon: Bell, to: "/fam/inventory/reorder-alerts", group: "Inventory" },
-  { label: "Inventory AI", icon: Search, to: "/fam/inventory/ai", group: "Inventory" },
   { label: "Bill References", icon: FileText, to: "/fam/bill-references", group: "Bill-wise" },
   { label: "Bill Allocations", icon: ScrollText, to: "/fam/bill-allocations", group: "Bill-wise" },
   { label: "SRM Integration", icon: GitBranch, to: "/fam/integrations/srm", group: "SRM Accounting" },
@@ -960,11 +961,6 @@ const famNav: RoleNavItem[] = [
   { label: "Branches", icon: Landmark, to: "/fam/branches", group: "Dimensions" },
   { label: "Audit", icon: ScrollText, to: "/fam/audit", group: "Governance" },
 ];
-
-const inventoryNav: RoleNavItem[] = [
-  { label: "Inventory", icon: Package, to: "/Inventory", group: "Inventory", exact: true },
-];
-
 
 const aiAgentsNav: RoleNavItem[] = [
   { label: "Dashboard", icon: Sparkles, to: "/ai-agents", group: "AI Agents", exact: true },
@@ -1054,7 +1050,6 @@ export function getActiveModule(pathname: string) {
   if (pathname.startsWith("/pms")) return "project_management";
   if (pathname.startsWith("/srm")) return "srm";
   if (pathname.startsWith("/fam")) return "fam";
-  if (normalizedPathname.startsWith("/inventory")) return "inventory";
   return "hrms";
 }
 
@@ -1101,10 +1096,6 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
     return installedApps.includes("fam") && isFamRole(role, isSuperuser) ? getFamNavForRole(role, isSuperuser) : [];
   }
 
-  if (activeModule === "inventory") {
-    return installedApps.includes("inventory") && getRoleKey(role, isSuperuser) !== "employee" ? inventoryNav : [];
-  }
-
   if (activeModule === "ai_agents") {
     return key === "employee" ? [] : aiAgentsNav;
   }
@@ -1135,13 +1126,10 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
       suiteNav.push({ label: "KaryaFlow", icon: Target, to: "/pms", group: "Applications", exact: true });
     }
     if (installedApps.includes("srm") && isSrmRole(role, isSuperuser)) {
-      suiteNav.push({ label: "RevenueFlow", icon: Receipt, to: "/srm", group: "Applications", exact: true });
+      suiteNav.push({ label: "Sales & Inventory", icon: Receipt, to: "/srm", group: "Applications", exact: true });
     }
     if (installedApps.includes("fam") && isFamRole(role, isSuperuser)) {
       suiteNav.push({ label: "FinanceFlow", icon: Landmark, to: "/fam", group: "Applications", exact: true });
-    }
-    if (installedApps.includes("inventory") && key !== "employee") {
-      suiteNav.push({ label: "Inventory", icon: Package, to: "/Inventory", group: "Applications", exact: true });
     }
     if (key !== "employee") {
       suiteNav.push({ label: "Business OS", icon: Network, to: "/business-os", group: "Applications", exact: true });
@@ -1224,7 +1212,6 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/pms": ["admin", "ceo", "hr", "manager", "employee"],
   "/srm": ["admin", "ceo", "hr", "manager"],
   "/fam": ["admin", "ceo", "hr", "manager"],
-  "/inventory": ["admin", "ceo", "hr", "manager"],
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
@@ -1234,7 +1221,6 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
   if (pathname.startsWith("/pms") && !isFrontendModuleEnabled("project_management")) return false;
   if (pathname.startsWith("/srm") && !isFrontendModuleEnabled("srm")) return false;
   if (pathname.startsWith("/fam") && !isFrontendModuleEnabled("fam")) return false;
-  if (lowercasePathname.startsWith("/inventory") && !isFrontendModuleEnabled("inventory")) return false;
   if (pathname.startsWith("/hrms") && !isFrontendModuleEnabled("hrms")) return false;
   if ((pathname === "/ai" || pathname.startsWith("/ai/") || pathname.startsWith("/ai-agents")) && !isFrontendModuleEnabled("ai")) return false;
   if (isAdminSecurityPath(pathname)) return canAccessAdminSecurityPath(pathname, role, isSuperuser);
@@ -1257,7 +1243,6 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
   if (pathname.startsWith("/pms")) return canAccessPmsPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/srm")) return canAccessSrmPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/fam")) return canAccessFamPath(pathname, role, isSuperuser);
-  if (lowercasePathname.startsWith("/inventory")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname.startsWith("/hrms/") && !isHrmsRole(role, isSuperuser)) return false;
   const normalizedPathname = pathname.startsWith("/hrms/")
     ? pathname.replace(/^\/hrms/, "")
@@ -1299,7 +1284,6 @@ export function getRequiredPermissionForPath(pathname: string) {
   if (pathname.startsWith("/admin/business-os")) return "Business OS Admin";
   if (pathname.startsWith("/srm")) return "SRM Access";
   if (pathname.startsWith("/fam")) return "FAM Access";
-  if (lowercasePathname.startsWith("/inventory")) return "Inventory Access";
   if (isAdminSecurityPath(pathname)) return "Enterprise Admin Security";
   return "Admin";
 }

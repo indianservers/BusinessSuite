@@ -4,7 +4,7 @@ from app.module_registry import APP_MODULES, build_api_router, get_installed_app
 def test_srm_module_is_registered_and_enabled():
     assert "srm" in APP_MODULES
     module = APP_MODULES["srm"]
-    assert module.label == "Sales & Revenue Management"
+    assert module.label == "Sales & Inventory Management"
     assert "app.apps.srm.models" in module.model_modules
     assert "app.apps.srm.api.router" in module.router_modules
     assert "srm" in get_installed_app_keys()

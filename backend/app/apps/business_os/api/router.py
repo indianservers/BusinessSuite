@@ -12,6 +12,7 @@ from app.apps.business_os.services.handoff_engine import (
 )
 from app.apps.business_os.services.dynamic_layer import ai_answer, customer_720_sections, dashboard_widgets, module_reports, rbac_catalog
 from app.apps.business_os.services.module_service import (
+    CORE_MODULES,
     SUPPORTED_COMBINATIONS,
     company_id_for,
     enabled_module_keys,
@@ -33,7 +34,12 @@ def admin_user(current_user: User = Depends(RequirePermission("settings_view", "
 def get_modules(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     company_id = company_id_for(current_user)
     ensure_business_os_seed(db, company_id)
-    rows = db.query(BOSEnabledModule).filter_by(company_id=company_id).order_by(BOSEnabledModule.module_key).all()
+    rows = (
+        db.query(BOSEnabledModule)
+        .filter(BOSEnabledModule.company_id == company_id, BOSEnabledModule.module_key.in_(CORE_MODULES.keys()))
+        .order_by(BOSEnabledModule.module_key)
+        .all()
+    )
     enabled = sorted(enabled_module_keys(db, company_id))
     return {"company_id": company_id, "modules": [serialize_module(row) for row in rows], "enabled_modules": enabled, "supported_combinations": SUPPORTED_COMBINATIONS}
 

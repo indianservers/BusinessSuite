@@ -198,19 +198,19 @@ def run_inventory_to_fam_handoff(db: Session, user: User, movement_type: str, mo
     inventory = InventoryAdapter(db, user, company_id)
     fam = FAMAdapter(db, user, company_id)
     if not inventory.is_enabled():
-        return _skipped(db, user, company_id, source_module="inventory", target_module="fam", entity_type=movement_type, entity_id=movement_id, event_name="inventory_accounting_handoff_skipped", message="Inventory is not enabled")
+        return _skipped(db, user, company_id, source_module="srm", target_module="fam", entity_type=movement_type, entity_id=movement_id, event_name="srm_inventory_accounting_handoff_skipped", message="Sales & Inventory is not enabled")
     result = fam.post_accounting(movement_type, {"movement_id": movement_id, "movement_type": movement_type})
     _event(
         db,
         user,
         company_id=company_id,
-        module_key="inventory",
+        module_key="srm",
         entity_type=movement_type,
         entity_id=movement_id,
-        event_name="inventory_to_fam_accounting",
+        event_name="srm_inventory_to_fam_accounting",
         status=result["status"],
         message=result["message"],
-        source_module="inventory",
+        source_module="srm",
         target_module="fam",
         evidence=result,
     )

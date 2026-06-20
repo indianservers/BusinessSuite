@@ -78,20 +78,21 @@ def test_business_os_optional_handoff_combinations(client, db, superuser_headers
         assert billing_ready.status_code == 200
         assert billing_ready.json()["status"] == "ready"
 
-        _set_modules(client, superuser_headers, ["inventory"])
+        _set_modules(client, superuser_headers, ["srm"])
         inventory_only = client.post("/api/v1/business-os/handoffs/inventory/grn/501/post-accounting", headers=superuser_headers)
         assert inventory_only.status_code == 200
         assert inventory_only.json()["status"] == "skipped"
         assert inventory_only.json()["message"] == "Accounting posting skipped because FAM is not enabled"
 
-        _set_modules(client, superuser_headers, ["inventory", "fam"])
+        _set_modules(client, superuser_headers, ["srm", "fam"])
         inventory_fam = client.post("/api/v1/business-os/handoffs/inventory/grn/501/post-accounting", headers=superuser_headers)
         assert inventory_fam.status_code == 200
         assert inventory_fam.json()["status"] == "ready"
 
-        full = _set_modules(client, superuser_headers, ["fam", "inventory", "crm", "srm", "project_management", "hrms", "ai", "portals", "communication"])
-        assert set(full["enabled_modules"]).issuperset({"fam", "inventory", "crm", "srm", "project_management"})
-        assert db.query(BOSLifecycleEvent).filter(BOSLifecycleEvent.event_name.in_(["crm_deal_won_handoff", "inventory_to_fam_accounting", "pms_invoice_handoff_skipped"])).count() >= 3
+        full = _set_modules(client, superuser_headers, ["fam", "crm", "srm", "project_management", "hrms", "ai", "portals", "communication"])
+        assert "inventory" not in set(full["enabled_modules"])
+        assert set(full["enabled_modules"]).issuperset({"fam", "crm", "srm", "project_management"})
+        assert db.query(BOSLifecycleEvent).filter(BOSLifecycleEvent.event_name.in_(["crm_deal_won_handoff", "srm_inventory_to_fam_accounting", "pms_invoice_handoff_skipped"])).count() >= 3
     finally:
         delattr(app.state, "business_os_session_factory")
         delattr(app.state, "business_os_close_session")

@@ -1,2 +1,1 @@
-"""Sales & Revenue Management module."""
-
+"""Sales & Inventory Management module."""

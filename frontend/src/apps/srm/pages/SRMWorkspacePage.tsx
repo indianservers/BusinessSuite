@@ -51,8 +51,8 @@ type ViewMeta = {
 
 const viewMeta: Record<SRMViewKind, ViewMeta> = {
   dashboard: {
-    title: "SRM Dashboard",
-    description: "Commercial health across orders, contracts, billing, collections, and margin.",
+    title: "Sales & Inventory Dashboard",
+    description: "Commercial and stock health across sales orders, POS, inventory, billing, collections, and margin.",
     icon: BarChart3,
   },
   salesOrders: {
