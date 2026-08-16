@@ -106,10 +106,21 @@ class CRMLeadConvertPayload(BaseModel):
     createContact: bool = True
     createCompany: bool = True
     createDeal: bool = True
+    existingContactId: int | None = None
+    existingCompanyId: int | None = None
+    contactName: str | None = None
+    contactEmail: str | None = None
+    contactPhone: str | None = None
+    companyName: str | None = None
+    companyIndustry: str | None = None
     dealName: str | None = None
     dealAmount: Decimal | None = None
     pipelineId: int | None = None
     stageId: int | None = None
+    expectedCloseDate: date | None = None
+    ownerId: int | None = None
+    territoryId: int | None = None
+    description: str | None = None
 
 
 class CRMDealStageMovePayload(BaseModel):

@@ -317,7 +317,10 @@ export default function SRMPOSPage() {
   const heldBills = useMemo(() => [...serverHeldBills, ...localHeldBills], [localHeldBills, serverHeldBills]);
   const dbProducts = useMemo(() => listItems(productsQuery.data).map(productFromRecord).filter((item) => item.active !== false), [productsQuery.data]);
   const productSource = dbProducts.length ? dbProducts : fallbackProducts;
-  const storeProducts = useMemo(() => productSource.filter((item) => activeStoreProfile.categories.includes(item.category)), [activeStoreProfile, productSource]);
+  const storeProducts = useMemo(() => {
+    const templateProducts = productSource.filter((item) => activeStoreProfile.categories.includes(item.category));
+    return templateProducts.length ? templateProducts : productSource;
+  }, [activeStoreProfile, productSource]);
   const categories = useMemo(() => ["All", ...Array.from(new Set(storeProducts.map((item) => item.category)))], [storeProducts]);
   const couponDiscount = coupon.trim().toUpperCase() === "WELCOME10" ? Math.min(250, Math.max(0, cart.reduce((sum, item) => sum + lineTaxable(item), 0) * 0.1)) : 0;
 

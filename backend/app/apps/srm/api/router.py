@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.apps.fam.models import FAMPostingJob, FAMSRMMapping
@@ -1360,7 +1360,11 @@ def list_inventory_batches(product_id: int | None = None, status: str | None = N
         query = query.filter(SRMInventoryBatch.product_id == product_id)
     if status:
         query = query.filter(SRMInventoryBatch.status == status)
-    rows = query.order_by(SRMInventoryBatch.expiry_date.asc().nullslast(), SRMInventoryBatch.id.desc()).limit(200).all()
+    rows = query.order_by(
+        case((SRMInventoryBatch.expiry_date.is_(None), 1), else_=0),
+        SRMInventoryBatch.expiry_date.asc(),
+        SRMInventoryBatch.id.desc(),
+    ).limit(200).all()
     return {"items": [_batch_payload(row) for row in rows], "total": len(rows)}
 
 

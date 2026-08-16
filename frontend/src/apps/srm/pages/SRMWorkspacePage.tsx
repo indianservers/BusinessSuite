@@ -1,6 +1,17 @@
-import { useMemo, useState, type ElementType, type FormEvent } from "react";
+import { useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Area,
+  AreaChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import {
   AlertTriangle,
   BarChart3,
@@ -12,6 +23,7 @@ import {
   FileText,
   FolderKanban,
   HandCoins,
+  IndianRupee,
   Link2,
   Package,
   Plus,
@@ -24,6 +36,7 @@ import {
   Trash2,
   TrendingUp,
   WalletCards,
+  Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -170,6 +183,31 @@ function money(value: unknown) {
   return amount.toLocaleString(undefined, { maximumFractionDigits: 0, style: "currency", currency: "INR" });
 }
 
+function numberValue(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function optionalMoney(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  return money(value);
+}
+
+function formatDate(value: unknown) {
+  if (!value) return "-";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return formatValue(value);
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function recordDate(record: SRMRecord) {
+  return record.order_date || record.issue_date || record.due_date || record.recognized_on || record.created_at || record.updated_at;
+}
+
+function displayStatus(status: unknown) {
+  return formatValue(status || "live");
+}
+
 function statusTone(status: unknown) {
   const value = String(status || "").toLowerCase();
   if (["approved", "confirmed", "paid", "sent", "healthy", "active", "normal"].includes(value)) return "default";
@@ -262,49 +300,276 @@ function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetchin
 function DashboardView() {
   const query = useQuery({ queryKey: ["srm", "dashboard"], queryFn: () => srmApi.dashboard() });
   const data = (query.data || {}) as SRMRecord;
-  const kpis: [string, unknown][] = [
-    ["Total sales orders", data.total_sales_orders],
-    ["Pending approvals", data.pending_approvals],
-    ["Confirmed orders", data.confirmed_sales_orders],
-    ["Active contracts", data.active_contracts],
-    ["Active engagements", data.active_engagements],
-    ["Active billing plans", data.active_billing_plans],
-    ["Invoice drafts pending", data.invoice_drafts_pending],
-    ["Sent invoices", data.sent_invoices],
-    ["Total invoiced", money(data.total_invoiced_value)],
-    ["Collected", money(data.total_collected_value)],
-    ["Outstanding", money(data.outstanding_value)],
-    ["Overdue", money(data.overdue_value)],
-  ];
+  const canManage = useCanManageRevenue();
+  const recentOrders = asList(data.recent_sales_orders);
+  const recentInvoices = asList(data.recent_invoices);
+  const revenueTrend = useMemo(() => buildRevenueTrend(asList(data.revenue_trend)), [data.revenue_trend]);
+  const orderPipeline = useMemo(() => buildOrderPipeline(data), [data]);
+  const totalInvoiced = numberValue(data.total_invoiced_value);
+  const collected = numberValue(data.total_collected_value);
+  const outstanding = numberValue(data.outstanding_value);
+  const overdue = numberValue(data.overdue_value);
+  const collectionPercent = totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : null;
+  const latestDate = [...recentOrders, ...recentInvoices, ...asList(data.revenue_trend)]
+    .map(recordDate)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  const meta = {
+    ...viewMeta.dashboard,
+    title: "Sales Revenue Management",
+    description: "Orders, billing, collections and revenue performance",
+    icon: BarChart3,
+  };
   return (
-    <div className="space-y-5">
-      <PageHeader meta={viewMeta.dashboard} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
-      <SalesInventoryLaunchpad />
+    <div className="space-y-4">
+      <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+        {latestDate ? <Badge variant="outline" className="h-9 rounded-md px-3 text-sm">{formatDate(latestDate)}</Badge> : null}
+        {canManage ? (
+          <Button asChild variant="outline" size="sm" className="h-9">
+            <Link to="/srm/sales-orders"><Plus className="h-4 w-4" />Create order</Link>
+          </Button>
+        ) : null}
+        <Button asChild variant="outline" size="sm" className="h-9">
+          <Link to="/srm/pos/terminal"><Store className="h-4 w-4" />Open POS</Link>
+        </Button>
+      </div>
       <SectionState label="dashboard" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
       {!query.isLoading && !query.isError ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {kpis.map(([label, value]) => (
-              <Card key={label}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-medium uppercase text-muted-foreground">{label}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-semibold">{formatValue(value)}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <DashboardMetricCard icon={IndianRupee} label="Total invoiced" value={money(totalInvoiced)} detail="All time" />
+            <DashboardMetricCard icon={Wallet} label="Collected" value={money(collected)} detail={collectionPercent !== null ? `${collectionPercent}% of invoiced` : "All time"} tone={collectionPercent === 100 ? "success" : "default"} />
+            <DashboardMetricCard icon={BarChart3} label="Outstanding" value={money(outstanding)} detail="All time" />
+            <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={money(overdue)} detail="All time" tone={overdue > 0 ? "danger" : "default"} />
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <RecordList title="Recent Sales Orders" records={asList(data.recent_sales_orders)} primaryKey="order_number" secondaryKey="title" amountKey="total_amount" />
-            <RecordList title="Recent Invoices" records={asList(data.recent_invoices)} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
-            <RecordList title="Collection Alerts" records={asList(data.collection_alerts)} primaryKey="invoice_number" secondaryKey="overdue_days" amountKey="balance_amount" />
-            <TrendCard title="Revenue Trend" records={asList(data.revenue_trend)} />
-            <SummaryCard title="Profitability Summary" data={(data.profitability_summary || {}) as SRMRecord} />
-            <SummaryCard title="CRM/PMS Linked Activity" data={(data.crm_pms_activity_summary || data.linked_activity_summary || {}) as SRMRecord} />
+          <div className="grid gap-4 xl:grid-cols-12">
+            <RevenuePerformanceCard records={revenueTrend} />
+            <OrderPipelineCard items={orderPipeline} total={numberValue(data.total_sales_orders)} />
+          </div>
+          <div className="grid gap-4 xl:grid-cols-12">
+            <SalesOrdersCard records={recentOrders} />
+            <InvoicesCard records={recentInvoices} />
+            <CollectionHealthCard collectionPercent={collectionPercent} outstanding={outstanding} overdue={overdue} overdueInvoices={asList(data.collection_alerts)} />
           </div>
         </>
       ) : null}
+    </div>
+  );
+}
+
+type DashboardMetricTone = "default" | "success" | "danger";
+
+function DashboardMetricCard({ icon: Icon, label, value, detail, tone = "default" }: { icon: ElementType; label: string; value: string; detail?: string; tone?: DashboardMetricTone }) {
+  const toneClass = tone === "success" ? "text-emerald-700 dark:text-emerald-300" : tone === "danger" ? "text-destructive" : "text-muted-foreground";
+  return (
+    <Card className="rounded-xl border-border/80 bg-card shadow-sm">
+      <CardContent className="flex items-center gap-4 p-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
+          {detail ? <p className={`mt-1 text-xs ${toneClass}`}>{detail}</p> : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function buildRevenueTrend(records: SRMRecord[]) {
+  const byDate = new Map<string, number>();
+  records.forEach((record) => {
+    const date = String(record.date || record.recognized_on || "").slice(0, 10);
+    if (!date) return;
+    byDate.set(date, (byDate.get(date) || 0) + numberValue(record.amount));
+  });
+  return Array.from(byDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, amount]) => ({ date, label: formatDate(date), amount }));
+}
+
+function buildOrderPipeline(data: SRMRecord) {
+  return [
+    { label: "Confirmed", value: numberValue(data.confirmed_sales_orders), color: "#2563eb" },
+    { label: "Pending approvals", value: numberValue(data.pending_approvals), color: "#94a3b8" },
+  ].filter((item) => item.value > 0);
+}
+
+function RevenuePerformanceCard({ records }: { records: Array<{ date: string; label: string; amount: number }> }) {
+  const hasData = records.some((record) => record.amount > 0);
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-7">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base">Revenue performance</CardTitle>
+        <Button asChild variant="link" size="sm" className="h-8 px-0"><Link to="/srm/revenue-recognition">View all</Link></Button>
+      </CardHeader>
+      <CardContent>
+        {hasData ? (
+          <>
+            <div className="h-56" aria-label="Revenue performance chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={records} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} tickFormatter={(value) => `₹${Number(value).toLocaleString("en-IN")}`} />
+                  <Tooltip formatter={(value) => [money(value), "Revenue"]} labelFormatter={(label) => String(label)} />
+                  <Area type="monotone" dataKey="amount" stroke="#2563eb" fill="#2563eb" fillOpacity={0.12} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="sr-only">Revenue trend contains {records.length} dated points.</p>
+          </>
+        ) : (
+          <EmptyDashboardState icon={BarChart3} message="No revenue data for current filters." />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OrderPipelineCard({ items, total }: { items: Array<{ label: string; value: number; color: string }>; total: number }) {
+  const chartData = items.length ? items : [{ label: "No active statuses", value: 1, color: "#e2e8f0" }];
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-5">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base">Order pipeline</CardTitle>
+        <Button asChild variant="link" size="sm" className="h-8 px-0"><Link to="/srm/sales-orders">View all</Link></Button>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+        <div className="relative h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} innerRadius={52} outerRadius={78} paddingAngle={items.length > 1 ? 2 : 0} dataKey="value">
+                {chartData.map((item) => <Cell key={item.label} fill={item.color} />)}
+              </Pie>
+              <Tooltip formatter={(value, name) => [items.length ? formatValue(value) : "0", name]} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-semibold">{formatValue(total)}</span>
+            <span className="text-xs text-muted-foreground">Total orders</span>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {items.length ? items.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />{item.label}</span>
+              <span className="font-semibold">{item.value.toLocaleString("en-IN")}</span>
+            </div>
+          )) : <p className="text-sm text-muted-foreground">No active order statuses for current filters.</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SalesOrdersCard({ records }: { records: SRMRecord[] }) {
+  return (
+    <CompactTableCard
+      className="xl:col-span-4"
+      title="Recent sales orders"
+      viewAllTo="/srm/sales-orders"
+      empty="No sales orders found for current filters."
+      columns={["Order ID", "Type", "Amount", "Status"]}
+      records={records}
+      render={(record, index) => {
+        const id = record.id ? `/srm/sales-orders/${record.id}` : "/srm/sales-orders";
+        return (
+          <tr key={String(record.id || index)} className="border-t">
+            <td className="min-w-0 px-3 py-2">
+              <Link to={id} className="block truncate font-medium hover:text-primary">{formatValue(record.order_number || `Order ${index + 1}`)}</Link>
+              <span className="block truncate text-xs text-muted-foreground">{formatValue(record.title || record.customer_id || recordDate(record))}</span>
+            </td>
+            <td className="px-3 py-2">{formatValue(((record.metadata_json || {}) as SRMRecord).source === "pos" ? "POS" : record.order_type || "-")}</td>
+            <td className="px-3 py-2 font-medium">{optionalMoney(record.total_amount)}</td>
+            <td className="px-3 py-2"><Badge variant={statusTone(record.status)}>{displayStatus(record.status)}</Badge></td>
+          </tr>
+        );
+      }}
+    />
+  );
+}
+
+function InvoicesCard({ records }: { records: SRMRecord[] }) {
+  return (
+    <CompactTableCard
+      className="xl:col-span-4"
+      title="Recent invoices"
+      viewAllTo="/srm/invoices"
+      empty="No invoices found for current filters."
+      columns={["Invoice ID", "Status", "Amount", "Due date"]}
+      records={records}
+      render={(record, index) => (
+        <tr key={String(record.id || index)} className="border-t">
+          <td className="min-w-0 px-3 py-2">
+            <Link to="/srm/invoices" className="block truncate font-medium hover:text-primary">{formatValue(record.invoice_number || `Invoice ${index + 1}`)}</Link>
+            <span className="block truncate text-xs text-muted-foreground">{formatValue(record.customer_id || record.title || record.created_at)}</span>
+          </td>
+          <td className="px-3 py-2"><Badge variant={statusTone(record.payment_status || record.status)}>{displayStatus(record.payment_status || record.status)}</Badge></td>
+          <td className="px-3 py-2 font-medium">{optionalMoney(record.balance_amount ?? record.total_amount)}</td>
+          <td className="px-3 py-2">{formatDate(record.due_date)}</td>
+        </tr>
+      )}
+    />
+  );
+}
+
+function CompactTableCard({ title, viewAllTo, columns, records, render, empty, className }: { title: string; viewAllTo: string; columns: string[]; records: SRMRecord[]; render: (record: SRMRecord, index: number) => ReactNode; empty: string; className?: string }) {
+  return (
+    <Card className={`rounded-xl shadow-sm ${className || ""}`}>
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Button asChild variant="link" size="sm" className="h-8 px-0"><Link to={viewAllTo}>View all</Link></Button>
+      </CardHeader>
+      <CardContent>
+        {records.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead className="text-xs text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}</tr></thead>
+              <tbody>{records.slice(0, 5).map(render)}</tbody>
+            </table>
+          </div>
+        ) : <EmptyDashboardState icon={FileText} message={empty} />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CollectionHealthCard({ collectionPercent, outstanding, overdue, overdueInvoices }: { collectionPercent: number | null; outstanding: number; overdue: number; overdueInvoices: SRMRecord[] }) {
+  const percent = collectionPercent ?? 0;
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-4">
+      <CardHeader className="pb-2"><CardTitle className="text-base">Collection health</CardTitle></CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-[7rem_1fr] sm:items-center">
+        <div className="relative h-28">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={[{ name: "Collected", value: percent }, { name: "Remaining", value: Math.max(0, 100 - percent) }]} innerRadius={42} outerRadius={54} dataKey="value" startAngle={90} endAngle={-270}>
+                <Cell fill="#16a34a" />
+                <Cell fill="#e2e8f0" />
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex items-center justify-center text-lg font-semibold">{collectionPercent === null ? "-" : `${percent}%`}</div>
+        </div>
+        <div className="space-y-2 text-sm">
+          <p className="font-semibold">{collectionPercent === null ? "No invoiced collection base" : `${percent}% collected`}</p>
+          <p className="text-muted-foreground">Outstanding {money(outstanding)}</p>
+          <p className="text-muted-foreground">Overdue {money(overdue)} across {overdueInvoices.length.toLocaleString("en-IN")} invoices</p>
+          {!overdueInvoices.length ? <p className="pt-2 text-muted-foreground">No collection alerts for the current filters.</p> : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyDashboardState({ icon: Icon, message }: { icon: ElementType; message: string }) {
+  return (
+    <div className="flex min-h-32 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+      <Icon className="mb-2 h-6 w-6 opacity-60" />
+      {message}
     </div>
   );
 }

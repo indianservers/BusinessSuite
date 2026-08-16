@@ -107,7 +107,7 @@ class Settings(BaseSettings):
 
     # CORS
     BACKEND_CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4573", "http://127.0.0.1:4573", "http://localhost:3000"]
-    BACKEND_PUBLIC_URL: str = "http://localhost:8001"
+    BACKEND_PUBLIC_URL: str = "http://localhost:1534"
     FRONTEND_PUBLIC_URL: str = "http://localhost:5173"
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")

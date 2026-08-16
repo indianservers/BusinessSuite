@@ -28,6 +28,11 @@ export const srmRoutes = [
   "/srm/revenue-recognition",
   "/srm/profitability",
   "/srm/customer-360",
+  "/srm/pos",
+  "/srm/pos/terminal",
+  "/srm/pos/sessions",
+  "/srm/pos/cashier-closing",
+  "/srm/pos/returns",
   "/srm/reports",
   "/srm/settings",
 ];

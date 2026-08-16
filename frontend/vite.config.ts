@@ -14,7 +14,7 @@ type DevProxy = {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const apiProxyTarget = env.VITE_DEV_API_PROXY_TARGET || env.VITE_BACKEND_URL || "http://localhost:8001";
+  const apiProxyTarget = env.VITE_DEV_API_PROXY_TARGET || env.VITE_BACKEND_URL || "http://localhost:1534";
   const suppressProxyErrors = env.VITE_SUPPRESS_PROXY_ERRORS === "true";
   const configureProxy = suppressProxyErrors
     ? (proxy: DevProxy) => {

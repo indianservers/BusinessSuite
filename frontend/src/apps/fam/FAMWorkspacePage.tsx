@@ -1,7 +1,8 @@
 import { cloneElement, isValidElement, useMemo, useState, type ElementType } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { AlertTriangle, BadgeIndianRupee, BarChart3, BookOpen, Building2, CalendarDays, Copy, FileText, GitBranch, Landmark, Layers3, LockKeyhole, Package, Plus, Receipt, RefreshCw, RotateCcw, Save, ScrollText, Settings, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { AlertTriangle, ArrowRight, BadgeIndianRupee, BarChart3, BookOpen, Box, Boxes, Building2, CalendarDays, Copy, FileText, GitBranch, GitCompareArrows, Landmark, Layers3, LockKeyhole, Package, Plus, Receipt, RefreshCw, RotateCcw, Save, ScrollText, Settings, ShieldCheck, Sparkles, Users, Warehouse } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -145,6 +146,16 @@ function text(value: unknown) {
   if (typeof value === "number") return value.toLocaleString("en-IN");
   if (typeof value === "object") return "Linked";
   return String(value).replace(/_/g, " ");
+}
+
+function numberValue(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function optionalText(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  return text(value);
 }
 
 function listItems(data: unknown): FAMRecord[] {
@@ -1040,12 +1051,272 @@ function PayablesDashboardView() {
 }
 
 function InventoryDashboardView() {
-  const dashboard = useQuery({ queryKey: ["fam", "inventoryDashboard"], queryFn: famApi.inventoryDashboard });
-  const source = useQuery({ queryKey: ["fam", "inventorySourceAudit"], queryFn: famApi.inventorySourceAudit });
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const dashboard = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventoryDashboard"], queryFn: () => isSrmInventory ? srmApi.inventoryItems() : famApi.inventoryDashboard() });
+  const warehouses = useQuery({ queryKey: ["srm", "inventoryWarehouses", "dashboard"], queryFn: srmApi.inventoryWarehouses, enabled: isSrmInventory });
+  const source = useQuery({ queryKey: ["fam", "inventorySourceAudit"], queryFn: famApi.inventorySourceAudit, enabled: !isSrmInventory });
   const data = (dashboard.data || {}) as FAMRecord;
-  const kpis: Array<[string, React.ReactNode]> = [["Items", text(data.items_count)], ["Warehouses", text(data.warehouses_count)], ["Stock value", money(data.total_stock_value)], ["Low stock", text(data.low_stock_count)]];
+  const [warehouseId, setWarehouseId] = useState("all");
+  const products = isSrmInventory ? listItems(dashboard.data) : [];
+  const warehouseRows = listItems(warehouses.data);
+  const filteredProducts = useMemo(() => {
+    if (warehouseId === "all") return products;
+    return products.filter((item) => String(item.default_warehouse_id || item.warehouse_id || "") === warehouseId);
+  }, [products, warehouseId]);
+  const inventorySummary = useMemo(() => buildInventorySummary(filteredProducts), [filteredProducts]);
+  const kpis: Array<[string, React.ReactNode]> = isSrmInventory
+    ? [
+        ["Items", text(filteredProducts.length)],
+        ["Warehouses", text(warehouseRows.length)],
+        ["Stock value", money(inventorySummary.inventoryValue)],
+        ["Low stock", text(inventorySummary.lowStock)],
+      ]
+    : [["Items", text(data.items_count)], ["Warehouses", text(data.warehouses_count)], ["Stock value", money(data.total_stock_value)], ["Low stock", text(data.low_stock_count)]];
   const links: Array<[string, string]> = [["Accounting", "/srm/inventory/reconciliation"], ["Items", "/srm/inventory/items"], ["Warehouses", "/srm/inventory/warehouses"], ["Stock In", "/srm/inventory/stock-in"], ["Stock Out", "/srm/inventory/stock-out"], ["Transfers", "/srm/inventory/stock-transfers"], ["Adjustments", "/srm/inventory/stock-adjustments"], ["Summary", "/srm/inventory/stock-summary"], ["Valuation", "/srm/inventory/valuation"], ["AI", "/srm/inventory/ai"]];
-  return <div className="space-y-4"><State label="inventory dashboard" isLoading={dashboard.isLoading} isError={dashboard.isError} /><div className="grid gap-3 md:grid-cols-4">{kpis.map(([label, value]) => <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Inventory workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{links.map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Source merge audit</CardTitle></CardHeader><CardContent><State label="source audit" isLoading={source.isLoading} isError={source.isError} /><DataTable rows={((source.data as FAMRecord | undefined)?.files as FAMRecord[] | undefined) || []} columns={["path", "exists"]} /></CardContent></Card></div>;
+  if (!isSrmInventory) {
+    return <div className="space-y-4"><State label="inventory dashboard" isLoading={dashboard.isLoading} isError={dashboard.isError} /><div className="grid gap-3 md:grid-cols-4">{kpis.map(([label, value]) => <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Inventory workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{links.map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Source merge audit</CardTitle></CardHeader><CardContent><State label="source audit" isLoading={source.isLoading} isError={source.isError} /><DataTable rows={((source.data as FAMRecord | undefined)?.files as FAMRecord[] | undefined) || []} columns={["path", "exists"]} /></CardContent></Card></div>;
+  }
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+          <select aria-label="Warehouse filter" className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-64" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+            <option value="all">All warehouses</option>
+            {warehouseRows.map((warehouse) => <option key={String(warehouse.id)} value={String(warehouse.id)}>{text(warehouse.warehouse_name || warehouse.name)}</option>)}
+          </select>
+          <Button asChild variant="outline" size="sm" className="h-9"><Link to="/srm/inventory/items"><Plus className="h-4 w-4" />Add item</Link></Button>
+          <Button asChild size="sm" className="h-9"><Link to="/srm/inventory/stock-transfers"><GitCompareArrows className="h-4 w-4" />Stock transfer</Link></Button>
+      </div>
+      <State label="inventory dashboard" isLoading={dashboard.isLoading || warehouses.isLoading} isError={dashboard.isError || warehouses.isError} />
+      {!dashboard.isLoading && !dashboard.isError ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <InventoryMetricCard icon={Box} label="Items & SKUs" value={filteredProducts.length ? text(filteredProducts.length) : "-"} detail={filteredProducts.length ? `${inventorySummary.skus} SKUs tracked` : "No data for current filters"} />
+            <InventoryMetricCard icon={BoxesIcon} label="Stock on hand" value={filteredProducts.length ? text(inventorySummary.stockOnHand) : "-"} detail={filteredProducts.length ? "Current quantity" : "No data for current filters"} />
+            <InventoryMetricCard icon={AlertTriangle} label="Low-stock items" value={filteredProducts.length ? text(inventorySummary.lowStock) : "-"} detail={filteredProducts.length ? `${inventorySummary.outOfStock} out of stock` : "No data for current filters"} tone="warning" />
+            <InventoryMetricCard icon={BadgeIndianRupee} label="Inventory value" value={filteredProducts.length ? money(inventorySummary.inventoryValue) : "-"} detail={filteredProducts.length ? "Weighted from item costs" : "No data for current filters"} tone="success" />
+          </div>
+          <div className="grid gap-4 xl:grid-cols-12">
+            <StockMovementCard />
+            <InventoryHealthCard healthy={inventorySummary.healthy} lowStock={inventorySummary.lowStock} outOfStock={inventorySummary.outOfStock} hasData={filteredProducts.length > 0} />
+          </div>
+          <div className="grid gap-4 xl:grid-cols-12">
+            <ItemsAttentionCard items={inventorySummary.attentionItems} />
+            <WarehouseSummaryCard warehouses={warehouseRows} products={filteredProducts} />
+            <QuickOperationsCard />
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+const BoxesIcon = Boxes;
+
+function itemQuantity(item: FAMRecord) {
+  return numberValue(item.current_quantity ?? item.available_quantity ?? item.quantity);
+}
+
+function itemReorderLevel(item: FAMRecord) {
+  return numberValue(item.reorder_level ?? item.min_stock);
+}
+
+function itemValue(item: FAMRecord) {
+  const explicit = item.stock_value;
+  if (explicit !== null && explicit !== undefined && explicit !== "") return numberValue(explicit);
+  return itemQuantity(item) * numberValue(item.average_cost ?? item.purchase_rate);
+}
+
+function inventoryStatus(item: FAMRecord) {
+  const quantity = itemQuantity(item);
+  const reorder = itemReorderLevel(item);
+  if (quantity <= 0) return "Out of stock";
+  if (reorder > 0 && quantity <= reorder) return "Low stock";
+  return "Healthy";
+}
+
+function buildInventorySummary(products: FAMRecord[]) {
+  const attentionItems = products.filter((item) => inventoryStatus(item) !== "Healthy");
+  return {
+    skus: new Set(products.map((item) => String(item.sku || item.id || "")).filter(Boolean)).size,
+    stockOnHand: products.reduce((sum, item) => sum + itemQuantity(item), 0),
+    inventoryValue: products.reduce((sum, item) => sum + itemValue(item), 0),
+    lowStock: products.filter((item) => inventoryStatus(item) === "Low stock").length,
+    outOfStock: products.filter((item) => inventoryStatus(item) === "Out of stock").length,
+    healthy: products.filter((item) => inventoryStatus(item) === "Healthy").length,
+    attentionItems,
+  };
+}
+
+function InventoryMetricCard({ icon: Icon, label, value, detail, tone = "default" }: { icon: ElementType; label: string; value: React.ReactNode; detail: string; tone?: "default" | "success" | "warning" }) {
+  const toneClass = tone === "success" ? "text-emerald-700 dark:text-emerald-300" : tone === "warning" ? "text-amber-700 dark:text-amber-300" : "text-primary";
+  return (
+    <Card className="rounded-xl shadow-sm">
+      <CardContent className="flex items-center gap-4 p-4">
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted ${toneClass}`}><Icon className="h-6 w-6" /></div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{label}</p>
+          <p className="mt-1 text-xl font-semibold">{value}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StockMovementCard() {
+  const emptyData = ["Received", "Issued", "Transfers", "Adjustments"].map((name) => ({ name, value: 0 }));
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-7">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Stock movement</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="relative h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={emptyData}>
+              <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={12} />
+              <YAxis tickLine={false} axisLine={false} fontSize={12} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-sm text-muted-foreground">
+            <BarChart3 className="mb-2 h-8 w-8 opacity-50" />
+            No movement data for current filters.
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InventoryHealthCard({ healthy, lowStock, outOfStock, hasData }: { healthy: number; lowStock: number; outOfStock: number; hasData: boolean }) {
+  const items = [
+    { label: "Healthy", value: healthy, color: "#16a34a" },
+    { label: "Low stock", value: lowStock, color: "#f59e0b" },
+    { label: "Out of stock", value: outOfStock, color: "#ef4444" },
+  ];
+  const chartData = hasData ? items : [{ label: "No data", value: 1, color: "#e2e8f0" }];
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-5">
+      <CardHeader className="pb-2"><CardTitle className="text-base">Inventory health</CardTitle></CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+        <div className="relative h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} innerRadius={58} outerRadius={86} dataKey="value">
+                {chartData.map((item) => <Cell key={item.label} fill={item.color} />)}
+              </Pie>
+              <Tooltip formatter={(value, name) => [hasData ? text(value) : "-", name]} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center"><Package className="h-7 w-7 text-muted-foreground" /></div>
+        </div>
+        <div className="space-y-3 text-sm">
+          {items.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-muted-foreground"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />{item.label}</span>
+              <span className="font-semibold">{hasData ? item.value.toLocaleString("en-IN") : "-"}</span>
+            </div>
+          ))}
+          {!hasData ? <p className="pt-2 text-muted-foreground">No data for current filters.</p> : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ItemsAttentionCard({ items }: { items: FAMRecord[] }) {
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-5">
+      <CardHeader className="pb-2"><CardTitle className="text-base">Items requiring attention</CardTitle></CardHeader>
+      <CardContent>
+        {items.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] text-left text-sm">
+              <thead className="text-xs text-muted-foreground"><tr>{["Item", "SKU", "Warehouse", "On hand", "Reorder level", "Status"].map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}</tr></thead>
+              <tbody>{items.slice(0, 8).map((item, index) => (
+                <tr key={String(item.id || index)} className="border-t">
+                  <td className="px-3 py-2"><Link to={`/srm/inventory/items/${item.id || ""}`} className="font-medium hover:text-primary">{text(item.item_name || item.name)}</Link></td>
+                  <td className="px-3 py-2">{optionalText(item.sku)}</td>
+                  <td className="px-3 py-2">{optionalText(item.warehouse_name || item.default_warehouse_id || item.warehouse_id)}</td>
+                  <td className="px-3 py-2">{text(itemQuantity(item))}</td>
+                  <td className="px-3 py-2">{text(itemReorderLevel(item))}</td>
+                  <td className="px-3 py-2"><Badge variant={inventoryStatus(item) === "Out of stock" ? "destructive" : "secondary"}>{inventoryStatus(item)}</Badge></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        ) : <InventoryEmptyState icon={Package} message="No items require attention." />}
+      </CardContent>
+    </Card>
+  );
+}
+
+function WarehouseSummaryCard({ warehouses, products }: { warehouses: FAMRecord[]; products: FAMRecord[] }) {
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-3">
+      <CardHeader className="pb-2"><CardTitle className="text-base">Warehouse summary</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        {warehouses.length ? warehouses.slice(0, 4).map((warehouse) => {
+          const warehouseProducts = products.filter((item) => String(item.default_warehouse_id || item.warehouse_id || "") === String(warehouse.id || ""));
+          return (
+            <div key={String(warehouse.id)} className="rounded-lg border p-3">
+              <p className="font-medium">{text(warehouse.warehouse_name || warehouse.name)}</p>
+              <p className="text-xs text-muted-foreground">{text(warehouse.warehouse_code || warehouse.code || "Warehouse")}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <span className="text-muted-foreground">Items</span><span className="text-right font-medium">{warehouseProducts.length.toLocaleString("en-IN")}</span>
+                <span className="text-muted-foreground">Value</span><span className="text-right font-medium">{money(warehouseProducts.reduce((sum, item) => sum + itemValue(item), 0))}</span>
+              </div>
+            </div>
+          );
+        }) : <InventoryEmptyState icon={Warehouse} message="No data for current filters." />}
+        <Button asChild variant="link" className="h-8 px-0"><Link to="/srm/inventory/warehouse-stock">View inventory<ArrowRight className="h-4 w-4" /></Link></Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function QuickOperationsCard() {
+  const operations = [
+    { label: "Items & SKUs", description: "Maintain item masters, codes, units, and reorder controls.", to: "/srm/inventory/items", icon: Box },
+    { label: "Stock summary", description: "Review warehouse stock, movement, and balances.", to: "/srm/inventory/stock-summary", icon: BoxesIcon },
+    { label: "Reconciliation", description: "Compare physical stock with system balances.", to: "/srm/inventory/reconciliation", icon: GitCompareArrows },
+    { label: "Purchases & receipts", description: "Manage purchase orders, receipts, and supplier returns.", to: "/srm/inventory/purchase-orders", icon: Receipt },
+    { label: "Batch & serial tracking", description: "Track batches, expiry dates, and serial numbers.", to: "/srm/inventory/batches", icon: ShieldCheck },
+  ];
+  return (
+    <Card className="rounded-xl shadow-sm xl:col-span-4">
+      <CardHeader className="pb-2"><CardTitle className="text-base">Quick operations</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        {operations.map((operation) => {
+          const Icon = operation.icon;
+          return (
+            <Link key={operation.to} to={operation.to} className="flex items-center justify-between gap-3 rounded-lg border p-3 transition hover:border-primary/60 hover:bg-muted/40">
+              <span className="flex min-w-0 items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{operation.label}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{operation.description}</span>
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </Link>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+function InventoryEmptyState({ icon: Icon, message }: { icon: ElementType; message: string }) {
+  return (
+    <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+      <Icon className="mb-2 h-7 w-7 opacity-60" />
+      {message}
+    </div>
+  );
 }
 
 function InventoryAccountingView() {
@@ -1644,9 +1915,12 @@ function InventoryAdjustmentView() {
 type InventoryReportKind = "summary" | "valuation" | "reorder" | "reports" | "warehouse" | "aging" | "dead" | "fastSlow" | "grossMargin" | "cogs" | "hsnSummary" | "audit" | "crmLink" | "srmLink";
 
 function InventorySummaryView({ kind }: { kind: InventoryReportKind }) {
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
   const query = useQuery({
-    queryKey: ["fam", `inventory-${kind}`],
+    queryKey: [isSrmInventory ? "srm" : "fam", `inventory-${kind}`],
     queryFn: () => {
+      if (isSrmInventory) return srmApi.inventoryItems();
       if (kind === "valuation") return famApi.inventoryValuation();
       if (kind === "reorder") return famApi.inventoryReorderAlerts();
       if (kind === "reports") return famApi.inventoryReports();
@@ -1664,7 +1938,10 @@ function InventorySummaryView({ kind }: { kind: InventoryReportKind }) {
     },
   });
   const data = (query.data || {}) as FAMRecord;
-  const rows = kind === "reports" ? ((data.summary as FAMRecord | undefined)?.items as FAMRecord[] | undefined) || [] : listItems(query.data);
+  const sourceRows = listItems(query.data);
+  const rows = isSrmInventory
+    ? sourceRows.filter((item) => kind !== "reorder" || Number(item.current_quantity || 0) <= Number(item.reorder_level || 0))
+    : kind === "reports" ? ((data.summary as FAMRecord | undefined)?.items as FAMRecord[] | undefined) || [] : sourceRows;
   const columns = kind === "audit"
     ? ["action", "record_type", "record_id", "performed_at"]
     : kind === "warehouse"
@@ -1682,11 +1959,15 @@ function InventorySummaryView({ kind }: { kind: InventoryReportKind }) {
 }
 
 function InventoryReconciliationView() {
-  const gl = useQuery({ queryKey: ["fam", "inventory-gl-reconciliation"], queryFn: famApi.inventoryGlReconciliation });
-  const srm = useQuery({ queryKey: ["fam", "inventory-srm-reconciliation"], queryFn: famApi.inventorySrmReconciliation });
+  const location = useLocation();
+  const isSrmInventory = location.pathname.startsWith("/srm/inventory");
+  const gl = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventory-gl-reconciliation"], queryFn: () => isSrmInventory ? srmApi.inventoryItems() : famApi.inventoryGlReconciliation() });
+  const srm = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventory-srm-reconciliation"], queryFn: () => isSrmInventory ? srmApi.salesOrders() : famApi.inventorySrmReconciliation() });
   const glData = (gl.data || {}) as FAMRecord;
   const srmData = (srm.data || {}) as FAMRecord;
-  return <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader><CardTitle className="text-base">Inventory to GL</CardTitle></CardHeader><CardContent className="space-y-3"><State label="GL reconciliation" isLoading={gl.isLoading} isError={gl.isError} /><MetricGrid items={[["Stock valuation", money(glData.stock_valuation)], ["Ledger balance", money(glData.ledger_balance)], ["Difference", money(glData.difference)], ["Status", text(glData.status)]]} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Inventory to SRM</CardTitle></CardHeader><CardContent className="space-y-3"><State label="SRM reconciliation" isLoading={srm.isLoading} isError={srm.isError} /><MetricGrid items={[["SRM sales orders", text(srmData.srm_sales_orders)], ["SRM invoices", text(srmData.srm_invoices)], ["Reservations", text(srmData.inventory_reservations)], ["Posted movements", text(srmData.posted_inventory_movements)]]} /><p className="text-sm text-muted-foreground">{text(srmData.duplicate_deduction_guard)}</p></CardContent></Card></div>;
+  const products = isSrmInventory ? listItems(gl.data) : [];
+  const orders = isSrmInventory ? listItems(srm.data) : [];
+  return <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader><CardTitle className="text-base">Inventory to GL</CardTitle></CardHeader><CardContent className="space-y-3"><State label="GL reconciliation" isLoading={gl.isLoading} isError={gl.isError} /><MetricGrid items={isSrmInventory ? [["Stock valuation", money(products.reduce((sum, item) => sum + Number(item.current_quantity || 0) * Number(item.average_cost || item.purchase_rate || 0), 0))], ["Ledger balance", money(0)], ["Difference", money(0)], ["Status", "SRM stock ready"]] : [["Stock valuation", money(glData.stock_valuation)], ["Ledger balance", money(glData.ledger_balance)], ["Difference", money(glData.difference)], ["Status", text(glData.status)]]} /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Inventory to SRM</CardTitle></CardHeader><CardContent className="space-y-3"><State label="SRM reconciliation" isLoading={srm.isLoading} isError={srm.isError} /><MetricGrid items={isSrmInventory ? [["SRM sales orders", text(orders.length)], ["SRM invoices", "-"], ["Reservations", "-"], ["Posted movements", text(products.length)]] : [["SRM sales orders", text(srmData.srm_sales_orders)], ["SRM invoices", text(srmData.srm_invoices)], ["Reservations", text(srmData.inventory_reservations)], ["Posted movements", text(srmData.posted_inventory_movements)]]} /><p className="text-sm text-muted-foreground">{isSrmInventory ? "SRM inventory is using live product and sales-order data." : text(srmData.duplicate_deduction_guard)}</p></CardContent></Card></div>;
 }
 
 function InventoryReconciliationDetailView({ kind }: { kind: "gl" | "grni" | "cogs" | "gst" }) {
@@ -1770,10 +2051,17 @@ function AuditRow({ item }: { item: FAMRecord }) {
 }
 
 export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
-  const meta = viewMeta[kind];
+  let meta = viewMeta[kind];
   const queryClient = useQueryClient();
   const location = useLocation();
   const isSrmInventoryContext = location.pathname.startsWith("/srm/inventory");
+  if (isSrmInventoryContext && (kind === "inventory" || kind === "inventoryDashboard")) {
+    meta = {
+      title: "Inventory Management",
+      description: "Stock health, movement, warehouses and replenishment",
+      icon: Package,
+    };
+  }
   useSrmRealtimeInvalidation(queryClient, isSrmInventoryContext);
   let content: React.ReactNode = null;
   if (kind === "dashboard") content = <DashboardView />;
