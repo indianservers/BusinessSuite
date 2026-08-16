@@ -42,6 +42,7 @@ import {
   Package,
   Phone,
   Plus,
+  RefreshCcw,
   Save,
   Search,
   Sparkles,
@@ -55,9 +56,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 import { exportRows } from "@/lib/export";
 import { formatCurrency, formatDate, statusColor } from "@/lib/utils";
-import { crmApi, type CRMApiRecord, type CRMApiValue, type CRMApprovalRequest, type CRMApprovalWorkflow, type CRMCalendarEvent, type CRMDuplicateGroup, type CRMWinLossReport } from "./api";
+import { useAuthStore } from "@/store/authStore";
+import { crmApi, type CRMApiRecord, type CRMApiValue, type CRMApprovalRequest, type CRMApprovalWorkflow, type CRMCalendarEvent, type CRMDuplicateGroup, type CRMListParams, type CRMWinLossReport } from "./api";
 
 type CRMLead = {
   id: number;
@@ -71,10 +74,55 @@ type CRMLead = {
   leadScore: number;
   scoreLabel: string;
   owner?: string;
+  ownerId?: number;
+  territoryId?: number;
   value: number;
   nextFollowUp?: string;
   lastContacted?: string;
   industry?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  notes?: string;
+};
+
+type CRMContact = {
+  id: number;
+  name: string;
+  companyId?: number;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  title?: string;
+  stage: string;
+  source?: string;
+  status: string;
+  owner?: string;
+  ownerId?: number;
+  nextFollowUp?: string;
+  lastContacted?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  notes?: string;
+};
+
+type CRMAccount = {
+  id: number;
+  name: string;
+  industry?: string;
+  type: string;
+  status: string;
+  revenue: number;
+  owner?: string;
+  ownerId?: number;
+  territoryId?: number;
+  territory?: string;
+  city?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type CRMDeal = {
@@ -91,6 +139,35 @@ type CRMDeal = {
   closeDate: string;
   nextStep: string;
   products: string[];
+};
+
+type CRMDealRow = {
+  id: number;
+  name: string;
+  companyId?: number;
+  companyName?: string;
+  contactId?: number;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  ownerId?: number;
+  owner?: string;
+  territoryId?: number;
+  territory?: string;
+  pipelineId?: number;
+  pipelineName?: string;
+  stageId?: number;
+  stageName: string;
+  amount: number;
+  probability: number;
+  expectedCloseDate?: string;
+  nextFollowUp?: string;
+  status: string;
+  source?: string;
+  description?: string;
+  customFields?: CRMApiRecord;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type CRMRecord = CRMApiRecord;
@@ -891,6 +968,10 @@ export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
   if (kind === "lostAnalysis") return <LostAnalysisPage />;
   if (kind === "customer360") return <Customer360Page />;
   if (kind === "importExport") return <ImportExportPage />;
+  if (kind === "leads") return <CRMLeadsPage />;
+  if (kind === "contacts") return <CRMContactsPage />;
+  if (kind === "companies") return <CRMAccountsPage />;
+  if (kind === "deals") return <CRMDealsPage />;
   if (kind === "products") return <ProductCatalogPage />;
   if (kind === "quoteBuilder") return <QuoteBuilderPage />;
   if (kind === "quoteApprovals") return <QuoteApprovalsPage />;
@@ -905,65 +986,92 @@ function CRMDashboard() {
   const contactState = useCrmRecords<CRMRecord>("contacts", emptyRecords);
   const companyState = useCrmRecords<CRMRecord>("companies", emptyRecords);
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
+  const taskState = useCrmRecords<CRMRecord>("tasks", emptyRecords);
+  const activityState = useCrmRecords<CRMRecord>("activities", emptyRecords);
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
-  const [dashboardMode, setDashboardMode] = useState<"simple" | "advanced">("simple");
+  const [dateRange, setDateRange] = useState<"month" | "quarter" | "all">("month");
   const [quickCreateKind, setQuickCreateKind] = useState<DashboardQuickCreateKind>("leads");
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [quickCreateSaving, setQuickCreateSaving] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
+  const [forecastState, setForecastState] = useState<CRMApiState<{ summary: CRMApiRecord; items: CRMApiRecord[] }>>({ data: { summary: {}, items: [] }, loading: true, error: null });
+  const [calendarState, setCalendarState] = useState<CRMApiState<CRMCalendarEvent[]>>({ data: [], loading: true, error: null });
   const crmLeads = useMemo(() => leadState.data.map(recordToLead), [leadState.data]);
   const companyNames = useMemo(() => companyNameLookup(companyState.data), [companyState.data]);
   const crmDeals = useMemo(() => dealState.data.map((record) => recordToDeal(record, stageState.data, companyNames)), [dealState.data, stageState.data, companyNames]);
-  const stageNames = useMemo(() => stageState.data.map((stage) => String(stage.name)).filter(Boolean), [stageState.data]);
-  const openCrmDeals = crmDeals.filter(isOpenDeal);
+  const { start, end, label } = useMemo(() => dashboardDateWindow(dateRange), [dateRange]);
+  const filteredLeads = useMemo(() => crmLeads.filter((lead) => isWithinWindow(leadCreatedAt(lead), start, end)), [crmLeads, start, end]);
+  const filteredDeals = useMemo(() => crmDeals.filter((deal) => isWithinWindow(deal.closeDate, start, end) || dateRange === "all"), [crmDeals, start, end, dateRange]);
+  const openCrmDeals = filteredDeals.filter(isOpenDeal);
   const wonCrmDeals = crmDeals.filter((deal) => isWonDeal(deal.stage));
   const lostCrmDeals = crmDeals.filter((deal) => isLostDeal(deal.stage));
-  const wonRevenue = wonCrmDeals.reduce((sum, deal) => sum + deal.amount, 0);
   const pipelineValue = openCrmDeals.reduce((sum, deal) => sum + deal.amount, 0);
   const weighted = openCrmDeals.reduce((sum, deal) => sum + (deal.amount * deal.probability) / 100, 0);
-  const overdueFollowUps = crmLeads.filter((lead) => lead.nextFollowUp && new Date(lead.nextFollowUp) < new Date() && lead.status !== "Converted").length;
+  const overdueFollowUps = useMemo(() => {
+    const leadFollowUps = crmLeads.filter((lead) => lead.nextFollowUp && isPastDue(lead.nextFollowUp) && lead.status !== "Converted").length;
+    const taskFollowUps = taskState.data.filter((task) => isTaskOpen(task.status) && isPastDue(String(task.due || task.due_date || ""))).length;
+    return leadFollowUps + taskFollowUps;
+  }, [crmLeads, taskState.data]);
   const openDeals = openCrmDeals.length;
-  const wonDeals = wonCrmDeals.length;
-  const lostDeals = lostCrmDeals.length;
-  const contactsCreated = countRecordsThisMonth(contactState.data);
-  const convertedLeads = crmLeads.filter((lead) => lead.status === "Converted").length;
-  const hotLeads = crmLeads.filter((lead) => lead.rating === "Hot" || lead.scoreLabel === "Hot").length;
-  const averageDealSize = crmDeals.length ? crmDeals.reduce((sum, deal) => sum + deal.amount, 0) / crmDeals.length : 0;
+  const wonDeals = filteredDeals.filter((deal) => isWonDeal(deal.stage)).length;
+  const lostDeals = filteredDeals.filter((deal) => isLostDeal(deal.stage)).length;
   const winRate = wonDeals + lostDeals ? Math.round((wonDeals / (wonDeals + lostDeals)) * 100) : 0;
-  const conversionRate = crmLeads.length ? Math.round((convertedLeads / crmLeads.length) * 100) : 0;
-  const weightedCoverage = pipelineValue ? Math.round((weighted / pipelineValue) * 100) : 0;
   const staleOpenDeals = openCrmDeals.filter((deal) => deal.closeDate && new Date(deal.closeDate) < new Date()).length;
-  const chartStages = stageNames.length ? stageNames : Array.from(new Set(crmDeals.map((deal) => deal.stage).filter(Boolean)));
-  const chartData = chartStages.map((stage) => ({
-    stage,
-    value: openCrmDeals.filter((deal) => deal.stage === stage).reduce((sum, deal) => sum + deal.amount, 0),
-  })).filter((row) => row.value > 0 || !stageNames.length);
-  const sourceData = ["Website", "Referral", "Event", "Partner", "Phone Call", "Email Campaign"].map((source) => ({
-    name: source,
-    value: crmLeads.filter((lead) => lead.source === source).length,
-  }));
-  const revenueTrend = useMemo(() => {
-    const buckets = new Map<string, { month: string; revenue: number; forecast: number }>();
-    dealState.data.forEach((deal) => {
-      const rawDate = String(deal.closed_at || deal.wonAt || deal.won_at || deal.expected_close_date || deal.createdAt || deal.created_at || "");
-      const date = rawDate ? new Date(rawDate) : null;
-      if (!date || Number.isNaN(date.getTime())) return;
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const month = date.toLocaleDateString(undefined, { month: "short" });
-      const current = buckets.get(key) || { month, revenue: 0, forecast: 0 };
-      const amount = Number(deal.amount || 0);
-      if (String(deal.status || "").toLowerCase() === "won") current.revenue += amount;
-      current.forecast += (amount * Number(deal.probability || 0)) / 100;
-      buckets.set(key, current);
-    });
-    return Array.from(buckets.entries()).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([, value]) => value);
-  }, [dealState.data]);
-  const insightRows = [
-    `${crmLeads.filter((lead) => lead.rating === "Hot" || lead.scoreLabel === "Hot").length} hot leads are visible from current CRM data.`,
-    `${openDeals} ${pluralize("open deal", openDeals)} ${openDeals === 1 ? "carries" : "carry"} ${formatCurrency(pipelineValue)} in pipeline value.`,
-    `${staleOpenDeals} ${pluralize("open deal", staleOpenDeals)} ${staleOpenDeals === 1 ? "is" : "are"} past expected close date.`,
-    `${openCrmDeals.filter((deal) => deal.probability >= 70).length} high-probability ${pluralize("deal", openCrmDeals.filter((deal) => deal.probability >= 70).length)} should be reviewed for approvals and quotation follow-up.`,
-  ];
+  const forecastSummary = forecastState.data.summary;
+  const forecastAmount = Number(forecastSummary.weightedAmount || forecastSummary.weighted_amount || weighted || 0);
+  const salesVelocity = openCrmDeals.length ? pipelineValue / Math.max(openCrmDeals.length, 1) : 0;
+  const averageDealAge = averageDaysOpen(filteredDeals);
+  const pipelineStages = useMemo(() => orderedPipelineStages(stageState.data, crmDeals), [stageState.data, crmDeals]);
+  const sourceData = useMemo(() => leadSourceRows(filteredLeads), [filteredLeads]);
+  const priorityDeals = useMemo(() => priorityDealRows(openCrmDeals), [openCrmDeals]);
+  const todayItems = useMemo(() => todayWorkItems(calendarState.data, taskState.data, activityState.data).slice(0, 7), [calendarState.data, taskState.data, activityState.data]);
+  const briefingRows = useMemo(() => smartBriefingRows({
+    overdueFollowUps,
+    staleOpenDeals,
+    closingThisWeek: openCrmDeals.filter((deal) => isWithinNextDays(deal.closeDate, 7)).length,
+    highValueDeals: priorityDeals.filter((deal) => deal.reason.includes("High value")).length,
+    pipelineValue,
+  }), [overdueFollowUps, staleOpenDeals, openCrmDeals, priorityDeals, pipelineValue]);
+  const loading = leadState.loading || contactState.loading || companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || forecastState.loading || calendarState.loading;
+  const error = leadState.error || contactState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
+
+  useEffect(() => {
+    let cancelled = false;
+    setForecastState((current) => ({ ...current, loading: true, error: null }));
+    crmApi
+      .forecast({ startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) })
+      .then((response) => {
+        if (!cancelled) setForecastState({ data: { summary: response.data.summary || {}, items: response.data.items || [] }, loading: false, error: null });
+      })
+      .catch((err) => {
+        if (!cancelled) setForecastState({ data: { summary: {}, items: [] }, loading: false, error: err?.response?.data?.detail || "Forecast data is not available." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [start, end]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const today = new Date();
+    const windowStart = new Date(today);
+    windowStart.setDate(today.getDate() - 7);
+    const windowEnd = new Date(today);
+    windowEnd.setDate(today.getDate() + 7);
+    setCalendarState((current) => ({ ...current, loading: true, error: null }));
+    crmApi
+      .calendar({ startDate: windowStart.toISOString().slice(0, 10), endDate: windowEnd.toISOString().slice(0, 10) })
+      .then((response) => {
+        if (!cancelled) setCalendarState({ data: response.data.items || [], loading: false, error: null });
+      })
+      .catch((err) => {
+        if (!cancelled) setCalendarState({ data: [], loading: false, error: err?.response?.data?.detail || "Calendar work items are not available." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const createQuickRecord = (draft: CRMRecord, customFields?: CRMApiRecord) => {
     const apiEntity = apiEntityForKind[quickCreateKind];
     if (!apiEntity) return;
@@ -986,156 +1094,155 @@ function CRMDashboard() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] max-w-full overflow-hidden bg-slate-50/70">
-      <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
+    <div className="min-h-[calc(100vh-5rem)] max-w-full overflow-hidden bg-[#07111f] text-slate-100">
+      <div className="border-b border-white/10 bg-[#081522] px-4 py-3 sm:px-5 lg:px-8">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <select className="h-10 rounded-full border bg-white px-4 text-sm font-semibold text-slate-950" defaultValue="overview" aria-label="Dashboard view">
-                <option value="overview">Overview</option>
-                <option value="sales">Sales performance</option>
-                <option value="activity">Activity performance</option>
-                <option value="forecast">Forecast</option>
-              </select>
-              <div className="flex rounded-full border bg-slate-50 p-1" aria-label="Dashboard mode">
-                {(["simple", "advanced"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${dashboardMode === mode ? "bg-white text-emerald-700 shadow-sm" : "text-slate-600 hover:text-slate-950"}`}
-                    onClick={() => setDashboardMode(mode)}
-                  >
-                    {mode === "simple" ? "Simple" : "Advanced"}
+              <h1 className="text-xl font-semibold tracking-tight text-white">CRM Overview</h1>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden="true" />Live
+              </span>
+              <span className="text-xs text-slate-400">{label}</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-400">Compact sales workspace powered by CRM records, pipeline stages, forecast, tasks, activities, and calendar data.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="crm-dashboard-range">Dashboard range</label>
+            <select
+              id="crm-dashboard-range"
+              className="h-8 rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-xs font-medium text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              value={dateRange}
+              onChange={(event) => setDateRange(event.target.value as "month" | "quarter" | "all")}
+            >
+              <option value="month">This month</option>
+              <option value="quarter">This quarter</option>
+              <option value="all">All open data</option>
+            </select>
+            <Button size="sm" variant="outline" className="h-8 border-white/10 bg-[#0b1a2a] px-3 text-xs text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-3.5 w-3.5" />Reports</Button>
+            <Button size="sm" variant="outline" className="h-8 border-white/10 bg-[#0b1a2a] px-3 text-xs text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/forecasting")}><Target className="h-3.5 w-3.5" />Forecast</Button>
+            <Button size="sm" className="h-8 bg-emerald-500 px-3 text-xs text-white hover:bg-emerald-400" onClick={() => setShowQuickCreate(true)}><Plus className="h-3.5 w-3.5" />Create</Button>
+          </div>
+        </div>
+      </div>
+      <main className="space-y-3 px-4 py-3 sm:px-5 lg:px-8">
+      {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{error}</div> : null}
+      {loading ? <DashboardSkeleton /> : null}
+      <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="CRM metrics">
+        <CompactMetricCard title="New leads" value={filteredLeads.length} detail={`${crmLeads.length} total visible`} tone="emerald" onClick={() => navigate("/crm/leads")} />
+        <CompactMetricCard title="Open deals" value={openDeals} detail={formatCurrency(pipelineValue)} tone="sky" onClick={() => navigate("/crm/deals")} />
+        <CompactMetricCard title="Pipeline" value={formatCurrency(pipelineValue)} detail={`${openDeals} active deals`} tone="sky" onClick={() => navigate("/crm/pipeline")} />
+        <CompactMetricCard title="Weighted forecast" value={formatCurrency(forecastAmount)} detail={forecastState.error ? "Forecast unavailable" : "Existing forecast API"} tone="emerald" onClick={() => navigate("/crm/forecasting")} />
+        <CompactMetricCard title="Win rate" value={wonDeals + lostDeals ? `${winRate}%` : "-"} detail={wonDeals + lostDeals ? `${wonDeals} won / ${lostDeals} lost` : "No closed deals"} tone="amber" onClick={() => navigate("/crm/reports")} />
+        <CompactMetricCard title="Overdue follow-ups" value={overdueFollowUps} detail={overdueFollowUps ? "Needs action" : "None overdue"} tone={overdueFollowUps ? "red" : "emerald"} onClick={() => navigate("/crm/tasks")} />
+      </section>
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(22rem,0.85fr)]">
+        <div className="space-y-3">
+          <DashboardPanel title="Risk-aware pipeline" actionLabel="Open pipeline" onAction={() => navigate("/crm/pipeline")}>
+            {pipelineStages.length ? (
+              <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-5">
+                {pipelineStages.map((stage) => {
+                  const stageDeals = openCrmDeals.filter((deal) => deal.stageId === stage.id || deal.stage === stage.name);
+                  const value = stageDeals.reduce((sum, deal) => sum + deal.amount, 0);
+                  const risk = pipelineStageRisk(stageDeals);
+                  return (
+                    <button key={`${stage.id}-${stage.name}`} type="button" className="rounded-md border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate("/crm/pipeline")}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-semibold text-slate-100">{stage.name}</span>
+                        <span className={`h-2 w-2 rounded-full ${risk.dot}`} aria-label={risk.label} />
+                      </div>
+                      <div className="mt-3 text-xl font-semibold text-white">{stageDeals.length}</div>
+                      <div className="text-xs text-slate-400">{formatCurrency(value)}</div>
+                      <div className={`mt-2 text-[11px] font-medium ${risk.text}`}>{risk.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : <DarkEmptyState label="No pipeline stages are configured." action="Open pipeline settings" onAction={() => navigate("/crm/pipeline-settings")} />}
+          </DashboardPanel>
+
+          <DashboardPanel title="Priority deals" actionLabel="View deals" onAction={() => navigate("/crm/deals")}>
+            {priorityDeals.length ? <PriorityDealsTable rows={priorityDeals} onOpen={(id) => navigate(`/crm/deals/${id}`)} /> : <DarkEmptyState label="No open deals currently match overdue, near-close, stale, or high-value priority rules." action="Open deals" onAction={() => navigate("/crm/deals")} />}
+          </DashboardPanel>
+
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+            <DashboardPanel title="Forecast by owner" actionLabel="Forecasting" onAction={() => navigate("/crm/forecasting")}>
+              {forecastState.data.items.length ? (
+                <div className="h-52" aria-label="Forecast by owner chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={forecastState.data.items.slice(0, 6)}>
+                      <CartesianGrid stroke="rgba(148,163,184,0.14)" vertical={false} />
+                      <XAxis dataKey="owner" tickLine={false} axisLine={false} stroke="#94a3b8" fontSize={11} />
+                      <YAxis tickFormatter={formatChartCurrency} tickLine={false} axisLine={false} stroke="#94a3b8" fontSize={11} />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} contentStyle={{ background: "#0b1a2a", border: "1px solid rgba(255,255,255,.12)", color: "#e2e8f0" }} />
+                      <Bar dataKey="weightedAmount" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : <DarkEmptyState label={forecastState.error || "No forecast rows for this range."} />}
+            </DashboardPanel>
+
+            <DashboardPanel title="Sales velocity">
+              <div className="grid gap-3 text-sm">
+                <MetricLine label="Avg. open deal value" value={formatCurrency(salesVelocity)} />
+                <MetricLine label="Avg. deal age" value={averageDealAge ? `${averageDealAge} days` : "-"} />
+                <MetricLine label="Expected this week" value={openCrmDeals.filter((deal) => isWithinNextDays(deal.closeDate, 7)).length} />
+                <MetricLine label="Stale open deals" value={staleOpenDeals} danger={staleOpenDeals > 0} />
+              </div>
+            </DashboardPanel>
+          </div>
+        </div>
+
+        <aside className="space-y-3">
+          <DashboardPanel title="Smart briefing">
+            {briefingRows.length ? (
+              <div className="space-y-2">
+                {briefingRows.map((row) => (
+                  <button key={row.title} type="button" className="w-full rounded-md border border-white/10 bg-white/[0.035] p-3 text-left transition hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate(row.path)}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-100">{row.title}</p>
+                        <p className="mt-1 text-xs text-slate-400">{row.reason}</p>
+                      </div>
+                      <span className="text-xs font-semibold text-emerald-300">{row.action}</span>
+                    </div>
                   </button>
                 ))}
               </div>
-              <Badge variant="outline">Live CRM</Badge>
-              <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">{dashboardMode === "simple" ? "Simple dashboard" : "Executive dashboard"}</Badge>
-            </div>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">VyaparaCRM</h1>
-            <p className="max-w-3xl text-sm text-slate-600">Sales command center for leads, accounts, deals, pipeline, activities, quotations, support, automation, and analytics.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-4 w-4" />Reports</Button>
-            <Button variant="outline" onClick={() => navigate("/crm/templates")}><LayoutGrid className="h-4 w-4" />Templates</Button>
-            <Button onClick={() => setShowQuickCreate(true)}><Plus className="h-4 w-4" />Quick create</Button>
-          </div>
-        </div>
-      </div>
-      <main className="space-y-5 px-4 py-4 sm:px-6 lg:px-8">
-      {leadState.error || contactState.error || companyState.error || dealState.error || stageState.error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{leadState.error || contactState.error || companyState.error || dealState.error || stageState.error}</div> : null}
-      {leadState.loading || contactState.loading || companyState.loading || dealState.loading || stageState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM dashboard...</div> : null}
-      {dashboardMode === "simple" ? (
-        <SimpleDashboardView
-          chartData={chartData}
-          contactsCreated={contactsCreated}
-          crmDeals={crmDeals}
-          crmLeads={crmLeads}
-          lostDeals={lostDeals}
-          openDeals={openDeals}
-          overdueFollowUps={overdueFollowUps}
-          pipelineValue={pipelineValue}
-          weighted={weighted}
-          wonDeals={wonDeals}
-          wonRevenue={wonRevenue}
-          onOpenPipeline={() => navigate("/crm/pipeline")}
-          onQuickCreate={() => setShowQuickCreate(true)}
-        />
-      ) : (
-      <>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <DashboardKpiCard title="Contacts created" value={contactsCreated} previous={`${contactState.data.length} total contacts`} delta={conversionRate || 0} />
-        <DashboardKpiCard title="Deals won" value={wonDeals} previous={formatCurrency(wonRevenue)} delta={winRate} tone="emerald" />
-        <DashboardKpiCard title="Deals lost" value={lostDeals} previous="This month" delta={lostDeals ? -100 : 0} tone="red" />
-        <DashboardKpiCard title="Tasks closed" value={Math.max(0, crmLeads.length - overdueFollowUps)} previous={`${overdueFollowUps} overdue`} delta={overdueFollowUps ? -overdueFollowUps : 0} tone="amber" />
-        <DashboardKpiCard title="Open pipeline" value={openDeals} previous={formatCurrency(pipelineValue)} delta={weightedCoverage} tone="blue" />
-        <DashboardKpiCard title="Forecast" value={formatCurrency(weighted)} previous="Weighted revenue" delta={weightedCoverage} tone="violet" />
-      </div>
+            ) : <DarkEmptyState label="No rule-based briefing items need attention right now." />}
+          </DashboardPanel>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_26rem]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="flex-row items-center justify-between">
-              <div>
-                <CardTitle>Open deals by stage - This Month</CardTitle>
-                <p className="text-sm text-muted-foreground">Stage-wise pipeline value from current CRM data.</p>
+          <DashboardPanel title="Today" actionLabel="Calendar" onAction={() => navigate("/crm/calendar")}>
+            {todayItems.length ? <TodayWorkList rows={todayItems} onOpen={(path) => navigate(path)} /> : <DarkEmptyState label="No CRM tasks, activities, or calendar items are due today." action="Open calendar" onAction={() => navigate("/crm/calendar")} />}
+          </DashboardPanel>
+
+          <DashboardPanel title="Lead sources">
+            {sourceData.length ? (
+              <div className="grid gap-3 sm:grid-cols-[9rem_1fr] xl:grid-cols-1 2xl:grid-cols-[8.5rem_1fr]">
+                <div className="h-36" aria-label="Lead source distribution">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={sourceData} dataKey="value" nameKey="name" innerRadius={38} outerRadius={62}>
+                        {sourceData.map((_, index) => <Cell key={index} fill={["#22c55e", "#38bdf8", "#f59e0b", "#94a3b8", "#e879f9", "#f43f5e"][index % 6]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: "#0b1a2a", border: "1px solid rgba(255,255,255,.12)", color: "#e2e8f0" }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2">
+                  {sourceData.slice(0, 5).map((row, index) => (
+                    <div key={row.name} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="flex min-w-0 items-center gap-2 text-slate-300"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: ["#22c55e", "#38bdf8", "#f59e0b", "#94a3b8", "#e879f9"][index % 5] }} /> <span className="truncate">{row.name}</span></span>
+                      <span className="font-semibold text-slate-100">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/crm/pipeline")} aria-label="Open pipeline"><RefreshIcon /></Button>
-            </CardHeader>
-            <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis type="number" tickFormatter={formatChartCurrency} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="stage" tickLine={false} axisLine={false} width={110} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Bar dataKey="value" fill="#38bdf8" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle>Revenue trend and forecast</CardTitle></CardHeader>
-              <CardContent className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={revenueTrend}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                    <YAxis tickFormatter={formatChartCurrency} tickLine={false} axisLine={false} />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={3} dot={false} />
-                    <Line type="monotone" dataKey="forecast" stroke="#2563eb" strokeWidth={3} strokeDasharray="4 4" dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>Leads by source</CardTitle></CardHeader>
-              <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={sourceData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={104}>
-                  {sourceData.map((_, index) => <Cell key={index} fill={["#2563eb", "#16a34a", "#f59e0b", "#7c3aed", "#dc2626", "#0891b2"][index]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <DashboardTopCompanies deals={crmDeals} />
-          <Card>
-          <CardHeader><CardTitle>AI Insights</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {insightRows.map((text) => <Insight key={text} text={text} />)}
-          </CardContent>
-          </Card>
-          <DashboardActionPanel onQuickCreate={() => setShowQuickCreate(true)} onPipeline={() => navigate("/crm/pipeline")} onReports={() => navigate("/crm/reports")} />
-        </div>
+            ) : <DarkEmptyState label="No lead source data is available for this range." />}
+          </DashboardPanel>
+        </aside>
       </div>
-
-      <DashboardStatistics
-        leads={crmLeads.length}
-        hotLeads={hotLeads}
-        convertedLeads={convertedLeads}
-        openDeals={openDeals}
-        wonDeals={wonDeals}
-        lostDeals={lostDeals}
-        pipelineValue={pipelineValue}
-        weighted={weighted}
-        wonRevenue={wonRevenue}
-        averageDealSize={averageDealSize}
-        conversionRate={conversionRate}
-        winRate={winRate}
-        weightedCoverage={weightedCoverage}
-        overdueFollowUps={overdueFollowUps}
-        staleOpenDeals={staleOpenDeals}
-      />
-      </>
-      )}
       {showQuickCreate ? (
         <DashboardQuickCreateDialog
           kind={quickCreateKind}
@@ -1152,6 +1259,246 @@ function CRMDashboard() {
       </main>
     </div>
   );
+}
+
+type DashboardRange = { start: Date; end: Date; label: string };
+
+function dashboardDateWindow(range: "month" | "quarter" | "all"): DashboardRange {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  if (range === "all") return { start: new Date(1970, 0, 1), end, label: "All visible CRM data" };
+  if (range === "quarter") {
+    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    return { start: new Date(now.getFullYear(), quarterStartMonth, 1), end, label: "Current quarter" };
+  }
+  return { start: new Date(now.getFullYear(), now.getMonth(), 1), end, label: now.toLocaleDateString(undefined, { month: "long", year: "numeric" }) };
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="Loading CRM dashboard">
+      {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-md border border-white/10 bg-white/[0.04]" />)}
+    </div>
+  );
+}
+
+function CompactMetricCard({ title, value, detail, tone, onClick }: { title: string; value: string | number; detail: string; tone: "emerald" | "sky" | "amber" | "red"; onClick: () => void }) {
+  const toneClass = {
+    emerald: "text-emerald-300",
+    sky: "text-sky-300",
+    amber: "text-amber-300",
+    red: "text-red-300",
+  }[tone];
+  return (
+    <button type="button" className="rounded-md border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={onClick}>
+      <p className="text-xs font-medium text-slate-400">{title}</p>
+      <p className={`mt-2 truncate text-2xl font-semibold tracking-tight ${toneClass}`}>{value}</p>
+      <p className="mt-1 truncate text-[11px] text-slate-500">{detail}</p>
+    </button>
+  );
+}
+
+function DashboardPanel({ title, children, actionLabel, onAction }: { title: string; children: React.ReactNode; actionLabel?: string; onAction?: () => void }) {
+  return (
+    <section className="rounded-md border border-white/10 bg-[#0a1726] shadow-sm shadow-black/10">
+      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-white/10 px-3 py-2">
+        <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
+        {actionLabel && onAction ? <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-sky-300 hover:bg-white/10 hover:text-sky-200" onClick={onAction}>{actionLabel}<ChevronRight className="h-3.5 w-3.5" /></Button> : null}
+      </div>
+      <div className="p-3">{children}</div>
+    </section>
+  );
+}
+
+function DarkEmptyState({ label, action, onAction }: { label: string; action?: string; onAction?: () => void }) {
+  return (
+    <div className="rounded-md border border-dashed border-white/10 bg-white/[0.025] px-3 py-8 text-center text-xs text-slate-400">
+      <p>{label}</p>
+      {action && onAction ? <Button size="sm" variant="ghost" className="mt-3 h-8 text-xs text-emerald-300 hover:bg-white/10" onClick={onAction}>{action}</Button> : null}
+    </div>
+  );
+}
+
+function PriorityDealsTable({ rows, onOpen }: { rows: ReturnType<typeof priorityDealRows>; onOpen: (id: number) => void }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] text-left text-xs">
+        <thead className="text-[11px] uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-white/10">
+            <th className="px-2 py-2 font-semibold">Deal</th>
+            <th className="px-2 py-2 font-semibold">Company</th>
+            <th className="px-2 py-2 font-semibold">Stage</th>
+            <th className="px-2 py-2 text-right font-semibold">Value</th>
+            <th className="px-2 py-2 font-semibold">Expected close</th>
+            <th className="px-2 py-2 font-semibold">Priority basis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className="border-b border-white/10 last:border-0">
+              <td className="px-2 py-2"><button type="button" className="font-semibold text-slate-100 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => onOpen(row.id)}>{row.name}</button></td>
+              <td className="px-2 py-2 text-slate-300">{row.company || "-"}</td>
+              <td className="px-2 py-2"><span className="rounded bg-sky-400/10 px-2 py-1 text-sky-200">{row.stage}</span></td>
+              <td className="px-2 py-2 text-right font-semibold text-slate-100">{formatCurrency(row.amount)}</td>
+              <td className="px-2 py-2 text-slate-300">{row.closeDate ? formatDate(row.closeDate) : "-"}</td>
+              <td className="px-2 py-2 text-amber-200">{row.reason}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TodayWorkList({ rows, onOpen }: { rows: Array<{ id: string; title: string; time: string; type: string; owner: string; path: string; overdue: boolean }>; onOpen: (path: string) => void }) {
+  return (
+    <div className="space-y-1">
+      {rows.map((row) => (
+        <button key={row.id} type="button" className="grid w-full grid-cols-[4.5rem_1fr_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-xs hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => onOpen(row.path)}>
+          <span className={row.overdue ? "font-semibold text-red-300" : "text-slate-400"}>{row.time}</span>
+          <span className="min-w-0">
+            <span className="block truncate font-semibold text-slate-100">{row.title}</span>
+            <span className="block truncate text-[11px] text-slate-500">{row.type}{row.owner ? ` - ${row.owner}` : ""}</span>
+          </span>
+          <span className="text-emerald-300">Open</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MetricLine({ label, value, danger }: { label: string; value: string | number; danger?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.035] px-3 py-2">
+      <span className="text-xs text-slate-400">{label}</span>
+      <span className={`text-sm font-semibold ${danger ? "text-red-300" : "text-slate-100"}`}>{value}</span>
+    </div>
+  );
+}
+
+function isWithinWindow(rawDate: string | undefined, start: Date, end: Date) {
+  if (!rawDate) return false;
+  const date = new Date(rawDate);
+  return !Number.isNaN(date.getTime()) && date >= start && date <= end;
+}
+
+function leadCreatedAt(lead: CRMLead) {
+  return lead.createdAt || "";
+}
+
+function isPastDue(rawDate: string) {
+  if (!rawDate) return false;
+  const date = new Date(rawDate);
+  return !Number.isNaN(date.getTime()) && date < new Date();
+}
+
+function isTaskOpen(status: CRMApiValue) {
+  return !["completed", "done", "closed", "cancelled"].includes(String(status || "").trim().toLowerCase());
+}
+
+function isWithinNextDays(rawDate: string, days: number) {
+  if (!rawDate) return false;
+  const date = new Date(rawDate);
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  const end = new Date();
+  end.setDate(now.getDate() + days);
+  return date >= now && date <= end;
+}
+
+function orderedPipelineStages(stages: CRMRecord[], deals: CRMDeal[]) {
+  const normalized = stages
+    .map((stage) => ({ id: Number(stage.id || 0), name: String(stage.name || ""), color: String(stage.color || "") }))
+    .filter((stage) => stage.id || stage.name);
+  if (normalized.length) return normalized;
+  return Array.from(new Set(deals.map((deal) => deal.stage).filter(Boolean))).map((name, index) => ({ id: index + 1, name, color: "" }));
+}
+
+function pipelineStageRisk(deals: CRMDeal[]) {
+  const overdue = deals.filter((deal) => deal.closeDate && isPastDue(deal.closeDate)).length;
+  const closingSoon = deals.filter((deal) => isWithinNextDays(deal.closeDate, 7)).length;
+  if (overdue) return { label: `${overdue} past close date`, dot: "bg-red-400", text: "text-red-300" };
+  if (closingSoon) return { label: `${closingSoon} closing this week`, dot: "bg-amber-400", text: "text-amber-300" };
+  return { label: "No close-date risk", dot: "bg-emerald-400", text: "text-emerald-300" };
+}
+
+function priorityDealRows(deals: CRMDeal[]) {
+  if (!deals.length) return [];
+  const amounts = deals.map((deal) => deal.amount).sort((a, b) => a - b);
+  const highValueThreshold = amounts[Math.max(0, Math.floor(amounts.length * 0.75))] || 0;
+  return deals
+    .map((deal) => {
+      const reasons = [
+        deal.closeDate && isPastDue(deal.closeDate) ? "Past close date" : "",
+        isWithinNextDays(deal.closeDate, 7) ? "Closing this week" : "",
+        deal.amount >= highValueThreshold && deal.amount > 0 ? "High value" : "",
+        deal.probability >= 70 ? "High probability" : "",
+      ].filter(Boolean);
+      const weight = (deal.closeDate && isPastDue(deal.closeDate) ? 40 : 0) + (isWithinNextDays(deal.closeDate, 7) ? 30 : 0) + (deal.amount >= highValueThreshold ? 20 : 0) + (deal.probability >= 70 ? 10 : 0);
+      return { ...deal, reason: reasons.join(", "), weight };
+    })
+    .filter((deal) => deal.reason)
+    .sort((a, b) => b.weight - a.weight || b.amount - a.amount)
+    .slice(0, 6);
+}
+
+function todayWorkItems(calendarItems: CRMCalendarEvent[], tasks: CRMRecord[], activities: CRMRecord[]) {
+  const now = new Date();
+  const isTodayOrOverdue = (rawDate: string) => {
+    if (!rawDate) return false;
+    const date = new Date(rawDate);
+    if (Number.isNaN(date.getTime())) return false;
+    return date < now || date.toDateString() === now.toDateString();
+  };
+  const calendarRows = calendarItems
+    .filter((item) => isTodayOrOverdue(item.start) && String(item.status || "").toLowerCase() !== "completed")
+    .map((item) => {
+      const path = relatedCalendarPath(item) || "/crm/calendar";
+      return { id: `calendar-${item.id}`, title: item.title, time: dashboardTimeLabel(item.start), type: item.type || item.source, owner: item.ownerId ? `Owner #${item.ownerId}` : "", path, overdue: isPastDue(item.start) };
+    });
+  const taskRows = tasks
+    .filter((task) => isTaskOpen(task.status) && isTodayOrOverdue(String(task.due || task.due_date || "")))
+    .map((task) => ({ id: `task-${task.id}`, title: String(task.subject || task.title || "CRM task"), time: dashboardTimeLabel(String(task.due || task.due_date || "")), type: "Task", owner: String(task.owner || task.ownerId || ""), path: "/crm/tasks", overdue: isPastDue(String(task.due || task.due_date || "")) }));
+  const activityRows = activities
+    .filter((activity) => isTaskOpen(activity.status) && isTodayOrOverdue(String(activity.due || activity.due_date || "")))
+    .map((activity) => ({ id: `activity-${activity.id}`, title: String(activity.subject || activity.title || "CRM activity"), time: dashboardTimeLabel(String(activity.due || activity.due_date || "")), type: String(activity.type || "Activity"), owner: String(activity.owner || activity.ownerId || ""), path: "/crm/activities", overdue: isPastDue(String(activity.due || activity.due_date || "")) }));
+  return [...calendarRows, ...taskRows, ...activityRows].sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.time.localeCompare(b.time));
+}
+
+function dashboardTimeLabel(rawDate: string) {
+  if (!rawDate) return "-";
+  const date = new Date(rawDate);
+  if (Number.isNaN(date.getTime())) return "-";
+  if (date < new Date()) return "Overdue";
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function smartBriefingRows({ overdueFollowUps, staleOpenDeals, closingThisWeek, highValueDeals, pipelineValue }: { overdueFollowUps: number; staleOpenDeals: number; closingThisWeek: number; highValueDeals: number; pipelineValue: number }) {
+  return [
+    overdueFollowUps ? { title: `${overdueFollowUps} overdue follow-ups`, reason: "Calculated from lead follow-up dates and open CRM tasks.", action: "Review", path: "/crm/tasks" } : null,
+    staleOpenDeals ? { title: `${staleOpenDeals} stale open deals`, reason: "Open deals have expected close dates in the past.", action: "Open", path: "/crm/deals" } : null,
+    closingThisWeek ? { title: `${closingThisWeek} deals closing this week`, reason: "Expected close dates fall within the next 7 days.", action: "Plan", path: "/crm/pipeline" } : null,
+    highValueDeals ? { title: `${highValueDeals} high-value priority deals`, reason: `${formatCurrency(pipelineValue)} is currently visible in open pipeline value.`, action: "Focus", path: "/crm/deals" } : null,
+  ].filter(Boolean) as Array<{ title: string; reason: string; action: string; path: string }>;
+}
+
+function leadSourceRows(leads: CRMLead[]) {
+  const total = leads.length;
+  const rows = Array.from(leads.reduce((map, lead) => {
+    const key = lead.source || "Unspecified";
+    map.set(key, (map.get(key) || 0) + 1);
+    return map;
+  }, new Map<string, number>()).entries())
+    .map(([name, value]) => ({ name, value, percent: total ? Math.round((value / total) * 100) : 0 }))
+    .sort((a, b) => b.value - a.value);
+  return rows;
+}
+
+function averageDaysOpen(deals: CRMDeal[]) {
+  const dated = deals
+    .map((deal) => deal.closeDate ? Math.max(0, Math.round((new Date().getTime() - new Date(deal.closeDate).getTime()) / 86400000)) : 0)
+    .filter((days) => days > 0);
+  return dated.length ? Math.round(dated.reduce((sum, days) => sum + days, 0) / dated.length) : 0;
 }
 
 function DashboardStatistics({
@@ -2907,6 +3254,2777 @@ function CalendarCreateDialog({ date, onClose, onCreated }: { date: Date; onClos
       </Card>
     </div>
   );
+}
+
+type LeadViewKey = "all" | "mine" | "due_week" | "no_follow_up";
+type LeadFormMode = "create" | "edit";
+
+type LeadsState = {
+  rows: CRMLead[];
+  total: number;
+  page: number;
+  pages: number;
+  loading: boolean;
+  error: string | null;
+};
+
+type LeadFilters = {
+  status: string;
+  rating: string;
+  source: string;
+  ownerId: string;
+  territoryId: string;
+  minScore: string;
+  maxScore: string;
+  minValue: string;
+  maxValue: string;
+};
+
+const emptyLeadFilters: LeadFilters = {
+  status: "all",
+  rating: "all",
+  source: "all",
+  ownerId: "all",
+  territoryId: "all",
+  minScore: "",
+  maxScore: "",
+  minValue: "",
+  maxValue: "",
+};
+
+const leadSortableColumns: Record<string, string> = {
+  name: "full_name",
+  company: "company_name",
+  status: "status",
+  rating: "rating",
+  leadScore: "lead_score",
+  nextFollowUp: "next_follow_up_at",
+  value: "estimated_value",
+  updatedAt: "updated_at",
+};
+
+function CRMLeadsPage() {
+  const navigate = useNavigate();
+  const currentUser = useAuthStore((state) => state.user);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [view, setView] = useState<LeadViewKey>("all");
+  const [filters, setFilters] = useState<LeadFilters>(emptyLeadFilters);
+  const [showFilters, setShowFilters] = useState(false);
+  const [sort, setSort] = useState<SortState>({ key: "updatedAt", direction: "desc" });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [state, setState] = useState<LeadsState>({ rows: [], total: 0, page: 1, pages: 0, loading: true, error: null });
+  const [owners, setOwners] = useState<CRMRecord[]>([]);
+  const [territories, setTerritories] = useState<CRMRecord[]>([]);
+  const [selected, setSelected] = useState<CRMLead | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [formMode, setFormMode] = useState<LeadFormMode | null>(null);
+  const [editingLead, setEditingLead] = useState<CRMLead | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const ownerNames = useMemo(() => leadOwnerLookup(owners), [owners]);
+  const territoryNames = useMemo(() => leadTerritoryLookup(territories), [territories]);
+  const activeFilters = countLeadFilters(filters);
+  const rows = useMemo(() => applyLeadDerivedView(state.rows, view, filters), [state.rows, view, filters]);
+  const selectedRows = rows.filter((row) => selectedIds[String(row.id)]);
+  const visibleIds = rows.map((row) => String(row.id));
+  const allSelected = Boolean(visibleIds.length) && visibleIds.every((id) => selectedIds[id]);
+  const leadCountLabel = view === "all" && !activeFilters && !debouncedSearch ? `${state.total} leads` : `${rows.length} shown`;
+  const statusOptions = useMemo(() => leadOptionValues(state.rows, "status", ["New", "Contacted", "Qualified", "Converted", "Lost"]), [state.rows]);
+  const ratingOptions = useMemo(() => leadOptionValues(state.rows, "rating", ["Hot", "Warm", "Cold"]), [state.rows]);
+  const sourceOptions = useMemo(() => leadOptionValues(state.rows, "source", ["Website", "Referral", "Phone Call", "Email Campaign", "Event", "Other"]), [state.rows]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, view, filters, pageSize, sort]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setState((current) => ({ ...current, loading: true, error: null }));
+    const params: CRMListParams = {
+      page,
+      per_page: pageSize,
+      search: debouncedSearch || undefined,
+      sort_by: sort?.key ? leadSortableColumns[sort.key] : "updated_at",
+      sort_order: sort?.direction || "desc",
+      owner_id: filters.ownerId !== "all" ? Number(filters.ownerId) : view === "mine" && currentUser?.id ? Number(currentUser.id) : undefined,
+      status: filters.status !== "all" ? filters.status : undefined,
+      rating: filters.rating !== "all" ? filters.rating : undefined,
+      source: filters.source !== "all" ? filters.source : undefined,
+      territoryId: filters.territoryId !== "all" ? Number(filters.territoryId) : undefined,
+    };
+    crmApi
+      .list<CRMApiRecord>("leads", params)
+      .then((response) => {
+        if (cancelled) return;
+        const normalized = response.data.items.map((item) => recordToLead(normalizeApiRecord("leads", item)));
+        setState({ rows: normalized, total: response.data.total, page: response.data.page, pages: response.data.pages, loading: false, error: null });
+        setSelected((current) => {
+          if (!current) return normalized[0] || null;
+          return normalized.find((lead) => Number(lead.id) === Number(current.id)) || current;
+        });
+      })
+      .catch((err) => {
+        if (!cancelled) setState((current) => ({ ...current, loading: false, error: err?.response?.data?.detail || "Leads could not be loaded." }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey]);
+
+  useEffect(() => {
+    crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
+    crmApi.territories().then((response) => setTerritories(response.data.items || [])).catch(() => setTerritories([]));
+  }, []);
+
+  useEffect(() => {
+    setSelectedIds((current) => Object.fromEntries(Object.entries(current).filter(([id]) => visibleIds.includes(id))));
+  }, [rows.map((row) => row.id).join(",")]);
+
+  const refresh = () => setRefreshKey((value) => value + 1);
+  const openCreate = () => {
+    setFormError(null);
+    setEditingLead(null);
+    setFormMode("create");
+  };
+  const openEdit = (lead: CRMLead) => {
+    setFormError(null);
+    setEditingLead(lead);
+    setFormMode("edit");
+  };
+  const closeForm = () => {
+    setFormMode(null);
+    setEditingLead(null);
+    setFormError(null);
+  };
+  const upsertLead = (lead: CRMLead) => {
+    setState((current) => ({
+      ...current,
+      rows: [lead, ...current.rows.filter((item) => Number(item.id) !== Number(lead.id))],
+      total: formMode === "create" ? current.total + 1 : current.total,
+    }));
+    setSelected(lead);
+  };
+  const saveLead = (draft: CRMApiRecord, dirtyPayload: CRMApiRecord) => {
+    setFormSaving(true);
+    setFormError(null);
+    const request = formMode === "edit" && editingLead
+      ? crmApi.update<CRMApiRecord>("leads", editingLead.id, dirtyPayload)
+      : crmApi.create<CRMApiRecord>("leads", draft);
+    request
+      .then((response) => {
+        const lead = recordToLead(normalizeApiRecord("leads", response.data));
+        upsertLead(lead);
+        closeForm();
+        refresh();
+        toast({ title: formMode === "edit" ? "Lead updated" : "Lead created", description: lead.name });
+      })
+      .catch((err) => setFormError(err?.response?.data?.detail || "Lead could not be saved."))
+      .finally(() => setFormSaving(false));
+  };
+  const deleteSelected = () => {
+    if (!selectedRows.length || !window.confirm(`Delete ${selectedRows.length} selected lead${selectedRows.length === 1 ? "" : "s"}?`)) return;
+    setBulkSaving(true);
+    Promise.all(selectedRows.map((lead) => crmApi.delete("leads", lead.id)))
+      .then(() => {
+        const deletedIds = new Set(selectedRows.map((lead) => lead.id));
+        setState((current) => ({ ...current, rows: current.rows.filter((lead) => !deletedIds.has(lead.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setSelected((current) => current && deletedIds.has(current.id) ? null : current);
+        setSelectedIds({});
+        toast({ title: "Selected leads deleted" });
+      })
+      .catch((err) => toast({ title: "Delete failed", description: err?.response?.data?.detail || "Selected leads could not be deleted." }))
+      .finally(() => setBulkSaving(false));
+  };
+  const exportServerRows = () => {
+    crmApi
+      .exportEntity("leads")
+      .then((response) => downloadBlob(response.data, "leads.csv"))
+      .catch((err) => toast({ title: "Export failed", description: err?.response?.data?.detail || "Lead export failed." }));
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Leads</span></div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-semibold tracking-tight text-white">Leads</h1>
+                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{leadCountLabel}</Badge>
+              </div>
+              <p className="mt-3 text-sm text-slate-400">Capture, qualify, assign, import, export, and convert leads.</p>
+            </div>
+            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create lead</Button>
+          </div>
+
+          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+            <LeadsToolbar
+              search={search}
+              view={view}
+              activeFilters={activeFilters}
+              onSearch={setSearch}
+              onView={setView}
+              onFilters={() => setShowFilters((value) => !value)}
+              onExport={exportServerRows}
+              onImport={() => navigate("/crm/import-export")}
+            />
+            {showFilters ? (
+              <LeadFilterPanel
+                filters={filters}
+                owners={owners}
+                territories={territories}
+                statuses={statusOptions}
+                ratings={ratingOptions}
+                sources={sourceOptions}
+                onChange={setFilters}
+                onClear={() => setFilters(emptyLeadFilters)}
+              />
+            ) : null}
+            <LeadTable
+              rows={rows}
+              loading={state.loading}
+              error={state.error}
+              selectedId={selected?.id}
+              selectedIds={selectedIds}
+              allSelected={allSelected}
+              sort={sort}
+              page={state.page}
+              pages={state.pages}
+              pageSize={pageSize}
+              total={state.total}
+              ownerNames={ownerNames}
+              onSort={setSort}
+              onSelect={setSelected}
+              onEdit={openEdit}
+              onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})}
+              onToggleRow={(lead, checked) => setSelectedIds((current) => ({ ...current, [String(lead.id)]: checked }))}
+              onPage={setPage}
+              onPageSize={setPageSize}
+            />
+          </section>
+
+          {selectedRows.length ? (
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} lead{selectedRows.length === 1 ? "" : "s"} selected</div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-leads.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Deleting..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear lead selection"><X className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ) : null}
+        </main>
+
+        <LeadDetailDrawer
+          lead={selected}
+          ownerNames={ownerNames}
+          territoryNames={territoryNames}
+          onClose={() => setSelected(null)}
+          onEdit={openEdit}
+          onOpenActivities={() => navigate("/crm/activities")}
+          onAddTask={() => navigate("/crm/tasks")}
+        />
+      </div>
+      {formMode ? (
+        <LeadFormModal
+          mode={formMode}
+          lead={editingLead}
+          saving={formSaving}
+          error={formError}
+          owners={owners}
+          territories={territories}
+          statuses={statusOptions}
+          ratings={ratingOptions}
+          sources={sourceOptions}
+          onClose={closeForm}
+          onSave={saveLead}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function LeadsToolbar({ search, view, activeFilters, onSearch, onView, onFilters, onExport, onImport }: { search: string; view: LeadViewKey; activeFilters: number; onSearch: (value: string) => void; onView: (value: LeadViewKey) => void; onFilters: () => void; onExport: () => void; onImport: () => void }) {
+  const views: Array<{ key: LeadViewKey; label: string }> = [
+    { key: "all", label: "All leads" },
+    { key: "mine", label: "My leads" },
+    { key: "due_week", label: "Due this week" },
+    { key: "no_follow_up", label: "No follow-up" },
+  ];
+  return (
+    <div className="flex flex-col gap-2 border-b border-white/10 p-3 xl:flex-row xl:items-center">
+      <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
+        <Search className="h-4 w-4 text-slate-500" />
+        <span className="sr-only">Search leads</span>
+        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search leads..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+        {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear lead search"><X className="h-3.5 w-3.5" /></button> : null}
+      </label>
+      <div className="flex flex-wrap gap-1">
+        {views.map((item) => (
+          <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+      </div>
+    </div>
+  );
+}
+
+function LeadFilterPanel({ filters, owners, territories, statuses, ratings, sources, onChange, onClear }: { filters: LeadFilters; owners: CRMRecord[]; territories: CRMRecord[]; statuses: string[]; ratings: string[]; sources: string[]; onChange: (filters: LeadFilters) => void; onClear: () => void }) {
+  const patch = (update: Partial<LeadFilters>) => onChange({ ...filters, ...update });
+  return (
+    <div className="grid gap-3 border-b border-white/10 bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
+      <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
+      <LeadSelect label="Rating" value={filters.rating} values={ratings} onChange={(rating) => patch({ rating })} />
+      <LeadSelect label="Source" value={filters.source} values={sources} onChange={(source) => patch({ source })} />
+      <label className="space-y-1 text-xs text-slate-400">Owner<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-slate-400">Territory<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
+      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-slate-300 hover:bg-white/10" onClick={onClear}>Clear all</Button></div>
+    </div>
+  );
+}
+
+function LeadSelect({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (value: string) => void }) {
+  return <label className="space-y-1 text-xs text-slate-400">{label}<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>;
+}
+
+function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, ownerNames, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMLead[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; ownerNames: Map<number, string>; onSort: (sort: SortState) => void; onSelect: (lead: CRMLead) => void; onEdit: (lead: CRMLead) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (lead: CRMLead, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const toggleSort = (key: string) => {
+    onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
+  };
+  return (
+    <div>
+      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px] text-left text-sm">
+          <thead className="sticky top-0 z-10 bg-[#0f2033] text-xs uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all leads" /></th>
+              {[
+                ["name", "Lead"],
+                ["company", "Company"],
+                ["status", "Status"],
+                ["rating", "Rating"],
+                ["leadScore", "Score"],
+                ["owner", "Owner"],
+                ["nextFollowUp", "Next follow-up"],
+                ["value", "Value"],
+                ["updatedAt", "Updated"],
+              ].map(([key, label]) => (
+                <th key={key} className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort(key)}>{label}<ArrowUpDown className="h-3 w-3" /></button></th>
+              ))}
+              <th className="px-3 py-3 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? <tr><td colSpan={11} className="px-3 py-12 text-center text-slate-400">Loading leads...</td></tr> : null}
+            {!loading && rows.map((lead) => (
+              <tr key={lead.id} className={`border-t border-white/10 transition hover:bg-white/[0.04] ${selectedId === lead.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(lead)}>
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(lead.id)])} onChange={(event) => onToggleRow(lead, event.target.checked)} aria-label={`Select ${lead.name}`} /></td>
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><LeadAvatar lead={lead} /><button type="button" className="font-semibold text-slate-100 hover:text-emerald-300" onClick={(event) => { event.stopPropagation(); onSelect(lead); }}>{lead.name}</button></div></td>
+                <td className="px-3 py-3 text-slate-300">{lead.company || "-"}</td>
+                <td className="px-3 py-3"><LeadBadge value={lead.status} tone="blue" /></td>
+                <td className="px-3 py-3"><LeadBadge value={lead.rating || "-"} tone={lead.rating === "Hot" ? "red" : lead.rating === "Warm" ? "amber" : "slate"} /></td>
+                <td className="px-3 py-3"><LeadScore value={lead.leadScore} /></td>
+                <td className="px-3 py-3 text-slate-300">{lead.ownerId ? ownerNames.get(lead.ownerId) || `Owner #${lead.ownerId}` : lead.owner || "-"}</td>
+                <td className="px-3 py-3"><FollowUpCell value={lead.nextFollowUp} /></td>
+                <td className="px-3 py-3 font-semibold text-slate-100">{formatCurrency(lead.value || 0)}</td>
+                <td className="px-3 py-3 text-slate-300">{lead.updatedAt ? formatDate(lead.updatedAt) : "-"}</td>
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-slate-200 hover:bg-white/10" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+              </tr>
+            ))}
+            {!loading && !rows.length ? <tr><td colSpan={11} className="px-3 py-12 text-center text-slate-400">No leads match the current search or filters.</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
+        <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} leads</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Badge variant="outline" className="h-9 border-white/10 px-3 text-slate-200">{page || 1} / {Math.max(1, pages || 1)}</Badge>
+          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LeadDetailDrawer({ lead, ownerNames, territoryNames, onClose, onEdit, onOpenActivities, onAddTask }: { lead: CRMLead | null; ownerNames: Map<number, string>; territoryNames: Map<number, string>; onClose: () => void; onEdit: (lead: CRMLead) => void; onOpenActivities: () => void; onAddTask: () => void }) {
+  const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!lead?.id) {
+      setTimeline([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    crmApi
+      .related<{ timeline?: CRMApiRecord[] }>("leads", lead.id)
+      .then((response) => setTimeline(response.data.timeline || []))
+      .catch((err) => setError(err?.response?.data?.detail || "Activity could not be loaded."))
+      .finally(() => setLoading(false));
+  }, [lead?.id]);
+  if (!lead) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select a lead to inspect details.</aside>;
+  return (
+    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3"><LeadAvatar lead={lead} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{lead.name}</h2><p className="truncate text-sm text-slate-400">{lead.company || "No company"}</p></div></div>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close lead details"><X className="h-4 w-4" /></Button>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {lead.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${lead.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
+        {lead.email ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${lead.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+        <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
+      </div>
+      <LeadDrawerSection title="Contact">
+        <LeadInfo label="Email" value={lead.email} />
+        <LeadInfo label="Phone" value={lead.phone} />
+        <LeadInfo label="Company" value={lead.company} />
+        <LeadInfo label="Source" value={lead.source} />
+        <LeadInfo label="Territory" value={lead.territoryId ? territoryNames.get(lead.territoryId) || `Territory #${lead.territoryId}` : ""} />
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Qualification">
+        <LeadInfo label="Status" value={lead.status} />
+        <LeadInfo label="Rating" value={lead.rating} />
+        <LeadInfo label="Lead score" value={String(lead.leadScore ?? "")} />
+        <LeadInfo label="Owner" value={lead.ownerId ? ownerNames.get(lead.ownerId) || `Owner #${lead.ownerId}` : lead.owner} />
+        <LeadInfo label="Next follow-up" value={lead.nextFollowUp ? `${formatDate(lead.nextFollowUp)}${isPastDue(lead.nextFollowUp) ? " - Overdue" : ""}` : ""} />
+        <LeadInfo label="Value" value={formatCurrency(lead.value || 0)} />
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Activity">
+        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {!loading && !error && timeline.slice(0, 4).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
+        {!loading && !error && !timeline.length ? <p className="text-sm text-slate-400">No activity found for this lead.</p> : null}
+        <Button size="sm" variant="outline" className="mt-3 w-full border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onOpenActivities}>View all activity</Button>
+      </LeadDrawerSection>
+    </aside>
+  );
+}
+
+function LeadFormModal({ mode, lead, saving, error, owners, territories, statuses, ratings, sources, onClose, onSave }: { mode: LeadFormMode; lead: CRMLead | null; saving: boolean; error: string | null; owners: CRMRecord[]; territories: CRMRecord[]; statuses: string[]; ratings: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const initial = useMemo(() => leadFormInitial(lead), [lead?.id]);
+  const [draft, setDraft] = useState<CRMApiRecord>(initial);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  useEffect(() => setDraft(initial), [initial]);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
+  const requestClose = () => {
+    if (dirty && !window.confirm("Discard unsaved lead changes?")) return;
+    onClose();
+  };
+  const submit = () => {
+    const validation = validateLeadDraft(draft);
+    setFieldErrors(validation);
+    if (Object.keys(validation).length) return;
+    const fullPayload = buildLeadPayload(draft);
+    const dirtyPayload = buildLeadDirtyPayload(draft, initial);
+    onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit lead" : "Create lead"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update contact and qualification details" : "Add contact and qualification details"}</p>{mode === "edit" && lead?.updatedAt ? <p className="mt-1 text-xs text-slate-500">Last updated {formatDate(lead.updatedAt)}</p> : null}</div>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close lead form"><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="max-h-[calc(92vh-8rem)] space-y-5 overflow-y-auto px-5 py-4">
+          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+          <LeadFormSection title="Contact details">
+            <LeadFormField label="Lead name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter lead name" /></LeadFormField>
+            <LeadFormField label="Company"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.company)} onChange={(event) => patch("company", event.target.value)} placeholder="Enter company name" /></LeadFormField>
+            <LeadFormField label="Email" error={fieldErrors.email}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
+            <LeadFormField label="Phone" error={fieldErrors.phone}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.phone)} onChange={(event) => patch("phone", event.target.value)} placeholder="+919876543210" /></LeadFormField>
+          </LeadFormSection>
+          <LeadFormSection title="Qualification">
+            <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
+            <LeadFormField label="Status" required><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
+            <LeadFormField label="Rating"><LeadFormSelect value={valueText(draft.rating)} values={ratings} onChange={(value) => patch("rating", value)} /></LeadFormField>
+            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Estimated value" error={fieldErrors.value}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={valueText(draft.value)} onChange={(event) => patch("value", event.target.value)} /></LeadFormField>
+          </LeadFormSection>
+          <LeadFormSection title="Follow-up">
+            <LeadFormField label="Next follow-up date"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Next follow-up time"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this lead" maxLength={1000} /></LeadFormField>
+          </LeadFormSection>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3"><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create lead"}</Button></div>
+      </div>
+    </div>
+  );
+}
+
+function LeadAvatar({ lead, large }: { lead: CRMLead; large?: boolean }) {
+  const initials = lead.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "L";
+  return <span className={`flex shrink-0 items-center justify-center rounded-full bg-emerald-300 text-sm font-semibold text-slate-950 ${large ? "h-14 w-14 text-xl" : "h-9 w-9"}`}>{initials}</span>;
+}
+
+function LeadBadge({ value, tone }: { value: string; tone: "blue" | "amber" | "red" | "slate" }) {
+  const tones = {
+    blue: "bg-sky-500/15 text-sky-200",
+    amber: "bg-amber-500/15 text-amber-200",
+    red: "bg-red-500/15 text-red-200",
+    slate: "bg-slate-500/20 text-slate-200",
+  };
+  return <span className={`inline-flex rounded px-2 py-1 text-xs font-medium ${tones[tone]}`}>{value || "-"}</span>;
+}
+
+function LeadScore({ value }: { value: number }) {
+  const score = Math.max(0, Math.min(100, Number(value || 0)));
+  return (
+    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-amber-400/80 text-xs font-semibold text-slate-100" aria-label={`Lead score ${score}`}>
+      {score}
+    </span>
+  );
+}
+
+function FollowUpCell({ value }: { value?: string }) {
+  if (!value) return <span className="text-slate-500">No follow-up</span>;
+  const overdue = isPastDue(value);
+  const dueToday = new Date(value).toDateString() === new Date().toDateString();
+  return (
+    <span className="block">
+      <span className="block text-slate-200">{formatDate(value)}</span>
+      <span className={`text-xs ${overdue ? "text-red-300" : dueToday ? "text-amber-300" : "text-slate-500"}`}>{overdue ? "Overdue" : dueToday ? "Due today" : "Upcoming"}</span>
+    </span>
+  );
+}
+
+function LeadDrawerSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="mt-5 border-t border-white/10 pt-4"><h3 className="mb-3 text-base font-semibold text-slate-100">{title}</h3><div className="space-y-3">{children}</div></section>;
+}
+
+function LeadInfo({ label, value }: { label: string; value?: string | number | null }) {
+  return <div className="flex items-center justify-between gap-3 text-sm"><span className="text-slate-400">{label}</span><span className="text-right font-medium text-slate-100">{value || "Not provided"}</span></div>;
+}
+
+function LeadActivityItem({ item }: { item: CRMApiRecord }) {
+  const title = String(item.title || item.subject || item.type || "CRM activity");
+  const body = String(item.body || item.description || item.outcome || "");
+  const date = String(item.occurredAt || item.occurred_at || item.createdAt || item.created_at || item.activityDate || "");
+  return (
+    <div className="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm">
+      <p className="font-semibold text-slate-100">{title}</p>
+      {body ? <p className="mt-1 text-xs text-slate-400">{body}</p> : null}
+      <p className="mt-2 text-xs text-slate-500">{date ? formatDate(date) : "No timestamp"}</p>
+    </div>
+  );
+}
+
+function LeadFormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section><h3 className="mb-3 text-sm font-semibold text-slate-100">{title}</h3><div className="grid gap-4 md:grid-cols-2">{children}</div></section>;
+}
+
+function LeadFormField({ label, required, error, wide, children }: { label: string; required?: boolean; error?: string; wide?: boolean; children: React.ReactNode }) {
+  return (
+    <label className={`space-y-1 text-sm ${wide ? "md:col-span-2" : ""}`}>
+      <span className="font-medium text-slate-200">{label}{required ? <span className="text-red-300"> *</span> : null}</span>
+      {children}
+      {error ? <span className="block text-xs text-red-300">{error}</span> : null}
+    </label>
+  );
+}
+
+function LeadFormSelect({ value, values, onChange }: { value: string; values: string[]; onChange: (value: string) => void }) {
+  return <select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select>;
+}
+
+function leadFormInitial(lead: CRMLead | null): CRMApiRecord {
+  const followUp = lead?.nextFollowUp && !Number.isNaN(new Date(lead.nextFollowUp).getTime()) ? new Date(lead.nextFollowUp) : null;
+  return {
+    name: lead?.name || "",
+    company: lead?.company || "",
+    email: lead?.email || "",
+    phone: lead?.phone || "",
+    source: lead?.source || "Other",
+    status: lead?.status || "New",
+    rating: lead?.rating || "Warm",
+    ownerId: lead?.ownerId || "",
+    territoryId: lead?.territoryId || "",
+    value: lead?.value || "",
+    nextFollowUpDate: followUp ? followUp.toISOString().slice(0, 10) : "",
+    nextFollowUpTime: followUp ? followUp.toTimeString().slice(0, 5) : "",
+    notes: lead?.notes || "",
+  };
+}
+
+function validateLeadDraft(draft: CRMApiRecord) {
+  const errors: Record<string, string> = {};
+  if (!String(draft.name || "").trim()) errors.name = "Lead name is required.";
+  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.email))) errors.email = "Enter a valid email address.";
+  if (draft.phone && !/^\+?[0-9\s-]{7,20}$/.test(String(draft.phone))) errors.phone = "Enter a valid phone number.";
+  if (draft.value !== "" && Number.isNaN(Number(draft.value))) errors.value = "Estimated value must be numeric.";
+  return errors;
+}
+
+function buildLeadPayload(draft: CRMApiRecord): CRMApiRecord {
+  const name = String(draft.name || "").trim();
+  const [firstName, ...rest] = name.split(/\s+/);
+  const followUp = combineDateTime(String(draft.nextFollowUpDate || ""), String(draft.nextFollowUpTime || ""));
+  const payload: CRMApiRecord = {
+    first_name: firstName || name,
+    last_name: rest.join(" "),
+    full_name: name,
+    company_name: emptyToUndefined(draft.company),
+    email: emptyToUndefined(draft.email),
+    phone: emptyToUndefined(draft.phone),
+    source: emptyToUndefined(draft.source) || "Other",
+    status: emptyToUndefined(draft.status) || "New",
+    rating: emptyToUndefined(draft.rating) || "Warm",
+    estimated_value: draft.value === "" ? undefined : Number(draft.value),
+    next_follow_up_at: followUp || undefined,
+    notes: emptyToUndefined(draft.notes),
+  };
+  if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
+  if (draft.territoryId) payload.territoryId = Number(draft.territoryId);
+  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+}
+
+function buildLeadDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord) {
+  const next = buildLeadPayload(draft);
+  const previous = buildLeadPayload(initial);
+  const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
+  return Object.fromEntries(Array.from(keys).flatMap((key) => {
+    const nextValue = next[key];
+    const previousValue = previous[key];
+    if (String(nextValue ?? "") === String(previousValue ?? "")) return [];
+    return [[key, nextValue ?? null]];
+  }));
+}
+
+function combineDateTime(date: string, time: string) {
+  if (!date) return "";
+  const combined = new Date(`${date}T${time || "09:00"}`);
+  return Number.isNaN(combined.getTime()) ? "" : combined.toISOString();
+}
+
+function emptyToUndefined(value: CRMApiValue) {
+  const text = String(value ?? "").trim();
+  return text ? text : undefined;
+}
+
+function leadOwnerLookup(owners: CRMRecord[]) {
+  const entries = owners.flatMap((owner) => {
+    const name = String(owner.adminArea || owner.full_name || owner.email || owner.id || "");
+    return [
+      [Number(owner.id || 0), name] as [number, string],
+      [Number(owner.userId || owner.user_id || 0), name] as [number, string],
+    ];
+  }).filter(([id, name]) => id && name);
+  return new Map(entries);
+}
+
+function leadTerritoryLookup(territories: CRMRecord[]) {
+  return new Map(territories.map((territory) => [Number(territory.id || 0), String(territory.name || territory.code || territory.id || "")] as [number, string]).filter(([id, name]) => id && name));
+}
+
+function leadOptionValues(rows: CRMLead[], key: keyof CRMLead, fallback: string[]) {
+  return Array.from(new Set([...fallback, ...rows.map((row) => String(row[key] || "")).filter(Boolean)]));
+}
+
+function countLeadFilters(filters: LeadFilters) {
+  return Object.entries(filters).filter(([key, value]) => value && value !== "all" && !(["minScore", "maxScore", "minValue", "maxValue"].includes(key) && value === "")).length;
+}
+
+function applyLeadDerivedView(rows: CRMLead[], view: LeadViewKey, filters: LeadFilters) {
+  const now = new Date();
+  const weekEnd = new Date();
+  weekEnd.setDate(now.getDate() + 7);
+  return rows.filter((lead) => {
+    if (view === "due_week") {
+      if (!lead.nextFollowUp) return false;
+      const date = new Date(lead.nextFollowUp);
+      if (Number.isNaN(date.getTime()) || date > weekEnd) return false;
+    }
+    if (view === "no_follow_up" && lead.nextFollowUp) return false;
+    if (filters.minScore && lead.leadScore < Number(filters.minScore)) return false;
+    if (filters.maxScore && lead.leadScore > Number(filters.maxScore)) return false;
+    if (filters.minValue && lead.value < Number(filters.minValue)) return false;
+    if (filters.maxValue && lead.value > Number(filters.maxValue)) return false;
+    return true;
+  });
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+type ContactViewKey = "all" | "mine" | "due_week" | "no_follow_up";
+type ContactFormMode = "create" | "edit";
+type ContactsState = { rows: CRMContact[]; total: number; page: number; pages: number; loading: boolean; error: string | null };
+type ContactFilters = {
+  companyId: string;
+  stage: string;
+  status: string;
+  source: string;
+  ownerId: string;
+};
+
+const emptyContactFilters: ContactFilters = {
+  companyId: "all",
+  stage: "all",
+  status: "all",
+  source: "all",
+  ownerId: "all",
+};
+
+const contactSortableColumns: Record<string, string> = {
+  name: "full_name",
+  companyName: "company_name",
+  email: "email",
+  phone: "phone",
+  title: "job_title",
+  stage: "lifecycle_stage",
+  status: "status",
+  owner: "owner_user_id",
+  nextFollowUp: "next_follow_up_at",
+  updatedAt: "updated_at",
+};
+
+function CRMContactsPage() {
+  const navigate = useNavigate();
+  const currentUser = useAuthStore((state) => state.user);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [view, setView] = useState<ContactViewKey>("all");
+  const [filters, setFilters] = useState<ContactFilters>(emptyContactFilters);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showColumns, setShowColumns] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    company: true,
+    email: true,
+    phone: true,
+    stage: true,
+    status: true,
+    owner: true,
+    nextFollowUp: true,
+    updatedAt: true,
+  });
+  const [sort, setSort] = useState<SortState>({ key: "updatedAt", direction: "desc" });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [state, setState] = useState<ContactsState>({ rows: [], total: 0, page: 1, pages: 0, loading: true, error: null });
+  const [owners, setOwners] = useState<CRMRecord[]>([]);
+  const [companies, setCompanies] = useState<CRMRecord[]>([]);
+  const [selected, setSelected] = useState<CRMContact | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [formMode, setFormMode] = useState<ContactFormMode | null>(null);
+  const [editingContact, setEditingContact] = useState<CRMContact | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const ownerNames = useMemo(() => leadOwnerLookup(owners), [owners]);
+  const companyNames = useMemo(() => contactCompanyLookup(companies), [companies]);
+  const activeFilters = countContactFilters(filters);
+  const rows = useMemo(() => applyContactDerivedView(state.rows, view), [state.rows, view]);
+  const selectedRows = rows.filter((row) => selectedIds[String(row.id)]);
+  const visibleIds = rows.map((row) => String(row.id));
+  const allSelected = Boolean(visibleIds.length) && visibleIds.every((id) => selectedIds[id]);
+  const contactCountLabel = view === "all" && !activeFilters && !debouncedSearch ? `${state.total} contacts` : `${rows.length} shown`;
+  const stageOptions = useMemo(() => contactOptionValues(state.rows, "stage", ["Lead", "Subscriber", "Customer", "Evangelist", "Inactive"]), [state.rows]);
+  const statusOptions = useMemo(() => contactOptionValues(state.rows, "status", ["Active", "Inactive", "Do Not Contact"]), [state.rows]);
+  const sourceOptions = useMemo(() => contactOptionValues(state.rows, "source", ["Website", "Referral", "Phone Call", "Email Campaign", "Event", "Other"]), [state.rows]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, view, filters, pageSize, sort]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setState((current) => ({ ...current, loading: true, error: null }));
+    const params: CRMListParams = {
+      page,
+      per_page: pageSize,
+      search: debouncedSearch || undefined,
+      sort_by: sort?.key ? contactSortableColumns[sort.key] : "updated_at",
+      sort_order: sort?.direction || "desc",
+      company_id: filters.companyId !== "all" ? Number(filters.companyId) : undefined,
+      lifecycle_stage: filters.stage !== "all" ? filters.stage : undefined,
+      status: filters.status !== "all" ? filters.status : undefined,
+      source: filters.source !== "all" ? filters.source : undefined,
+      owner_id: filters.ownerId !== "all" ? Number(filters.ownerId) : view === "mine" && currentUser?.id ? Number(currentUser.id) : undefined,
+    };
+    crmApi
+      .list<CRMApiRecord>("contacts", params)
+      .then((response) => {
+        if (cancelled) return;
+        const normalized = response.data.items.map((item) => recordToContact(normalizeApiRecord("contacts", item), companyNames, ownerNames));
+        setState({ rows: normalized, total: response.data.total, page: response.data.page, pages: response.data.pages, loading: false, error: null });
+        setSelected((current) => {
+          if (!current) return normalized[0] || null;
+          return normalized.find((contact) => Number(contact.id) === Number(current.id)) || current;
+        });
+      })
+      .catch((err) => {
+        if (!cancelled) setState((current) => ({ ...current, loading: false, error: err?.response?.data?.detail || "Contacts could not be loaded." }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey, companyNames, ownerNames]);
+
+  useEffect(() => {
+    crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
+    crmApi.list<CRMApiRecord>("companies", { per_page: 100, sort_by: "name", sort_order: "asc" }).then((response) => setCompanies(response.data.items || [])).catch(() => setCompanies([]));
+  }, []);
+
+  useEffect(() => {
+    setSelectedIds((current) => Object.fromEntries(Object.entries(current).filter(([id]) => visibleIds.includes(id))));
+  }, [rows.map((row) => row.id).join(",")]);
+
+  const refresh = () => setRefreshKey((value) => value + 1);
+  const openCreate = () => {
+    setFormError(null);
+    setEditingContact(null);
+    setFormMode("create");
+  };
+  const openEdit = (contact: CRMContact) => {
+    setFormError(null);
+    setEditingContact(contact);
+    setFormMode("edit");
+  };
+  const closeForm = () => {
+    setFormMode(null);
+    setEditingContact(null);
+    setFormError(null);
+  };
+  const upsertContact = (contact: CRMContact) => {
+    setState((current) => ({
+      ...current,
+      rows: [contact, ...current.rows.filter((item) => Number(item.id) !== Number(contact.id))],
+      total: formMode === "create" ? current.total + 1 : current.total,
+    }));
+    setSelected(contact);
+  };
+  const saveContact = (draft: CRMApiRecord, dirtyPayload: CRMApiRecord) => {
+    setFormSaving(true);
+    setFormError(null);
+    const request = formMode === "edit" && editingContact
+      ? crmApi.update<CRMApiRecord>("contacts", editingContact.id, dirtyPayload)
+      : crmApi.create<CRMApiRecord>("contacts", draft);
+    request
+      .then((response) => {
+        const contact = recordToContact(normalizeApiRecord("contacts", response.data), companyNames, ownerNames);
+        upsertContact(contact);
+        closeForm();
+        refresh();
+        toast({ title: formMode === "edit" ? "Contact updated" : "Contact created", description: contact.name });
+      })
+      .catch((err) => setFormError(err?.response?.data?.detail || "Contact could not be saved."))
+      .finally(() => setFormSaving(false));
+  };
+  const bulkPatch = (payload: CRMApiRecord, title: string) => {
+    if (!selectedRows.length) return;
+    setBulkSaving(true);
+    Promise.all(selectedRows.map((contact) => crmApi.update<CRMApiRecord>("contacts", contact.id, payload)))
+      .then(() => {
+        setSelectedIds({});
+        refresh();
+        toast({ title });
+      })
+      .catch((err) => toast({ title: "Bulk update failed", description: err?.response?.data?.detail || "Selected contacts could not be updated." }))
+      .finally(() => setBulkSaving(false));
+  };
+  const deleteSelected = () => {
+    if (!selectedRows.length || !window.confirm(`Delete ${selectedRows.length} selected contact${selectedRows.length === 1 ? "" : "s"}?`)) return;
+    setBulkSaving(true);
+    Promise.all(selectedRows.map((contact) => crmApi.delete("contacts", contact.id)))
+      .then(() => {
+        const deletedIds = new Set(selectedRows.map((contact) => contact.id));
+        setState((current) => ({ ...current, rows: current.rows.filter((contact) => !deletedIds.has(contact.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setSelected((current) => current && deletedIds.has(current.id) ? null : current);
+        setSelectedIds({});
+        toast({ title: "Selected contacts deleted" });
+      })
+      .catch((err) => toast({ title: "Delete failed", description: err?.response?.data?.detail || "Selected contacts could not be deleted." }))
+      .finally(() => setBulkSaving(false));
+  };
+  const exportServerRows = () => {
+    crmApi
+      .exportEntity("contacts")
+      .then((response) => downloadBlob(response.data, "contacts.csv"))
+      .catch((err) => toast({ title: "Export failed", description: err?.response?.data?.detail || "Contact export failed." }));
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Contacts</span></div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-semibold tracking-tight text-white">Contacts</h1>
+                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{contactCountLabel}</Badge>
+              </div>
+              <p className="mt-3 text-sm text-slate-400">Manage people, lifecycle stages, follow-up dates, and account links.</p>
+            </div>
+            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button>
+          </div>
+
+          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+            <ContactsToolbar
+              search={search}
+              view={view}
+              activeFilters={activeFilters}
+              showColumns={showColumns}
+              visibleColumns={visibleColumns}
+              onSearch={setSearch}
+              onView={setView}
+              onFilters={() => setShowFilters((value) => !value)}
+              onColumns={() => setShowColumns((value) => !value)}
+              onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))}
+              onExport={exportServerRows}
+              onImport={() => navigate("/crm/import-export")}
+            />
+            {showFilters ? (
+              <ContactFilterPanel
+                filters={filters}
+                owners={owners}
+                companies={companies}
+                statuses={statusOptions}
+                stages={stageOptions}
+                sources={sourceOptions}
+                onChange={setFilters}
+                onClear={() => setFilters(emptyContactFilters)}
+              />
+            ) : null}
+            <ContactTable
+              rows={rows}
+              loading={state.loading}
+              error={state.error}
+              selectedId={selected?.id}
+              selectedIds={selectedIds}
+              allSelected={allSelected}
+              sort={sort}
+              page={state.page}
+              pages={state.pages}
+              pageSize={pageSize}
+              total={state.total}
+              visibleColumns={visibleColumns}
+              onSort={setSort}
+              onSelect={setSelected}
+              onEdit={openEdit}
+              onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})}
+              onToggleRow={(contact, checked) => setSelectedIds((current) => ({ ...current, [String(contact.id)]: checked }))}
+              onPage={setPage}
+              onPageSize={setPageSize}
+            />
+          </section>
+
+          {selectedRows.length ? (
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} contact{selectedRows.length === 1 ? "" : "s"} selected</div>
+              <div className="flex flex-wrap gap-2">
+                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-[#0b1a2a]">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-[#0b1a2a]">{stage}</option>)}</select></label>
+                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-contacts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear contact selection"><X className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ) : null}
+        </main>
+
+        <ContactDetailDrawer
+          contact={selected}
+          onClose={() => setSelected(null)}
+          onEdit={openEdit}
+          onOpenActivities={() => navigate("/crm/activities")}
+          onAddTask={() => navigate("/crm/tasks")}
+        />
+      </div>
+      {formMode ? (
+        <ContactFormModal
+          mode={formMode}
+          contact={editingContact}
+          saving={formSaving}
+          error={formError}
+          owners={owners}
+          companies={companies}
+          statuses={statusOptions}
+          stages={stageOptions}
+          sources={sourceOptions}
+          onClose={closeForm}
+          onSave={saveContact}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColumns, onSearch, onView, onFilters, onColumns, onColumnToggle, onExport, onImport }: { search: string; view: ContactViewKey; activeFilters: number; showColumns: boolean; visibleColumns: Record<string, boolean>; onSearch: (value: string) => void; onView: (value: ContactViewKey) => void; onFilters: () => void; onColumns: () => void; onColumnToggle: (key: string) => void; onExport: () => void; onImport: () => void }) {
+  const views: Array<{ key: ContactViewKey; label: string }> = [
+    { key: "all", label: "All contacts" },
+    { key: "mine", label: "My contacts" },
+    { key: "due_week", label: "Due this week" },
+    { key: "no_follow_up", label: "No follow-up" },
+  ];
+  const columns = [
+    ["company", "Company"],
+    ["email", "Email"],
+    ["phone", "Phone"],
+    ["stage", "Lifecycle stage"],
+    ["status", "Status"],
+    ["owner", "Owner"],
+    ["nextFollowUp", "Next follow-up"],
+    ["updatedAt", "Updated"],
+  ];
+  return (
+    <div className="relative flex flex-col gap-2 border-b border-white/10 p-3 xl:flex-row xl:items-center">
+      <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
+        <Search className="h-4 w-4 text-slate-500" />
+        <span className="sr-only">Search contacts</span>
+        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search contacts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+        {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear contact search"><X className="h-3.5 w-3.5" /></button> : null}
+      </label>
+      <div className="flex flex-wrap gap-1">
+        {views.map((item) => (
+          <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
+        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+      </div>
+      {showColumns ? (
+        <div className="absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-white/10 bg-[#0b1a2a] p-2 shadow-xl">
+          {columns.map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-white/5">
+              <input type="checkbox" checked={visibleColumns[key]} onChange={() => onColumnToggle(key)} />
+              {label}
+            </label>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ContactFilterPanel({ filters, owners, companies, statuses, stages, sources, onChange, onClear }: { filters: ContactFilters; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onChange: (filters: ContactFilters) => void; onClear: () => void }) {
+  const patch = (update: Partial<ContactFilters>) => onChange({ ...filters, ...update });
+  return (
+    <div className="grid gap-3 border-b border-white/10 bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
+      <label className="space-y-1 text-xs text-slate-400">Company<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.companyId} onChange={(event) => patch({ companyId: event.target.value })}><option value="all">All companies</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></label>
+      <LeadSelect label="Lifecycle stage" value={filters.stage} values={stages} onChange={(stage) => patch({ stage })} />
+      <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
+      <LeadSelect label="Source" value={filters.source} values={sources} onChange={(source) => patch({ source })} />
+      <label className="space-y-1 text-xs text-slate-400">Owner<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-slate-300 hover:bg-white/10" onClick={onClear}>Clear all</Button></div>
+    </div>
+  );
+}
+
+function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMContact[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (contact: CRMContact) => void; onEdit: (contact: CRMContact) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (contact: CRMContact, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const toggleSort = (key: string) => {
+    onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
+  };
+  const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
+  return (
+    <div>
+      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1040px] text-left text-sm">
+          <thead className="sticky top-0 z-10 bg-[#0f2033] text-xs uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all contacts" /></th>
+              <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}>Contact<ArrowUpDown className="h-3 w-3" /></button></th>
+              {visibleColumns.company ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("companyName")}>Company<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.email ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("email")}>Email<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.phone ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("phone")}>Phone<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.stage ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("stage")}>Lifecycle stage<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.status ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>Status<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.owner ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("owner")}>Owner<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.nextFollowUp ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("nextFollowUp")}>Next follow-up<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.updatedAt ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("updatedAt")}>Updated<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              <th className="px-3 py-3 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">Loading contacts...</td></tr> : null}
+            {!loading && rows.map((contact) => (
+              <tr key={contact.id} className={`border-t border-white/10 transition hover:bg-white/[0.04] ${selectedId === contact.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(contact)}>
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(contact.id)])} onChange={(event) => onToggleRow(contact, event.target.checked)} aria-label={`Select ${contact.name}`} /></td>
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-slate-100 hover:text-emerald-300" title={contact.name} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
+                {visibleColumns.company ? <td className="px-3 py-3 text-slate-300"><span title={contact.companyName || "No company linked"}>{contact.companyName || "No company linked"}</span></td> : null}
+                {visibleColumns.email ? <td className="px-3 py-3 text-slate-300"><span title={contact.email || "No email"}>{contact.email || "No email"}</span></td> : null}
+                {visibleColumns.phone ? <td className="px-3 py-3 text-slate-300">{formatContactPhone(contact.phone)}</td> : null}
+                {visibleColumns.stage ? <td className="px-3 py-3"><LeadBadge value={contact.stage || "Lead"} tone="blue" /></td> : null}
+                {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /></td> : null}
+                {visibleColumns.owner ? <td className="px-3 py-3 text-slate-300"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(contact.owner || "U")}</span>{contact.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.nextFollowUp ? <td className="px-3 py-3"><FollowUpCell value={contact.nextFollowUp} /></td> : null}
+                {visibleColumns.updatedAt ? <td className="px-3 py-3 text-slate-300">{contact.updatedAt ? formatDate(contact.updatedAt) : "-"}</td> : null}
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-slate-200 hover:bg-white/10" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+              </tr>
+            ))}
+            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">No contacts match the current search or filters.</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
+        <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} contacts</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Badge variant="outline" className="h-9 border-white/10 px-3 text-slate-200">{page || 1} / {Math.max(1, pages || 1)}</Badge>
+          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAddTask }: { contact: CRMContact | null; onClose: () => void; onEdit: (contact: CRMContact) => void; onOpenActivities: () => void; onAddTask: () => void }) {
+  const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!contact?.id) {
+      setTimeline([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    crmApi
+      .related<{ timeline?: CRMApiRecord[] }>("contacts", contact.id)
+      .then((response) => setTimeline((response.data.timeline || []).slice().reverse()))
+      .catch((err) => setError(err?.response?.data?.detail || "Activity could not be loaded."))
+      .finally(() => setLoading(false));
+  }, [contact?.id]);
+  if (!contact) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select a contact to inspect details.</aside>;
+  return (
+    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3"><ContactAvatar contact={contact} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{contact.name}</h2><p className="truncate text-sm text-slate-400">{contact.companyName || "No company linked"}</p></div></div>
+        <div className="flex items-center gap-1"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close contact details"><X className="h-4 w-4" /></Button></div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {contact.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${contact.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
+        {contact.email ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${contact.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+        <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
+      </div>
+      <LeadDrawerSection title="Contact">
+        <LeadInfo label="Email" value={contact.email || "No email"} />
+        <LeadInfo label="Phone" value={formatContactPhone(contact.phone)} />
+        <LeadInfo label="Company" value={contact.companyName || "No company linked"} />
+        <LeadInfo label="Job title" value={contact.title || "Not set"} />
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Relationship">
+        <LeadInfo label="Company" value={contact.companyName || "No company linked"} />
+        <LeadInfo label="Lifecycle stage" value={contact.stage || "Lead"} />
+        <LeadInfo label="Status" value={contact.status || "Active"} />
+        <LeadInfo label="Source" value={contact.source || "Not set"} />
+        <LeadInfo label="Owner" value={contact.owner || "Unassigned"} />
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Follow-up">
+        <LeadInfo label="Next follow-up" value={contact.nextFollowUp ? formatDate(contact.nextFollowUp) : "No follow-up"} />
+        <LeadInfo label="Status" value={contact.nextFollowUp ? followUpStatus(contact.nextFollowUp) : "No follow-up"} />
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Activity">
+        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {!loading && !error && timeline.slice(0, 5).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
+        {!loading && !error && !timeline.length ? <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-8 text-center text-sm text-slate-400">No activity yet</p> : null}
+        <Button size="sm" variant="outline" className="mt-3 w-full border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onOpenActivities}>View all activity</Button>
+      </LeadDrawerSection>
+    </aside>
+  );
+}
+
+function ContactFormModal({ mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const initial = useMemo(() => contactFormInitial(contact), [contact?.id]);
+  const [draft, setDraft] = useState<CRMApiRecord>(initial);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  useEffect(() => setDraft(initial), [initial]);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
+  const requestClose = () => {
+    if (dirty && !window.confirm("Discard unsaved contact changes?")) return;
+    onClose();
+  };
+  const submit = () => {
+    const validation = validateContactDraft(draft);
+    setFieldErrors(validation);
+    if (Object.keys(validation).length) return;
+    const fullPayload = buildContactPayload(draft);
+    const dirtyPayload = buildContactDirtyPayload(draft, initial);
+    onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit contact" : "Create contact"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update contact and relationship details" : "Add contact and relationship details"}</p>{mode === "edit" && contact?.updatedAt ? <p className="mt-1 text-xs text-slate-500">Last updated {formatDate(contact.updatedAt)}</p> : null}</div>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close contact form"><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="max-h-[calc(92vh-8rem)] space-y-4 overflow-y-auto px-5 py-4">
+          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+          <LeadFormSection title="Contact details">
+            <LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField>
+            <LeadFormField label="Email" error={fieldErrors.email}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email" /></LeadFormField>
+            <LeadFormField label="Phone" error={fieldErrors.phone}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.phone)} onChange={(event) => patch("phone", event.target.value)} placeholder="+919876543210" /></LeadFormField>
+            <LeadFormField label="Job title"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField>
+          </LeadFormSection>
+          <LeadFormSection title="Relationship">
+            <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company linked</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
+            <LeadFormField label="Lifecycle stage"><LeadFormSelect value={valueText(draft.stage)} values={stages} onChange={(value) => patch("stage", value)} /></LeadFormField>
+            <LeadFormField label="Status"><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
+            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+          </LeadFormSection>
+          <LeadFormSection title="Follow-up">
+            <LeadFormField label="Next follow-up date"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Next follow-up time"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes" maxLength={1000} /></LeadFormField>
+          </LeadFormSection>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3"><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create contact"}</Button></div>
+      </div>
+    </div>
+  );
+}
+
+function contactFormInitial(contact: CRMContact | null): CRMApiRecord {
+  const followUp = contact?.nextFollowUp && !Number.isNaN(new Date(contact.nextFollowUp).getTime()) ? new Date(contact.nextFollowUp) : null;
+  return {
+    name: contact?.name || "",
+    email: contact?.email || "",
+    phone: contact?.phone || "",
+    title: contact?.title || "",
+    companyId: contact?.companyId || "",
+    source: contact?.source || "Other",
+    stage: contact?.stage || "Lead",
+    status: contact?.status || "Active",
+    ownerId: contact?.ownerId || "",
+    nextFollowUpDate: followUp ? followUp.toISOString().slice(0, 10) : "",
+    nextFollowUpTime: followUp ? followUp.toTimeString().slice(0, 5) : "",
+    notes: contact?.notes || "",
+  };
+}
+
+function validateContactDraft(draft: CRMApiRecord) {
+  const errors: Record<string, string> = {};
+  if (!String(draft.name || "").trim()) errors.name = "Contact name is required.";
+  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.email))) errors.email = "Enter a valid email address.";
+  if (draft.phone && !/^\+?[0-9\s-]{7,24}$/.test(String(draft.phone))) errors.phone = "Enter a valid phone number.";
+  return errors;
+}
+
+function buildContactPayload(draft: CRMApiRecord): CRMApiRecord {
+  const name = String(draft.name || "").trim();
+  const [firstName, ...rest] = name.split(/\s+/);
+  const followUp = combineDateTime(String(draft.nextFollowUpDate || ""), String(draft.nextFollowUpTime || ""));
+  const payload: CRMApiRecord = {
+    first_name: firstName || name,
+    last_name: rest.join(" "),
+    full_name: name,
+    email: emptyToUndefined(draft.email),
+    phone: emptyToUndefined(draft.phone),
+    job_title: emptyToUndefined(draft.title),
+    source: emptyToUndefined(draft.source) || "Other",
+    lifecycle_stage: emptyToUndefined(draft.stage) || "Lead",
+    status: emptyToUndefined(draft.status) || "Active",
+    next_follow_up_at: followUp || undefined,
+    notes: emptyToUndefined(draft.notes),
+  };
+  if (draft.companyId) payload.company_id = Number(draft.companyId);
+  if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
+  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+}
+
+function buildContactDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord) {
+  const next = buildContactPayload(draft);
+  const previous = buildContactPayload(initial);
+  const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
+  return Object.fromEntries(Array.from(keys).flatMap((key) => {
+    const nextValue = next[key];
+    const previousValue = previous[key];
+    if (String(nextValue ?? "") === String(previousValue ?? "")) return [];
+    return [[key, nextValue ?? null]];
+  }));
+}
+
+function recordToContact(record: CRMRecord, companyNames = new Map<number, string>(), ownerNames = new Map<number, string>()): CRMContact {
+  const companyId = Number(record.companyId || record.company_id || 0) || undefined;
+  const ownerId = Number(record.ownerId || record.owner_id || record.owner_user_id || 0) || undefined;
+  return {
+    id: Number(record.id || 0),
+    name: String(record.name || record.full_name || "Contact"),
+    companyId,
+    companyName: String(record.companyName || record.company_name || (companyId ? companyNames.get(companyId) || "" : "")),
+    email: String(record.email || ""),
+    phone: String(record.phone || ""),
+    title: String(record.title || record.job_title || ""),
+    stage: String(record.stage || record.lifecycle_stage || "Lead"),
+    source: String(record.source || ""),
+    status: String(record.status || "Active"),
+    owner: String(record.owner || (ownerId ? ownerNames.get(ownerId) || "" : "")),
+    ownerId,
+    nextFollowUp: String(record.nextFollowUp || record.next_follow_up_at || ""),
+    lastContacted: String(record.lastContacted || record.last_contacted_at || ""),
+    createdAt: String(record.createdAt || record.created_at || ""),
+    updatedAt: String(record.updatedAt || record.updated_at || ""),
+    notes: String(record.notes || ""),
+  };
+}
+
+function contactCompanyLookup(companies: CRMRecord[]) {
+  return new Map(companies.map((company) => [Number(company.id || 0), String(company.name || company.company_name || company.id || "")] as [number, string]).filter(([id, name]) => id && name));
+}
+
+function contactOptionValues(rows: CRMContact[], key: keyof CRMContact, fallback: string[]) {
+  return Array.from(new Set([...fallback, ...rows.map((row) => String(row[key] || "")).filter(Boolean)]));
+}
+
+function countContactFilters(filters: ContactFilters) {
+  return Object.values(filters).filter((value) => value && value !== "all").length;
+}
+
+function applyContactDerivedView(rows: CRMContact[], view: ContactViewKey) {
+  const now = new Date();
+  const weekEnd = new Date();
+  weekEnd.setDate(now.getDate() + 7);
+  return rows.filter((contact) => {
+    if (view === "due_week") {
+      if (!contact.nextFollowUp) return false;
+      const date = new Date(contact.nextFollowUp);
+      if (Number.isNaN(date.getTime()) || date > weekEnd) return false;
+    }
+    if (view === "no_follow_up" && contact.nextFollowUp) return false;
+    return true;
+  });
+}
+
+function ContactAvatar({ contact, large }: { contact: CRMContact; large?: boolean }) {
+  return <span className={`flex shrink-0 items-center justify-center rounded-full bg-indigo-300 text-sm font-semibold text-slate-950 ${large ? "h-14 w-14 text-xl" : "h-9 w-9"}`}>{initials(contact.name)}</span>;
+}
+
+function initials(value: string) {
+  return String(value || "U").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "U";
+}
+
+function formatContactPhone(value?: string) {
+  return value ? value : "No phone";
+}
+
+function followUpStatus(value: string) {
+  if (isPastDue(value)) return "Overdue";
+  const date = new Date(value);
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 3);
+  return date <= soon ? "Due soon" : "Scheduled";
+}
+
+type AccountViewKey = "all" | "mine" | "customers" | "prospects";
+type AccountFormMode = "create" | "edit";
+type AccountsState = { rows: CRMAccount[]; total: number; page: number; pages: number; loading: boolean; error: string | null };
+type AccountFilters = {
+  industry: string;
+  type: string;
+  status: string;
+  ownerId: string;
+  territoryId: string;
+  city: string;
+  minRevenue: string;
+  maxRevenue: string;
+};
+
+const emptyAccountFilters: AccountFilters = {
+  industry: "all",
+  type: "all",
+  status: "all",
+  ownerId: "all",
+  territoryId: "all",
+  city: "all",
+  minRevenue: "",
+  maxRevenue: "",
+};
+
+const accountSortableColumns: Record<string, string> = {
+  name: "name",
+  industry: "industry",
+  type: "account_type",
+  status: "status",
+  revenue: "annual_revenue",
+  owner: "owner_user_id",
+  city: "city",
+  updatedAt: "updated_at",
+};
+
+function CRMAccountsPage() {
+  const navigate = useNavigate();
+  const currentUser = useAuthStore((state) => state.user);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [view, setView] = useState<AccountViewKey>("all");
+  const [filters, setFilters] = useState<AccountFilters>(emptyAccountFilters);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showColumns, setShowColumns] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({ industry: true, type: true, status: true, revenue: true, owner: true, city: true, updatedAt: true });
+  const [sort, setSort] = useState<SortState>({ key: "updatedAt", direction: "desc" });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [state, setState] = useState<AccountsState>({ rows: [], total: 0, page: 1, pages: 0, loading: true, error: null });
+  const [owners, setOwners] = useState<CRMRecord[]>([]);
+  const [territories, setTerritories] = useState<CRMRecord[]>([]);
+  const [selected, setSelected] = useState<CRMAccount | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [formMode, setFormMode] = useState<AccountFormMode | null>(null);
+  const [editingAccount, setEditingAccount] = useState<CRMAccount | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const ownerNames = useMemo(() => leadOwnerLookup(owners), [owners]);
+  const territoryNames = useMemo(() => leadTerritoryLookup(territories), [territories]);
+  const activeFilters = countAccountFilters(filters);
+  const rows = useMemo(() => applyAccountDerivedView(state.rows, view, filters), [state.rows, view, filters]);
+  const selectedRows = rows.filter((row) => selectedIds[String(row.id)]);
+  const visibleIds = rows.map((row) => String(row.id));
+  const allSelected = Boolean(visibleIds.length) && visibleIds.every((id) => selectedIds[id]);
+  const accountCountLabel = view === "all" && !activeFilters && !debouncedSearch ? `${state.total} accounts` : `${rows.length} shown`;
+  const industryOptions = useMemo(() => accountOptionValues(state.rows, "industry", ["Software Services", "Real Estate", "Manufacturing", "Financial Services", "Healthcare", "Retail"]), [state.rows]);
+  const typeOptions = useMemo(() => accountOptionValues(state.rows, "type", ["Prospect", "Customer", "Partner", "Vendor"]), [state.rows]);
+  const statusOptions = useMemo(() => accountOptionValues(state.rows, "status", ["Active", "Prospect", "Inactive"]), [state.rows]);
+  const cityOptions = useMemo(() => accountOptionValues(state.rows, "city", []), [state.rows]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, view, filters, pageSize, sort]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setState((current) => ({ ...current, loading: true, error: null }));
+    const params: CRMListParams = {
+      page,
+      per_page: pageSize,
+      search: debouncedSearch || undefined,
+      sort_by: sort?.key ? accountSortableColumns[sort.key] : "updated_at",
+      sort_order: sort?.direction || "desc",
+      industry: filters.industry !== "all" ? filters.industry : undefined,
+      account_type: filters.type !== "all" ? filters.type : view === "customers" ? "Customer" : view === "prospects" ? "Prospect" : undefined,
+      status: filters.status !== "all" ? filters.status : undefined,
+      owner_id: filters.ownerId !== "all" ? Number(filters.ownerId) : view === "mine" && currentUser?.id ? Number(currentUser.id) : undefined,
+      territory_id: filters.territoryId !== "all" ? Number(filters.territoryId) : undefined,
+      city: filters.city !== "all" ? filters.city : undefined,
+    };
+    crmApi
+      .list<CRMApiRecord>("companies", params)
+      .then((response) => {
+        if (cancelled) return;
+        const normalized = response.data.items.map((item) => recordToAccount(normalizeApiRecord("companies", item), ownerNames, territoryNames));
+        setState({ rows: normalized, total: response.data.total, page: response.data.page, pages: response.data.pages, loading: false, error: null });
+        setSelected((current) => {
+          if (!current) return normalized[0] || null;
+          return normalized.find((account) => Number(account.id) === Number(current.id)) || current;
+        });
+      })
+      .catch((err) => {
+        if (!cancelled) setState((current) => ({ ...current, loading: false, error: err?.response?.data?.detail || "Accounts could not be loaded." }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey, ownerNames, territoryNames]);
+
+  useEffect(() => {
+    crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
+    crmApi.territories().then((response) => setTerritories(response.data.items || [])).catch(() => setTerritories([]));
+  }, []);
+
+  useEffect(() => {
+    setSelectedIds((current) => Object.fromEntries(Object.entries(current).filter(([id]) => visibleIds.includes(id))));
+  }, [rows.map((row) => row.id).join(",")]);
+
+  const refresh = () => setRefreshKey((value) => value + 1);
+  const openCreate = () => {
+    setFormError(null);
+    setEditingAccount(null);
+    setFormMode("create");
+  };
+  const openEdit = (account: CRMAccount) => {
+    setFormError(null);
+    setEditingAccount(account);
+    setFormMode("edit");
+  };
+  const closeForm = () => {
+    setFormMode(null);
+    setEditingAccount(null);
+    setFormError(null);
+  };
+  const upsertAccount = (account: CRMAccount) => {
+    setState((current) => ({
+      ...current,
+      rows: [account, ...current.rows.filter((item) => Number(item.id) !== Number(account.id))],
+      total: formMode === "create" ? current.total + 1 : current.total,
+    }));
+    setSelected(account);
+  };
+  const saveAccount = (draft: CRMApiRecord, dirtyPayload: CRMApiRecord) => {
+    setFormSaving(true);
+    setFormError(null);
+    const request = formMode === "edit" && editingAccount
+      ? crmApi.update<CRMApiRecord>("companies", editingAccount.id, dirtyPayload)
+      : crmApi.create<CRMApiRecord>("companies", draft);
+    request
+      .then((response) => {
+        const account = recordToAccount(normalizeApiRecord("companies", response.data), ownerNames, territoryNames);
+        upsertAccount(account);
+        closeForm();
+        refresh();
+        toast({ title: formMode === "edit" ? "Account updated" : "Account created", description: account.name });
+      })
+      .catch((err) => setFormError(err?.response?.data?.detail || "Account could not be saved."))
+      .finally(() => setFormSaving(false));
+  };
+  const bulkPatch = (payload: CRMApiRecord, title: string) => {
+    if (!selectedRows.length) return;
+    setBulkSaving(true);
+    Promise.all(selectedRows.map((account) => crmApi.update<CRMApiRecord>("companies", account.id, payload)))
+      .then(() => {
+        setSelectedIds({});
+        refresh();
+        toast({ title });
+      })
+      .catch((err) => toast({ title: "Bulk update failed", description: err?.response?.data?.detail || "Selected accounts could not be updated." }))
+      .finally(() => setBulkSaving(false));
+  };
+  const deleteSelected = () => {
+    if (!selectedRows.length || !window.confirm(`Delete ${selectedRows.length} selected account${selectedRows.length === 1 ? "" : "s"}?`)) return;
+    setBulkSaving(true);
+    Promise.all(selectedRows.map((account) => crmApi.delete("companies", account.id)))
+      .then(() => {
+        const deletedIds = new Set(selectedRows.map((account) => account.id));
+        setState((current) => ({ ...current, rows: current.rows.filter((account) => !deletedIds.has(account.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setSelected((current) => current && deletedIds.has(current.id) ? null : current);
+        setSelectedIds({});
+        toast({ title: "Selected accounts deleted" });
+      })
+      .catch((err) => toast({ title: "Delete failed", description: err?.response?.data?.detail || "Selected accounts could not be deleted." }))
+      .finally(() => setBulkSaving(false));
+  };
+  const exportServerRows = () => {
+    crmApi
+      .exportEntity("companies")
+      .then((response) => downloadBlob(response.data, "accounts.csv"))
+      .catch((err) => toast({ title: "Export failed", description: err?.response?.data?.detail || "Account export failed." }));
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Companies</span></div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-semibold tracking-tight text-white">Accounts</h1>
+                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{accountCountLabel}</Badge>
+              </div>
+              <p className="mt-3 text-sm text-slate-400">Manage account master data with owners, industries, revenue, and status.</p>
+            </div>
+            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create account</Button>
+          </div>
+
+          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+            <AccountsToolbar
+              search={search}
+              view={view}
+              activeFilters={activeFilters}
+              showColumns={showColumns}
+              visibleColumns={visibleColumns}
+              onSearch={setSearch}
+              onView={setView}
+              onFilters={() => setShowFilters((value) => !value)}
+              onColumns={() => setShowColumns((value) => !value)}
+              onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))}
+              onExport={exportServerRows}
+              onImport={() => navigate("/crm/import-export")}
+            />
+            {showFilters ? (
+              <AccountFilterPanel
+                filters={filters}
+                owners={owners}
+                territories={territories}
+                industries={industryOptions}
+                types={typeOptions}
+                statuses={statusOptions}
+                cities={cityOptions}
+                onChange={setFilters}
+                onClear={() => setFilters(emptyAccountFilters)}
+              />
+            ) : null}
+            <AccountTable
+              rows={rows}
+              loading={state.loading}
+              error={state.error}
+              selectedId={selected?.id}
+              selectedIds={selectedIds}
+              allSelected={allSelected}
+              sort={sort}
+              page={state.page}
+              pages={state.pages}
+              pageSize={pageSize}
+              total={state.total}
+              visibleColumns={visibleColumns}
+              onSort={setSort}
+              onSelect={setSelected}
+              onEdit={openEdit}
+              onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})}
+              onToggleRow={(account, checked) => setSelectedIds((current) => ({ ...current, [String(account.id)]: checked }))}
+              onPage={setPage}
+              onPageSize={setPageSize}
+            />
+          </section>
+
+          {selectedRows.length ? (
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} account{selectedRows.length === 1 ? "" : "s"} selected</div>
+              <div className="flex flex-wrap gap-2">
+                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-[#0b1a2a]">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><TagIcon /><span className="sr-only">Change account type</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ account_type: event.target.value }, "Account type changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change type</option>{typeOptions.map((type) => <option key={type} value={type} className="bg-[#0b1a2a]">{type}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Activity className="h-3.5 w-3.5" /><span className="sr-only">Change status</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ status: event.target.value }, "Account status changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change status</option>{statusOptions.map((status) => <option key={status} value={status} className="bg-[#0b1a2a]">{status}</option>)}</select></label>
+                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-accounts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear account selection"><X className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ) : null}
+        </main>
+        <AccountDetailDrawer account={selected} onClose={() => setSelected(null)} onEdit={openEdit} onNavigate={navigate} />
+      </div>
+      {formMode ? (
+        <AccountFormModal
+          mode={formMode}
+          account={editingAccount}
+          saving={formSaving}
+          error={formError}
+          owners={owners}
+          territories={territories}
+          industries={industryOptions}
+          types={typeOptions}
+          statuses={statusOptions}
+          onClose={closeForm}
+          onSave={saveAccount}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AccountsToolbar({ search, view, activeFilters, showColumns, visibleColumns, onSearch, onView, onFilters, onColumns, onColumnToggle, onExport, onImport }: { search: string; view: AccountViewKey; activeFilters: number; showColumns: boolean; visibleColumns: Record<string, boolean>; onSearch: (value: string) => void; onView: (value: AccountViewKey) => void; onFilters: () => void; onColumns: () => void; onColumnToggle: (key: string) => void; onExport: () => void; onImport: () => void }) {
+  const views: Array<{ key: AccountViewKey; label: string }> = [
+    { key: "all", label: "All accounts" },
+    { key: "mine", label: "My accounts" },
+    { key: "customers", label: "Customers" },
+    { key: "prospects", label: "Prospects" },
+  ];
+  const columns = [["industry", "Industry"], ["type", "Type"], ["status", "Status"], ["revenue", "Revenue"], ["owner", "Owner"], ["city", "City"], ["updatedAt", "Updated"]];
+  return (
+    <div className="relative flex flex-col gap-2 border-b border-white/10 p-3">
+      <div className="grid gap-2 xl:grid-cols-[minmax(15rem,24rem)_1fr] xl:items-center">
+        <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
+          <Search className="h-4 w-4 text-slate-500" />
+          <span className="sr-only">Search accounts</span>
+          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search accounts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+          {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear account search"><X className="h-3.5 w-3.5" /></button> : null}
+        </label>
+        <div className="flex flex-wrap justify-between gap-2">
+          <div className="flex flex-wrap gap-1">
+            {views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>{item.label}</button>)}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+          </div>
+        </div>
+      </div>
+      {showColumns ? <div className="absolute right-3 top-full z-30 mt-2 w-52 rounded-md border border-white/10 bg-[#0b1a2a] p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-white/5"><input type="checkbox" checked={visibleColumns[key]} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
+    </div>
+  );
+}
+
+function AccountFilterPanel({ filters, owners, territories, industries, types, statuses, cities, onChange, onClear }: { filters: AccountFilters; owners: CRMRecord[]; territories: CRMRecord[]; industries: string[]; types: string[]; statuses: string[]; cities: string[]; onChange: (filters: AccountFilters) => void; onClear: () => void }) {
+  const patch = (update: Partial<AccountFilters>) => onChange({ ...filters, ...update });
+  return (
+    <div className="grid gap-3 border-b border-white/10 bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
+      <LeadSelect label="Industry" value={filters.industry} values={industries} onChange={(industry) => patch({ industry })} />
+      <LeadSelect label="Type" value={filters.type} values={types} onChange={(type) => patch({ type })} />
+      <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
+      <label className="space-y-1 text-xs text-slate-400">Owner<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-slate-400">Territory<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
+      <LeadSelect label="City" value={filters.city} values={cities} onChange={(city) => patch({ city })} />
+      <label className="space-y-1 text-xs text-slate-400">Min revenue<input className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" type="number" value={filters.minRevenue} onChange={(event) => patch({ minRevenue: event.target.value })} /></label>
+      <label className="space-y-1 text-xs text-slate-400">Max revenue<input className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" type="number" value={filters.maxRevenue} onChange={(event) => patch({ maxRevenue: event.target.value })} /></label>
+      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-slate-300 hover:bg-white/10" onClick={onClear}>Clear all</Button></div>
+    </div>
+  );
+}
+
+function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMAccount[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (account: CRMAccount) => void; onEdit: (account: CRMAccount) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (account: CRMAccount, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const toggleSort = (key: string) => onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
+  const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
+  return (
+    <div>
+      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px] text-left text-sm">
+          <thead className="sticky top-0 z-10 bg-[#0f2033] text-xs uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all accounts" /></th>
+              <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}><Building2 className="h-3.5 w-3.5" />Account<ArrowUpDown className="h-3 w-3" /></button></th>
+              {visibleColumns.industry ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("industry")}>Industry<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.type ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("type")}>Type<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.status ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>Status<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.revenue ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("revenue")}>Revenue<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.owner ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("owner")}>Owner<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.city ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("city")}>City<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.updatedAt ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("updatedAt")}>Updated<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              <th className="px-3 py-3 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">Loading accounts...</td></tr> : null}
+            {!loading && rows.map((account) => (
+              <tr key={account.id} className={`border-t border-white/10 transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(account.id)])} onChange={(event) => onToggleRow(account, event.target.checked)} aria-label={`Select ${account.name}`} /></td>
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><AccountAvatar account={account} /><button type="button" className="max-w-52 truncate font-semibold text-slate-100 hover:text-emerald-300" title={account.name} onClick={(event) => { event.stopPropagation(); onSelect(account); }}>{account.name}</button></div></td>
+                {visibleColumns.industry ? <td className="px-3 py-3 text-slate-300">{account.industry || "Not provided"}</td> : null}
+                {visibleColumns.type ? <td className="px-3 py-3"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /></td> : null}
+                {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></td> : null}
+                {visibleColumns.revenue ? <td className="px-3 py-3 font-semibold text-slate-100">{formatCurrency(account.revenue || 0)}</td> : null}
+                {visibleColumns.owner ? <td className="px-3 py-3 text-slate-300"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(account.owner || "U")}</span>{account.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.city ? <td className="px-3 py-3 text-slate-300">{account.city || "Not provided"}</td> : null}
+                {visibleColumns.updatedAt ? <td className="px-3 py-3 text-slate-300">{account.updatedAt ? formatDate(account.updatedAt) : "-"}</td> : null}
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-slate-200 hover:bg-white/10" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+              </tr>
+            ))}
+            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">No accounts match the current search or filters.</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
+        <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} accounts</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Badge variant="outline" className="h-9 border-white/10 px-3 text-slate-200">{page || 1} / {Math.max(1, pages || 1)}</Badge>
+          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account: CRMAccount | null; onClose: () => void; onEdit: (account: CRMAccount) => void; onNavigate: (path: string) => void }) {
+  const [related, setRelated] = useState<CRMApiRecord>({});
+  const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!account?.id) {
+      setRelated({});
+      setTimeline([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    crmApi
+      .related<{ related?: CRMApiRecord; timeline?: CRMApiRecord[] }>("companies", account.id)
+      .then((response) => {
+        setRelated(response.data.related || {});
+        setTimeline((response.data.timeline || []).slice().reverse());
+      })
+      .catch((err) => setError(err?.response?.data?.detail || "Account activity could not be loaded."))
+      .finally(() => setLoading(false));
+  }, [account?.id]);
+  if (!account) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select an account to inspect details.</aside>;
+  const relatedContacts = Array.isArray(related.contacts) ? related.contacts as CRMApiRecord[] : null;
+  const relatedDeals = Array.isArray(related.deals) ? related.deals as CRMApiRecord[] : null;
+  const relatedNotes = Array.isArray(related.notes) ? related.notes as CRMApiRecord[] : null;
+  const contacts = relatedContacts ? relatedContacts.length : null;
+  const deals = relatedDeals ? relatedDeals.length : null;
+  const notes = relatedNotes ? relatedNotes.length : null;
+  const pipeline = relatedDeals ? relatedDeals.filter((deal) => !["won", "lost"].includes(String(deal.status || "").toLowerCase())).length : null;
+  return (
+    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3"><AccountAvatar account={account} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{account.name}</h2><div className="mt-1 flex gap-1"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></div></div></div>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close account details"><X className="h-4 w-4" /></Button>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {account.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${account.phone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
+        {account.email ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${account.email}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
+        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
+        <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
+      </div>
+      <LeadDrawerSection title="Account details">
+        <LeadInfo label="Industry" value={account.industry || "Not provided"} />
+        <LeadInfo label="Type" value={account.type || "Prospect"} />
+        <LeadInfo label="Status" value={account.status || "Active"} />
+        <LeadInfo label="Annual revenue" value={formatCurrency(account.revenue || 0)} />
+        <LeadInfo label="Owner" value={account.owner || "Unassigned"} />
+        <LeadInfo label="Territory" value={account.territory || "Not assigned"} />
+        <LeadInfo label="City" value={account.city || "Not provided"} />
+        <LeadInfo label="Email" value={account.email || "Not provided"} />
+        <LeadInfo label="Phone" value={formatContactPhone(account.phone)} />
+        <LeadInfo label="Website" value={account.website || "Not provided"} />
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Customer 360">
+        <div className="grid grid-cols-2 gap-2">
+          <AccountRelatedTile icon={<Users className="h-4 w-4" />} label="Contacts" value={contacts} onClick={() => onNavigate(`/crm/contacts?company_id=${account.id}`)} />
+          <AccountRelatedTile icon={<GitMerge className="h-4 w-4" />} label="Deals" value={deals} onClick={() => onNavigate(`/crm/deals?company_id=${account.id}`)} />
+          <AccountRelatedTile icon={<BarChart3 className="h-4 w-4" />} label="Pipeline" value={pipeline} onClick={() => onNavigate(`/crm/pipeline?company_id=${account.id}`)} />
+          <AccountRelatedTile icon={<FileCheck2 className="h-4 w-4" />} label="Notes" value={notes} onClick={() => onNavigate(`/crm/activities?company_id=${account.id}`)} />
+        </div>
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Timeline">
+        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {!loading && !error && timeline.slice(0, 5).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
+        {!loading && !error && !timeline.length ? <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-8 text-center text-sm text-slate-400">No activity yet</p> : null}
+      </LeadDrawerSection>
+    </aside>
+  );
+}
+
+function AccountRelatedTile({ icon, label, value, onClick }: { icon: React.ReactNode; label: string; value: number | null; onClick: () => void }) {
+  return <button type="button" className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/[0.06]" onClick={onClick}><span className="inline-flex items-center gap-2">{icon}{label}</span><span className="font-semibold">{value ?? "—"}</span></button>;
+}
+
+function AccountFormModal({ mode, account, saving, error, owners, territories, industries, types, statuses, onClose, onSave }: { mode: AccountFormMode; account: CRMAccount | null; saving: boolean; error: string | null; owners: CRMRecord[]; territories: CRMRecord[]; industries: string[]; types: string[]; statuses: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const initial = useMemo(() => accountFormInitial(account), [account?.id]);
+  const [draft, setDraft] = useState<CRMApiRecord>(initial);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  useEffect(() => setDraft(initial), [initial]);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
+  const requestClose = () => {
+    if (dirty && !window.confirm("Discard unsaved account changes?")) return;
+    onClose();
+  };
+  const submit = () => {
+    const validation = validateAccountDraft(draft);
+    setFieldErrors(validation);
+    if (Object.keys(validation).length) return;
+    const fullPayload = buildAccountPayload(draft);
+    const dirtyPayload = buildAccountDirtyPayload(draft, initial);
+    onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit account" : "Create account"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update company and ownership details" : "Add company and ownership details"}</p>{mode === "edit" && account?.updatedAt ? <p className="mt-1 text-xs text-slate-500">Last updated {formatDate(account.updatedAt)}</p> : null}</div>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close account form"><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="max-h-[calc(92vh-8rem)] space-y-4 overflow-y-auto px-5 py-4">
+          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <LeadFormSection title="Company details">
+              <LeadFormField label="Company name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter company name" /></LeadFormField>
+              <LeadFormField label="Industry" required><LeadFormSelect value={valueText(draft.industry)} values={industries} onChange={(value) => patch("industry", value)} /></LeadFormField>
+              <LeadFormField label="Account type" required><LeadFormSelect value={valueText(draft.type)} values={types} onChange={(value) => patch("type", value)} /></LeadFormField>
+              <LeadFormField label="Status" required><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
+            </LeadFormSection>
+            <LeadFormSection title="Financial & ownership">
+              <LeadFormField label="Annual revenue" error={fieldErrors.revenue}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={valueText(draft.revenue)} onChange={(event) => patch("revenue", event.target.value)} placeholder="Enter annual revenue" /></LeadFormField>
+              <LeadFormField label="Owner" required><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="City"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.city)} onChange={(event) => patch("city", event.target.value)} placeholder="Search city" /></LeadFormField>
+            </LeadFormSection>
+          </div>
+          <LeadFormSection title="Contact">
+            <LeadFormField label="Company email" error={fieldErrors.email}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
+            <LeadFormField label="Phone" error={fieldErrors.phone}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.phone)} onChange={(event) => patch("phone", event.target.value)} placeholder="+919876543210" /></LeadFormField>
+            <LeadFormField label="Website"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.website)} onChange={(event) => patch("website", event.target.value)} placeholder="https://example.com" /></LeadFormField>
+            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this account" maxLength={1000} /></LeadFormField>
+          </LeadFormSection>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3"><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create account"}</Button></div>
+      </div>
+    </div>
+  );
+}
+
+function accountFormInitial(account: CRMAccount | null): CRMApiRecord {
+  return {
+    name: account?.name || "",
+    industry: account?.industry || "Software Services",
+    type: account?.type || "Prospect",
+    status: account?.status || "Active",
+    revenue: account?.revenue || "",
+    ownerId: account?.ownerId || "",
+    territoryId: account?.territoryId || "",
+    city: account?.city || "",
+    email: account?.email || "",
+    phone: account?.phone || "",
+    website: account?.website || "",
+    notes: account?.notes || "",
+  };
+}
+
+function validateAccountDraft(draft: CRMApiRecord) {
+  const errors: Record<string, string> = {};
+  if (!String(draft.name || "").trim()) errors.name = "Company name is required.";
+  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.email))) errors.email = "Enter a valid email address.";
+  if (draft.phone && !/^\+?[0-9\s-]{7,24}$/.test(String(draft.phone))) errors.phone = "Enter a valid phone number.";
+  if (draft.revenue !== "" && Number.isNaN(Number(draft.revenue))) errors.revenue = "Annual revenue must be numeric.";
+  return errors;
+}
+
+function buildAccountPayload(draft: CRMApiRecord): CRMApiRecord {
+  const payload: CRMApiRecord = {
+    name: String(draft.name || "").trim(),
+    industry: emptyToUndefined(draft.industry),
+    account_type: emptyToUndefined(draft.type) || "Prospect",
+    status: emptyToUndefined(draft.status) || "Active",
+    annual_revenue: draft.revenue === "" ? undefined : Number(draft.revenue),
+    city: emptyToUndefined(draft.city),
+    email: emptyToUndefined(draft.email),
+    phone: emptyToUndefined(draft.phone),
+    website: emptyToUndefined(draft.website),
+    notes: emptyToUndefined(draft.notes),
+  };
+  if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
+  if (draft.territoryId) payload.territoryId = Number(draft.territoryId);
+  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+}
+
+function buildAccountDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord) {
+  const next = buildAccountPayload(draft);
+  const previous = buildAccountPayload(initial);
+  const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
+  return Object.fromEntries(Array.from(keys).flatMap((key) => {
+    const nextValue = next[key];
+    const previousValue = previous[key];
+    if (String(nextValue ?? "") === String(previousValue ?? "")) return [];
+    return [[key, nextValue ?? null]];
+  }));
+}
+
+function recordToAccount(record: CRMRecord, ownerNames = new Map<number, string>(), territoryNames = new Map<number, string>()): CRMAccount {
+  const ownerId = Number(record.ownerId || record.owner_id || record.owner_user_id || 0) || undefined;
+  const territoryId = Number(record.territoryId || record.territory_id || 0) || undefined;
+  return {
+    id: Number(record.id || 0),
+    name: String(record.name || "Account"),
+    industry: String(record.industry || ""),
+    type: String(record.type || record.account_type || "Prospect"),
+    status: String(record.status || "Active"),
+    revenue: Number(record.revenue || record.annual_revenue || 0),
+    owner: String(record.owner || (ownerId ? ownerNames.get(ownerId) || "" : "")),
+    ownerId,
+    territoryId,
+    territory: String(record.territory || (territoryId ? territoryNames.get(territoryId) || "" : "")),
+    city: String(record.city || ""),
+    email: String(record.email || ""),
+    phone: String(record.phone || ""),
+    website: String(record.website || ""),
+    notes: String(record.notes || ""),
+    createdAt: String(record.createdAt || record.created_at || ""),
+    updatedAt: String(record.updatedAt || record.updated_at || ""),
+  };
+}
+
+function accountOptionValues(rows: CRMAccount[], key: keyof CRMAccount, fallback: string[]) {
+  return Array.from(new Set([...fallback, ...rows.map((row) => String(row[key] || "")).filter(Boolean)]));
+}
+
+function countAccountFilters(filters: AccountFilters) {
+  return Object.entries(filters).filter(([, value]) => value && value !== "all").length;
+}
+
+function applyAccountDerivedView(rows: CRMAccount[], view: AccountViewKey, filters: AccountFilters) {
+  return rows.filter((account) => {
+    if (view === "customers" && account.type !== "Customer") return false;
+    if (view === "prospects" && account.type !== "Prospect") return false;
+    if (filters.minRevenue && account.revenue < Number(filters.minRevenue)) return false;
+    if (filters.maxRevenue && account.revenue > Number(filters.maxRevenue)) return false;
+    return true;
+  });
+}
+
+function AccountAvatar({ account, large }: { account: CRMAccount; large?: boolean }) {
+  return <span className={`flex shrink-0 items-center justify-center rounded-md bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/20 ${large ? "h-14 w-14" : "h-9 w-9"}`}><Building2 className={large ? "h-7 w-7" : "h-4 w-4"} /></span>;
+}
+
+function TagIcon() {
+  return <span className="inline-block h-3.5 w-3.5 rounded-sm border border-current rotate-45" aria-hidden="true" />;
+}
+
+type DealViewKey = "all" | "mine" | "closing" | "no_follow_up";
+type DealFormMode = "create" | "edit";
+type DealLineItem = { key: string; productId: string; unitPrice: string; quantity: string; discount: string };
+type DealFilters = { stageId: string; ownerId: string; companyId: string; contactId: string; territoryId: string; status: string; source: string; minAmount: string; maxAmount: string; minProbability: string; maxProbability: string };
+type DealsState = { rows: CRMDealRow[]; total: number; page: number; pages: number; loading: boolean; error: string | null };
+
+const emptyDealFilters: DealFilters = { stageId: "all", ownerId: "all", companyId: "all", contactId: "all", territoryId: "all", status: "all", source: "all", minAmount: "", maxAmount: "", minProbability: "", maxProbability: "" };
+const dealSortableColumns: Record<string, string> = { name: "name", amount: "amount", probability: "probability", stageName: "stage_id", owner: "owner_user_id", expectedCloseDate: "expected_close_date", nextFollowUp: "next_follow_up_at", updatedAt: "updated_at" };
+
+function CRMDealsPage() {
+  const navigate = useNavigate();
+  const currentUser = useAuthStore((state) => state.user);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [view, setView] = useState<DealViewKey>("all");
+  const [filters, setFilters] = useState<DealFilters>(emptyDealFilters);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showColumns, setShowColumns] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({ company: true, contact: true, stage: true, amount: true, probability: true, weighted: true, owner: true, closeDate: true, nextActivity: true, updatedAt: true });
+  const [sort, setSort] = useState<SortState>({ key: "updatedAt", direction: "desc" });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [state, setState] = useState<DealsState>({ rows: [], total: 0, page: 1, pages: 0, loading: true, error: null });
+  const [owners, setOwners] = useState<CRMRecord[]>([]);
+  const [companies, setCompanies] = useState<CRMRecord[]>([]);
+  const [contacts, setContacts] = useState<CRMRecord[]>([]);
+  const [pipelines, setPipelines] = useState<CRMRecord[]>([]);
+  const [stages, setStages] = useState<CRMRecord[]>([]);
+  const [territories, setTerritories] = useState<CRMRecord[]>([]);
+  const [products, setProducts] = useState<CRMRecord[]>([]);
+  const [customFields, setCustomFields] = useState<CRMRecord[]>([]);
+  const [selected, setSelected] = useState<CRMDealRow | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [formMode, setFormMode] = useState<DealFormMode | null>(null);
+  const [editingDeal, setEditingDeal] = useState<CRMDealRow | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const ownerNames = useMemo(() => leadOwnerLookup(owners), [owners]);
+  const territoryNames = useMemo(() => leadTerritoryLookup(territories), [territories]);
+  const companyNames = useMemo(() => companyNameLookup(companies), [companies]);
+  const contactNames = useMemo(() => contactNameLookup(contacts), [contacts]);
+  const stageNames = useMemo(() => stageNameLookup(stages), [stages]);
+  const pipelineNames = useMemo(() => pipelineNameLookup(pipelines), [pipelines]);
+  const activeFilters = countDealFilters(filters);
+  const rows = useMemo(() => applyDealDerivedView(state.rows, view, filters), [state.rows, view, filters]);
+  const selectedRows = rows.filter((row) => selectedIds[String(row.id)]);
+  const visibleIds = rows.map((row) => String(row.id));
+  const allSelected = Boolean(visibleIds.length) && visibleIds.every((id) => selectedIds[id]);
+  const dealCountLabel = view === "all" && !activeFilters && !debouncedSearch ? `${state.total} deal${state.total === 1 ? "" : "s"}` : `${rows.length} shown`;
+  const sourceOptions = useMemo(() => dealOptionValues(state.rows, "source", ["Website", "Referral", "Event", "Partner", "Phone Call", "Email Campaign", "Other"]), [state.rows]);
+  const statusOptions = useMemo(() => dealOptionValues(state.rows, "status", ["Open", "Won", "Lost"]), [state.rows]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, view, filters, pageSize, sort]);
+
+  useEffect(() => {
+    crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
+    crmApi.list<CRMApiRecord>("companies", { per_page: 100, sort_by: "name", sort_order: "asc" }).then((response) => setCompanies(response.data.items.map((item) => normalizeApiRecord("companies", item)))).catch(() => setCompanies([]));
+    crmApi.list<CRMApiRecord>("contacts", { per_page: 100, sort_by: "full_name", sort_order: "asc" }).then((response) => setContacts(response.data.items.map((item) => normalizeApiRecord("contacts", item)))).catch(() => setContacts([]));
+    crmApi.list<CRMApiRecord>("pipelines", { per_page: 100 }).then((response) => setPipelines(response.data.items || [])).catch(() => setPipelines([]));
+    crmApi.list<CRMApiRecord>("pipeline-stages", { per_page: 100, sort_by: "position", sort_order: "asc" }).then((response) => setStages(response.data.items || [])).catch(() => setStages([]));
+    crmApi.territories().then((response) => setTerritories(response.data.items || [])).catch(() => setTerritories([]));
+    crmApi.list<CRMApiRecord>("products", { per_page: 100, sort_by: "name", sort_order: "asc" }).then((response) => setProducts(response.data.items.map((item) => normalizeApiRecord("products", item)))).catch(() => setProducts([]));
+    crmApi.list<CRMApiRecord>("custom-fields", { entityType: "deals", per_page: 100, sort_by: "position", sort_order: "asc" }).then((response) => setCustomFields(response.data.items || [])).catch(() => setCustomFields([]));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setState((current) => ({ ...current, loading: true, error: null }));
+    const params: CRMListParams = {
+      page,
+      per_page: pageSize,
+      search: debouncedSearch || undefined,
+      sort_by: sort?.key ? dealSortableColumns[sort.key] : "updated_at",
+      sort_order: sort?.direction || "desc",
+      stage_id: filters.stageId !== "all" ? Number(filters.stageId) : undefined,
+      status: filters.status !== "all" ? filters.status : undefined,
+      company_id: filters.companyId !== "all" ? Number(filters.companyId) : undefined,
+      contact_id: filters.contactId !== "all" ? Number(filters.contactId) : undefined,
+      owner_id: filters.ownerId !== "all" ? Number(filters.ownerId) : view === "mine" && currentUser?.id ? Number(currentUser.id) : undefined,
+      territory_id: filters.territoryId !== "all" ? Number(filters.territoryId) : undefined,
+      source: filters.source !== "all" ? filters.source : undefined,
+    };
+    crmApi
+      .list<CRMApiRecord>("deals", params)
+      .then((response) => {
+        if (cancelled) return;
+        const normalized = response.data.items.map((item) => recordToDealRow(normalizeApiRecord("deals", item), { companyNames, contactNames, ownerNames, territoryNames, stageNames, pipelineNames, stages }));
+        setState({ rows: normalized, total: response.data.total, page: response.data.page, pages: response.data.pages, loading: false, error: null });
+        setSelected((current) => {
+          if (!current) return normalized[0] || null;
+          return normalized.find((deal) => Number(deal.id) === Number(current.id)) || current;
+        });
+      })
+      .catch((err) => {
+        if (!cancelled) setState((current) => ({ ...current, loading: false, error: err?.response?.data?.detail || "Deals could not be loaded." }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey, companyNames, contactNames, ownerNames, territoryNames, stageNames, pipelineNames, stages]);
+
+  useEffect(() => {
+    setSelectedIds((current) => Object.fromEntries(Object.entries(current).filter(([id]) => visibleIds.includes(id))));
+  }, [rows.map((row) => row.id).join(",")]);
+
+  const refresh = () => setRefreshKey((value) => value + 1);
+  const openCreate = () => {
+    setFormError(null);
+    setEditingDeal(null);
+    setFormMode("create");
+  };
+  const openEdit = (deal: CRMDealRow) => {
+    setFormError(null);
+    setEditingDeal(deal);
+    setFormMode("edit");
+  };
+  const closeForm = () => {
+    setFormMode(null);
+    setEditingDeal(null);
+    setFormError(null);
+  };
+  const upsertDeal = (deal: CRMDealRow) => {
+    setState((current) => ({ ...current, rows: [deal, ...current.rows.filter((item) => Number(item.id) !== Number(deal.id))], total: formMode === "create" ? current.total + 1 : current.total }));
+    setSelected(deal);
+  };
+  const saveDeal = (draft: CRMApiRecord, dirtyPayload: CRMApiRecord) => {
+    setFormSaving(true);
+    setFormError(null);
+    const request = formMode === "edit" && editingDeal ? crmApi.update<CRMApiRecord>("deals", editingDeal.id, dirtyPayload) : crmApi.create<CRMApiRecord>("deals", draft);
+    request
+      .then((response) => {
+        const deal = recordToDealRow(normalizeApiRecord("deals", response.data), { companyNames, contactNames, ownerNames, territoryNames, stageNames, pipelineNames, stages });
+        upsertDeal(deal);
+        closeForm();
+        refresh();
+        toast({ title: formMode === "edit" ? "Deal updated" : "Deal created", description: deal.name });
+      })
+      .catch((err) => setFormError(err?.response?.data?.detail || "Deal could not be saved."))
+      .finally(() => setFormSaving(false));
+  };
+  const bulkPatch = (payload: CRMApiRecord, title: string) => {
+    if (!selectedRows.length) return;
+    setBulkSaving(true);
+    Promise.all(selectedRows.map((deal) => crmApi.update<CRMApiRecord>("deals", deal.id, payload)))
+      .then(() => {
+        setSelectedIds({});
+        refresh();
+        toast({ title });
+      })
+      .catch((err) => toast({ title: "Bulk update failed", description: err?.response?.data?.detail || "Selected deals could not be updated." }))
+      .finally(() => setBulkSaving(false));
+  };
+  const deleteSelected = () => {
+    if (!selectedRows.length || !window.confirm(`Delete ${selectedRows.length} selected deal${selectedRows.length === 1 ? "" : "s"}?`)) return;
+    setBulkSaving(true);
+    Promise.all(selectedRows.map((deal) => crmApi.delete("deals", deal.id)))
+      .then(() => {
+        const deletedIds = new Set(selectedRows.map((deal) => deal.id));
+        setState((current) => ({ ...current, rows: current.rows.filter((deal) => !deletedIds.has(deal.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setSelected((current) => current && deletedIds.has(current.id) ? null : current);
+        setSelectedIds({});
+        toast({ title: "Selected deals deleted" });
+      })
+      .catch((err) => toast({ title: "Delete failed", description: err?.response?.data?.detail || "Selected deals could not be deleted." }))
+      .finally(() => setBulkSaving(false));
+  };
+  const exportServerRows = () => {
+    crmApi.exportEntity("deals").then((response) => downloadBlob(response.data, "deals.csv")).catch((err) => toast({ title: "Export failed", description: err?.response?.data?.detail || "Deal export failed." }));
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Deals</span></div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-semibold tracking-tight text-white">Deals</h1>
+                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{dealCountLabel}</Badge>
+              </div>
+              <p className="mt-3 text-sm text-slate-400">Opportunities with amount, probability, products, quotations, and owners.</p>
+            </div>
+            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create deal</Button>
+          </div>
+
+          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+            <DealsToolbar search={search} view={view} activeFilters={activeFilters} showColumns={showColumns} visibleColumns={visibleColumns} onSearch={setSearch} onView={setView} onFilters={() => setShowFilters((value) => !value)} onColumns={() => setShowColumns((value) => !value)} onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))} onExport={exportServerRows} onImport={() => navigate("/crm/import-export")} />
+            {showFilters ? <DealFilterPanel filters={filters} owners={owners} companies={companies} contacts={contacts} territories={territories} stages={stages} statuses={statusOptions} sources={sourceOptions} onChange={setFilters} onClear={() => setFilters(emptyDealFilters)} /> : null}
+            <DealTable rows={rows} loading={state.loading} error={state.error} selectedId={selected?.id} selectedIds={selectedIds} allSelected={allSelected} sort={sort} page={state.page} pages={state.pages} pageSize={pageSize} total={state.total} visibleColumns={visibleColumns} onSort={setSort} onSelect={setSelected} onEdit={openEdit} onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})} onToggleRow={(deal, checked) => setSelectedIds((current) => ({ ...current, [String(deal.id)]: checked }))} onPage={setPage} onPageSize={setPageSize} />
+          </section>
+
+          {selectedRows.length ? (
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} deal{selectedRows.length === 1 ? "" : "s"} selected</div>
+              <div className="flex flex-wrap gap-2">
+                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-[#0b1a2a]">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><GitMerge className="h-3.5 w-3.5" /><span className="sr-only">Change stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { const stage = stages.find((item) => String(item.id) === event.target.value); if (stage) bulkPatch({ pipeline_id: Number(stage.pipelineId || stage.pipeline_id || 0), stage_id: Number(stage.id), probability: Number(stage.probability || 0), status: inferDealStatusFromStage(stage) }, "Deal stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change stage</option>{stages.map((stage) => <option key={String(stage.id)} value={String(stage.id)} className="bg-[#0b1a2a]">{String(stage.name || stage.stageName || stage.id)}</option>)}</select></label>
+                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
+                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-deals.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear deal selection"><X className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ) : null}
+        </main>
+        <DealDetailDrawer deal={selected} onClose={() => setSelected(null)} onEdit={openEdit} onNavigate={navigate} />
+      </div>
+      {formMode ? <DealFormModal mode={formMode} deal={editingDeal} saving={formSaving} error={formError} companies={companies} contacts={contacts} owners={owners} territories={territories} pipelines={pipelines} stages={stages} products={products} customFields={customFields} onClose={closeForm} onSave={saveDeal} /> : null}
+    </div>
+  );
+}
+
+function DealsToolbar({ search, view, activeFilters, showColumns, visibleColumns, onSearch, onView, onFilters, onColumns, onColumnToggle, onExport, onImport }: { search: string; view: DealViewKey; activeFilters: number; showColumns: boolean; visibleColumns: Record<string, boolean>; onSearch: (value: string) => void; onView: (value: DealViewKey) => void; onFilters: () => void; onColumns: () => void; onColumnToggle: (key: string) => void; onExport: () => void; onImport: () => void }) {
+  const views: Array<{ key: DealViewKey; label: string }> = [{ key: "all", label: "All deals" }, { key: "mine", label: "My deals" }, { key: "closing", label: "Closing this week" }, { key: "no_follow_up", label: "No follow-up" }];
+  const columns = [["company", "Company"], ["contact", "Contact"], ["stage", "Stage"], ["amount", "Amount"], ["probability", "Probability"], ["weighted", "Weighted value"], ["owner", "Owner"], ["closeDate", "Close date"], ["nextActivity", "Next activity"], ["updatedAt", "Updated"]];
+  return (
+    <div className="relative flex flex-col gap-2 border-b border-white/10 p-3">
+      <div className="grid gap-2 xl:grid-cols-[minmax(15rem,24rem)_1fr] xl:items-center">
+        <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
+          <Search className="h-4 w-4 text-slate-500" />
+          <span className="sr-only">Search deals</span>
+          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search deals..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+          {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear deal search"><X className="h-3.5 w-3.5" /></button> : null}
+        </label>
+        <div className="flex flex-wrap justify-between gap-2">
+          <div className="flex flex-wrap gap-1">{views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>{item.label}</button>)}</div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filter{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+          </div>
+        </div>
+      </div>
+      {showColumns ? <div className="absolute right-3 top-full z-30 mt-1 w-56 rounded-md border border-white/10 bg-[#0b1a2a] p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-white/5"><input type="checkbox" checked={Boolean(visibleColumns[key])} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
+    </div>
+  );
+}
+
+function DealFilterPanel({ filters, owners, companies, contacts, territories, stages, statuses, sources, onChange, onClear }: { filters: DealFilters; owners: CRMRecord[]; companies: CRMRecord[]; contacts: CRMRecord[]; territories: CRMRecord[]; stages: CRMRecord[]; statuses: string[]; sources: string[]; onChange: (filters: DealFilters) => void; onClear: () => void }) {
+  const patch = (key: keyof DealFilters, value: string) => onChange({ ...filters, [key]: value });
+  return (
+    <div className="grid gap-3 border-b border-white/10 bg-white/[0.02] p-3 md:grid-cols-2 xl:grid-cols-4">
+      <DealFilterSelect label="Stage" value={filters.stageId} onChange={(value) => patch("stageId", value)} options={stages.map((stage) => ({ value: String(stage.id), label: String(stage.name || stage.stageName || stage.id) }))} />
+      <DealFilterSelect label="Owner" value={filters.ownerId} onChange={(value) => patch("ownerId", value)} options={owners.map((owner) => ({ value: String(owner.userId || owner.user_id || owner.id), label: String(owner.adminArea || owner.full_name || owner.email || owner.id) }))} />
+      <DealFilterSelect label="Company" value={filters.companyId} onChange={(value) => patch("companyId", value)} options={companies.map((company) => ({ value: String(company.id), label: String(company.name || company.companyName || company.id) }))} />
+      <DealFilterSelect label="Contact" value={filters.contactId} onChange={(value) => patch("contactId", value)} options={contacts.map((contact) => ({ value: String(contact.id), label: String(contact.name || contact.full_name || contact.email || contact.id) }))} />
+      <DealFilterSelect label="Territory" value={filters.territoryId} onChange={(value) => patch("territoryId", value)} options={territories.map((territory) => ({ value: String(territory.id), label: String(territory.name || territory.code || territory.id) }))} />
+      <DealFilterSelect label="Status" value={filters.status} onChange={(value) => patch("status", value)} options={statuses.map((status) => ({ value: status, label: status }))} />
+      <DealFilterSelect label="Source" value={filters.source} onChange={(value) => patch("source", value)} options={sources.map((source) => ({ value: source, label: source }))} />
+      <div className="grid grid-cols-2 gap-2">
+        <LeadFormField label="Min amount"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.minAmount} type="number" onChange={(event) => patch("minAmount", event.target.value)} /></LeadFormField>
+        <LeadFormField label="Max amount"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.maxAmount} type="number" onChange={(event) => patch("maxAmount", event.target.value)} /></LeadFormField>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <LeadFormField label="Min prob."><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.minProbability} type="number" onChange={(event) => patch("minProbability", event.target.value)} /></LeadFormField>
+        <LeadFormField label="Max prob."><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.maxProbability} type="number" onChange={(event) => patch("maxProbability", event.target.value)} /></LeadFormField>
+      </div>
+      <div className="flex items-end"><Button variant="outline" className="h-10 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onClear}>Clear filters</Button></div>
+    </div>
+  );
+}
+
+function DealFilterSelect({ label, value, options, onChange }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
+  return <LeadFormField label={label}><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></LeadFormField>;
+}
+
+function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMDealRow[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (deal: CRMDealRow) => void; onEdit: (deal: CRMDealRow) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (deal: CRMDealRow, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const sortButton = (key: string, label: string) => <button type="button" className="inline-flex items-center gap-1 text-left" onClick={() => onSort(sort?.key === key ? { key, direction: sort.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" })}>{label}<ArrowUpDown className="h-3 w-3 text-slate-500" /></button>;
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-white/[0.035] text-xs uppercase tracking-wide text-slate-400">
+            <tr className="[&>th]:whitespace-nowrap [&>th]:px-3 [&>th]:py-3">
+              <th><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all deals" /></th>
+              <th>{sortButton("name", "Deal")}</th>
+              {visibleColumns.company ? <th>Company</th> : null}
+              {visibleColumns.contact ? <th>Contact</th> : null}
+              {visibleColumns.stage ? <th>{sortButton("stageName", "Stage")}</th> : null}
+              {visibleColumns.amount ? <th>{sortButton("amount", "Amount")}</th> : null}
+              {visibleColumns.probability ? <th>{sortButton("probability", "Probability")}</th> : null}
+              {visibleColumns.weighted ? <th>Weighted value</th> : null}
+              {visibleColumns.owner ? <th>{sortButton("owner", "Owner")}</th> : null}
+              {visibleColumns.closeDate ? <th>{sortButton("expectedCloseDate", "Close date")}</th> : null}
+              {visibleColumns.nextActivity ? <th>{sortButton("nextFollowUp", "Next activity")}</th> : null}
+              {visibleColumns.updatedAt ? <th>{sortButton("updatedAt", "Updated")}</th> : null}
+              <th><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/10">
+            {loading ? <tr><td colSpan={13} className="px-3 py-10 text-center text-slate-400">Loading deals...</td></tr> : null}
+            {error ? <tr><td colSpan={13} className="px-3 py-10 text-center text-red-300">{error}</td></tr> : null}
+            {!loading && !error && !rows.length ? <tr><td colSpan={13} className="px-3 py-10 text-center text-slate-400">No deals found.</td></tr> : null}
+            {!loading && !error && rows.map((deal) => (
+              <tr key={deal.id} className={`group cursor-pointer transition hover:bg-white/[0.04] ${selectedId === deal.id ? "bg-emerald-400/[0.06]" : ""}`} onClick={() => onSelect(deal)}>
+                <td className="px-3 py-3"><input type="checkbox" checked={Boolean(selectedIds[String(deal.id)])} onChange={(event) => onToggleRow(deal, event.target.checked)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${deal.name}`} /></td>
+                <td className="min-w-56 px-3 py-3"><div className="flex items-center gap-3"><DealAvatar deal={deal} /><div><p className="font-semibold text-white">{deal.name}</p><p className="text-xs text-slate-400">{deal.pipelineName || "Pipeline not set"}</p></div></div></td>
+                {visibleColumns.company ? <td className="min-w-40 px-3 py-3 text-slate-200">{deal.companyName || "-"}</td> : null}
+                {visibleColumns.contact ? <td className="min-w-40 px-3 py-3 text-slate-200">{deal.contactName || "-"}</td> : null}
+                {visibleColumns.stage ? <td className="px-3 py-3"><LeadBadge value={deal.stageName || deal.status || "Open"} tone={deal.status === "Won" ? "blue" : deal.status === "Lost" ? "red" : "slate"} /></td> : null}
+                {visibleColumns.amount ? <td className="whitespace-nowrap px-3 py-3 font-semibold text-slate-100">{formatCurrency(deal.amount)}</td> : null}
+                {visibleColumns.probability ? <td className="min-w-36 px-3 py-3"><DealProbability value={deal.probability} /></td> : null}
+                {visibleColumns.weighted ? <td className="whitespace-nowrap px-3 py-3 text-slate-200">{formatCurrency(weightedDealValue(deal))}</td> : null}
+                {visibleColumns.owner ? <td className="whitespace-nowrap px-3 py-3 text-slate-200"><span className="inline-flex items-center gap-2"><OwnerDot label={deal.owner || "Unassigned"} />{deal.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.closeDate ? <td className={`whitespace-nowrap px-3 py-3 ${isPastDate(deal.expectedCloseDate) && deal.status === "Open" ? "text-red-300" : "text-slate-200"}`}>{deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "-"}</td> : null}
+                {visibleColumns.nextActivity ? <td className={`whitespace-nowrap px-3 py-3 ${isPastDate(deal.nextFollowUp) ? "text-red-300" : "text-slate-200"}`}>{deal.nextFollowUp ? formatDate(deal.nextFollowUp) : "No follow-up"}</td> : null}
+                {visibleColumns.updatedAt ? <td className="whitespace-nowrap px-3 py-3 text-slate-300">{deal.updatedAt ? formatDate(deal.updatedAt) : "-"}</td> : null}
+                <td className="px-3 py-3"><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); onEdit(deal); }} aria-label={`Edit ${deal.name}`}><Edit3 className="h-4 w-4" /></Button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400">
+        <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} deals</span>
+        <div className="flex items-center gap-2"><select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))}><option value={10}>10 rows</option><option value={25}>25 rows</option><option value={50}>50 rows</option></select><Button size="icon" variant="outline" className="h-9 w-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button><span className="rounded-md bg-emerald-500 px-3 py-2 font-semibold text-white">{page}</span><Button size="icon" variant="outline" className="h-9 w-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button></div>
+      </div>
+    </div>
+  );
+}
+
+function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDealRow | null; onClose: () => void; onEdit: (deal: CRMDealRow) => void; onNavigate: (path: string) => void }) {
+  const [related, setRelated] = useState<CRMApiRecord>({});
+  const [timeline, setTimeline] = useState<CRMRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!deal?.id) return;
+    setLoading(true);
+    setError(null);
+    crmApi.related("deals", deal.id)
+      .then((response) => {
+        const data = response.data || {};
+        setRelated(data);
+        setTimeline(Array.isArray(data.timeline) ? data.timeline as CRMRecord[] : []);
+      })
+      .catch((err) => setError(err?.response?.data?.detail || "Deal activity could not be loaded."))
+      .finally(() => setLoading(false));
+  }, [deal?.id]);
+  if (!deal) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select a deal to inspect details.</aside>;
+  const relatedProducts = Array.isArray(related.products) ? related.products as CRMApiRecord[] : null;
+  const relatedQuotes = Array.isArray(related.quotations) ? related.quotations as CRMApiRecord[] : null;
+  const relatedNotes = Array.isArray(related.notes) ? related.notes as CRMApiRecord[] : null;
+  return (
+    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3"><DealAvatar deal={deal} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{deal.name}</h2><p className="mt-1 truncate text-sm text-slate-400">{deal.companyName || "No company linked"}{deal.contactName ? ` / ${deal.contactName}` : ""}</p><div className="mt-2 flex gap-1"><LeadBadge value={deal.stageName || "Open"} tone="blue" /><LeadBadge value={deal.status || "Open"} tone={deal.status === "Lost" ? "red" : deal.status === "Won" ? "blue" : "slate"} /></div></div></div>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close deal details"><X className="h-4 w-4" /></Button>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {deal.contactPhone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${deal.contactPhone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
+        {deal.contactEmail ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${deal.contactEmail}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
+        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
+        <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(deal)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
+      </div>
+      <LeadDrawerSection title="Deal overview">
+        <LeadInfo label="Amount" value={formatCurrency(deal.amount)} />
+        <LeadInfo label="Pipeline" value={deal.pipelineName || "Not assigned"} />
+        <LeadInfo label="Stage" value={deal.stageName || "Open"} />
+        <LeadInfo label="Probability" value={`${Math.round(deal.probability)}%`} />
+        <LeadInfo label="Weighted value" value={formatCurrency(weightedDealValue(deal))} />
+        <LeadInfo label="Close date" value={deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "Not scheduled"} />
+        <LeadInfo label="Owner" value={deal.owner || "Unassigned"} />
+        <LeadInfo label="Territory" value={deal.territory || "Not assigned"} />
+        <LeadInfo label="Source" value={deal.source || "Not set"} />
+        <LeadInfo label="Next activity" value={deal.nextFollowUp ? formatDate(deal.nextFollowUp) : "No follow-up"} />
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Related records">
+        <div className="space-y-2">
+          <DealRelatedRow icon={<Building2 className="h-4 w-4" />} label="Company" value={deal.companyName || "-"} count={deal.companyId ? 1 : 0} onClick={() => onNavigate(`/crm/companies?selected=${deal.companyId || ""}`)} />
+          <DealRelatedRow icon={<Users className="h-4 w-4" />} label="Contact" value={deal.contactName || "-"} count={deal.contactId ? 1 : 0} onClick={() => onNavigate(`/crm/contacts?selected=${deal.contactId || ""}`)} />
+          <DealRelatedRow icon={<Package className="h-4 w-4" />} label="Products" value="" count={relatedProducts ? relatedProducts.length : null} onClick={() => onNavigate(`/crm/products?deal_id=${deal.id}`)} />
+          <DealRelatedRow icon={<FileCheck2 className="h-4 w-4" />} label="Quotations" value="" count={relatedQuotes ? relatedQuotes.length : null} onClick={() => onNavigate(`/crm/quotations?deal_id=${deal.id}`)} />
+          <DealRelatedRow icon={<Megaphone className="h-4 w-4" />} label="Notes" value="" count={relatedNotes ? relatedNotes.length : null} onClick={() => onNavigate(`/crm/activities?deal_id=${deal.id}`)} />
+        </div>
+      </LeadDrawerSection>
+      <LeadDrawerSection title="Timeline">
+        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {!loading && !error && timeline.slice(0, 5).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
+        {!loading && !error && !timeline.length ? <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-8 text-center text-sm text-slate-400">No activity yet</p> : null}
+      </LeadDrawerSection>
+    </aside>
+  );
+}
+
+function DealFormModal({ mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const initial = useMemo(() => dealFormInitial(deal), [deal?.id]);
+  const initialCustomValues = useMemo(() => dealCustomFieldInitial(deal), [deal?.id]);
+  const [draft, setDraft] = useState<CRMApiRecord>(initial);
+  const [customValues, setCustomValues] = useState<CRMApiRecord>(initialCustomValues);
+  const [lines, setLines] = useState<DealLineItem[]>([]);
+  const [formTab, setFormTab] = useState<"simple" | "advanced">("simple");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const visibleCustomFields = useMemo(() => customFields.filter((field) => Boolean(field.isVisible ?? field.is_visible ?? true)), [customFields]);
+  useEffect(() => {
+    setDraft(initial);
+    setCustomValues(initialCustomValues);
+    setLines([]);
+  }, [initial, initialCustomValues]);
+  const pipelineStages = useMemo(() => stages.filter((stage) => !draft.pipelineId || String(stage.pipelineId || stage.pipeline_id || "") === String(draft.pipelineId)), [stages, draft.pipelineId]);
+  const visibleContacts = useMemo(() => contacts.filter((contact) => !draft.companyId || !contact.companyId || String(contact.companyId) === String(draft.companyId)), [contacts, draft.companyId]);
+  const productTotal = dealProductTotal(lines);
+  const amountSource = productTotal > 0 ? "Product lines" : "Manual amount";
+  const effectiveAmount = productTotal > 0 ? productTotal : Number(draft.amount || 0);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(initial) || JSON.stringify(customValues) !== JSON.stringify(initialCustomValues) || lines.length > 0;
+  const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
+  const requestClose = () => {
+    if (dirty && !window.confirm("Discard unsaved deal changes?")) return;
+    onClose();
+  };
+  const setStage = (stageId: string) => {
+    const stage = stages.find((item) => String(item.id) === stageId);
+    setDraft((current) => ({ ...current, stageId, pipelineId: stage ? Number(stage.pipelineId || stage.pipeline_id || current.pipelineId || 0) : current.pipelineId, probability: stage ? Number(stage.probability || current.probability || 0) : current.probability, status: stage ? inferDealStatusFromStage(stage) : current.status }));
+  };
+  const submit = () => {
+    const validation = { ...validateDealDraft(draft), ...(mode === "create" ? validateDealCustomFields(visibleCustomFields, customValues) : {}) };
+    setFieldErrors(validation);
+    if (Object.keys(validation).length) return;
+    const fullPayload = buildDealPayload(draft, effectiveAmount, customValues);
+    const dirtyPayload = buildDealDirtyPayload(draft, initial, effectiveAmount, customValues, initialCustomValues);
+    onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white"><GitMerge className="h-5 w-5" /></span><div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit deal" : "Create deal"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update opportunity value, products, and sales commitment." : "Capture the opportunity, products, value, and next sales commitment in one place."}</p></div></div>
+          <div className="flex items-center gap-3"><div className="rounded-md border border-white/10 bg-white/[0.04] p-1"><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "simple" ? "bg-slate-700 text-white" : "text-slate-400"}`} onClick={() => setFormTab("simple")}>Simple</button><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "advanced" ? "bg-slate-700 text-white" : "text-slate-400"}`} onClick={() => setFormTab("advanced")}>Advanced</button></div><span className="text-xs text-slate-400"><span className="text-emerald-300">*</span> Required fields</span><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close deal form"><X className="h-4 w-4" /></Button></div>
+        </div>
+        <div className="grid max-h-[calc(92vh-8rem)] overflow-y-auto lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="space-y-4 border-r border-white/10 px-5 py-4">
+            {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+            <LeadFormSection title="Opportunity">
+              <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.companyName || company.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Contact"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.contactId)} onChange={(event) => patch("contactId", event.target.value)}><option value="">No contact</option>{visibleContacts.map((contact) => <option key={String(contact.id)} value={String(contact.id)}>{String(contact.name || contact.full_name || contact.email || contact.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
+              <LeadFormField label="Stage" required error={fieldErrors.stageId}><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
+              <LeadFormField label="Closing date"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} /></LeadFormField>
+              <LeadFormField label="Description" wide><textarea className="min-h-16 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." /></LeadFormField>
+            </LeadFormSection>
+            {formTab === "advanced" ? (
+              <LeadFormSection title="Advanced deal controls">
+                <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.pipelineId)} onChange={(event) => patch("pipelineId", event.target.value)}><option value="">Select pipeline</option>{pipelines.map((pipeline) => <option key={String(pipeline.id)} value={String(pipeline.id)}>{String(pipeline.name || pipeline.id)}</option>)}</select></LeadFormField>
+                <LeadFormField label="Probability" error={fieldErrors.probability}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" min={0} max={100} value={valueText(draft.probability)} onChange={(event) => patch("probability", event.target.value)} /></LeadFormField>
+                <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+                <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+                <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={["Website", "Referral", "Event", "Partner", "Phone Call", "Email Campaign", "Other"]} onChange={(value) => patch("source", value)} /></LeadFormField>
+                <LeadFormField label="Next follow-up"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>
+              </LeadFormSection>
+            ) : null}
+            {visibleCustomFields.length ? (
+              <LeadFormSection title="Custom fields">
+                {visibleCustomFields.map((field) => {
+                  const key = String(field.fieldKey || field.field_key || field.id);
+                  return <LeadFormField key={String(field.id)} label={String(field.fieldName || field.label || field.field_key)} required={Boolean(field.isRequired || field.is_required)} error={fieldErrors[`custom.${key}`]}><DealCustomFieldInput field={field} value={customValues[key]} onChange={(value) => setCustomValues((current) => ({ ...current, [key]: value }))} /></LeadFormField>;
+                })}
+              </LeadFormSection>
+            ) : null}
+            <LeadFormSection title="Associated products">
+              <div className="md:col-span-2">
+                <div className="mb-2 flex items-center justify-between gap-2"><p className="text-sm text-slate-400">Add products or services to auto-calculate deal value.</p><Button size="sm" variant="outline" className="h-8 border-emerald-400/40 bg-transparent text-emerald-200 hover:bg-emerald-500/10" onClick={() => setLines((current) => [...current, { key: String(Date.now()), productId: "", unitPrice: "0", quantity: "1", discount: "0" }])}><Plus className="h-3.5 w-3.5" />Add product</Button></div>
+                <div className="overflow-x-auto rounded-md border border-white/10">
+                  <table className="min-w-full text-sm"><thead className="bg-white/[0.035] text-xs uppercase text-slate-400"><tr className="[&>th]:px-3 [&>th]:py-2"><th>Product</th><th>List price</th><th>Qty</th><th>Discount %</th><th>Line total</th><th></th></tr></thead><tbody className="divide-y divide-white/10">{lines.length ? lines.map((line) => <DealProductLine key={line.key} line={line} products={products} onChange={(next) => setLines((current) => current.map((item) => item.key === line.key ? next : item))} onRemove={() => setLines((current) => current.filter((item) => item.key !== line.key))} />) : <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">No products added yet.</td></tr>}</tbody></table>
+                </div>
+              </div>
+            </LeadFormSection>
+          </div>
+          <aside className="space-y-3 bg-white/[0.018] px-4 py-4">
+            <div className="rounded-md border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-slate-200">Selected stage</p><p className="mt-2 text-lg font-semibold text-white">{selectedStageName(stages, draft.stageId) || "No stage selected"}</p><p className="mt-1 text-sm text-slate-400">{draft.stageId ? `${Number(draft.probability || 0)}% probability` : "Select a stage to see probability."}</p></div>
+            <div className="rounded-md border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-slate-200">Deal value</p><p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(effectiveAmount)}</p><div className="mt-3 space-y-2 text-sm text-slate-400"><div className="flex justify-between"><span>Manual amount</span><span>{formatCurrency(Number(draft.amount || 0))}</span></div><div className="flex justify-between"><span>Product lines</span><span>{formatCurrency(productTotal)}</span></div><div className="flex justify-between border-t border-white/10 pt-2 font-semibold text-white"><span>Total</span><span>{formatCurrency(effectiveAmount)}</span></div><p className="text-xs text-amber-300">Source: {amountSource}</p></div></div>
+            <div className="rounded-md border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-slate-200">Readiness</p><div className="mt-3 space-y-2 text-sm text-slate-400"><DealReadiness done={Boolean(draft.name)} label="Add deal name" /><DealReadiness done={Boolean(draft.pipelineId && draft.stageId)} label="Choose pipeline and stage" /><DealReadiness done={Boolean(draft.expectedCloseDate)} label="Choose a closing date" /><DealReadiness done={effectiveAmount > 0} label="Add products or set amount" /></div></div>
+            <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
+          </aside>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-3"><Button variant="ghost" className="text-emerald-300 hover:bg-white/10 hover:text-emerald-200"><ListFilter className="h-4 w-4" />Customize fields</Button><div className="flex items-center gap-3"><span className="text-xs text-amber-300">{dirty ? "Unsaved changes" : ""}</span><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Save"}</Button></div></div>
+      </div>
+    </div>
+  );
+}
+
+function DealProductLine({ line, products, onChange, onRemove }: { line: DealLineItem; products: CRMRecord[]; onChange: (line: DealLineItem) => void; onRemove: () => void }) {
+  const patch = (key: keyof DealLineItem, value: string) => onChange({ ...line, [key]: value });
+  const selectProduct = (productId: string) => {
+    const product = products.find((item) => String(item.id) === productId);
+    onChange({ ...line, productId, unitPrice: String(product?.price || product?.listPrice || product?.unit_price || line.unitPrice || 0) });
+  };
+  return <tr className="[&>td]:px-3 [&>td]:py-2"><td><select className="h-9 w-full min-w-52 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={line.productId} onChange={(event) => selectProduct(event.target.value)}><option value="">Search product...</option>{products.map((product) => <option key={String(product.id)} value={String(product.id)}>{String(product.name || product.sku || product.id)}</option>)}</select></td><td><Input className="h-9 min-w-28 border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={line.unitPrice} onChange={(event) => patch("unitPrice", event.target.value)} /></td><td><Input className="h-9 min-w-20 border-white/10 bg-[#0b1a2a] text-slate-100" type="number" min={0} value={line.quantity} onChange={(event) => patch("quantity", event.target.value)} /></td><td><Input className="h-9 min-w-24 border-white/10 bg-[#0b1a2a] text-slate-100" type="number" min={0} max={100} value={line.discount} onChange={(event) => patch("discount", event.target.value)} /></td><td className="font-semibold text-white">{formatCurrency(dealLineTotal(line))}</td><td><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onRemove} aria-label="Remove product line"><X className="h-4 w-4" /></Button></td></tr>;
+}
+
+function DealCustomFieldInput({ field, value, onChange }: { field: CRMRecord; value: CRMApiRecord[string]; onChange: (value: CRMApiRecord[string]) => void }) {
+  const type = String(field.fieldType || field.field_type || "text");
+  const options = parseOptions(field.options ?? field.options_json);
+  const inputClass = "h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400";
+  if (type === "dropdown") return <select className={inputClass} value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
+  if (type === "multi_select") return <Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={Array.isArray(value) ? value.join(", ") : String(value || "")} onChange={(event) => onChange(parseOptions(event.target.value))} placeholder={options.length ? options.join(", ") : "Comma separated values"} />;
+  if (type === "checkbox") return <label className="flex h-10 items-center gap-2 rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />Yes</label>;
+  const inputType = type === "number" || type === "currency" || type === "user" || type === "owner" ? "number" : type === "date" ? "date" : type === "datetime" ? "datetime-local" : type === "email" ? "email" : type === "url" ? "url" : "text";
+  return <Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type={inputType} value={String(value || "")} onChange={(event) => onChange(event.target.value)} />;
+}
+
+function DealAvatar({ deal, large }: { deal: Pick<CRMDealRow, "name" | "status">; large?: boolean }) {
+  const won = String(deal.status || "").toLowerCase() === "won";
+  return <span className={`flex shrink-0 items-center justify-center rounded-md ${won ? "bg-emerald-500/20 text-emerald-200" : "bg-sky-500/15 text-sky-200"} ring-1 ring-white/10 ${large ? "h-14 w-14" : "h-9 w-9"}`}><GitMerge className={large ? "h-7 w-7" : "h-4 w-4"} /></span>;
+}
+
+function DealProbability({ value }: { value: number }) {
+  const clamped = Math.max(0, Math.min(100, Number(value || 0)));
+  return <div className="flex items-center gap-2"><span className="font-semibold text-emerald-300">{Math.round(clamped)}%</span><span className="h-1.5 w-20 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-emerald-400" style={{ width: `${clamped}%` }} /></span></div>;
+}
+
+function OwnerDot({ label }: { label: string }) {
+  const initials = String(label || "U").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  return <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-semibold text-white">{initials}</span>;
+}
+
+function DealRelatedRow({ icon, label, value, count, onClick }: { icon: React.ReactNode; label: string; value: string; count: number | null; onClick: () => void }) {
+  return <button type="button" className="flex w-full items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/[0.06]" onClick={onClick}><span className="inline-flex min-w-0 items-center gap-2">{icon}<span>{label}</span>{value ? <span className="truncate text-xs text-sky-300">{value}</span> : null}</span><span className="font-semibold">{count ?? "-"}</span></button>;
+}
+
+function DealReadiness({ done, label }: { done: boolean; label: string }) {
+  return <div className="flex items-center gap-2"><CheckCircle2 className={`h-4 w-4 ${done ? "text-emerald-300" : "text-slate-600"}`} />{label}</div>;
+}
+
+function recordToDealRow(record: CRMRecord, lookups: { companyNames: Map<number, string>; contactNames: Map<number, { name: string; email?: string; phone?: string; companyId?: number }>; ownerNames: Map<number, string>; territoryNames: Map<number, string>; stageNames: Map<number, string>; pipelineNames: Map<number, string>; stages: CRMRecord[] }): CRMDealRow {
+  const companyId = Number(record.companyId || record.company_id || 0) || undefined;
+  const contactId = Number(record.contactId || record.contact_id || 0) || undefined;
+  const ownerId = Number(record.ownerId || record.owner_id || record.owner_user_id || 0) || undefined;
+  const territoryId = Number(record.territoryId || record.territory_id || 0) || undefined;
+  const stageId = Number(record.stageId || record.stage_id || 0) || undefined;
+  const pipelineId = Number(record.pipelineId || record.pipeline_id || lookups.stages.find((stage) => Number(stage.id) === stageId)?.pipeline_id || 0) || undefined;
+  const contact = contactId ? lookups.contactNames.get(contactId) : undefined;
+  return {
+    id: Number(record.id || 0),
+    name: String(record.name || "Deal"),
+    companyId,
+    companyName: String(record.companyName || record.company_name || (companyId ? lookups.companyNames.get(companyId) || "" : "")),
+    contactId,
+    contactName: String(record.contactName || record.contact_name || contact?.name || ""),
+    contactEmail: contact?.email,
+    contactPhone: contact?.phone,
+    ownerId,
+    owner: String(record.owner || (ownerId ? lookups.ownerNames.get(ownerId) || "" : "")),
+    territoryId,
+    territory: String(record.territory || (territoryId ? lookups.territoryNames.get(territoryId) || "" : "")),
+    pipelineId,
+    pipelineName: String(record.pipelineName || record.pipeline_name || (pipelineId ? lookups.pipelineNames.get(pipelineId) || "" : "")),
+    stageId,
+    stageName: String(record.stage || record.stageName || (stageId ? lookups.stageNames.get(stageId) || "" : "") || record.status || "Open"),
+    amount: Number(record.amount || 0),
+    probability: Number(record.probability || 0),
+    expectedCloseDate: String(record.closeDate || record.expectedCloseDate || record.expected_close_date || ""),
+    nextFollowUp: String(record.nextFollowUp || record.next_follow_up_at || ""),
+    status: String(record.status || "Open"),
+    source: String(record.source || record.lead_source || ""),
+    description: String(record.description || record.nextStep || ""),
+    customFields: extractDealCustomValues(record),
+    createdAt: String(record.createdAt || record.created_at || ""),
+    updatedAt: String(record.updatedAt || record.updated_at || ""),
+  };
+}
+
+function dealFormInitial(deal: CRMDealRow | null): CRMApiRecord {
+  return { name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal?.pipelineId || "", stageId: deal?.stageId || "", amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal?.source || "", ownerId: deal?.ownerId || "", territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
+}
+
+function dealCustomFieldInitial(deal: CRMDealRow | null): CRMApiRecord {
+  return { ...(deal?.customFields || {}) };
+}
+
+function validateDealDraft(draft: CRMApiRecord) {
+  const errors: Record<string, string> = {};
+  if (!String(draft.name || "").trim()) errors.name = "Deal name is required.";
+  if (!draft.pipelineId) errors.pipelineId = "Pipeline is required.";
+  if (!draft.stageId) errors.stageId = "Stage is required.";
+  if (draft.amount !== "" && Number.isNaN(Number(draft.amount))) errors.amount = "Amount must be numeric.";
+  if (draft.probability !== "" && (Number.isNaN(Number(draft.probability)) || Number(draft.probability) < 0 || Number(draft.probability) > 100)) errors.probability = "Probability must be 0 to 100.";
+  return errors;
+}
+
+function validateDealCustomFields(fields: CRMRecord[], values: CRMApiRecord) {
+  const errors: Record<string, string> = {};
+  for (const field of fields) {
+    if (!(field.isRequired || field.is_required)) continue;
+    const key = String(field.fieldKey || field.field_key || field.id);
+    const value = values[key];
+    if (value === undefined || value === null || value === "" || (Array.isArray(value) && !value.length)) {
+      errors[`custom.${key}`] = `${String(field.fieldName || field.label || key)} is required.`;
+    }
+  }
+  return errors;
+}
+
+function cleanCustomFieldValues(values: CRMApiRecord) {
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+}
+
+function extractDealCustomValues(record: CRMRecord) {
+  const values: CRMApiRecord = {};
+  const customFields = record.customFields || record.custom_fields;
+  if (Array.isArray(customFields)) {
+    for (const item of customFields as CRMApiRecord[]) {
+      const key = String(item.fieldKey || item.field_key || item.id || "");
+      if (key) values[key] = item.value as CRMApiValue;
+    }
+  } else if (customFields && typeof customFields === "object") {
+    Object.assign(values, customFields as CRMApiRecord);
+  }
+  for (const [key, value] of Object.entries(record)) {
+    if (key.startsWith("cf_")) values[key.slice(3)] = value as CRMApiValue;
+  }
+  return values;
+}
+
+function buildDealPayload(draft: CRMApiRecord, amount: number, customValues?: CRMApiRecord): CRMApiRecord {
+  const payload: CRMApiRecord = { name: String(draft.name || "").trim(), pipeline_id: Number(draft.pipelineId), stage_id: Number(draft.stageId), amount, probability: draft.probability === "" ? 0 : Number(draft.probability), status: emptyToUndefined(draft.status) || "Open", expected_close_date: emptyToUndefined(draft.expectedCloseDate), next_follow_up_at: emptyToUndefined(draft.nextFollowUp), description: emptyToUndefined(draft.description), source: emptyToUndefined(draft.source), lead_source: emptyToUndefined(draft.source) };
+  if (draft.companyId) payload.company_id = Number(draft.companyId);
+  if (draft.contactId) payload.contact_id = Number(draft.contactId);
+  if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
+  if (draft.territoryId) payload.territoryId = Number(draft.territoryId);
+  if (customValues && Object.keys(customValues).length) payload.customFields = cleanCustomFieldValues(customValues);
+  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+}
+
+function buildDealDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord, amount: number, customValues?: CRMApiRecord, initialCustomValues?: CRMApiRecord) {
+  const next = buildDealPayload(draft, amount);
+  const previous = buildDealPayload(initial, Number(initial.amount || 0));
+  const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
+  const payload = Object.fromEntries(Array.from(keys).flatMap((key) => String(next[key] ?? "") === String(previous[key] ?? "") ? [] : [[key, next[key] ?? null]]));
+  const customDirty = cleanCustomFieldValues(Object.fromEntries(Object.entries(customValues || {}).filter(([key, value]) => String(value ?? "") !== String(initialCustomValues?.[key] ?? ""))));
+  if (Object.keys(customDirty).length) payload.customFields = customDirty;
+  return payload;
+}
+
+function contactNameLookup(contacts: CRMRecord[]) {
+  return new Map(contacts.map((contact) => [Number(contact.id), { name: String(contact.name || contact.full_name || contact.email || contact.id), email: String(contact.email || ""), phone: String(contact.phone || ""), companyId: Number(contact.companyId || contact.company_id || 0) || undefined }]));
+}
+
+function stageNameLookup(stages: CRMRecord[]) {
+  return new Map(stages.map((stage) => [Number(stage.id), String(stage.name || stage.stageName || stage.stage_name || stage.id)]));
+}
+
+function pipelineNameLookup(pipelines: CRMRecord[]) {
+  return new Map(pipelines.map((pipeline) => [Number(pipeline.id), String(pipeline.name || pipeline.id)]));
+}
+
+function countDealFilters(filters: DealFilters) {
+  return Object.entries(filters).filter(([, value]) => value && value !== "all").length;
+}
+
+function applyDealDerivedView(rows: CRMDealRow[], view: DealViewKey, filters: DealFilters) {
+  return rows.filter((deal) => {
+    if (view === "closing" && !isDateWithinDays(deal.expectedCloseDate, 7)) return false;
+    if (view === "no_follow_up" && deal.nextFollowUp) return false;
+    if (filters.minAmount && deal.amount < Number(filters.minAmount)) return false;
+    if (filters.maxAmount && deal.amount > Number(filters.maxAmount)) return false;
+    if (filters.minProbability && deal.probability < Number(filters.minProbability)) return false;
+    if (filters.maxProbability && deal.probability > Number(filters.maxProbability)) return false;
+    return true;
+  });
+}
+
+function dealOptionValues(rows: CRMDealRow[], key: keyof CRMDealRow, fallback: string[]) {
+  return Array.from(new Set([...fallback, ...rows.map((row) => String(row[key] || "")).filter(Boolean)]));
+}
+
+function inferDealStatusFromStage(stage: CRMRecord) {
+  const name = String(stage.name || stage.stageName || "").toLowerCase();
+  if (name.includes("won")) return "Won";
+  if (name.includes("lost")) return "Lost";
+  return "Open";
+}
+
+function weightedDealValue(deal: CRMDealRow) {
+  return Math.round((Number(deal.amount || 0) * Number(deal.probability || 0)) / 100);
+}
+
+function isPastDate(value?: string) {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+}
+
+function isDateWithinDays(value: string | undefined, days: number) {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(today.getTime() + days * 86400000);
+  return date >= today && date <= end;
+}
+
+function dealLineTotal(line: DealLineItem) {
+  const price = Math.max(0, Number(line.unitPrice || 0));
+  const quantity = Math.max(0, Number(line.quantity || 0));
+  const discount = Math.max(0, Math.min(100, Number(line.discount || 0)));
+  return Math.round(price * quantity * (1 - discount / 100));
+}
+
+function dealProductTotal(lines: DealLineItem[]) {
+  return lines.reduce((sum, line) => sum + dealLineTotal(line), 0);
+}
+
+function selectedStageName(stages: CRMRecord[], stageId: CRMApiValue) {
+  const stage = stages.find((item) => String(item.id) === String(stageId || ""));
+  return stage ? String(stage.name || stage.stageName || stage.id) : "";
 }
 
 function CRMListPage({ kind }: { kind: CRMPageKind }) {
@@ -5855,13 +8973,13 @@ function detailPathFor(kind: CRMPageKind) {
 function normalizeApiRecord(kind: string, record: CRMApiRecord): CRMRecord {
   const id = Number(record.id || 0);
   if (kind === "leads") {
-    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Lead"), company: String(record.company_name || ""), email: String(record.email || ""), phone: String(record.phone || ""), source: String(record.source || "Other"), status: String(record.status || "New"), rating: String(record.scoreLabel || record.lead_score_label || record.rating || "Warm"), leadScore: Number(record.leadScore || record.lead_score || 0), scoreLabel: String(record.scoreLabel || record.lead_score_label || record.rating || "Cold"), owner: String(record.ownerId || record.owner_user_id || ""), territoryId: Number(record.territoryId || record.territory_id || 0), value: Number(record.estimated_value || 0), nextFollowUp: String(record.next_follow_up_at || ""), lastContacted: String(record.last_contacted_at || ""), industry: String(record.industry || ""), createdAt: String(record.createdAt || "") };
+    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Lead"), company: String(record.company_name || ""), email: String(record.email || ""), phone: String(record.phone || ""), source: String(record.source || "Other"), status: String(record.status || "New"), rating: String(record.scoreLabel || record.lead_score_label || record.rating || "Warm"), leadScore: Number(record.leadScore || record.lead_score || 0), scoreLabel: String(record.scoreLabel || record.lead_score_label || record.rating || "Cold"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), value: Number(record.estimated_value || record.value || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), industry: String(record.industry || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
   }
   if (kind === "contacts") {
-    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Contact"), email: String(record.email || ""), phone: String(record.phone || ""), companyId: Number(record.company_id || 0), title: String(record.job_title || ""), stage: String(record.lifecycle_stage || ""), source: String(record.source || ""), status: String(record.status || "Active"), owner: String(record.ownerId || record.owner_user_id || "") };
+    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Contact"), email: String(record.email || ""), phone: String(record.phone || ""), companyId: Number(record.companyId || record.company_id || 0), companyName: String(record.companyName || record.company_name || ""), title: String(record.job_title || ""), stage: String(record.lifecycle_stage || "Lead"), source: String(record.source || ""), status: String(record.status || "Active"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
   }
   if (kind === "companies") {
-    return { id, name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || ""), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || 0), owner: String(record.ownerId || record.owner_user_id || ""), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || "") };
+    return { id, name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || record.type || "Prospect"), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || record.revenue || 0), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || ""), phone: String(record.phone || ""), website: String(record.website || ""), notes: String(record.notes || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || "") };
   }
   if (kind === "deals") {
     return { id, name: String(record.name || "Deal"), companyId: Number(record.company_id || 0), contactId: Number(record.contact_id || 0), owner: String(record.ownerId || record.owner_user_id || ""), territoryId: Number(record.territoryId || record.territory_id || 0), stageId: Number(record.stage_id || 0), pipelineId: Number(record.pipeline_id || 0), stage: String(record.stage || record.status || "Open"), amount: Number(record.amount || 0), probability: Number(record.probability || 0), closeDate: String(record.expected_close_date || ""), nextStep: String(record.description || record.status || ""), status: String(record.status || "Open") };
@@ -5930,10 +9048,15 @@ function recordToLead(record: CRMRecord): CRMLead {
     leadScore: Number(record.leadScore || record.lead_score || 0),
     scoreLabel: String(record.scoreLabel || record.lead_score_label || record.rating || "Cold"),
     owner: String(record.owner || record.ownerId || ""),
+    ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0) || undefined,
+    territoryId: Number(record.territoryId || record.territory_id || 0) || undefined,
     value: Number(record.value || record.estimated_value || 0),
     nextFollowUp: String(record.nextFollowUp || record.next_follow_up_at || ""),
     lastContacted: String(record.lastContacted || record.last_contacted_at || ""),
     industry: String(record.industry || ""),
+    createdAt: String(record.createdAt || record.created_at || ""),
+    updatedAt: String(record.updatedAt || record.updated_at || ""),
+    notes: String(record.notes || ""),
   };
 }
 
