@@ -99,6 +99,7 @@ TASK_ACTIVITY_FIELD_MAP = {
     "status": "status.changed",
     "priority": "priority.changed",
     "assignee_user_id": "assignee.changed",
+    "assignee_user_ids": "assignee.changed",
     "sprint_id": "sprint.changed",
     "epic_id": "epic.changed",
     "story_points": "story_points.changed",
@@ -212,7 +213,10 @@ def _loads_json(value: str | None, fallback):
 
 
 def _model_payload(model) -> dict:
-    return {column.key: _json_ready(getattr(model, column.key)) for column in model.__table__.columns}
+    payload = {column.key: _json_ready(getattr(model, column.key)) for column in model.__table__.columns}
+    if isinstance(model, PMSTask):
+        payload["assignee_user_ids"] = model.assignee_user_ids
+    return payload
 
 
 def _pms_fernet() -> Fernet:
@@ -1054,7 +1058,7 @@ def _report_task_query(
         return query.filter(PMSTask.id == -1)
     query = query.filter(PMSTask.project_id.in_(project_ids))
     if assignee_id:
-        query = query.filter(PMSTask.assignee_user_id == assignee_id)
+        query = query.filter(or_(PMSTask.assignee_user_id == assignee_id, PMSTask.assignments.any(user_id=assignee_id)))
     if start_date:
         query = query.filter(func.date(PMSTask.created_at) >= start_date)
     if end_date:
@@ -1597,6 +1601,17 @@ def _upsert_sprint_action_items(
 def _sync_task_planning_links(db: Session, project_id: int, task_data: dict) -> None:
     """Validate normalized planning links and mirror labels for existing UI fields."""
     project = db.get(PMSProject, project_id)
+    if task_data.get("assignee_user_ids") is not None:
+        ids = sorted(set(task_data["assignee_user_ids"]))
+        task_data["assignee_user_ids"] = ids
+        task_data["assignee_user_id"] = ids[0] if ids else None
+    elif "assignee_user_id" in task_data:
+        task_data["assignee_user_ids"] = [task_data["assignee_user_id"]] if task_data["assignee_user_id"] else []
+    else:
+        task_data.pop("assignee_user_ids", None)
+    for user_id in task_data.get("assignee_user_ids", []):
+        if not _project_user_query(db, project).filter(User.id == user_id).first():
+            raise HTTPException(422, "Every assignee must be an active project collaborator")
     if project and project.workspace_id and task_data.get("assignee_user_id"):
         membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=task_data["assignee_user_id"]).first()
         if not membership or membership.role == "Guest":
@@ -2804,7 +2819,7 @@ def list_tasks(
     if status:
         query = query.filter(PMSTask.status == status)
     if assignee_id:
-        query = query.filter(PMSTask.assignee_user_id == assignee_id)
+        query = query.filter(or_(PMSTask.assignee_user_id == assignee_id, PMSTask.assignments.any(user_id=assignee_id)))
     if sprint_id:
         query = query.filter(PMSTask.sprint_id == sprint_id)
     if epic_id:
@@ -2877,7 +2892,7 @@ def list_all_tasks(
     if priority:
         query = query.filter(PMSTask.priority == priority)
     if assigneeId:
-        query = query.filter(PMSTask.assignee_user_id == assigneeId)
+        query = query.filter(or_(PMSTask.assignee_user_id == assigneeId, PMSTask.assignments.any(user_id=assigneeId)))
     if reporterId:
         query = query.filter(PMSTask.reporter_user_id == reporterId)
     if dueFrom:
@@ -3107,7 +3122,7 @@ def get_gantt(
     if sprintId:
         query = query.filter(PMSTask.sprint_id == sprintId)
     if assigneeId:
-        query = query.filter(PMSTask.assignee_user_id == assigneeId)
+        query = query.filter(or_(PMSTask.assignee_user_id == assigneeId, PMSTask.assignments.any(user_id=assigneeId)))
     if epicId:
         query = query.filter(PMSTask.epic_id == epicId)
     if status:
@@ -3129,7 +3144,7 @@ def get_gantt(
         if related.get(dep.task_id) and related.get(dep.depends_on_task_id)
     ]
     projects = [
-        {"id": project.id, "name": project.name, "project_key": project.project_key}
+        {"id": project.id, "name": project.name, "project_key": project.project_key, "can_manage_tasks": can_access_project(db, project, current_user, "manage_tasks")}
         for project in accessible_project_query(db, current_user).order_by(PMSProject.name).all()
     ]
     visible_project_ids = [project["id"] for project in projects]
@@ -3141,7 +3156,7 @@ def get_gantt(
         {"id": epic.id, "name": epic.name, "epic_key": epic.epic_key, "project_id": epic.project_id}
         for epic in db.query(PMSEpic).filter(PMSEpic.project_id.in_(visible_project_ids), PMSEpic.deleted_at == None).order_by(PMSEpic.name).all()
     ] if visible_project_ids else []
-    assignee_ids = [row[0] for row in db.query(PMSTask.assignee_user_id).filter(PMSTask.project_id.in_(visible_project_ids), PMSTask.assignee_user_id != None).distinct().all()] if visible_project_ids else []
+    assignee_ids = sorted({uid for t in db.query(PMSTask).filter(PMSTask.project_id.in_(visible_project_ids), PMSTask.deleted_at == None).all() for uid in t.assignee_user_ids})
     users = {user.id: user for user in db.query(User).filter(User.id.in_(assignee_ids)).all()} if assignee_ids else {}
     filters_task_query = db.query(PMSTask).filter(PMSTask.project_id.in_(visible_project_ids), PMSTask.deleted_at == None) if visible_project_ids else None
     return {
@@ -3156,6 +3171,7 @@ def get_gantt(
             "statuses": [row[0] for row in filters_task_query.with_entities(PMSTask.status).filter(PMSTask.status != None).distinct().order_by(PMSTask.status).all()] if filters_task_query is not None else [],
         },
     }
+
 
 
 @router.patch("/tasks/bulk", response_model=TaskBulkUpdateResponse)
@@ -3356,6 +3372,7 @@ def create_task_dependency(
     )
     db.commit()
     db.refresh(dependency)
+    _broadcast_realtime(current_user, "task.dependency_changed", project_id=source_project.id, task_id=target.id, message="Task dependency added")
     return _dependency_detail_payload(dependency, {source.id: source, target.id: target})
 
 
@@ -3381,6 +3398,7 @@ def delete_task_dependency(
             db.add(blocker)
     _record_activity(db, project.id, current_user, "dependency.removed", "task_dependency", dependency_id, f"Removed dependency link for {target.task_key}", task_id=target.id)
     db.commit()
+    _broadcast_realtime(current_user, "task.dependency_changed", project_id=project.id, task_id=target.id, message="Task dependency removed")
     return {"message": "Dependency removed"}
 
 
@@ -3452,6 +3470,12 @@ def update_task(
     if "status" in update_data and not update_data["status"]:
         raise HTTPException(status_code=422, detail="Task status cannot be empty")
     _sync_task_planning_links(db, project.id, update_data)
+    start = update_data.get("start_date", task.start_date)
+    due = update_data.get("due_date", task.due_date)
+    if start and due and start > due:
+        raise HTTPException(422, "Start date cannot be after due date")
+    if update_data.get("estimated_hours") is not None and update_data["estimated_hours"] < 0:
+        raise HTTPException(422, "Estimated hours cannot be negative")
     if "sprint_id" in update_data and update_data["sprint_id"] != task.sprint_id and update_data["sprint_id"]:
         sprint = db.query(PMSSprint).filter(PMSSprint.id == update_data["sprint_id"], PMSSprint.project_id == project.id).first()
         if not sprint:
@@ -6100,7 +6124,7 @@ def get_workload_heatmap(
         for row in db.query(PMSProjectMember.user_id).filter(PMSProjectMember.project_id.in_(project_ids)).all()
         if row[0]
     }
-    assignee_ids = {task.assignee_user_id for task in tasks if task.assignee_user_id}
+    assignee_ids = {uid for task in tasks for uid in task.assignee_user_ids}
     user_ids = member_user_ids | assignee_ids
     users_by_id = {user.id: user for user in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
     weeks = _weeks_between(range_start, range_end)
@@ -6121,7 +6145,7 @@ def get_workload_heatmap(
         task_start = task.start_date or task.due_date or range_start
         task_end = task.due_date or task.start_date or range_end
         for week in _weeks_between(max(range_start, task_start), min(range_end, task_end)):
-            sprint_assignees_by_week.setdefault((task.sprint_id, week), set()).add(task.assignee_user_id)
+            sprint_assignees_by_week.setdefault((task.sprint_id, week), set()).update(task.assignee_user_ids)
     for sprint in sprint_rows:
         if not sprint.capacity_hours:
             continue
@@ -6145,46 +6169,46 @@ def get_workload_heatmap(
             }
 
     for task in tasks:
-        user_id = task.assignee_user_id
-        if not user_id:
-            continue
-        task_start = task.start_date or task.due_date or range_start
-        task_end = task.due_date or task.start_date or range_end
-        task_weeks = _weeks_between(max(range_start, task_start), min(range_end, task_end))
-        if not task_weeks:
-            task_weeks = [range_start]
-        planned_hours = float(task.estimated_hours or task.remaining_estimate_hours or task.original_estimate_hours or (_task_points(task) * 6) or 0)
-        hours_share = planned_hours / len(task_weeks) if task_weeks else planned_hours
-        points_share = _task_points(task) / len(task_weeks) if task_weeks else _task_points(task)
-        for week in task_weeks:
-            cell = cells.setdefault((user_id, week), {
-                "week_start": week,
-                "planned_hours": 0.0,
-                "story_points": 0,
-                "task_count": 0,
-                "capacity_hours": 40.0,
-                "utilization_percent": 0.0,
-                "status": "under",
-                "tasks": [],
-            })
-            if task.sprint_id and (user_id, week) not in capacity_by_user_week:
-                cell["capacity_hours"] = sprint_capacity_by_week.get((task.sprint_id, week), cell["capacity_hours"])
-            cell["planned_hours"] += hours_share
-            cell["story_points"] += points_share
-            cell["task_count"] += 1
-            cell["tasks"].append({
-                "id": task.id,
-                "task_key": task.task_key,
-                "title": task.title,
-                "project_id": task.project_id,
-                "sprint_id": task.sprint_id,
-                "status": task.status,
-                "priority": task.priority,
-                "start_date": _json_ready(task.start_date),
-                "due_date": _json_ready(task.due_date),
-                "planned_hours": round(hours_share, 2),
-                "story_points": round(points_share, 2),
-            })
+        for user_id in task.assignee_user_ids:
+            if not user_id:
+                continue
+            task_start = task.start_date or task.due_date or range_start
+            task_end = task.due_date or task.start_date or range_end
+            task_weeks = _weeks_between(max(range_start, task_start), min(range_end, task_end))
+            if not task_weeks:
+                task_weeks = [range_start]
+            planned_hours = float(task.estimated_hours or task.remaining_estimate_hours or task.original_estimate_hours or (_task_points(task) * 6) or 0)
+            hours_share = planned_hours / len(task.assignee_user_ids) / len(task_weeks) if task_weeks else planned_hours
+            points_share = _task_points(task) / len(task.assignee_user_ids) / len(task_weeks) if task_weeks else _task_points(task)
+            for week in task_weeks:
+                cell = cells.setdefault((user_id, week), {
+                    "week_start": week,
+                    "planned_hours": 0.0,
+                    "story_points": 0,
+                    "task_count": 0,
+                    "capacity_hours": 40.0,
+                    "utilization_percent": 0.0,
+                    "status": "under",
+                    "tasks": [],
+                })
+                if task.sprint_id and (user_id, week) not in capacity_by_user_week:
+                    cell["capacity_hours"] = sprint_capacity_by_week.get((task.sprint_id, week), cell["capacity_hours"])
+                cell["planned_hours"] += hours_share
+                cell["story_points"] += points_share
+                cell["task_count"] += 1
+                cell["tasks"].append({
+                    "id": task.id,
+                    "task_key": task.task_key,
+                    "title": task.title,
+                    "project_id": task.project_id,
+                    "sprint_id": task.sprint_id,
+                    "status": task.status,
+                    "priority": task.priority,
+                    "start_date": _json_ready(task.start_date),
+                    "due_date": _json_ready(task.due_date),
+                    "planned_hours": round(hours_share, 2),
+                    "story_points": round(points_share, 2),
+                })
 
     summary = {"over_capacity": 0, "near_capacity": 0, "under_capacity": 0}
     rows = []

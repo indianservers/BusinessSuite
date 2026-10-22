@@ -1,3 +1,6 @@
+import { useCreateIntent } from "@/hooks/use-create-intent";
+import ModuleWorkflows from "@/components/app/ModuleWorkflows";
+import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -992,6 +995,7 @@ function CRMDashboard() {
   const [dateRange, setDateRange] = useState<"month" | "quarter" | "all">("month");
   const [quickCreateKind, setQuickCreateKind] = useState<DashboardQuickCreateKind>("leads");
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  useCreateIntent(kind => { if (dashboardQuickCreateKinds.some(item => item.kind === kind)) { setQuickCreateKind(kind as DashboardQuickCreateKind); setShowQuickCreate(true); } });
   const [quickCreateSaving, setQuickCreateSaving] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
   const [forecastState, setForecastState] = useState<CRMApiState<{ summary: CRMApiRecord; items: CRMApiRecord[] }>>({ data: { summary: {}, items: [] }, loading: true, error: null });
@@ -1128,6 +1132,7 @@ function CRMDashboard() {
       <main className="space-y-3 px-4 py-3 sm:px-5 lg:px-8">
       {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{error}</div> : null}
       {loading ? <DashboardSkeleton /> : null}
+<ModuleWorkflows module="crm" dark />
       <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="CRM metrics">
         <CompactMetricCard title="New leads" value={filteredLeads.length} detail={`${crmLeads.length} total visible`} tone="emerald" onClick={() => navigate("/crm/leads")} />
         <CompactMetricCard title="Open deals" value={openDeals} detail={formatCurrency(pipelineValue)} tone="sky" onClick={() => navigate("/crm/deals")} />
@@ -1166,6 +1171,7 @@ function CRMDashboard() {
             {priorityDeals.length ? <PriorityDealsTable rows={priorityDeals} onOpen={(id) => navigate(`/crm/deals/${id}`)} /> : <DarkEmptyState label="No open deals currently match overdue, near-close, stale, or high-value priority rules." action="Open deals" onAction={() => navigate("/crm/deals")} />}
           </DashboardPanel>
 
+<SecondaryDetails dark title="Forecast and sales analysis">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
             <DashboardPanel title="Forecast by owner" actionLabel="Forecasting" onAction={() => navigate("/crm/forecasting")}>
               {forecastState.data.items.length ? (
@@ -1192,6 +1198,8 @@ function CRMDashboard() {
               </div>
             </DashboardPanel>
           </div>
+
+</SecondaryDetails>
         </div>
 
         <aside className="space-y-3">
@@ -1217,6 +1225,7 @@ function CRMDashboard() {
             {todayItems.length ? <TodayWorkList rows={todayItems} onOpen={(path) => navigate(path)} /> : <DarkEmptyState label="No CRM tasks, activities, or calendar items are due today." action="Open calendar" onAction={() => navigate("/crm/calendar")} />}
           </DashboardPanel>
 
+<SecondaryDetails dark title="Lead source analysis">
           <DashboardPanel title="Lead sources">
             {sourceData.length ? (
               <div className="grid gap-3 sm:grid-cols-[9rem_1fr] xl:grid-cols-1 2xl:grid-cols-[8.5rem_1fr]">
@@ -1241,6 +1250,8 @@ function CRMDashboard() {
               </div>
             ) : <DarkEmptyState label="No lead source data is available for this range." />}
           </DashboardPanel>
+
+</SecondaryDetails>
         </aside>
       </div>
       {showQuickCreate ? (
@@ -6040,6 +6051,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
   const [localRows, setLocalRows] = useState<CRMRecord[]>([]);
   const [contacts, setContacts] = useState<CRMRecord[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  useCreateIntent(request => { if (request === kind) setShowCreate(true); });
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [importExportError, setImportExportError] = useState<string | null>(null);
@@ -8179,12 +8191,7 @@ function RecordPanel({ record, kind }: { record: CRMRecord | null; kind: CRMPage
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline"><Phone className="h-4 w-4" />Log call</Button>
-          <Button variant="outline"><Mail className="h-4 w-4" />Log email</Button>
-          <Button variant="outline"><CalendarDays className="h-4 w-4" />Schedule</Button>
-          <Button variant="outline"><ListFilter className="h-4 w-4" />Task</Button>
-        </div>
+
         {customer360 ? (
           <div className="rounded-lg border bg-primary/5 p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer 360</p>
@@ -8204,9 +8211,7 @@ function RecordPanel({ record, kind }: { record: CRMRecord | null; kind: CRMPage
         <div className="rounded-lg border bg-muted/30 p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Timeline</p>
           <div className="mt-3 space-y-3 text-sm">
-            <TimelineItem text="Record updated by owner" />
-            <TimelineItem text="Follow-up task generated" />
-            <TimelineItem text="Notification sent to assigned user" />
+            <p className="text-muted-foreground">No activity history is loaded for this record. Open Activities to view logged follow-ups.</p>
           </div>
         </div>
       </CardContent>

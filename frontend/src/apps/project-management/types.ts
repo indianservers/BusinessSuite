@@ -165,6 +165,7 @@ export interface PMSTask {
   status: TaskStatus;
   priority: TaskPriority;
   assignee_user_id?: number;
+  assignee_user_ids?: number[];
   reporter_user_id?: number;
   start_date?: string;
   due_date?: string;
@@ -202,6 +203,7 @@ export interface PMSTaskListItem extends PMSTask {
 }
 
 export interface PMSTaskListOption {
+  can_manage_tasks?: boolean;
   id: number;
   name: string;
   project_id?: number;
@@ -279,6 +281,7 @@ export interface CreateTaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   assignee_user_id?: number;
+  assignee_user_ids?: number[];
   reporter_user_id?: number;
   parent_task_id?: number;
   epic_id?: number;

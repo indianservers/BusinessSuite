@@ -1,16 +1,24 @@
 # Vercel + Neon deployment
 
-The repository supports two Vercel projects, private S3-compatible uploads, resumable cron batches and collaboration synchronized through PostgreSQL. Cloud projects and credentials must be configured before live deployment can be verified.
+The repository deploys as one Vercel project with two services, `frontend` (Vite) and `backend` (FastAPI), configured in the root `vercel.json`. Import with repository root `./`. Private S3-compatible storage and production environment variables must be configured before live deployment can be verified.
+
+Public routing preserves request paths: `/api/*`, `/health` and `/uploads/*` reach the backend; all remaining paths reach the frontend, whose own rewrite supports SPA deep links. Browser API requests use `/api/v1`. Neither service makes server-side calls to the other, so no service bindings are declared. A static browser bundle cannot consume runtime-only internal service URLs. The legacy standalone Flask inventory application is excluded; integrated inventory remains part of FastAPI.
+
+Run `npx vercel dev -L` from the repository root to test service routing locally. The existing `start-both.cmd` remains available for the independent local development servers.
+
+Neon credentials supplied for this setup are saved only in ignored `.local/neon.env`. These are not automatically uploaded to Vercel. Set `DATABASE_URL` from that file in the project environment; use `DATABASE_URL_UNPOOLED` only for provisioning. Do not import all database aliases into the backend `.env` (Pydantic rejects unknown settings). Never expose database variables as `VITE_*`.
+
+Both `BACKEND_PUBLIC_URL` and `FRONTEND_PUBLIC_URL` must be the same deployment origin; set `BACKEND_CORS_ORIGINS` to that exact origin. The root configuration intentionally declares no cron schedule pending confirmation of the required frequency and hosting plan.
 
 ## Resources
 
 | Resource | Configuration |
 | --- | --- |
-| Frontend Vercel project | Repository root directory `frontend`, Vite preset |
-| API Vercel project | Root directory `backend`, FastAPI preset, Python 3.12 |
+| Frontend service | `frontend`, Vite preset, public SPA at `/` |
+| Backend service | `backend`, FastAPI preset, Python 3.12, public `/api/*` |
 | Neon PostgreSQL | Separate production and preview branches; choose a region near the API |
 | Private object storage | S3, Cloudflare R2, or compatible provider; use separate bucket/prefix for previews |
-| Scheduler | Included five-minute Vercel Cron configuration requires Pro; an external scheduler can call the same endpoint |
+| Scheduler | Choose a schedule explicitly; an external scheduler can call the authenticated endpoint |
 
 Use runtime environment templates `backend/.env.vercel.example` and `frontend/.env.vercel.example`. Set actual values in Vercel environment settings, never in Git. All `VITE_*` values are public.
 
@@ -30,6 +38,8 @@ For deployment, keep `SERVERLESS=true`, `DATABASE_AUTO_MIGRATE=false` and `SEED_
 
 ## Private uploads and generated exports
 
+For private Vercel Blob, set `STORAGE_BACKEND=vercel_blob` and the server-only `BLOB_READ_WRITE_TOKEN`. The backend writes private blobs through the Python SDK. Existing permission-checked APIs issue expiring, file-scoped links to `/api/v1/files/blob`; that endpoint validates the signature, purpose, audience, expiry and storage path before retrieving the private content. The Blob token never reaches browser code. The response uses private/no-store caching and attachment disposition. Existing record file references remain `/uploads/...` and are normalized when edited. S3-compatible storage remains supported as an alternative.
+
 Set `STORAGE_BACKEND=s3`, bucket, region, credentials and optional custom endpoint. For AWS S3, omit the custom endpoint and use the actual region; for R2, use the account endpoint and region `auto`. Keep public access blocked. Scope runtime credentials to the chosen prefix with object Get/Put permissions and required multipart permissions; the deployment-check script also needs Delete permission for its temporary probe.
 
 The upload and document/export paths persist files before returning their records. Download endpoints retain their existing permissions and redirect to short-lived signed object URLs. Existing `/uploads/...` record references are signed in API JSON responses; edited records normalize signed links back to durable references so expiry is not saved into the database. Public static upload serving is disabled in S3 mode. Local disk under `/tmp` is staging only. Form 16 merging and resume parsing can retrieve private inputs on a different instance.
@@ -44,7 +54,7 @@ The current multipart UI accepts a total of **3 MB** per request, leaving room f
 
 ## Scheduled work
 
-`backend/vercel.json` invokes `GET /api/v1/internal/cron` every five minutes. Set a random `CRON_SECRET` of at least 32 characters; Vercel sends it as `Authorization: Bearer ...`. Missing or incorrect authorization is rejected. For Hobby, remove the five-minute Vercel cron entry and use an external scheduler with the same authenticated request. A daily schedule is insufficient to reliably drain bounded batches for a larger organization.
+No schedule is enabled by default. To schedule `GET /api/v1/internal/cron`, add a top-level `crons` entry to the root `vercel.json` after choosing the cadence. Set a random `CRON_SECRET` of at least 32 characters; Vercel sends it as `Authorization: Bearer ...`. Missing or incorrect authorization is rejected. For Hobby, use a supported cadence or an external scheduler with the same authenticated request. A daily schedule is insufficient to reliably drain bounded batches for a larger organization.
 
 The endpoint processes at most 25 employees per invocation. Six-minute PostgreSQL leases (longer than the configured five-minute function limit) prevent overlapping batches, committed cursors resume work, failed/expired leases retry, and the leave ledger prevents duplicate credit after a crash between business commit and progress recording. Pending days are resumed before current work; dates use Asia/Kolkata. Realtime event retention is seven days. Use `GET /api/v1/internal/jobs` with an authorized settings administrator to inspect status, attempts and errors. Do not run the old Celery Beat leave scheduler alongside this dispatcher.
 

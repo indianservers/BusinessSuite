@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
@@ -148,11 +148,13 @@ export default function LoginPage() {
   const loginConfig = moduleLogins[loginModule];
   const loginTheme = loginThemes[loginModule];
   const { setTokens, setUser } = useAuthStore();
+  const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
   const [loginPhase, setLoginPhase] = useState<"credentials" | "mfa">("credentials");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [mfaMethod, setMfaMethod] = useState<"totp" | "recovery">("totp");
   const [mfaCode, setMfaCode] = useState("");
+  const [ssoBusy, setSsoBusy] = useState(false);
   const [inlineError, setInlineError] = useState("");
   const [authView, setAuthView] = useState<AuthView>("login");
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -171,7 +173,7 @@ export default function LoginPage() {
   const resetToken = useMemo(() => new URLSearchParams(location.search).get("token"), [location.search]);
 
   const workspaceReturn = new URLSearchParams(location.search).get("next");
-  const workspaceRedirect = workspaceReturn === "/pms/workspaces" || workspaceReturn?.startsWith("/pms/workspaces?") ? workspaceReturn : null;
+  const workspaceRedirect = workspaceReturn === "/pms/workspaces" || workspaceReturn?.startsWith("/pms/workspaces?") || workspaceReturn?.startsWith("/pms/invitation?") ? workspaceReturn : null;
   const getPostLoginPath = useCallback((role?: string | null, isSuperuser = false) => (
     workspaceRedirect || (loginModule === "hrms" ? getDefaultPathForUser(role, isSuperuser) : loginConfig.afterLogin)
   ), [loginConfig.afterLogin, loginModule, workspaceRedirect]);
@@ -189,29 +191,26 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
+    const handoff = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const code = handoff.get("sso_code");
+    const providerId = Number(handoff.get("provider"));
     const ssoError = params.get("sso_error");
-    if (accessToken && refreshToken) {
-      window.history.replaceState({}, "", window.location.pathname);
-      setTokens(accessToken, refreshToken);
-      authApi.me().then((res) => {
-        const roleName = res.data.role?.name || null;
-        setUser({
-          id: res.data.id,
-          email: res.data.email,
-          role: roleName,
-          is_superuser: res.data.is_superuser,
-          employee_id: res.data.employee_id,
-        });
-        navigate(getPostLoginPath(roleName, res.data.is_superuser));
-      });
+    if (code && providerId > 0) {
+      window.history.replaceState({}, "", window.location.pathname + window.location.search);
+      setSsoBusy(true);
+      authApi.completeSso(providerId, code).then(({ data }) => {
+        queryClient.clear();
+        setTokens(data.access_token, data.refresh_token);
+        setUser({ id: data.user_id, email: data.email, role: data.role, is_superuser: data.is_superuser, employee_id: data.employee_id });
+        navigate(getPostLoginPath(data.role, data.is_superuser));
+      }).catch(() => setInlineError("Google sign-in could not be completed. Please start again."))
+        .finally(() => setSsoBusy(false));
     }
     if (ssoError) {
       window.history.replaceState({}, "", window.location.pathname);
       setInlineError(ssoError.replace(/_/g, " "));
     }
-  }, [getPostLoginPath, navigate, setTokens, setUser]);
+  }, [getPostLoginPath, navigate, setTokens, setUser, queryClient]);
 
   useEffect(() => {
     if (resetToken) {
@@ -231,6 +230,7 @@ export default function LoginPage() {
       }
       const { access_token, refresh_token, user_id, email, role, is_superuser, employee_id } = res.data;
 
+      queryClient.clear();
       setTokens(access_token, refresh_token);
       setUser({ id: user_id, email, role, is_superuser, employee_id });
 
@@ -248,6 +248,7 @@ export default function LoginPage() {
     mutationFn: () => authApi.mfaVerify({ mfa_token: mfaToken, code: mfaCode, method: mfaMethod }),
     onSuccess: (res) => {
       const { access_token, refresh_token, user_id, email, role, is_superuser, employee_id } = res.data;
+      queryClient.clear();
       setTokens(access_token, refresh_token);
       setUser({ id: user_id, email, role, is_superuser, employee_id });
       navigate(getPostLoginPath(role, is_superuser));
@@ -297,7 +298,7 @@ export default function LoginPage() {
     },
   });
 
-  const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname)}`;
+  const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname + location.search)}`;
 
   return (
     <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${loginTheme.page} p-4`}>
@@ -432,7 +433,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder={loginConfig.demoLogins[0].email}
+                  placeholder="you@company.com"
                   className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
                   {...register("email")}
                 />
@@ -469,12 +470,12 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className={`w-full text-white font-semibold shadow-lg ${loginTheme.button} h-11`}
-                disabled={isSubmitting}
+                disabled={isSubmitting || ssoBusy}
               >
-                {isSubmitting ? (
+                {isSubmitting || ssoBusy ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : null}
-                {isSubmitting ? "Signing in..." : "Sign in"}
+                {isSubmitting || ssoBusy ? "Signing in..." : "Sign in"}
               </Button>
               <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => { setRecoveryEmail(emailValue || ""); setAuthView("forgot"); setInlineError(""); }}>
                 Forgot password?
@@ -501,7 +502,7 @@ export default function LoginPage() {
             )}
             {inlineError && loginPhase === "credentials" && authView === "login" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
 
-            {authView === "login" && (
+            {import.meta.env.DEV && authView === "login" && (
             <div className="mt-4 space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
               <p className="text-xs font-medium text-blue-200/80">Role logins</p>
               {loginConfig.demoLogins.map((login) => (

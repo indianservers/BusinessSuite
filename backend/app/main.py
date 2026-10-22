@@ -156,6 +156,21 @@ if settings.STORAGE_BACKEND == "local" and os.path.exists(settings.UPLOAD_DIR):
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
+@app.get("/api/v1/files/blob", include_in_schema=False)
+def private_blob_file(token: str):
+    from app.core.storage import blob_token_path, materialize_file
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse
+    if settings.STORAGE_BACKEND != "vercel_blob":
+        raise HTTPException(404, "Not found")
+    path = blob_token_path(token)
+    materialize_file(path)
+    return FileResponse(path, filename=os.path.basename(path), headers={
+        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+    })
+
+
 @app.get("/")
 def root():
     return {

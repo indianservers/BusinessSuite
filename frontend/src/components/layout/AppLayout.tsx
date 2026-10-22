@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import AsyncProgress from "@/components/app/AsyncProgress";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import BackToTop from "@/components/app/BackToTop";
@@ -22,12 +23,13 @@ export default function AppLayout() {
     localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  if (location.pathname === "/pms/workspaces") {
+  if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
     return <div className="h-dvh overflow-hidden"><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /></div>;
   }
 
   return (
     <div className={`product-shell ${product.themeClass} flex h-screen overflow-hidden bg-background`} data-product={product.key}>
+      <AsyncProgress />
       {/* Sidebar */}
       <Sidebar
         open={sidebarOpen}
@@ -43,9 +45,9 @@ export default function AppLayout() {
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : "p-4 md:p-5 lg:p-8"}`}>
+        <main className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
           {isPosTerminal ? null : <Breadcrumbs />}
-          {isPosTerminal ? null : <WorkspaceEnhancements />}
+          <WorkspaceEnhancements terminal={isPosTerminal} />
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

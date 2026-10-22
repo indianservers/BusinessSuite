@@ -20,6 +20,7 @@ import { PortalPage, saasRoutes } from "@/apps/saas/routes";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
+const WorkspaceInvitationPage = React.lazy(() => import("@/pages/auth/WorkspaceInvitationPage"));
 const ModuleIndexPage = React.lazy(() => import("@/pages/ModuleIndexPage"));
 const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
 const AutomationStudioPage = React.lazy(() => import("@/apps/automation/AutomationStudioPage"));
@@ -160,6 +161,7 @@ export default function App() {
           <Route path="/hrms/login" element={<LoginPage />} />
           <Route path="/crm/login" element={<LoginPage />} />
           <Route path="/pms/login" element={<LoginPage />} />
+          <Route path="/pms/invitation" element={<WorkspaceInvitationPage />} />
           <Route path="/srm/login" element={<LoginPage />} />
           <Route path="/fam/login" element={<LoginPage />} />
           <Route path="/portal/customer/login" element={<PortalPage />} />

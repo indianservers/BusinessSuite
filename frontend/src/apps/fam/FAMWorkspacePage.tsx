@@ -1,3 +1,6 @@
+import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
+import ModuleWorkflows from "@/components/app/ModuleWorkflows";
+import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { cloneElement, forwardRef, isValidElement, useMemo, useState, type ElementType } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link as RouterLink, useLocation, useParams, type LinkProps } from "react-router-dom";
@@ -268,11 +271,14 @@ function DashboardView() {
   return (
     <div className="space-y-5">
       <State label="FAM dashboard" isLoading={query.isLoading} isError={query.isError} />
+<ModuleWorkflows module="fam" />
       <div className="grid gap-3 md:grid-cols-4">
-        {kpis.map(([label, value]) => (
+        {kpis.filter(([label]) => ["Cash and bank", "Receivables", "Payables", "Overdue AR"].includes(label)).map(([label, value]) => (
           <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></CardContent></Card>
         ))}
       </div>
+      <SecondaryDetails title="Financial summary and books status">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{kpis.filter(([label]) => !["Cash and bank", "Receivables", "Payables", "Overdue AR"].includes(label)).map(([label, value]) => <div key={label} className="border-b py-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p></div>)}</div>
       <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
         <Card>
           <CardHeader><CardTitle className="text-base">Recent accounting activity</CardTitle></CardHeader>
@@ -291,6 +297,7 @@ function DashboardView() {
           </CardContent>
         </Card>
       </div>
+      </SecondaryDetails>
     </div>
   );
 }
@@ -513,6 +520,7 @@ function LedgerEntriesView({ detail }: { detail?: boolean }) {
 }
 
 function PartiesView({ partyType }: { partyType?: "customer" | "vendor" }) {
+  const createRef = useNewRecordFocus();
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "parties", partyType || "all"], queryFn: () => famApi.parties(partyType) });
   const rows = listItems(query.data);
@@ -521,7 +529,7 @@ function PartiesView({ partyType }: { partyType?: "customer" | "vendor" }) {
   const title = partyType === "customer" ? "customer" : partyType === "vendor" ? "vendor" : "party";
   return (
     <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
-      <Card><CardHeader><CardTitle className="text-base">Create {title}</CardTitle></CardHeader><CardContent className="space-y-3">
+      <Card ref={createRef} id="new-record"><CardHeader><CardTitle className="text-base">Create {title}</CardTitle></CardHeader><CardContent className="space-y-3">
         {["party_type", "party_code", "legal_name", "gstin", "pan", "state_code", "payment_terms_days", "credit_limit"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
         <Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending}><Plus className="h-4 w-4" />Create with ledger</Button>
       </CardContent></Card>
@@ -2184,12 +2192,6 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   return (
     <section className="space-y-5">
       <PageHeader meta={meta} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["fam"] })} />
-      <div className={`rounded-lg border px-4 py-3 text-sm ${isSrmInventoryContext ? "border-blue-200 bg-blue-50 text-blue-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
-        <ShieldCheck className="mr-2 inline h-4 w-4" />
-        {isSrmInventoryContext
-          ? "Sales & Inventory owns operational stock, products, warehouses, POS, and fulfilment. Accounting postings sync to FAM only when required."
-          : "FAM is the statutory books engine. SRM remains the operational revenue engine; no SRM invoice screens are duplicated here."}
-      </div>
       {content}
     </section>
   );

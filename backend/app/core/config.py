@@ -108,6 +108,7 @@ class Settings(BaseSettings):
     # File storage
     UPLOAD_DIR: str = "/tmp/business-suite-uploads" if os.environ.get("VERCEL") else "./uploads"
     STORAGE_BACKEND: str = "s3" if os.environ.get("VERCEL") else "local"
+    BLOB_READ_WRITE_TOKEN: str = ""
     S3_BUCKET: str = ""
     S3_ENDPOINT_URL: Optional[str] = None
     S3_REGION: str = "auto"
@@ -186,8 +187,11 @@ class Settings(BaseSettings):
                 raise ValueError("Serverless multipart uploads support at most 3 MB")
             if self.DATABASE_AUTO_MIGRATE or self.SEED_DEMO_DATA:
                 raise ValueError("Serverless requires DATABASE_AUTO_MIGRATE=false and SEED_DEMO_DATA=false")
-            if self.STORAGE_BACKEND != "s3" or not all([self.S3_BUCKET, self.S3_ACCESS_KEY_ID, self.S3_SECRET_ACCESS_KEY]):
-                raise ValueError("Serverless requires configured private S3-compatible storage")
+            if self.STORAGE_BACKEND == "vercel_blob":
+                if not self.BLOB_READ_WRITE_TOKEN:
+                    raise ValueError("Vercel Blob requires BLOB_READ_WRITE_TOKEN")
+            elif self.STORAGE_BACKEND != "s3" or not all([self.S3_BUCKET, self.S3_ACCESS_KEY_ID, self.S3_SECRET_ACCESS_KEY]):
+                raise ValueError("Serverless requires configured private S3-compatible storage or Vercel Blob")
             if len(self.CRON_SECRET) < 32:
                 raise ValueError("Serverless requires a CRON_SECRET of at least 32 characters")
         return self

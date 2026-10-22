@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatDate, statusColor } from "@/lib/utils";
+import { usePMSRealtime } from "../realtime";
 import { ganttAPI } from "../services/api";
 import type { PMSGanttResponse, PMSTaskDependency, PMSTaskListItem } from "../types";
 
@@ -52,8 +53,10 @@ export default function GanttPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const canEditProject = (id?: number) => !!data?.filters.projects.find(p => p.id === id)?.can_manage_tasks;
+  const readOnly = filters.projectId ? !canEditProject(Number(filters.projectId)) : !data?.filters.projects.some(p => p.can_manage_tasks);
+  const load = async (background = false) => {
+    if (!background) setLoading(true);
     setError(null);
     try {
       const response = await ganttAPI.get(filters);
@@ -120,6 +123,8 @@ export default function GanttPage() {
   }, [data?.warnings]);
   const scheduleFocus = useMemo(() => buildScheduleFocus(tasks, dependencies, warningByTask), [tasks, dependencies, warningByTask]);
 
+  usePMSRealtime({ enabled: !drag, projectId: Number(filters.projectId) || undefined, onEvent: () => { void load(true); }, onFallbackPoll: () => { void load(true); }, showToast: false });
+
   const createDependency = async () => {
     if (!sourceTaskId || !targetTaskId || sourceTaskId === targetTaskId) return;
     setError(null);
@@ -161,7 +166,7 @@ export default function GanttPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {selectedProjectId ? <Button asChild variant="outline"><Link to={`/pms/projects/${selectedProjectId}/board`}>Open board</Link></Button> : null}
-          <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4" />Refresh</Button>
+          <Button variant="outline" onClick={() => { void load(); }}><RefreshCw className="h-4 w-4" />Refresh</Button>
         </div>
       </div>
 
@@ -222,7 +227,7 @@ export default function GanttPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="truncate text-sm font-semibold">{task.task_key}</span>
-                          {task.is_blocking ? <Badge variant="outline" className="border-red-200 text-red-700">Blocked</Badge> : null}
+                          {task.is_blocking ? <Badge variant="outline" className="border-red-200 text-red-700">Blocks other tasks</Badge> : null}
                         </div>
                         <p className="truncate text-xs text-muted-foreground">{task.title}</p>
                       </div>
@@ -242,6 +247,7 @@ export default function GanttPage() {
                       zoom={zoom}
                       warnings={warningByTask.get(task.id) || []}
                       onDragStart={(mode, event) => {
+                        if (!canEditProject(task.project_id)) return;
                         event.preventDefault();
                         setDrag({ taskId: task.id, mode, startX: event.clientX, originalStart: schedule.start, originalEnd: schedule.end });
                       }}
@@ -258,7 +264,7 @@ export default function GanttPage() {
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" />Dependencies</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
+            <fieldset disabled={readOnly} className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
               <select value={sourceTaskId} onChange={(event) => setSourceTaskId(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                 <option value="">Source task</option>
                 {tasks.map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
@@ -272,9 +278,9 @@ export default function GanttPage() {
               </select>
               <input type="number" value={lagDays} onChange={(event) => setLagDays(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm" placeholder="Lag" />
               <Button type="button" onClick={createDependency}>Add</Button>
-            </div>
+            </fieldset>{readOnly && <p className="text-sm text-muted-foreground">You have read-only access to this timeline.</p>}
             <div className="space-y-2">
-              {dependencies.map((dependency) => <DependencyRow key={dependency.id} dependency={dependency} onDelete={() => deleteDependency(dependency.id)} />)}
+              {dependencies.map((dependency) => <DependencyRow key={dependency.id} dependency={dependency} canEdit={canEditProject(tasks.find(t => t.id === (dependency.source_task_id ?? dependency.depends_on_task_id))?.project_id)} onDelete={() => deleteDependency(dependency.id)} />)}
               {!dependencies.length ? <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">No dependencies for the visible tasks.</p> : null}
             </div>
           </CardContent>
@@ -425,14 +431,14 @@ function DependencyArrows({ dependencies, rows, timelineStart, zoom }: { depende
   );
 }
 
-function DependencyRow({ dependency, onDelete }: { dependency: PMSTaskDependency; onDelete: () => void }) {
+function DependencyRow({ dependency, onDelete, canEdit }: { dependency: PMSTaskDependency; onDelete: () => void; canEdit: boolean }) {
   return (
     <div className="flex flex-col gap-2 rounded-md border p-3 text-sm md:flex-row md:items-center md:justify-between">
       <div>
         <p className="font-medium">{dependency.source_task_key || dependency.depends_on_task_key} &rarr; {dependency.target_task_key || dependency.task_key}</p>
         <p className="text-xs text-muted-foreground">{dependency.dependency_type} / Lag {dependency.lag_days || 0} days</p>
       </div>
-      <Button type="button" size="sm" variant="ghost" onClick={onDelete} aria-label="Delete dependency"><Trash2 className="h-4 w-4" /></Button>
+      <Button disabled={!canEdit} type="button" size="sm" variant="ghost" onClick={onDelete} aria-label="Delete dependency"><Trash2 className="h-4 w-4" /></Button>
     </div>
   );
 }

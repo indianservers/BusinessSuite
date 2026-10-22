@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.email import send_email
 from app.core.security import (
     verify_password, create_access_token, create_refresh_token,
-    verify_refresh_token, get_password_hash
+    verify_refresh_token, verify_access_token, get_password_hash
 )
 from app.core.mfa import (
     generate_recovery_codes,
@@ -521,9 +521,15 @@ def change_password(
 
 
 @router.post("/logout")
-def logout(current_user: User = Depends(get_current_user)):
-    # In a stateless JWT setup, logout is client-side token removal
-    # For production, implement token blacklisting with Redis
+def logout(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    token = request.headers.get("authorization", "").partition(" ")[2]
+    payload = verify_access_token(token) or {}
+    session_id = payload.get("sid")
+    if session_id:
+        session = db.query(UserSession).filter_by(id=int(session_id), user_id=current_user.id).first()
+        if session:
+            session.status = "revoked"
+            db.commit()
     return {"message": "Logged out successfully"}
 
 

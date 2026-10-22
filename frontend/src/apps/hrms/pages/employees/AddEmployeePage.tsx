@@ -520,13 +520,14 @@ export default function AddEmployeePage() {
           {currentStep < steps.length - 1 ? (
             <Button
               type="button"
-              onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))}
+              key="next-step"
+              onClick={event => { event.preventDefault(); setCurrentStep((s) => Math.min(steps.length - 1, s + 1)); }}
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button key="create-employee" type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (

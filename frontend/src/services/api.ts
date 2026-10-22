@@ -1,6 +1,15 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
+import { beginProgress } from "@/lib/async-progress";
+
+declare module "axios" {
+  interface AxiosRequestConfig {
+    /** Disable foreground feedback for non-interactive mutations. */
+    progress?: false;
+    _finishProgress?: (success?: boolean, error?: string) => void;
+  }
+}
 
 const BASE_URL = getApiBaseUrl();
 type RefreshResponse = { access_token: string; refresh_token: string };
@@ -9,7 +18,8 @@ let refreshPromise: Promise<RefreshResponse> | null = null;
 export const api = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
-  timeout: 30000,
+  // Allow the first serverless request to finish a cold start.
+  timeout: 60000,
 });
 
 // Request interceptor: attach access token
@@ -29,6 +39,14 @@ api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const module = window.location.pathname.split("/")[1];
+  const isMutation = ["post", "put", "patch", "delete"].includes(config.method || "get");
+  // PMS workspaces already track complete operations, including their refresh.
+  if (isMutation && config.progress !== false && !config._finishProgress &&
+      module !== "pms" && !config.url?.startsWith("/auth/") &&
+      ["hrms", "crm", "srm", "fam"].includes(module)) {
+    config._finishProgress = beginProgress(`Processing ${module.toUpperCase()} request`);
   }
   return config;
 });
@@ -74,8 +92,22 @@ api.interceptors.response.use(
   }
 );
 
+// Run after the refresh interceptor: retries retain one operation until the
+// final response, and the idempotent finish handles nested interceptor chains.
+api.interceptors.response.use(response => {
+  response.config._finishProgress?.();
+  return response;
+}, (error: AxiosError<{ detail?: unknown }>) => {
+  const detail = error.response?.data?.detail;
+  error.config?._finishProgress?.(false, typeof detail === "string" ? detail :
+    error.code === "ECONNABORTED" ? "Confirmation timed out. Check whether the record was saved before retrying." :
+    "The request failed. Review your inputs or connection and try again.");
+  return Promise.reject(error);
+});
+
 // API service functions
 export const authApi = {
+  completeSso: (providerId: number, code: string) => api.post(`/auth/sso/complete/${providerId}`, { code }),
   login: (email: string, password: string, module?: string, trustedDeviceToken?: string) =>
     api.post("/auth/login", { email, password, module, trusted_device_token: trustedDeviceToken }),
   refresh: (refreshToken: string) =>
@@ -89,7 +121,7 @@ export const authApi = {
       current_password: currentPassword,
       new_password: newPassword,
     }),
-  logout: () => api.post("/auth/logout"),
+  logout: () => api.post("/auth/logout", undefined, { timeout: 5000 }),
   mfaSetup: () => api.post("/auth/mfa/setup"),
   mfaConfirm: (data: unknown) => api.post("/auth/mfa/confirm", data),
   mfaVerify: (data: unknown) => api.post("/auth/mfa/verify", data),

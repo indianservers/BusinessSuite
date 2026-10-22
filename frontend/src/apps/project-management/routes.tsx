@@ -45,7 +45,8 @@ const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/workspaces", element: <WorkspacesPage /> },
   // Home / Dashboard
-  { path: "pms", element: <ProjectManagementHomePage /> },
+  { path: "pms", element: <WorkspacesPage /> },
+  { path: "pms/overview", element: <ProjectManagementHomePage /> },
   { path: "pms/profile", element: <ModuleProfilePage /> },
   { path: "pms/command-center", element: <CommandCenterPage /> },
   { path: "pms/enterprise-engine", element: <EnterpriseEnginePage /> },

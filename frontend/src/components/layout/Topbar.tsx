@@ -1,3 +1,4 @@
+import { useSignOut } from "@/hooks/use-sign-out";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -7,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ModuleNewMenu from "@/components/app/ModuleNewMenu";
 import GlobalSearch from "@/components/app/GlobalSearch";
 import KeyboardShortcuts from "@/components/app/KeyboardShortcuts";
 import { useThemeStore } from "@/store/themeStore";
@@ -26,7 +28,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme } = useThemeStore();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -45,10 +47,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   });
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
-  const handleLogout = () => {
-    logout();
-    navigate(product.loginPath, { replace: true });
-  };
+  const handleLogout = useSignOut(product.loginPath);
   const isHrms = location.pathname.startsWith("/hrms");
   const isCrm = location.pathname.startsWith("/crm");
   const profilePath = isHrms ? "/hrms/profile" : isCrm ? "/crm/profile" : location.pathname.startsWith("/srm") ? "/srm/profile" : location.pathname.startsWith("/fam") ? "/fam/profile" : "/pms/profile";
@@ -94,6 +93,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <GlobalSearch />
 
       <div className="ml-auto flex items-center gap-2">
+        <ModuleNewMenu />
         <div className="hidden rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
           {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
         </div>
@@ -152,9 +152,10 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </Button>
 
         <Dialog.Root open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <Button variant="ghost" size="sm" onClick={() => void handleLogout()}><LogOut className="h-4 w-4" /><span>Logout</span></Button>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">
+            <button aria-label="Account menu" className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 {initials}
               </div>

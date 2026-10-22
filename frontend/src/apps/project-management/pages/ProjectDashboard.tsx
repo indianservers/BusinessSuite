@@ -1,3 +1,4 @@
+import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertTriangle, BarChart3, CheckCircle2, Clock, Kanban, ListChecks, Milestone, ShieldAlert, Timer } from "lucide-react";
@@ -72,6 +73,7 @@ export default function ProjectDashboard() {
         <Metric icon={Timer} label="Progress" value={`${project.progress_percent}%`} />
       </div>
 
+      <SecondaryDetails title="Task status and project details">
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <Card>
           <CardHeader>
@@ -104,6 +106,8 @@ export default function ProjectDashboard() {
         </Card>
       </div>
 
+      </SecondaryDetails>
+
       {project.srm_links ? (
         <Card>
           <CardHeader>
@@ -118,16 +122,6 @@ export default function ProjectDashboard() {
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>AI Insights</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
-          <Insight text={`${overdue.length} tasks are overdue and need attention.`} />
-          <Insight text={`${dashboard?.metrics.high_risks ?? 0} open high risks are on the project register.`} />
-          <Insight text={`Project progress is ${project.progress_percent}% against the current delivery window.`} />
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -161,9 +155,5 @@ function LinkedSummary({ label, value }: { label: string; value: string }) {
 function textValue(value: unknown) {
   if (value === null || value === undefined) return "";
   return String(value);
-}
-
-function Insight({ text }: { text: string }) {
-  return <div className="rounded-lg border bg-muted/40 p-4 text-sm">{text}</div>;
 }
 

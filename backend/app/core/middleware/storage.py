@@ -11,15 +11,15 @@ class PrivateUploadURLMiddleware(BaseHTTPMiddleware):
             if int(request.headers.get("content-length", "0")) > 4 * 1024 * 1024:
                 return Response('{"detail":"Upload request exceeds 4 MB. Maximum file size is 3 MB."}',
                                 status_code=413, media_type="application/json")
-        if settings.STORAGE_BACKEND == "s3" and "application/json" in request.headers.get("content-type", ""):
+        if settings.STORAGE_BACKEND in {"s3", "vercel_blob"} and "application/json" in request.headers.get("content-type", ""):
             body = await request.body()
-            if b"X-Amz-Signature=" in body:
+            if b"X-Amz-Signature=" in body or b"/api/v1/files/blob?" in body:
                 try:
                     request._body = json.dumps(normalize_upload_references(json.loads(body))).encode()
                 except (ValueError, TypeError):
                     pass  # Preserve FastAPI's normal malformed-JSON validation.
         response = await call_next(request)
-        if (settings.STORAGE_BACKEND != "s3" or response.status_code >= 400
+        if (settings.STORAGE_BACKEND not in {"s3", "vercel_blob"} or response.status_code >= 400
                 or "application/json" not in response.headers.get("content-type", "")):
             return response
         body = b"".join([chunk async for chunk in response.body_iterator])

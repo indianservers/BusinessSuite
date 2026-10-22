@@ -1,3 +1,6 @@
+import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
+import ModuleWorkflows from "@/components/app/ModuleWorkflows";
+import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -335,6 +338,7 @@ function DashboardView() {
           <Link to="/srm/pos/terminal"><Store className="h-4 w-4" />Open POS</Link>
         </Button>
       </div>
+<ModuleWorkflows module="srm" />
       <SectionState label="dashboard" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
       {!query.isLoading && !query.isError ? (
         <>
@@ -344,10 +348,13 @@ function DashboardView() {
             <DashboardMetricCard icon={BarChart3} label="Outstanding" value={money(outstanding)} detail="All time" />
             <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={money(overdue)} detail="All time" tone={overdue > 0 ? "danger" : "default"} />
           </div>
+<SecondaryDetails title="Revenue trends and order pipeline">
           <div className="grid gap-4 xl:grid-cols-12">
             <RevenuePerformanceCard records={revenueTrend} />
             <OrderPipelineCard items={orderPipeline} total={numberValue(data.total_sales_orders)} />
           </div>
+
+</SecondaryDetails>
           <div className="grid gap-4 xl:grid-cols-12">
             <SalesOrdersCard records={recentOrders} />
             <InvoicesCard records={recentInvoices} />
@@ -928,6 +935,7 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
 }
 
 function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
+  const createRef = useNewRecordFocus();
   const [form, setForm] = useState({
     template: "services",
     customer_id: "",
@@ -987,7 +995,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
   });
 
   return (
-    <Card>
+    <Card ref={createRef} id="new-record">
       <CardHeader>
         <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
       </CardHeader>
@@ -1807,6 +1815,7 @@ function POSReturnsView() {
 }
 
 function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
+  const createRef = useNewRecordFocus();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [salesOrder, setSalesOrder] = useState({
@@ -1952,7 +1961,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
   if (!["salesOrders", "contracts", "engagements", "billingPlans"].includes(kind)) return null;
 
   return (
-    <Card>
+    <Card ref={createRef} id="new-record" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="text-base">Create {viewMeta[kind].title.slice(0, -1)}</CardTitle>
       </CardHeader>
@@ -2040,7 +2049,8 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
 
 function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta }) {
   const queryClient = useQueryClient();
-  const canManage = useCanManageRevenue();
+  const user = useAuthStore(state => state.user);
+  const canManage = !!user?.is_superuser || ["admin", "super_admin", "srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(String(user?.role || "").toLowerCase());
   const query = useQuery({
     queryKey: ["srm", kind],
     queryFn: () => srmApi[meta.endpoint as SRMQueryEndpoint](),

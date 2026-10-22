@@ -59,6 +59,20 @@ def test_login_nonexistent_user(client):
     assert response.status_code == 401
 
 
+def test_logout_revokes_only_current_session_and_its_refresh_token(client, db):
+    user = User(email="logout-audit@example.com", hashed_password=get_password_hash("Test@123456"), is_active=True)
+    db.add(user)
+    db.commit()
+    credentials = {"email": user.email, "password": "Test@123456"}
+    first = client.post("/api/v1/auth/login", json=credentials).json()
+    other = client.post("/api/v1/auth/login", json=credentials).json()
+    headers = {"Authorization": "Bearer " + first["access_token"]}
+    assert client.post("/api/v1/auth/logout", headers=headers).status_code == 200
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
+    assert client.post("/api/v1/auth/refresh", json={"refresh_token": first["refresh_token"]}).status_code == 401
+    assert client.get("/api/v1/auth/me", headers={"Authorization": "Bearer " + other["access_token"]}).status_code == 200
+
+
 def test_get_me(client, superuser_headers):
     response = client.get("/api/v1/auth/me", headers=superuser_headers)
     assert response.status_code == 200

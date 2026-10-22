@@ -26,6 +26,47 @@ def account(db, email, admin=False):
     return user, {"Authorization": "Bearer " + create_access_token(str(user.id))}
 
 
+def test_invitation_activation_status_and_replacement_link(client, db):
+    from app.models.user import Role
+    from app.core.security import verify_password
+    role = Role(name="pms_team_member", is_system=True)
+    db.add(role)
+    db.commit()
+    owner, headers = account(db, "activation-owner@test.com", True)
+    wid = client.post(BASE + "/workspaces", json={"name": "Activation audit"}, headers=headers).json()["id"]
+    url = f"{BASE}/workspaces/{wid}"
+    payload = {"email": "activation-new@test.com", "role": "Member"}
+    first = client.post(url + "/invitations", json=payload, headers=headers).json()
+    second = client.post(url + "/invitations", json=payload, headers=headers).json()
+    assert client.get(BASE + "/workspace-invitations/preview", params={"token": first["token"]}).status_code == 400
+    preview = client.get(BASE + "/workspace-invitations/preview", params={"token": second["token"]})
+    assert preview.status_code == 200
+    assert preview.json()["account_exists"] is False
+    assert preview.json()["email"] == payload["email"]
+    password = "Audit-test-password-2026"
+    activated = client.post(BASE + "/workspace-invitations/activate", json={"token": second["token"], "password": password})
+    assert activated.status_code == 201, activated.text
+    assert client.post(BASE + "/workspace-invitations/activate", json={"token": second["token"], "password": password}).status_code == 400
+    user = db.query(User).filter_by(email=payload["email"]).one()
+    assert not user.is_superuser and user.role_id == role.id
+    assert verify_password(password, user.hashed_password)
+    assert db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=user.id).one().role == "Member"
+    invitations = client.get(url + "/invitations", headers=headers).json()
+    assert invitations[0]["status"] == "accepted" and invitations[0]["account_exists"]
+    assert invitations[1]["status"] == "revoked"
+
+
+def test_activation_cannot_reset_an_existing_account(client, db):
+    owner, headers = account(db, "activation-owner-existing@test.com", True)
+    existing, _ = account(db, "activation-existing@test.com")
+    wid = client.post(BASE + "/workspaces", json={"name": "Existing account"}, headers=headers).json()["id"]
+    invitation = client.post(f"{BASE}/workspaces/{wid}/invitations", json={"email": existing.email}, headers=headers).json()
+    result = client.post(BASE + "/workspace-invitations/activate", json={"token": invitation["token"], "password": "should-not-reset-password"})
+    assert result.status_code == 409
+    db.refresh(existing)
+    assert existing.hashed_password == "unused"
+
+
 def test_workspace_collaboration_end_to_end(client, db):
     owner, oh = account(db, "workspace-owner@test.com", True)
     teammate, th = account(db, "workspace-member@test.com")
@@ -115,3 +156,20 @@ def test_invitation_revocation_expiry_and_reissue(client, db):
     assert client.post(accept, json={"token": third["token"]}, headers=member_headers).status_code == 400
     assert client.post(url, json={"email": teammate.email, "role": "Owner"}, headers=headers).status_code == 422
     assert client.post(BASE + "/workspaces", json={"name": "No"}, headers=member_headers).status_code == 403
+
+
+def test_workspace_notes_and_chat_permissions(client, db):
+    owner, headers = account(db, "notes-owner@test.com", True)
+    outsider, other = account(db, "notes-outsider@test.com", True)
+    guest, guest_headers = account(db, "notes-guest@test.com")
+    wid = client.post(BASE + "/workspaces", json={"name": "Team"}, headers=headers).json()["id"]
+    db.add(PMSWorkspaceMember(workspace_id=wid, user_id=guest.id, role="Guest"))
+    db.commit()
+    url = f"{BASE}/workspaces/{wid}/entries"
+    assert client.post(url, json={"kind": "note", "body": "Meeting decisions"}, headers=headers).status_code == 201
+    assert client.post(url, json={"kind": "chat", "body": "Ready for review"}, headers=headers).status_code == 201
+    assert [e["kind"] for e in client.get(url, headers=guest_headers).json()] == ["note", "chat"]
+    assert client.get(url, headers=other).status_code == 404
+    assert client.post(url, json={"kind": "chat", "body": "Denied"}, headers=guest_headers).status_code == 403
+    assert client.post(url, json={"kind": "note", "body": "   "}, headers=headers).status_code == 422
+    assert client.post(url, json={"kind": "chat", "body": "Invalid link", "task_id": 999999}, headers=headers).status_code == 422

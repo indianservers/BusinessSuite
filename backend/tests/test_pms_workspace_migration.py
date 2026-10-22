@@ -25,3 +25,22 @@ def test_workspace_migration_preserves_projects():
             migration.downgrade()
             assert connection.execute(sa.text("SELECT name FROM pms_projects")).scalar() == "Existing project"
     engine.dispose()
+
+
+def test_collaboration_migration():
+    path = Path(__file__).parents[1] / "alembic/versions/20261022_002_pms_collaboration.py"
+    spec = importlib.util.spec_from_file_location("collaboration_migration", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    engine = sa.create_engine("sqlite://")
+    with engine.begin() as connection:
+        for name in ["users", "pms_workspaces", "pms_tasks"]:
+            connection.execute(sa.text(f"CREATE TABLE {name} (id INTEGER PRIMARY KEY)"))
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+            migration.upgrade()
+            assert sa.inspect(connection).has_table("pms_workspace_entries")
+            assert len(sa.inspect(connection).get_foreign_keys("pms_workspace_entries")) == 3
+            migration.downgrade()
+            assert not sa.inspect(connection).has_table("pms_workspace_entries")
+    engine.dispose()

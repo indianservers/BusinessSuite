@@ -1,3 +1,4 @@
+import { useCreateIntent } from "@/hooks/use-create-intent";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, BarChart3, LifeBuoy, MessageSquare, Plus, RefreshCw, Send, Star } from "lucide-react";
@@ -61,6 +62,7 @@ export default function HelpdeskPage() {
   usePageTitle("Helpdesk");
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  useCreateIntent(kind => { if (kind === "ticket") setShowForm(true); });
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState("");
   const [statusFilter, setStatusFilter] = useState("Open");
@@ -237,7 +239,7 @@ export default function HelpdeskPage() {
             <form onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Subject *</Label>
-                <Input {...register("subject", { required: "Required" })} placeholder="Brief description of the issue" />
+                <Input autoFocus {...register("subject", { required: "Required" })} placeholder="Brief description of the issue" />
                 {errors.subject && <p className="text-xs text-red-500">{errors.subject.message}</p>}
               </div>
               <div className="space-y-1.5">

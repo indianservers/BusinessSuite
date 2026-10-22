@@ -5,7 +5,7 @@ export type DemoLogin = {
   description: string;
 };
 
-export const moduleDefaultCredentials = {
+const developmentCredentials = {
   hrms: [
     { label: "HRMS Admin", email: "admin@aihrms.com", password: "Admin@123456", description: "HRMS configuration and system access" },
     { label: "HR Manager", email: "hr@aihrms.com", password: "HR@123456", description: "Employees, leave, payroll, recruitment, HR operations" },
@@ -41,4 +41,7 @@ export const moduleDefaultCredentials = {
   ],
 } as const satisfies Record<string, readonly DemoLogin[]>;
 
-export type CredentialModuleKey = keyof typeof moduleDefaultCredentials;
+export type CredentialModuleKey = keyof typeof developmentCredentials;
+
+// Demo accounts are available only in local development builds.
+export const moduleDefaultCredentials = import.meta.env.DEV ? developmentCredentials : { hrms: [], crm: [], project_management: [], srm: [], fam: [] };

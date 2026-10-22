@@ -1,0 +1,47 @@
+import { Building2, CalendarDays, CheckCircle2, FileText, LifeBuoy, Receipt, ShoppingBag, UserPlus, Users, Wallet } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
+import { canAccessRoute, getRoleKey } from "@/lib/roles";
+import NewMenu, { type NewAction } from "./NewMenu";
+
+export default function ModuleNewMenu() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const user = useAuthStore(s => s.user);
+  const role = String(user?.role || "").toLowerCase();
+  const hrRole = getRoleKey(user?.role, user?.is_superuser);
+  const privileged = !!user?.is_superuser || ["super_admin", "admin"].includes(role);
+  const actions: NewAction[] = [];
+  const add = (label: string, description: string, icon: NewAction["icon"], path: string, allowed = true, disabled = false) => {
+    if (allowed && canAccessRoute(path.split(/[?#]/)[0], user?.role, user?.is_superuser)) actions.push({ label, description, icon, disabled, onSelect: () => navigate(path) });
+  };
+  if (pathname.startsWith("/crm")) {
+    const manages = privileged || ["crm_super_admin", "crm_org_admin", "crm_sales_manager", "crm_sales_executive"].includes(role);
+    add("Lead", "Capture a new opportunity", UserPlus, "/crm?new=leads", manages);
+    add("Contact", "Add a person to your network", Users, "/crm?new=contacts", manages);
+    add("Account", "Create a customer company", Building2, "/crm?new=companies", manages);
+    add("Deal", "Start a sales opportunity", Wallet, "/crm?new=deals", manages);
+    add("Task", "Plan your next follow-up", CheckCircle2, "/crm?new=tasks", manages);
+    add("Support ticket", "Record a customer support request", LifeBuoy, "/crm/tickets?new=tickets", manages || role === "crm_support_agent");
+    add("Campaign", "Plan a marketing campaign", CalendarDays, "/crm/campaigns?new=campaigns", privileged || ["crm_super_admin", "crm_org_admin", "crm_marketing_user"].includes(role));
+  } else if (pathname.startsWith("/srm")) {
+    const manages = privileged || ["srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(role);
+    add("Sales order", "Draft an order for your customer", ShoppingBag, "/srm/sales-orders#new-record", manages);
+    add("Contract", "Prepare a commercial agreement", FileText, "/srm/contracts#new-record", manages);
+    add("Engagement", "Set up delivery for your customer", Users, "/srm/engagements#new-record", manages);
+    add("Billing plan", "Plan milestones and recurring billing", CalendarDays, "/srm/billing-plans#new-record", manages);
+    add("Invoice draft", "Prepare an invoice without sending it", Receipt, "/srm/invoice-drafts#new-record", privileged || ["srm_admin", "srm_finance_manager"].includes(role));
+  } else if (pathname.startsWith("/fam")) {
+    const manages = privileged || ["fam_admin", "accountant", "finance_manager", "fam_finance_manager"].includes(role);
+    add("Voucher", "Prepare a balanced accounting draft", Receipt, "/fam/vouchers/new", manages);
+    add("Customer", "Create a customer and linked ledger", UserPlus, "/fam/customers#new-record", manages);
+    add("Vendor", "Create a supplier and linked ledger", Building2, "/fam/vendors#new-record", manages);
+    add("Purchase bill", "Capture a vendor bill draft", FileText, "/fam/purchase-bills/new", manages);
+    add("Expense claim", "Record an expense for review", Wallet, "/fam/expenses/new", manages);
+  } else if (pathname.startsWith("/hrms")) {
+    add("Employee", "Start an employee profile", UserPlus, "/hrms/employees/new", ["admin", "hr"].includes(hrRole));
+    add("Leave request", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
+    add("Support ticket", user?.employee_id ? "Ask your support team for help" : "Link an employee profile to raise tickets", LifeBuoy, "/hrms/helpdesk?new=ticket", true, !user?.employee_id);
+  }
+  return <NewMenu actions={actions} />;
+}

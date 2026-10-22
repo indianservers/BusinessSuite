@@ -1,7 +1,6 @@
 import React, { FormEvent, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ClipboardList, Globe2, Kanban, Plus, Send, Sparkles } from "lucide-react";
-import { ProductWorkflowCenter } from "@/components/product/ProductWorkflowCenter";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, ClipboardList, Kanban, Plus, Send } from "lucide-react";
 import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import { useProjectStore, useUIStore } from "./store";
@@ -59,8 +58,12 @@ const ProjectManagementHomePage: React.FC = () => {
     navigate("/pms/projects/new");
   };
   const canCreateProject = canAccessRoute("/pms/projects/new", user?.role, user?.is_superuser);
-  const canOpenCommandCenter = canAccessRoute("/pms/command-center", user?.role, user?.is_superuser);
-  const canOpenProductLaunch = canAccessRoute("/pms/product-launch", user?.role, user?.is_superuser);
+  const workflows = [
+    { title: "Manage tasks", description: "Assign work and track delivery.", path: "/pms/tasks" },
+    { title: "Plan sprints", description: "Organize upcoming work and priorities.", path: "/pms/sprints" },
+    { title: "Review timesheets", description: "Track time and review submissions.", path: "/pms/timesheets" },
+    { title: "Review risks", description: "Resolve blockers and delivery risks.", path: "/pms/risk-register" },
+  ].filter((workflow) => canAccessRoute(workflow.path, user?.role, user?.is_superuser));
 
   const handleSubmitIntake = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,7 +103,7 @@ const ProjectManagementHomePage: React.FC = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="bg-blue-600 p-3 rounded-lg">
                 <Kanban className="text-white" size={32} />
@@ -119,60 +122,28 @@ const ProjectManagementHomePage: React.FC = () => {
                 New Project
               </button>
             ) : null}
-            {canOpenCommandCenter ? (
-              <button
-                onClick={() => navigate("/pms/command-center")}
-                className="border border-blue-200 bg-white px-5 py-3 text-blue-700 rounded-lg hover:bg-blue-50 transition-all flex items-center gap-2 font-medium"
-              >
-                <Globe2 size={20} />
-                Command Center
-              </button>
-            ) : null}
-            {canOpenProductLaunch ? (
-              <button
-                onClick={() => navigate("/pms/product-launch")}
-                className="border border-amber-200 bg-amber-50 px-5 py-3 text-amber-800 rounded-lg hover:bg-amber-100 transition-all flex items-center gap-2 font-medium"
-              >
-                <Globe2 size={20} />
-                Product Launch
-              </button>
-            ) : null}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8 rounded-xl border bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-                <Sparkles className="h-4 w-4" />
-                KaryaFlow enterprise work layer added
-              </div>
-              <h2 className="mt-2 text-xl font-bold text-gray-900">Boards, goals, dependencies, releases, reports, automation, forms, apps, workflows, security, and AI planning</h2>
-              <p className="mt-1 text-sm text-gray-600">Open the command center or product launch workspace for the complete project experience.</p>
+        {workflows.length > 0 && (
+          <section className="mb-8" aria-labelledby="pms-workflows">
+            <h2 id="pms-workflows" className="mb-3 text-lg font-bold text-gray-900">Workflows</h2>
+            <div className="divide-y divide-gray-100 rounded-xl border bg-white px-5">
+              {workflows.map((workflow) => (
+                <Link key={workflow.path} to={workflow.path} className="group flex items-center justify-between gap-4 py-4 text-sm">
+                  <div>
+                    <p className="font-semibold text-gray-900 group-hover:text-blue-600">{workflow.title}</p>
+                    <p className="mt-1 text-gray-500">{workflow.description}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-blue-600" />
+                </Link>
+              ))}
             </div>
-            {canOpenProductLaunch ? (
-              <button
-                onClick={() => navigate("/pms/product-launch")}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600"
-              >
-                <Globe2 className="h-4 w-4" />
-                Open Product Launch
-              </button>
-            ) : null}
-            {canOpenCommandCenter ? (
-              <button
-                onClick={() => navigate("/pms/command-center")}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800"
-              >
-                <Globe2 className="h-4 w-4" />
-                Open Command Center
-              </button>
-            ) : null}
-          </div>
-        </div>
+          </section>
+        )}
 
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -180,7 +151,9 @@ const ProjectManagementHomePage: React.FC = () => {
           </div>
         )}
 
-        <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <details className="mb-8 rounded-xl border bg-white p-5 shadow-sm">
+          <summary className="cursor-pointer text-sm font-semibold text-gray-900">Project intake - Submit or review requests</summary>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <form onSubmit={handleSubmitIntake} className="rounded-xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-blue-700" />
@@ -188,12 +161,14 @@ const ProjectManagementHomePage: React.FC = () => {
             </div>
             <div className="grid gap-3 md:grid-cols-[1fr_12rem]">
               <input
+                aria-label="Project request title"
                 value={intakeTitle}
                 onChange={(event) => setIntakeTitle(event.target.value)}
                 className="h-11 rounded-lg border border-gray-300 px-3 text-sm"
                 placeholder="Project request title"
               />
               <select
+                aria-label="Project request priority"
                 value={intakePriority}
                 onChange={(event) => setIntakePriority(event.target.value)}
                 className="h-11 rounded-lg border border-gray-300 px-3 text-sm"
@@ -205,6 +180,7 @@ const ProjectManagementHomePage: React.FC = () => {
               </select>
             </div>
             <textarea
+              aria-label="Project request description"
               value={intakeDescription}
               onChange={(event) => setIntakeDescription(event.target.value)}
               className="mt-3 min-h-24 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
@@ -236,6 +212,13 @@ const ProjectManagementHomePage: React.FC = () => {
           </div>
         </div>
 
+        </details>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2 className="text-lg font-bold text-gray-900">Projects</h2>
+          {canAccessRoute("/pms/projects", user?.role, user?.is_superuser) && (
+            <Link to="/pms/projects" className="text-sm font-medium text-blue-600 hover:underline">View all projects</Link>
+          )}
+        </div>
         {projects.length === 0 ? (
           <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-16 text-center shadow-sm">
             <Kanban className="mx-auto h-16 w-16 text-gray-300 mb-4" />
@@ -257,11 +240,12 @@ const ProjectManagementHomePage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <div
+            {projects.slice(0, 6).map((project) => (
+              <button
+                type="button"
                 key={project.id}
                 onClick={() => handleSelectProject(project)}
-                className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all cursor-pointer p-6 border-l-4 border-blue-600 group"
+                className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all cursor-pointer p-6 text-left border-l-4 border-blue-600 group"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -312,14 +296,12 @@ const ProjectManagementHomePage: React.FC = () => {
                     View {">"}
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
 
-        <div className="mt-8">
-          <ProductWorkflowCenter product="pms" />
-        </div>
+
       </div>
     </div>
   );

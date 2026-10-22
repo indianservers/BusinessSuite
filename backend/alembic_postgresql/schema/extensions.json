@@ -1,4 +1,8 @@
 {
+  "pms_task_assignees": [
+    "task_id",
+    "user_id"
+  ],
   "pms_collaboration_events": [
     "id",
     "project_id",
@@ -16,5 +20,14 @@
     "updated_at",
     "error",
     "result"
+  ],
+  "pms_workspace_entries": [
+    "id",
+    "workspace_id",
+    "author_id",
+    "kind",
+    "body",
+    "task_id",
+    "created_at"
   ]
 }

@@ -69,4 +69,5 @@ python-dotenv==1.0.1
 
 # Durable private uploads (S3 / Cloudflare R2 / compatible providers)
 boto3==1.43.117
+vercel-blob==0.5.0
 tzdata>=2024.1

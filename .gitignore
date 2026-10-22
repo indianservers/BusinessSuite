@@ -17,6 +17,8 @@ uploads/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+.tmp/
+frontend/test-results/
 
 # Logs and local files
 *.log
@@ -36,3 +38,5 @@ frontend/.env.production.local
 .vercel/
 backend/.vercel/
 frontend/.vercel/
+.vercel
+.env*

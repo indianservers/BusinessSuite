@@ -480,7 +480,8 @@ const pmsDeliveryOnlyPaths = [
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
   // Workspace membership is enforced by the API, independently of company roles.
-  if (pathname === "/pms/workspaces") return true;
+  if (["/pms", "/pms/", "/pms/workspaces"].includes(pathname)) return true;
+  if (/^\/pms\/projects\/\d+\/gantt\/?$/.test(pathname)) return true;
   if (!isProjectManagementRole(role, isSuperuser)) return false;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";
   const normalizedRole = normalizeRole(role);
@@ -608,6 +609,7 @@ function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = 
   const normalizedPath = pathname.replace(/\/+$/, "") || "/fam";
   if (normalizedPath === "/fam" || normalizedPath === "/fam/dashboard" || normalizedPath === "/fam/profile") return true;
   if (normalizedPath === "/fam/settings") return isFamAdminRole(role, isSuperuser);
+  if (["/fam/vouchers/new", "/fam/purchase-bills/new", "/fam/expenses/new"].includes(normalizedPath)) return isFamOperationalRole(role, isSuperuser);
   if (normalizedPath === "/fam/audit") return isFamAuditRole(role, isSuperuser);
   if (normalizedPath === "/fam/inventory" || normalizedPath.startsWith("/fam/inventory/")) {
     return isFamReadOnlyRole(role, isSuperuser);
@@ -1203,6 +1205,7 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/helpdesk": ["admin", "hr", "manager"],
   "/documents": ["admin", "hr", "employee"],
   "/employee-directory": ["admin", "ceo", "hr", "manager"],
+  "/employees/new": ["admin", "hr"],
   "/employees": ["admin", "ceo", "hr", "manager"],
   "/probation": ["admin", "ceo", "hr", "manager"],
   "/reports": ["admin", "ceo", "hr", "manager"],

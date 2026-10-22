@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { tagsAPI, tasksAPI, pmsUsersAPI } from "../services/api";
 import type { PMSTag, PMSTask, TaskPriority, TaskStatus, PMSMentionUser } from "../types";
+import { beginProgress } from "@/components/app/AsyncProgress";
+import AssigneePicker from "./AssigneePicker";
 
 const statuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done"];
 const priorities: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
@@ -15,19 +17,25 @@ export default function CreateTaskModal({
   onClose,
   projectId,
   onTaskCreated,
+  workspacePeople,
+  projects,
 }: {
   isOpen: boolean;
   onClose: () => void;
   projectId: number;
   onTaskCreated: (task: PMSTask) => void;
+  workspacePeople?: PMSMentionUser[];
+  projects?: { id: number; name: string }[];
 }) {
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId);
+  useEffect(() => { if (isOpen) setSelectedProjectId(projectId); }, [isOpen, projectId]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>("To Do");
   const [priority, setPriority] = useState<TaskPriority>("Medium");
   const [dueDate, setDueDate] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [assignees, setAssignees] = useState<number[]>([]);
   const [people, setPeople] = useState<PMSMentionUser[]>([]);
   const [storyPoints, setStoryPoints] = useState("");
   const [availableTags, setAvailableTags] = useState<PMSTag[]>([]);
@@ -39,8 +47,9 @@ export default function CreateTaskModal({
   useEffect(() => {
     if (!isOpen) return;
     tagsAPI.list().then(setAvailableTags).catch(() => setAvailableTags([]));
-    pmsUsersAPI.search({ projectId }).then(setPeople).catch(() => setPeople([]));
-  }, [isOpen, projectId]);
+    if (workspacePeople) { setPeople(workspacePeople); return; }
+    pmsUsersAPI.search({ projectId: selectedProjectId, limit: 25 }).then(setPeople).catch(() => setError("Unable to load collaborators. Close and reopen this form to retry."));
+  }, [isOpen, selectedProjectId, workspacePeople]);
 
   const selectedTags = useMemo(
     () => availableTags.filter((tag) => selectedTagIds.includes(tag.id)),
@@ -64,6 +73,8 @@ export default function CreateTaskModal({
       setError("Story points must be a non-negative whole number.");
       return;
     }
+    if (!selectedProjectId) { setError("Choose a project first."); return; }
+    const finish = beginProgress("Creating task");
     try {
       setSubmitting(true);
       setError(null);
@@ -74,7 +85,7 @@ export default function CreateTaskModal({
         .join("")
         .slice(0, 3)
         .toUpperCase();
-      const task = await tasksAPI.create(projectId, {
+      const task = await tasksAPI.create(selectedProjectId, {
         title,
         description: description || undefined,
         task_key: `${key || "TSK"}-${Date.now().toString().slice(-4)}`,
@@ -82,7 +93,7 @@ export default function CreateTaskModal({
         priority,
         due_date: dueDate || undefined,
         start_date: startDate || undefined,
-        assignee_user_id: assignee ? Number(assignee) : undefined,
+        assignee_user_ids: assignees,
         story_points: parsedStoryPoints,
       });
       const attachedTags: PMSTag[] = [];
@@ -94,15 +105,17 @@ export default function CreateTaskModal({
         attachedTags.push(await tasksAPI.addTagById(task.id, tag.id));
       }
       onTaskCreated({ ...task, tags: attachedTags });
+      finish();
       setTitle("");
       setDescription("");
       setDueDate("");
       setStartDate("");
-      setAssignee("");
+      setAssignees([]);
       setStoryPoints("");
       setSelectedTagIds([]);
       setNewTagName("");
     } catch (err: any) {
+      finish(false);
       setError(err?.response?.data?.detail || err?.message || "Failed to create task.");
     } finally {
       setSubmitting(false);
@@ -114,15 +127,16 @@ export default function CreateTaskModal({
       <form onSubmit={submit} className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-lg border bg-background shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-lg font-semibold">Create task</h2>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose}>
+          <Button type="button" aria-label="Close task form" disabled={submitting} variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="space-y-4 p-5">
+        <fieldset disabled={submitting} className="space-y-4 p-5">
+          {projects && <div className="space-y-2"><Label htmlFor="task-project">Project</Label><select id="task-project" required value={selectedProjectId || ""} onChange={e => setSelectedProjectId(Number(e.target.value))} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="" disabled>Choose project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>}
           {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
           <div className="space-y-2">
             <Label htmlFor="task-title">Title</Label>
-            <Input id="task-title" value={title} onChange={(event) => setTitle(event.target.value)} />
+            <Input autoFocus id="task-title" value={title} onChange={(event) => setTitle(event.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="task-description">Description</Label>
@@ -135,7 +149,7 @@ export default function CreateTaskModal({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label>Start date<Input aria-label="Task start date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
-            <label>Assignee<select aria-label="Task assignee" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={assignee} onChange={e => setAssignee(e.target.value)}><option value="">Unassigned</option>{people.map(p => <option key={p.id} value={p.id}>{p.email || p.name}</option>)}</select></label>
+            <div><Label>Assignees</Label><AssigneePicker people={people} value={assignees} onChange={setAssignees} /></div>
           </div>
           <div className="grid gap-4 sm:grid-cols-4">
             <div className="space-y-2">
@@ -187,9 +201,9 @@ export default function CreateTaskModal({
               <Input value={newTagName} onChange={(event) => setNewTagName(event.target.value)} placeholder="Create new tag on save" />
             </div>
           </div>
-        </div>
+        </fieldset>
         <div className="flex justify-end gap-2 border-t px-5 py-4">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="outline" disabled={submitting} onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={submitting}>{submitting ? "Creating..." : "Create task"}</Button>
         </div>
       </form>

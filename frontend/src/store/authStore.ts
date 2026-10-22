@@ -1,5 +1,15 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+// Keep accounts independent across tabs, including after a reload. Move an
+// existing browser-wide session once so an upgrade does not sign its user out.
+const authStorage = createJSONStorage(() => {
+  const key = "hrms-auth";
+  const previous = localStorage.getItem(key);
+  if (!sessionStorage.getItem(key) && previous) sessionStorage.setItem(key, previous);
+  if (previous) localStorage.removeItem(key);
+  return sessionStorage;
+});
 
 export interface AuthUser {
   id: number;
@@ -47,6 +57,7 @@ export const useAuthStore = create<AuthState>()(
       }),
     {
       name: "hrms-auth",
+      storage: authStorage,
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);
       },

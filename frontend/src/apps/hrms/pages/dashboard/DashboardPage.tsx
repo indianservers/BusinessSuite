@@ -1,3 +1,4 @@
+import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -515,6 +516,7 @@ export default function DashboardPage() {
         )}
       </div>
 
+<SecondaryDetails title="Workforce and payroll charts">
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Headcount by Department */}
@@ -594,6 +596,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+
+</SecondaryDetails>
       {/* Quick actions */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
@@ -613,6 +617,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
+<SecondaryDetails title="Payroll controls and readiness">
       <section className="space-y-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold tracking-tight">Production Readiness Command Center</h2>
@@ -633,7 +638,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <DashboardStatistics
+
+</SecondaryDetails>
+<SecondaryDetails title="Detailed HR statistics">      <DashboardStatistics
         totalEmployees={totalEmployees}
         activeEmployees={activeEmployees}
         presentToday={presentToday}
@@ -647,7 +654,7 @@ export default function DashboardPage() {
         certificateCount={certificateCount}
         recognitionCount={recognitionCount}
         lastPayroll={lastRun ? `${String(lastRun.month).padStart(2, "0")}/${lastRun.year}` : "No run"}
-      />
+      /></SecondaryDetails>
     </div>
   );
 }

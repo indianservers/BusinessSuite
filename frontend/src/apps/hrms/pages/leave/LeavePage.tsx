@@ -1,3 +1,4 @@
+import { useCreateIntent } from "@/hooks/use-create-intent";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, CheckCircle2, XCircle, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
@@ -105,6 +106,7 @@ export default function LeavePage() {
   const canApproveLeave = ["admin", "hr", "manager"].includes(roleKey);
   const hasEmployeeProfile = Boolean(user?.employee_id);
   const [showApplyForm, setShowApplyForm] = useState(false);
+  useCreateIntent(kind => { if (kind === "leave" && hasEmployeeProfile) setShowApplyForm(true); });
   const [activeTab, setActiveTab] = useState<"my" | "approvals" | "calendar">("my");
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [calendarScope, setCalendarScope] = useState<"mine" | "team" | "all">(canApproveLeave ? "team" : "mine");

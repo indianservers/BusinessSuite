@@ -199,6 +199,7 @@ export default function EnterpriseEnginePage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <div role="status" className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">Prototype — local sample data. Use <a className="underline font-semibold" href="/pms/workspaces">Workspaces</a> for shared tasks, invitations, calendar and workload.</div>
       <div className="border-b bg-white px-5 py-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -207,12 +208,12 @@ export default function EnterpriseEnginePage() {
               PMS Enterprise Engine
             </div>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">KaryaFlow enterprise project operations</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Real planning calculations, saved views, workflow definitions, automation rules, dependency warnings, budget forecasting, timesheet approvals, and enterprise governance.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Prototype lab for exploring planning and governance concepts with sample data. Changes here are saved in this browser and are not shared production records.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => setCompactMode((value) => !value)}><Layers3 className="h-4 w-4" />{compactMode ? "Comfortable" : "Compact"} cards</Button>
             <Button variant="outline" size="sm" onClick={exportCsv}><Download className="h-4 w-4" />Export CSV</Button>
-            <Button size="sm" onClick={runAiPlanner}><Bot className="h-4 w-4" />Run AI planner</Button>
+            <Button size="sm" onClick={runAiPlanner}><Bot className="h-4 w-4" />Run planning simulation</Button>
           </div>
         </div>
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1">

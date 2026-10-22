@@ -1,7 +1,8 @@
-import { Fragment } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useSignOut } from "@/hooks/use-sign-out";
+import { Fragment, useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Sparkles, UserCircle, X, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, UserCircle, X, LogOut, Search, MoreHorizontal } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel, getRoleNav } from "@/lib/roles";
@@ -16,9 +17,24 @@ interface SidebarProps {
 
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
-  const navItems = getRoleNav(user?.role, user?.is_superuser, location.pathname);
+  const { user } = useAuthStore();
+  const roleNav = getRoleNav(user?.role, user?.is_superuser, location.pathname);
+  const primaryPaths: Record<string, string[]> = {
+    hrms: ["/hrms", "/hrms/employees", "/hrms/attendance", "/hrms/leave", "/hrms/payroll", "/hrms/recruitment"],
+    crm: ["/crm", "/crm/leads", "/crm/contacts", "/crm/deals", "/crm/pipeline", "/crm/tasks"],
+    pms: ["/pms", "/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/calendar", "/pms/timesheets"],
+    srm: ["/srm", "/srm/sales-orders", "/srm/invoices", "/srm/collections", "/srm/inventory", "/srm/pos"],
+    fam: ["/fam", "/fam/vouchers", "/fam/ar", "/fam/ap", "/fam/bank-reconciliation", "/fam/ledgers"],
+  };
+  const priorities = primaryPaths[location.pathname.split("/")[1]] || [];
+  const rank = (path: string) => priorities.includes(path) ? priorities.indexOf(path) : priorities.length;
+  const allNavItems = [...roleNav].sort((a, b) => rank(a.to) - rank(b.to));
+  const [showAll, setShowAll] = useState(false);
+  const [query, setQuery] = useState("");
+  const moduleKey = location.pathname.split("/")[1];
+  useEffect(() => { setShowAll(false); setQuery(""); }, [moduleKey]);
+  const matchingItems = allNavItems.filter(item => !query || `${item.label} ${item.group || ""}`.toLowerCase().includes(query.toLowerCase()));
+  const navItems = showAll || query ? matchingItems : matchingItems.filter((item, index) => index < 6 || (item.to !== "/" && (location.pathname === item.to || (!item.exact && item.to.split("/").length > 2 && location.pathname.startsWith(`${item.to}/`)))));
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const profilePath = location.pathname.startsWith("/hrms")
@@ -29,11 +45,8 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
         ? "/pms/profile"
         : location.pathname.startsWith("/srm")
           ? "/srm/profile"
-          : "/";
-  const handleLogout = () => {
-    logout();
-    navigate(product.loginPath, { replace: true });
-  };
+          : location.pathname.startsWith("/fam") ? "/fam/profile" : "/";
+  const handleLogout = useSignOut(product.loginPath);
 
   return (
     <>
@@ -101,10 +114,11 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav aria-label="Module navigation" className="flex-1 overflow-y-auto py-4">
+          {!collapsed && <label className="mx-3 mb-3 flex items-center gap-2 rounded-md border border-sidebar-border px-2 py-2"><Search className="h-3.5 w-3.5 shrink-0 opacity-50" /><input aria-label="Find a page" placeholder="Find a page…" value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 w-full bg-transparent text-xs outline-none" /></label>}
           <ul className={cn("px-2", collapsed ? "space-y-0.5" : "space-y-1")}>
             {navItems.map((item, index) => {
-              const showGroup = !collapsed && item.group && item.group !== navItems[index - 1]?.group;
+              const showGroup = !collapsed && (showAll || Boolean(query)) && item.group && item.group !== navItems[index - 1]?.group;
               return (
                 <Fragment key={`${item.to}:${item.label}`}>
                   {showGroup && (
@@ -144,6 +158,8 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
               );
             })}
           </ul>
+          {!navItems.length && <p className="px-5 py-3 text-xs text-sidebar-foreground/60">No matching pages.</p>}
+          {allNavItems.length > 6 && !query && <button type="button" aria-label={showAll ? "Show fewer pages" : "Show all pages"} aria-expanded={showAll} onClick={() => setShowAll(value => !value)} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs"><MoreHorizontal className="h-4 w-4" />{!collapsed && (showAll ? "Show fewer" : `More pages (${allNavItems.length - navItems.length})`)}</button>}
         </nav>
 
         {/* User section */}

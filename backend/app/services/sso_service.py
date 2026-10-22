@@ -3,6 +3,7 @@ import hashlib
 import secrets
 from urllib.parse import urlencode
 import httpx
+from jose import jwt
 from app.core.config import settings
 from app.models.sso import SSOProvider
 
@@ -35,7 +36,29 @@ async def get_oidc_authorization_url(
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
     }
+    if provider.provider_type.lower() == "google" and provider.domain_hint:
+        params["hd"] = provider.domain_hint.strip().lower()
     return f"{provider.authorization_url}?{urlencode(params)}"
+
+
+def validate_google_identity(id_token: str, jwks: dict, provider: SSOProvider, nonce: str, access_token: str | None = None) -> dict:
+    """Accept only signed, current, audience-bound Google Workspace identities."""
+    if not nonce or not provider.domain_hint:
+        raise ValueError("Google Workspace domain and nonce are required")
+    claims = jwt.decode(id_token, jwks, algorithms=["RS256"], audience=provider.client_id, access_token=access_token,
+        issuer=["https://accounts.google.com", "accounts.google.com"],
+        options={"require_exp": True, "require_iat": True, "require_sub": True, "require_aud": True, "require_iss": True})
+    if not isinstance(claims.get("nonce"), str) or not secrets.compare_digest(claims["nonce"], nonce):
+        raise ValueError("Google login nonce mismatch")
+    if claims.get("azp") and claims["azp"] != provider.client_id:
+        raise ValueError("Unexpected authorized client")
+    domain = provider.domain_hint.strip().lower()
+    email = claims.get("email", "")
+    if claims.get("email_verified") is not True or not isinstance(email, str) or not email.lower().endswith("@" + domain):
+        raise ValueError("A verified Workspace email is required")
+    if str(claims.get("hd", "")).lower() != domain:
+        raise ValueError("Account does not belong to the allowed Google Workspace")
+    return claims
 
 
 async def exchange_oidc_code(
@@ -43,6 +66,7 @@ async def exchange_oidc_code(
     code: str,
     state: str,
     code_verifier: str,
+    nonce: str | None = None,
 ) -> dict:
     """Exchange the OIDC authorization code and return userinfo claims."""
     async with httpx.AsyncClient(timeout=20) as client:
@@ -56,6 +80,10 @@ async def exchange_oidc_code(
         })
         token_resp.raise_for_status()
         tokens = token_resp.json()
+        if provider.provider_type.lower() == "google":
+            keys = await client.get("https://www.googleapis.com/oauth2/v3/certs")
+            keys.raise_for_status()
+            return validate_google_identity(tokens.get("id_token", ""), keys.json(), provider, nonce or "", tokens.get("access_token"))
         userinfo_resp = await client.get(
             provider.userinfo_url,
             headers={"Authorization": f"Bearer {tokens['access_token']}"},

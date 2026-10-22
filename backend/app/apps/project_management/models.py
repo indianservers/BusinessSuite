@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
 
@@ -283,6 +284,15 @@ class PMSTask(Base):
     release_id = Column(Integer, ForeignKey("pms_releases.id", ondelete="SET NULL"), nullable=True, index=True)
     parent_task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True, index=True)
     assignee_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    assignments = relationship("PMSTaskAssignee", cascade="all, delete-orphan", lazy="selectin", order_by="PMSTaskAssignee.user_id")
+
+    @property
+    def assignee_user_ids(self):
+        return sorted({a.user_id for a in self.assignments} | ({self.assignee_user_id} if self.assignee_user_id else set()))
+
+    @assignee_user_ids.setter
+    def assignee_user_ids(self, ids):
+        self.assignments = [PMSTaskAssignee(user_id=user_id) for user_id in sorted(set(ids or []))]
     reporter_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     title = Column(String(220), nullable=False)
     description = Column(Text)
@@ -322,6 +332,12 @@ class PMSTask(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True))
+
+
+class PMSTaskAssignee(Base):
+    __tablename__ = "pms_task_assignees"
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
 
 
 class PMSTaskDependency(Base):
@@ -578,3 +594,14 @@ class PMSClientApproval(Base):
     remarks = Column(Text)
     decided_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PMSWorkspaceEntry(Base):
+    __tablename__ = "pms_workspace_entries"
+    id = Column(Integer, primary_key=True)
+    workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    kind = Column(String(12), nullable=False)
+    body = Column(Text, nullable=False)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)

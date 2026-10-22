@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { moduleDefaultCredentials } from "@/lib/defaultCredentials";
 import { BUSINESS_SUITE_NAME, BUSINESS_SUITE_VERSION, products, type ProductKey } from "@/lib/products";
+import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 
 type ModuleIndexItem = {
@@ -83,7 +84,7 @@ const modules: ModuleIndexItem[] = [
 ];
 
 export default function ModuleIndexPage() {
-  const { isAuthenticated, isHydrated } = useAuthStore();
+  const { isAuthenticated, isHydrated, user } = useAuthStore();
 
   return (
     <main className="min-h-screen bg-background">
@@ -108,8 +109,9 @@ export default function ModuleIndexPage() {
       <section className="mx-auto grid max-w-6xl gap-4 px-5 py-8 md:grid-cols-2 lg:grid-cols-3">
         {modules.map((module) => {
           const Icon = module.icon;
-          const defaultLogin = module.credentialKey ? moduleDefaultCredentials[module.credentialKey][0] : null;
+          const defaultLogin = import.meta.env.DEV && module.credentialKey ? moduleDefaultCredentials[module.credentialKey][0] : null;
           const product = products[module.productKey];
+          const canOpen = isHydrated && isAuthenticated && canAccessRoute(module.homePath, user?.role, user?.is_superuser);
           return (
             <Card key={module.key} className="overflow-hidden transition duration-200 hover:-translate-y-1 hover:shadow-lg">
               <CardContent className="flex h-full flex-col p-0">
@@ -137,8 +139,8 @@ export default function ModuleIndexPage() {
                   ) : null}
                   <div className="mt-6 grid gap-2">
                     <Button asChild>
-                      <Link to={isHydrated && isAuthenticated ? module.homePath : module.loginPath}>
-                        {!isHydrated ? "Loading..." : isAuthenticated || module.key === "srm" ? `Open ${module.label}` : "Sign in"}
+                      <Link to={canOpen ? module.homePath : module.loginPath}>
+                        {!isHydrated ? "Loading..." : canOpen ? `Open ${module.label}` : "Sign in"}
                       </Link>
                     </Button>
                   </div>

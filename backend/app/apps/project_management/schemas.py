@@ -548,6 +548,7 @@ class PMSChecklistItemResponse(PMSChecklistItemBase):
 
 
 class PMSTaskBase(BaseModel):
+    assignee_user_ids: Optional[list[int]] = Field(None, max_length=100)
     title: str = Field(..., min_length=1, max_length=220)
     description: Optional[str] = None
     task_key: str = Field(..., min_length=1, max_length=30)
@@ -597,6 +598,7 @@ class PMSTaskCreate(PMSTaskBase):
 
 
 class PMSTaskUpdate(BaseModel):
+    assignee_user_ids: Optional[list[int]] = Field(None, max_length=100)
     title: Optional[str] = None
     description: Optional[str] = None
     work_type: Optional[str] = None

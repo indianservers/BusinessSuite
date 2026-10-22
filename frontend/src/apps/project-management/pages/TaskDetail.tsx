@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
 import { cn, formatDate, formatDateTime, statusColor } from "@/lib/utils";
 import { commentsAPI, filesAPI, planningAPI, projectsAPI, tagsAPI, tasksAPI, timeLogsAPI, sprintsAPI, pmsUsersAPI } from "../services/api";
+import { taskAssignees } from "./workspaceTypes";
 import { usePMSRealtime } from "../realtime";
 import type {
   PMSActivity,
@@ -670,8 +671,8 @@ export default function TaskDetail() {
                 <Badge className={statusColor(task.status)}>{task.status}</Badge>
                 <Badge className={statusColor(task.priority)}>{task.priority}</Badge>
                 <span className="inline-flex items-center gap-2">
-                  <Avatar label={userLabel(task.assignee_user_id, "Unassigned")} />
-                  {userLabel(task.assignee_user_id, "Unassigned")}
+                  <Avatar label={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} />
+                  {(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")}
                 </span>
                 <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" />Due {formatDate(task.due_date || null)}</span>
                 <span>{task.story_points ?? 0} pts</span>
@@ -952,7 +953,7 @@ export default function TaskDetail() {
           <Card>
             <CardHeader><CardTitle>People</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <PersonRow label="Assignee" value={userLabel(task.assignee_user_id, "Unassigned")} />
+              <PersonRow label="Assignee" value={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} />
               <PersonRow label="Reporter" value={userLabel(task.reporter_user_id, "No reporter")} />
               <Property label="Watchers" value="Not configured" />
             </CardContent>
@@ -1131,7 +1132,7 @@ function SubtaskRow({
             {task.title}
           </button>
           <p className="mt-1 text-xs text-muted-foreground">
-            {userLabel(task.assignee_user_id, "Unassigned")} / Due {formatDate(task.due_date || null)}
+            {(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} / Due {formatDate(task.due_date || null)}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
