@@ -54,7 +54,7 @@ Set `REALTIME_TRANSPORT=database` (automatic on Vercel). Authorized browser sess
 
 ## Build and validation
 
-The runtime dependency list excludes unused scientific/native PDF packages; optional packages remain in `requirements-optional.txt`. Private storage uses boto3. GitHub Actions validates the dependency installation on Linux/Python 3.12, PostgreSQL migrations/tests and the frontend production build. Cloud preview validation remains necessary for Vercel bundle size, cold starts, the actual Neon pooler, S3 permissions and CORS, configured third-party providers, and plan limits.
+The runtime dependency list excludes unused scientific/native PDF packages; optional packages remain in `requirements-optional.txt`. Private storage uses boto3. CI explicitly uses a lower bcrypt work factor only for disposable test fixtures, while separately asserting the production hashing default remains at least 12 rounds. Production code does not read the test-only switch. GitHub Actions validates the dependency installation on Linux/Python 3.12, PostgreSQL migrations/tests and the frontend production build. Cloud preview validation remains necessary for Vercel bundle size, cold starts, the actual Neon pooler, S3 permissions and CORS, configured third-party providers, and plan limits.
 
 Local checks:
 

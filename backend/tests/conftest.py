@@ -34,8 +34,13 @@ from app.main import app
 from app.db.base_class import Base
 from app.db.base import Base as AllModels  # noqa: F401 - ensure all models imported
 from app.core.deps import get_db
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, pwd_context
 from app.models.user import User, Role
+
+# Explicit CI opt-in: fixture hashes still use real bcrypt verification, with a
+# cheap work factor. Production code never reads this testing-only switch.
+if os.environ.get("FAST_TEST_PASSWORD_HASHES") == "1":
+    pwd_context.update(bcrypt__rounds=4)
 
 SQLALCHEMY_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 

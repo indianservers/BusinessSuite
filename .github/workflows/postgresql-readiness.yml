@@ -23,6 +23,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      FAST_TEST_PASSWORD_HASHES: "1"
       ENVIRONMENT: test
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: integration-only
@@ -42,6 +43,9 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install production and test dependencies on Linux
         run: python -m pip install -r backend/requirements-test.txt
+      - name: Verify production password hashing policy
+        working-directory: backend
+        run: python -c "from app.core.security import pwd_context; assert pwd_context.handler('bcrypt').default_rounds >= 12"
       - name: PostgreSQL integration suite
         working-directory: backend
         run: python scripts/run_postgres_tests.py -q --tb=short --junitxml=../postgresql-tests.xml

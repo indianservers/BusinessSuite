@@ -7,6 +7,7 @@ import os
 import re
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
@@ -3204,10 +3205,10 @@ def inventory_summary_rows(db: Session, company_id: int) -> list[dict[str, Any]]
 
 @router.get("/inventory/source-audit")
 def inventory_source_audit(current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
-    source_root = r"C:\Indian Servers\AI Inventory Management Software"
+    source_root = Path(__file__).resolve().parents[2] / "inventory" / "vyapara_erp"
     expected = ["app/models/stock.py", "app/models/product.py", "app/services/stock_service.py", "app/routes/stock_routes.py", "app/templates/stock/current.html"]
     files = [{"path": path, "exists": os.path.exists(os.path.join(source_root, *path.split("/")))} for path in expected]
-    return {"source_root": source_root, "source_exists": os.path.isdir(source_root), "source_stack": "Flask + SQLAlchemy + PostgreSQL", "merged_under": "FAM", "files": files}
+    return {"source_root": "app/apps/inventory/vyapara_erp", "source_exists": source_root.is_dir(), "source_stack": "Flask + SQLAlchemy + PostgreSQL", "merged_under": "FAM", "files": files}
 
 
 @router.get("/inventory/dashboard")
