@@ -1,0 +1,2129 @@
+{
+  "generatedAt": "2026-10-21T20:59:45.741Z",
+  "viewport": {
+    "width": 1920,
+    "height": 1200
+  },
+  "baseUrl": "http://localhost:5173",
+  "totalRegisteredRoutes": 68,
+  "totalScreenshots": 143,
+  "screenshots": [
+    {
+      "file": "01_pms-workspaces.png",
+      "route": "/pms/workspaces",
+      "title": "workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "02_pms.png",
+      "route": "/pms",
+      "title": "PMS dashboard",
+      "heading": "KaryaFlow",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "03_pms-profile.png",
+      "route": "/pms/profile",
+      "title": "profile",
+      "heading": "PMS Profile",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "04_pms-command-center.png",
+      "route": "/pms/command-center",
+      "title": "command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "05_pms-enterprise-engine.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "06_pms-product-launch.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "07_pms-portfolio.png",
+      "route": "/pms/portfolio",
+      "title": "portfolio",
+      "heading": "Portfolio",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "08_pms-dependency-management.png",
+      "route": "/pms/dependency-management",
+      "title": "dependency-management",
+      "heading": "Dependency Management",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "09_pms-resource-planning.png",
+      "route": "/pms/resource-planning",
+      "title": "resource-planning",
+      "heading": "Resource Planning",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "10_pms-agile-execution.png",
+      "route": "/pms/agile-execution",
+      "title": "agile-execution",
+      "heading": "Agile Execution",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "11_pms-project-financials.png",
+      "route": "/pms/project-financials",
+      "title": "project-financials",
+      "heading": "Project Financials",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "12_pms-risk-register.png",
+      "route": "/pms/risk-register",
+      "title": "risk-register",
+      "actualUrl": "http://localhost:5173/pms/risk-register",
+      "heading": "Risk Register",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "13_pms-risks.png",
+      "route": "/pms/risks",
+      "title": "risks",
+      "actualUrl": "http://localhost:5173/pms/risks",
+      "heading": "Risk Register",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "14_pms-projects.png",
+      "route": "/pms/projects",
+      "title": "projects",
+      "heading": "Projects",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "15_pms-projects-new.png",
+      "route": "/pms/projects/new",
+      "title": "projects · new",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "16_pms-projects-projectid.png",
+      "route": "/pms/projects/1",
+      "title": "projects · :projectId",
+      "heading": "Aurora Customer Portal",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "17_pms-projects-projectid-board.png",
+      "route": "/pms/projects/1/board",
+      "title": "projects · :projectId · board",
+      "heading": "Board",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "18_pms-projects-projectid-timeline.png",
+      "route": "/pms/projects/1/timeline",
+      "title": "projects · :projectId · timeline",
+      "heading": "Gantt",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "19_pms-projects-projectid-gantt.png",
+      "route": "/pms/projects/1/gantt",
+      "title": "projects · :projectId · gantt",
+      "heading": "Gantt",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "20_pms-projects-projectid-milestones.png",
+      "route": "/pms/projects/1/milestones",
+      "title": "projects · :projectId · milestones",
+      "heading": "Milestones",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "21_pms-projects-projectid-files.png",
+      "route": "/pms/projects/1/files",
+      "title": "projects · :projectId · files",
+      "heading": "Files",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "22_pms-projects-projectid-reports.png",
+      "route": "/pms/projects/1/reports",
+      "title": "projects · :projectId · reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "23_pms-projects-projectid-risks.png",
+      "route": "/pms/projects/1/risks",
+      "title": "projects · :projectId · risks",
+      "heading": "Risk Register",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "24_pms-tasks.png",
+      "route": "/pms/tasks",
+      "title": "tasks",
+      "heading": "Tasks",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "25_pms-tasks-taskid.png",
+      "route": "/pms/tasks/1",
+      "title": "tasks · :taskId",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "26_pms-projects-projectid-tasks-taskid.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "projects · :projectId · tasks · :taskId",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "27_pms-work-hub.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "28_pms-impact.png",
+      "route": "/pms/impact",
+      "title": "impact",
+      "actualUrl": "http://localhost:5173/pms/impact",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "29_pms-ai-planner.png",
+      "route": "/pms/ai-planner",
+      "title": "ai-planner",
+      "actualUrl": "http://localhost:5173/pms/ai-planner",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "30_pms-timeline-plus.png",
+      "route": "/pms/timeline-plus",
+      "title": "timeline-plus",
+      "actualUrl": "http://localhost:5173/pms/timeline-plus",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "31_pms-dependency-timeline.png",
+      "route": "/pms/dependency-timeline",
+      "title": "dependency-timeline",
+      "actualUrl": "http://localhost:5173/pms/dependency-timeline",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "32_pms-automation-ai.png",
+      "route": "/pms/automation-ai",
+      "title": "automation-ai",
+      "actualUrl": "http://localhost:5173/pms/automation-ai",
+      "heading": "Automation",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "33_pms-software.png",
+      "route": "/pms/software",
+      "title": "software",
+      "actualUrl": "http://localhost:5173/pms/software",
+      "heading": "Software Delivery",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "34_pms-live.png",
+      "route": "/pms/live",
+      "title": "live",
+      "actualUrl": "http://localhost:5173/pms/live",
+      "heading": "Live Work Management",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "35_pms-teams-live.png",
+      "route": "/pms/teams-live",
+      "title": "teams-live",
+      "actualUrl": "http://localhost:5173/pms/teams-live",
+      "heading": "Live Work Management",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "36_pms-backlog.png",
+      "route": "/pms/backlog",
+      "title": "backlog",
+      "actualUrl": "http://localhost:5173/pms/backlog",
+      "heading": "Backlog",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "37_pms-issues.png",
+      "route": "/pms/issues",
+      "title": "issues",
+      "actualUrl": "http://localhost:5173/pms/issues",
+      "heading": "Software Delivery",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "38_pms-roadmap.png",
+      "route": "/pms/roadmap",
+      "title": "roadmap",
+      "actualUrl": "http://localhost:5173/pms/roadmap",
+      "heading": "Roadmap",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "39_pms-workload.png",
+      "route": "/pms/workload",
+      "title": "workload",
+      "actualUrl": "http://localhost:5173/pms/workload",
+      "heading": "Workload",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "40_pms-capacity.png",
+      "route": "/pms/capacity",
+      "title": "capacity",
+      "actualUrl": "http://localhost:5173/pms/capacity",
+      "heading": "Workload",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "41_pms-releases.png",
+      "route": "/pms/releases",
+      "title": "releases",
+      "actualUrl": "http://localhost:5173/pms/releases",
+      "heading": "Software Delivery",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "42_pms-automation.png",
+      "route": "/pms/automation",
+      "title": "automation",
+      "actualUrl": "http://localhost:5173/pms/automation",
+      "heading": "Automation",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "43_pms-goals.png",
+      "route": "/pms/goals",
+      "title": "goals",
+      "actualUrl": "http://localhost:5173/pms/goals",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "44_pms-forms.png",
+      "route": "/pms/forms",
+      "title": "forms",
+      "actualUrl": "http://localhost:5173/pms/forms",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "45_pms-templates.png",
+      "route": "/pms/templates",
+      "title": "templates",
+      "actualUrl": "http://localhost:5173/pms/templates",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "46_pms-components.png",
+      "route": "/pms/components",
+      "title": "components",
+      "actualUrl": "http://localhost:5173/pms/components",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "47_pms-workflows.png",
+      "route": "/pms/workflows",
+      "title": "workflows",
+      "actualUrl": "http://localhost:5173/pms/workflows",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "48_pms-security.png",
+      "route": "/pms/security",
+      "title": "security",
+      "actualUrl": "http://localhost:5173/pms/security",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "49_pms-dependencies.png",
+      "route": "/pms/dependencies",
+      "title": "dependencies",
+      "actualUrl": "http://localhost:5173/pms/dependencies",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "50_pms-navigator.png",
+      "route": "/pms/navigator",
+      "title": "navigator",
+      "actualUrl": "http://localhost:5173/pms/navigator",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "51_pms-apps.png",
+      "route": "/pms/apps",
+      "title": "apps",
+      "actualUrl": "http://localhost:5173/pms/apps",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "52_pms-dashboards.png",
+      "route": "/pms/dashboards",
+      "title": "dashboards",
+      "actualUrl": "http://localhost:5173/pms/dashboards",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "53_pms-plans.png",
+      "route": "/pms/plans",
+      "title": "plans",
+      "actualUrl": "http://localhost:5173/pms/plans",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "54_pms-issue-navigator-pro.png",
+      "route": "/pms/issue-navigator-pro",
+      "title": "issue-navigator-pro",
+      "actualUrl": "http://localhost:5173/pms/issue-navigator-pro",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "55_pms-backlog-grooming.png",
+      "route": "/pms/backlog-grooming",
+      "title": "backlog-grooming",
+      "actualUrl": "http://localhost:5173/pms/backlog-grooming",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "56_pms-sprint-lifecycle.png",
+      "route": "/pms/sprint-lifecycle",
+      "title": "sprint-lifecycle",
+      "actualUrl": "http://localhost:5173/pms/sprint-lifecycle",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "57_pms-blueprints.png",
+      "route": "/pms/blueprints",
+      "title": "blueprints",
+      "actualUrl": "http://localhost:5173/pms/blueprints",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "58_pms-resource-utilization.png",
+      "route": "/pms/resource-utilization",
+      "title": "resource-utilization",
+      "actualUrl": "http://localhost:5173/pms/resource-utilization",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "59_pms-calendar.png",
+      "route": "/pms/calendar",
+      "title": "calendar",
+      "actualUrl": "http://localhost:5173/pms/calendar",
+      "heading": "Calendar",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "60_pms-gantt.png",
+      "route": "/pms/gantt",
+      "title": "gantt",
+      "actualUrl": "http://localhost:5173/pms/gantt",
+      "heading": "Gantt",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "61_pms-sprints.png",
+      "route": "/pms/sprints",
+      "title": "sprints",
+      "actualUrl": "http://localhost:5173/pms/sprints",
+      "heading": "Sprints",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "62_pms-files.png",
+      "route": "/pms/files",
+      "title": "files",
+      "actualUrl": "http://localhost:5173/pms/files",
+      "heading": "Files",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "63_pms-time-tracking.png",
+      "route": "/pms/time-tracking",
+      "title": "time-tracking",
+      "actualUrl": "http://localhost:5173/pms/time-tracking",
+      "heading": "Time tracking",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "64_pms-timesheets.png",
+      "route": "/pms/timesheets",
+      "title": "timesheets",
+      "actualUrl": "http://localhost:5173/pms/timesheets",
+      "heading": "Weekly timesheets",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "65_pms-reports.png",
+      "route": "/pms/reports",
+      "title": "reports",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "66_pms-client-portal.png",
+      "route": "/pms/client-portal",
+      "title": "client-portal",
+      "actualUrl": "http://localhost:5173/pms/client-portal",
+      "heading": "Client portal",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "67_pms-settings.png",
+      "route": "/pms/settings",
+      "title": "settings",
+      "actualUrl": "http://localhost:5173/pms/settings",
+      "heading": "Settings",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "68_pms-admin.png",
+      "route": "/pms/admin",
+      "title": "admin",
+      "actualUrl": "http://localhost:5173/pms/admin",
+      "heading": "Admin",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "auth_pms-login.png",
+      "route": "/pms/login",
+      "title": "PMS · sign in",
+      "heading": "Sign in",
+      "dataSource": "Application sign-in page",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "dialog_command-center-goals.png",
+      "route": "/pms/command-center",
+      "title": "Command center · goals overview",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "dialog_new-task.png",
+      "route": "/pms/workspaces",
+      "title": "Workspace · new task dialog",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "dialog_workspace-invitation.png",
+      "route": "/pms/workspaces",
+      "title": "Workspace · invitation dialog",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "dialog_workspace-task-conversation.png",
+      "route": "/pms/workspaces",
+      "title": "Workspace · task conversation",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "mobile_workspace-board.png",
+      "route": "/pms/workspaces",
+      "title": "Mobile · workspace board",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "mobile_workspace-people.png",
+      "route": "/pms/workspaces",
+      "title": "Mobile · people",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_automation_audit-log.png",
+      "route": "/pms/automation-ai",
+      "title": "automation · Audit log",
+      "actualUrl": "http://localhost:5173/pms/automation-ai",
+      "heading": "Automation",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_automation_rules.png",
+      "route": "/pms/automation-ai",
+      "title": "automation · Rules",
+      "actualUrl": "http://localhost:5173/pms/automation-ai",
+      "heading": "Automation",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_automation_templates.png",
+      "route": "/pms/automation-ai",
+      "title": "automation · Templates",
+      "actualUrl": "http://localhost:5173/pms/automation-ai",
+      "heading": "Automation",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_automation_usage.png",
+      "route": "/pms/automation-ai",
+      "title": "automation · Usage",
+      "actualUrl": "http://localhost:5173/pms/automation-ai",
+      "heading": "Automation",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_apps.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Apps",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_automation.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Automation",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_board.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Board",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_calendar.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Calendar",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_dependencies.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Dependencies",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_forms.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Forms",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_goals.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Goals",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_list.png",
+      "route": "/pms/command-center",
+      "title": "command-center · List",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_releases.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Releases",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_reports.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Reports",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_summary.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Summary",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_teams.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Teams",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_command-center_timeline.png",
+      "route": "/pms/command-center",
+      "title": "command-center · Timeline",
+      "actualUrl": "http://localhost:5173/pms/command-center",
+      "heading": "Travel Company",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_advanced-plans.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Advanced Plans",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_agile-software.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Agile Software",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_automation.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Automation",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_backlog--sprints.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Backlog & Sprints",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_business-ops.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Business Ops",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_collaboration.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Collaboration",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_dependencies.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Dependencies",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_enterprise-admin.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Enterprise Admin",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_goals.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Goals",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_issue-navigator.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Issue Navigator",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_releases.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Releases",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_reports.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Reports",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_ux-power-tools.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · UX Power Tools",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_enterprise_workflows.png",
+      "route": "/pms/enterprise-engine",
+      "title": "enterprise · Workflows",
+      "actualUrl": "http://localhost:5173/pms/enterprise-engine",
+      "heading": "KaryaFlow enterprise project operations",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_board.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · Board",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_calendar.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · Calendar",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_list.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · List",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_pages.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · Pages",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_releases.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · Releases",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_reports.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · Reports",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_summary.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · Summary",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_product-launch_timeline.png",
+      "route": "/pms/product-launch",
+      "title": "product-launch · Timeline",
+      "actualUrl": "http://localhost:5173/pms/product-launch",
+      "heading": "New Product Launch",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_burndown.png",
+      "route": "/pms/reports",
+      "title": "reports · Burndown",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_cycle-time.png",
+      "route": "/pms/reports",
+      "title": "reports · Cycle Time",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_distribution.png",
+      "route": "/pms/reports",
+      "title": "reports · Distribution",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_flow.png",
+      "route": "/pms/reports",
+      "title": "reports · Flow",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_health.png",
+      "route": "/pms/reports",
+      "title": "reports · Health",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_team.png",
+      "route": "/pms/reports",
+      "title": "reports · Team",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_time-in-status.png",
+      "route": "/pms/reports",
+      "title": "reports · Time in Status",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_reports_velocity.png",
+      "route": "/pms/reports",
+      "title": "reports · Velocity",
+      "actualUrl": "http://localhost:5173/pms/reports",
+      "heading": "PMS reports",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_task-detail_activity.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "task-detail · Activity",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_task-detail_comments.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "task-detail · Comments",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_task-detail_development.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "task-detail · Development",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_task-detail_files.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "task-detail · Files",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_task-detail_history.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "task-detail · History",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_task-detail_linked-tasks.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "task-detail · Linked Tasks",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_task-detail_time-logs.png",
+      "route": "/pms/projects/1/tasks/1",
+      "title": "task-detail · Time Logs",
+      "actualUrl": "http://localhost:5173/pms/projects/1/tasks/1",
+      "heading": "",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_apps.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Apps",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_board.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Board",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_calendar.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Calendar",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_forms.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Forms",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_issues.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Issues",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_list.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · List",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_pages.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Pages",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_reports.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Reports",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_shortcuts.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Shortcuts",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_summary.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Summary",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_work-hub_timeline.png",
+      "route": "/pms/work-hub",
+      "title": "work-hub · Timeline",
+      "actualUrl": "http://localhost:5173/pms/work-hub",
+      "heading": "The Next Big Thing",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Built-in demonstration screen",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_workspace_board.png",
+      "route": "/pms/workspaces",
+      "title": "workspace · Board",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_workspace_list.png",
+      "route": "/pms/workspaces",
+      "title": "workspace · List",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    },
+    {
+      "file": "view_workspace_people.png",
+      "route": "/pms/workspaces",
+      "title": "workspace · People",
+      "actualUrl": "http://localhost:5173/pms/workspaces",
+      "heading": "Demo · Product Studio.",
+      "viewport": {
+        "width": 1920,
+        "height": 1200
+      },
+      "dataSource": "Seeded local PMS database",
+      "apiErrors": [],
+      "runtimeErrors": [],
+      "visibleFailure": false
+    }
+  ]
+}

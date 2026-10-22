@@ -1,0 +1,8 @@
+{
+  "retired_database": "ai_hrms",
+  "removed": true,
+  "postgresql_schema_verified": true,
+  "postgresql_backup_restore_verified": true,
+  "source_data_copied": false,
+  "mysql_server_service_modified": false
+}

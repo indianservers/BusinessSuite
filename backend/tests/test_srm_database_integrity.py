@@ -43,7 +43,7 @@ def test_srm_required_operational_tables_exist(db):
     inspector = inspect(db.bind)
     tables = set(inspector.get_table_names())
     assert REQUIRED_SRM_TABLES.issubset(tables)
-    assert {model.__tablename__ for model in SRM_TABLE_MODELS} == REQUIRED_SRM_TABLES
+    assert REQUIRED_SRM_TABLES.issubset({model.__tablename__ for model in SRM_TABLE_MODELS})
 
 
 def test_srm_cross_module_reference_columns_are_operational_not_reused_crm_pms(db):

@@ -7,6 +7,7 @@ from app.models.payroll import (
     EmployeeSalary,
     PayrollCalculationSnapshot,
     PayrollPeriod,
+    PayrollPayGroup,
     PayrollPreRunCheck,
     PayrollRecord,
 )
@@ -32,9 +33,14 @@ def _prepare_usd_employee(db) -> Employee:
                 effective_from=date(2026, 5, 1),
                 is_active=True,
             ))
+    pay_group = db.query(PayrollPayGroup).first()
+    if not pay_group:
+        pay_group = PayrollPayGroup(name="Currency test", code="FX", is_default=True)
+        db.add(pay_group)
+        db.flush()
     if not db.query(PayrollPeriod).filter(PayrollPeriod.month == 5, PayrollPeriod.year == 2026).first():
         db.add(PayrollPeriod(
-            pay_group_id=1,
+            pay_group_id=pay_group.id,
             month=5,
             year=2026,
             financial_year="2026-27",

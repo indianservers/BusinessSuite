@@ -170,9 +170,11 @@ export default function LoginPage() {
   const apiBaseUrl = getApiBaseUrl();
   const resetToken = useMemo(() => new URLSearchParams(location.search).get("token"), [location.search]);
 
+  const workspaceReturn = new URLSearchParams(location.search).get("next");
+  const workspaceRedirect = workspaceReturn === "/pms/workspaces" || workspaceReturn?.startsWith("/pms/workspaces?") ? workspaceReturn : null;
   const getPostLoginPath = useCallback((role?: string | null, isSuperuser = false) => (
-    loginModule === "hrms" ? getDefaultPathForUser(role, isSuperuser) : loginConfig.afterLogin
-  ), [loginConfig.afterLogin, loginModule]);
+    workspaceRedirect || (loginModule === "hrms" ? getDefaultPathForUser(role, isSuperuser) : loginConfig.afterLogin)
+  ), [loginConfig.afterLogin, loginModule, workspaceRedirect]);
 
   const { data: ssoProviders } = useQuery({
     queryKey: ["sso-providers"],
@@ -220,7 +222,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      const res = await authApi.login(data.email, data.password, loginConfig.authModule);
+      const res = await authApi.login(data.email, data.password, workspaceRedirect ? undefined : loginConfig.authModule);
       if (res.data.mfa_required) {
         setMfaToken(res.data.mfa_token);
         setLoginPhase("mfa");

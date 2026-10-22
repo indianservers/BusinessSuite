@@ -42,7 +42,7 @@ def test_company_settings_update(client, superuser_headers):
     )
     assert company.status_code == 201, company.text
 
-    settings = client.get("/api/v1/company/settings", headers=superuser_headers)
+    settings = client.get(f"/api/v1/company/settings?company_id={company.json()['id']}", headers=superuser_headers)
     assert settings.status_code == 200, settings.text
     assert settings.json()["cin_number"] == "U72900TG2026PTC000001"
 

@@ -3,7 +3,7 @@ from pydantic import AnyHttpUrl, EmailStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import json
 import secrets
-from urllib.parse import quote_plus
+from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
@@ -26,12 +26,17 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: Optional[str] = None
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""
-    MYSQL_SERVER: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_DB: str = "ai_hrms"
-    MYSQL_SSL_CA: Optional[str] = None
+    POSTGRES_USER: str = "business_suite"
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_SERVER: str = "127.0.0.1"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str = "business_suite"
+    POSTGRES_SSLMODE: str = "prefer"
+    POSTGRES_SSLROOTCERT: Optional[str] = None
+    DATABASE_AUTO_MIGRATE: bool = True
+    SEED_DEMO_DATA: bool = False
+    BOOTSTRAP_ADMIN_EMAIL: str = "admin@aihrms.com"
+    BOOTSTRAP_ADMIN_PASSWORD: str = ""
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
     DB_POOL_RECYCLE_SECONDS: int = 3600
@@ -39,20 +44,24 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.DATABASE_URL:
-            return self.DATABASE_URL
-        user = quote_plus(self.MYSQL_USER)
-        password = quote_plus(self.MYSQL_PASSWORD)
-        database = quote_plus(self.MYSQL_DB)
-        return (
-            f"mysql+pymysql://{user}:{password}"
-            f"@{self.MYSQL_SERVER}:{self.MYSQL_PORT}/{database}"
-            f"?charset=utf8mb4"
-        )
+            url = make_url(self.DATABASE_URL)
+            if url.get_backend_name() == "postgresql" or url.drivername == "postgres":
+                return url.set(drivername="postgresql+psycopg").render_as_string(hide_password=False)
+            if url.get_backend_name() == "sqlite":
+                return self.DATABASE_URL  # Isolated unit tests only.
+            raise ValueError("DATABASE_URL must use PostgreSQL (postgresql+psycopg://)")
+        return URL.create("postgresql+psycopg", username=self.POSTGRES_USER,
+                          password=self.POSTGRES_PASSWORD, host=self.POSTGRES_SERVER,
+                          port=self.POSTGRES_PORT, database=self.POSTGRES_DB,
+                          query={"sslmode": self.POSTGRES_SSLMODE}).render_as_string(hide_password=False)
 
     @property
     def SQLALCHEMY_CONNECT_ARGS(self) -> dict[str, Any]:
-        if self.MYSQL_SSL_CA:
-            return {"ssl": {"ca": self.MYSQL_SSL_CA}}
+        if make_url(self.SQLALCHEMY_DATABASE_URI).get_backend_name() == "postgresql":
+            args = {"options": "-c timezone=UTC", "connect_timeout": 10}
+            if self.POSTGRES_SSLROOTCERT:
+                args["sslrootcert"] = self.POSTGRES_SSLROOTCERT
+            return args
         return {}
 
     # Redis

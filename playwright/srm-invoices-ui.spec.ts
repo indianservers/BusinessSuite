@@ -17,8 +17,9 @@ test.describe("SRM invoices UI", () => {
     await page.getByRole("button", { name: "Send / Export Invoice" }).click();
     await expect(page.getByRole("main").getByRole("status")).toContainText("Invoice send/export completed");
 
-    await page.getByRole("button", { name: "Add Invoice Line" }).click();
-    await expect(page.getByRole("main").getByRole("status")).toContainText("Invoice line completed");
+    await page.getByPlaceholder("Line description").last().fill("Implementation service");
+    await page.getByRole("button", { name: "Add Line", exact: true }).last().click();
+    await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Invoice line added" })).toBeVisible();
 
     await expect(page.getByText("Invoice Lines")).toBeVisible();
     await expect(page.getByText("Receipt Allocations")).toBeVisible();

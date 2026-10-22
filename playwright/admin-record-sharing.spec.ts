@@ -7,7 +7,7 @@ test("admin creates record sharing rule and manual share", async ({ page }) => {
   await expectAdminSecurityShell(page);
   await expect(page.getByText("Share enterprise deals").first()).toBeVisible();
   await page.getByRole("button", { name: "Create sharing rule" }).click();
-  await expect(page.getByText("Sharing rule saved")).toBeVisible();
+  await expect(page.getByText("Sharing rule saved", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Manual share" }).click();
-  await expect(page.getByText("Record shared")).toBeVisible();
+  await expect(page.getByText("Record shared", { exact: true })).toBeVisible();
 });

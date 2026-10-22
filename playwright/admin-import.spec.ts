@@ -6,9 +6,9 @@ test("admin import wizard uploads maps runs and displays errors", async ({ page 
   await page.goto("/admin/import", { waitUntil: "domcontentloaded" });
   await expectAdminSecurityShell(page);
   await page.getByRole("button", { name: "Upload CSV" }).click();
-  await expect(page.getByText("Import uploaded")).toBeVisible();
+  await expect(page.getByText("Import uploaded", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Map fields" }).click();
-  await expect(page.getByText("Fields mapped")).toBeVisible();
+  await expect(page.getByText("Fields mapped", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Run import" }).click();
   await expect(page.getByText("Import completed", { exact: true }).first()).toBeVisible();
 });

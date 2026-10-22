@@ -15,6 +15,11 @@ export async function authenticateCrm(page: Page) {
       version: 0,
     }));
   }, user);
+  // The shared shell checks module access before rendering any CRM route.
+  await page.route("**/api/v1/business-os/modules", route => route.fulfill({
+    status: 200, contentType: "application/json",
+    body: JSON.stringify({ enabled_modules: ["hrms", "crm", "srm", "project_management", "fam", "ai", "communication"], modules: [] }),
+  }));
   await page.route("**/api/v1/crm/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -39,7 +44,7 @@ export async function authenticateCrm(page: Page) {
 export async function expectCrmListPage(page: Page, route: string, heading: string, text: string) {
   await page.goto(route, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
-  await expect(page.getByPlaceholder("Search records, owners, companies...")).toHaveCount(1);
+  await expect(page.getByPlaceholder("Search records, owners, companies...").or(page.getByRole("textbox", { name: /^Search (contacts|leads|deals|companies|accounts)$/i }))).toHaveCount(1);
   await expect(page.getByText(text).first()).toBeVisible();
 }
 

@@ -1,0 +1,107 @@
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import * as Dialog from "@radix-ui/react-dialog";
+import { DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors, useDroppable, pointerWithin, rectIntersection, type DragEndEvent, type CollisionDetection } from "@dnd-kit/core";
+import { SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ArrowUpRight, CalendarDays, CheckCircle2, Circle, Flag, Folder, GripVertical, MessageSquare, Plus, Send, ShieldCheck, Users, X } from "lucide-react";
+import { tasksAPI, commentsAPI } from "../services/api";
+import type { PMSComment } from "../types";
+import { type WorkspaceMember as Member, type WorkspaceProject as Project, type WorkTask as Task, personName, tones, taskBucket as bucket, workspaceError } from "./workspaceTypes";
+
+const lanes = [{ status: "To Do", label: "To do", color: "#8894a7" }, { status: "In Progress", label: "In progress", color: "#7864e9" }, { status: "In Review", label: "In review", color: "#e4a54c" }, { status: "Done", label: "Done", color: "#319c88" }];
+const dateLabel = (value?: string) => value ? new Date(value + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "No due date";
+const collision: CollisionDetection = args => {
+  const hits = pointerWithin(args);
+  // A teammate drop zone takes priority over an individual card inside it.
+  const people = hits.filter(h => String(h.id).startsWith("person:"));
+  return people.length ? people : hits.length ? hits.filter(h => String(h.id).startsWith("task-")).length ? hits.filter(h => String(h.id).startsWith("task-")) : hits : rectIntersection(args);
+};
+type Props = {
+  tasks: Task[]; members: Member[]; projects: Project[]; view: "board" | "list" | "people"; query: string;
+  projectFilter: string; setProjectFilter: (v: string) => void; assigneeFilter: string; setAssigneeFilter: (v: string) => void;
+  canEdit: boolean; updateTask: (task: Task, changes: Partial<Task>) => Promise<boolean>; onOpen: (id: number) => void;
+  onRefresh: () => Promise<void>; onInvite?: () => void; onError: (s: string) => void; onNotice: (s: string) => void;
+  renderMemberActions: (m: Member) => ReactNode;
+};
+export function WorkspaceAvatar({ email, tone = "lilac", large = false }: { email: string; tone?: string; large?: boolean }) {
+  return <span title={email} className={`ws-avatar ${tone} ${large ? "large" : ""}`}>{personName(email).split(" ").slice(0, 2).map(s => s[0]).join("").toUpperCase()}</span>;
+}
+export function WorkspaceWork({ tasks, members, projects, view, query, projectFilter, setProjectFilter, assigneeFilter, setAssigneeFilter, canEdit, updateTask, onOpen, onRefresh, onInvite, onError, onNotice, renderMemberActions }: Props) {
+  const [priority, setPriority] = useState("");
+  const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [quickLane, setQuickLane] = useState<string | null>(null);
+  const [quickTitle, setQuickTitle] = useState("");
+  const [adding, setAdding] = useState(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const createProjectId = Number(projectFilter) || projects[0]?.id;
+  const filtered = useMemo(() => tasks.filter(t => (!query || `${t.title} ${t.task_key} ${t.description || ""}`.toLowerCase().includes(query.toLowerCase())) && (!projectFilter || t.project_id === Number(projectFilter)) && (!assigneeFilter || (assigneeFilter === "unassigned" ? !t.assignee_user_id : t.assignee_user_id === Number(assigneeFilter))) && (!priority || t.priority === priority)), [tasks, query, projectFilter, assigneeFilter, priority]);
+  const memberFor = (id?: number | null) => members.find(m => m.user_id === id);
+  const projectFor = (id: number) => projects.find(p => p.id === id);
+  async function drop(event: DragEndEvent) {
+    setDraggedId(null);
+    if (!canEdit || !event.over || event.active.id === event.over.id) return;
+    const task = tasks.find(t => `task-${t.id}` === event.active.id);
+    if (!task) return;
+    const destination = String(event.over.id);
+    if (destination.startsWith("person:")) {
+      const id = Number(destination.split(":")[1]) || null;
+      if (await updateTask(task, { assignee_user_id: id })) onNotice(id ? `Assigned to ${personName(memberFor(id)?.email || "teammate")}` : "Task unassigned");
+    } else {
+      const target = tasks.find(t => `task-${t.id}` === destination);
+      const status = target ? bucket(target.status) : destination.replace("status:", "");
+      if (!lanes.some(l => l.status === status)) return;
+      const position = target && target.project_id === task.project_id ? target.position : tasks.filter(t => t.project_id === task.project_id && bucket(t.status) === status).length;
+      if (await updateTask(task, { status, position })) onNotice(`Moved to ${lanes.find(l => l.status === status)?.label}`);
+    }
+  }
+  async function quickAdd(status: string) {
+    if (!quickTitle.trim() || !createProjectId || adding) return;
+    setAdding(true);
+    try { await tasksAPI.create(createProjectId, { title: quickTitle.trim(), task_key: `T-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: status as any }); setQuickTitle(""); setQuickLane(null); await onRefresh(); }
+    catch (e) { onError(workspaceError(e)); } finally { setAdding(false); }
+  }
+  const renderCard = (task: Task, compact = false) => <WorkCard key={task.id} task={task} member={memberFor(task.assignee_user_id)} project={projectFor(task.project_id)} disabled={!canEdit} onOpen={() => onOpen(task.id)} compact={compact} />;
+  return <>
+    {view !== "people" && <div className="ws-filterbar"><div className="ws-filter-controls"><label><Folder size={14} /><select aria-label="Filter project" value={projectFilter} onChange={e => setProjectFilter(e.target.value)}><option value="">All projects</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label><Users size={14} /><select aria-label="Filter assignee" value={assigneeFilter} onChange={e => setAssigneeFilter(e.target.value)}><option value="">Everyone</option><option value="unassigned">Unassigned</option>{members.map(m => <option key={m.id} value={m.user_id}>{personName(m.email)}</option>)}</select></label><label><Flag size={14} /><select aria-label="Filter priority" value={priority} onChange={e => setPriority(e.target.value)}><option value="">All priorities</option>{["Low", "Medium", "High", "Urgent", "Critical"].map(p => <option key={p}>{p}</option>)}</select></label>{(projectFilter || assigneeFilter || priority) && <button className="ws-clear" onClick={() => { setProjectFilter(""); setAssigneeFilter(""); setPriority(""); }}>Clear filters<X size={12} /></button>}</div><span>{filtered.length} task{filtered.length !== 1 ? "s" : ""}</span></div>}
+    <DndContext sensors={sensors} collisionDetection={collision} onDragStart={e => setDraggedId(Number(String(e.active.id).replace("task-", "")))} onDragEnd={e => { void drop(e); }} onDragCancel={() => setDraggedId(null)}>
+      {view !== "people" && <div className={`ws-assignment-bar ${draggedId ? "dragging" : ""}`}><span><Users size={14} />{draggedId ? "Drop to assign" : "Your team"}</span><div>{members.filter(m => m.role !== "Guest").map((m, i) => <PersonDrop key={m.id} member={m} tone={tones[i % tones.length]} disabled={!canEdit} />)}<PersonDrop disabled={!canEdit} /></div>{onInvite && <button aria-label="Invite a teammate" className="ws-add-person" onClick={onInvite}><Plus size={14} /></button>}</div>}
+      {view === "board" && <div className="ws-board">{lanes.map(lane => { const items = filtered.filter(t => bucket(t.status) === lane.status); return <StatusLane key={lane.status} {...lane} count={items.length} disabled={!canEdit}><SortableContext items={items.map(t => `task-${t.id}`)} strategy={verticalListSortingStrategy}>{items.map(t => renderCard(t))}</SortableContext>{!items.length && <div className="ws-lane-empty"><Circle size={19} /><span>{lane.status === "Done" ? "Good things take teamwork." : "A little breathing room."}</span></div>}{canEdit && (quickLane === lane.status ? <form className="ws-quick-add" onSubmit={e => { e.preventDefault(); void quickAdd(lane.status); }}><input autoFocus aria-label={`New task in ${lane.label}`} placeholder="What needs to get done?" value={quickTitle} onChange={e => setQuickTitle(e.target.value)} required /><div><small>{projectFor(createProjectId)?.name || "Create a project first"}</small><button type="button" aria-label="Cancel quick add" onClick={() => setQuickLane(null)}><X size={14} /></button><button className="ws-mini-primary" disabled={adding || !createProjectId}>Add</button></div></form> : <button className="ws-add-task" onClick={() => { setQuickLane(lane.status); setQuickTitle(""); }}><Plus size={15} />Add task</button>)}</StatusLane>; })}</div>}
+      {view === "list" && <div className="ws-table-wrap"><table className="ws-task-table"><thead><tr><th>Task</th><th>Project</th><th>Status</th><th>Assignee</th><th>Due date</th><th>Priority</th></tr></thead><tbody>{filtered.map(task => <tr key={task.id}><td><button className="ws-list-title" onClick={() => onOpen(task.id)}><Circle size={15} style={{ color: lanes.find(l => l.status === bucket(task.status))?.color }} /><span><small>{task.task_key}</small>{task.title}</span></button></td><td>{projectFor(task.project_id)?.name}</td><td><select aria-label={`Status for ${task.title}`} disabled={!canEdit} value={task.status} onChange={e => { void updateTask(task, { status: e.target.value }); }}>{[...new Set([task.status, ...lanes.map(l => l.status)])].map(s => <option key={s}>{s}</option>)}</select></td><td><select aria-label={`Assignee for ${task.title}`} disabled={!canEdit} value={task.assignee_user_id || ""} onChange={e => { void updateTask(task, { assignee_user_id: Number(e.target.value) || null }); }}><option value="">Unassigned</option>{members.filter(m => m.role !== "Guest").map(m => <option key={m.id} value={m.user_id}>{personName(m.email)}</option>)}</select></td><td>{dateLabel(task.due_date)}</td><td><span className={`ws-priority ${task.priority.toLowerCase()}`}><Flag size={11} />{task.priority}</span></td></tr>)}</tbody></table>{!filtered.length && <div className="ws-empty-results">No tasks match this view. Try clearing filters or add your first task.</div>}</div>}
+      {view === "people" && <><div className="ws-people-heading"><div><h2>Meet your people<span>{members.length}</span></h2><p>The right people, with the right work, in one place.</p></div><span><ShieldCheck size={14} />Workspace roles keep access clear</span></div><div className="ws-people-grid">{members.filter(m => !query || `${m.email} ${m.role}`.toLowerCase().includes(query.toLowerCase())).map((m, i) => { const work = tasks.filter(t => t.assignee_user_id === m.user_id && bucket(t.status) !== "Done"); return <PersonPanel key={m.id} member={m} disabled={!canEdit}><div className={`ws-person-cover ${tones[i % tones.length]}`}><WorkspaceAvatar email={m.email} tone={tones[i % tones.length]} large /><span className="ws-person-role">{m.role}</span></div><div className="ws-person-body"><h3>{personName(m.email)}</h3><p>{m.email}</p><div className="ws-person-stats"><span><strong>{work.length}</strong>open tasks</span><span><strong>{tasks.filter(t => t.assignee_user_id === m.user_id && bucket(t.status) === "Done").length}</strong>completed</span></div><SortableContext items={work.slice(0, 3).map(t => `task-${t.id}`)} strategy={verticalListSortingStrategy}><div className="ws-person-tasks">{work.slice(0, 3).map(t => renderCard(t, true))}{work.length > 3 && <small>+{work.length - 3} more tasks</small>}{!work.length && <p>{m.role === "Guest" ? "Read-only workspace access" : "Ready for the next great thing."}</p>}</div></SortableContext><div className="ws-person-footer">{renderMemberActions(m)}</div></div></PersonPanel>; })}{onInvite && <button className="ws-invite-card" onClick={onInvite}><span><Plus size={26} /></span><strong>Better with your team.</strong><p>Invite someone to build<br />something great together.</p><span className="ws-invite-card-link">Invite people<ArrowUpRight size={14} /></span></button>}</div></>}
+      <DragOverlay dropAnimation={null}>{draggedId && tasks.find(t => t.id === draggedId) ? <div className="ws-drag-preview"><GripVertical size={15} /><strong>{tasks.find(t => t.id === draggedId)?.title}</strong><span>Drop to move or assign</span></div> : null}</DragOverlay>
+    </DndContext>
+  </>;
+}
+function StatusLane({ status, label, color, count, disabled, children }: { status: string; label: string; color: string; count: number; disabled: boolean; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `status:${status}`, disabled });
+  return <section ref={setNodeRef} aria-label={`${label} column`} className={`ws-lane ${isOver ? "over" : ""}`} style={{ "--lane-color": color } as React.CSSProperties}><header><i /><h2>{label}</h2><span>{count}</span></header><div className="ws-lane-body">{children}</div></section>;
+}
+function WorkCard({ task, member, project, disabled, onOpen, compact = false }: { task: Task; member?: Member; project?: Project; disabled: boolean; onOpen: () => void; compact?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `task-${task.id}`, disabled });
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const overdue = task.due_date && new Date(task.due_date + "T00:00:00") < today && bucket(task.status) !== "Done";
+  return <article ref={setNodeRef} data-testid={`task-card-${task.id}`} className={`ws-task-card ${compact ? "compact" : ""} ${isDragging ? "is-dragging" : ""}`} style={{ transform: CSS.Transform.toString(transform), transition }}><div className="ws-card-top"><span className="ws-card-project">{project?.name || task.task_key}</span><button className="ws-grip" aria-label={`Drag ${task.title}`} disabled={disabled} {...attributes} {...listeners}><GripVertical size={15} /></button></div><button className="ws-card-title" onClick={onOpen}>{task.title}</button>{!compact && <><div className="ws-card-tags"><span className={`ws-priority ${task.priority.toLowerCase()}`}><Flag size={10} />{task.priority}</span>{task.status === "Blocked" && <span className="ws-blocked">Blocked</span>}</div>{task.description && <p className="ws-card-description">{task.description}</p>}<footer><span className={overdue ? "overdue" : ""}><CalendarDays size={12} />{dateLabel(task.due_date)}</span><span className="ws-card-meta">{!!task.comments_count && <span><MessageSquare size={12} />{task.comments_count}</span>}{member ? <WorkspaceAvatar email={member.email} tone={tones[member.user_id % tones.length]} /> : <span className="ws-unassigned" title="Unassigned"><Users size={12} /></span>}</span></footer></>}</article>;
+}
+function PersonDrop({ member, tone, disabled }: { member?: Member; tone?: string; disabled: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `person:${member?.user_id || 0}`, disabled });
+  return <div ref={setNodeRef} data-testid={`assign-${member?.user_id || 0}`} className={`ws-person-drop ${isOver ? "over" : ""}`} title={member ? `Assign to ${personName(member.email)}` : "Unassign task"}>{member ? <WorkspaceAvatar email={member.email} tone={tone} /> : <span className="ws-unassigned"><Users size={13} /></span>}<span>{member ? personName(member.email).split(" ")[0] : "Unassigned"}</span></div>;
+}
+function PersonPanel({ member, disabled, children }: { member: Member; disabled: boolean; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `person:${member.user_id}`, disabled: disabled || member.role === "Guest" });
+  return <section ref={setNodeRef} aria-label={`${personName(member.email)} member card`} className={`ws-person-panel ${isOver ? "over" : ""}`}>{children}</section>;
+}
+
+export function TaskDrawer({ task, members, canEdit, onClose, onUpdate, onRefresh, onError, error = "" }: { task?: Task; members: Member[]; canEdit: boolean; onClose: () => void; onUpdate: Props["updateTask"]; onRefresh: () => Promise<void>; onError: (s: string) => void; error?: string }) {
+  const [comments, setComments] = useState<PMSComment[]>([]);
+  const [comment, setComment] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  useEffect(() => {
+    setComments([]); setComment(""); if (!task) return;
+    let active = true; setLoading(true);
+    commentsAPI.listForTask(task.id).then(data => { if (active) setComments(data); }).catch(e => { if (active) onError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [task?.id, task?.comments_count]);
+  return <Dialog.Root open={!!task} onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal><Dialog.Overlay className="ws-overlay" /><Dialog.Content className="ws-modal ws-drawer"><Dialog.Close className="ws-modal-close" aria-label="Close task"><X size={19} /></Dialog.Close>{task && <><div className="ws-drawer-key">TASK / {task.task_key}</div><Dialog.Title>{task.title}</Dialog.Title><Dialog.Description>Task details and team conversation</Dialog.Description>{error && <div className="ws-alert" role="alert">{error}</div>}<div className="ws-task-properties"><label>Status<select aria-label="Task status" disabled={!canEdit} value={task.status} onChange={e => { void onUpdate(task, { status: e.target.value }); }}>{[...new Set([task.status, ...lanes.map(l => l.status), "Blocked"])].map(s => <option key={s}>{s}</option>)}</select></label><label>Assignee<select aria-label="Task assignee" disabled={!canEdit} value={task.assignee_user_id || ""} onChange={e => { void onUpdate(task, { assignee_user_id: Number(e.target.value) || null }); }}><option value="">Unassigned</option>{members.filter(m => m.role !== "Guest").map(m => <option key={m.id} value={m.user_id}>{m.email}</option>)}</select></label><label>Priority<select aria-label="Task priority" disabled={!canEdit} value={task.priority} onChange={e => { void onUpdate(task, { priority: e.target.value }); }}>{["Low", "Medium", "High", "Urgent", "Critical"].map(p => <option key={p}>{p}</option>)}</select></label><label>Due date<input aria-label="Task due date" disabled={!canEdit} type="date" value={task.due_date || ""} onChange={e => { if (e.target.value) void onUpdate(task, { due_date: e.target.value }); }} /></label></div><div className="ws-task-description"><h3>Description</h3><textarea aria-label="Task description" key={`${task.id}:${task.description}`} disabled={!canEdit} defaultValue={task.description || ""} placeholder="Add context, a brief, or a useful link…" onBlur={e => { if (e.target.value !== (task.description || "")) void onUpdate(task, { description: e.target.value }); }} /></div><div className="ws-conversation"><h3><MessageSquare size={16} />Conversation<span>{comments.length}</span></h3>{loading ? <p>Loading conversation…</p> : comments.map(c => { const author = members.find(m => m.user_id === c.author_user_id); return <article key={c.id}><WorkspaceAvatar email={author?.email || "Teammate"} /><div><strong>{author ? personName(author.email) : "Teammate"}</strong><time>{new Date(c.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time><p>{c.body}</p></div></article>; })}{!loading && !comments.length && <p className="ws-conversation-empty">A question, an update, a little context.<br />Keep the conversation close to the work.</p>}{canEdit && <form onSubmit={e => { e.preventDefault(); if (!comment.trim() || sending) return; setSending(true); commentsAPI.addToTask(task.id, { body: comment.trim(), body_format: "plain", is_internal: false }).then(async () => { setComment(""); await onRefresh(); }).catch(e => onError(workspaceError(e))).finally(() => setSending(false)); }}><textarea aria-label="Write a comment" value={comment} onChange={e => setComment(e.target.value)} placeholder="Share an update or ask a question…" required /><button aria-label="Send comment" className="ws-button ws-primary" disabled={sending || !comment.trim()}><Send size={15} />Send</button></form>}</div><Link className="ws-full-task" to={`/pms/tasks/${task.id}`}>Open full task details<ArrowUpRight size={14} /></Link></>}</Dialog.Content></Dialog.Portal></Dialog.Root>;
+}

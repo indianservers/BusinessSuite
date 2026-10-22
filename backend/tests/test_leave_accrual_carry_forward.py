@@ -25,8 +25,8 @@ def test_scheduled_leave_accrual_is_idempotent(db):
     db.add_all([employee, leave_type])
     db.commit()
 
-    first = run_scheduled_leave_accruals(db, run_date=date(2026, 5, 23), created_by=1)
-    second = run_scheduled_leave_accruals(db, run_date=date(2026, 5, 23), created_by=1)
+    first = run_scheduled_leave_accruals(db, run_date=date(2026, 5, 23), created_by=None)
+    second = run_scheduled_leave_accruals(db, run_date=date(2026, 5, 23), created_by=None)
 
     balance = get_leave_balance(db, employee.id, leave_type.id, 2026)
     assert first["credited"] == 1
@@ -66,8 +66,8 @@ def test_leave_carry_forward_respects_limit_and_is_idempotent(db):
     )
     db.commit()
 
-    first = run_leave_carry_forward(db, from_year=2025, to_year=2026, created_by=1)
-    second = run_leave_carry_forward(db, from_year=2025, to_year=2026, created_by=1)
+    first = run_leave_carry_forward(db, from_year=2025, to_year=2026, created_by=None)
+    second = run_leave_carry_forward(db, from_year=2025, to_year=2026, created_by=None)
 
     balance = get_leave_balance(db, employee.id, leave_type.id, 2026)
     assert first["carried"] == 1

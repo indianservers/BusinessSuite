@@ -60,11 +60,29 @@ function LoadingFallback() {
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { isAuthenticated, isHydrated, user } = useAuthStore();
+  const roleAllowed = canAccessRoute(location.pathname, user?.role, user?.is_superuser);
+  const membershipPath = /^\/pms\/projects(?:\/|$)/.test(location.pathname) || /^\/pms\/tasks\/\d+$/.test(location.pathname);
+  const accessKey = `${user?.id}:${location.pathname}`;
+  const [workspaceAccess, setWorkspaceAccess] = useState<{ key: string; allowed: boolean } | null>(null);
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated || !user || roleAllowed || !membershipPath) return;
+    let active = true;
+    api.get("/project-management/workspaces").then(({ data }) => {
+      if (active) setWorkspaceAccess({ key: accessKey, allowed: data.length > 0 });
+    }).catch(() => { if (active) setWorkspaceAccess({ key: accessKey, allowed: false }); });
+    return () => { active = false; };
+  }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey]);
   if (!isHydrated) return <LoadingFallback />;
-  if (!isAuthenticated) return <Navigate to={getLoginPathForContext(location.pathname, user?.role, user?.is_superuser)} replace />;
+  if (!isAuthenticated) {
+    const loginPath = getLoginPathForContext(location.pathname, user?.role, user?.is_superuser);
+    const next = location.pathname === "/pms/workspaces" ? `?next=${encodeURIComponent(location.pathname + location.search)}` : "";
+    return <Navigate to={loginPath + next} replace />;
+  }
   if (!user) return <LoadingFallback />;
-  if (!canAccessRoute(location.pathname, user?.role, user?.is_superuser)) {
-    return <AccessDeniedPage />;
+  if (!roleAllowed) {
+    if (!membershipPath) return <AccessDeniedPage />;
+    if (workspaceAccess?.key !== accessKey) return <LoadingFallback />;
+    if (!workspaceAccess.allowed) return <AccessDeniedPage />;
   }
   return <>{children}</>;
 }

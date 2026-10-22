@@ -20,7 +20,10 @@ def auth_headers_for(client, db, email: str, role_name: str, password: str = "Pa
     user = User(email=email, hashed_password=get_password_hash(password), is_active=True, is_superuser=False, role_id=role.id)
     db.add(user)
     db.commit()
-    response = client.post("/api/v1/auth/login", json={"email": email, "password": password, "module": "fam"})
+    payload = {"email": email, "password": password}
+    if role_name in {"fam_admin", "fam_accountant", "fam_finance_manager", "fam_auditor", "fam_viewer", "fam_business_owner"}:
+        payload["module"] = "fam"
+    response = client.post("/api/v1/auth/login", json=payload)
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 

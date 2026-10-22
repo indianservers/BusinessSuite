@@ -4,7 +4,7 @@
   <div class="col-lg-5">
     <div class="panel h-100">
       <h2 class="h5">Manual Backup</h2>
-      <p class="text-muted">Download uploaded files backup. The MySQL dump helper is available in the service layer for server environments with mysqldump.</p>
+      <p class="text-muted">Download uploaded files backup. PostgreSQL database backups use pg_dump in the server service layer.</p>
       <a class="btn btn-primary" href="{{ url_for('settings.backup_upload_files') }}"><i class="bi bi-download"></i> Backup Uploads</a>
     </div>
   </div>

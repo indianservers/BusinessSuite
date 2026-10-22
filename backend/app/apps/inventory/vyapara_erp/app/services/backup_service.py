@@ -19,16 +19,22 @@ def backup_uploads():
     return target
 
 
-def backup_mysql():
+def backup_postgresql():
     cfg = current_app.config
     stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    target = Path(current_app.instance_path) / f"{cfg['DB_NAME']}-{stamp}.sql"
+    from sqlalchemy.engine import make_url
+    url = make_url(cfg["SQLALCHEMY_DATABASE_URI"])
+    target = Path(current_app.instance_path) / f"{url.database}-{stamp}.dump"
     target.parent.mkdir(parents=True, exist_ok=True)
-    with open(target, "w", encoding="utf-8") as fh:
-        subprocess.run(
-            ["mysqldump", "-h", cfg["DB_HOST"], "-P", str(cfg["DB_PORT"]), "-u", cfg["DB_USER"], f"-p{cfg['DB_PASSWORD']}", cfg["DB_NAME"]],
-            stdout=fh,
-            check=True,
-        )
+    binary = shutil.which("pg_dump")
+    if not binary and os.environ.get("POSTGRES_BIN"):
+        binary = str(Path(os.environ["POSTGRES_BIN"]) / "pg_dump.exe")
+    if not binary:
+        raise RuntimeError("Install PostgreSQL client tools or set POSTGRES_BIN")
+    env = dict(os.environ, PGHOST=url.host or "127.0.0.1", PGPORT=str(url.port or 5432), PGUSER=url.username or "", PGPASSWORD=url.password or "", PGDATABASE=url.database)
+    for key, value in url.query.items():
+        if key in {"sslmode", "sslrootcert"}:
+            env["PG" + key.upper()] = str(value)
+    subprocess.run([binary, "--format=custom", "--no-owner", "--no-acl", "--file", str(target)], env=env, check=True)
     return target
 

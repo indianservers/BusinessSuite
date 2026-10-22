@@ -10,7 +10,7 @@ test("CRM theme toggle applies the dark product shell", async ({ page }) => {
       body: JSON.stringify({ enabled_modules: ["crm"] }),
     });
   });
-  await page.goto(`${process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:5173"}/crm`, { waitUntil: "domcontentloaded" });
+  await page.goto("/crm", { waitUntil: "domcontentloaded" });
 
   const shell = page.locator(".product-shell.product-crm");
   await expect(shell).toBeVisible();

@@ -1,6 +1,6 @@
 # Vyapara ERP
 
-Vyapara ERP is a Flask, SQLAlchemy, MySQL, Bootstrap 5 business management system for stock, sales, purchases, ledgers, payments, reports, users, and settings.
+Vyapara ERP is a Flask, SQLAlchemy, PostgreSQL, Bootstrap 5 business management system for stock, sales, purchases, ledgers, payments, reports, users, and settings.
 
 ## Features
 
@@ -16,7 +16,7 @@ Vyapara ERP is a Flask, SQLAlchemy, MySQL, Bootstrap 5 business management syste
 
 ## Stack
 
-Python, Flask, Jinja2, Flask-SQLAlchemy, Flask-Login, Flask-WTF, MySQL/PyMySQL, Bootstrap 5, Bootstrap Icons, DataTables, Chart.js, ReportLab, pytest.
+Python, Flask, Jinja2, Flask-SQLAlchemy, Flask-Login, Flask-WTF, PostgreSQL/Psycopg 3, Bootstrap 5, Bootstrap Icons, DataTables, Chart.js, ReportLab, pytest.
 
 ## Installation
 
@@ -30,24 +30,24 @@ copy .env.example .env
 Update `.env` for local development:
 
 ```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=stock_accounts_db
-DB_USER=root
-DB_PASSWORD=123456
+POSTGRES_SERVER=127.0.0.1
+POSTGRES_PORT=5432
+INVENTORY_POSTGRES_DB=business_suite_inventory
+POSTGRES_USER=business_suite
+POSTGRES_PASSWORD=replace-with-your-password
 SECRET_KEY=change-this-secret-key
 APP_ENV=development
 ```
 
-The app creates the MySQL database automatically if it does not exist.
+The app creates its separate PostgreSQL database if the role has CREATEDB permission. A precreated empty database may also be used.
 
 ## Initialize
 
 ```powershell
-python seed.py
+python create_db.py
 ```
 
-This creates tables and inserts roles, permissions, accounts, settings, taxes, units, sample masters, and the default admin.
+This applies the frozen PostgreSQL schema without copying data. Run `python seed.py` separately only when demonstration records and the legacy default admin are wanted.
 
 ## Run
 

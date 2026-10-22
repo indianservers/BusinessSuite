@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import type { ProjectPriority, ProjectStatus } from "../types";
 
 export default function CreateProjectPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const workspaceId = Number(searchParams.get("workspace_id")) || undefined;
   const [name, setName] = useState("");
   const [projectKey, setProjectKey] = useState("");
   const [description, setDescription] = useState("");
@@ -32,6 +34,7 @@ export default function CreateProjectPage() {
       setSubmitting(true);
       setError(null);
       const project = await projectsAPI.create({
+        workspace_id: workspaceId,
         name,
         project_key: projectKey,
         description: description || undefined,

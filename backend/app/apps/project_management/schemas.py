@@ -41,6 +41,7 @@ class PMSClientResponse(PMSClientBase):
 
 # ============= PROJECT SCHEMAS =============
 class PMSProjectBase(BaseModel):
+    workspace_id: Optional[int] = None
     name: str = Field(..., min_length=1, max_length=180)
     project_key: str = Field(..., min_length=1, max_length=20)
     description: Optional[str] = None

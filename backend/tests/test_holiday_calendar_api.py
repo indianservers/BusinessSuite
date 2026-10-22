@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from app.core.security import get_password_hash
 from app.models.attendance import Attendance, Holiday
+from app.models.company import Branch
 from app.models.employee import Employee
 from app.models.user import Role, User
 
@@ -39,8 +40,10 @@ def _employee_user(db, email: str, code: str, *, branch_id: int | None = None):
 
 
 def test_holiday_calendar_crud_filters_and_attendance_sync(client, db, superuser_headers):
-    branch_one = 101
-    branch_two = 202
+    branches = [Branch(name=name, company_id=1) for name in ["Holiday one", "Holiday two"]]
+    db.add_all(branches)
+    db.flush()
+    branch_one, branch_two = [branch.id for branch in branches]
     _, employee_one = _employee_user(db, "holiday.branch1@test.com", "HOL-001", branch_id=branch_one)
     _, employee_two = _employee_user(db, "holiday.branch2@test.com", "HOL-002", branch_id=branch_two)
     holiday_date = date.today() + timedelta(days=7)

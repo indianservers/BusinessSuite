@@ -4,6 +4,7 @@ from app.common.services.identity import SharedIdentityService
 from app.core.security import get_password_hash
 from app.module_registry import is_app_enabled
 from app.models.user import Permission, Role, User
+from app.core.config import settings
 
 
 COMMON_PERMISSIONS = [
@@ -189,7 +190,7 @@ def init_common_db(db: Session) -> None:
             db.flush()
         role.permissions = [perm_map[name] for name in role_data["permissions"] if name in perm_map]
 
-    admin_email = "admin@gowthamaeducationalinstitutions.com"
+    admin_email = settings.BOOTSTRAP_ADMIN_EMAIL
     role = db.query(Role).filter(Role.name == "super_admin").first()
     user = db.query(User).filter(User.email == admin_email).first()
     legacy_user = db.query(User).filter(User.email == "admin@platform.local").first()
@@ -197,9 +198,11 @@ def init_common_db(db: Session) -> None:
         legacy_user.email = admin_email
         user = legacy_user
     if not user and role:
+        if not settings.BOOTSTRAP_ADMIN_PASSWORD:
+            raise RuntimeError("Set BOOTSTRAP_ADMIN_PASSWORD to initialize the first administrator")
         user = User(
             email=admin_email,
-            hashed_password=get_password_hash("Admin@123456"),
+            hashed_password=get_password_hash(settings.BOOTSTRAP_ADMIN_PASSWORD),
             is_active=True,
             is_superuser=True,
             role_id=role.id,
@@ -207,7 +210,6 @@ def init_common_db(db: Session) -> None:
         db.add(user)
         db.flush()
     elif user and role:
-        user.hashed_password = get_password_hash("Admin@123456")
         user.is_active = True
         user.is_superuser = True
         user.role_id = role.id

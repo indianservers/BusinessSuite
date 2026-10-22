@@ -23,7 +23,7 @@ test.describe("SRM navigation", () => {
     await page.goto("/srm/dashboard", { waitUntil: "domcontentloaded" });
 
     for (const [label] of sidebarEntries) {
-      await expect(page.getByRole("link", { name: new RegExp(label, "i") })).toBeVisible();
+      await expect(page.getByRole("link", { name: label, exact: true })).toBeVisible();
     }
 
     await page.getByRole("link", { name: "Sales Orders" }).click();

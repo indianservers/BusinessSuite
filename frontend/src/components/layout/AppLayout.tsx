@@ -22,6 +22,10 @@ export default function AppLayout() {
     localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
+  if (location.pathname === "/pms/workspaces") {
+    return <div className="h-dvh overflow-hidden"><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /></div>;
+  }
+
   return (
     <div className={`product-shell ${product.themeClass} flex h-screen overflow-hidden bg-background`} data-product={product.key}>
       {/* Sidebar */}

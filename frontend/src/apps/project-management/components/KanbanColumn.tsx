@@ -18,11 +18,13 @@ export default function KanbanColumn({
   tasks,
   onAddTask,
   onOpenTask,
+  readOnly = false,
 }: {
   column: PMSBoardColumn;
   tasks: PMSTask[];
   onAddTask: () => void;
   onOpenTask?: (task: PMSTask) => void;
+  readOnly?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column-${column.id}` });
   const isAtLimit = Boolean(column.wip_limit && tasks.length >= column.wip_limit);
@@ -47,7 +49,7 @@ export default function KanbanColumn({
               <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600 shadow-sm">{tasks.length}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={onAddTask}>
+              <Button type="button" aria-label={`Add task to ${column.name}`} disabled={readOnly} size="icon" variant="ghost" className="h-7 w-7" onClick={onAddTask}>
                 <Plus className="h-4 w-4" />
               </Button>
               <Button type="button" size="icon" variant="ghost" className="h-7 w-7">
@@ -80,10 +82,11 @@ export default function KanbanColumn({
         ) : (
           <button
             type="button"
+            disabled={readOnly}
             onClick={onAddTask}
             className="flex h-28 w-full items-center justify-center rounded-lg border border-dashed bg-white/70 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground"
           >
-            Add a task
+            {readOnly ? "No tasks" : "Add a task"}
           </button>
         )}
       </div>

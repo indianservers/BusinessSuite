@@ -2,6 +2,7 @@ from app.apps.business_os.models import BOSEnabledModule, BOSEntityLink, BOSLife
 from app.apps.crm.models import CRMDeal, CRMPipeline, CRMPipelineStage
 from app.apps.srm.models import SRMEngagement, SRMSalesOrder
 from app.main import app
+from app.models.user import User
 
 
 def _set_modules(client, headers, modules):
@@ -36,6 +37,7 @@ def _srm_engagement(db, user_id=1):
 
 
 def test_business_os_optional_handoff_combinations(client, db, superuser_headers):
+    user_id = db.query(User.id).filter(User.email == "testadmin@test.com").scalar()
     app.state.business_os_session_factory = lambda: db
     app.state.business_os_close_session = False
     try:
@@ -50,7 +52,7 @@ def test_business_os_optional_handoff_combinations(client, db, superuser_headers
         assert skipped.json()["message"] == "SRM not enabled"
 
         _set_modules(client, superuser_headers, ["crm", "srm"])
-        deal = _crm_deal(db, 1)
+        deal = _crm_deal(db, user_id)
         created = client.post(f"/api/v1/business-os/handoffs/crm/deals/{deal.id}/won", headers=superuser_headers)
         assert created.status_code == 200
         assert created.json()["status"] == "created"
@@ -61,7 +63,7 @@ def test_business_os_optional_handoff_combinations(client, db, superuser_headers
         assert db.query(BOSEntityLink).filter(BOSEntityLink.source_module == "crm", BOSEntityLink.target_module == "srm", BOSEntityLink.source_entity_id == str(deal.id)).count() >= 1
 
         _set_modules(client, superuser_headers, ["srm", "project_management"])
-        engagement = _srm_engagement(db, 1)
+        engagement = _srm_engagement(db, user_id)
         pms = client.post(f"/api/v1/business-os/handoffs/srm/engagements/{engagement.id}/pms-project", headers=superuser_headers)
         assert pms.status_code == 200
         assert pms.json()["status"] in {"created", "idempotent"}

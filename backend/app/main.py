@@ -30,7 +30,9 @@ async def lifespan(app: FastAPI):
     from app.db.session import SessionLocal
     from app.db.init_common_db import init_common_db
 
-    Base.metadata.create_all(bind=engine)
+    if settings.DATABASE_AUTO_MIGRATE:
+        from app.db.migrations import upgrade_schema
+        upgrade_schema()
 
     # Create upload directories
     for subdir in ["employee_docs", "photos", "resumes", "documents", "certificates", "certificate_imports"]:
@@ -41,7 +43,7 @@ async def lifespan(app: FastAPI):
         if is_app_enabled("hrms"):
             from app.db.init_db import init_db
 
-            init_db(db)
+            init_db(db, seed_demo=settings.SEED_DEMO_DATA)
         else:
             init_common_db(db)
         from app.apps.business_os.services.module_service import ensure_business_os_seed
@@ -51,7 +53,7 @@ async def lifespan(app: FastAPI):
             from app.apps.crm.schema import ensure_crm_schema
 
             ensure_crm_schema(db)
-            if not is_app_enabled("hrms"):
+            if not is_app_enabled("hrms") and settings.SEED_DEMO_DATA:
                 from app.apps.crm.seed import seed_crm_demo_data
 
                 seed_crm_demo_data(db, organization_id=1)

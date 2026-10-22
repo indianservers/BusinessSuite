@@ -41,7 +41,7 @@ export default function InventoryBridgePage() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <p>
-            Sales inventory and POS are reused from the existing Flask/MySQL Vyapara ERP source. Business Suite keeps one Sales & Inventory module and maps the source capabilities into SRM instead of duplicating features.
+            Sales inventory and POS use the Flask/PostgreSQL Vyapara ERP source. Business Suite maps these capabilities into Sales & Inventory.
           </p>
           <p className="text-xs text-muted-foreground">
             {inventorySourceFeatureCount} source-backed inventory, sales, POS, procurement, manufacturing, and reporting entry points are available from this catalogue; {mappedInventorySourceFeatureCount} are mapped to Business Suite routes.

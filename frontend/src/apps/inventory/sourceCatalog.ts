@@ -170,9 +170,9 @@ export const inventorySourceFeatures = inventorySourceGroups.flatMap((group) =>
 
 export const inventorySourceFeatureCount = inventorySourceFeatures.length;
 export const mappedInventorySourceFeatureCount = inventorySourceFeatures.filter((feature) => feature.appPath).length;
-export const inventorySourceAppPaths = inventorySourceFeatures
+export const inventorySourceAppPaths = [...new Set(inventorySourceFeatures
   .map((feature) => feature.appPath)
-  .filter((path): path is string => Boolean(path));
+  .filter((path): path is string => Boolean(path)))];
 
 export function findInventorySourceFeature(pathname: string) {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/srm/inventory/source";

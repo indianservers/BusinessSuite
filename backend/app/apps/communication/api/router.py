@@ -519,7 +519,7 @@ def list_whatsapp_templates(db: Session = Depends(get_db), current_user: User = 
 
 @communication_router.post("/whatsapp-templates", status_code=201)
 def create_whatsapp_template(data: WhatsAppTemplatePayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_templates_manage"))):
-    item = CommunicationWhatsAppTemplate(**data.model_dump(), created_by=current_user.id, provider_status="placeholder_only")
+    item = CommunicationWhatsAppTemplate(**data.model_dump(exclude={"provider_status"}), created_by=current_user.id, provider_status="placeholder_only")
     db.add(item)
     db.commit()
     return _serialize(item)

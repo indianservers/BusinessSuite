@@ -479,6 +479,8 @@ const pmsDeliveryOnlyPaths = [
 ];
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  // Workspace membership is enforced by the API, independently of company roles.
+  if (pathname === "/pms/workspaces") return true;
   if (!isProjectManagementRole(role, isSuperuser)) return false;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";
   const normalizedRole = normalizeRole(role);
@@ -607,6 +609,9 @@ function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = 
   if (normalizedPath === "/fam" || normalizedPath === "/fam/dashboard" || normalizedPath === "/fam/profile") return true;
   if (normalizedPath === "/fam/settings") return isFamAdminRole(role, isSuperuser);
   if (normalizedPath === "/fam/audit") return isFamAuditRole(role, isSuperuser);
+  if (normalizedPath === "/fam/inventory" || normalizedPath.startsWith("/fam/inventory/")) {
+    return isFamReadOnlyRole(role, isSuperuser);
+  }
   if (["/fam/vouchers", "/fam/vouchers/new", "/fam/journal"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
     return isFamOperationalRole(role, isSuperuser) || isFamReadOnlyRole(role, isSuperuser);
   }
@@ -837,6 +842,7 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Issue Navigator", icon: Search, to: "/pms/navigator", group: "Project Management" },
   { label: "Issue Navigator Pro", icon: FileSearch, to: "/pms/issue-navigator-pro", group: "Project Management" },
   { label: "Dashboards", icon: BarChart3, to: "/pms/dashboards", group: "Project Management" },
+  { label: "Workspaces", icon: Briefcase, to: "/pms/workspaces", group: "Project Management" },
   { label: "Projects", icon: Briefcase, to: "/pms/projects", group: "Project Management" },
   { label: "Kanban", icon: LayoutGrid, to: "/pms/projects", group: "Project Management" },
   { label: "Goals", icon: Trophy, to: "/pms/goals", group: "Project Planning" },
@@ -1087,7 +1093,8 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
   }
 
   if (activeModule === "project_management") {
-    return installedApps.includes("project_management") && isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : [];
+    if (!installedApps.includes("project_management")) return [];
+    return isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : projectManagementNav.filter(item => item.to === "/pms/workspaces");
   }
 
   if (activeModule === "srm") {

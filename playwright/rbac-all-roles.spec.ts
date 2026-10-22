@@ -153,6 +153,7 @@ const optionalDelegation: Record<Exclude<RoleName, "admin" | "hr" | "employee">,
 };
 
 test.describe("HRMS RBAC all-role UI verification", () => {
+  test.setTimeout(120_000);
   test("employee sees only self-service UI and forbidden direct URLs show 403", async ({ page }) => {
     await authenticate(page, "employee");
     await page.goto("/hrms/ess");
@@ -342,8 +343,9 @@ async function expect403(page: Page, route: string, roleLabel: string, requiredP
 
 async function openGlobalSearch(page: Page) {
   const trigger = page.locator('button:has(input[readonly][placeholder*="Search"])').first();
+  await expect(trigger).toBeVisible();
   if (await trigger.count()) {
-    await trigger.click({ force: true });
+    await trigger.click();
   } else {
     await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
   }
@@ -377,7 +379,7 @@ async function expectHrefs(page: Page, hrefs: string[]) {
 }
 
 async function expectSearchResultVisible(searchPanel: Locator, label: string) {
-  await expect(searchPanel.getByRole("button", { name: new RegExp(escapeRegExp(label), "i") })).toBeVisible();
+  await expect(searchPanel.getByRole("button", { name: new RegExp("^" + escapeRegExp(label) + "(?:\\s|$)", "i") }).first()).toBeVisible();
 }
 
 async function expectSearchResultHidden(searchPanel: Locator, labels: string[]) {

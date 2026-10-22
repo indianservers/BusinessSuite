@@ -5,7 +5,7 @@ from sqlalchemy import inspect
 
 from app.crud.crud_payroll import get_prorated_salary_for_period
 from app.models.employee import Employee
-from app.models.leave import LeaveRequest
+from app.models.leave import LeaveRequest, LeaveType
 from app.models.payroll import EmployeeSalary, PayrollRun, SalaryComponent
 
 
@@ -40,6 +40,9 @@ def test_database_scale_indexes_and_columns_exist(db_engine):
 
 
 def test_soft_deleted_employee_leave_and_payroll_are_filtered(db):
+    leave_type = LeaveType(name="Soft delete test leave", code="SOFT", days_allowed=12)
+    db.add(leave_type)
+    db.flush()
     employee = Employee(
         employee_id="SOFT-001",
         first_name="Soft",
@@ -51,7 +54,7 @@ def test_soft_deleted_employee_leave_and_payroll_are_filtered(db):
     db.flush()
     db.add(LeaveRequest(
         employee_id=employee.id,
-        leave_type_id=1,
+        leave_type_id=leave_type.id,
         from_date=date(2026, 5, 4),
         to_date=date(2026, 5, 4),
         days_count=Decimal("1"),

@@ -1,19 +1,20 @@
 import os
 from dotenv import load_dotenv
+from sqlalchemy.engine import URL, make_url
 
 load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    DB_HOST = os.environ.get('DB_HOST', 'localhost')
-    DB_PORT = os.environ.get('DB_PORT', '3306')
-    DB_NAME = os.environ.get('DB_NAME', 'stock_accounts_db')
-    DB_USER = os.environ.get('DB_USER', 'root')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-        f"?charset=utf8mb4"
-    )
+    SQLALCHEMY_DATABASE_URI = os.environ.get('INVENTORY_DATABASE_URL') or URL.create(
+        'postgresql+psycopg', username=os.environ.get('POSTGRES_USER', 'business_suite'),
+        password=os.environ.get('POSTGRES_PASSWORD', ''), host=os.environ.get('POSTGRES_SERVER', '127.0.0.1'),
+        port=int(os.environ.get('POSTGRES_PORT', '5432')), database=os.environ.get('INVENTORY_POSTGRES_DB', 'business_suite_inventory'),
+        query={'sslmode': os.environ.get('POSTGRES_SSLMODE', 'prefer')},
+    ).render_as_string(hide_password=False)
+    if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() not in {'postgresql', 'postgres'}:
+        raise ValueError('Inventory requires a PostgreSQL connection')
+    SQLALCHEMY_DATABASE_URI = make_url(SQLALCHEMY_DATABASE_URI).set(drivername='postgresql+psycopg').render_as_string(hide_password=False)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_recycle': 3600,

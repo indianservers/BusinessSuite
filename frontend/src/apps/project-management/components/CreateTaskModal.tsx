@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { tagsAPI, tasksAPI } from "../services/api";
-import type { PMSTag, PMSTask, TaskPriority, TaskStatus } from "../types";
+import { tagsAPI, tasksAPI, pmsUsersAPI } from "../services/api";
+import type { PMSTag, PMSTask, TaskPriority, TaskStatus, PMSMentionUser } from "../types";
 
 const statuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done"];
 const priorities: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
@@ -26,6 +26,9 @@ export default function CreateTaskModal({
   const [status, setStatus] = useState<TaskStatus>("To Do");
   const [priority, setPriority] = useState<TaskPriority>("Medium");
   const [dueDate, setDueDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [assignee, setAssignee] = useState("");
+  const [people, setPeople] = useState<PMSMentionUser[]>([]);
   const [storyPoints, setStoryPoints] = useState("");
   const [availableTags, setAvailableTags] = useState<PMSTag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -36,7 +39,8 @@ export default function CreateTaskModal({
   useEffect(() => {
     if (!isOpen) return;
     tagsAPI.list().then(setAvailableTags).catch(() => setAvailableTags([]));
-  }, [isOpen]);
+    pmsUsersAPI.search({ projectId }).then(setPeople).catch(() => setPeople([]));
+  }, [isOpen, projectId]);
 
   const selectedTags = useMemo(
     () => availableTags.filter((tag) => selectedTagIds.includes(tag.id)),
@@ -49,6 +53,10 @@ export default function CreateTaskModal({
     event.preventDefault();
     if (!title.trim()) {
       setError("Task title is required.");
+      return;
+    }
+    if (startDate && dueDate && startDate > dueDate) {
+      setError("Start date cannot be after due date.");
       return;
     }
     const parsedStoryPoints = storyPoints === "" ? undefined : Number(storyPoints);
@@ -73,6 +81,8 @@ export default function CreateTaskModal({
         status,
         priority,
         due_date: dueDate || undefined,
+        start_date: startDate || undefined,
+        assignee_user_id: assignee ? Number(assignee) : undefined,
         story_points: parsedStoryPoints,
       });
       const attachedTags: PMSTag[] = [];
@@ -87,6 +97,8 @@ export default function CreateTaskModal({
       setTitle("");
       setDescription("");
       setDueDate("");
+      setStartDate("");
+      setAssignee("");
       setStoryPoints("");
       setSelectedTagIds([]);
       setNewTagName("");
@@ -99,7 +111,7 @@ export default function CreateTaskModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <form onSubmit={submit} className="w-full max-w-2xl rounded-lg border bg-background shadow-xl">
+      <form onSubmit={submit} className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-lg border bg-background shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-lg font-semibold">Create task</h2>
           <Button type="button" variant="ghost" size="icon" onClick={onClose}>
@@ -120,6 +132,10 @@ export default function CreateTaskModal({
               onChange={(event) => setDescription(event.target.value)}
               className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
             />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label>Start date<Input aria-label="Task start date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
+            <label>Assignee<select aria-label="Task assignee" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={assignee} onChange={e => setAssignee(e.target.value)}><option value="">Unassigned</option>{people.map(p => <option key={p.id} value={p.id}>{p.email || p.name}</option>)}</select></label>
           </div>
           <div className="grid gap-4 sm:grid-cols-4">
             <div className="space-y-2">

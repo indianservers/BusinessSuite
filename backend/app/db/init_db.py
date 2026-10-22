@@ -985,7 +985,7 @@ FEATURE_PLANS = [
 ]
 
 
-def init_db(db: Session) -> None:
+def init_db(db: Session, *, seed_demo: bool = True) -> None:
     # Create permissions
     perm_map = {}
     for name, description, module in SYSTEM_PERMISSIONS:
@@ -1064,6 +1064,13 @@ def init_db(db: Session) -> None:
     db.commit()
 
     # Demo organization used by seeded role logins.
+    if not seed_demo:
+        if not db.query(Company.id).first():
+            db.add(Company(name="Business Suite", legal_name="Business Suite"))
+            db.commit()
+        from app.db.init_common_db import init_common_db
+        init_common_db(db)
+        return
     company = db.query(Company).filter(Company.name == "Demo Company").first()
     if not company:
         company = Company(name="Demo Company", legal_name="Demo Company Pvt Ltd")

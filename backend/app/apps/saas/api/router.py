@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.apps.crm.models import CRMDeal, CRMLead, CRMQuotation
 from app.apps.project_management.models import PMSProject
@@ -135,6 +136,11 @@ def _partner_ids(db: Session, user: PortalUser) -> list[int]:
 
 
 def _ensure_default_plans(db: Session) -> None:
+    if db.get_bind().dialect.name == "postgresql":
+        # Both subscription screens can bootstrap concurrently on a fresh DB.
+        # Hold one transaction lock through the caller's commit, including the
+        # singleton subscription creation, not just the individual plan inserts.
+        db.execute(text("SELECT pg_advisory_xact_lock(211028002)"))
     for code, features in EDITION_FEATURES.items():
         if not db.query(TenantSubscriptionPlan).filter(TenantSubscriptionPlan.code == code).first():
             db.add(TenantSubscriptionPlan(code=code, name=code.title(), features_json=sorted(features), active=True))

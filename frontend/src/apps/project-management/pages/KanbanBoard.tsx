@@ -4,7 +4,7 @@
  * This is the CORE Click & Drag feature
  */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   DndContext,
   closestCorners,
@@ -34,7 +34,6 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,7 +86,7 @@ const KanbanBoard: React.FC = () => {
       if (!projectIdNum) return;
       try {
         setLoading(true);
-        if (!selectedProject) {
+        if (!selectedProject || selectedProject.id !== projectIdNum) {
           const project = await projectsAPI.get(projectIdNum);
           if (active) setSelectedProject(project);
         }
@@ -131,6 +130,7 @@ const KanbanBoard: React.FC = () => {
 
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
+    if (selectedProject?.can_manage_tasks === false) return;
     const { active } = event;
     setActiveId(active.id as number);
   };
@@ -167,6 +167,7 @@ const KanbanBoard: React.FC = () => {
 
   // Handle drag end (DROP) - Main reordering logic
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (selectedProject?.can_manage_tasks === false) return;
     const { active, over } = event;
     setActiveId(null);
 
@@ -293,7 +294,7 @@ const KanbanBoard: React.FC = () => {
                   +3
                 </button>
               </div>
-              <Button variant="outline" size="sm"><Users className="h-4 w-4" />Invite</Button>
+              <Button variant="outline" size="sm" onClick={() => navigate("/pms/workspaces")}><Users className="h-4 w-4" />Workspace & members</Button>
               <select value={epicFilter} onChange={(event) => setEpicFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                 <option>All epics</option>
                 <option>Client Portal</option>
@@ -358,6 +359,7 @@ const KanbanBoard: React.FC = () => {
                   column={column}
                   tasks={filteredTasks.filter((t) => t.column_id === column.id)}
                   onAddTask={() => setShowCreateModal(true)}
+                  readOnly={selectedProject?.can_manage_tasks === false}
                   onOpenTask={(task) => navigate(`/pms/projects/${projectIdNum}/tasks/${task.id}`)}
                 />
               </SortableContext>

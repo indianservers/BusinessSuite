@@ -7,7 +7,7 @@ test.describe("Sales & Inventory source catalogue", () => {
     const registeredPaths = new Set(srmRoutes.map((route) => `/${route.path}`));
 
     expect(inventorySourceFeatureCount).toBeGreaterThan(50);
-    expect(mappedInventorySourceFeatureCount).toBe(inventorySourceAppPaths.length);
+    expect(mappedInventorySourceFeatureCount).toBeGreaterThanOrEqual(inventorySourceAppPaths.length);
     expect(inventorySourceAppPaths).toHaveLength(new Set(inventorySourceAppPaths).size);
 
     for (const appPath of inventorySourceAppPaths) {

@@ -7,5 +7,5 @@ test("admin export controls enforce approval and watermark policy", async ({ pag
   await expectAdminSecurityShell(page);
   await expect(page.getByText("deals").first()).toBeVisible();
   await page.getByRole("button", { name: "Create export control" }).click();
-  await expect(page.getByText("Export control saved")).toBeVisible();
+  await expect(page.getByText("Export control saved", { exact: true })).toBeVisible();
 });

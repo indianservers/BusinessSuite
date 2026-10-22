@@ -6,12 +6,12 @@ from app.extensions import db
 SALE_COLUMNS = {
     "status": "VARCHAR(20) DEFAULT 'Issued'",
     "updated_by": "INTEGER",
-    "issued_at": "DATETIME",
-    "cancelled_at": "DATETIME",
+    "issued_at": "TIMESTAMP",
+    "cancelled_at": "TIMESTAMP",
     "cancellation_reason": "TEXT",
     "irn": "VARCHAR(64)",
     "irn_ack_no": "VARCHAR(64)",
-    "irn_ack_dt": "DATETIME",
+    "irn_ack_dt": "TIMESTAMP",
     "qr_code_data": "TEXT",
     "e_invoice_status": "VARCHAR(20) DEFAULT 'Pending'",
 }
@@ -19,7 +19,11 @@ SALE_COLUMNS = {
 
 def ensure_invoice_schema(app):
     with app.app_context():
-        db.create_all()
+        if db.engine.dialect.name == "postgresql":
+            from flask_migrate import upgrade
+            upgrade()
+        else:
+            db.create_all()  # Isolated SQLite tests.
         inspector = inspect(db.engine)
         if "sales" not in inspector.get_table_names():
             return

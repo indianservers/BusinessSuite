@@ -6,7 +6,7 @@ test.describe("FAM dashboard", () => {
     await authenticate(page, "fam_admin");
     await expectHealthyFamRoute(page, "/fam");
     await expect(page.getByRole("heading", { name: "FAM Dashboard" })).toBeVisible();
-    await expect(page.getByText("GST compliance placeholder", { exact: false })).toBeVisible();
+    await expect(page.getByText("GST portal filing is disabled until provider credentials are configured.", { exact: true })).toBeVisible();
     await expect(page.getByText("FAM is the statutory books engine", { exact: false })).toBeVisible();
   });
 });

@@ -11,6 +11,6 @@ test.describe("CRM core RBAC", () => {
     });
     expect(roles.items.map((item: { key: string }) => item.key)).toEqual(expect.arrayContaining(["crm_admin", "sales_executive", "business_owner", "non_crm_employee"]));
 
-    await expect(page.getByRole("heading", { name: "VyaparaCRM" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "CRM Overview", exact: true })).toBeVisible();
   });
 });

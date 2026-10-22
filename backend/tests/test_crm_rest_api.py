@@ -277,6 +277,7 @@ def test_crm_ticket_queue_prioritizes_urgent_assigned_work_and_csat_flow(client,
 
 
 def test_crm_stale_leads_can_be_flagged_and_reassigned(client, db, superuser_headers):
+    admin_id = db.query(User.id).filter(User.email == "testadmin@test.com").scalar()
     old = datetime.now(timezone.utc) - timedelta(days=2)
     lead = CRMLead(
         organization_id=1,
@@ -294,13 +295,13 @@ def test_crm_stale_leads_can_be_flagged_and_reassigned(client, db, superuser_hea
     response = client.post(
         "/api/v1/crm/automation/stale-records/reassign",
         headers=superuser_headers,
-        json={"entityType": "leads", "thresholdHours": 24, "reassignToUserId": 1},
+        json={"entityType": "leads", "thresholdHours": 24, "reassignToUserId": admin_id},
     )
 
     assert response.status_code == 200, response.text
     assert response.json()["total"] >= 1
     db.refresh(lead)
-    assert lead.owner_user_id == 1
+    assert lead.owner_user_id == admin_id
     assert "stale_auto_flag" in (lead.tags_text or "")
 
 
@@ -1123,7 +1124,8 @@ def test_crm_numeric_lead_scoring_rules_and_manual_override(client, superuser_he
     assert bulk.json()["updated"] >= 1
 
 
-def test_crm_approval_workflow_submit_approve_and_final_gate(client, superuser_headers):
+def test_crm_approval_workflow_submit_approve_and_final_gate(client, db, superuser_headers):
+    admin_id = db.query(User.id).filter(User.email == "testadmin@test.com").scalar()
     pipeline = client.post("/api/v1/crm/pipelines", headers=superuser_headers, json={"name": "Approval Pipeline"})
     assert pipeline.status_code == 201
     stage = client.post(
@@ -1147,7 +1149,7 @@ def test_crm_approval_workflow_submit_approve_and_final_gate(client, superuser_h
             "entityType": "deal",
             "triggerType": "manual",
             "conditions": {"minAmount": 1000000},
-            "steps": [{"stepOrder": 1, "approverType": "user", "approverId": 1, "actionOnReject": "stop"}],
+            "steps": [{"stepOrder": 1, "approverType": "user", "approverId": admin_id, "actionOnReject": "stop"}],
         },
     )
     assert workflow.status_code == 201
@@ -1189,7 +1191,8 @@ def test_crm_approval_workflow_submit_approve_and_final_gate(client, superuser_h
 
 
 def test_crm_approvals_are_org_scoped(client, db, superuser_headers):
-    db.add(CRMApprovalRequest(organization_id=2, workflow_id=None, entity_type="deal", entity_id=999, status="pending", submitted_by=1))
+    admin_id = db.query(User.id).filter(User.email == "testadmin@test.com").scalar()
+    db.add(CRMApprovalRequest(organization_id=2, workflow_id=None, entity_type="deal", entity_id=999, status="pending", submitted_by=admin_id))
     db.commit()
 
     approvals = client.get("/api/v1/crm/approvals", headers=superuser_headers, params={"entityType": "deal"})

@@ -5,6 +5,7 @@ from app.db.init_db import init_db
 from app.models.employee import Employee
 from app.models.expense import ExpenseClaim
 from app.models.payroll import PayrollRun, Reimbursement
+from app.models.user import User
 
 
 def _login(client):
@@ -37,7 +38,7 @@ def test_link_expense_claims_creates_traceable_reimbursement_and_skips_duplicate
         currency="INR",
         receipt_url="/uploads/expenses/taxi.pdf",
         status="finance_approved",
-        finance_approved_by=1,
+        finance_approved_by=db.query(User.id).filter(User.email == "admin@aihrms.com").scalar(),
     )
     db.add(claim)
     db.commit()

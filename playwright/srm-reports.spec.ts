@@ -32,6 +32,6 @@ test.describe("SRM reports", () => {
     await expect(page.getByRole("heading", { name: /Preview/ })).toBeVisible();
 
     await page.getByRole("button", { name: "Export" }).first().click();
-    await expect(page.getByRole("main").getByRole("status")).toContainText("export is not yet supported");
+    await expect(page.getByRole("main").getByRole("status")).toContainText("CSV exported with 1 row");
   });
 });

@@ -6,7 +6,7 @@ import json
 import os
 import re
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -24,7 +24,7 @@ from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.notification import Notification
 from app.apps.project_management.models import (
-    PMSClient, PMSProject, PMSProjectMember, PMSTask, PMSBoard, PMSBoardColumn,
+    PMSClient, PMSProject, PMSProjectMember, PMSWorkspaceMember, PMSTask, PMSBoard, PMSBoardColumn,
     PMSMilestone, PMSSprint, PMSSprintRetroActionItem, PMSComment, PMSTimeLog, PMSTimesheet, PMSFileAsset, PMSTaskDependency,
     PMSChecklistItem, PMSTag, PMSTaskTag, PMSClientApproval, PMSEpic, PMSComponent, PMSRelease, PMSMention,
     PMSUserCapacity, PMSRisk, PMSProjectIntake,
@@ -69,7 +69,10 @@ from app.apps.project_management.schemas import (
 )
 from app.apps.project_management.realtime import broadcast_pms_event, broadcast_pms_event_from_thread, pms_realtime_manager
 
+from ..workspaces import router as workspace_router, workspace_member
+
 router = APIRouter(prefix="/project-management", tags=["Project Management"])
+router.include_router(workspace_router)
 
 
 DONE_STATUSES = {"Done", "Completed", "Closed", "Resolved"}
@@ -452,8 +455,12 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
             "projectIds": sorted(accessible_ids),
             "createdAt": datetime.utcnow().isoformat(),
         })
+        db.rollback()
         while True:
             message = await websocket.receive_json()
+            db.rollback()
+            db.expire_all()
+            accessible_ids = _accessible_project_ids(db, current_user)
             action = message.get("action")
             if action == "subscribe":
                 requested_project_ids = {int(item) for item in message.get("projectIds", []) if str(item).isdigit()}
@@ -1231,6 +1238,8 @@ def _extract_mention_user_ids(body: str | None, explicit_ids: list[int] | None =
 
 def _project_user_query(db: Session, project: PMSProject):
     member_ids = db.query(PMSProjectMember.user_id).filter(PMSProjectMember.project_id == project.id)
+    if project.workspace_id:
+        member_ids = db.query(PMSWorkspaceMember.user_id).filter(PMSWorkspaceMember.workspace_id == project.workspace_id, PMSWorkspaceMember.role != "Guest")
     query = db.query(User).filter(
         User.is_active == True,
         or_(User.id.in_(member_ids), User.id == project.manager_user_id),
@@ -1573,6 +1582,11 @@ def _upsert_sprint_action_items(
 
 def _sync_task_planning_links(db: Session, project_id: int, task_data: dict) -> None:
     """Validate normalized planning links and mirror labels for existing UI fields."""
+    project = db.get(PMSProject, project_id)
+    if project and project.workspace_id and task_data.get("assignee_user_id"):
+        membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=task_data["assignee_user_id"]).first()
+        if not membership or membership.role == "Guest":
+            raise HTTPException(422, "Assignee must be an active workspace collaborator")
     if task_data.get("epic_id"):
         epic = db.query(PMSEpic).filter(
             PMSEpic.id == task_data["epic_id"],
@@ -1888,7 +1902,15 @@ def create_project(
     current_user: User = Depends(get_current_user),
 ):
     """Create a new project."""
-    if not has_any_permission(current_user, PMS_GLOBAL_MANAGE_PROJECTS):
+    if project_in.workspace_id:
+        workspace, _ = workspace_member(db, project_in.workspace_id, current_user, True)
+        for user_id in (project_in.owner_user_id, project_in.manager_user_id):
+            if user_id:
+                target = db.get(User, user_id)
+                if not target:
+                    raise HTTPException(422, "Invalid project user")
+                workspace_member(db, workspace.id, target)
+    elif not has_any_permission(current_user, PMS_GLOBAL_MANAGE_PROJECTS):
         raise HTTPException(status_code=403, detail="Project management permission required")
     # Check unique constraint on project_key
     existing = db.query(PMSProject).filter(
@@ -1936,11 +1958,15 @@ def list_projects(
     skip: int = Query(0),
     limit: int = Query(100),
     status: str = Query(None),
+    workspace_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all projects for the organization."""
+    """List accessible projects, optionally within a workspace."""
     query = accessible_project_query(db, current_user)
+    if workspace_id is not None:
+        workspace_member(db, workspace_id, current_user)
+        query = query.filter(PMSProject.workspace_id == workspace_id)
     
     if status:
         query = query.filter(PMSProject.status == status)
@@ -1958,6 +1984,7 @@ def get_project(
     """Get a specific project."""
     project = get_project_for_action(db, project_id, current_user)
     payload = _model_payload(project)
+    payload["can_manage_tasks"] = can_access_project(db, project, current_user, "manage_tasks")
     try:
         from app.apps.srm.models import SRMBillingPlan, SRMContract, SRMEngagement, SRMSalesOrder
 
@@ -2055,13 +2082,14 @@ def clone_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    source = get_project_for_action(db, project_id, current_user, "browse")
+    source = get_project_for_action(db, project_id, current_user, "edit_project")
     if not can_access_project(db, source, current_user, "edit_project") and not has_any_permission(current_user, PMS_GLOBAL_MANAGE_PROJECTS):
         raise HTTPException(status_code=403, detail="Project management permission required")
     project_key = clone_in.project_key.upper()
     if db.query(PMSProject).filter(PMSProject.organization_id == source.organization_id, PMSProject.project_key == project_key).first():
         raise HTTPException(status_code=400, detail="Project key already exists")
     cloned = PMSProject(
+        workspace_id=source.workspace_id,
         organization_id=source.organization_id,
         client_id=source.client_id,
         manager_user_id=source.manager_user_id or current_user.id,
@@ -3371,6 +3399,24 @@ def remove_task_dependency(
     return {"message": "Dependency removed"}
 
 
+def _sync_task_column(db: Session, task: PMSTask) -> None:
+    """Keep list/status edits and drag/drop boards on the same stored ordering."""
+    if not task.board_id:
+        return
+    key = {"To Do": "TODO", "In Progress": "IN_PROGRESS", "In Review": "IN_REVIEW", "Done": "DONE", "Backlog": "BACKLOG"}.get(task.status, task.status.upper().replace(" ", "_"))
+    column = db.query(PMSBoardColumn).filter_by(board_id=task.board_id, status_key=key).first()
+    if not column:
+        column = PMSBoardColumn(board_id=task.board_id, name=task.status, status_key=key, position=db.query(PMSBoardColumn).filter_by(board_id=task.board_id).count())
+        db.add(column)
+        db.flush()
+    task.column_id = column.id
+    siblings = db.query(PMSTask).filter(PMSTask.project_id == task.project_id, PMSTask.column_id == column.id, PMSTask.id != task.id, PMSTask.deleted_at.is_(None)).order_by(PMSTask.position, PMSTask.id).all()
+    position = max(0, min(task.position or 0, len(siblings)))
+    siblings.insert(position, task)
+    for index, sibling in enumerate(siblings):
+        sibling.position = index
+
+
 @router.patch("/tasks/{task_id}", response_model=PMSTaskResponse)
 def update_task(
     task_id: int,
@@ -3389,6 +3435,8 @@ def update_task(
         parent = _ensure_valid_parent_task(db, project.id, task.id, update_data.get("parent_task_id"))
         if parent and parent.project_id != task.project_id:
             raise HTTPException(status_code=400, detail="Parent task must be in the same project")
+    if "status" in update_data and not update_data["status"]:
+        raise HTTPException(status_code=422, detail="Task status cannot be empty")
     _sync_task_planning_links(db, project.id, update_data)
     if "sprint_id" in update_data and update_data["sprint_id"] != task.sprint_id and update_data["sprint_id"]:
         sprint = db.query(PMSSprint).filter(PMSSprint.id == update_data["sprint_id"], PMSSprint.project_id == project.id).first()
@@ -3399,6 +3447,8 @@ def update_task(
     for field, value in update_data.items():
         setattr(task, field, value)
 
+    if "status" in update_data or "position" in update_data:
+        _sync_task_column(db, task)
     if task.sprint_id:
         sprint = db.query(PMSSprint).filter(PMSSprint.id == task.sprint_id).first()
         if sprint:
@@ -3912,6 +3962,7 @@ def create_task_subtask(
 ):
     """Create a child sub-task under an existing task."""
     parent, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
+    _sync_task_planning_links(db, project.id, {"assignee_user_id": subtask_in.assignee_user_id})
     if subtask_in.story_points is not None and subtask_in.story_points < 0:
         raise HTTPException(status_code=400, detail="Story points must be non-negative")
     task_key = (subtask_in.task_key or _next_subtask_key(db, parent)).upper()
@@ -4191,19 +4242,17 @@ def reorder_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    # Update task's column and position
-    task.column_id = reorder_req.column_id
+    column = db.query(PMSBoardColumn).join(PMSBoard, PMSBoard.id == PMSBoardColumn.board_id).filter(
+        PMSBoardColumn.id == reorder_req.column_id, PMSBoard.project_id == project_id,
+    ).first()
+    if not column:
+        raise HTTPException(status_code=422, detail="Column does not belong to this project")
+    task.board_id = column.board_id
+    task.column_id = column.id
     task.position = reorder_req.position
-    column = db.query(PMSBoardColumn).filter(PMSBoardColumn.id == reorder_req.column_id).first()
-    if column:
-        status_map = {
-            "BACKLOG": "Backlog",
-            "TODO": "To Do",
-            "IN_PROGRESS": "In Progress",
-            "IN_REVIEW": "In Review",
-            "DONE": "Done",
-        }
-        task.status = status_map.get(column.status_key, task.status)
+    status_map = {"BACKLOG": "Backlog", "TODO": "To Do", "IN_PROGRESS": "In Progress", "IN_REVIEW": "In Review", "DONE": "Done"}
+    task.status = status_map.get(column.status_key, column.name)
+    _sync_task_column(db, task)
     
     db.add(task)
     db.commit()
@@ -4949,17 +4998,20 @@ def report_time_in_status(
     current_user: User = Depends(get_current_user),
 ):
     _start, end = _date_range_defaults(from_, to)
-    now = datetime.combine(end, datetime.max.time())
+    now = datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
     tasks = _report_task_query(db, current_user, projectId, None, None, end).all()
     changes_by_task = _status_changes_for_tasks(db, [task.id for task in tasks])
     totals: dict[str, float] = {}
     items = []
     for task in tasks:
         cursor = task.created_at or now
+        cursor = cursor.replace(tzinfo=timezone.utc) if cursor.tzinfo is None else cursor
         current_status = changes_by_task.get(task.id, [{}])[0].get("old_status") or task.status
         task_status_hours: dict[str, float] = {}
         for change in changes_by_task.get(task.id, []):
             changed_at = change["changed_at"]
+            if changed_at and changed_at.tzinfo is None:
+                changed_at = changed_at.replace(tzinfo=timezone.utc)
             hours = max((changed_at - cursor).total_seconds() / 3600, 0) if changed_at and cursor else 0
             task_status_hours[current_status] = task_status_hours.get(current_status, 0) + hours
             totals[current_status] = totals.get(current_status, 0) + hours

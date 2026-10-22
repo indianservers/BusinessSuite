@@ -4,9 +4,9 @@ uvicorn[standard]==0.30.1
 python-multipart==0.0.9
 
 # Database
-sqlalchemy==2.0.30
-pymysql==1.1.1
-alembic==1.13.1
+sqlalchemy==2.0.49
+psycopg[binary]==3.2.13
+alembic==1.18.4
 cryptography==42.0.8
 
 # Authentication

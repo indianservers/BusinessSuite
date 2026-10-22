@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 
-import pymysql
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 from flask import Flask, abort, render_template, request
 from flask_login import current_user
 
@@ -10,23 +11,16 @@ from app.extensions import csrf, db, login_manager, migrate
 
 
 def create_database_if_missing(config):
-    if config.SQLALCHEMY_DATABASE_URI.startswith("mysql"):
-        conn = pymysql.connect(
-            host=config.DB_HOST,
-            port=int(config.DB_PORT),
-            user=config.DB_USER,
-            password=config.DB_PASSWORD,
-            charset="utf8mb4",
-            autocommit=True,
-        )
+    url = make_url(config.SQLALCHEMY_DATABASE_URI)
+    if url.get_backend_name() == "postgresql":
+        engine = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
         try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    f"CREATE DATABASE IF NOT EXISTS `{config.DB_NAME}` "
-                    "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-                )
+            with engine.connect() as conn:
+                if not conn.execute(text("SELECT 1 FROM pg_database WHERE datname=:name"), {"name":url.database}).scalar():
+                    name = engine.dialect.identifier_preparer.quote_identifier(url.database)
+                    conn.exec_driver_sql(f"CREATE DATABASE {name} ENCODING 'UTF8'")
         finally:
-            conn.close()
+            engine.dispose()
 
 
 def create_app():
@@ -38,7 +32,7 @@ def create_app():
     create_database_if_missing(config)
 
     db.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db, directory=str(Path(__file__).resolve().parents[1] / "migrations_postgresql"))
     login_manager.init_app(app)
     csrf.init_app(app)
     login_manager.login_view = "auth.login"

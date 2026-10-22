@@ -72,7 +72,7 @@ ACTIVITY_COLUMNS = {
     "title": "VARCHAR(220)",
     "body": "TEXT",
     "metadata_json": "JSON",
-    "activity_date": "DATETIME",
+    "activity_date": "TIMESTAMP",
 }
 
 EMAIL_LOG_COLUMNS = {
@@ -94,14 +94,14 @@ MEETING_SYNC_COLUMNS = {
     "external_provider": "VARCHAR(40)",
     "external_event_id": "VARCHAR(180)",
     "sync_status": "VARCHAR(30)",
-    "last_synced_at": "DATETIME",
+    "last_synced_at": "TIMESTAMP",
 }
 
 LEAD_SCORE_COLUMNS = {
     "lead_score": "INTEGER",
     "lead_score_label": "VARCHAR(20)",
     "lead_score_mode": "VARCHAR(20)",
-    "last_score_calculated_at": "DATETIME",
+    "last_score_calculated_at": "TIMESTAMP",
 }
 
 CUSTOM_FIELD_COLUMNS = {
@@ -115,15 +115,15 @@ DEAL_REPORT_COLUMNS = {
     "lost_reason": "TEXT",
     "win_reason": "TEXT",
     "source": "VARCHAR(80)",
-    "won_at": "DATETIME",
-    "lost_at": "DATETIME",
-    "closed_at": "DATETIME",
+    "won_at": "TIMESTAMP",
+    "lost_at": "TIMESTAMP",
+    "closed_at": "TIMESTAMP",
 }
 
 TICKET_CSAT_COLUMNS = {
     "satisfaction_comment": "TEXT",
-    "csat_requested_at": "DATETIME",
-    "csat_submitted_at": "DATETIME",
+    "csat_requested_at": "TIMESTAMP",
+    "csat_submitted_at": "TIMESTAMP",
 }
 
 TERRITORY_COLUMNS = {
@@ -198,10 +198,10 @@ QUOTATION_PHASE3_COLUMNS = {
     "version_number": "INTEGER",
     "terms_and_conditions": "TEXT",
     "approved_by": "INTEGER",
-    "approved_at": "DATETIME",
-    "sent_at": "DATETIME",
-    "accepted_at": "DATETIME",
-    "declined_at": "DATETIME",
+    "approved_at": "TIMESTAMP",
+    "sent_at": "TIMESTAMP",
+    "accepted_at": "TIMESTAMP",
+    "declined_at": "TIMESTAMP",
     "converted_srm_sales_order_id": "INTEGER",
     "converted_srm_contract_id": "INTEGER",
     "converted_srm_engagement_id": "INTEGER",
@@ -269,7 +269,7 @@ def ensure_crm_schema(db: Session) -> None:
         if "updated_by_user_id" not in columns:
             db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN updated_by_user_id INTEGER"))
         if "deleted_at" not in columns and table_name not in {"crm_deal_products", "crm_quotation_items", "crm_campaign_leads", "crm_tags"}:
-            db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN deleted_at DATETIME"))
+            db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN deleted_at TIMESTAMP"))
         if table_name in {"crm_email_logs", "crm_call_logs", "crm_meetings"} and "owner_user_id" not in columns:
             db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN owner_user_id INTEGER"))
         if table_name == "crm_email_logs":
@@ -318,7 +318,7 @@ def ensure_crm_schema(db: Session) -> None:
             db.execute(text("UPDATE crm_products SET product_code = COALESCE(product_code, sku)"))
             db.execute(text("UPDATE crm_products SET list_price = COALESCE(list_price, unit_price, 0)"))
             db.execute(text("UPDATE crm_products SET cost_price = COALESCE(cost_price, 0)"))
-            db.execute(text("UPDATE crm_products SET active = COALESCE(active, CASE WHEN LOWER(COALESCE(status, 'active')) IN ('active', 'available') THEN 1 ELSE 0 END)"))
+            db.execute(text("UPDATE crm_products SET active = COALESCE(active, CASE WHEN LOWER(COALESCE(status, 'active')) IN ('active', 'available') THEN true ELSE false END)"))
         if table_name == "crm_quotations":
             for column_name, column_type in QUOTATION_PHASE3_COLUMNS.items():
                 if column_name not in columns:
@@ -365,9 +365,9 @@ def ensure_crm_schema(db: Session) -> None:
                     db.execute(text(f"ALTER TABLE crm_custom_fields ADD COLUMN {column_name} {column_type}"))
                     columns.add(column_name)
             db.execute(text("UPDATE crm_custom_fields SET field_name = COALESCE(field_name, label)"))
-            db.execute(text("UPDATE crm_custom_fields SET is_unique = COALESCE(is_unique, 0)"))
-            db.execute(text("UPDATE crm_custom_fields SET is_visible = COALESCE(is_visible, 1)"))
-            db.execute(text("UPDATE crm_custom_fields SET is_filterable = COALESCE(is_filterable, 0)"))
+            db.execute(text("UPDATE crm_custom_fields SET is_unique = COALESCE(is_unique, false)"))
+            db.execute(text("UPDATE crm_custom_fields SET is_visible = COALESCE(is_visible, true)"))
+            db.execute(text("UPDATE crm_custom_fields SET is_filterable = COALESCE(is_filterable, false)"))
         if table_name == "crm_deals":
             for column_name, column_type in DEAL_REPORT_COLUMNS.items():
                 if column_name not in columns:
@@ -391,14 +391,14 @@ def ensure_crm_schema(db: Session) -> None:
                     db.execute(text(f"ALTER TABLE crm_territories ADD COLUMN {column_name} {column_type}"))
                     columns.add(column_name)
             db.execute(text("UPDATE crm_territories SET priority = COALESCE(priority, 100)"))
-            db.execute(text("UPDATE crm_territories SET is_active = COALESCE(is_active, CASE WHEN status = 'Active' THEN 1 ELSE 0 END)"))
-            db.execute(text("UPDATE crm_territories SET active = COALESCE(active, is_active, CASE WHEN status = 'Active' THEN 1 ELSE 0 END)"))
+            db.execute(text("UPDATE crm_territories SET is_active = COALESCE(is_active, CASE WHEN status = 'Active' THEN true ELSE false END)"))
+            db.execute(text("UPDATE crm_territories SET active = COALESCE(active, is_active, CASE WHEN status = 'Active' THEN true ELSE false END)"))
         if table_name == "crm_pipelines":
             for column_name, column_type in PIPELINE_COLUMNS.items():
                 if column_name not in columns:
                     db.execute(text(f"ALTER TABLE crm_pipelines ADD COLUMN {column_name} {column_type}"))
                     columns.add(column_name)
-            db.execute(text("UPDATE crm_pipelines SET active = COALESCE(active, CASE WHEN deleted_at IS NULL THEN 1 ELSE 0 END)"))
+            db.execute(text("UPDATE crm_pipelines SET active = COALESCE(active, CASE WHEN deleted_at IS NULL THEN true ELSE false END)"))
         if table_name in {"crm_leads", "crm_companies", "crm_deals"}:
             for column_name, column_type in TERRITORY_RECORD_COLUMNS.items():
                 if column_name not in columns:
@@ -410,8 +410,8 @@ def ensure_crm_schema(db: Session) -> None:
                     db.execute(text(f"ALTER TABLE crm_pipeline_stages ADD COLUMN {column_name} {column_type}"))
                     columns.add(column_name)
             db.execute(text("UPDATE crm_pipeline_stages SET order_index = COALESCE(order_index, position, 0)"))
-            db.execute(text("UPDATE crm_pipeline_stages SET stage_type = CASE WHEN COALESCE(is_won, 0) = 1 THEN 'won' WHEN COALESCE(is_lost, 0) = 1 THEN 'lost' ELSE COALESCE(stage_type, 'open') END"))
-            db.execute(text("UPDATE crm_pipeline_stages SET active = COALESCE(active, CASE WHEN deleted_at IS NULL THEN 1 ELSE 0 END)"))
+            db.execute(text("UPDATE crm_pipeline_stages SET stage_type = CASE WHEN COALESCE(is_won, false) = true THEN 'won' WHEN COALESCE(is_lost, false) = true THEN 'lost' ELSE COALESCE(stage_type, 'open') END"))
+            db.execute(text("UPDATE crm_pipeline_stages SET active = COALESCE(active, CASE WHEN deleted_at IS NULL THEN true ELSE false END)"))
         if table_name == "crm_activities":
             for column_name, column_type in ACTIVITY_COLUMNS.items():
                 if column_name not in columns:

@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.apps.project_management.models import PMSProject, PMSProjectMember, PMSTask
+from app.apps.project_management.models import PMSProject, PMSProjectMember, PMSTask, PMSWorkspaceMember
 from app.models.user import User
 
 
@@ -68,6 +68,15 @@ def project_member(db: Session, project_id: int, user_id: int) -> PMSProjectMemb
 
 
 def can_access_project(db: Session, project: PMSProject, user: User, action: str = "browse") -> bool:
+    if project.workspace_id:
+        membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=user.id).first()
+        if not membership:
+            return False
+        if membership.role in {"Owner", "Admin"}:
+            return True
+        if membership.role == "Member":
+            return action in {"browse", "manage_tasks", "comment", "upload", "log_time"}
+        return membership.role == "Guest" and action == "browse"
     if user.is_superuser:
         return True
 
@@ -102,11 +111,14 @@ def can_access_project(db: Session, project: PMSProject, user: User, action: str
 
 def accessible_project_query(db: Session, user: User):
     query = db.query(PMSProject).filter(PMSProject.deleted_at == None)
+    workspace_ids = db.query(PMSWorkspaceMember.workspace_id).filter(PMSWorkspaceMember.user_id == user.id)
+    workspace_access = PMSProject.workspace_id.in_(workspace_ids)
+    legacy = PMSProject.workspace_id.is_(None)
     if user.is_superuser:
-        return query
+        return query.filter(legacy | workspace_access)
 
     if has_any_permission(user, PMS_GLOBAL_VIEW):
-        return query.filter(PMSProject.organization_id == organization_id_for(user))
+        return query.filter((legacy & (PMSProject.organization_id == organization_id_for(user))) | workspace_access)
 
     member_project_ids = db.query(PMSProjectMember.project_id).filter(PMSProjectMember.user_id == user.id)
     visibility_filter = (PMSProject.manager_user_id == user.id) | (PMSProject.owner_user_id == user.id) | (PMSProject.id.in_(member_project_ids))
@@ -116,7 +128,7 @@ def accessible_project_query(db: Session, user: User):
             visibility_filter = visibility_filter | (PMSProject.department_id == employee.department_id)
         if getattr(employee, "branch_id", None):
             visibility_filter = visibility_filter | (PMSProject.branch_id == employee.branch_id)
-    return query.filter(visibility_filter)
+    return query.filter((legacy & visibility_filter) | workspace_access)
 
 
 def get_project_for_action(db: Session, project_id: int, user: User, action: str = "browse") -> PMSProject:

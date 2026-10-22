@@ -17,6 +17,11 @@ type Filters = {
   severity: string;
 };
 
+const riskError = (error: any, fallback: string) => {
+  const detail = error?.response?.data?.detail;
+  return typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map(item => item.msg).join(". ") : fallback;
+};
+
 const defaultFilters: Filters = {
   projectId: "",
   status: "",
@@ -62,7 +67,7 @@ export default function RisksPage() {
   useEffect(() => {
     Promise.all([
       projectsAPI.list(),
-      pmsUsersAPI.search({ q: "", limit: 100 }),
+      pmsUsersAPI.search({ q: "", limit: 25 }),
     ])
       .then(([projectItems, userItems]) => {
         setProjects(projectItems);
@@ -70,7 +75,7 @@ export default function RisksPage() {
         const initialProjectId = Number(projectId || projectItems[0]?.id || 0);
         setForm((current) => ({ ...current, project_id: initialProjectId }));
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Unable to load risk register filters."));
+      .catch((err) => setError(riskError(err, "Unable to load risk register filters.")));
   }, [projectId]);
 
   useEffect(() => {
@@ -78,7 +83,7 @@ export default function RisksPage() {
     setError(null);
     risksAPI.list(filters)
       .then(setRisks)
-      .catch((err) => setError(err?.response?.data?.detail || "Unable to load risks."))
+      .catch((err) => setError(riskError(err, "Unable to load risks.")))
       .finally(() => setLoading(false));
   }, [filters]);
 
@@ -148,7 +153,7 @@ export default function RisksPage() {
       setRisks(data);
       resetForm();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Unable to save risk.");
+      setError(riskError(err, "Unable to save risk."));
     } finally {
       setSaving(false);
     }

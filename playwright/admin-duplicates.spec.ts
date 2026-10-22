@@ -9,5 +9,5 @@ test("admin duplicate management creates rule scans and logs merge", async ({ pa
   await page.getByRole("button", { name: "Create duplicate rule" }).click();
   await page.getByRole("button", { name: "Scan duplicates" }).click();
   await page.getByRole("button", { name: "Record merge" }).click();
-  await expect(page.getByText("Merge log recorded")).toBeVisible();
+  await expect(page.getByText("Merge log recorded", { exact: true })).toBeVisible();
 });

@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "restored_tables": 617,
+  "source": "PostgreSQL custom-format dump",
+  "temporary_restore_database_removed": true
+}

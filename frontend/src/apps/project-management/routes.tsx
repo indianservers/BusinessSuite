@@ -1,6 +1,8 @@
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
+const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
+
 // Lazy load components
 const ProjectManagementHomePage = React.lazy(() => import("./ProjectManagementHomePage"));
 const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
@@ -41,6 +43,7 @@ const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
  * Complete routing for Project Management module
  */
 export const projectManagementRoutes: FrontendRoute[] = [
+  { path: "pms/workspaces", element: <WorkspacesPage /> },
   // Home / Dashboard
   { path: "pms", element: <ProjectManagementHomePage /> },
   { path: "pms/profile", element: <ModuleProfilePage /> },

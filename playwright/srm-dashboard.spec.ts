@@ -6,21 +6,11 @@ test.describe("SRM dashboard", () => {
     await authenticate(page, "srm_admin");
     await page.goto("/srm/dashboard", { waitUntil: "domcontentloaded" });
 
-    await expect(page.getByRole("heading", { name: "Sales & Inventory Dashboard" })).toBeVisible();
-    await expect(page.getByText("Sales, Inventory & POS Operations", { exact: true })).toBeVisible();
-    await expect(page.locator('a[href="/srm/sales-orders"]').filter({ hasText: "Open sales" }).first()).toBeVisible();
-    await expect(page.locator('a[href="/srm/pos/terminal"]').filter({ hasText: "Open POS" }).first()).toBeVisible();
-    await expect(page.locator('a[href="/srm/inventory/dashboard"]').filter({ hasText: "Open inventory" }).first()).toBeVisible();
-    await expect(page.locator('a[href="/srm/inventory/source"]').filter({ hasText: "View mapped features" }).first()).toBeVisible();
-    await expect(page.getByText("Total sales orders", { exact: true })).toBeVisible();
-    await expect(page.getByText("Pending approvals", { exact: true })).toBeVisible();
-    await expect(page.getByText("Total invoiced", { exact: true })).toBeVisible();
-    await expect(page.getByText("Recent Sales Orders", { exact: true })).toBeVisible();
-    await expect(page.getByText("Recent Invoices", { exact: true })).toBeVisible();
-    await expect(page.getByText("Collection Alerts", { exact: true })).toBeVisible();
-    await expect(page.getByText("Revenue Trend", { exact: true })).toBeVisible();
-    await expect(page.getByText("Profitability Summary", { exact: true })).toBeVisible();
-    await expect(page.getByText("CRM/PMS Linked Activity", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sales Revenue Management" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open POS", exact: true })).toBeVisible();
+    for (const label of ["Total invoiced", "Collected", "Outstanding", "Overdue", "Revenue performance", "Order pipeline", "Sales Orders", "Invoices", "Collection health"]) {
+      await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+    }
   });
 
   test("handles dashboard API errors without a broken page", async ({ page }) => {

@@ -12,7 +12,6 @@ class Employee(Base):
         Index("idx_employees_directory_email", "work_email", "personal_email"),
         Index("idx_employees_department_status", "department_id", "status", "deleted_at"),
         Index("idx_employees_manager_status", "reporting_manager_id", "status", "deleted_at"),
-        {"mysql_row_format": "DYNAMIC"},
     )
 
     id = Column(Integer, primary_key=True, index=True)

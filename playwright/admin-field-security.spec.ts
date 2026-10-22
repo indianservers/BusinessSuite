@@ -7,7 +7,7 @@ test("admin configures field security and sees backend validation", async ({ pag
   await expectAdminSecurityShell(page);
   await expect(page.getByText("annual_revenue").first()).toBeVisible();
   await page.getByRole("button", { name: "Add read-only rule" }).click();
-  await expect(page.getByText("Field rule saved")).toBeVisible();
+  await expect(page.getByText("Field rule saved", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Validate field update" }).click();
-  await expect(page.getByText("Field annual_revenue is read-only", { exact: false })).toBeVisible();
+  await expect(page.getByText("Field annual_revenue is read-only for this profile", { exact: true })).toBeVisible();
 });

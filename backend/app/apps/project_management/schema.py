@@ -19,6 +19,7 @@ def ensure_pms_schema(db: Session) -> None:
     project_columns = _columns(db, "pms_projects")
     if project_columns:
         project_additions = {
+            "workspace_id": "INTEGER REFERENCES pms_workspaces(id)",
             "owner_user_id": "INTEGER",
             "department_id": "INTEGER",
             "branch_id": "INTEGER",
@@ -30,7 +31,7 @@ def ensure_pms_schema(db: Session) -> None:
             "estimated_hours": "NUMERIC(10, 2)",
             "estimated_cost": "NUMERIC(12, 2)",
             "billing_status": "VARCHAR(40) DEFAULT 'Unbilled'",
-            "is_template": "BOOLEAN DEFAULT 0",
+            "is_template": "BOOLEAN DEFAULT false",
         }
         for column_name, column_type in project_additions.items():
             if column_name not in project_columns:

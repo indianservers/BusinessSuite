@@ -46,6 +46,14 @@ class PMSRealtimeManager:
         async with self._lock:
             self._connections.pop(websocket, None)
 
+    async def revoke_projects(self, user_id: int, project_ids: set[int]) -> None:
+        """Drop cached subscriptions immediately when workspace membership ends."""
+        async with self._lock:
+            for connection in self._connections.values():
+                if connection.user_id == user_id:
+                    connection.accessible_project_ids.difference_update(project_ids)
+                    connection.project_ids.difference_update(project_ids)
+
     async def subscribe(self, websocket: WebSocket, *, project_ids: set[int], task_ids: set[int]) -> None:
         async with self._lock:
             connection = self._connections.get(websocket)

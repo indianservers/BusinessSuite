@@ -1,12 +1,20 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
+from app.models.company import Branch, Department
 from app.models.employee import Employee
 from app.models.platform import DataRetentionPolicy, LegalHold
 from app.models.payroll import EmployeeSalary
 
 
 def test_employee_sensitive_field_update_creates_masked_hash_audit(client, db, superuser_headers):
+    branch = Branch(name="Audit branch", company_id=1)
+    db.add(branch)
+    db.flush()
+    departments = [Department(name=name, branch_id=branch.id) for name in ["Before", "After"]]
+    db.add_all(departments)
+    db.flush()
+    before_id, after_id = [row.id for row in departments]
     employee = Employee(
         employee_id="AUD-001",
         first_name="Audit",
@@ -14,7 +22,7 @@ def test_employee_sensitive_field_update_creates_masked_hash_audit(client, db, s
         date_of_joining=datetime(2024, 1, 1).date(),
         account_number="123456789012",
         pan_number="ABCDE1234F",
-        department_id=1,
+        department_id=before_id,
         status="Active",
     )
     db.add(employee)
@@ -22,7 +30,7 @@ def test_employee_sensitive_field_update_creates_masked_hash_audit(client, db, s
 
     response = client.put(
         f"/api/v1/employees/{employee.id}",
-        json={"account_number": "999988887777", "pan_number": "ABCDE9999F", "department_id": 2, "status": "Probation"},
+        json={"account_number": "999988887777", "pan_number": "ABCDE9999F", "department_id": after_id, "status": "Probation"},
         headers=superuser_headers,
     )
     assert response.status_code == 200, response.text
@@ -37,8 +45,8 @@ def test_employee_sensitive_field_update_creates_masked_hash_audit(client, db, s
     assert account_row["new_value_hash"]
     assert "123456789012" not in str(rows)
     department_row = next(row for row in rows if row["field_name"] == "department_id")
-    assert department_row["old_value_masked"] == "1"
-    assert department_row["new_value_masked"] == "2"
+    assert department_row["old_value_masked"] == str(before_id)
+    assert department_row["new_value_masked"] == str(after_id)
 
 
 def test_salary_assignment_creates_field_audit(client, db, superuser_headers):

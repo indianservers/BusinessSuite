@@ -6,7 +6,7 @@ test.describe("SRM role-based UAT", () => {
     await authenticate(page, "srm_admin");
     for (const route of srmRoutes) await expectHealthySrmRoute(page, route);
     await page.goto("/srm/sales-orders", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: "Submit" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Draft invoice", exact: true })).toBeVisible();
     await page.goto("/srm/invoices", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("button", { name: "Approve Invoice" })).toBeVisible();
     await page.goto("/srm/settings", { waitUntil: "domcontentloaded" });

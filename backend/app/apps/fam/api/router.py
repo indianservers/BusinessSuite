@@ -3207,7 +3207,7 @@ def inventory_source_audit(current_user: User = Depends(RequirePermission(*FAM_I
     source_root = r"C:\Indian Servers\AI Inventory Management Software"
     expected = ["app/models/stock.py", "app/models/product.py", "app/services/stock_service.py", "app/routes/stock_routes.py", "app/templates/stock/current.html"]
     files = [{"path": path, "exists": os.path.exists(os.path.join(source_root, *path.split("/")))} for path in expected]
-    return {"source_root": source_root, "source_exists": os.path.isdir(source_root), "source_stack": "Flask + SQLAlchemy + MySQL/SQLite", "merged_under": "FAM", "files": files}
+    return {"source_root": source_root, "source_exists": os.path.isdir(source_root), "source_stack": "Flask + SQLAlchemy + PostgreSQL", "merged_under": "FAM", "files": files}
 
 
 @router.get("/inventory/dashboard")

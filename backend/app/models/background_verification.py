@@ -46,7 +46,7 @@ class BackgroundVerificationRequest(Base):
     vendor = relationship("BackgroundVerificationVendor")
     candidate = relationship("Candidate")
     employee = relationship("Employee")
-    checks = relationship("BackgroundVerificationCheck", back_populates="request", cascade="all, delete-orphan")
+    checks = relationship("BackgroundVerificationCheck", back_populates="request", cascade="all, delete-orphan", order_by="BackgroundVerificationCheck.id")
     events = relationship("BackgroundVerificationConnectorEvent", back_populates="request", cascade="all, delete-orphan")
 
 

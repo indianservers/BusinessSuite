@@ -7,5 +7,5 @@ test("admin creates role hierarchy record", async ({ page }) => {
   await expectAdminSecurityShell(page);
   await expect(page.getByText("Sales Manager").first()).toBeVisible();
   await page.getByRole("button", { name: "Create role" }).click();
-  await expect(page.getByText("Role created")).toBeVisible();
+  await expect(page.getByText("Role created", { exact: true })).toBeVisible();
 });

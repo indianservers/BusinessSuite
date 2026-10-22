@@ -42,6 +42,8 @@ export interface CreateClientInput {
 
 // ============= PROJECT TYPES =============
 export interface PMSProject {
+  can_manage_tasks?: boolean;
+  workspace_id?: number;
   id: number;
   organization_id?: number;
   name: string;
@@ -71,6 +73,7 @@ export interface PMSProject {
 }
 
 export interface CreateProjectInput {
+  workspace_id?: number;
   name: string;
   project_key: string;
   description?: string;

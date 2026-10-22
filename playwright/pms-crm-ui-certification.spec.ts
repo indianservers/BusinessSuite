@@ -58,10 +58,12 @@ test.describe("PMS and CRM UI certification smoke", () => {
 
   test("CRM pages render for a sales user on desktop and mobile", async ({ page }) => {
     await authenticate(page, "crm_user");
-    for (const route of crmRoutes) {
+    for (const route of crmRoutes.filter(route => !["/crm/lead-scoring", "/crm/settings"].includes(route))) {
       await expectHealthyRoute(page, route, /CRM|Lead|Contact|Company|Deal|Pipeline|Report|Task|Calendar|Custom/i);
     }
 
+    await expectDenied(page, "/crm/lead-scoring");
+    await expectDenied(page, "/crm/settings");
     await page.setViewportSize({ width: 390, height: 820 });
     await expectHealthyRoute(page, "/crm/leads", /Lead|CRM/i);
     await expectNoHorizontalOverflow(page);
@@ -131,7 +133,9 @@ async function installApiStubs(page: Page, user: (typeof users)[CertRole]) {
     let status = 200;
     let body: unknown = method === "GET" ? [] : {};
 
-    if (path.includes("/auth/me")) {
+    if (path === "/business-os/modules") {
+      body = { enabled_modules: ["hrms", "crm", "srm", "project_management", "fam", "ai", "communication"], modules: [] };
+    } else if (path.includes("/auth/me")) {
       body = { id: user.id, email: user.email, role: { name: user.role }, is_superuser: user.is_superuser, employee_id: user.employee_id };
     } else if (path.includes("/auth/sso/providers")) {
       body = [];
@@ -142,7 +146,7 @@ async function installApiStubs(page: Page, user: (typeof users)[CertRole]) {
     } else if (path.startsWith("/crm")) {
       body = crmResponse(path, method);
     } else if (path.startsWith("/reports")) {
-      body = {};
+      body = path.includes("dashboard") ? {} : [];
     } else if (path.startsWith("/employees") || path.startsWith("/company") || path.startsWith("/attendance") || path.startsWith("/hrms")) {
       body = [];
     }
@@ -329,7 +333,8 @@ async function expectDenied(page: Page, route: string) {
 
 async function expectNoHorizontalOverflow(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
-  expect(overflow).toBe(false);
+  const wide = overflow ? await page.evaluate(() => [...document.querySelectorAll("body *")].filter(e => e.getBoundingClientRect().width > innerWidth && getComputedStyle(e).position !== "fixed").slice(0, 12).map(e => ({ tag:e.tagName, cls:e.className, width:e.getBoundingClientRect().width }))) : [];
+  expect(overflow, JSON.stringify(wide)).toBe(false);
 }
 
 function escapeRegExp(value: string) {

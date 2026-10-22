@@ -7,5 +7,5 @@ test("admin creates CRM profile and permission set", async ({ page }) => {
   await expectAdminSecurityShell(page);
   await expect(page.getByRole("main").getByText("CRM Admin", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Create profile" }).click();
-  await expect(page.getByText("Profile created")).toBeVisible();
+  await expect(page.getByText("Profile created", { exact: true })).toBeVisible();
 });

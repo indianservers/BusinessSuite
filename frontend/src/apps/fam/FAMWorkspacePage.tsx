@@ -1,6 +1,6 @@
-import { cloneElement, isValidElement, useMemo, useState, type ElementType } from "react";
+import { cloneElement, forwardRef, isValidElement, useMemo, useState, type ElementType } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link as RouterLink, useLocation, useParams, type LinkProps } from "react-router-dom";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AlertTriangle, ArrowRight, BadgeIndianRupee, BarChart3, BookOpen, Box, Boxes, Building2, CalendarDays, Copy, FileText, GitBranch, GitCompareArrows, Landmark, Layers3, LockKeyhole, Package, Plus, Receipt, RefreshCw, RotateCcw, Save, ScrollText, Settings, ShieldCheck, Sparkles, Users, Warehouse } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,15 @@ import { famApi } from "./api";
 import type { FAMRecord, FAMViewKind } from "./types";
 
 type ViewMeta = { title: string; description: string; icon: ElementType };
+
+// Accounting workbenches retain their financial permissions and API context.
+const Link = forwardRef<HTMLAnchorElement, LinkProps>(({ to, ...props }, ref) => {
+  const location = useLocation();
+  const destination = location.pathname.startsWith("/fam/") && typeof to === "string" && to.startsWith("/srm/inventory")
+    ? to.replace(/^\/srm\/inventory/, "/fam/inventory") : to;
+  return <RouterLink ref={ref} to={destination} {...props} />;
+});
+Link.displayName = "FinancialWorkspaceLink";
 
 const viewMeta: Record<FAMViewKind, ViewMeta> = {
   dashboard: { title: "FAM Dashboard", description: "India-first accounting foundation, books status, balances, and audit activity.", icon: BarChart3 },

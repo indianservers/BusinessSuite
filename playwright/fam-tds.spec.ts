@@ -17,6 +17,6 @@ test.describe("FAM TDS", () => {
     await expect(page.getByText("deducted", { exact: true }).last()).toBeVisible();
 
     await expectHealthyFamRoute(page, "/fam/tds/payable");
-    await expect(page.getByText("Filing/export is unsupported", { exact: false })).toBeVisible();
+    await expect(page.getByText("CSV summary export is available.", { exact: false })).toBeVisible();
   });
 });

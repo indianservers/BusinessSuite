@@ -5,15 +5,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.schema import conv
 
-# WARNING: Tests run against SQLite in-memory.
-# MySQL-specific behaviors NOT tested here:
-#   - JSON_EXTRACT / JSON column path queries
-#   - CHECK constraints (e.g. accrual_frequency, payroll status)
-#   - ENUM column enforcement
-#   - Full-text indexes
-# Run integration tests against a real MySQL instance before releasing
-# any migration or CRUD change that uses these features.
+# Unit tests default to SQLite. Set TEST_DATABASE_URL to a disposable
+# PostgreSQL database (name must end in _test) for real integration coverage.
+if os.environ.get("TEST_DATABASE_URL"):
+    from sqlalchemy.engine import make_url
+    test_url = make_url(os.environ["TEST_DATABASE_URL"])
+    if test_url.get_backend_name() != "postgresql" or not (test_url.database or "").endswith("_test"):
+        raise RuntimeError("TEST_DATABASE_URL must target a disposable PostgreSQL *_test database")
+    os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
 
 def _make_unraisablehook(default_hook):
     def _suppress_python314_gzip_teardown_warning(unraisable):
@@ -27,7 +28,6 @@ def _make_unraisablehook(default_hook):
 sys.unraisablehook = _make_unraisablehook(sys.unraisablehook)
 
 os.environ.setdefault("ENVIRONMENT", "test")
-os.environ.setdefault("MYSQL_PASSWORD", "")
 os.environ.setdefault("INSTALLED_APPS", "hrms,crm,project_management,srm,fam")
 
 from app.main import app
@@ -37,19 +37,32 @@ from app.core.deps import get_db
 from app.core.security import get_password_hash
 from app.models.user import User, Role
 
-SQLALCHEMY_DATABASE_URL = "sqlite://"
+SQLALCHEMY_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+    **({"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
+       if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {"connect_args": {"options": "-c timezone=UTC"}}),
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @pytest.fixture(scope="session")
 def db_engine():
+    # Name every FK so PostgreSQL can also drop cyclic relationships at teardown.
+    for table in Base.metadata.tables.values():
+        for fk in table.foreign_key_constraints:
+            if fk.name is None:
+                element = next(iter(fk.elements))
+                fk.name = conv("fk_" + table.name + "_" + element.parent.name + "_" + element.column.table.name)
     Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "postgresql":
+        # Runtime startup provisions tenant 1 before module-gating middleware.
+        # SQLite previously concealed this prerequisite by not enforcing FKs.
+        from app.models.company import Company
+        with engine.begin() as connection:
+            connection.execute(Company.__table__.insert().values(id=1, name="Integration Test Company"))
+            connection.exec_driver_sql("SELECT setval(pg_get_serial_sequence('companies','id'),1,true)")
     yield engine
     Base.metadata.drop_all(bind=engine)
 
@@ -76,9 +89,27 @@ def client(db):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
+    previous_factory = getattr(app.state, "business_os_session_factory", None)
+    previous_close = getattr(app.state, "business_os_close_session", None)
+    if engine.dialect.name == "postgresql":
+        # Keep module-gating queries in the same isolated test transaction;
+        # separate connections cannot see uncommitted configuration rows.
+        app.state.business_os_session_factory = lambda: db
+        app.state.business_os_close_session = False
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        app.dependency_overrides.clear()
+        if engine.dialect.name == "postgresql":
+            if previous_factory is None:
+                if hasattr(app.state, "business_os_session_factory"):
+                    del app.state.business_os_session_factory
+                if hasattr(app.state, "business_os_close_session"):
+                    del app.state.business_os_close_session
+            else:
+                app.state.business_os_session_factory = previous_factory
+                app.state.business_os_close_session = previous_close
 
 
 @pytest.fixture(scope="function")

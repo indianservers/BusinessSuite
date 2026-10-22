@@ -31,8 +31,12 @@ def index():
 @bp.route("/open-session", methods=["POST"])
 @login_required
 def open_session():
-    register_id = request.form.get("register_id") or None
+    register_id = request.form.get("register_id", type=int)
+    if request.form.get("register_id") and register_id is None:
+        raise BadRequest("A valid register ID is required")
     register = Register.query.filter_by(id=register_id, status=True).first() if register_id else None
+    if register_id is not None and register is None:
+        raise BadRequest("Register is inactive or does not exist")
     pos_session = POSSession(session_no=next_number("pos_session"), opened_by=current_user.id, register_id=register.id if register else None, opening_cash=request.form.get("opening_cash") or 0, status="Open")
     db.session.add(pos_session)
     db.session.flush()

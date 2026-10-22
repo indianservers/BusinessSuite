@@ -9,9 +9,9 @@ test.describe("SRM sales orders commercial UI", () => {
     await expect(page.getByRole("heading", { name: "Sales Orders" })).toBeVisible();
     await expect(page.getByText("Implementation order")).toBeVisible();
     await expect(page.getByText("confirmed")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Submit" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Confirm" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Draft" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Submit", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Draft invoice", exact: true })).toBeVisible();
 
     await page.goto("/srm/sales-orders/1", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Sales Order Detail" })).toBeVisible();

@@ -20,12 +20,41 @@ class PMSClient(Base):
     deleted_at = Column(DateTime(timezone=True))
 
 
+class PMSWorkspace(Base):
+    __tablename__ = "pms_workspaces"
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    name = Column(String(180), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class PMSWorkspaceMember(Base):
+    __tablename__ = "pms_workspace_members"
+    __table_args__ = (UniqueConstraint("workspace_id", "user_id", name="uq_pms_workspace_member"),)
+    id = Column(Integer, primary_key=True)
+    workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(20), nullable=False)
+
+
+class PMSWorkspaceInvitation(Base):
+    __tablename__ = "pms_workspace_invitations"
+    id = Column(Integer, primary_key=True)
+    workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    email = Column(String(100), nullable=False, index=True)
+    role = Column(String(20), nullable=False)
+    token_hash = Column(String(64), nullable=False, unique=True)
+    status = Column(String(20), nullable=False, default="pending")
+    expires_at = Column(DateTime, nullable=False)
+
+
 class PMSProject(Base):
     __tablename__ = "pms_projects"
     __table_args__ = (UniqueConstraint("organization_id", "project_key", name="uq_pms_project_org_key"),)
 
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, nullable=True, index=True)
+    workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="RESTRICT"), nullable=True, index=True)
     client_id = Column(Integer, ForeignKey("pms_clients.id", ondelete="SET NULL"), nullable=True, index=True)
     manager_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)

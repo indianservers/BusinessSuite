@@ -4,7 +4,7 @@ import { authenticateCommunication, expectCommunicationRoute } from "./communica
 test("Communication webforms render, create, and submit lead", async ({ page }) => {
   await authenticateCommunication(page);
   await expectCommunicationRoute(page, "/crm/webforms", "Webforms");
-  await expect(page.getByText("Lead Capture")).toBeVisible();
+  await expect(page.getByText("Lead Capture", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Create Webform" }).click();
   await expect(page.getByText("Webform saved", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Submit Demo Lead" }).click();

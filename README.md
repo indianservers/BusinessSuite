@@ -1,5 +1,7 @@
 # Business Suite
 
+Database setup: [PostgreSQL local and remote instructions](POSTGRESQL_SETUP.md).
+
 Business Suite is a modular ERP platform for HRMS, Project Management, CRM, and future business apps. The current HRMS app combines core HR, employee self-service, payroll, attendance, leave, documents, compliance, talent, analytics, and AI-assisted workflows in one platform.
 
 ## Highlights
@@ -26,7 +28,7 @@ Business Suite is a modular ERP platform for HRMS, Project Management, CRM, and 
 ## Tech Stack
 
 - Backend: FastAPI, SQLAlchemy, Alembic, Pydantic, JWT auth
-- Database: MySQL in production, SQLite-friendly local/test setup
+- Database: PostgreSQL for local and production; SQLite for isolated unit tests
 - Frontend: React, TypeScript, Vite, Tailwind CSS, React Query, Zustand
 - Reporting/files: CSV exports, payslip PDF generation, upload storage
 - AI integrations: OpenAI and Anthropic-ready service layer
@@ -84,7 +86,7 @@ uvicorn app.main:app --reload --port 8000
 Create a backend `.env` when needed:
 
 ```env
-DATABASE_URL=mysql+pymysql://user:password@host:3306/aihrms
+DATABASE_URL=postgresql+psycopg://user:encoded-password@host:5432/business_suite
 BACKEND_CORS_ORIGINS=http://localhost:5173,http://localhost:5174
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=

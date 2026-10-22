@@ -8,7 +8,7 @@ test.describe("SRM commercial workflow RBAC", () => {
     await authenticate(page, "srm_admin");
     for (const route of commercialRoutes) await expectHealthySrmRoute(page, route);
     await page.goto("/srm/sales-orders", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("button", { name: "Submit" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Draft invoice", exact: true })).toBeVisible();
 
     await authenticate(page, "srm_sales_manager");
     for (const route of commercialRoutes) await expectHealthySrmRoute(page, route);

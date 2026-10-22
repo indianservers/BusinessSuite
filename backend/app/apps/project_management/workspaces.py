@@ -1,0 +1,177 @@
+"""Workspace collaboration, with email-bound, single-use invitations."""
+import hashlib
+import secrets
+from datetime import datetime, timedelta
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.core.deps import get_current_user, get_db
+from app.models.user import User
+from app.models.notification import Notification
+from .models import PMSWorkspace, PMSWorkspaceMember, PMSWorkspaceInvitation, PMSProject, PMSTask, PMSComment
+from .access import has_any_permission, PMS_GLOBAL_MANAGE_PROJECTS, organization_id_for
+
+router = APIRouter()
+Role = Literal["Admin", "Member", "Guest"]
+
+
+class WorkspaceInput(BaseModel):
+    name: str = Field(min_length=1, max_length=180)
+
+
+class InviteInput(BaseModel):
+    email: str = Field(min_length=3, max_length=100, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    role: Role = "Member"
+
+
+class MemberInput(BaseModel):
+    role: Role
+
+
+class AcceptInput(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+def workspace_member(db, workspace_id, user, manage=False):
+    workspace = db.get(PMSWorkspace, workspace_id)
+    member = db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id, user_id=user.id).first()
+    if not workspace or not member:
+        raise HTTPException(404, "Workspace not found")
+    if manage and member.role not in {"Owner", "Admin"}:
+        raise HTTPException(403, "Workspace administrator required")
+    return workspace, member
+
+
+@router.get("/workspaces")
+def list_workspaces(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    rows = db.query(PMSWorkspace, PMSWorkspaceMember.role).join(PMSWorkspaceMember, PMSWorkspaceMember.workspace_id == PMSWorkspace.id).filter(PMSWorkspaceMember.user_id == user.id).all()
+    return [{"id": w.id, "name": w.name, "role": role} for w, role in rows]
+
+
+@router.get("/workspaces/{workspace_id}/overview")
+def overview(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """One scoped dataset for the workspace board, people, and list views."""
+    workspace, member = workspace_member(db, workspace_id, user)
+    projects = db.query(PMSProject).filter_by(workspace_id=workspace_id, deleted_at=None).order_by(PMSProject.name).all()
+    project_ids = [p.id for p in projects]
+    tasks = db.query(PMSTask).filter(PMSTask.project_id.in_(project_ids), PMSTask.deleted_at.is_(None)).order_by(PMSTask.position, PMSTask.id).all() if project_ids else []
+    counts = dict(db.query(PMSComment.task_id, func.count(PMSComment.id)).filter(PMSComment.task_id.in_([t.id for t in tasks])).group_by(PMSComment.task_id).all()) if tasks else {}
+    return {
+        "id": workspace.id, "name": workspace.name, "role": member.role,
+        "projects": [{"id": p.id, "name": p.name, "project_key": p.project_key} for p in projects],
+        "tasks": [{"id": t.id, "project_id": t.project_id, "task_key": t.task_key, "title": t.title, "description": t.description,
+                   "status": t.status, "priority": t.priority, "assignee_user_id": t.assignee_user_id,
+                   "start_date": t.start_date, "due_date": t.due_date, "position": t.position, "comments_count": counts.get(t.id, 0)} for t in tasks],
+    }
+
+
+@router.post("/workspaces", status_code=201)
+def create_workspace(data: WorkspaceInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if not has_any_permission(user, PMS_GLOBAL_MANAGE_PROJECTS):
+        raise HTTPException(403, "Project management permission required")
+    if not data.name.strip():
+        raise HTTPException(422, "Workspace name is required")
+    workspace = PMSWorkspace(name=data.name.strip(), organization_id=organization_id_for(user))
+    db.add(workspace)
+    db.flush()
+    db.add(PMSWorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="Owner"))
+    db.commit()
+    return {"id": workspace.id, "name": workspace.name, "role": "Owner"}
+
+
+@router.get("/workspaces/{workspace_id}/members")
+def members(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    workspace_member(db, workspace_id, user)
+    rows = db.query(PMSWorkspaceMember, User.email).join(User, User.id == PMSWorkspaceMember.user_id).filter(PMSWorkspaceMember.workspace_id == workspace_id).all()
+    return [{"id": m.id, "user_id": m.user_id, "email": email, "role": m.role} for m, email in rows]
+
+
+def editable_member(db, workspace_id, member_id, user):
+    _, actor = workspace_member(db, workspace_id, user, True)
+    target = db.query(PMSWorkspaceMember).filter_by(id=member_id, workspace_id=workspace_id).first()
+    if not target:
+        raise HTTPException(404, "Member not found")
+    if target.role == "Owner" or (actor.role != "Owner" and target.role == "Admin"):
+        raise HTTPException(403, "Only the owner can manage administrators; the owner cannot be removed")
+    return target, actor
+
+
+@router.patch("/workspaces/{workspace_id}/members/{member_id}")
+def change_role(workspace_id: int, member_id: int, data: MemberInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    target, actor = editable_member(db, workspace_id, member_id, user)
+    if data.role == "Admin" and actor.role != "Owner":
+        raise HTTPException(403, "Only the owner can appoint administrators")
+    target.role = data.role
+    db.commit()
+    return {"id": target.id, "role": target.role}
+
+
+@router.delete("/workspaces/{workspace_id}/members/{member_id}")
+def remove_member(workspace_id: int, member_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    target, _ = editable_member(db, workspace_id, member_id, user)
+    removed_user_id = target.user_id
+    db.delete(target)
+    db.commit()
+    from .realtime import pms_realtime_manager
+    import anyio
+    project_ids = {p[0] for p in db.query(PMSProject.id).filter_by(workspace_id=workspace_id).all()}
+    anyio.from_thread.run(pms_realtime_manager.revoke_projects, removed_user_id, project_ids)
+    return {"ok": True}
+
+
+@router.post("/workspaces/{workspace_id}/invitations", status_code=201)
+def invite(workspace_id: int, data: InviteInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    workspace, actor = workspace_member(db, workspace_id, user, True)
+    if data.role == "Admin" and actor.role != "Owner":
+        raise HTTPException(403, "Only the owner can invite administrators")
+    email = data.email.strip().lower()
+    recipient = db.query(User).filter(func.lower(User.email) == email).first()
+    if recipient and db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id, user_id=recipient.id).first():
+        raise HTTPException(409, "User is already a member")
+    db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=email, status="pending").update({"status": "revoked"})
+    token = secrets.token_urlsafe(32)
+    invitation = PMSWorkspaceInvitation(workspace_id=workspace_id, email=email, role=data.role, token_hash=hashlib.sha256(token.encode()).hexdigest(), expires_at=datetime.utcnow() + timedelta(days=7))
+    db.add(invitation)
+    if recipient:
+        db.add(Notification(user_id=recipient.id, title="Workspace invitation", message=f"You were invited to {workspace.name} as {data.role}.", module="project_management", action_url="/pms/workspaces?invite=" + token))
+    db.commit()
+    return {"id": invitation.id, "email": email, "role": data.role, "token": token, "expires_at": invitation.expires_at, "delivery": "in_app_and_share_link" if recipient else "share_link"}
+
+
+@router.get("/workspaces/{workspace_id}/invitations")
+def invitations(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    workspace_member(db, workspace_id, user, True)
+    rows = db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id).order_by(PMSWorkspaceInvitation.id.desc()).all()
+    return [{"id": i.id, "email": i.email, "role": i.role, "status": "expired" if i.status == "pending" and i.expires_at <= datetime.utcnow() else i.status, "expires_at": i.expires_at} for i in rows]
+
+
+@router.delete("/workspaces/{workspace_id}/invitations/{invitation_id}")
+def revoke(workspace_id: int, invitation_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    workspace_member(db, workspace_id, user, True)
+    invitation = db.query(PMSWorkspaceInvitation).filter_by(id=invitation_id, workspace_id=workspace_id).first()
+    if not invitation:
+        raise HTTPException(404, "Invitation not found")
+    invitation.status = "revoked"
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/workspace-invitations/accept")
+def accept(data: AcceptInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    invitation = db.query(PMSWorkspaceInvitation).filter_by(token_hash=hashlib.sha256(data.token.encode()).hexdigest()).with_for_update().first()
+    if not invitation or invitation.status != "pending" or invitation.expires_at <= datetime.utcnow():
+        raise HTTPException(400, "Invitation is invalid, expired, or already used")
+    if invitation.email != user.email.strip().lower():
+        raise HTTPException(403, "Sign in with the invited email address")
+    workspace = db.get(PMSWorkspace, invitation.workspace_id)
+    if not workspace or workspace.organization_id != organization_id_for(user):
+        raise HTTPException(403, "Invitation belongs to another organization")
+    if not db.query(PMSWorkspaceMember).filter_by(workspace_id=invitation.workspace_id, user_id=user.id).first():
+        db.add(PMSWorkspaceMember(workspace_id=invitation.workspace_id, user_id=user.id, role=invitation.role))
+    invitation.status = "accepted"
+    db.commit()
+    return {"workspace_id": invitation.workspace_id}

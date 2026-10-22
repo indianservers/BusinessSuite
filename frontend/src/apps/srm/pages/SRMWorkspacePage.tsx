@@ -1175,7 +1175,7 @@ function InvoiceDraftsView() {
 function InvoicesView() {
   const canManage = useCanManageRevenue();
   const list = useQuery({ queryKey: ["srm", "invoices"], queryFn: srmApi.invoices });
-  const invoiceId = Number(asList(list.data)[0]?.id || 1);
+  const invoiceId = Number(asList(list.data)[0]?.id || 0);
   const detail = useQuery({ queryKey: ["srm", "invoice", invoiceId], queryFn: () => srmApi.invoice(invoiceId), enabled: invoiceId > 0 });
   const action = useRevenueAction();
   const invoice = (detail.data || asList(list.data)[0] || {}) as SRMRecord;
@@ -1183,9 +1183,10 @@ function InvoicesView() {
   const pdfHref = `/api/v1/srm/invoices/${invoiceId}/pdf`;
   return (
     <div className="space-y-5">
-      <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); detail.refetch(); }} />
+      <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); if (invoiceId) detail.refetch(); }} />
       <ActionMessage message={!canManage ? "Read-only revenue access: invoice approval, send/export, and line edits are hidden for this role." : action.message} />
-      {canManage ? <ManualInvoiceComposer onCreated={() => { list.refetch(); detail.refetch(); }} /> : null}
+      {canManage ? <ManualInvoiceComposer onCreated={() => { list.refetch(); if (invoiceId) detail.refetch(); }} /> : null}
+      {!list.isLoading && !invoiceId ? <p className="rounded-lg border p-4 text-sm text-muted-foreground">No invoices yet. Create an invoice or generate a draft from a sales order to get started.</p> : null}
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Invoice Number" value={invoice.invoice_number} />
         <MetricCard label="Total Amount" value={money(invoice.total_amount)} />
@@ -1210,13 +1211,13 @@ function InvoicesView() {
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={action.isPending || !invoiceId} onClick={() => action.mutate({ label: "Invoice approval", run: () => srmApi.approveInvoice(invoiceId) })}>Approve Invoice</Button>
               <Button disabled={action.isPending || !invoiceId} onClick={() => action.mutate({ label: "Invoice send/export", run: () => srmApi.sendInvoice(invoiceId) })}>Send / Export Invoice</Button>
-              <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button>
+              {invoiceId ? <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button> : null}
             </div>
-            <InvoiceLineEditor invoiceId={invoiceId} onSaved={() => detail.refetch()} />
+            {invoiceId ? <InvoiceLineEditor invoiceId={invoiceId} onSaved={() => detail.refetch()} /> : null}
           </CardContent>
         </Card>
       ) : (
-        <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button>
+        invoiceId ? <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button> : null
       )}
       <div className="grid gap-4 xl:grid-cols-2">
         <RecordList title="Invoices" records={asList(list.data)} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
