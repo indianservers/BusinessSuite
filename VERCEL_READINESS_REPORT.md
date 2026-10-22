@@ -1,6 +1,6 @@
 # Vercel and Neon readiness
 
-Completed locally: 22 October 2026. Cloud deployment has not been performed because the Vercel, Neon and object-storage resources are not configured yet.
+Verified locally and in Linux CI: 22 October 2026. Cloud deployment has not been performed because the Vercel, Neon and object-storage resources are not configured yet.
 
 Implemented:
 
@@ -21,9 +21,10 @@ Implemented:
 | Private PMS file access and membership revocation | 2 passed |
 | Positive and unsafe serverless configurations | 8 passed |
 | Interrupted migration resume | 1 passed |
-| Unique backend checks across these runs | **67 passed** |
+| Unique focused backend checks across these runs | **67 passed** |
+| Full backend suite, locally and Linux/Python 3.12 CI | **532 passed** |
 | Unique real-API browser checks | **10 passed**, including 59 module pages, invitation/role/removal flow, drag-and-drop, two API instances and oversized-upload handling |
-| Production frontend build | Passed |
+| Production frontend build | Passed locally and in Linux CI |
 | Main and standalone Inventory PostgreSQL schema verification | Passed; no expected tables or columns missing |
 
 Browser failures in the initial run were corrected: the new test used PUT instead of the existing PATCH task endpoint, and the multi-session invitation test needed an absolute navigation URL and a timeout suitable for its complete flow. Targeted reruns passed. The machine-readable [results](docs/migrations/vercel-readiness-results.json) retain the latest result for each check.
@@ -37,3 +38,5 @@ Follow [the deployment guide](docs/VERCEL_NEON_DEPLOYMENT.md). Create the two Ve
 The integrated SRM/FAM inventory routes are included. The separately retained legacy Flask compatibility service is not packaged into the FastAPI deployment.
 
 Local raw evidence is in `.local/vercel-regression.xml`, `vercel-resilience.xml`, `vercel-cloudfiles.xml`, `vercel-configuration.xml`, `vercel-migration-resume.xml`, `vercel-browser-first-report.json`, `postgres-playwright-results.json` and `vercel-build-final.log`. The first Linux run passed 531 checks and exposed one hard-coded Windows path in the inventory source audit. That path now resolves relative to the repository, and its focused PostgreSQL regression passes. GitHub Actions runs the corrected full suite independently after push; CI uses fast bcrypt fixture hashing and separately verifies the unchanged production work factor.
+
+Final [Linux CI run](https://github.com/indianservers/BusinessSuite/actions/runs/39741137141) succeeded on code commit `4e943db`: 532 backend tests passed, the production bcrypt policy check passed, and the production frontend build passed.
