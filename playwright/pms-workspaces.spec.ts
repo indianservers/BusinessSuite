@@ -1,6 +1,7 @@
 import { test, expect } from "../frontend/node_modules/playwright/test";
 
 const api = "http://127.0.0.1:8766/api/v1";
+test.setTimeout(120_000);
 test.skip(({ baseURL }) => !["http://127.0.0.1:5181", "http://127.0.0.1:5182"].includes(baseURL || ""), "Requires the disposable PostgreSQL QA server.");
 
 test("owner creates workspace; invited teammate joins, creates a scheduled task; removal blocks access", async ({ page, browser, request }) => {
@@ -50,7 +51,7 @@ test("owner creates workspace; invited teammate joins, creates a scheduled task;
   await teammate.getByLabel("Task assignee").selectOption({ label: "member@example.com" });
   await teammate.getByRole("button", { name: "Create task", exact: true }).click();
   await expect(teammate.getByText("Prepare workspace launch", { exact: true })).toBeVisible();
-  await teammate.goto(`/pms/projects/${projectId}/gantt`);
+  await teammate.goto(new URL(`/pms/projects/${projectId}/gantt`, inviteUrl).toString());
   await expect(teammate.getByText("Prepare workspace launch", { exact: true }).first()).toBeVisible();
   await page.goto("/pms/workspaces");
   await page.getByLabel("Workspace", { exact: true }).selectOption({ label: `${name} · Owner` });

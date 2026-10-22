@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.storage import persist_file, FileResponse
 
 import calendar
 import os
@@ -7,7 +8,6 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import and_
 from sqlalchemy.orm import Session, joinedload
@@ -573,5 +573,7 @@ def download_fnf_statement(
     except Exception:
         with open(file_path, "w", encoding="utf-8") as handle:
             handle.write(f"Full & Final Settlement Statement\nEmployee: {data['employeeName']}\nNet payable: INR {data['netPayable']:.2f}\n")
+        persist_file(file_path)
 
+    persist_file(file_path)
     return FileResponse(file_path, media_type="application/pdf", filename=os.path.basename(file_path))

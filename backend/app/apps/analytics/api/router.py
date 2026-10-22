@@ -1,11 +1,11 @@
 from __future__ import annotations
+from app.core.storage import upload_exists, FileResponse
 
 import os
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -160,7 +160,7 @@ def download_export(export_id: int, db: Session = Depends(get_db), current_user:
     item = db.query(AnalyticsExport).filter(AnalyticsExport.id == export_id).first()
     if not item or item.status != "completed" or not item.file_path_or_reference:
         raise HTTPException(status_code=404, detail="Completed export file not found")
-    if not os.path.exists(item.file_path_or_reference):
+    if not upload_exists(item.file_path_or_reference):
         raise HTTPException(status_code=404, detail="Export file is missing from storage")
     _audit(db, current_user, "export_downloaded", item.id, item.report_id, {"export_type": item.export_type})
     db.commit()

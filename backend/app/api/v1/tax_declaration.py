@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.storage import persist_file, upload_exists, FileResponse
 
 import os
 import uuid
@@ -7,7 +8,6 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -488,6 +488,7 @@ async def upload_tax_proof(
     disk_path = os.path.join(upload_dir, stored_name)
     with open(disk_path, "wb") as handle:
         handle.write(content)
+    persist_file(disk_path)
     proof = EmployeeTaxProof(
         declaration_item_id=item.id,
         file_name=original_name,
@@ -512,6 +513,6 @@ def download_tax_proof(
     declaration = proof.declaration_item.declaration
     _enforce_declaration_access(declaration, current_user)
     file_path = os.path.join(settings.UPLOAD_DIR, proof.file_path.replace("/uploads/", "").replace("/", os.sep))
-    if not os.path.exists(file_path):
+    if not upload_exists(file_path):
         raise HTTPException(status_code=404, detail="Proof file missing from storage")
     return FileResponse(file_path, media_type=proof.file_type or "application/octet-stream", filename=proof.file_name)

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.storage import persist_file, upload_exists, FileResponse
 
 import csv
 import html
@@ -10,7 +11,6 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -174,6 +174,7 @@ def _export_dir(run: PayrollRun) -> str:
 
 
 def _file_url(file_path: str) -> str:
+    persist_file(file_path)
     rel_path = os.path.relpath(file_path, settings.UPLOAD_DIR).replace(os.sep, "/")
     return f"/uploads/{rel_path}"
 
@@ -296,6 +297,7 @@ def _write_txt(file_path: str, rows: list[dict[str, Any]], bank_format: BankAdvi
             writer.writerow(columns)
         for row in rows:
             writer.writerow([row.get(column_map.get(column, column), "") for column in columns])
+    persist_file(file_path)
 
 
 @router.get("/{payroll_run_id}/bank-advice/preview", response_model=PayrollBankAdvicePreviewSchema)
@@ -404,7 +406,7 @@ def download_bank_export(
     if not export.file_path.startswith("/uploads/"):
         raise HTTPException(status_code=404, detail="Bank export file not found")
     file_path = os.path.join(settings.UPLOAD_DIR, export.file_path.replace("/uploads/", "", 1).replace("/", os.sep))
-    if not os.path.exists(file_path):
+    if not upload_exists(file_path):
         raise HTTPException(status_code=404, detail="Bank export file missing on disk")
 
     export.downloaded_at = datetime.now(timezone.utc)

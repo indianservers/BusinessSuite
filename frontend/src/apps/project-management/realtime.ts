@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import { toast } from "@/hooks/use-toast";
+import { api } from "@/services/api";
 import { getApiBaseUrl } from "@/config/runtime";
 import { useAuthStore } from "@/store/authStore";
 
@@ -117,6 +118,9 @@ export function usePMSRealtime({
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let closedByEffect = false;
+    let feedTimer: ReturnType<typeof setTimeout> | null = null;
+    let feedCursor: number | undefined;
+    let feedTicks = 0;
 
     const subscribe = () => {
       if (!socket || socket.readyState !== WebSocket.OPEN) return;
@@ -180,10 +184,39 @@ export function usePMSRealtime({
       };
     };
 
-    connect();
+    const pollFeed = async () => {
+      try {
+        const { data } = await api.get<{ cursor: number; events: PMSRealtimeEvent[] }>("/project-management/realtime/events", {
+          params: feedCursor === undefined ? {} : { cursor: feedCursor },
+        });
+        if (closedByEffect) return;
+        feedCursor = data.cursor;
+        useRealtimeStore.getState().setConnected(true);
+        for (const event of data.events) {
+          if (projectId && event.projectId !== projectId) continue;
+          if (taskId && event.taskId !== taskId) continue;
+          useRealtimeStore.getState().receive(event);
+          onEventRef.current?.(event);
+        }
+        // Also recover from a lost publish, tab suspension or expired retention.
+        if (++feedTicks % 5 === 0) pollRef.current?.();
+      } catch {
+        useRealtimeStore.getState().setConnected(false);
+        pollRef.current?.();
+      } finally {
+        if (!closedByEffect) feedTimer = setTimeout(pollFeed, document.hidden ? 15000 : 3000);
+      }
+    };
+    void api.get<{ transport: string }>("/project-management/realtime/config")
+      .then(({ data }) => {
+        if (closedByEffect) return;
+        if (data.transport === "database") void pollFeed();
+        else connect();
+      }).catch(() => { if (!closedByEffect) connect(); });
 
     return () => {
       closedByEffect = true;
+      if (feedTimer) clearTimeout(feedTimer);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (pollTimer) clearInterval(pollTimer);
       socket?.close();

@@ -1,8 +1,8 @@
+from app.core.storage import persist_file, upload_exists, FileResponse
 from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, or_
@@ -307,6 +307,7 @@ def _write_basic_pdf(file_path: str, lines: List[str]) -> None:
     )
     with open(file_path, "wb") as handle:
         handle.write(pdf)
+    persist_file(file_path)
 
 
 def _has_permission(user: User, permission: str) -> bool:
@@ -797,10 +798,12 @@ def _write_rows_file(directory: str, filename: str, headers: List[str], rows: Li
         writer = csv.writer(handle)
         writer.writerow(headers)
         writer.writerows(rows)
+    persist_file(csv_path)
     return csv_path
 
 
 def _file_url_from_upload_path(file_path: str) -> str:
+    persist_file(file_path)
     rel_path = os.path.relpath(file_path, settings.UPLOAD_DIR).replace(os.sep, "/")
     return f"/uploads/{rel_path}"
 
@@ -2386,6 +2389,7 @@ def create_payroll_export(
                 writer.writerow([record.employee_id, record.net_salary or 0])
             else:
                 writer.writerow([record.employee_id, record.gross_salary or 0, record.total_deductions or 0, record.net_salary or 0])
+    persist_file(file_path)
     output_url = f"/uploads/exports/payroll/{run_id}/{export_type}.csv"
     batch = PayrollExportBatch(
         payroll_run_id=run_id,
@@ -2413,7 +2417,7 @@ def download_payroll_export(
     if not batch or not batch.output_file_url:
         raise HTTPException(status_code=404, detail="Export file not found")
     file_path = os.path.join(settings.UPLOAD_DIR, batch.output_file_url.replace("/uploads/", "").replace("/", os.sep))
-    if not os.path.exists(file_path):
+    if not upload_exists(file_path):
         raise HTTPException(status_code=404, detail="Export file missing on disk")
     return FileResponse(file_path, media_type="text/csv", filename=os.path.basename(file_path))
 
@@ -3181,11 +3185,13 @@ def generate_payslip_pdf(
             writer.encrypt(password)
             with open(protected_path, "wb") as handle:
                 writer.write(handle)
+            persist_file(protected_path)
             file_name = protected_name
             file_path = protected_path
             protected = True
         except Exception as exc:
             _audit(db, run.id, "payslip_pdf_password_protection_skipped", current_user.id, str(exc))
+    persist_file(file_path)
     record.payslip_pdf_url = f"/uploads/payslips/{run.year}/{run.month}/{file_name}"
     record.payslip_generated_at = datetime.now(timezone.utc)
     _audit(db, run.id, "payslip_pdf_generated", current_user.id, f"record_id={record.id}")
@@ -3206,7 +3212,7 @@ def download_payslip_pdf(
         if not current_user.employee or current_user.employee.id != record.employee_id:
             raise HTTPException(status_code=403, detail="Not authorized")
     file_path = os.path.join(settings.UPLOAD_DIR, record.payslip_pdf_url.replace("/uploads/", "").replace("/", os.sep))
-    if not os.path.exists(file_path):
+    if not upload_exists(file_path):
         raise HTTPException(status_code=404, detail="Payslip PDF missing on disk")
     return FileResponse(file_path, media_type="application/pdf", filename=os.path.basename(file_path))
 

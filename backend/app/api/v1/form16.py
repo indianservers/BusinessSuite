@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.storage import persist_file, upload_exists, materialize_file, FileResponse
 
 import os
 import uuid
@@ -7,7 +8,6 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -131,6 +131,7 @@ def _form16_dir(employee_id: int, financial_year: str) -> str:
 
 
 def _file_url(path: str) -> str:
+    persist_file(path)
     rel = os.path.relpath(path, settings.UPLOAD_DIR).replace(os.sep, "/")
     return f"/uploads/{rel}"
 
@@ -223,10 +224,10 @@ def _write_part_b_pdf(path: str, employee: Employee, company_name: str, financia
 
 def _combine_pdfs(part_a_url: str | None, part_b_url: str, employee_id: int, financial_year: str) -> str:
     part_b_path = _disk_path(part_b_url)
-    if not part_b_path or not os.path.exists(part_b_path):
+    if not part_b_path or not upload_exists(part_b_path):
         return part_b_url
     part_a_path = _disk_path(part_a_url)
-    if not part_a_path or not os.path.exists(part_a_path):
+    if not part_a_path or not upload_exists(part_a_path):
         return part_b_url
     try:
         from pypdf import PdfMerger
@@ -238,10 +239,13 @@ def _combine_pdfs(part_a_url: str | None, part_b_url: str, employee_id: int, fin
 
     out_path = os.path.join(_form16_dir(employee_id, financial_year), "form16_combined.pdf")
     merger = PdfMerger()
+    materialize_file(part_a_path)
+    materialize_file(part_b_path)
     merger.append(part_a_path)
     merger.append(part_b_path)
     with open(out_path, "wb") as handle:
         merger.write(handle)
+    persist_file(out_path)
     merger.close()
     return _file_url(out_path)
 
@@ -394,6 +398,7 @@ def upload_part_a(
     out_path = os.path.join(out_dir, filename)
     with open(out_path, "wb") as handle:
         handle.write(file.file.read())
+    persist_file(out_path)
     record.part_a_file_path = _file_url(out_path)
     if record.part_b_file_path:
         record.combined_file_path = _combine_pdfs(record.part_a_file_path, record.part_b_file_path, record.employee_id, record.financial_year)
@@ -429,6 +434,6 @@ def download_form16(
     _enforce_access(record, current_user)
     file_url = record.combined_file_path or record.part_b_file_path or record.part_a_file_path
     path = _disk_path(file_url)
-    if not path or not os.path.exists(path):
+    if not path or not upload_exists(path):
         raise HTTPException(status_code=404, detail="Form 16 PDF not found")
     return FileResponse(path, media_type="application/pdf", filename=os.path.basename(path))

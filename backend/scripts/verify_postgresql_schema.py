@@ -13,6 +13,9 @@ from app.db.session import engine
 def verify():
     root = Path(__file__).resolve().parents[2]
     coverage = json.loads((root / "backend/alembic_postgresql/schema/coverage.json").read_text())
+    extensions = json.loads((root / "backend/alembic_postgresql/schema/extensions.json").read_text())
+    coverage["target_tables"] = list(set(coverage["target_tables"]) | set(extensions))
+    coverage["columns"].update(extensions)
     if engine.dialect.name != "postgresql":
         raise RuntimeError("Application is not connected to PostgreSQL")
     inspector = inspect(engine)

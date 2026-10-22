@@ -1,3 +1,4 @@
+from app.core.storage import persist_file
 from datetime import datetime, timezone
 from typing import List, Optional
 import os
@@ -653,6 +654,7 @@ async def upload_company_logo(
     file_path = os.path.join(upload_path, filename)
     with open(file_path, "wb") as target:
         shutil.copyfileobj(file.file, target)
+    persist_file(file_path)
     company.logo_url = f"/uploads/company_logos/{filename}"
     db.commit()
     return {"url": company.logo_url}

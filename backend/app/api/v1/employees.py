@@ -1,3 +1,4 @@
+from app.core.storage import persist_file
 from datetime import date, datetime, timedelta, timezone
 from io import StringIO
 from typing import List, Optional
@@ -1491,6 +1492,7 @@ async def upload_document(
 
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
+    persist_file(file_path)
 
     file_url = f"/uploads/employee_docs/{employee_id}/{filename}"
     try:
@@ -1556,6 +1558,7 @@ async def upload_photo(
 
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
+    persist_file(file_path)
 
     emp = crud_employee.get(db, employee_id)
     if not emp:

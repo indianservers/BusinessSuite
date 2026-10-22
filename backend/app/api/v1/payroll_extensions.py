@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.storage import upload_exists, FileResponse
 
 import calendar
 import csv
@@ -10,7 +11,7 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -1287,7 +1288,7 @@ def download_form_12ba(record_id: int, db: Session = Depends(get_db), current_us
     if not item.file_url:
         raise HTTPException(status_code=404, detail="Form 12BA PDF has not been generated")
     file_path = os.path.join(settings.UPLOAD_DIR, item.file_url.replace("/uploads/", "").replace("/", os.sep))
-    if not os.path.exists(file_path):
+    if not upload_exists(file_path):
         raise HTTPException(status_code=404, detail="Form 12BA PDF file not found")
     return FileResponse(file_path, media_type="application/pdf", filename=os.path.basename(file_path))
 

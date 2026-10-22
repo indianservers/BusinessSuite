@@ -1,3 +1,4 @@
+from app.core.storage import persist_file, upload_exists, FileResponse
 import csv
 import os
 import calendar
@@ -6,7 +7,6 @@ from decimal import Decimal
 from io import StringIO
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -240,6 +240,7 @@ def generate_statutory_file(
     file_path = os.path.join(_submission_dir(), file_name)
     with open(file_path, "w", encoding="utf-8", newline="") as handle:
         handle.write(csv_content)
+    persist_file(file_path)
 
     submission = StatutoryFilingSubmission(
         statutory_type=statutory_type.upper(),
@@ -315,7 +316,7 @@ def download_submission(
     current_user: User = Depends(RequirePermission("payroll_view")),
 ):
     submission = db.query(StatutoryFilingSubmission).filter(StatutoryFilingSubmission.id == submission_id).first()
-    if not submission or not submission.generated_file_path or not os.path.exists(submission.generated_file_path):
+    if not submission or not submission.generated_file_path or not upload_exists(submission.generated_file_path):
         raise HTTPException(status_code=404, detail="Generated file not found")
     file_name = os.path.basename(submission.generated_file_path)
     return FileResponse(submission.generated_file_path, media_type="text/csv", filename=file_name)

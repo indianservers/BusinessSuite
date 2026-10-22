@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.storage import persist_file
 
 import csv
 import html
@@ -156,6 +157,7 @@ def write_export(report: AnalyticsReport, payload: dict[str, Any], export_type: 
         write_pdf(file_path, report.name, rows, fields)
     else:
         raise HTTPException(status_code=400, detail="Unsupported export type")
+    persist_file(file_path)
     return file_path, len(rows)
 
 
@@ -164,6 +166,7 @@ def write_csv(file_path: str, rows: list[dict[str, Any]], fields: list[str]) -> 
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
+    persist_file(file_path)
 
 
 def write_xlsx(file_path: str, rows: list[dict[str, Any]], fields: list[str]) -> None:

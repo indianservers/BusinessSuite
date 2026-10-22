@@ -65,7 +65,10 @@ async def parse_resume(
         raise HTTPException(status_code=400, detail="No resume uploaded for this candidate")
 
     # Get file path from URL
-    file_path = os.path.join(".", candidate.resume_url.lstrip("/"))
+    from app.core.storage import materialize_file
+    from app.core.config import settings
+    file_path = os.path.join(settings.UPLOAD_DIR, candidate.resume_url.removeprefix("/uploads/"))
+    materialize_file(file_path)
 
     text = await resume_parser.extract_text_from_file(file_path)
     if not text:

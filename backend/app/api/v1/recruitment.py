@@ -1,3 +1,4 @@
+from app.core.storage import persist_file
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -283,6 +284,7 @@ async def upload_resume(
 
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
+    persist_file(file_path)
 
     candidate.resume_url = f"/uploads/resumes/{filename}"
     db.commit()

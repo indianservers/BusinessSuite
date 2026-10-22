@@ -95,14 +95,17 @@ def _employee_eligible_for_leave_type(employee: Employee, leave_type: LeaveType,
     return True
 
 
-def run_scheduled_leave_accruals(db: Session, run_date: date | None = None, created_by: int | None = None) -> dict:
+def run_scheduled_leave_accruals(db: Session, run_date: date | None = None, created_by: int | None = None, employee_ids: list[int] | None = None) -> dict:
     run_date = run_date or date.today()
     year = run_date.year
     credited = 0
     skipped = 0
 
     leave_types = db.query(LeaveType).filter(LeaveType.is_active == True).all()
-    employees = db.query(Employee).filter(Employee.status.in_(["Active", "Probation"]), Employee.deleted_at.is_(None)).all()
+    employees_query = db.query(Employee).filter(Employee.status.in_(["Active", "Probation"]), Employee.deleted_at.is_(None))
+    if employee_ids is not None:
+        employees_query = employees_query.filter(Employee.id.in_(employee_ids))
+    employees = employees_query.all()
 
     for leave_type in leave_types:
         frequency = (leave_type.accrual_frequency or "annual").lower()

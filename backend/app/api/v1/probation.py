@@ -1,11 +1,11 @@
 from __future__ import annotations
+from app.core.storage import persist_file, FileResponse
 
 import os
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -363,6 +363,8 @@ def probation_letter(employee_id: int, db: Session = Depends(get_db), current_us
     except Exception:
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("\n".join(lines))
+        persist_file(path)
     action.letter_generated = True
     db.commit()
+    persist_file(path)
     return FileResponse(path, media_type="application/pdf", filename=os.path.basename(path))

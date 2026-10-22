@@ -19,6 +19,7 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.api.v1.scheduled_jobs",
     "app.api.v1.auth",
     "app.api.v1.approval_os",
     "app.api.v1.logs",
@@ -36,6 +37,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.models.deployment",
     "app.models.user",
     "app.models.company",
     "app.common.models",

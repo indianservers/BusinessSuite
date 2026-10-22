@@ -27,3 +27,12 @@ Thumbs.db
 backend/*.log
 backend/*.out.log
 backend/*.err.log
+
+# Local cloud credentials
+backend/.env.local
+backend/.env.production
+frontend/.env.local
+frontend/.env.production.local
+.vercel/
+backend/.vercel/
+frontend/.vercel/

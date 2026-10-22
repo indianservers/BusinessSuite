@@ -1,3 +1,4 @@
+from app.core.storage import persist_file
 from datetime import date, datetime, timezone
 import os
 import re
@@ -59,6 +60,7 @@ def _save_upload(
     file_path = os.path.join(upload_path, filename)
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
+    persist_file(file_path)
     size = os.path.getsize(file_path)
     return f"/uploads/{folder}/{filename}", file.content_type or "", size
 
@@ -125,6 +127,7 @@ def generate_from_template(
     file_path = os.path.join(upload_path, filename)
     with open(file_path, "w", encoding="utf-8") as handle:
         handle.write(rendered)
+    persist_file(file_path)
     document = GeneratedDocument(
         template_id=template.id,
         employee_id=employee.id,

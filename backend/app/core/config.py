@@ -1,8 +1,9 @@
 from typing import Any, List, Optional, Union
-from pydantic import AnyHttpUrl, EmailStr, field_validator, model_validator
+from pydantic import AnyHttpUrl, EmailStr, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import json
 import secrets
+import os
 from sqlalchemy.engine import URL, make_url
 
 
@@ -14,6 +15,10 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
+
+    SERVERLESS: bool = bool(os.environ.get("VERCEL"))
+    CRON_SECRET: str = ""
+    REALTIME_TRANSPORT: str = "database" if os.environ.get("VERCEL") else "websocket"
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(48)
@@ -33,7 +38,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "business_suite"
     POSTGRES_SSLMODE: str = "prefer"
     POSTGRES_SSLROOTCERT: Optional[str] = None
-    DATABASE_AUTO_MIGRATE: bool = True
+    DATABASE_AUTO_MIGRATE: bool = not bool(os.environ.get("VERCEL"))
     SEED_DEMO_DATA: bool = False
     BOOTSTRAP_ADMIN_EMAIL: str = "admin@aihrms.com"
     BOOTSTRAP_ADMIN_PASSWORD: str = ""
@@ -58,7 +63,9 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_CONNECT_ARGS(self) -> dict[str, Any]:
         if make_url(self.SQLALCHEMY_DATABASE_URI).get_backend_name() == "postgresql":
-            args = {"options": "-c timezone=UTC", "connect_timeout": 10}
+            args = {"connect_timeout": 10, "prepare_threshold": None}
+            if not self.SERVERLESS and "-pooler." not in (make_url(self.SQLALCHEMY_DATABASE_URI).host or ""):
+                args["options"] = "-c timezone=UTC"
             if self.POSTGRES_SSLROOTCERT:
                 args["sslrootcert"] = self.POSTGRES_SSLROOTCERT
             return args
@@ -99,8 +106,16 @@ class Settings(BaseSettings):
     COMMUNICATION_EMAIL_RATE_LIMIT_PER_REQUEST: int = 50
 
     # File storage
-    UPLOAD_DIR: str = "./uploads"
-    MAX_UPLOAD_SIZE_MB: int = 10
+    UPLOAD_DIR: str = "/tmp/business-suite-uploads" if os.environ.get("VERCEL") else "./uploads"
+    STORAGE_BACKEND: str = "s3" if os.environ.get("VERCEL") else "local"
+    S3_BUCKET: str = ""
+    S3_ENDPOINT_URL: Optional[str] = None
+    S3_REGION: str = "auto"
+    S3_ACCESS_KEY_ID: str = ""
+    S3_SECRET_ACCESS_KEY: str = ""
+    S3_SIGNED_URL_SECONDS: int = Field(900, ge=60, le=3600)
+    S3_PREFIX: str = "business-suite"
+    MAX_UPLOAD_SIZE_MB: int = 3 if os.environ.get("VERCEL") else 10
     ALLOWED_EXTENSIONS: str = "pdf,doc,docx,jpg,jpeg,png"
 
     # AI
@@ -157,6 +172,24 @@ class Settings(BaseSettings):
             for name, value in public_urls.items():
                 if any(marker in str(value) for marker in local_markers):
                     raise ValueError(f"{name} must be set to a production URL when ENVIRONMENT=production")
+        if self.SERVERLESS:
+            for name in ["SECRET_KEY", "REFRESH_SECRET_KEY"]:
+                if name not in self.model_fields_set or len(getattr(self, name)) < 32:
+                    raise ValueError(f"{name} must be explicitly configured with at least 32 characters for serverless")
+            if not self.DATABASE_URL or make_url(self.DATABASE_URL).get_backend_name() not in {"postgresql", "postgres"}:
+                raise ValueError("Serverless requires an explicit PostgreSQL DATABASE_URL")
+            if make_url(self.DATABASE_URL).query.get("sslmode") not in {"require", "verify-ca", "verify-full"}:
+                raise ValueError("Serverless DATABASE_URL must require TLS with sslmode=require or stronger")
+            if self.REALTIME_TRANSPORT != "database":
+                raise ValueError("Serverless requires REALTIME_TRANSPORT=database")
+            if self.MAX_UPLOAD_SIZE_MB > 3:
+                raise ValueError("Serverless multipart uploads support at most 3 MB")
+            if self.DATABASE_AUTO_MIGRATE or self.SEED_DEMO_DATA:
+                raise ValueError("Serverless requires DATABASE_AUTO_MIGRATE=false and SEED_DEMO_DATA=false")
+            if self.STORAGE_BACKEND != "s3" or not all([self.S3_BUCKET, self.S3_ACCESS_KEY_ID, self.S3_SECRET_ACCESS_KEY]):
+                raise ValueError("Serverless requires configured private S3-compatible storage")
+            if len(self.CRON_SECRET) < 32:
+                raise ValueError("Serverless requires a CRON_SECRET of at least 32 characters")
         return self
 
     # Rate limiting

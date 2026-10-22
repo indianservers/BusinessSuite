@@ -100,6 +100,15 @@ pms_realtime_manager = PMSRealtimeManager()
 
 async def broadcast_pms_event(event: dict[str, Any]) -> None:
     event.setdefault("createdAt", datetime.utcnow().isoformat())
+    from app.core.config import settings
+    if settings.REALTIME_TRANSPORT == "database":
+        from app.db.session import SessionLocal
+        from .event_feed import append_event
+        from starlette.concurrency import run_in_threadpool
+        def persist():
+            with SessionLocal() as db:
+                append_event(db, event)
+        await run_in_threadpool(persist)
     await pms_realtime_manager.broadcast(event)
 
 

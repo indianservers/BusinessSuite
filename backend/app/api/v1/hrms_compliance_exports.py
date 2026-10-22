@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.storage import persist_file, upload_exists, FileResponse
 
 import csv
 import os
@@ -7,7 +8,6 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -106,6 +106,7 @@ def _export_dir(run: PayrollRun) -> str:
 
 
 def _file_url(file_path: str) -> str:
+    persist_file(file_path)
     rel = os.path.relpath(file_path, settings.UPLOAD_DIR).replace(os.sep, "/")
     return f"/uploads/{rel}"
 
@@ -239,6 +240,7 @@ def _write_csv(file_path: str, headers: list[str], rows: list[list[Any]]) -> Non
         writer = csv.writer(handle)
         writer.writerow(headers)
         writer.writerows(rows)
+    persist_file(file_path)
 
 
 def _create_export(db: Session, run: PayrollRun, export_type: str, rows: list[dict[str, Any]], total: Decimal, file_path: str, user: User) -> StatutoryExport:
@@ -332,7 +334,7 @@ def download_export(
     if not item.file_path.startswith("/uploads/"):
         raise HTTPException(status_code=404, detail="Statutory export file not found")
     file_path = os.path.join(settings.UPLOAD_DIR, item.file_path.replace("/uploads/", "", 1).replace("/", os.sep))
-    if not os.path.exists(file_path):
+    if not upload_exists(file_path):
         raise HTTPException(status_code=404, detail="Statutory export file missing on disk")
     item.downloaded_at = datetime.now(timezone.utc)
     item.download_count = (item.download_count or 0) + 1

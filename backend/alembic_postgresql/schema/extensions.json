@@ -1,0 +1,20 @@
+{
+  "pms_collaboration_events": [
+    "id",
+    "project_id",
+    "payload",
+    "created_at"
+  ],
+  "scheduled_job_runs": [
+    "id",
+    "job_name",
+    "period",
+    "status",
+    "cursor",
+    "attempts",
+    "lease_until",
+    "updated_at",
+    "error",
+    "result"
+  ]
+}

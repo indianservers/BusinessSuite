@@ -1,0 +1,11 @@
+.env*
+venv/
+.venv/
+.local/
+uploads/
+backups/
+tests/
+__pycache__/
+alembic/
+app/apps/inventory/vyapara_erp/
+*.log

@@ -20,7 +20,7 @@ from app.module_registry import is_app_enabled
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if settings.ENVIRONMENT == "test":
+    if settings.ENVIRONMENT == "test" or settings.SERVERLESS:
         yield
         return
 
@@ -113,6 +113,9 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+from app.core.middleware.storage import PrivateUploadURLMiddleware
+app.add_middleware(PrivateUploadURLMiddleware)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -146,7 +149,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Mount static files for uploaded content
-if os.path.exists(settings.UPLOAD_DIR):
+if settings.STORAGE_BACKEND == "local" and os.path.exists(settings.UPLOAD_DIR):
     app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Include API router

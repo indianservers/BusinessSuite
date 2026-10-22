@@ -55,7 +55,12 @@ def db_engine():
             if fk.name is None:
                 element = next(iter(fk.elements))
                 fk.name = conv("fk_" + table.name + "_" + element.parent.name + "_" + element.column.table.name)
-    Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "postgresql":
+        # Exercise the deployed migration chain, not a parallel ORM-only schema.
+        from app.db.migrations import upgrade_schema
+        upgrade_schema()
+    else:
+        Base.metadata.create_all(bind=engine)
     if engine.dialect.name == "postgresql":
         # Runtime startup provisions tenant 1 before module-gating middleware.
         # SQLite previously concealed this prerequisite by not enforcing FKs.
@@ -64,7 +69,11 @@ def db_engine():
             connection.execute(Company.__table__.insert().values(id=1, name="Integration Test Company"))
             connection.exec_driver_sql("SELECT setval(pg_get_serial_sequence('companies','id'),1,true)")
     yield engine
-    Base.metadata.drop_all(bind=engine)
+    if engine.dialect.name == "postgresql":
+        # The guarded runner recreates this dedicated DB on its next invocation.
+        engine.dispose()
+    else:
+        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")

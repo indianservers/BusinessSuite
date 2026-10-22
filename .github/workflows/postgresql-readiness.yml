@@ -1,0 +1,57 @@
+name: PostgreSQL deployment readiness
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**/*.md", "docs/**", "Mockup images/**", "test-results/**", "frontend/test-results/**"]
+  pull_request:
+    paths-ignore: ["**/*.md", "docs/**", "Mockup images/**", "test-results/**", "frontend/test-results/**"]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: integration-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ENVIRONMENT: test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: integration-only
+      POSTGRES_SERVER: localhost
+      POSTGRES_DB: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install production and test dependencies on Linux
+        run: python -m pip install -r backend/requirements-test.txt
+      - name: PostgreSQL integration suite
+        working-directory: backend
+        run: python scripts/run_postgres_tests.py -q --tb=short --junitxml=../postgresql-tests.xml
+      - name: Frontend production build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: postgresql-results
+          path: postgresql-tests.xml

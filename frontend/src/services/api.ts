@@ -14,6 +14,18 @@ export const api = axios.create({
 
 // Request interceptor: attach access token
 api.interceptors.request.use((config) => {
+  if (config.data instanceof FormData) {
+    const maxBytes = Number(import.meta.env.VITE_MAX_UPLOAD_MB || 3) * 1024 * 1024;
+    let total = 0;
+    config.data.forEach(value => { if (value instanceof Blob) total += value.size; });
+    if (total > maxBytes) {
+      const message = `Files exceed the ${maxBytes / 1024 / 1024} MB upload limit.`;
+      throw new AxiosError(message, "ERR_BAD_REQUEST", config, undefined, {
+        data: { detail: message }, status: 413, statusText: "Payload Too Large", headers: {}, config,
+      });
+    }
+    config.headers.delete("Content-Type");
+  }
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

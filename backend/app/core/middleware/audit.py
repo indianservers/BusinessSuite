@@ -45,6 +45,8 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         return any(path.startswith(prefix) for prefix in self.SKIP_PREFIXES)
 
     async def _log_request(self, request: Request, status_code: int, duration_ms: int, error: Optional[Exception] = None):
+        if status_code < 400 and request.url.path == "/api/v1/project-management/realtime/events":
+            return
         from app.db.session import SessionLocal
         from app.models.audit import AuditLog
         from app.core.security import verify_access_token

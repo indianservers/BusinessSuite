@@ -38,8 +38,9 @@ def test_baseline_covers_every_module_and_historical_schema():
             import_module(name)
     root = Path(__file__).resolve().parents[1]
     coverage = json.loads((root / "alembic_postgresql/schema/coverage.json").read_text())
-    assert set(Base.metadata.tables).issubset(coverage["target_tables"])
+    extensions = json.loads((root / "alembic_postgresql/schema/extensions.json").read_text())
+    assert set(Base.metadata.tables).issubset(set(coverage["target_tables"]) | set(extensions))
     for table in Base.metadata.tables.values():
-        assert {c.name for c in table.columns}.issubset(coverage["columns"][table.name])
+        assert {c.name for c in table.columns}.issubset({**coverage["columns"], **extensions}[table.name])
     assert set(coverage["source_tables"]) - {"alembic_version"} == set(coverage["target_tables"])
     assert {"onboarding_tasks", "onboarding_task_completions"}.issubset(coverage["target_tables"])

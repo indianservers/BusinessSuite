@@ -11,7 +11,8 @@ from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.responses import Response, StreamingResponse
+from app.core.storage import persist_file, upload_exists, FileResponse
 from pydantic import BaseModel
 from sqlalchemy import asc, case, desc, func, or_
 from sqlalchemy.orm import Session
@@ -76,8 +77,8 @@ router.include_router(workspace_router)
 
 
 DONE_STATUSES = {"Done", "Completed", "Closed", "Resolved"}
-PMS_UPLOAD_ROOT = Path(os.getenv("PMS_UPLOAD_ROOT", "uploads/pms")).resolve()
-PMS_MAX_ATTACHMENT_BYTES = int(os.getenv("PMS_MAX_ATTACHMENT_BYTES", str(25 * 1024 * 1024)))
+PMS_UPLOAD_ROOT = Path(os.getenv("PMS_UPLOAD_ROOT", str(Path(settings.UPLOAD_DIR) / "pms"))).resolve()
+PMS_MAX_ATTACHMENT_BYTES = int(os.getenv("PMS_MAX_ATTACHMENT_BYTES", str((3 if settings.SERVERLESS else 25) * 1024 * 1024)))
 PMS_ALLOWED_ATTACHMENT_TYPES = {
     "application/pdf",
     "application/zip",
@@ -421,6 +422,19 @@ def _broadcast_realtime(
         "entity": entity or {},
         "data": data or {},
     })
+
+
+@router.get("/realtime/config")
+def realtime_config(current_user: User = Depends(get_current_user)):
+    return {"transport": settings.REALTIME_TRANSPORT, "pollIntervalMs": 3000}
+
+
+@router.get("/realtime/events")
+def realtime_events(response: Response, cursor: int | None = Query(None, ge=0), db: Session = Depends(get_db),
+                    current_user: User = Depends(get_current_user)):
+    response.headers["Cache-Control"] = "private, no-store"
+    from ..event_feed import read_events
+    return read_events(db, _accessible_project_ids(db, current_user), cursor)
 
 
 @router.websocket("/realtime")
@@ -3719,6 +3733,7 @@ def upload_task_attachment(
         target_path.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail="Attachment cannot be empty")
 
+    persist_file(str(target_path))
     file_asset = PMSFileAsset(
         uploaded_by_user_id=current_user.id,
         project_id=project.id,
@@ -5474,7 +5489,7 @@ def download_attachment(
     """Authenticated download route for a PMS attachment."""
     file_asset, _project = _get_file_for_action(db, file_id, current_user, "browse")
     storage_path = Path(file_asset.storage_path).resolve()
-    if not storage_path.exists() or not storage_path.is_file():
+    if not upload_exists(str(storage_path)):
         raise HTTPException(status_code=404, detail="Stored attachment file not found")
     return FileResponse(
         path=str(storage_path),
