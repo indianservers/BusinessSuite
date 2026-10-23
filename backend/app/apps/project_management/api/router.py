@@ -80,6 +80,10 @@ from ..workspace_tools import router as workspace_tools_router
 router.include_router(workspace_tools_router)
 from ..custom_fields import router as custom_fields_router
 router.include_router(custom_fields_router)
+from ..tag_manager import router as tag_manager_router
+router.include_router(tag_manager_router)
+from ..task_types import router as task_types_router, validate_task_type
+router.include_router(task_types_router)
 from ..teams import router as teams_router
 router.include_router(teams_router)
 from ..direct_messages import router as direct_messages_router
@@ -2711,6 +2715,7 @@ def create_task(
         raise HTTPException(status_code=400, detail="Task key already exists in this project")
     
     task_data = task_in.dict()
+    validate_task_type(db, task_data.get("work_type") or "Task", project.organization_id)
     task_data['project_id'] = project_id
     parent_task = _ensure_valid_parent_task(db, project_id, None, task_data.get("parent_task_id"))
     if parent_task and not task_data.get("sprint_id"):
@@ -3477,6 +3482,8 @@ def update_task(
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
 
     update_data = task_in.dict(exclude_unset=True)
+    if update_data.get("work_type") and update_data["work_type"] != task.work_type:
+        validate_task_type(db, update_data["work_type"], project.organization_id)
     old_values = {field: _json_ready(getattr(task, field)) for field in update_data}
     if update_data.get("story_points") is not None and update_data["story_points"] < 0:
         raise HTTPException(status_code=400, detail="Story points must be non-negative")

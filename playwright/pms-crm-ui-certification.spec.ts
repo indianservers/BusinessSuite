@@ -421,3 +421,102 @@ test("PMS private message send and reload preserve conversation", async ({ page 
   await page.getByRole("button", { name: "reviewer@test.local", exact: true }).click();
   await expect(page.getByText("Please review the audit", { exact: true })).toBeVisible();
 });
+
+
+test("PMS custom field manager creates and edits fields", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let fields: Record<string, unknown>[] = [];
+  await page.route("**/api/**/project-management/custom-fields", route => route.fulfill({ json: { fields, projects: [{ id: 1, name: "Audit", can_manage: true }] } }));
+  await page.route("**/api/**/projects/1/custom-fields**", async route => {
+    const body = route.request().postDataJSON();
+    const field = { id: 1, field_type: fields[0]?.field_type || body.field_type, ...body, project_id: 1, project_name: "Audit", can_manage: true, created_at: "2026-10-23T10:00:00Z" };
+    fields = [field]; await route.fulfill({ json: field });
+  });
+  await page.goto("/pms/custom-fields");
+  await page.getByRole("button", { name: "Create new", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Name", { exact: true }).fill("Refund amount");
+  await dialog.getByLabel("Field project").selectOption("1");
+  await dialog.getByLabel("Field type").selectOption("money");
+  await dialog.getByRole("button", { name: "Create field", exact: true }).click();
+  await page.getByRole("button", { name: "Edit Refund amount", exact: true }).click();
+  await dialog.getByLabel("Name", { exact: true }).fill("Refund balance");
+  await dialog.getByRole("button", { name: "Save changes", exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Edit Refund balance", exact: true })).toBeVisible();
+  await page.getByLabel("Filter custom field type").selectOption("date");
+  await expect(page.getByText("No fields match these filters.", { exact: true })).toBeVisible();
+});
+
+
+test("PMS capability tiers distinguish implemented and pending features", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  await page.goto("/pms/plans");
+  for (const name of ["Core", "Business", "Business Plus", "Enterprise"]) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await page.getByLabel("Filter capability tier").selectOption("Enterprise");
+  await expect(page.getByRole("heading", { name: "Core", exact: true })).toHaveCount(0);
+  await page.getByLabel("Search plan features").fill("SCIM");
+  await expect(page.getByRole("heading", { name: "SSO, SCIM and SAML", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Enterprise capabilities" }).getByText("Not implemented", { exact: true })).toHaveCount(1);
+});
+
+
+test("PMS tag manager edits and confirms bulk deletion", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let tags = [{ id: 1, name: "Audit", color: "#123456", usage: 2, created_at: "2026-10-23T12:00:00Z", projects: [{ id: 1, name: "Audit project" }] }];
+  await page.route("**/api/**/tag-manager**", async route => {
+    if (route.request().method() === "GET") await route.fulfill({ json: { tags, can_manage: true } });
+    else if (route.request().url().endsWith("/delete")) { tags = []; await route.fulfill({ json: { deleted: [1] } }); }
+    else { tags = [{ ...tags[0], ...route.request().postDataJSON() }]; await route.fulfill({ json: tags[0] }); }
+  });
+  await page.goto("/pms/tags");
+  await page.getByRole("button", { name: "Edit Audit", exact: true }).click();
+  await page.getByLabel("Name", { exact: true }).fill("Review");
+  await page.getByRole("button", { name: "Save tag", exact: true }).click();
+  await page.getByLabel("Select Review", { exact: true }).check();
+  await page.getByRole("button", { name: "Delete 1 selected", exact: true }).click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Edit Review", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Delete 1 selected", exact: true }).click();
+  await page.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await expect(page.getByText("No tags match this view.", { exact: true })).toBeVisible();
+});
+
+
+test("PMS task type preset persists and can be archived and restored", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let types: Record<string, unknown>[] = [];
+  await page.route("**/api/**/task-types**", async route => {
+    if (route.request().method() === "GET") await route.fulfill({ json: { types, can_manage: true } });
+    else { const record = { id: 1, builtin: false, usage: 0, ...route.request().postDataJSON() }; types = [record]; await route.fulfill({ json: record }); }
+  });
+  await page.goto("/pms/task-types");
+  await page.getByRole("button", { name: "Add VAT Return", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Edit VAT Return", exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Archive VAT Return", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Edit VAT Return", exact: true })).toHaveCount(0);
+  await page.getByLabel("Include archived").check();
+  await page.getByRole("button", { name: "Restore VAT Return", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Archive VAT Return", exact: true })).toBeVisible();
+});
+
+
+test("PMS task type save-and-create-fields carries type scope", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let types: Record<string, unknown>[] = [];
+  await page.route("**/api/**/task-types**", async route => {
+    if (route.request().method() === "GET") await route.fulfill({ json: { types, can_manage: true } });
+    else { const record = { id: 1, builtin: false, usage: 0, ...route.request().postDataJSON() }; types = [record]; await route.fulfill({ json: record }); }
+  });
+  await page.route("**/api/**/project-management/custom-fields", route => route.fulfill({ json: { fields: [], projects: [{ id: 1, name: "Audit", can_manage: true }] } }));
+  await page.goto("/pms/task-types");
+  await page.getByLabel("Name", { exact: true }).fill("VAT Return");
+  await page.getByLabel("Plural name", { exact: true }).fill("VAT Returns");
+  await page.getByRole("button", { name: "Save and create fields", exact: true }).click();
+  await expect(page).toHaveURL(/custom-fields\?taskType=VAT/);
+  await expect(page.getByLabel("Filter task type scope")).toHaveValue("VAT Return");
+  await page.getByRole("button", { name: "Create new", exact: true }).click();
+  await expect(page.getByLabel("Field task type")).toHaveValue("VAT Return");
+});

@@ -4,6 +4,10 @@ import type { FrontendRoute } from "@/appRegistry";
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
 
 const DirectMessagesPage = React.lazy(() => import("./pages/DirectMessagesPage"));
+const CustomFieldManagerPage = React.lazy(() => import("./pages/CustomFieldManagerPage"));
+const TaskTypesPage = React.lazy(() => import("./pages/TaskTypesPage"));
+const TagManagerPage = React.lazy(() => import("./pages/TagManagerPage"));
+const PlansPage = React.lazy(() => import("./pages/PlansPage"));
 const TeamsPage = React.lazy(() => import("./pages/TeamsPage"));
 const TrashPage = React.lazy(() => import("./pages/TrashPage"));
 
@@ -103,6 +107,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/goals", element: <CommandCenterPage /> },
   { path: "pms/forms", element: <CommandCenterPage /> },
   { path: "pms/messages", element: <DirectMessagesPage /> },
+  { path: "pms/custom-fields", element: <CustomFieldManagerPage /> },
   { path: "pms/teams", element: <TeamsPage /> },
   { path: "pms/trash", element: <TrashPage /> },
   { path: "pms/templates", element: <CommandCenterPage /> },
@@ -113,7 +118,9 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/navigator", element: <TaskListPage /> },
   { path: "pms/apps", element: <CommandCenterPage /> },
   { path: "pms/dashboards", element: <PortfolioPage /> },
-  { path: "pms/plans", element: <RoadmapPage /> },
+  { path: "pms/task-types", element: <TaskTypesPage /> },
+  { path: "pms/tags", element: <TagManagerPage /> },
+  { path: "pms/plans", element: <PlansPage /> },
   { path: "pms/issue-navigator-pro", element: <TaskListPage /> },
   { path: "pms/backlog-grooming", element: <BacklogPage /> },
   { path: "pms/sprint-lifecycle", element: <BacklogPage /> },

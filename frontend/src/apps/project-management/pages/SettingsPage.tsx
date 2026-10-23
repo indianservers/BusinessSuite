@@ -9,6 +9,10 @@ import { devIntegrationsAPI, projectsAPI } from "../services/api";
 import type { PMSDevIntegration, PMSProject } from "../types";
 
 const settings = [
+  { label: "Task Types", href: "/pms/task-types", description: "Configure work types, categories, icons, defaults and practice presets." },
+  { label: "Tag Manager", href: "/pms/tags", description: "Search tags, review accessible usage, edit colors and remove unwanted tags." },
+  { label: "Plans and capabilities", href: "/pms/plans", description: "Core, Business, Business Plus and Enterprise feature status and remaining work." },
+  { label: "Custom Field Manager", href: "/pms/custom-fields", description: "Search, group, create and edit typed fields across your projects." },
   { label: "Direct messages", href: "/pms/messages", description: "Private conversations with workspace collaborators." },
   { label: "Teams", href: "/pms/teams", description: "Create named collaborator groups and manage team membership." },
   { label: "Workspace people and invitations", href: "/pms/workspaces", description: "Open People in your workspace to manage members and invitation links." },

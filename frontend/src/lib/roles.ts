@@ -427,7 +427,6 @@ const pmsAdminOnlyPaths = [
   "/pms/components",
   "/pms/templates",
   "/pms/forms",
-  "/pms/plans",
 ];
 
 const pmsManagerOnlyPaths = [
@@ -851,7 +850,7 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Roadmap", icon: CalendarDays, to: "/pms/roadmap", group: "Project Planning" },
   { label: "Timeline Plus", icon: CalendarDays, to: "/pms/timeline-plus", group: "Project Planning", badge: "Deps" },
   { label: "Dependencies", icon: Network, to: "/pms/dependencies", group: "Project Planning" },
-  { label: "Plans", icon: FileCheck2, to: "/pms/plans", group: "Project Planning", badge: "Scale" },
+  { label: "Plans and capabilities", icon: FileCheck2, to: "/pms/plans", group: "Project Planning" },
   { label: "Releases", icon: Package, to: "/pms/releases", group: "Project Planning" },
   { label: "Forms", icon: FileText, to: "/pms/forms", group: "Project Planning" },
   { label: "Templates", icon: BookOpen, to: "/pms/templates", group: "Project Planning" },

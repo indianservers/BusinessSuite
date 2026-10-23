@@ -1478,3 +1478,87 @@ def test_custom_fields_validate_types_and_project_scope(db):
         with pytest.raises(HTTPException) as bad:
             save_value(task.id, field["id"], ValueInput(value=invalid), db=db, user=manager)
         assert bad.value.status_code == 422
+
+
+def test_field_manager_edits_and_extended_types(db):
+    from app.apps.project_management.custom_fields import create_field, save_value, field_manager, edit_field, FieldInput, ValueInput, EditFieldInput
+    manager = _user(db, "manager-fields2@example.com", ["pms_manage_projects"])
+    outsider = _user(db, "outsider-fields2@example.com")
+    project = create_project(PMSProjectCreate(name="Field manager", project_key="FM"), db=db, current_user=manager)
+    task = create_task(project.id, PMSTaskCreate(title="Review", task_key="FM-1"), db=db, current_user=manager)
+    field = create_field(project.id, FieldInput(name="Review status", field_type="dropdown", options=["Pending", "Done"]), db=db, user=manager)
+    save_value(task.id, field["id"], ValueInput(value="Pending"), db=db, user=manager)
+    assert len(field_manager(db=db, user=manager)["fields"]) == 1
+    assert field_manager(db=db, user=outsider)["fields"] == []
+    with pytest.raises(HTTPException) as used:
+        edit_field(project.id, field["id"], EditFieldInput(name="Review", options=["Done"]), db=db, user=manager)
+    assert used.value.status_code == 409
+    renamed = edit_field(project.id, field["id"], EditFieldInput(name="Review", options=["Pending", "Done", "Blocked"]), db=db, user=manager)
+    assert renamed["name"] == "Review"
+    for kind, valid, invalid in [("email", "a@example.com", "bad"), ("website", "https://example.com", "javascript:alert(1)"), ("phone", "+971 50 123 4567", "abc"), ("rating", 5, 6), ("progress", 90, 101), ("money", 100.25, "bad"), ("long_text", "Long note", 4)]:
+        entry = create_field(project.id, FieldInput(name=kind, field_type=kind), db=db, user=manager)
+        save_value(task.id, entry["id"], ValueInput(value=valid), db=db, user=manager)
+        with pytest.raises(HTTPException) as bad:
+            save_value(task.id, entry["id"], ValueInput(value=invalid), db=db, user=manager)
+        assert bad.value.status_code == 422
+
+
+def test_tag_manager_usage_edit_and_bulk_delete_preserve_tasks(db):
+    from app.apps.project_management.tag_manager import library, edit_tag, delete_tags, TagInput, DeleteInput
+    manager = _user(db, "tag-admin@example.com", ["pms_manage_projects"])
+    outsider = _user(db, "tag-viewer@example.com")
+    project = create_project(PMSProjectCreate(name="Tag management", project_key="TM"), db=db, current_user=manager)
+    task = create_task(project.id, PMSTaskCreate(title="Tagged work", task_key="TM-1"), db=db, current_user=manager)
+    tag = create_tag(PMSTagCreate(name="Audit", color="#123456"), db=db, current_user=manager)
+    add_task_tag(task.id, tag_in=None, name=None, tag_id=tag.id, db=db, current_user=manager)
+    result = library(db=db, user=manager)
+    assert result["can_manage"] and result["tags"][0]["usage"] == 1
+    assert library(db=db, user=outsider)["tags"][0]["usage"] == 0
+    with pytest.raises(HTTPException) as denied:
+        edit_tag(tag.id, TagInput(name="Review", color="#654321"), db=db, user=outsider)
+    assert denied.value.status_code == 403
+    edit_tag(tag.id, TagInput(name="Review", color="#654321"), db=db, user=manager)
+    assert library(db=db, user=manager)["tags"][0]["name"] == "Review"
+    delete_tags(DeleteInput(tag_ids=[tag.id]), db=db, user=manager)
+    assert library(db=db, user=manager)["tags"] == []
+    assert get_task(task.id, db=db, current_user=manager).title == "Tagged work"
+
+
+def test_custom_task_types_create_usage_archive_and_permissions(db):
+    from app.apps.project_management.task_types import create_type, edit_type, list_types, TypeInput
+    manager = _user(db, "types-manager@example.com", ["pms_manage_projects"])
+    outsider = _user(db, "types-viewer@example.com")
+    project = create_project(PMSProjectCreate(name="Types", project_key="TYP"), db=db, current_user=manager)
+    payload = TypeInput(name="VAT Return", category="Practice", icon="finance", default_priority="High")
+    with pytest.raises(HTTPException) as denied:
+        create_type(payload, db=db, user=outsider)
+    assert denied.value.status_code == 403
+    definition = create_type(payload, db=db, user=manager)
+    task = create_task(project.id, PMSTaskCreate(title="Quarterly VAT", task_key="TYP-1", work_type="VAT Return"), db=db, current_user=manager)
+    listed = list_types(db=db, user=manager)
+    assert next(item for item in listed["types"] if item["name"] == "VAT Return")["usage"] == 1
+    edit_type(definition["id"], TypeInput(**{**payload.model_dump(), "archived": True}), db=db, user=manager)
+    with pytest.raises(HTTPException) as archived:
+        create_task(project.id, PMSTaskCreate(title="No new VAT", task_key="TYP-2", work_type="VAT Return"), db=db, current_user=manager)
+    assert archived.value.status_code == 422
+    assert get_task(task.id, db=db, current_user=manager).work_type == "VAT Return"
+    edit_type(definition["id"], payload, db=db, user=manager)
+    assert create_task(project.id, PMSTaskCreate(title="Restored VAT", task_key="TYP-3", work_type="VAT Return"), db=db, current_user=manager).work_type == "VAT Return"
+
+
+def test_type_specific_fields_and_plural_names(db):
+    from app.apps.project_management.task_types import create_type, TypeInput
+    from app.apps.project_management.custom_fields import create_field, task_fields, save_value, FieldInput, ValueInput
+    manager = _user(db, "type-fields@example.com", ["pms_manage_projects"])
+    definition = create_type(TypeInput(name="VAT Return", plural_name="VAT Returns"), db=db, user=manager)
+    assert definition["plural_name"] == "VAT Returns"
+    project = create_project(PMSProjectCreate(name="Scoped fields", project_key="SCF"), db=db, current_user=manager)
+    vat = create_task(project.id, PMSTaskCreate(title="VAT", task_key="SCF-1", work_type="VAT Return"), db=db, current_user=manager)
+    regular = create_task(project.id, PMSTaskCreate(title="Normal", task_key="SCF-2"), db=db, current_user=manager)
+    field = create_field(project.id, FieldInput(name="Tax period", field_type="text", task_type="VAT Return"), db=db, user=manager)
+    assert task_fields(vat.id, db=db, user=manager)["fields"][0]["id"] == field["id"]
+    assert task_fields(regular.id, db=db, user=manager)["fields"] == []
+    save_value(vat.id, field["id"], ValueInput(value="Q3"), db=db, user=manager)
+    with pytest.raises(HTTPException) as denied:
+        save_value(regular.id, field["id"], ValueInput(value="Q3"), db=db, user=manager)
+    assert denied.value.status_code == 404

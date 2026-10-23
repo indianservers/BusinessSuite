@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { tagsAPI, tasksAPI, pmsUsersAPI } from "../services/api";
 import type { PMSTag, PMSTask, TaskPriority, TaskStatus, PMSMentionUser } from "../types";
 import { beginProgress } from "@/components/app/AsyncProgress";
+import { api } from "@/services/api";
 import AssigneePicker from "./AssigneePicker";
 
 const statuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done"];
@@ -34,7 +35,9 @@ export default function CreateTaskModal({
   useEffect(() => { setSelectedProjectId(projectId); }, [projectId]);
   const titleRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
-  const [workType, setWorkType] = useState(initialWorkType);
+  const [workType, setWorkType] = useState<string>(initialWorkType);
+  const [workTypes, setWorkTypes] = useState<{ name: string; default_priority: TaskPriority; archived: boolean }[]>([{ name: "Task", default_priority: "Medium", archived: false }, { name: "Story", default_priority: "Medium", archived: false }, { name: "Bug", default_priority: "Medium", archived: false }]);
+  useEffect(() => { if (!isOpen) return; let active = true; api.get("/project-management/task-types").then(({ data }) => { if (active && Array.isArray(data.types)) setWorkTypes(data.types.filter((type: { archived: boolean; name: string }) => !type.archived && type.name !== "Sub-task")); }).catch(() => undefined); return () => { active = false; }; }, [isOpen]);
   useEffect(() => { setWorkType(initialWorkType); }, [initialWorkType]);
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>("To Do");
@@ -139,7 +142,7 @@ export default function CreateTaskModal({
           </Button>
         </div>
         <fieldset disabled={submitting} className="space-y-4 p-5">
-          <label className="block">Work item type<select aria-label="Work item type" className="mt-1 h-11 w-full rounded-md border bg-background px-3" value={workType} onChange={e => setWorkType(e.target.value as typeof workType)}>{["Task", "Story", "Bug"].map(type => <option key={type}>{type}</option>)}</select></label>
+          <label className="block">Work item type<select aria-label="Work item type" className="mt-1 h-11 w-full rounded-md border bg-background px-3" value={workType} onChange={e => { setWorkType(e.target.value); const selected = workTypes.find(type => type.name === e.target.value); if (selected) setPriority(selected.default_priority); }}>{workTypes.map(type => <option key={type.name}>{type.name}</option>)}</select></label>
           {projects && <div className="space-y-2"><Label htmlFor="task-project">Project</Label><select id="task-project" required value={selectedProjectId || ""} onChange={e => setSelectedProjectId(Number(e.target.value))} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="" disabled>Choose project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>}
           {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
           <div className="space-y-2">

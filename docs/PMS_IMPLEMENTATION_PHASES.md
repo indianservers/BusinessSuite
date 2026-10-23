@@ -96,3 +96,16 @@ Channels, threads, reactions, attachments, unread counts/notifications, document
 collaboration, external integrations, security policy administration and broader
 recovery/scale work remain pending. No production migration or deployment has
 been performed. Database migration revisions are included for both tracks.
+
+
+### Task type manager increment
+
+Added organization task type definitions with categories, descriptions, icon/color,
+default priority, accessible active-task usage, archive/restore and recommended
+presets, including practice-specific work. Task creation loads active definitions
+and applies the chosen type's priority in the form; the backend rejects unknown
+or archived types on creation and explicit type changes. Existing task types are
+preserved when archived. Names remain immutable identifiers. This does not yet
+provide type-specific custom fields, required-field rules, transitions or
+conversion of a classified task into another module's business record. Migration
+revisions are included; no deployed database migration has been performed.

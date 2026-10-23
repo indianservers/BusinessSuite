@@ -613,6 +613,7 @@ class PMSCustomField(Base):
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(120), nullable=False)
+    task_type = Column(String(40), nullable=False, default="", server_default="")
     field_type = Column(String(20), nullable=False)
     options_json = Column(Text, nullable=False, default="[]")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -654,3 +655,18 @@ class PMSDirectMessage(Base):
     client_id = Column(String(36), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     __table_args__ = (UniqueConstraint("conversation_id", "author_id", "client_id", name="uq_pms_dm_client"),)
+
+
+class PMSTaskType(Base):
+    __tablename__ = "pms_task_types"
+    __table_args__ = (UniqueConstraint("organization_id", "name", name="uq_pms_task_type_name"),)
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    name = Column(String(40), nullable=False)
+    plural_name = Column(String(60), nullable=False, default="", server_default="")
+    description = Column(String(1000), nullable=False, default="")
+    category = Column(String(60), nullable=False, default="General")
+    icon = Column(String(30), nullable=False, default="task")
+    color = Column(String(7), nullable=False, default="#7c3aed")
+    default_priority = Column(String(30), nullable=False, default="Medium")
+    archived = Column(Boolean, nullable=False, default=False)
