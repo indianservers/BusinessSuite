@@ -520,3 +520,104 @@ test("PMS task type save-and-create-fields carries type scope", async ({ page })
   await page.getByRole("button", { name: "Create new", exact: true }).click();
   await expect(page.getByLabel("Field task type")).toHaveValue("VAT Return");
 });
+
+
+test("PMS timer survives reload and saves once on stop", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let timer: Record<string, unknown> | null = null;
+  let stops = 0;
+  await page.route("**/api/**/project-management/projects**", async route => {
+    await route.fulfill({ json: route.request().url().includes("/tasks") ? [{ id: 1, project_id: 1, title: "Audit", task_key: "AUD-1" }] : [{ id: 1, name: "Audit project" }] });
+  });
+  await page.route("**/api/**/time-logs**", route => route.fulfill({ json: [] }));
+  await page.route("**/api/**/project-management/timer**", async route => {
+    if (route.request().url().endsWith("/start")) { timer = { ...route.request().postDataJSON(), started_at: new Date().toISOString() }; await route.fulfill({ json: timer }); }
+    else if (route.request().url().endsWith("/stop")) { stops++; timer = null; await route.fulfill({ json: { log_id: 1, active: false, duration_minutes: 1 } }); }
+    else await route.fulfill({ json: timer });
+  });
+  await page.goto("/pms/time-tracking");
+  await page.getByLabel("Timer project", { exact: true }).selectOption("1");
+  await page.getByLabel("Timer task", { exact: true }).selectOption("1");
+  await page.getByLabel("Timer notes", { exact: true }).fill("Audit review");
+  await page.getByRole("button", { name: "Start timer", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Stop and save", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Audit review", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Stop and save", exact: true }).click();
+  await expect(page.getByText("Saved 1 minute to your time logs", { exact: true })).toBeVisible();
+  expect(stops).toBe(1);
+});
+
+
+test("PMS Docs saves, previews tables and preserves a conflicting draft", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let doc: Record<string, unknown> | null = null;
+  await page.route("**/api/**/project-management/projects**", async route => {
+    if (route.request().url().endsWith("/docs")) {
+      doc = { id: 1, project_id: 1, project_name: "Audit", version: 1, updated_at: "2026-10-23T12:00:00Z", updated_by: "pm@test.local", can_edit: true, ...route.request().postDataJSON() };
+      await route.fulfill({ json: doc });
+    } else await route.fulfill({ json: route.request().url().includes("/tasks") ? [] : [{ id: 1, name: "Audit" }] });
+  });
+  await page.route("**/api/**/project-management/docs**", async route => {
+    if (route.request().method() === "PUT") await route.fulfill({ status: 409, json: { detail: "Document changed; your draft is kept" } });
+    else await route.fulfill({ json: route.request().url().endsWith("/docs") ? doc ? [doc] : [] : doc });
+  });
+  await page.goto("/pms/docs");
+  await page.getByLabel("Document project").selectOption("1");
+  await page.getByLabel("Document title").fill("Audit memo");
+  await page.getByLabel("Document content").fill("## Findings\n\n| Area | Status |\n| --- | --- |\n| VAT | Reviewed |");
+  await page.getByRole("button", { name: "Save document", exact: true }).click();
+  await expect(page.getByText("Saved version 1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Findings", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Reviewed", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Edit source", exact: true }).click();
+  await page.getByLabel("Document content").fill("My unsaved concurrent changes");
+  await page.getByRole("button", { name: "Save document", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("your draft is kept");
+  await expect(page.getByLabel("Document content")).toHaveValue("My unsaved concurrent changes");
+});
+
+
+test("PMS subtasks create, filter, reorder and promote", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let children: any[] = [];
+  await page.route("**/api/**/projects/1/epics**", route => route.fulfill({ json: [] }));
+  await page.route("**/api/**/tags", route => route.fulfill({ json: [] }));
+  await page.route("**/api/**/users/search**", route => route.fulfill({ json: [{ id: 3, email: "pm@test.local" }] }));
+  await page.route("**/api/**/tasks/1/**", async route => {
+    const url = route.request().url();
+    if (url.endsWith("/subtasks/reorder")) {
+      children = route.request().postDataJSON().item_ids.map((id: number) => children.find(child => child.id === id));
+      await route.fulfill({ json: children });
+    } else if (url.endsWith("/subtasks")) {
+      if (route.request().method() === "POST") {
+        const child = { id: 10 + children.length, project_id: 1, task_key: `UI-${10 + children.length}`, ...route.request().postDataJSON() };
+        children.push(child); await route.fulfill({ json: child });
+      } else await route.fulfill({ json: children });
+    } else await route.fulfill({ json: url.includes("custom-fields") ? { can_edit: true, can_manage: true, fields: [] } : [] });
+  });
+  await page.route("**/api/**/tasks/10", async route => {
+    expect(route.request().postDataJSON().parent_task_id).toBeNull();
+    children = children.filter(child => child.id !== 10);
+    await route.fulfill({ json: { id: 10, parent_task_id: null } });
+  });
+  await page.goto("/pms/projects/1/tasks/1");
+  await page.getByLabel("Subtask title", { exact: true }).fill("Prepare evidence");
+  await page.getByLabel("Subtask description", { exact: true }).fill("Attach reviewed documents");
+  await page.locator('summary[aria-label="New subtask assignees"]').click();
+  await page.getByLabel("pm@test.local", { exact: true }).check();
+  await page.getByRole("button", { name: "Add subtask", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Prepare evidence", exact: true })).toBeVisible();
+  expect(children[0].assignee_user_ids).toEqual([3]);
+  expect(children[0].description).toBe("Attach reviewed documents");
+  await page.getByLabel("Subtask title", { exact: true }).fill("Review evidence");
+  await page.getByRole("button", { name: "Add subtask", exact: true }).click();
+  await page.getByLabel("Move Review evidence up", { exact: true }).click();
+  await expect.poll(() => children[0]?.title).toBe("Review evidence");
+  await page.getByLabel("Search subtasks", { exact: true }).fill("Prepare");
+  await expect(page.getByRole("button", { name: "Review evidence", exact: true })).toHaveCount(0);
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Promote", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Prepare evidence", exact: true })).toHaveCount(0);
+});

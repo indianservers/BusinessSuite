@@ -670,3 +670,44 @@ class PMSTaskType(Base):
     color = Column(String(7), nullable=False, default="#7c3aed")
     default_priority = Column(String(30), nullable=False, default="Medium")
     archived = Column(Boolean, nullable=False, default=False)
+
+
+class PMSRunningTimer(Base):
+    __tablename__ = "pms_running_timers"
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
+    session_key = Column(String(36), nullable=False)
+    started_at = Column(DateTime(timezone=True), nullable=False)
+    timezone = Column(String(80), nullable=False, default="UTC")
+    description = Column(Text, nullable=False, default="")
+    is_billable = Column(Boolean, nullable=False, default=False)
+    active = Column(Boolean, nullable=False, default=True)
+    log_id = Column(Integer, ForeignKey("pms_time_logs.id", ondelete="SET NULL"), nullable=True)
+
+
+class PMSDocument(Base):
+    __tablename__ = "pms_documents"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(180), nullable=False)
+    content = Column(Text, nullable=False, default="")
+    version = Column(Integer, nullable=False, default=1)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    updated_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PMSDocumentRevision(Base):
+    __tablename__ = "pms_document_revisions"
+    __table_args__ = (UniqueConstraint("document_id", "version", name="uq_pms_doc_revision"),)
+    id = Column(Integer, primary_key=True)
+    document_id = Column(Integer, ForeignKey("pms_documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    title = Column(String(180), nullable=False)
+    content = Column(Text, nullable=False)
+    task_id = Column(Integer, nullable=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

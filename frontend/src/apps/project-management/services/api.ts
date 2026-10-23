@@ -343,6 +343,10 @@ export const tasksAPI = {
     return response.data;
   },
 
+  reorderSubtasks: async (taskId: number, ids: number[]) => {
+    return (await api.put<PMSTask[]>(`${BASE_URL}/tasks/${taskId}/subtasks/reorder`, { item_ids: ids })).data;
+  },
+
   createSubtask: async (taskId: number, data: Partial<CreateTaskInput> & { title: string }) => {
     const response = await api.post<PMSTask>(`${BASE_URL}/tasks/${taskId}/subtasks`, data);
     return response.data;

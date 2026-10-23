@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AssigneePicker from "../components/AssigneePicker";
 import TaskCustomFields from "../components/TaskCustomFields";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
 import { cn, formatDate, formatDateTime, statusColor } from "@/lib/utils";
@@ -111,6 +112,18 @@ export default function TaskDetail() {
   const [draggedChecklistId, setDraggedChecklistId] = useState<number | null>(null);
   const [checklistError, setChecklistError] = useState<string | null>(null);
   const [newTag, setNewTag] = useState("");
+  const [subtaskPeople, setSubtaskPeople] = useState<PMSMentionUser[]>([]);
+  const [subtaskSearch, setSubtaskSearch] = useState("");
+  const [subtaskFilter, setSubtaskFilter] = useState("all");
+  const [subtaskSaving, setSubtaskSaving] = useState(false);
+  const [newSubtaskAssignees, setNewSubtaskAssignees] = useState<number[]>([]);
+  const [newSubtaskDescription, setNewSubtaskDescription] = useState("");
+  useEffect(() => {
+    let active = true;
+    const id = task?.project_id || Number(projectId);
+    if (id) pmsUsersAPI.search({ q: "", projectId: id }).then(people => { if (active) setSubtaskPeople(people); }).catch(() => { if (active) setSubtaskPeople([]); });
+    return () => { active = false; };
+  }, [projectId, task?.project_id]);
   const [newSubtask, setNewSubtask] = useState("");
   const [newSubtaskPriority, setNewSubtaskPriority] = useState<TaskPriority>("Medium");
   const [newSubtaskDueDate, setNewSubtaskDueDate] = useState("");
@@ -529,7 +542,7 @@ export default function TaskDetail() {
 
   const addSubtask = async (event: FormEvent) => {
     event.preventDefault();
-    if (!newSubtask.trim()) return;
+    if (!newSubtask.trim() || subtaskSaving) return;
     setSubtaskError(null);
     const points = newSubtaskStoryPoints === "" ? undefined : Number(newSubtaskStoryPoints);
     if (points !== undefined && (!Number.isInteger(points) || points < 0)) {
@@ -537,25 +550,46 @@ export default function TaskDetail() {
       return;
     }
     try {
+      setSubtaskSaving(true);
       const created = await tasksAPI.createSubtask(task.id, {
         title: newSubtask.trim(),
-        description: "",
+        description: newSubtaskDescription,
         status: "To Do",
         priority: newSubtaskPriority,
-        assignee_user_id: task.assignee_user_id,
+        assignee_user_ids: newSubtaskAssignees,
         due_date: newSubtaskDueDate || undefined,
         story_points: points,
       });
       setSubtasks((items) => [...items, created]);
       setTask((current) => current ? { ...current, subtask_count: (current.subtask_count || 0) + 1 } : current);
       setNewSubtask("");
+      setNewSubtaskDescription("");
+      setNewSubtaskAssignees([]);
       setNewSubtaskDueDate("");
       setNewSubtaskStoryPoints("");
       setNewSubtaskPriority("Medium");
       refreshActivity();
     } catch (err: any) {
       setSubtaskError(err?.response?.data?.detail || "Unable to add sub-task.");
-    }
+    } finally { setSubtaskSaving(false); }
+  };
+
+  const moveSubtask = async (item: PMSTask, direction: number) => {
+    const ids = subtasks.map(child => child.id);
+    const index = ids.indexOf(item.id), target = index + direction;
+    if (target < 0 || target >= ids.length || subtaskSaving) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    setSubtaskSaving(true); setSubtaskError(null);
+    try { setSubtasks(await tasksAPI.reorderSubtasks(task.id, ids)); refreshActivity(); }
+    catch (err: any) { setSubtaskError(err?.response?.data?.detail || "Unable to reorder subtasks. Refresh and retry."); }
+    finally { setSubtaskSaving(false); }
+  };
+  const promoteSubtask = async (item: PMSTask) => {
+    if (!window.confirm(`Move ${item.title} out of this parent into the project?`)) return;
+    try {
+      await tasksAPI.update(item.id, { parent_task_id: null } as any);
+      setSubtasks(items => items.filter(child => child.id !== item.id)); refreshActivity();
+    } catch (err: any) { setSubtaskError(err?.response?.data?.detail || "Unable to promote subtask."); }
   };
 
   const startEditingSubtask = (item: PMSTask) => {
@@ -565,7 +599,7 @@ export default function TaskDetail() {
       description: item.description || "",
       status: item.status,
       priority: item.priority,
-      assignee_user_id: item.assignee_user_id,
+      assignee_user_ids: taskAssignees(item),
       due_date: item.due_date,
       story_points: item.story_points,
     });
@@ -574,6 +608,7 @@ export default function TaskDetail() {
 
   const saveSubtask = async (item: PMSTask) => {
     setSubtaskError(null);
+    if (!editingSubtask.title?.trim()) { setSubtaskError("Subtask title is required."); return; }
     const points = editingSubtask.story_points;
     if (points !== undefined && points !== null && (!Number.isInteger(Number(points)) || Number(points) < 0)) {
       setSubtaskError("Story points must be a non-negative whole number.");
@@ -843,10 +878,23 @@ export default function TaskDetail() {
               </div>
               {subtaskError ? <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">{subtaskError}</div> : null}
               <div className="space-y-2">
-                {subtasks.map((item) => (
+                <div className="flex flex-wrap gap-2">
+                  <Input aria-label="Search subtasks" placeholder="Search subtasks" value={subtaskSearch} onChange={e => setSubtaskSearch(e.target.value)} />
+                  <select aria-label="Filter subtasks" value={subtaskFilter} onChange={e => setSubtaskFilter(e.target.value)} className="rounded-md border bg-background p-2">
+                    <option value="all">All subtasks</option><option value="open">Open</option><option value="done">Completed</option>
+                  </select>
+                </div>
+                {subtasks.filter(item => `${item.title} ${item.task_key}`.toLowerCase().includes(subtaskSearch.toLowerCase()) && (subtaskFilter === "all" || (subtaskFilter === "done" ? item.status === "Done" : item.status !== "Done"))).map((item) => (
                   <SubtaskRow
                     key={item.id}
                     task={item}
+                    people={subtaskPeople}
+                    moveUp={() => moveSubtask(item, -1)}
+                    moveDown={() => moveSubtask(item, 1)}
+                    promote={() => promoteSubtask(item)}
+                    busy={subtaskSaving}
+                    first={subtasks[0]?.id === item.id}
+                    last={subtasks[subtasks.length - 1]?.id === item.id}
                     editing={editingSubtaskId === item.id}
                     draft={editingSubtask}
                     setDraft={setEditingSubtask}
@@ -864,14 +912,20 @@ export default function TaskDetail() {
                 {!subtasks.length ? <EmptyLine>No sub-tasks yet.</EmptyLine> : null}
               </div>
               <form onSubmit={addSubtask} className="rounded-md border p-3">
-                <div className="grid gap-2 md:grid-cols-[minmax(12rem,1fr)_9rem_9rem_7rem_auto]">
-                  <Input id="add-subtask" value={newSubtask} onChange={(event) => setNewSubtask(event.target.value)} placeholder="Add sub-task title" />
-                  <select value={newSubtaskPriority} onChange={(event) => setNewSubtaskPriority(event.target.value as TaskPriority)} className="h-10 rounded-md border bg-background px-3 text-sm">
+                <div className="grid gap-2 md:grid-cols-2">
+                  <Input aria-label="Subtask title" maxLength={220} required id="add-subtask" value={newSubtask} onChange={(event) => setNewSubtask(event.target.value)} placeholder="Add sub-task title" />
+                  <select aria-label="Subtask priority" value={newSubtaskPriority} onChange={(event) => setNewSubtaskPriority(event.target.value as TaskPriority)} className="h-10 rounded-md border bg-background px-3 text-sm">
                     {priorities.map((item) => <option key={item}>{item}</option>)}
                   </select>
-                  <Input type="date" value={newSubtaskDueDate} onChange={(event) => setNewSubtaskDueDate(event.target.value)} />
-                  <Input type="number" min="0" step="1" value={newSubtaskStoryPoints} onChange={(event) => setNewSubtaskStoryPoints(event.target.value)} placeholder="Pts" />
-                  <Button type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
+                  <Input aria-label="Subtask due date" type="date" value={newSubtaskDueDate} onChange={(event) => setNewSubtaskDueDate(event.target.value)} />
+                  <Input aria-label="Subtask story points" type="number" min="0" step="1" value={newSubtaskStoryPoints} onChange={(event) => setNewSubtaskStoryPoints(event.target.value)} placeholder="Pts" />
+                  <Button aria-label="Add subtask" disabled={subtaskSaving} type="submit" size="sm"><Plus className="h-4 w-4" />{subtaskSaving ? "Adding..." : "Add"}</Button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <Label>Subtask assignees</Label>
+                  <AssigneePicker people={subtaskPeople} value={newSubtaskAssignees} onChange={setNewSubtaskAssignees} label="New subtask assignees" />
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setNewSubtaskAssignees(taskAssignees(task))}>Inherit parent assignees</Button>
+                  <textarea aria-label="Subtask description" placeholder="Description or acceptance criteria" value={newSubtaskDescription} onChange={e => setNewSubtaskDescription(e.target.value)} className="w-full rounded-md border bg-background p-2" />
                 </div>
               </form>
             </CardContent>
@@ -1074,6 +1128,7 @@ function EmptyLine({ children }: { children: ReactNode }) {
 }
 
 function SubtaskRow({
+  moveUp, moveDown, promote, busy, first, last, people,
   task,
   editing,
   draft,
@@ -1085,6 +1140,8 @@ function SubtaskRow({
   deleteSubtask,
   openSubtask,
 }: {
+  moveUp: () => void; moveDown: () => void; promote: () => void; busy: boolean; first: boolean; last: boolean;
+  people: PMSMentionUser[];
   task: PMSTask;
   editing: boolean;
   draft: Partial<PMSTask>;
@@ -1099,7 +1156,7 @@ function SubtaskRow({
   if (editing) {
     return (
       <div className="rounded-md border bg-muted/20 p-3 text-sm">
-        <div className="grid gap-2 lg:grid-cols-[minmax(12rem,1fr)_9rem_9rem_8rem_7rem]">
+        <div className="grid gap-2 md:grid-cols-2">
           <Input value={draft.title || ""} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
           <select value={draft.status || task.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })} className="h-10 rounded-md border bg-background px-3 text-sm">
             {taskStatuses.map((item) => <option key={item}>{item}</option>)}
@@ -1107,9 +1164,10 @@ function SubtaskRow({
           <select value={draft.priority || task.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })} className="h-10 rounded-md border bg-background px-3 text-sm">
             {priorities.map((item) => <option key={item}>{item}</option>)}
           </select>
-          <Input type="date" value={draft.due_date || ""} onChange={(event) => setDraft({ ...draft, due_date: event.target.value || undefined })} />
+          <Input type="date" value={draft.due_date || ""} onChange={(event) => setDraft({ ...draft, due_date: event.target.value || (null as any) })} />
           <Input type="number" min="0" step="1" value={draft.story_points ?? ""} onChange={(event) => setDraft({ ...draft, story_points: event.target.value === "" ? undefined : Number(event.target.value) })} />
         </div>
+        <AssigneePicker people={people} value={draft.assignee_user_ids || []} onChange={ids => setDraft({ ...draft, assignee_user_ids: ids })} label="Edit subtask assignees" />
         <textarea
           value={draft.description || ""}
           onChange={(event) => setDraft({ ...draft, description: event.target.value })}
@@ -1125,7 +1183,7 @@ function SubtaskRow({
   }
   return (
     <div className="rounded-md border px-3 py-2 text-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-primary">{task.task_key}</span>
@@ -1141,11 +1199,14 @@ function SubtaskRow({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
+          <Button type="button" size="sm" variant="ghost" disabled={busy || first} onClick={moveUp} aria-label={`Move ${task.title} up`}>Up</Button>
+          <Button type="button" size="sm" variant="ghost" disabled={busy || last} onClick={moveDown} aria-label={`Move ${task.title} down`}>Down</Button>
+          <Button type="button" size="sm" variant="ghost" onClick={promote}>Promote</Button>
           <Button type="button" size="sm" variant="outline" onClick={() => completeSubtask(task)}>
             {task.status === "Done" ? "Reopen" : "Complete"}
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => startEditing(task)}>Edit</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={openSubtask}>Open</Button>
+          <Button type="button" size="sm" variant="ghost" onClick={openSubtask}>Open{task.subtask_count ? ` (${task.subtask_count} children)` : " / add nested"}</Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => deleteSubtask(task)} aria-label={`Delete ${task.title}`}>
             <Trash2 className="h-4 w-4" />
           </Button>

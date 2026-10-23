@@ -24,7 +24,7 @@ export const capabilityTiers: { name: Tier; description: string; features: Capab
     { name: "Advanced forms", status: "Not implemented", detail: "Conditional questions, typed answer mapping, attachment questions and visual form routing are pending." },
     { name: "Custom permissions", status: "Partial", detail: "Fixed workspace/project roles are enforced. User-defined roles, field permissions and an editable permission matrix are pending.", href: "/pms/teams" },
     { name: "Advanced Custom Field Manager", status: "Partial", detail: "Search, grouping, project filters and editing exist. Workspace/task-type scope, field reuse, archive/restore and computed fields are pending.", href: "/pms/custom-fields" },
-    { name: "Doc wikis", status: "Not implemented", detail: "Collaborative rich-text documents, nested pages, versions and wiki permissions are pending." },
+    { name: "Doc wikis", status: "Partial", detail: "Project documents, Markdown/table preview, task links, revision history and conflict protection exist. Live coediting, rich-text editing, comments, nested pages and wiki permissions remain pending.", href: "/pms/docs" },
     { name: "Scaled automation allowances", status: "Not implemented", detail: "Usage metering and tier-specific execution allowances are pending." },
   ] },
   { name: "Enterprise", description: "Identity, governance and operational controls", features: [

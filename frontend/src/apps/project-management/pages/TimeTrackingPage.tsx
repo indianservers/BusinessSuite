@@ -1,3 +1,4 @@
+import RunningTimer from "../components/RunningTimer";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Edit2, Timer, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ type TimeFormState = {
 const initialForm = (projectId = ""): TimeFormState => ({
   projectId,
   taskId: "",
-  logDate: new Date().toISOString().slice(0, 10),
+  logDate: new Date().toLocaleDateString("en-CA"),
   startTime: "",
   endTime: "",
   minutes: "60",
@@ -84,12 +85,15 @@ export default function TimeTrackingPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const projectId = Number(form.projectId);
-    const durationMinutes = Number(form.minutes);
+    const rawDuration = form.minutes.trim().toLowerCase();
+    const durationParts = /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+(?:\.\d+)?)\s*m)?$/.exec(rawDuration);
+    const durationMinutes = /^\d+(?:\.\d+)?$/.test(rawDuration) ? Math.ceil(Number(rawDuration))
+      : durationParts && (durationParts[1] || durationParts[2]) ? Math.ceil(Number(durationParts[1] || 0) * 60 + Number(durationParts[2] || 0)) : NaN;
     if (!projectId) {
       setError("Select a project before logging time.");
       return;
     }
-    if (!durationMinutes || durationMinutes <= 0) {
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
       setError("Duration must be greater than zero.");
       return;
     }
@@ -154,6 +158,7 @@ export default function TimeTrackingPage() {
         <p className="page-description">Log task effort from the PMS backend and review billable/non-billable totals.</p>
       </div>
 
+      <RunningTimer projects={projects} onSaved={() => { void loadLogs(form.projectId ? Number(form.projectId) : undefined); }} />
       <div className="grid gap-4 md:grid-cols-3">
         <Metric label="Total logged" minutes={totals.total} />
         <Metric label="Billable" minutes={totals.billable} />
@@ -179,7 +184,7 @@ export default function TimeTrackingPage() {
                 </select>
               </Field>
               <Field label="Date"><Input type="date" value={form.logDate} onChange={(event) => updateForm({ logDate: event.target.value })} required /></Field>
-              <Field label="Duration minutes"><Input type="number" min="1" value={form.minutes} onChange={(event) => updateForm({ minutes: event.target.value })} required /></Field>
+              <Field label="Duration (minutes or 3h 20m)"><Input type="text" placeholder="60 or 1h 30m" value={form.minutes} onChange={(event) => updateForm({ minutes: event.target.value })} required /></Field>
               <Field label="Start time"><Input type="time" value={form.startTime} onChange={(event) => updateForm({ startTime: event.target.value })} /></Field>
               <Field label="End time"><Input type="time" value={form.endTime} onChange={(event) => updateForm({ endTime: event.target.value })} /></Field>
               <Field label="Billable">

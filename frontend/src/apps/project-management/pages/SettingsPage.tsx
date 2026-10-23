@@ -9,6 +9,7 @@ import { devIntegrationsAPI, projectsAPI } from "../services/api";
 import type { PMSDevIntegration, PMSProject } from "../types";
 
 const settings = [
+  { label: "Docs", href: "/pms/docs", description: "Project documents, task links, Markdown editing and revision history." },
   { label: "Task Types", href: "/pms/task-types", description: "Configure work types, categories, icons, defaults and practice presets." },
   { label: "Tag Manager", href: "/pms/tags", description: "Search tags, review accessible usage, edit colors and remove unwanted tags." },
   { label: "Plans and capabilities", href: "/pms/plans", description: "Core, Business, Business Plus and Enterprise feature status and remaining work." },

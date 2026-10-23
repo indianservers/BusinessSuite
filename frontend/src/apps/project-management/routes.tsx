@@ -5,6 +5,7 @@ const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
 
 const DirectMessagesPage = React.lazy(() => import("./pages/DirectMessagesPage"));
 const CustomFieldManagerPage = React.lazy(() => import("./pages/CustomFieldManagerPage"));
+const DocsPage = React.lazy(() => import("./pages/DocsPage"));
 const TaskTypesPage = React.lazy(() => import("./pages/TaskTypesPage"));
 const TagManagerPage = React.lazy(() => import("./pages/TagManagerPage"));
 const PlansPage = React.lazy(() => import("./pages/PlansPage"));
@@ -118,6 +119,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/navigator", element: <TaskListPage /> },
   { path: "pms/apps", element: <CommandCenterPage /> },
   { path: "pms/dashboards", element: <PortfolioPage /> },
+  { path: "pms/docs", element: <DocsPage /> },
   { path: "pms/task-types", element: <TaskTypesPage /> },
   { path: "pms/tags", element: <TagManagerPage /> },
   { path: "pms/plans", element: <PlansPage /> },

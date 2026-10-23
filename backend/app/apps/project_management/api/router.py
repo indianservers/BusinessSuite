@@ -13,7 +13,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import Response, StreamingResponse
 from app.core.storage import persist_file, upload_exists, FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import asc, case, desc, func, or_
 from sqlalchemy.orm import Session
 from cryptography.fernet import Fernet
@@ -84,6 +84,10 @@ from ..tag_manager import router as tag_manager_router
 router.include_router(tag_manager_router)
 from ..task_types import router as task_types_router, validate_task_type
 router.include_router(task_types_router)
+from ..timers import router as timers_router
+router.include_router(timers_router)
+from ..documents import router as documents_router
+router.include_router(documents_router)
 from ..teams import router as teams_router
 router.include_router(teams_router)
 from ..direct_messages import router as direct_messages_router
@@ -143,7 +147,8 @@ class TaskReorderListRequest(BaseModel):
 
 
 class SubtaskCreateRequest(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=220)
+    assignee_user_ids: list[int] | None = None
     description: str | None = None
     status: str = "To Do"
     priority: str = "Medium"
@@ -4018,6 +4023,24 @@ def list_task_subtasks(
     return subtasks
 
 
+@router.put("/tasks/{task_id}/subtasks/reorder", response_model=list[PMSTaskResponse])
+def reorder_task_subtasks(task_id: int, reorder_in: ChecklistReorderRequest,
+                          db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    parent, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
+    children = db.query(PMSTask).filter(PMSTask.parent_task_id == parent.id, PMSTask.deleted_at == None).all()
+    ids = reorder_in.item_ids
+    if len(ids) != len(set(ids)) or set(ids) != {child.id for child in children}:
+        raise HTTPException(400, "Include every current subtask exactly once; refresh and retry")
+    by_id = {child.id: child for child in children}
+    for position, child_id in enumerate(ids):
+        by_id[child_id].position = position
+        by_id[child_id].rank = position + 1
+    _record_activity(db, project.id, current_user, "subtask.reordered", "task", parent.id,
+                     "Reordered subtasks", task_id=parent.id)
+    db.commit()
+    return list_task_subtasks(task_id, db=db, current_user=current_user)
+
+
 @router.post("/tasks/{task_id}/subtasks", response_model=PMSTaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task_subtask(
     task_id: int,
@@ -4027,7 +4050,10 @@ def create_task_subtask(
 ):
     """Create a child sub-task under an existing task."""
     parent, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
-    _sync_task_planning_links(db, project.id, {"assignee_user_id": subtask_in.assignee_user_id})
+    assignment = {"assignee_user_ids": subtask_in.assignee_user_ids} if subtask_in.assignee_user_ids is not None else {"assignee_user_id": subtask_in.assignee_user_id}
+    _sync_task_planning_links(db, project.id, assignment)
+    if not subtask_in.title.strip():
+        raise HTTPException(status_code=400, detail="Subtask title is required")
     if subtask_in.story_points is not None and subtask_in.story_points < 0:
         raise HTTPException(status_code=400, detail="Story points must be non-negative")
     task_key = (subtask_in.task_key or _next_subtask_key(db, parent)).upper()
@@ -4045,9 +4071,10 @@ def create_task_subtask(
         component_id=parent.component_id,
         release_id=parent.release_id,
         parent_task_id=parent.id,
-        assignee_user_id=subtask_in.assignee_user_id,
+        assignee_user_id=assignment.get("assignee_user_id"),
+        assignee_user_ids=assignment.get("assignee_user_ids", []),
         reporter_user_id=getattr(current_user, "id", None) or parent.reporter_user_id,
-        title=subtask_in.title,
+        title=subtask_in.title.strip(),
         description=subtask_in.description,
         task_key=task_key,
         work_type="Sub-task",

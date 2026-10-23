@@ -109,3 +109,47 @@ preserved when archived. Names remain immutable identifiers. This does not yet
 provide type-specific custom fields, required-field rules, transitions or
 conversion of a classified task into another module's business record. Migration
 revisions are included; no deployed database migration has been performed.
+
+
+### Persisted time tracker increment
+
+Time Tracking now includes a server-backed timer with project/task selection,
+notes, billable flag, refresh, stop/save and confirmed discard. A user has one
+active timer; session keys protect stale requests and repeated stop requests
+return the saved log instead of duplicating it. Stop creates a standard time log
+and activity in the same transaction. Duration rounds up to whole minutes and
+is attributed to the start date in the stored browser time zone. Manual entry
+also accepts durations such as 3h 20m. Timer migrations are included for both
+tracks; deployment has not been performed. Global toolbar timer controls,
+time-entry tags and additional weekly timesheet UX remain separate work.
+
+
+### Project Docs increment
+
+Added saved project documents, Markdown editing and safe preview (headings, lists,
+checklists, quotes, links, code and tables), task linking, Markdown export,
+Ctrl+S, word count, unsaved-change warnings, version history and revision loading.
+Saves use an atomic version condition to reject stale writers without overwriting
+the newer content. Revision content is immutable and restoring creates a new
+version on save. Project permissions are checked on document/history operations.
+Both migration tracks are included; no deployed migration has been applied.
+
+This is not full Google Docs or Sheets parity. WYSIWYG editing, simultaneous
+coediting, comments/suggestions, granular sharing, nested wiki pages, print/PDF
+and Office import/export, spreadsheet formulas, calculation, charts, pivots,
+data validation and automation remain pending.
+
+
+### Subtask management increment
+
+Existing subtasks already support nested children, independent task detail,
+completion/reopening, priority, due date, story points, deletion and progress.
+Added multiple collaborator assignments during creation and inline editing,
+explicit parent-assignee inheritance, descriptions, search and completion
+filters, persisted up/down ordering and promotion to a standalone project task.
+Reordering checks project permissions and requires every current child exactly
+once. Promotion preserves nested children. Clearing a due date now sends null.
+
+Not full ClickUp parity: inline expandable multi-level trees, bulk operations,
+recursive duplication, date shifting, descendant effort rollups, automatic parent
+completion rules and drag/drop reparenting remain pending.

@@ -1562,3 +1562,90 @@ def test_type_specific_fields_and_plural_names(db):
     with pytest.raises(HTTPException) as denied:
         save_value(regular.id, field["id"], ValueInput(value="Q3"), db=db, user=manager)
     assert denied.value.status_code == 404
+
+
+def test_timer_persistence_single_session_stop_and_access(db):
+    from datetime import datetime, timezone
+    from uuid import uuid4
+    from app.apps.project_management.timers import start_timer, stop_timer, get_timer, StartInput, StopInput
+    from app.apps.project_management.models import PMSRunningTimer, PMSTimeLog
+    manager = _user(db, "timer-owner@example.com", ["pms_manage_projects"])
+    outsider = _user(db, "timer-outsider@example.com")
+    project = create_project(PMSProjectCreate(name="Tracked", project_key="TMR"), db=db, current_user=manager)
+    task = create_task(project.id, PMSTaskCreate(title="Tracked work", task_key="TMR-1"), db=db, current_user=manager)
+    key = uuid4()
+    payload = StartInput(project_id=project.id, task_id=task.id, session_key=key, timezone="UTC", is_billable=True, description="Audit work")
+    with pytest.raises(HTTPException) as denied:
+        start_timer(payload, db=db, user=outsider)
+    assert denied.value.status_code == 403
+    start_timer(payload, db=db, user=manager)
+    assert get_timer(db=db, user=manager)["session_key"] == str(key)
+    assert get_timer(db=db, user=outsider) is None
+    assert start_timer(payload, db=db, user=manager)["session_key"] == str(key)
+    with pytest.raises(HTTPException) as running:
+        start_timer(StartInput(project_id=project.id, session_key=uuid4()), db=db, user=manager)
+    assert running.value.status_code == 409
+    with pytest.raises(HTTPException) as stale:
+        stop_timer(StopInput(session_key=uuid4()), db=db, user=manager)
+    assert stale.value.status_code == 409
+    row = db.get(PMSRunningTimer, manager.id)
+    row.started_at = datetime.now(timezone.utc) - timedelta(minutes=61, seconds=5)
+    db.commit()
+    stopped = stop_timer(StopInput(session_key=key), db=db, user=manager)
+    assert stopped["duration_minutes"] == 62
+    assert stop_timer(StopInput(session_key=key), db=db, user=manager)["log_id"] == stopped["log_id"]
+    assert get_timer(db=db, user=manager) is None
+    logs = db.query(PMSTimeLog).filter_by(user_id=manager.id).all()
+    assert len(logs) == 1 and logs[0].is_billable and logs[0].description == "Audit work"
+
+
+def test_documents_project_access_revision_history_and_conflict(db):
+    from app.apps.project_management.documents import create_document, save_document, get_document, list_revisions, get_revision, DocumentInput, SaveInput
+    manager = _user(db, "docs-owner@example.com", ["pms_manage_projects"])
+    outsider = _user(db, "docs-outsider@example.com")
+    project = create_project(PMSProjectCreate(name="Documents", project_key="DOC"), db=db, current_user=manager)
+    other = create_project(PMSProjectCreate(name="Other docs", project_key="ODC"), db=db, current_user=manager)
+    task = create_task(project.id, PMSTaskCreate(title="Review", task_key="DOC-1"), db=db, current_user=manager)
+    foreign = create_task(other.id, PMSTaskCreate(title="Other", task_key="ODC-1"), db=db, current_user=manager)
+    doc = create_document(project.id, DocumentInput(title="Audit memo", content="# Draft", task_id=task.id), db=db, user=manager)
+    with pytest.raises(HTTPException) as denied:
+        get_document(doc["id"], db=db, user=outsider)
+    assert denied.value.status_code == 403
+    with pytest.raises(HTTPException) as foreign_task:
+        save_document(doc["id"], SaveInput(title="Memo", content="No", task_id=foreign.id, version=1), db=db, user=manager)
+    assert foreign_task.value.status_code == 422
+    saved = save_document(doc["id"], SaveInput(title="Audit memo", content="# Reviewed", task_id=task.id, version=1), db=db, user=manager)
+    assert saved["version"] == 2 and saved["content"] == "# Reviewed"
+    assert len(list_revisions(doc["id"], db=db, user=manager)) == 2
+    assert get_revision(doc["id"], 1, db=db, user=manager)["content"] == "# Draft"
+    with pytest.raises(HTTPException) as stale:
+        save_document(doc["id"], SaveInput(title="Overwrite", content="Stale", version=1), db=db, user=manager)
+    assert stale.value.status_code == 409
+
+
+def test_subtask_multi_assignment_ordering_and_promotion(db):
+    from app.apps.project_management.api.router import reorder_task_subtasks, ChecklistReorderRequest
+    manager = _user(db, "subtask-enhanced@example.com", ["pms_manage_projects"])
+    manager.organization_id = 707
+    project = create_project(PMSProjectCreate(name="Subtask controls", project_key="STC"), db=db, current_user=manager)
+    parent = create_task(project.id, PMSTaskCreate(title="Parent", task_key="STC-1"), db=db, current_user=manager)
+    first = create_task_subtask(parent.id, SubtaskCreateRequest(title=" First ", assignee_user_ids=[manager.id, manager.id]), db=db, current_user=manager)
+    second = create_task_subtask(parent.id, SubtaskCreateRequest(title="Second"), db=db, current_user=manager)
+    assert first.title == "First"
+    assert first.assignee_user_ids == [manager.id]
+    assert first.assignee_user_id == manager.id
+    with pytest.raises(HTTPException) as invalid:
+        reorder_task_subtasks(parent.id, ChecklistReorderRequest(item_ids=[first.id, first.id]), db=db, current_user=manager)
+    assert invalid.value.status_code == 400
+    reordered = reorder_task_subtasks(parent.id, ChecklistReorderRequest(item_ids=[second.id, first.id]), db=db, current_user=manager)
+    assert [row.id for row in reordered] == [second.id, first.id]
+    nested = create_task_subtask(first.id, SubtaskCreateRequest(title="Nested"), db=db, current_user=manager)
+    update_task(first.id, PMSTaskUpdate(parent_task_id=None), db=db, current_user=manager)
+    assert [row.id for row in list_task_subtasks(parent.id, db=db, current_user=manager)] == [second.id]
+    assert list_task_subtasks(first.id, db=db, current_user=manager)[0].id == nested.id
+    outsider = _user(db, "subtask-outsider@example.com", [])
+    with pytest.raises(HTTPException):
+        reorder_task_subtasks(parent.id, ChecklistReorderRequest(item_ids=[second.id]), db=db, current_user=outsider)
+    with pytest.raises(HTTPException) as bad_assignee:
+        create_task_subtask(parent.id, SubtaskCreateRequest(title="Invalid assignee", assignee_user_ids=[outsider.id]), db=db, current_user=manager)
+    assert bad_assignee.value.status_code == 422
