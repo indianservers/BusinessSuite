@@ -6,6 +6,7 @@ import json
 import os
 import re
 import uuid
+from app.apps.project_management.recurrence import validate_recurrence, create_next_occurrence
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -76,6 +77,8 @@ router = APIRouter(prefix="/project-management", tags=["Project Management"])
 router.include_router(workspace_router)
 from ..automations import router as automation_router, apply_task_rules
 router.include_router(automation_router)
+from ..forms import router as forms_router
+router.include_router(forms_router)
 from ..workspace_tools import router as workspace_tools_router
 router.include_router(workspace_tools_router)
 from ..custom_fields import router as custom_fields_router
@@ -88,8 +91,16 @@ from ..timers import router as timers_router
 router.include_router(timers_router)
 from ..documents import router as documents_router
 router.include_router(documents_router)
+from ..org_chart import router as org_chart_router
+router.include_router(org_chart_router)
 from ..teams import router as teams_router
 router.include_router(teams_router)
+from ..analytics import router as analytics_router
+router.include_router(analytics_router)
+from ..calendar_settings import router as calendar_settings_router
+router.include_router(calendar_settings_router)
+from ..planner import router as planner_router
+router.include_router(planner_router)
 from ..direct_messages import router as direct_messages_router
 router.include_router(direct_messages_router)
 from ..workflow_events import router as workflow_events_router
@@ -400,6 +411,8 @@ def _record_activity(
     sprint_id: int | None = None,
     metadata: dict | None = None,
 ) -> None:
+    from app.core.audit_context import set_audit_entity
+    set_audit_entity(project_id, task_id or (entity_id if entity_type == "task" else None), (metadata or {}).get("changed_fields") or ([(metadata or {})["field"]] if (metadata or {}).get("field") else list(metadata or {}) if action == "bulk_updated" else []))
     db.add(PMSActivity(
         project_id=project_id,
         task_id=task_id,
@@ -1951,6 +1964,15 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return create_project_operation(project_in, db, current_user)
+
+
+def create_project_operation(
+    project_in: PMSProjectCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    *, commit: bool = True,
+):
     """Create a new project."""
     if project_in.workspace_id:
         workspace, _ = workspace_member(db, project_in.workspace_id, current_user, True)
@@ -1983,7 +2005,7 @@ def create_project(
     db.add(db_project)
     db.flush()
     _record_activity(db, db_project.id, current_user, "project.created", "project", db_project.id, f"Created project {db_project.project_key}")
-    db.commit()
+    db.commit() if commit else db.flush()
     db.refresh(db_project)
     if not db.query(PMSProjectMember).filter(
         PMSProjectMember.project_id == db_project.id,
@@ -1992,14 +2014,15 @@ def create_project(
         db.add(PMSProjectMember(project_id=db_project.id, user_id=current_user.id, role="Manager"))
         if db_project.manager_user_id and db_project.manager_user_id != current_user.id:
             db.add(PMSProjectMember(project_id=db_project.id, user_id=db_project.manager_user_id, role="Manager"))
-        db.commit()
-    _broadcast_realtime(
-        current_user,
-        "project.updated",
-        project_id=db_project.id,
-        message=f"Project {db_project.name} was created",
-        entity={"id": db_project.id, "name": db_project.name, "projectKey": db_project.project_key},
-    )
+        db.commit() if commit else db.flush()
+    if commit:
+        _broadcast_realtime(
+            current_user,
+            "project.updated",
+            project_id=db_project.id,
+            message=f"Project {db_project.name} was created",
+            entity={"id": db_project.id, "name": db_project.name, "projectKey": db_project.project_key},
+        )
     return db_project
 
 
@@ -2707,6 +2730,16 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return create_task_operation(project_id, task_in, db, current_user)
+
+
+def create_task_operation(
+    project_id: int,
+    task_in: PMSTaskCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    *, commit: bool = True,
+):
     """Create a new task in a project."""
     # Verify project exists
     project = get_project_for_action(db, project_id, current_user, "manage_tasks")
@@ -2720,8 +2753,11 @@ def create_task(
         raise HTTPException(status_code=400, detail="Task key already exists in this project")
     
     task_data = task_in.dict()
+    validate_recurrence(task_in.recurrence_rule, task_in.due_date, task_in.recurrence_until, task_in.recurrence_interval)
     validate_task_type(db, task_data.get("work_type") or "Task", project.organization_id)
     task_data['project_id'] = project_id
+    if task_data.get('status') in DONE_STATUSES:
+        task_data['completed_at'] = datetime.now(timezone.utc)
     parent_task = _ensure_valid_parent_task(db, project_id, None, task_data.get("parent_task_id"))
     if parent_task and not task_data.get("sprint_id"):
         task_data["sprint_id"] = parent_task.sprint_id
@@ -2735,7 +2771,7 @@ def create_task(
         if not board:
             board = PMSBoard(project_id=project_id, name="Default Board", board_type="Kanban")
             db.add(board)
-            db.commit()
+            db.commit() if commit else db.flush()
             db.refresh(board)
         status_to_key = {
             "Backlog": "BACKLOG",
@@ -2760,7 +2796,7 @@ def create_task(
             ]
             for name, status_key, position in defaults:
                 db.add(PMSBoardColumn(board_id=board.id, name=name, status_key=status_key, position=position))
-            db.commit()
+            db.commit() if commit else db.flush()
             column = db.query(PMSBoardColumn).filter(
                 PMSBoardColumn.board_id == board.id,
                 PMSBoardColumn.status_key == target_status_key,
@@ -2782,7 +2818,7 @@ def create_task(
     db.add(db_task)
     db.flush()
     apply_task_rules(db, db_task, project, current_user, "task.created")
-    db.commit()
+    db.commit() if commit else db.flush()
     db.refresh(db_task)
     _record_activity(db, project_id, current_user, "task.created", "task", db_task.id, f"Created task {db_task.task_key}", task_id=db_task.id)
     if db_task.parent_task_id:
@@ -2797,16 +2833,17 @@ def create_task(
             task_id=db_task.parent_task_id,
             metadata={"subtask_id": db_task.id, "subtask_key": db_task.task_key, "title": db_task.title},
         )
-    db.commit()
+    db.commit() if commit else db.flush()
     _attach_subtask_counts(db, db_task)
-    _broadcast_realtime(
-        current_user,
-        "task.created",
-        project_id=project_id,
-        task_id=db_task.id,
-        message=f"Created task {db_task.task_key}",
-        entity={"id": db_task.id, "taskKey": db_task.task_key, "title": db_task.title, "status": db_task.status},
-    )
+    if commit:
+        _broadcast_realtime(
+            current_user,
+            "task.created",
+            project_id=project_id,
+            task_id=db_task.id,
+            message=f"Created task {db_task.task_key}",
+            entity={"id": db_task.id, "taskKey": db_task.task_key, "title": db_task.title, "status": db_task.status},
+        )
     return db_task
 
 
@@ -3230,6 +3267,10 @@ def bulk_update_tasks(
         for task in project_tasks:
             for field, value in update_data.items():
                 setattr(task, field, value)
+            if "status" in update_data:
+                task.completed_at = (task.completed_at or datetime.now(timezone.utc)) if task.status in DONE_STATUSES else None
+            if "status" in update_data and task.status in DONE_STATUSES:
+                create_next_occurrence(db, task)
             _record_activity(db, project_id, current_user, "bulk_updated", "task", task.id, f"Bulk updated {task.task_key}", task_id=task.id, metadata=update_data)
             db.add(task)
 
@@ -3258,6 +3299,10 @@ def update_task_schedule(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return update_task_schedule_operation(task_id, schedule_in, db, current_user)
+
+
+def update_task_schedule_operation(task_id, schedule_in, db, current_user, *, commit=True):
     """Update task start/end dates from the Gantt view."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
     old_values = {"start_date": _json_ready(task.start_date), "due_date": _json_ready(task.due_date)}
@@ -3282,10 +3327,13 @@ def update_task_schedule(
             "new_values": {"start_date": _json_ready(task.start_date), "due_date": _json_ready(task.due_date)},
         },
     )
-    db.commit()
-    db.refresh(task)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(task)
     _attach_subtask_counts(db, task)
-    _broadcast_realtime(current_user, "task.updated", project_id=project.id, task_id=task.id, message=f"Rescheduled {task.task_key}")
+    if commit:
+        _broadcast_realtime(current_user, "task.updated", project_id=project.id, task_id=task.id, message=f"Rescheduled {task.task_key}")
     return {"task": task, "warnings": _task_dependency_warnings(db, [task.id], current_user)}
 
 
@@ -3358,6 +3406,10 @@ def create_task_dependency(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return create_task_dependency_operation(dependency_in, db, current_user)
+
+
+def create_task_dependency_operation(dependency_in, db, current_user, *, commit=True):
     """Create a dependency using Gantt source/target terminology."""
     source, source_project = get_task_project_for_action(db, dependency_in.source_task_id, current_user, "manage_tasks")
     target = db.query(PMSTask).filter(
@@ -3397,9 +3449,10 @@ def create_task_dependency(
         task_id=target.id,
         metadata={"source_task_id": source.id, "target_task_id": target.id, "dependency_type": dependency_type, "lag_days": dependency_in.lag_days},
     )
-    db.commit()
-    db.refresh(dependency)
-    _broadcast_realtime(current_user, "task.dependency_changed", project_id=source_project.id, task_id=target.id, message="Task dependency added")
+    if commit:
+        db.commit()
+        db.refresh(dependency)
+        _broadcast_realtime(current_user, "task.dependency_changed", project_id=source_project.id, task_id=target.id, message="Task dependency added")
     return _dependency_detail_payload(dependency, {source.id: source, target.id: target})
 
 
@@ -3408,6 +3461,15 @@ def delete_task_dependency(
     dependency_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+):
+    return delete_task_dependency_operation(dependency_id, db, current_user)
+
+
+def delete_task_dependency_operation(
+    dependency_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    *, commit: bool = True,
 ):
     """Delete a dependency by id."""
     dependency = db.query(PMSTaskDependency).filter(PMSTaskDependency.id == dependency_id).first()
@@ -3424,8 +3486,9 @@ def delete_task_dependency(
             blocker.is_blocking = False
             db.add(blocker)
     _record_activity(db, project.id, current_user, "dependency.removed", "task_dependency", dependency_id, f"Removed dependency link for {target.task_key}", task_id=target.id)
-    db.commit()
-    _broadcast_realtime(current_user, "task.dependency_changed", project_id=project.id, task_id=target.id, message="Task dependency removed")
+    db.commit() if commit else db.flush()
+    if commit:
+        _broadcast_realtime(current_user, "task.dependency_changed", project_id=project.id, task_id=target.id, message="Task dependency removed")
     return {"message": "Dependency removed"}
 
 
@@ -3483,6 +3546,10 @@ def update_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return update_task_operation(task_id, task_in, db, current_user)
+
+
+def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
     """Update a task."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
 
@@ -3499,6 +3566,7 @@ def update_task(
     if "status" in update_data and not update_data["status"]:
         raise HTTPException(status_code=422, detail="Task status cannot be empty")
     _sync_task_planning_links(db, project.id, update_data)
+    validate_recurrence(update_data.get("recurrence_rule", task.recurrence_rule), update_data.get("due_date", task.due_date), update_data.get("recurrence_until", task.recurrence_until), update_data.get("recurrence_interval", task.recurrence_interval))
     start = update_data.get("start_date", task.start_date)
     due = update_data.get("due_date", task.due_date)
     if start and due and start > due:
@@ -3514,6 +3582,8 @@ def update_task(
     for field, value in update_data.items():
         setattr(task, field, value)
 
+    if "status" in update_data:
+        task.completed_at = (task.completed_at or datetime.now(timezone.utc)) if task.status in DONE_STATUSES else None
     if "status" in update_data or "position" in update_data:
         _sync_task_column(db, task)
     if task.sprint_id:
@@ -3566,26 +3636,31 @@ def update_task(
             task_id=task.id,
             metadata={"changed_fields": changed_fields, "old_values": old_values, "new_values": {field: _json_ready(update_data[field]) for field in changed_fields}},
         )
+    if "status" in changed_fields and task.status in DONE_STATUSES:
+        create_next_occurrence(db, task)
     if "status" in changed_fields:
         apply_task_rules(db, task, project, current_user, "task.status_changed")
     db.add(task)
-    db.commit()
-    db.refresh(task)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(task)
     _attach_subtask_counts(db, task)
     event_type = "task.updated"
     if "status" in changed_fields:
         event_type = "task.status_changed"
     elif "assignee_user_id" in changed_fields:
         event_type = "task.assignee_changed"
-    _broadcast_realtime(
-        current_user,
-        event_type,
-        project_id=project.id,
-        task_id=task.id,
-        message=f"Updated task {task.task_key}",
-        entity={"id": task.id, "taskKey": task.task_key, "title": task.title, "status": task.status},
-        data={"changedFields": changed_fields, "oldValues": old_values},
-    )
+    if commit:
+        _broadcast_realtime(
+            current_user,
+            event_type,
+            project_id=project.id,
+            task_id=task.id,
+            message=f"Updated task {task.task_key}",
+            entity={"id": task.id, "taskKey": task.task_key, "title": task.title, "status": task.status},
+            data={"changedFields": changed_fields, "oldValues": old_values},
+        )
     return task
 
 
@@ -3624,6 +3699,10 @@ def move_task_to_sprint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return move_task_to_sprint_operation(task_id, move_in, db, current_user)
+
+
+def move_task_to_sprint_operation(task_id, move_in, db, current_user, *, commit=True):
     """Assign a task to an active or future sprint."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
     sprint = db.query(PMSSprint).filter(PMSSprint.id == move_in.sprint_id, PMSSprint.project_id == project.id).first()
@@ -3653,8 +3732,10 @@ def move_task_to_sprint(
         sprint_id=sprint.id,
         metadata={"old_value": old_sprint_id, "new_value": sprint.id, "field": "sprint_id"},
     )
-    db.commit()
-    db.refresh(task)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(task)
     return task
 
 
@@ -3890,6 +3971,10 @@ def create_task_checklist_item(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return create_task_checklist_operation(task_id, item_in, db, current_user)
+
+
+def create_task_checklist_operation(task_id, item_in, db, current_user, *, commit=True):
     """Create a checklist item for one task."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
     data = item_in.dict()
@@ -3899,8 +3984,10 @@ def create_task_checklist_item(
     item = PMSChecklistItem(task_id=task.id, **data)
     db.add(item)
     _record_activity(db, project.id, current_user, "checklist.item_added", "checklist_item", None, f"Added checklist item to {task.task_key}", task_id=task.id)
-    db.commit()
-    db.refresh(item)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(item)
     return item
 
 
@@ -3911,6 +3998,17 @@ def update_task_checklist_item(
     item_in: PMSChecklistItemUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+):
+    return update_task_checklist_item_operation(task_id, item_id, item_in, db, current_user)
+
+
+def update_task_checklist_item_operation(
+    task_id: int,
+    item_id: int,
+    item_in: PMSChecklistItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    *, commit: bool = True,
 ):
     """Update a checklist item for one task."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
@@ -3928,7 +4026,7 @@ def update_task_checklist_item(
         summary = f"{'Completed' if update_data['is_completed'] else 'Reopened'} checklist item on {task.task_key}"
     _record_activity(db, project.id, current_user, action, "checklist_item", item.id, summary, task_id=task.id, metadata=update_data)
     db.add(item)
-    db.commit()
+    db.commit() if commit else db.flush()
     db.refresh(item)
     return item
 
@@ -3974,6 +4072,15 @@ def delete_checklist_entry(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return delete_checklist_entry_operation(item_id, db, current_user)
+
+
+def delete_checklist_entry_operation(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    *, commit: bool = True,
+):
     """Delete a checklist item by id."""
     item = db.query(PMSChecklistItem).filter(PMSChecklistItem.id == item_id).first()
     if not item:
@@ -3981,7 +4088,7 @@ def delete_checklist_entry(
     task, project = get_task_project_for_action(db, item.task_id, current_user, "manage_tasks")
     db.delete(item)
     _record_activity(db, project.id, current_user, "checklist.item_deleted", "checklist_item", item_id, f"Deleted checklist item from {task.task_key}", task_id=task.id)
-    db.commit()
+    db.commit() if commit else db.flush()
     return {"message": "Checklist item deleted"}
 
 
@@ -4344,6 +4451,9 @@ def reorder_task(
     task.position = reorder_req.position
     status_map = {"BACKLOG": "Backlog", "TODO": "To Do", "IN_PROGRESS": "In Progress", "IN_REVIEW": "In Review", "DONE": "Done"}
     task.status = status_map.get(column.status_key, column.name)
+    task.completed_at = (task.completed_at or datetime.now(timezone.utc)) if task.status in DONE_STATUSES else None
+    if task.status in DONE_STATUSES:
+        create_next_occurrence(db, task)
     _sync_task_column(db, task)
     
     db.add(task)
@@ -4369,6 +4479,16 @@ def add_comment_to_task(
     comment_in: PMSCommentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+):
+    return add_comment_to_task_operation(task_id, comment_in, db, current_user)
+
+
+def add_comment_to_task_operation(
+    task_id: int,
+    comment_in: PMSCommentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    *, commit: bool = True,
 ):
     """Add a comment to a task (Collaboration)."""
     task, project = get_task_project_for_action(db, task_id, current_user, "comment")
@@ -4396,17 +4516,18 @@ def add_comment_to_task(
         task_id=task.id,
         metadata={"comment_id": db_comment.id, "body_preview": (db_comment.body or "")[:160]},
     )
-    db.commit()
+    db.commit() if commit else db.flush()
     db.refresh(db_comment)
-    _broadcast_realtime(
-        current_user,
-        "task.comment_added",
-        project_id=project.id,
-        task_id=task.id,
-        message=f"Added comment on {task.task_key}",
-        entity={"id": db_comment.id, "taskId": task.id},
-        data={"bodyPreview": (db_comment.body or "")[:160]},
-    )
+    if commit:
+        _broadcast_realtime(
+            current_user,
+            "task.comment_added",
+            project_id=project.id,
+            task_id=task.id,
+            message=f"Added comment on {task.task_key}",
+            entity={"id": db_comment.id, "taskId": task.id},
+            data={"bodyPreview": (db_comment.body or "")[:160]},
+        )
     return _comment_payload(db_comment, _comment_mentions(db, [db_comment.id]))
 
 
@@ -4592,6 +4713,16 @@ def create_milestone(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    return create_milestone_operation(project_id, milestone_in, db, current_user)
+
+
+def create_milestone_operation(
+    project_id: int,
+    milestone_in: PMSMilestoneCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    *, commit: bool = True,
+):
     """Create a milestone for a project."""
     get_project_for_action(db, project_id, current_user, "manage_tasks")
     
@@ -4600,7 +4731,7 @@ def create_milestone(
         **milestone_in.dict()
     )
     db.add(db_milestone)
-    db.commit()
+    db.commit() if commit else db.flush()
     db.refresh(db_milestone)
     return db_milestone
 

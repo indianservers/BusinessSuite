@@ -1,7 +1,7 @@
 from alembic import op
 from app.apps.project_management.models import PMSWorkspaceTeam
 revision = "pg_20261023_002"
-down_revision = "Ppg_20261023_002"
+down_revision = "pg_20261023_001"
 branch_labels = None
 depends_on = None
 

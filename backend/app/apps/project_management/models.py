@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -711,3 +711,27 @@ class PMSDocumentRevision(Base):
     task_id = Column(Integer, nullable=True)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PMSPlannerPreference(Base):
+    __tablename__ = "pms_planner_preferences"
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    revision = Column(Integer, nullable=False, default=1)
+    payload = Column(JSON, nullable=False, default=dict)
+
+
+class PMSCalendarEvent(Base):
+    __tablename__ = "pms_calendar_events"
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(220), nullable=False)
+    description = Column(Text, nullable=False, default="")
+    start_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    end_at = Column(DateTime(timezone=True), nullable=False)
+    timezone = Column(String(80), nullable=False, default="UTC")
+    kind = Column(String(20), nullable=False, default="meeting")
+    visibility = Column(String(20), nullable=False, default="private")
+    meeting_url = Column(String(2000), nullable=False, default="")
+    revision = Column(Integer, nullable=False, default=1)

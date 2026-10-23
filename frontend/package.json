@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "train:operator": "node scripts/train-operator-router.mjs",
     "dev": "vite",
     "build": "tsc && vite build",
     "build:lowmem": "tsc && node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build",
@@ -36,6 +37,10 @@
     "@radix-ui/react-tooltip": "^1.1.0",
     "@tanstack/react-query": "^5.45.0",
     "@tanstack/react-table": "^8.17.3",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-cpu": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
+    "@tensorflow/tfjs-layers": "^4.22.0",
     "axios": "^1.7.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

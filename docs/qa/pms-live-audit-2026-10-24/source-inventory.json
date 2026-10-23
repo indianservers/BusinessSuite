@@ -1,0 +1,2641 @@
+{
+  "scope": "PMS only; local source may differ from deployed version",
+  "routes": [
+    {
+      "path": "/pms/audit-logs",
+      "component": "<AuditLogsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 61,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/analytics/team",
+      "component": "<AnalyticsPage mode=\"team\" />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 62,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/analytics/projects",
+      "component": "<AnalyticsPage mode=\"project\" />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 63,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/analytics",
+      "component": "<AnalyticsPage mode=\"project\" />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 64,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/operator",
+      "component": "<AIOperatorPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 65,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/settings/ai/:provider",
+      "component": "<OperatorProviderSettings />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 66,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/workspaces",
+      "component": "<WorkspacesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 67,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms",
+      "component": "<WorkspacesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 69,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/overview",
+      "component": "<ProjectManagementHomePage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 70,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/profile",
+      "component": "<ModuleProfilePage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 71,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/command-center",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 72,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/workspace-tools",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 73,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/enterprise-engine",
+      "component": "<EnterpriseEnginePage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 74,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/product-launch",
+      "component": "<ProductLaunchPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 75,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/portfolio",
+      "component": "<PortfolioPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 76,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/dependency-management",
+      "component": "<PMSOperationsPage mode=\"dependencies\" />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 77,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/resource-planning",
+      "component": "<PMSOperationsPage mode=\"resources\" />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 78,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/agile-execution",
+      "component": "<PMSOperationsPage mode=\"agile\" />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 79,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/project-financials",
+      "component": "<PMSOperationsPage mode=\"financials\" />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 80,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/risk-register",
+      "component": "<RisksPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 81,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/risks",
+      "component": "<RisksPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 82,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects",
+      "component": "<ProjectsList />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 85,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/new",
+      "component": "<CreateProjectPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 86,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId",
+      "component": "<ProjectDashboard />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 89,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/board",
+      "component": "<KanbanBoard />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 90,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/timeline",
+      "component": "<GanttPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 91,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/gantt",
+      "component": "<GanttPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 92,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/milestones",
+      "component": "<MilestonesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 93,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/files",
+      "component": "<FilesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 94,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/reports",
+      "component": "<ReportsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 95,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/risks",
+      "component": "<RisksPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 96,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/tasks",
+      "component": "<TaskListPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 99,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/tasks/:taskId",
+      "component": "<TaskDetail />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 100,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/projects/:projectId/tasks/:taskId",
+      "component": "<TaskDetail />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 101,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/work-hub",
+      "component": "<ImpactWorkHubPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 104,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/impact",
+      "component": "<ImpactWorkHubPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 105,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/ai-planner",
+      "component": "<AIOperatorPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 106,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/timeline-plus",
+      "component": "<TimelineDependenciesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 107,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/dependency-timeline",
+      "component": "<TimelineDependenciesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 108,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/automation-ai",
+      "component": "<AutomationAIPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 109,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/software",
+      "component": "<SoftwarePlanningPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 110,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/live",
+      "component": "<LiveWorkManagementPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 111,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/teams-live",
+      "component": "<LiveWorkManagementPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 112,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/backlog",
+      "component": "<BacklogPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 113,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/issues",
+      "component": "<SoftwarePlanningPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 114,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/roadmap",
+      "component": "<RoadmapPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 115,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/workload",
+      "component": "<WorkloadPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 116,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/capacity",
+      "component": "<WorkloadPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 117,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/releases",
+      "component": "<SoftwarePlanningPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 118,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/automation",
+      "component": "<AutomationAIPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 119,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/goals",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 120,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/forms",
+      "component": "<FormsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 121,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/messages",
+      "component": "<DirectMessagesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 122,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/custom-fields",
+      "component": "<CustomFieldManagerPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 123,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/teams",
+      "component": "<TeamsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 124,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/org-chart",
+      "component": "<OrgChartPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 125,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/trash",
+      "component": "<TrashPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 126,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/templates",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 127,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/components",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 128,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/workflows",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 129,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/security",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 130,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/dependencies",
+      "component": "<RoadmapPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 131,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/navigator",
+      "component": "<TaskListPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 132,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/apps",
+      "component": "<CommandCenterPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 133,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/dashboards",
+      "component": "<PortfolioPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 134,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/docs",
+      "component": "<DocsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 135,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/task-types",
+      "component": "<TaskTypesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 136,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/tags",
+      "component": "<TagManagerPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 137,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/plans",
+      "component": "<PlansPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 138,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/issue-navigator-pro",
+      "component": "<TaskListPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 139,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/backlog-grooming",
+      "component": "<BacklogPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 140,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/sprint-lifecycle",
+      "component": "<BacklogPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 141,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/blueprints",
+      "component": "<EnterpriseEnginePage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 142,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/resource-utilization",
+      "component": "<WorkloadPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 143,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/calendar",
+      "component": "<CalendarPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 146,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/planner",
+      "component": "<CalendarPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 147,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/gantt",
+      "component": "<GanttPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 148,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/sprints",
+      "component": "<SprintsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 149,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/files",
+      "component": "<FilesPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 150,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/time-tracking",
+      "component": "<TimeTrackingPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 151,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/timesheets",
+      "component": "<TimesheetsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 152,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/reports",
+      "component": "<ReportsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 153,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/client-portal",
+      "component": "<ClientPortalPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 154,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/settings",
+      "component": "<SettingsPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 155,
+      "live_status": "Not tested \u2014 sign-in required"
+    },
+    {
+      "path": "/pms/admin",
+      "component": "<AdminPage />",
+      "source": "frontend\\src\\apps\\project-management\\routes.tsx",
+      "line": 156,
+      "live_status": "Not tested \u2014 sign-in required"
+    }
+  ],
+  "component_groups": {
+    "<AuditLogsPage />": [
+      "/pms/audit-logs"
+    ],
+    "<AnalyticsPage mode=\"team\" />": [
+      "/pms/analytics/team"
+    ],
+    "<AnalyticsPage mode=\"project\" />": [
+      "/pms/analytics/projects",
+      "/pms/projects/:projectId/analytics"
+    ],
+    "<AIOperatorPage />": [
+      "/pms/operator",
+      "/pms/ai-planner"
+    ],
+    "<OperatorProviderSettings />": [
+      "/pms/settings/ai/:provider"
+    ],
+    "<WorkspacesPage />": [
+      "/pms/workspaces",
+      "/pms"
+    ],
+    "<ProjectManagementHomePage />": [
+      "/pms/overview"
+    ],
+    "<ModuleProfilePage />": [
+      "/pms/profile"
+    ],
+    "<CommandCenterPage />": [
+      "/pms/command-center",
+      "/pms/workspace-tools",
+      "/pms/goals",
+      "/pms/templates",
+      "/pms/components",
+      "/pms/workflows",
+      "/pms/security",
+      "/pms/apps"
+    ],
+    "<EnterpriseEnginePage />": [
+      "/pms/enterprise-engine",
+      "/pms/blueprints"
+    ],
+    "<ProductLaunchPage />": [
+      "/pms/product-launch"
+    ],
+    "<PortfolioPage />": [
+      "/pms/portfolio",
+      "/pms/dashboards"
+    ],
+    "<PMSOperationsPage mode=\"dependencies\" />": [
+      "/pms/dependency-management"
+    ],
+    "<PMSOperationsPage mode=\"resources\" />": [
+      "/pms/resource-planning"
+    ],
+    "<PMSOperationsPage mode=\"agile\" />": [
+      "/pms/agile-execution"
+    ],
+    "<PMSOperationsPage mode=\"financials\" />": [
+      "/pms/project-financials"
+    ],
+    "<RisksPage />": [
+      "/pms/risk-register",
+      "/pms/risks",
+      "/pms/projects/:projectId/risks"
+    ],
+    "<ProjectsList />": [
+      "/pms/projects"
+    ],
+    "<CreateProjectPage />": [
+      "/pms/projects/new"
+    ],
+    "<ProjectDashboard />": [
+      "/pms/projects/:projectId"
+    ],
+    "<KanbanBoard />": [
+      "/pms/projects/:projectId/board"
+    ],
+    "<GanttPage />": [
+      "/pms/projects/:projectId/timeline",
+      "/pms/projects/:projectId/gantt",
+      "/pms/gantt"
+    ],
+    "<MilestonesPage />": [
+      "/pms/projects/:projectId/milestones"
+    ],
+    "<FilesPage />": [
+      "/pms/projects/:projectId/files",
+      "/pms/files"
+    ],
+    "<ReportsPage />": [
+      "/pms/projects/:projectId/reports",
+      "/pms/reports"
+    ],
+    "<TaskListPage />": [
+      "/pms/tasks",
+      "/pms/navigator",
+      "/pms/issue-navigator-pro"
+    ],
+    "<TaskDetail />": [
+      "/pms/tasks/:taskId",
+      "/pms/projects/:projectId/tasks/:taskId"
+    ],
+    "<ImpactWorkHubPage />": [
+      "/pms/work-hub",
+      "/pms/impact"
+    ],
+    "<TimelineDependenciesPage />": [
+      "/pms/timeline-plus",
+      "/pms/dependency-timeline"
+    ],
+    "<AutomationAIPage />": [
+      "/pms/automation-ai",
+      "/pms/automation"
+    ],
+    "<SoftwarePlanningPage />": [
+      "/pms/software",
+      "/pms/issues",
+      "/pms/releases"
+    ],
+    "<LiveWorkManagementPage />": [
+      "/pms/live",
+      "/pms/teams-live"
+    ],
+    "<BacklogPage />": [
+      "/pms/backlog",
+      "/pms/backlog-grooming",
+      "/pms/sprint-lifecycle"
+    ],
+    "<RoadmapPage />": [
+      "/pms/roadmap",
+      "/pms/dependencies"
+    ],
+    "<WorkloadPage />": [
+      "/pms/workload",
+      "/pms/capacity",
+      "/pms/resource-utilization"
+    ],
+    "<FormsPage />": [
+      "/pms/forms"
+    ],
+    "<DirectMessagesPage />": [
+      "/pms/messages"
+    ],
+    "<CustomFieldManagerPage />": [
+      "/pms/custom-fields"
+    ],
+    "<TeamsPage />": [
+      "/pms/teams"
+    ],
+    "<OrgChartPage />": [
+      "/pms/org-chart"
+    ],
+    "<TrashPage />": [
+      "/pms/trash"
+    ],
+    "<DocsPage />": [
+      "/pms/docs"
+    ],
+    "<TaskTypesPage />": [
+      "/pms/task-types"
+    ],
+    "<TagManagerPage />": [
+      "/pms/tags"
+    ],
+    "<PlansPage />": [
+      "/pms/plans"
+    ],
+    "<CalendarPage />": [
+      "/pms/calendar",
+      "/pms/planner"
+    ],
+    "<SprintsPage />": [
+      "/pms/sprints"
+    ],
+    "<TimeTrackingPage />": [
+      "/pms/time-tracking"
+    ],
+    "<TimesheetsPage />": [
+      "/pms/timesheets"
+    ],
+    "<ClientPortalPage />": [
+      "/pms/client-portal"
+    ],
+    "<SettingsPage />": [
+      "/pms/settings"
+    ],
+    "<AdminPage />": [
+      "/pms/admin"
+    ]
+  },
+  "backend_route_declarations": [
+    {
+      "method": "GET",
+      "declared_path": "/analytics/overview",
+      "handler": "analytics_overview",
+      "source": "backend\\app\\apps\\project_management\\analytics.py",
+      "line": 22,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/automations",
+      "handler": "list_rules",
+      "source": "backend\\app\\apps\\project_management\\automations.py",
+      "line": 42,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/automations",
+      "handler": "create_rule",
+      "source": "backend\\app\\apps\\project_management\\automations.py",
+      "line": 48,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/workspaces/{workspace_id}/automations/{rule_id}",
+      "handler": "toggle_rule",
+      "source": "backend\\app\\apps\\project_management\\automations.py",
+      "line": 66,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/workspaces/{workspace_id}/automations/{rule_id}",
+      "handler": "edit_rule",
+      "source": "backend\\app\\apps\\project_management\\automations.py",
+      "line": 79,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/automation-runs",
+      "handler": "list_runs",
+      "source": "backend\\app\\apps\\project_management\\automations.py",
+      "line": 96,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/planner/preferences",
+      "handler": "preferences",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 93,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/planner/preferences",
+      "handler": "save_preferences",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 97,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/planner/events",
+      "handler": "list_events",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 168,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/planner/events",
+      "handler": "create_event",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 175,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/planner/events/{event_id}",
+      "handler": "edit_event",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 182,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/planner/events/{event_id}",
+      "handler": "delete_event",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 193,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/planner/free-slots",
+      "handler": "free_slots",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 200,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/planner/connections",
+      "handler": "connections",
+      "source": "backend\\app\\apps\\project_management\\calendar_settings.py",
+      "line": 218,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/custom-fields",
+      "handler": "list_fields",
+      "source": "backend\\app\\apps\\project_management\\custom_fields.py",
+      "line": 42,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/custom-fields",
+      "handler": "create_field",
+      "source": "backend\\app\\apps\\project_management\\custom_fields.py",
+      "line": 50,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/custom-fields",
+      "handler": "task_fields",
+      "source": "backend\\app\\apps\\project_management\\custom_fields.py",
+      "line": 77,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/tasks/{task_id}/custom-fields/{field_id}",
+      "handler": "save_value",
+      "source": "backend\\app\\apps\\project_management\\custom_fields.py",
+      "line": 87,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/custom-fields",
+      "handler": "field_manager",
+      "source": "backend\\app\\apps\\project_management\\custom_fields.py",
+      "line": 122,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/projects/{project_id}/custom-fields/{field_id}",
+      "handler": "edit_field",
+      "source": "backend\\app\\apps\\project_management\\custom_fields.py",
+      "line": 138,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/direct-conversations",
+      "handler": "list_conversations",
+      "source": "backend\\app\\apps\\project_management\\direct_messages.py",
+      "line": 52,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/direct-conversations",
+      "handler": "start_conversation",
+      "source": "backend\\app\\apps\\project_management\\direct_messages.py",
+      "line": 60,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/direct-conversations/{conversation_id}/messages",
+      "handler": "list_messages",
+      "source": "backend\\app\\apps\\project_management\\direct_messages.py",
+      "line": 88,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/direct-conversations/{conversation_id}/messages",
+      "handler": "send_message",
+      "source": "backend\\app\\apps\\project_management\\direct_messages.py",
+      "line": 98,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/docs",
+      "handler": "list_documents",
+      "source": "backend\\app\\apps\\project_management\\documents.py",
+      "line": 52,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/docs",
+      "handler": "create_document",
+      "source": "backend\\app\\apps\\project_management\\documents.py",
+      "line": 60,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/docs/{document_id}",
+      "handler": "get_document",
+      "source": "backend\\app\\apps\\project_management\\documents.py",
+      "line": 73,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/docs/{document_id}",
+      "handler": "save_document",
+      "source": "backend\\app\\apps\\project_management\\documents.py",
+      "line": 79,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/docs/{document_id}/revisions",
+      "handler": "list_revisions",
+      "source": "backend\\app\\apps\\project_management\\documents.py",
+      "line": 95,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/docs/{document_id}/revisions/{version}",
+      "handler": "get_revision",
+      "source": "backend\\app\\apps\\project_management\\documents.py",
+      "line": 103,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{wid}/forms",
+      "handler": "list_forms",
+      "source": "backend\\app\\apps\\project_management\\forms.py",
+      "line": 124,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{wid}/forms",
+      "handler": "create_form",
+      "source": "backend\\app\\apps\\project_management\\forms.py",
+      "line": 132,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/workspaces/{wid}/forms/{fid}",
+      "handler": "save_form",
+      "source": "backend\\app\\apps\\project_management\\forms.py",
+      "line": 145,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{wid}/forms/{fid}/submit",
+      "handler": "submit_form",
+      "source": "backend\\app\\apps\\project_management\\forms.py",
+      "line": 290,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{wid}/forms/{fid}/responses",
+      "handler": "responses",
+      "source": "backend\\app\\apps\\project_management\\forms.py",
+      "line": 310,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{wid}/forms/{fid}/export",
+      "handler": "export",
+      "source": "backend\\app\\apps\\project_management\\forms.py",
+      "line": 320,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{wid}/org-chart",
+      "handler": "get_chart",
+      "source": "backend\\app\\apps\\project_management\\org_chart.py",
+      "line": 51,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/workspaces/{wid}/org-chart/{person_id}",
+      "handler": "set_reporting",
+      "source": "backend\\app\\apps\\project_management\\org_chart.py",
+      "line": 57,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/planner",
+      "handler": "planner",
+      "source": "backend\\app\\apps\\project_management\\planner.py",
+      "line": 13,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tag-manager",
+      "handler": "library",
+      "source": "backend\\app\\apps\\project_management\\tag_manager.py",
+      "line": 41,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/tag-manager/{tag_id}",
+      "handler": "edit_tag",
+      "source": "backend\\app\\apps\\project_management\\tag_manager.py",
+      "line": 55,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tag-manager/delete",
+      "handler": "delete_tags",
+      "source": "backend\\app\\apps\\project_management\\tag_manager.py",
+      "line": 73,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/task-types",
+      "handler": "list_types",
+      "source": "backend\\app\\apps\\project_management\\task_types.py",
+      "line": 37,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/task-types",
+      "handler": "create_type",
+      "source": "backend\\app\\apps\\project_management\\task_types.py",
+      "line": 74,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/task-types/{type_id}",
+      "handler": "edit_type",
+      "source": "backend\\app\\apps\\project_management\\task_types.py",
+      "line": 79,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/teams",
+      "handler": "list_teams",
+      "source": "backend\\app\\apps\\project_management\\teams.py",
+      "line": 30,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/teams",
+      "handler": "create_team",
+      "source": "backend\\app\\apps\\project_management\\teams.py",
+      "line": 60,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/workspaces/{workspace_id}/teams/{team_id}",
+      "handler": "update_team",
+      "source": "backend\\app\\apps\\project_management\\teams.py",
+      "line": 66,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/timer",
+      "handler": "get_timer",
+      "source": "backend\\app\\apps\\project_management\\timers.py",
+      "line": 44,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/timer/start",
+      "handler": "start_timer",
+      "source": "backend\\app\\apps\\project_management\\timers.py",
+      "line": 50,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/timer/stop",
+      "handler": "stop_timer",
+      "source": "backend\\app\\apps\\project_management\\timers.py",
+      "line": 81,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/timer/discard",
+      "handler": "discard_timer",
+      "source": "backend\\app\\apps\\project_management\\timers.py",
+      "line": 107,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/workflow-events",
+      "handler": "workflow_events",
+      "source": "backend\\app\\apps\\project_management\\workflow_events.py",
+      "line": 18,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/activity",
+      "handler": "workspace_activity",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 24,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspace-invitations/preview",
+      "handler": "preview_invitation",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 65,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspace-invitations/activate",
+      "handler": "activate_invitation",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 76,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces",
+      "handler": "list_workspaces",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 109,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/overview",
+      "handler": "overview",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 115,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces",
+      "handler": "create_workspace",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 132,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/members",
+      "handler": "members",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 146,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/workspaces/{workspace_id}/members/{member_id}",
+      "handler": "change_role",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 163,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/workspaces/{workspace_id}/members/{member_id}",
+      "handler": "remove_member",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 175,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/invitations",
+      "handler": "invite",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 198,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/invitations",
+      "handler": "invitations",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 217,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/workspaces/{workspace_id}/invitations/{invitation_id}",
+      "handler": "revoke",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 225,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspace-invitations/accept",
+      "handler": "accept",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 236,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/entries",
+      "handler": "list_entries",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 257,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/entries",
+      "handler": "create_entry",
+      "source": "backend\\app\\apps\\project_management\\workspaces.py",
+      "line": 264,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workspaces/{workspace_id}/tools",
+      "handler": "list_tools",
+      "source": "backend\\app\\apps\\project_management\\workspace_tools.py",
+      "line": 62,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/tools",
+      "handler": "create_tool",
+      "source": "backend\\app\\apps\\project_management\\workspace_tools.py",
+      "line": 69,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/workspaces/{workspace_id}/tools/{tool_id}",
+      "handler": "toggle_tool",
+      "source": "backend\\app\\apps\\project_management\\workspace_tools.py",
+      "line": 102,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/workspaces/{workspace_id}/tools/{tool_id}/apply",
+      "handler": "apply_tool",
+      "source": "backend\\app\\apps\\project_management\\workspace_tools.py",
+      "line": 115,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/realtime/config",
+      "handler": "realtime_config",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 466,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/realtime/events",
+      "handler": "realtime_events",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 471,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/module-info",
+      "handler": "module_info",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1705,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/clients",
+      "handler": "create_client",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1742,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/clients",
+      "handler": "list_clients",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1761,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/clients/{client_id}",
+      "handler": "get_client",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1778,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/clients/{client_id}",
+      "handler": "update_client",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1796,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/clients/{client_id}",
+      "handler": "delete_client",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1823,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/intake",
+      "handler": "create_project_intake",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1857,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/intake",
+      "handler": "list_project_intakes",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1876,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/intake/{intake_id}/review",
+      "handler": "review_project_intake",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1892,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects",
+      "handler": "create_project",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 1962,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects",
+      "handler": "list_projects",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2030,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}",
+      "handler": "get_project",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2052,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/projects/{project_id}",
+      "handler": "update_project",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2080,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/projects/{project_id}",
+      "handler": "delete_project",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2119,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/archive",
+      "handler": "archive_project",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2136,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/clone",
+      "handler": "clone_project",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2152,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/project-templates",
+      "handler": "list_project_templates",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2265,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/members",
+      "handler": "add_project_member",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2274,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/members",
+      "handler": "list_project_members",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2296,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/projects/{project_id}/members/{member_id}",
+      "handler": "update_project_member",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2307,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/projects/{project_id}/members/{member_id}",
+      "handler": "remove_project_member",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2331,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/epics",
+      "handler": "create_epic",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2352,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/epics",
+      "handler": "list_epics",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2380,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/epics/{epic_id}",
+      "handler": "update_epic",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2395,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/roadmap",
+      "handler": "get_roadmap",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2420,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/epics/{epic_id}/schedule",
+      "handler": "update_epic_schedule",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2505,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/epics/{epic_id}/tasks",
+      "handler": "list_epic_tasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2556,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/components",
+      "handler": "create_component",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2571,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/components",
+      "handler": "list_components",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2593,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/components/{component_id}",
+      "handler": "update_component",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2608,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/releases",
+      "handler": "create_release",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2628,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/releases",
+      "handler": "list_releases",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2651,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/releases/{release_id}",
+      "handler": "update_release",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2666,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/releases/{release_id}/readiness",
+      "handler": "get_release_readiness",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2686,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/tasks",
+      "handler": "create_task",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2727,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/tasks",
+      "handler": "list_tasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2851,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks",
+      "handler": "list_all_tasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 2913,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/backlog",
+      "handler": "get_backlog",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3089,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/gantt",
+      "handler": "get_gantt",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3162,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/tasks/bulk",
+      "handler": "bulk_update_tasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3241,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}",
+      "handler": "get_task",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3284,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/tasks/{task_id}/schedule",
+      "handler": "update_task_schedule",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3296,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/dependencies",
+      "handler": "add_task_dependency",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3341,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/dependencies",
+      "handler": "list_task_dependencies",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3388,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/task-dependencies",
+      "handler": "create_task_dependency",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3404,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/task-dependencies/{dependency_id}",
+      "handler": "delete_task_dependency",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3460,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/tasks/{task_id}/dependencies/{dependency_id}",
+      "handler": "remove_task_dependency",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3496,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/tasks/{task_id}",
+      "handler": "update_task",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3543,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/tasks/{task_id}",
+      "handler": "delete_task",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3668,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/move-to-sprint",
+      "handler": "move_task_to_sprint",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3696,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/remove-from-sprint",
+      "handler": "remove_task_from_sprint",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3743,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/backlog/reorder",
+      "handler": "reorder_backlog",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3771,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/sprints/{sprint_id}/reorder-tasks",
+      "handler": "reorder_sprint_tasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3786,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/activity",
+      "handler": "list_task_activity",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3804,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/attachments",
+      "handler": "list_task_attachments",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3818,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/attachments",
+      "handler": "upload_task_attachment",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3835,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/time-logs",
+      "handler": "list_task_time_logs",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3912,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/time-logs",
+      "handler": "create_task_time_log",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3925,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/checklists",
+      "handler": "list_task_checklists",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3957,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/checklists",
+      "handler": "create_task_checklist_item",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3968,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/tasks/{task_id}/checklists/{item_id}",
+      "handler": "update_task_checklist_item",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 3995,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/checklist",
+      "handler": "list_task_checklist",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4035,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/checklist",
+      "handler": "create_task_checklist_entry",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4045,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/checklist/{item_id}",
+      "handler": "update_checklist_entry",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4056,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/checklist/{item_id}",
+      "handler": "delete_checklist_entry",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4070,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/checklist/reorder",
+      "handler": "reorder_task_checklist",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4096,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/subtasks",
+      "handler": "list_task_subtasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4118,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PUT",
+      "declared_path": "/tasks/{task_id}/subtasks/reorder",
+      "handler": "reorder_task_subtasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4134,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/subtasks",
+      "handler": "create_task_subtask",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4152,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/links",
+      "handler": "list_task_links",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4218,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/tags",
+      "handler": "list_task_tags",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4228,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tags",
+      "handler": "list_tags",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4239,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tags",
+      "handler": "create_tag",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4255,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/tags",
+      "handler": "add_task_tag",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4281,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/tasks/{task_id}/tags/{tag_id}",
+      "handler": "remove_task_tag",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4322,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/board",
+      "handler": "get_kanban_board",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4344,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/board/reorder",
+      "handler": "reorder_task",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4428,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/tasks/{task_id}/comments",
+      "handler": "add_comment_to_task",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4477,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/comments",
+      "handler": "list_task_comments",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4535,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/comments/{comment_id}",
+      "handler": "update_comment",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4555,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/comments/{comment_id}",
+      "handler": "delete_comment",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4599,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/users/search",
+      "handler": "search_pms_users",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4625,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/notifications",
+      "handler": "list_pms_notifications",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4654,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/notifications/{notification_id}/read",
+      "handler": "mark_pms_notification_read",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4681,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/milestones",
+      "handler": "create_milestone",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4710,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/milestones",
+      "handler": "list_milestones",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4740,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/milestones/{milestone_id}/submit-approval",
+      "handler": "submit_milestone_approval",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4757,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/milestones/{milestone_id}/approve",
+      "handler": "approve_milestone",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4783,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/milestones/{milestone_id}/reject",
+      "handler": "reject_milestone",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4808,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/sprints",
+      "handler": "create_sprint",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4837,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/sprints",
+      "handler": "list_sprints",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4861,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/sprints/{sprint_id}/review",
+      "handler": "get_sprint_review",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4874,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/sprints/{sprint_id}/review",
+      "handler": "update_sprint_review",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4895,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/sprints/{sprint_id}/start",
+      "handler": "start_sprint",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4919,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/sprints/{sprint_id}/complete",
+      "handler": "complete_sprint",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 4958,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/sprints/{sprint_id}/burndown",
+      "handler": "get_sprint_burndown",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5037,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/velocity",
+      "handler": "get_project_velocity",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5074,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/task-distribution",
+      "handler": "report_task_distribution",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5095,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/burndown",
+      "handler": "report_burndown",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5135,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/velocity",
+      "handler": "report_velocity",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5144,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/cumulative-flow",
+      "handler": "report_cumulative_flow",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5153,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/cycle-time",
+      "handler": "report_cycle_time",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5181,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/time-in-status",
+      "handler": "report_time_in_status",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5217,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/project-health",
+      "handler": "report_project_health",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5257,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/team-performance",
+      "handler": "report_team_performance",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5279,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/status-dashboard",
+      "handler": "report_project_status_dashboard",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5319,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/overdue-tasks",
+      "handler": "report_overdue_tasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5348,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/milestone-progress",
+      "handler": "report_milestone_progress",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5380,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/planned-vs-actual",
+      "handler": "report_planned_vs_actual",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5409,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/timesheet",
+      "handler": "report_timesheet",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5443,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/resource-utilization",
+      "handler": "report_resource_utilization",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5481,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/budget-vs-actual",
+      "handler": "report_budget_vs_actual",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5521,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/client-profitability",
+      "handler": "report_client_profitability",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5530,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/dependency-delays",
+      "handler": "report_dependency_delays",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5548,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/reports/export",
+      "handler": "export_reports",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5581,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/files",
+      "handler": "create_file_metadata",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5646,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/files",
+      "handler": "list_files",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5682,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/files/{file_id}",
+      "handler": "update_file_metadata",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5705,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/attachments/{file_id}/download",
+      "handler": "download_attachment",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5726,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/attachments/{file_id}",
+      "handler": "delete_attachment",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5744,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/timesheets",
+      "handler": "list_timesheets",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5771,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/timesheets",
+      "handler": "create_timesheet",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5801,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/timesheets/{timesheet_id}",
+      "handler": "update_timesheet",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5829,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/timesheets/{timesheet_id}/submit",
+      "handler": "submit_timesheet",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5846,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/timesheets/{timesheet_id}/approve",
+      "handler": "approve_timesheet",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5874,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/timesheets/{timesheet_id}/reject",
+      "handler": "reject_timesheet",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5900,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/time-logs",
+      "handler": "create_time_log",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5925,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/time-logs/{time_log_id}",
+      "handler": "update_time_log",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5958,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/time-logs/{time_log_id}",
+      "handler": "delete_time_log",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 5997,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/time-logs",
+      "handler": "list_time_logs",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6027,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/saved-views",
+      "handler": "list_saved_views",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6053,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/saved-views",
+      "handler": "create_saved_view",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6072,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/saved-views/{view_id}",
+      "handler": "update_saved_view",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6104,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/saved-views/{view_id}",
+      "handler": "delete_saved_view",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6134,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/projects/{project_id}/saved-filters",
+      "handler": "create_saved_filter",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6151,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/saved-filters",
+      "handler": "list_saved_filters",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6182,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/saved-filters/{filter_id}",
+      "handler": "update_saved_filter",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6200,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/saved-filters/{filter_id}",
+      "handler": "delete_saved_filter",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6222,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/activity",
+      "handler": "list_project_activity",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6240,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/projects/{project_id}/workload",
+      "handler": "get_project_workload",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6256,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/workload",
+      "handler": "get_workload_heatmap",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6300,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/dev-integrations",
+      "handler": "list_dev_integrations",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6488,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/dev-integrations",
+      "handler": "create_dev_integration",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6507,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/dev-integrations/{integration_id}",
+      "handler": "delete_dev_integration",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6545,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/tasks/{task_id}/dev-links",
+      "handler": "list_task_dev_links",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6561,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/dev-integrations/webhook/github",
+      "handler": "github_dev_webhook",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6573,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/dev-integrations/webhook/gitlab",
+      "handler": "gitlab_dev_webhook",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6595,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/risks",
+      "handler": "list_risks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6636,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/risks",
+      "handler": "create_risk",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6670,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "PATCH",
+      "declared_path": "/risks/{risk_id}",
+      "handler": "update_risk",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6713,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "DELETE",
+      "declared_path": "/risks/{risk_id}",
+      "handler": "delete_risk",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6752,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/portfolio/summary",
+      "handler": "get_portfolio_summary",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6775,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/portfolio/projects",
+      "handler": "get_portfolio_projects",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6830,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/portfolio/health-trend",
+      "handler": "get_portfolio_health_trend",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6850,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/dashboard/{project_id}",
+      "handler": "get_project_dashboard",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6900,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "GET",
+      "declared_path": "/trash/tasks",
+      "handler": "list_trashed_tasks",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6963,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    },
+    {
+      "method": "POST",
+      "declared_path": "/trash/tasks/{task_id}/restore",
+      "handler": "restore_trashed_task",
+      "source": "backend\\app\\apps\\project_management\\api\\router.py",
+      "line": 6973,
+      "live_status": "Not tested \u2014 supporting inventory only"
+    }
+  ]
+}

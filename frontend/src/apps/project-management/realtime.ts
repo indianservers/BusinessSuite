@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
+import { notificationsMuted } from "@/store/personalStore";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/services/api";
 import { getApiBaseUrl } from "@/config/runtime";
@@ -168,7 +169,7 @@ export function usePMSRealtime({
         if (!["connected", "subscribed", "user.presence"].includes(event.type)) {
           onEventRef.current?.(event);
           const name = actorName(event.actor);
-          if (showToast && name) {
+          if (showToast && name && !notificationsMuted(useAuthStore.getState().user?.id)) {
             toast({ title: event.message || "PMS updated", description: `By ${name}` });
           }
         }

@@ -1,4 +1,5 @@
 import React from "react";
+const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 import type { SRMViewKind } from "./types";
 import type { FAMViewKind } from "@/apps/fam/types";
@@ -27,6 +28,8 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 });
 
 export const srmRoutes: FrontendRoute[] = [
+  { path: "srm/gantt", element: <ModuleGanttPage key="srm" module="srm" /> },
+  { path: "srm/inventory/gantt", element: <ModuleGanttPage key="inventory" module="inventory" /> },
   route("srm", "dashboard"),
   route("srm/dashboard", "dashboard"),
   { path: "srm/profile", element: <ModuleProfilePage /> },

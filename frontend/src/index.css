@@ -435,3 +435,37 @@
     page-break-inside: avoid;
   }
 }
+
+/* User-selected palettes override product defaults, including portal surfaces. */
+:root[data-palette="violet"] { --theme-primary: 258 70% 54%; }
+:root[data-palette="ocean"] { --theme-primary: 213 85% 43%; }
+:root[data-palette="forest"] { --theme-primary: 160 76% 29%; }
+:root[data-palette="rose"] { --theme-primary: 335 72% 43%; }
+:root[data-palette="sunset"] { --theme-primary: 22 86% 37%; }
+:root[data-palette="slate"] { --theme-primary: 215 25% 35%; }
+
+:root[data-palette], :root[data-palette] .product-shell {
+ --primary: var(--theme-primary); --ring: var(--theme-primary);
+ --sidebar-primary: var(--theme-primary);
+ --theme-wash: hsl(var(--theme-primary) / .09);
+ --theme-rail: hsl(var(--theme-primary) / .96);
+}
+:root.dark[data-palette] { --theme-rail: hsl(222 30% 10%); }
+:root[data-palette] .ws-app {
+ --ws-ink: hsl(var(--foreground)); --ws-muted: hsl(var(--muted-foreground));
+ --ws-line: hsl(var(--border)); --ws-accent: hsl(var(--primary));
+ background: hsl(var(--background));
+}
+:root[data-palette] .ws-rail { background: var(--theme-rail); color: white; }
+:root[data-palette] .ws-rail-item.active { background: #ffffff26; color: white; }
+:root[data-palette] :is(.ws-primary,.ws-mini-primary,.ws-logo,.pms-profile-avatar) { background: hsl(var(--primary)); color: white; }
+:root[data-palette] .pms-profile-trigger { background: hsl(var(--primary)) !important; }
+:root[data-palette] :is(.ws-sidebar nav>button.active,.ws-project-nav>button.active) { background: var(--theme-wash); color: hsl(var(--primary)); }
+:root[data-palette] .ws-viewbar [role=tab].active { color: hsl(var(--primary)); border-color: hsl(var(--primary)); }
+:root[data-palette] .ws-task-table tbody tr:hover { background: var(--theme-wash); }
+:root[data-palette] .ws-task-table th { font-weight: 650; }
+:root[data-palette] .ws-task-card { border-top: 3px solid var(--lane-color, hsl(var(--primary))); }
+:root[data-palette] .ws-task-card:hover { border-color: hsl(var(--primary)); }
+:root[data-palette] .ws-app :focus-visible { outline-color: hsl(var(--primary)); }
+:root.dark[data-palette] :is(.ws-heading h1,.ws-card-title,.ws-list-title,.ws-summary strong,.ws-task-table td,.ws-task-table th,.ws-modal h2,.ws-person-body h3) { color: hsl(var(--foreground)); }
+:root.dark[data-palette] :is(.ws-task-table select,.ws-person-footer select,.ws-search,.ws-lane,.ws-task-table th) { background: hsl(var(--muted)); color: hsl(var(--foreground)); }

@@ -11,12 +11,12 @@ class AuditLog(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     method = Column(String(10), nullable=False)
     endpoint = Column(String(500))
     ip_address = Column(String(50))
     user_agent = Column(String(500))
-    status_code = Column(Integer)
+    status_code = Column(Integer, index=True)
     duration_ms = Column(Integer)
     entity_type = Column(String(100))
     entity_id = Column(Integer)
@@ -26,6 +26,18 @@ class AuditLog(Base):
     description = Column(Text)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    request_id = Column(String(64), index=True)
+    actor_email = Column(String(100))
+    actor_role = Column(String(80), index=True)
+    actor_authenticated = Column(Boolean, default=False)
+    module = Column(String(80), index=True)
+    task_id = Column(Integer, index=True)
+    project_id = Column(Integer, index=True)
+    workspace_id = Column(Integer, index=True)
+    error_type = Column(String(160))
+    ip_source = Column(String(40))
+    forwarded_ip = Column(String(50))
 
     user = relationship("User", back_populates="audit_logs")
 
@@ -58,3 +70,9 @@ class FieldAuditEvent(Base):
     ip_address = Column(String(50))
     metadata_json = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class AuditLogTask(Base):
+    __tablename__ = "audit_log_tasks"
+    audit_log_id = Column(Integer, ForeignKey("audit_logs.id", ondelete="CASCADE"), primary_key=True)
+    task_id = Column(Integer, primary_key=True, index=True)

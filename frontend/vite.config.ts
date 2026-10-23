@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    optimizeDeps: { include: ['@tensorflow/tfjs-core', '@tensorflow/tfjs-layers', '@tensorflow/tfjs-backend-cpu'] },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

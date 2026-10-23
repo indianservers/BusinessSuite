@@ -24,6 +24,7 @@ export const api = axios.create({
 
 // Request interceptor: attach access token
 api.interceptors.request.use((config) => {
+  if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {
     const maxBytes = Number(import.meta.env.VITE_MAX_UPLOAD_MB || 3) * 1024 * 1024;
     let total = 0;
@@ -88,6 +89,11 @@ api.interceptors.response.use(
       }
     }
 
+    const payload = error.response?.data as { detail?: unknown; request_id?: string } | undefined;
+    const requestId = payload?.request_id || error.response?.headers?.["x-request-id"];
+    if ((error.response?.status || 0) >= 500 && requestId && typeof payload?.detail === "string" && !payload.detail.includes("Reference:")) {
+      payload.detail += ` (Reference: ${requestId})`;
+    }
     return Promise.reject(error);
   }
 );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import AgentConfigForm from "@/components/ai-agents/AgentConfigForm";
 import { toast } from "@/hooks/use-toast";
 import { aiAgentsApi, type AiAgentConfigRow, type AiModule } from "@/services/aiAgentsApi";
@@ -43,7 +44,8 @@ export default function AiAgentConfigPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold">AI Agent Configuration</h1>
-        <p className="text-sm text-muted-foreground">Enable agents, approval policy, and data access scope. OpenAI keys are never handled in frontend code.</p>
+        <p className="text-sm text-muted-foreground">Enable agents, approval policy, and data access scope.</p>
+        <Link className="text-primary underline" to="/pms/settings/ai/openai">Configure OpenAI, Gemini and Claude APIs · usage analytics and logs</Link>
       </div>
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
       <div className="flex flex-wrap gap-2">

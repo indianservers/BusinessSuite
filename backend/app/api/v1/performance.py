@@ -636,9 +636,10 @@ def performance_summary(
     return {
         "employee_id": employee.id,
         "employee_name": f"{employee.first_name} {employee.last_name}",
-        "latest_performance_score": employee.performance_rating,
-        "goals": goals,
-        "reviews": reviews,
+        "latest_performance_score": next((round(review.overall_rating) for review in reviews
+                                          if review.review_type == "manager" and review.overall_rating is not None), None),
+        "goals": [PerformanceGoalSchema.model_validate(goal).model_dump(mode="json") for goal in goals],
+        "reviews": [PerformanceReviewSchema.model_validate(review).model_dump(mode="json") for review in reviews],
     }
 
 

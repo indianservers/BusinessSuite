@@ -51,6 +51,8 @@ def get_current_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked or expired")
         session.last_seen_at = datetime.now(timezone.utc)
         db.commit()
+    from app.core.audit_context import set_audit_actor
+    set_audit_actor(user)
     return user
 
 

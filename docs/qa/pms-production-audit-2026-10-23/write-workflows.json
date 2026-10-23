@@ -1,0 +1,116 @@
+[
+  {
+    "check": "Read created audit task",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Persisted custom-field value",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Update subtask",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "List subtasks",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Create dropdown field",
+    "status": 201,
+    "expected": 201,
+    "passed": true
+  },
+  {
+    "check": "Save dropdown value",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Reject invalid dropdown value",
+    "status": 422,
+    "expected": 422,
+    "passed": true
+  },
+  {
+    "check": "Protect used dropdown option",
+    "status": 409,
+    "expected": 409,
+    "passed": true
+  },
+  {
+    "check": "Rename field",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Create document",
+    "status": 201,
+    "expected": 201,
+    "passed": true
+  },
+  {
+    "check": "Save document revision",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Reject stale document write",
+    "status": 409,
+    "expected": 409,
+    "passed": true
+  },
+  {
+    "check": "Read document history",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Read original revision",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Check active timer",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Start timer",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Stop timer",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Idempotent stop retry",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  },
+  {
+    "check": "Read time logs",
+    "status": 200,
+    "expected": 200,
+    "passed": true
+  }
+]

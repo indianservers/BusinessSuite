@@ -1,4 +1,5 @@
 import React from "react";
+const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import { Navigate, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 
@@ -107,6 +108,7 @@ function LegacyHrmsRedirect() {
 }
 
 export const hrmsRoutes: FrontendRoute[] = [
+  { path: "hrms/leave/gantt", element: <ModuleGanttPage key="hrms" module="hrms" /> },
   { path: "hrms", element: <DashboardPage /> },
   ...moduleRoutes.map((route) => ({
     ...route,

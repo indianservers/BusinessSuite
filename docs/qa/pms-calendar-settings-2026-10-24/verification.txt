@@ -1,0 +1,53 @@
+KaryaFlow Calendar and settings — 2026-10-24
+
+Implemented at /pms/calendar and /pms/planner:
+Account-persisted settings with optimistic revision conflicts and scoped user preferences.
+Appearance: default/large/XL grid, subtle/solid events, default duration, colors by
+project/status/priority, week start, IANA timezones, weekends and ISO week numbers.
+Sidebar: show/hide, rename, reorder with drag/arrows, custom task sections.
+Upcoming meetings: details toggle, remaining-time toggle, quick-join window,
+HTTPS join links and opt-in browser reminders while the tab remains open.
+Time blocking: task deadline visibility, all/mine scope, closed tasks, next-12
+recurring task previews, default project, focus prefix, private/workspace visibility,
+custom work hours and conflict-free time suggestions.
+Calendar events: private meetings, focus blocks, workspace-shared events,
+linked tasks, descriptions, meeting URLs, timezone-aware dates, multi-day display,
+create/edit/delete, and drag rescheduling that preserves duration.
+Meeting notes: saved name/template and a downloadable template per meeting.
+Automation: link to existing task rules and export the visible calendar as ICS.
+Accounts: BusinessSuite calendar plus explicit Google/Outlook/Zoom setup requirements.
+No external account is displayed as connected without an implemented provider connection.
+
+Backend API:
+GET/PUT /api/v1/project-management/planner/preferences
+GET/POST /api/v1/project-management/planner/events
+PUT/DELETE /api/v1/project-management/planner/events/{event_id}
+GET /api/v1/project-management/planner/free-slots
+GET /api/v1/project-management/planner/connections
+
+Validation:
+83 backend PMS/PostgreSQL configuration checks passed, including ownership, workspace
+visibility, timezone conversion, preference isolation, revisions, invalid dates/URLs,
+free-slot busy exclusions, migrations and migration-chain continuity.
+Final focused calendar suite: 4 passed after timezone-default handling was adjusted.
+Production TypeScript/Vite build passed.
+Playwright fixture passed appearance, saved settings, sidebar order/visibility,
+recurring projections, ISO weeks, timezone conversion, DST nonexistent-time rejection,
+meeting create/edit/delete, multi-day display, event dragging, free-slot selection,
+ICS export, provider requirements and mobile settings/event dialogs at 320/390 px.
+Legacy planner fixture passed task drag, duration preservation, undo, task completion,
+pinning, all views, task composer date, backlog scheduling, mobile layouts and retry.
+No browser page exceptions. Desktop settings screenshot visually inspected.
+Browser API responses are fixtures; API tests used an isolated SQLite database.
+Production calendar/accounts were not modified or certified by these tests.
+
+Not implemented as live integrations:
+Google/Outlook account OAuth, automatic two-way/calendar sync, Zoom meeting creation,
+AI recording/auto-join/transcription/agent sharing, native desktop menubar controls,
+and inherited workspace-wide work schedules. Personal custom work hours work now.
+The settings explain these limits; no inert connect/sync controls claim success.
+
+Deployment:
+New migrations 20261024_004 and pg_20261024_004 add personal preference and event tables.
+Apply the appropriate migration chain before deploying this calendar update.
+Local changes only; no commit, push or production deployment performed.

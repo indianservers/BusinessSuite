@@ -2,6 +2,8 @@ import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
+const AIOperatorPage = React.lazy(() => import("./pages/AIOperatorPage"));
+const OperatorProviderSettings = React.lazy(() => import("@/pages/ai-agents/OperatorProviderSettings"));
 
 const DirectMessagesPage = React.lazy(() => import("./pages/DirectMessagesPage"));
 const CustomFieldManagerPage = React.lazy(() => import("./pages/CustomFieldManagerPage"));
@@ -9,6 +11,9 @@ const DocsPage = React.lazy(() => import("./pages/DocsPage"));
 const TaskTypesPage = React.lazy(() => import("./pages/TaskTypesPage"));
 const TagManagerPage = React.lazy(() => import("./pages/TagManagerPage"));
 const PlansPage = React.lazy(() => import("./pages/PlansPage"));
+const AuditLogsPage = React.lazy(() => import("./pages/AuditLogsPage"));
+const AnalyticsPage = React.lazy(() => import("./pages/AnalyticsPage"));
+const OrgChartPage = React.lazy(() => import("./pages/OrgChartPage"));
 const TeamsPage = React.lazy(() => import("./pages/TeamsPage"));
 const TrashPage = React.lazy(() => import("./pages/TrashPage"));
 
@@ -39,6 +44,7 @@ const LiveWorkManagementPage = React.lazy(() => import("./pages/LiveWorkManageme
 const ImpactWorkHubPage = React.lazy(() => import("./pages/ImpactWorkHubPage"));
 const TimelineDependenciesPage = React.lazy(() => import("./pages/TimelineDependenciesPage"));
 const AutomationAIPage = React.lazy(() => import("./pages/AutomationAIPage"));
+const FormsPage = React.lazy(() => import("./pages/FormsPage"));
 const CommandCenterPage = React.lazy(() => import("./pages/CommandCenterPage"));
 const EnterpriseEnginePage = React.lazy(() => import("./pages/EnterpriseEnginePage"));
 const ProductLaunchPage = React.lazy(() => import("./pages/ProductLaunchPage"));
@@ -52,6 +58,12 @@ const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
  * Complete routing for Project Management module
  */
 export const projectManagementRoutes: FrontendRoute[] = [
+  { path: "pms/audit-logs", element: <AuditLogsPage /> },
+  { path: "pms/analytics/team", element: <AnalyticsPage mode="team" /> },
+  { path: "pms/analytics/projects", element: <AnalyticsPage mode="project" /> },
+  { path: "pms/projects/:projectId/analytics", element: <AnalyticsPage mode="project" /> },
+  { path: "pms/operator", element: <AIOperatorPage /> },
+  { path: "pms/settings/ai/:provider", element: <OperatorProviderSettings /> },
   { path: "pms/workspaces", element: <WorkspacesPage /> },
   // Home / Dashboard
   { path: "pms", element: <WorkspacesPage /> },
@@ -91,7 +103,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   // KaryaFlow software delivery workspaces
   { path: "pms/work-hub", element: <ImpactWorkHubPage /> },
   { path: "pms/impact", element: <ImpactWorkHubPage /> },
-  { path: "pms/ai-planner", element: <ImpactWorkHubPage /> },
+  { path: "pms/ai-planner", element: <AIOperatorPage /> },
   { path: "pms/timeline-plus", element: <TimelineDependenciesPage /> },
   { path: "pms/dependency-timeline", element: <TimelineDependenciesPage /> },
   { path: "pms/automation-ai", element: <AutomationAIPage /> },
@@ -106,10 +118,11 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/releases", element: <SoftwarePlanningPage /> },
   { path: "pms/automation", element: <AutomationAIPage /> },
   { path: "pms/goals", element: <CommandCenterPage /> },
-  { path: "pms/forms", element: <CommandCenterPage /> },
+  { path: "pms/forms", element: <FormsPage /> },
   { path: "pms/messages", element: <DirectMessagesPage /> },
   { path: "pms/custom-fields", element: <CustomFieldManagerPage /> },
   { path: "pms/teams", element: <TeamsPage /> },
+  { path: "pms/org-chart", element: <OrgChartPage /> },
   { path: "pms/trash", element: <TrashPage /> },
   { path: "pms/templates", element: <CommandCenterPage /> },
   { path: "pms/components", element: <CommandCenterPage /> },
@@ -131,6 +144,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   
   // Module-level workspaces
   { path: "pms/calendar", element: <CalendarPage /> },
+  { path: "pms/planner", element: <CalendarPage /> },
   { path: "pms/gantt", element: <GanttPage /> },
   { path: "pms/sprints", element: <SprintsPage /> },
   { path: "pms/files", element: <FilesPage /> },

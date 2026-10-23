@@ -1,0 +1,252 @@
+[
+  {
+    "route": "/pms/projects",
+    "heading": "PMS\nprojects\nTeam workspace\nProjects\n\nTrack active work, ownership, progress, budgets, and delivery risk.\n\nNew project",
+    "error": false
+  },
+  {
+    "route": "/pms/tasks",
+    "heading": "PMS\ntasks\nTeam workspace\nTasks\n\nSearch, filter, sort, and update work across every project you can access.\n\nTrash\nUnsaved task view\nSaved vi",
+    "error": false
+  },
+  {
+    "route": "/pms/calendar",
+    "heading": "PMS\ncalendar\nTeam workspace\nCalendar\n\nUnified schedule for task due dates, milestones, and project deadlines.\n\nNo dated tasks, milestones, o",
+    "error": false
+  },
+  {
+    "route": "/pms/command-center",
+    "heading": "PMS\ncommand-center\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated intake forms create tasks",
+    "error": false
+  },
+  {
+    "route": "/pms/enterprise-engine",
+    "heading": "PMS\nenterprise-engine\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated intake forms create ta",
+    "error": false
+  },
+  {
+    "route": "/pms/product-launch",
+    "error": false,
+    "note": "Rendered; initial audit selector matched nested main elements. This screen uses browser-local prototype data, not shared task persistence."
+  },
+  {
+    "route": "/pms/dependency-management",
+    "heading": "PMS\nDependency Management\nTeam workspace\nDependency Management\n\nBlockers, critical path, cross-project dependencies, and delivery impact ana",
+    "error": false
+  },
+  {
+    "route": "/pms/resource-planning",
+    "heading": "PMS\nResource Planning\nTeam workspace\nResource Planning\n\nWorkload, availability, capacity, skill matching, and over-allocation warnings.\n\nReb",
+    "error": false
+  },
+  {
+    "route": "/pms/agile-execution",
+    "heading": "PMS\nAgile Execution\nTeam workspace\nAgile Execution\n\nBacklog grooming, sprint planning, velocity, burndown, and release confidence.\n\nPlan spr",
+    "error": false
+  },
+  {
+    "route": "/pms/project-financials",
+    "heading": "PMS\nProject Financials\nTeam workspace\nProject Financials\n\nBudget, cost tracking, billable hours, margin, and client billing readiness.\n\nRevi",
+    "error": false
+  },
+  {
+    "route": "/pms/risk-register",
+    "heading": "PMS\nRisk Register\nTeam workspace\nRisk Register\n\nTrack project-level probability, impact, mitigation plans, owners, and delivery health risk.",
+    "error": false
+  },
+  {
+    "route": "/pms/work-hub",
+    "heading": "PMS\nwork-hub\nTeam workspace\nThe Next Big Thing\n\nAlign strategy, teams, tasks, tickets, and assets before work starts.\n\nMN\nDP\nIR\nNK\n+1\nShare\n",
+    "error": false
+  },
+  {
+    "route": "/pms/ai-planner",
+    "heading": "PMS\nai-planner\nTeam workspace\nThe Next Big Thing\n\nAlign strategy, teams, tasks, tickets, and assets before wor",
+    "error": false
+  },
+  {
+    "route": "/pms/live",
+    "heading": "PMS\nlive\nTeam workspace\nLive Work Management\n\nKaryaFlow drag/drop for project status, tickets, tasks, teammate",
+    "error": false
+  },
+  {
+    "route": "/pms/software",
+    "heading": "PMS\nsoftware\nTeam workspace\nSoftware Delivery\n\nKaryaFlow planning for backlog, sprints, boards, releases, road",
+    "error": false
+  },
+  {
+    "route": "/pms/backlog",
+    "heading": "PMS\nbacklog\nTeam workspace\nBacklog\n\nGroom unscheduled work, plan sprint scope, and drag tasks between backlog ",
+    "error": false
+  },
+  {
+    "route": "/pms/backlog-grooming",
+    "heading": "PMS\nbacklog-grooming\nTeam workspace\nBacklog\n\nGroom unscheduled work, plan sprint scope, and drag tasks between",
+    "error": false
+  },
+  {
+    "route": "/pms/issues",
+    "heading": "PMS\nissues\nTeam workspace\nSoftware Delivery\n\nKaryaFlow planning for backlog, sprints, boards, releases, roadma",
+    "error": false
+  },
+  {
+    "route": "/pms/navigator",
+    "heading": "PMS\nnavigator\nTeam workspace\nTasks\n\nSearch, filter, sort, and update work across every project you can access.",
+    "error": false
+  },
+  {
+    "route": "/pms/issue-navigator-pro",
+    "heading": "PMS\nissue-navigator-pro\nTeam workspace\nTasks\n\nSearch, filter, sort, and update work across every project you c",
+    "error": false
+  },
+  {
+    "route": "/pms/dashboards",
+    "heading": "PMS\ndashboards\nTeam workspace\nPortfolio\n\nExecutive view of project health, progress, delivery risk, workload, ",
+    "error": false
+  },
+  {
+    "route": "/pms/goals",
+    "heading": "PMS\ngoals\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated inta",
+    "error": false
+  },
+  {
+    "route": "/pms/roadmap",
+    "heading": "PMS\nroadmap\nTeam workspace\nRoadmap\n\nPlan epics across projects and sprints with progress, ownership, dependenc",
+    "error": false
+  },
+  {
+    "route": "/pms/timeline-plus",
+    "heading": "PMS\ntimeline-plus\nTeam workspace\nThe Next Big Thing\nSummary\nBoard\nList\nCalendar\nTimeline\nForms\nPages\nIssues\nRe",
+    "error": false
+  },
+  {
+    "route": "/pms/dependencies",
+    "heading": "PMS\ndependencies\nTeam workspace\nRoadmap\n\nPlan epics across projects and sprints with progress, ownership, depe",
+    "error": false
+  },
+  {
+    "route": "/pms/plans",
+    "heading": "PMS\nplans\nTeam workspace\nPlans and capabilities\n\nCore, Business, Business Plus and Enterprise capability group",
+    "error": false
+  },
+  {
+    "route": "/pms/releases",
+    "heading": "PMS\nreleases\nTeam workspace\nSoftware Delivery\n\nKaryaFlow planning for backlog, sprints, boards, releases, road",
+    "error": false
+  },
+  {
+    "route": "/pms/forms",
+    "heading": "PMS\nforms\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated inta",
+    "error": false
+  },
+  {
+    "route": "/pms/templates",
+    "heading": "PMS\ntemplates\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated ",
+    "error": false
+  },
+  {
+    "route": "/pms/gantt",
+    "heading": "PMS\ngantt\nTeam workspace\nGantt\n\nTimeline planning with dependency arrows, schedule edits, filters, and zoomabl",
+    "error": false
+  },
+  {
+    "route": "/pms/sprints",
+    "heading": "PMS\nsprints\nTeam workspace\nSprints\n\nPlan agile delivery windows, commitment snapshots, carry-forward scope, ca",
+    "error": false
+  },
+  {
+    "route": "/pms/sprint-lifecycle",
+    "heading": "PMS\nsprint-lifecycle\nTeam workspace\nBacklog\n\nGroom unscheduled work, plan sprint scope, and drag tasks between",
+    "error": false
+  },
+  {
+    "route": "/pms/components",
+    "heading": "PMS\ncomponents\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated",
+    "error": false
+  },
+  {
+    "route": "/pms/workflows",
+    "heading": "PMS\nworkflows\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated ",
+    "error": false
+  },
+  {
+    "route": "/pms/blueprints",
+    "heading": "PMS\nblueprints\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated",
+    "error": false
+  },
+  {
+    "route": "/pms/resource-utilization",
+    "heading": "PMS\nresource-utilization\nTeam workspace\nWorkload\n\nCompare weekly assignment load against person-level capacity",
+    "error": false
+  },
+  {
+    "route": "/pms/apps",
+    "heading": "PMS\napps\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated intak",
+    "error": false
+  },
+  {
+    "route": "/pms/teams-live",
+    "heading": "PMS\nteams-live\nTeam workspace\nLive Work Management\n\nKaryaFlow drag/drop for project status, tickets, tasks, te",
+    "error": false
+  },
+  {
+    "route": "/pms/files",
+    "heading": "PMS\nfiles\nTeam workspace\nFiles\n\nFile metadata, visibility, and project attachment management.\n\nAdd file metada",
+    "error": false
+  },
+  {
+    "route": "/pms/time-tracking",
+    "error": false,
+    "note": "Retested individually: timer and manual time-entry controls rendered."
+  },
+  {
+    "route": "/pms/reports",
+    "heading": "PMS\nReports\nTeam workspace\nPMS reports\n\nReal task, sprint, status-history, flow, cycle-time, health, and team ",
+    "error": false
+  },
+  {
+    "route": "/pms/automation",
+    "heading": "PMS\nautomation\nTeam workspace\nTask automation\n\nSaved rules run on task creation and status changes. No AI or e",
+    "error": false
+  },
+  {
+    "route": "/pms/client-portal",
+    "heading": "PMS\nclient-portal\nTeam workspace\nClient portal\n\nClient-safe project progress, approvals, and shared deliverabl",
+    "error": false
+  },
+  {
+    "route": "/pms/settings",
+    "heading": "PMS\nSettings\nTeam workspace\nSettings\n\nWorkspace-level preferences, repository mappings, and module configurati",
+    "error": false
+  },
+  {
+    "route": "/pms/security",
+    "heading": "PMS\nsecurity\nTeam workspace\nWorkspace tools\n\nGoals track actual task completion. Templates and authenticated i",
+    "error": false
+  },
+  {
+    "route": "/pms/admin",
+    "heading": "PMS\nadmin\nTeam workspace\nAdmin\n\nAdministrative controls for PMS configuration, governance, integrations, and d",
+    "error": false
+  },
+  {
+    "route": "/pms/profile",
+    "heading": "PMS\nProfile\nTeam workspace\nPMS Profile\n\nYour workspace identity and module access summary.\n\nAccount\n\nadmin\n\nad",
+    "error": false
+  },
+  {
+    "route": "/pms/projects/2/milestones",
+    "error": false,
+    "note": "Retested individually: Milestones heading and create form rendered."
+  },
+  {
+    "route": "/pms/projects/2/risks",
+    "heading": "PMS\nprojects\n2\nrisks\nTeam workspace\nRisk Register\n\nTrack project-level probability, impact, mitigation plans, ",
+    "error": false
+  },
+  {
+    "route": "/pms/projects/2/board",
+    "error": false,
+    "note": "Retested individually: Board heading and live task columns rendered after initial loading."
+  }
+]

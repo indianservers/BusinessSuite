@@ -37,12 +37,19 @@ if context.is_offline_mode():
     with context.begin_transaction():
         context.run_migrations()
 else:
-    connectable = engine_from_config(config.get_section(config.config_ini_section),
-                                    prefix="sqlalchemy.", poolclass=pool.NullPool,
-                                    connect_args=settings.SQLALCHEMY_CONNECT_ARGS)
-    with connectable.connect() as connection:
+    def run_on_connection(connection):
         if connection.dialect.name != "postgresql":
             raise RuntimeError("Suite schema migrations require PostgreSQL")
         context.configure(connection=connection, target_metadata=Base.metadata, compare_type=True, include_object=include_object)
         with context.begin_transaction():
             context.run_migrations()
+
+    supplied_connection = config.attributes.get("connection")
+    if supplied_connection is not None:
+        run_on_connection(supplied_connection)
+    else:
+        connectable = engine_from_config(config.get_section(config.config_ini_section),
+                                        prefix="sqlalchemy.", poolclass=pool.NullPool,
+                                        connect_args=settings.SQLALCHEMY_CONNECT_ARGS)
+        with connectable.connect() as connection:
+            run_on_connection(connection)

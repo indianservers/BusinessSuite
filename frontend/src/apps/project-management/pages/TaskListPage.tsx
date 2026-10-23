@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn, formatDate, statusColor } from "@/lib/utils";
+import InlineSubtaskComposer from "../components/InlineSubtaskComposer";
+import TaskViewPicker from "../components/TaskViewPicker";
 import { savedViewsAPI, tasksAPI } from "../services/api";
 import { usePMSRealtime } from "../realtime";
-import type { PMSSavedFilter, PMSTaskListItem, PMSTaskListResponse, TaskStatus } from "../types";
+import type { PMSSavedFilter, PMSTask, PMSTaskListItem, PMSTaskListResponse, TaskStatus } from "../types";
 
 type SortOrder = "asc" | "desc";
 
@@ -165,16 +167,35 @@ export default function TaskListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<PMSTaskListResponse | null>(null);
-  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [filters, setFilters] = useState<FilterState>({ ...defaultFilters, projectId: searchParams.get("projectId") || "" });
   const [sortBy, setSortBy] = useState("updatedDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnsOpen, setColumnsOpen] = useState(false);
-  const [groupByStatus, setGroupByStatus] = useState(true);
+  const [columnSearch, setColumnSearch] = useState("");
+  const layout = searchParams.get("layout") || "list";
+  const [groupByStatus, setGroupByStatus] = useState(searchParams.get("layout") !== "table");
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
-  const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
+  const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(() => {
+    try { return { ...initialVisibleColumns, ...JSON.parse(localStorage.getItem("pms.task-columns.v1") || "{}"), title: true }; }
+    catch { return initialVisibleColumns; }
+  });
+  useEffect(() => { try { localStorage.setItem("pms.task-columns.v1", JSON.stringify(visibleColumns)); } catch { /* Saved views still work when storage is unavailable. */ } }, [visibleColumns]);
+  useEffect(() => { setGroupByStatus(layout !== "table"); }, [layout]);
+  useEffect(() => {
+    const projectId = searchParams.get("projectId");
+    if (projectId !== null) setFilters(current => ({ ...current, projectId }));
+  }, [searchParams]);
+  const [inlineParent, setInlineParent] = useState<number | null>(null);
+  const [createdChildren, setCreatedChildren] = useState<Record<number, PMSTask[]>>({});
+  const [inlineNotice, setInlineNotice] = useState("");
+  function subtaskCreated(parent: PMSTaskListItem, child: PMSTask) {
+    setCreatedChildren(current => ({ ...current, [parent.id]: [...(current[parent.id] || []), child] }));
+    setData(current => current ? { ...current, items: current.items.map(item => item.id === parent.id ? { ...item, subtask_count: (item.subtask_count || 0) + 1 } : item) } : current);
+    setInlineParent(null); setInlineNotice(`Created ${child.task_key}: ${child.title}`);
+  }
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkPriority, setBulkPriority] = useState("");
@@ -254,7 +275,7 @@ export default function TaskListPage() {
       : [...current, status]);
   };
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const visibleColumnList = useMemo(() => columns.filter((column) => visibleColumns[column.key]), [visibleColumns]);
+  const visibleColumnList = useMemo(() => columns.filter((column) => column.key === "title" || visibleColumns[column.key]), [visibleColumns]);
   const currentPageTaskIds = useMemo(() => data?.items.map((task) => task.id) || [], [data?.items]);
   const selectedTasks = useMemo(() => data?.items.filter((task) => selectedTaskIds.includes(task.id)) || [], [data?.items, selectedTaskIds]);
   const allPageTasksSelected = Boolean(currentPageTaskIds.length) && currentPageTaskIds.every((id) => selectedTaskIds.includes(id));
@@ -473,7 +494,7 @@ export default function TaskListPage() {
       case "task":
         return <span className="font-semibold text-primary">{task.task_key || task.id}</span>;
       case "title":
-        return <span className="line-clamp-2 min-w-56 font-medium">{task.title}</span>;
+        return <div className="flex min-w-56 items-center gap-2"><span className="line-clamp-2 font-medium">{task.title}</span><Button type="button" size="sm" variant="ghost" title="Add subtask" aria-label={`Add subtask to ${task.title}`} onClick={event => { event.stopPropagation(); setInlineParent(task.id); setInlineNotice(""); }}>+</Button></div>;
       case "project":
         return <span>{task.project_name || task.project_key || "-"}</span>;
       case "epic":
@@ -518,6 +539,8 @@ export default function TaskListPage() {
 
   return (
     <div className="space-y-4">
+      <TaskViewPicker projectId={Number(filters.projectId) || undefined} />
+      {inlineNotice && <p role="status" className="rounded-md border p-3 text-sm">{inlineNotice}</p>}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Tasks</h1>
@@ -662,18 +685,12 @@ export default function TaskListPage() {
           <p className="text-sm text-muted-foreground">{firstResult}-{lastResult} of {data?.total || 0}</p>
         </CardHeader>
         <CardContent hidden={!columnsOpen}>
-          <div className="flex flex-wrap gap-2">
-            {columns.map((column) => (
-              <label key={column.key} className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={visibleColumns[column.key]}
-                  onChange={(event) => setVisibleColumns((current) => ({ ...current, [column.key]: event.target.checked }))}
-                />
-                {column.label}
-              </label>
-            ))}
-          </div>
+          <section aria-label="Task field chooser" className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2"><Input aria-label="Search task fields" placeholder="Search task fields" value={columnSearch} onChange={event => setColumnSearch(event.target.value)} /><Button variant="outline" size="sm" onClick={() => setVisibleColumns(initialVisibleColumns)}>Reset columns</Button><Button variant="outline" size="sm" onClick={() => setVisibleColumns(Object.fromEntries(columns.map(column => [column.key, true])) as Record<ColumnKey, boolean>)}>Show all fields</Button><Link className="text-sm text-primary underline" to="/pms/custom-fields">Create custom field</Link></div>
+            {[true, false].map(shown => <div key={String(shown)}><h3 className="mb-2 text-sm font-medium">{shown ? "Shown" : "Available properties"} ({columns.filter(column => Boolean(column.key === "title" || visibleColumns[column.key]) === shown).length})</h3><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{columns.filter(column => Boolean(column.key === "title" || visibleColumns[column.key]) === shown && column.label.toLowerCase().includes(columnSearch.toLowerCase())).map(column => <label key={column.key} className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm"><span>{column.label}{column.key === "title" && " (required)"}</span><input aria-label={`Show ${column.label} column`} type="checkbox" disabled={column.key === "title"} checked={column.key === "title" || visibleColumns[column.key]} onChange={event => setVisibleColumns(current => ({ ...current, [column.key]: event.target.checked }))} /></label>)}</div></div>)}
+            {!columns.some(column => column.label.toLowerCase().includes(columnSearch.toLowerCase())) && <p className="text-sm text-muted-foreground">No matching field.</p>}
+            <p className="text-xs text-muted-foreground">Selections persist in this browser. Save a view to reuse them with its filters across devices. Custom fields are managed separately.</p>
+          </section>
         </CardContent>
       </Card>
 
@@ -713,7 +730,7 @@ export default function TaskListPage() {
 
           {!loading && data?.items.length ? (
             <>
-              <div className="hidden overflow-x-auto lg:block">
+              <div className={cn("overflow-x-auto", layout === "gallery" ? "hidden" : "hidden lg:block")}>
                 <table className="min-w-[1180px] w-full text-sm">
                   <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                     <tr>
@@ -736,12 +753,11 @@ export default function TaskListPage() {
                     {taskGroups.map(group => <Fragment key={group.status}>
                     {groupByStatus && <tr className="border-b bg-muted/25"><td colSpan={visibleColumnList.length + 1} className="px-4 py-2"><button type="button" className="flex w-full items-center gap-2 py-1 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4 transition-transform", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs font-normal text-muted-foreground">{group.items.length} on this page</span></button></td></tr>}
                     {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
-                      <tr
-                        key={task.id}
+                      <Fragment key={task.id}><tr
                         tabIndex={0}
                         onClick={() => openTask(task)}
                         onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") openTask(task);
+                          if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); }
                         }}
                         className={cn("cursor-pointer border-b transition hover:bg-muted/40 focus:bg-muted/40 focus:outline-none", selectedTaskIds.includes(task.id) ? "bg-primary/5" : "")}
                       >
@@ -760,14 +776,17 @@ export default function TaskListPage() {
                           </td>
                         ))}
                       </tr>
+                      {createdChildren[task.id]?.map(child => <tr key={`child-${child.id}`} className="border-b bg-muted/20"><td /><td colSpan={visibleColumnList.length} className="px-6 py-2"><Link className="text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link><Badge className="ml-2">{child.status}</Badge></td></tr>)}
+                      {inlineParent === task.id && <tr><td /><td colSpan={visibleColumnList.length} className="p-3"><InlineSubtaskComposer key={task.id} parent={task} onCreated={child => subtaskCreated(task, child)} onCancel={() => setInlineParent(null)} /></td></tr>}
+                      </Fragment>
                     ))}</Fragment>)}
                   </tbody>
                 </table>
               </div>
 
-              <div className="space-y-3 p-4 lg:hidden">
+              <div className={layout === "gallery" ? "grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3" : "space-y-3 p-4 lg:hidden"}>
                 {taskGroups.map(group => <Fragment key={group.status}>
-                  {groupByStatus && <button type="button" className="flex w-full items-center gap-2 py-2 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs text-muted-foreground">{group.items.length} on this page</span></button>}
+                  {groupByStatus && <button type="button" className="col-span-full flex w-full items-center gap-2 py-2 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs text-muted-foreground">{group.items.length} on this page</span></button>}
                   {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
                   <div role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); } }} key={task.id} onClick={() => openTask(task)} className="w-full rounded-lg border bg-background p-4 text-left shadow-sm">
                     <div className="flex items-start justify-between gap-3">
@@ -786,13 +805,10 @@ export default function TaskListPage() {
                       </div>
                       <Badge className={statusColor(task.priority)}>{task.priority}</Badge>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                      <span className="text-muted-foreground">Project</span><span className="text-right">{task.project_name || "-"}</span>
-                      <span className="text-muted-foreground">Status</span><span className="text-right">{task.status}</span>
-                      <span className="text-muted-foreground">Assignee</span><span className="text-right">{task.assignee_name || "Unassigned"}</span>
-                      <span className="text-muted-foreground">Due</span><span className="text-right">{formatDate(task.due_date || null)}</span>
-                    </div>
+                    <div className="mt-3 space-y-2 text-sm">{visibleColumnList.filter(column => !["task", "title", "tags"].includes(column.key)).map(column => <div key={column.key} className="flex flex-wrap items-center justify-between gap-2"><span className="text-muted-foreground">{column.label}</span><span>{renderCell(task, column.key)}</span></div>)}</div>
                     <div className="mt-3"><TaskBadges task={task} /></div>
+                    <Button className="mt-3" type="button" variant="outline" size="sm" aria-label={`Add subtask to ${task.title}`} onClick={event => { event.stopPropagation(); setInlineParent(task.id); setInlineNotice(""); }}>+ Add subtask</Button>
+                    <div className="mt-3 space-y-2" onClick={event => event.stopPropagation()}>{createdChildren[task.id]?.map(child => <Link key={child.id} className="block text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link>)}{inlineParent === task.id && <InlineSubtaskComposer key={task.id} parent={task} onCreated={child => subtaskCreated(task, child)} onCancel={() => setInlineParent(null)} />}</div>
                   </div>
                 ))}</Fragment>)}
               </div>

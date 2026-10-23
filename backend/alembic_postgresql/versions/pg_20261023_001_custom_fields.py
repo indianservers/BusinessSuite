@@ -1,7 +1,7 @@
 from alembic import op
 from app.apps.project_management.models import PMSCustomField, PMSCustomFieldValue
 revision = "pg_20261023_001"
-down_revision = "Ppg_20261023_001"
+down_revision = "pg_20261022_004"
 branch_labels = None
 depends_on = None
 

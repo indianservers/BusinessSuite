@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Bot, CheckCircle2, FileText, Gauge, Lightbulb, Mail, Play, ScrollText, Settings, ShieldCheck, Sparkles, Workflow } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { aiCopilotApi, type AICopilotRecord } from "./api";
@@ -128,6 +128,7 @@ function ProviderSettings() {
   const test = useMutation({ mutationFn: (id: number) => aiCopilotApi.testProviderSetting(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-provider-settings"] }) });
   return (
     <Section title="AI Provider Settings" action={<Button onClick={() => create.mutate()}>Add Mock Provider</Button>}>
+      <div className="rounded border p-4 space-y-2"><h3 className="font-semibold">PMS operator API connections</h3><p className="text-sm text-muted-foreground">Configure encrypted credentials, connection tests, usage analytics and request logs for each provider.</p><div className="flex gap-4"><Link className="text-primary underline" to="/pms/settings/ai/openai">OpenAI / ChatGPT</Link><Link className="text-primary underline" to="/pms/settings/ai/gemini">Google Gemini</Link><Link className="text-primary underline" to="/pms/settings/ai/claude">Anthropic Claude</Link></div><p className="text-sm">Legacy copilot test providers below are separate from operator connections.</p></div>
       <div className="grid gap-3 md:grid-cols-2">
         {(query.data?.items || []).map((item) => <Card key={item.id}><CardContent className="flex items-start justify-between gap-3 p-4"><div><p className="font-medium">{item.provider_name} / {item.model_name}</p><p className="mt-1 text-sm text-muted-foreground">Data sharing {item.data_sharing_allowed ? "allowed" : "blocked"}</p></div><div className="flex flex-col items-end gap-2"><Badge variant={item.enabled ? "default" : "outline"}>{item.enabled ? "Enabled" : "Disabled"}</Badge><Button variant="outline" size="sm" onClick={() => test.mutate(Number(item.id))}>Test</Button></div></CardContent></Card>)}
       </div>

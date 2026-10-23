@@ -153,3 +153,47 @@ once. Promotion preserves nested children. Clearing a due date now sends null.
 Not full ClickUp parity: inline expandable multi-level trees, bulk operations,
 recursive duplication, date shifting, descendant effort rollups, automatic parent
 completion rules and drag/drop reparenting remain pending.
+
+
+### Task detail controls increment
+
+Added a searchable priority picker with colored flags, scoped Alt+1 through
+Alt+4 shortcuts while the picker is open, and Escape dismissal. Normal maps to
+existing Medium values for compatibility. Task details now include the existing
+server-backed timer, fixed to the current task, with elapsed time, notes, billable
+status, stop/save, discard and another-task warning. Time logs refresh on save.
+Custom field definitions can be renamed directly from task details; dropdown
+options can be edited subject to existing server checks protecting used values.
+Unsaved field values are preserved while editing a definition. Empty fields can
+be collapsed. Project field permissions remain enforced by the existing API.
+Per-person priority rankings, clearing a priority, AI prioritization/autofill and
+field deletion/type conversion are not part of this increment.
+
+
+### Task fields and view navigation increment
+
+Added searchable field visibility controls grouped into Shown and Available
+properties, required Title, Show all, Reset, browser persistence and a link to
+the custom-field manager. Existing server saved views still store column choices
+with filters. Added shared view navigation on the task list and project Kanban,
+including a searchable view catalogue and project-aware links for list/table/
+gallery, board, Gantt and dashboard. Workspace pages are labeled explicitly.
+Gallery uses the same paginated task query, filters, status grouping and selected
+properties as the list; Table starts with grouping off. Project IDs in list URLs
+initialize and update the project filter.
+
+This does not add custom-field value columns, arbitrary new view instances,
+view pinning, whiteboards, mind maps, map views, external embeds or Google/Figma
+synchronization. Those remain pending rather than appearing as working entries.
+
+
+### Inline subtask creation increment
+
+Task list/table rows and mobile/gallery cards now provide Add subtask. The inline
+composer supports title, priority, due date, optional inheritance of parent
+assignees, Enter submission and Escape/Cancel. Children start in To Do regardless
+of the parent's completion state. Failed requests preserve the draft and duplicate
+submission is guarded. Successful creation updates the parent's displayed count
+and shows the new child beneath the parent with a task-detail link. These inline
+child previews are session-local; full existing-child expansion remains pending.
+Desktop/mobile browser coverage includes failure/retry and assignee inheritance.

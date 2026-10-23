@@ -111,6 +111,7 @@ class AiApprovalRead(BaseModel):
     status: str
     approved_by: int | None
     approved_at: datetime | None
+    execution_status: str | None = None
     executed_at: datetime | None = None
     execution_result_json: dict[str, Any] | None = None
     rejected_reason: str | None

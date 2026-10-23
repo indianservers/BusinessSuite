@@ -105,25 +105,22 @@ def client(db):
     app.dependency_overrides[get_db] = override_get_db
     previous_factory = getattr(app.state, "business_os_session_factory", None)
     previous_close = getattr(app.state, "business_os_close_session", None)
-    if engine.dialect.name == "postgresql":
-        # Keep module-gating queries in the same isolated test transaction;
-        # separate connections cannot see uncommitted configuration rows.
-        app.state.business_os_session_factory = lambda: db
-        app.state.business_os_close_session = False
+    # Keep middleware and handlers on the same isolated database for every dialect.
+    app.state.business_os_session_factory = lambda: db
+    app.state.business_os_close_session = False
     try:
         with TestClient(app) as c:
             yield c
     finally:
         app.dependency_overrides.clear()
-        if engine.dialect.name == "postgresql":
-            if previous_factory is None:
-                if hasattr(app.state, "business_os_session_factory"):
-                    del app.state.business_os_session_factory
-                if hasattr(app.state, "business_os_close_session"):
-                    del app.state.business_os_close_session
-            else:
-                app.state.business_os_session_factory = previous_factory
-                app.state.business_os_close_session = previous_close
+        if previous_factory is None:
+            if hasattr(app.state, "business_os_session_factory"):
+                del app.state.business_os_session_factory
+            if hasattr(app.state, "business_os_close_session"):
+                del app.state.business_os_close_session
+        else:
+            app.state.business_os_session_factory = previous_factory
+            app.state.business_os_close_session = previous_close
 
 
 @pytest.fixture(scope="function")

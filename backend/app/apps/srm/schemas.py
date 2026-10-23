@@ -43,6 +43,8 @@ class SRMSalesOrderCreate(BaseModel):
 
 class SRMSalesOrderUpdate(BaseModel):
     title: str | None = None
+    expected_start_date: date | None = None
+    expected_end_date: date | None = None
     status: str | None = None
     assigned_user_id: int | None = None
     subtotal: Decimal | None = None

@@ -36,7 +36,7 @@ export default function TeamsPage() {
   }, [selected]);
   const visible = teams.filter(team => `${team.name} ${team.alias}`.toLowerCase().includes(search.trim().toLowerCase()));
   return <div className="mx-auto max-w-5xl space-y-5">
-    <header><h1 className="page-title">Teams</h1><p className="page-description">Organize workspace collaborators into named groups. Teams do not change anyone's workspace permissions.</p></header>
+    <header><h1 className="page-title">Teams</h1><Link className="text-sm text-violet-600 hover:underline" to="/pms/analytics/team">Team analytics →</Link><Link className="ml-4 text-sm text-violet-600 hover:underline" to={`/pms/org-chart?workspace=${selected}`}>Organization chart →</Link><p className="page-description">Organize workspace collaborators into named groups. Teams do not change anyone's workspace permissions.</p></header>
     <Link className="text-primary underline" to={`/pms/workspaces?workspace=${selected}`}>Back to workspace</Link>
     <label className="block text-sm">Workspace<select aria-label="Teams workspace" disabled={busy} className="ml-3 rounded-md border bg-background p-2" value={selected} onChange={event => setSelected(Number(event.target.value))}><option value={0} disabled>Choose workspace</option>{workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select></label>
     {error && <p role="alert" className="text-destructive">{error}</p>}{notice && <p role="status">{notice}</p>}

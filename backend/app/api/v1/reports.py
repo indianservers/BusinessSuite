@@ -789,7 +789,9 @@ def global_search(
         (Employee.employee_id.ilike(term)) |
         (Employee.personal_email.ilike(term))
     ).limit(8).all()
-    jobs = db.query(Job).filter((Job.title.ilike(term)) | (Job.department.ilike(term))).limit(5).all()
+    from app.models.company import Department
+    jobs = (db.query(Job).outerjoin(Department, Job.department_id == Department.id)
+            .filter((Job.title.ilike(term)) | (Department.name.ilike(term))).limit(5).all())
     policies = db.query(CompanyPolicy).filter((CompanyPolicy.title.ilike(term)) | (CompanyPolicy.content.ilike(term))).limit(5).all()
     tickets = db.query(HelpdeskTicket).filter((HelpdeskTicket.ticket_number.ilike(term)) | (HelpdeskTicket.subject.ilike(term))).limit(5).all()
     return {

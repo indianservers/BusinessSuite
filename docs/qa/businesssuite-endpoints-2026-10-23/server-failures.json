@@ -1,0 +1,52 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/performance/summary/{employee_id}",
+    "module": "performance",
+    "summary": "Performance Summary",
+    "status": 500,
+    "coverage": "live_read",
+    "note": "Server failure: inspect runtime exception logs",
+    "elapsed_ms": 1453
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/reports/global-search",
+    "module": "reports",
+    "summary": "Global Search",
+    "status": 500,
+    "coverage": "live_read",
+    "note": "Server failure: inspect runtime exception logs",
+    "elapsed_ms": 875
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/fam/integrity/checks",
+    "module": "fam",
+    "summary": "Integrity Checks",
+    "status": 500,
+    "coverage": "live_read",
+    "note": "Server failure: inspect runtime exception logs",
+    "elapsed_ms": 2860
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/fam/period-close/checklist",
+    "module": "fam",
+    "summary": "Period Close Checklist",
+    "status": 500,
+    "coverage": "live_read",
+    "note": "Server failure: inspect runtime exception logs",
+    "elapsed_ms": 2625
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/fam/final-certification",
+    "module": "fam",
+    "summary": "Final Certification",
+    "status": 500,
+    "coverage": "live_read",
+    "note": "Server failure: inspect runtime exception logs",
+    "elapsed_ms": 2625
+  }
+]

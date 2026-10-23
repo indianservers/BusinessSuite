@@ -53,6 +53,7 @@ export type AiApproval = {
   status: "pending" | "approved" | "rejected" | "expired" | "cancelled" | "failed";
   approved_by?: number | null;
   approved_at?: string | null;
+  execution_status?: string | null;
   executed_at?: string | null;
   execution_result_json?: Record<string, unknown> | null;
   rejected_reason?: string | null;

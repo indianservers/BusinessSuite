@@ -1,8 +1,10 @@
+import PMSProfileMenu from "./PMSProfileMenu";
+import { usePersonalStore } from "@/store/personalStore";
 import { useSignOut } from "@/hooks/use-sign-out";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AlertTriangle, Bell, Briefcase, CheckCircle2, Clock, Eye, EyeOff, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Sun, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,6 +38,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [notificationTrayOpen, setNotificationTrayOpen] = useState(false);
+  const mutedUntil = usePersonalStore(s => s.users[user?.id || 0]?.mutedUntil || 0);
+  const [, refreshMute] = useState(0);
+  useEffect(() => {
+    const remaining = mutedUntil - Date.now();
+    if (remaining <= 0) return;
+    const timeout = window.setTimeout(() => refreshMute(value => value + 1), remaining + 10);
+    return () => window.clearTimeout(timeout);
+  }, [mutedUntil]);
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
   const initials = user?.name ? getNameInitials(user.name) : user?.email?.slice(0, 2).toUpperCase() || "?";
   const unreadCount = useQuery({
@@ -103,7 +113,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <DropdownMenu.Trigger asChild>
               <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications" title="Notifications">
                 <Bell className="h-5 w-5" />
-                {!!unreadCount.data && unreadCount.data > 0 && (
+                {!!unreadCount.data && unreadCount.data > 0 && !(location.pathname.startsWith("/pms") && mutedUntil > Date.now()) && (
               <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
                 {unreadCount.data > 99 ? "99+" : unreadCount.data}
               </span>
@@ -152,8 +162,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </Button>
 
         <Dialog.Root open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        <Button variant="ghost" size="sm" onClick={() => void handleLogout()}><LogOut className="h-4 w-4" /><span>Logout</span></Button>
-        <DropdownMenu.Root>
+        {!location.pathname.startsWith("/pms") && <Button variant="ghost" size="sm" onClick={() => void handleLogout()}><LogOut className="h-4 w-4" /><span>Logout</span></Button>}
+        {location.pathname.startsWith("/pms") ? <PMSProfileMenu onChangePassword={() => setPasswordDialogOpen(true)} /> : <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button aria-label="Account menu" className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -193,7 +203,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+        </DropdownMenu.Root>}
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-xl">

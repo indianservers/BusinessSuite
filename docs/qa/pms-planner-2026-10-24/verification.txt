@@ -1,0 +1,19 @@
+Planner implementation verification — 2026-10-24
+
+Routes: /pms/planner and /pms/calendar.
+Backend read endpoint: GET /api/v1/project-management/planner.
+Scheduling and completion use the existing permission-checked task PATCH endpoint.
+
+Implemented: Month, Week, Day and List; previous/next period, Today and jump-to-date; search; project/person/item-type/completion filters; weekday/weekend and density preferences; personal pinned priorities; assigned/overdue/backlog panels; people filtering; project and milestone deadlines; editable task drag/drop; date editor; duration-preserving rescheduling; one-step date Undo, including restoring an unscheduled task; completion/reopening; task/project links; create-task with the selected date prefilled; mobile task drawer and mobile-first list view; loading, empty, failure and retry states.
+
+Personal priority pins and calendar preferences are saved per signed-in user on this device. Task dates and status persist in the backend. Calendar entries are date-only task/milestone/project deadlines; timed meetings or external calendar synchronization are not introduced in this change.
+
+API verification: 66 PMS regression tests passed on isolated SQLite test databases. New tests verify schedules beyond the previous 21-item UI limit, deleted-task exclusion, project/milestone inclusion, outsider isolation, guest read-only permissions, persisted rescheduling, unauthenticated rejection and empty state.
+
+Frontend production build and TypeScript checks passed. Browser component checks use fixture API responses and verify month navigation, keyboard day selection, all four views, drag/drop with date-duration preservation, Undo, backlog scheduling and Undo to null due date, completion, priority pinning, search, selected-date task creation, 320/390 px layouts and failed-load/retry recovery. No browser page exceptions.
+
+Run browser verification with the Vite development server on 127.0.0.1:5173:
+node frontend/scripts/check-pms-planner.cjs
+
+Screenshots in this directory are from those browser fixtures, not production data.
+This change is local and has not been committed, pushed or deployed.

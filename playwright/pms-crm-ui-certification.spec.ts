@@ -621,3 +621,105 @@ test("PMS subtasks create, filter, reorder and promote", async ({ page }) => {
   await page.getByRole("button", { name: "Promote", exact: true }).click();
   await expect(page.getByRole("button", { name: "Prepare evidence", exact: true })).toHaveCount(0);
 });
+
+
+test("PMS task priority, inline timer and field definition controls", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let task = { id: 1, project_id: 1, task_key: "CERT-1", title: "Task controls", status: "In Progress", priority: "High" };
+  let field = { id: 1, name: "Billing status", field_type: "text", options: [], value: "Reviewed" };
+  let timer: Record<string, unknown> | null = null;
+  await page.route("**/api/**/projects/1/epics**", route => route.fulfill({ json: [] }));
+  await page.route("**/api/**/tags", route => route.fulfill({ json: [] }));
+  await page.route("**/api/**/tasks/1", async route => {
+    if (route.request().method() !== "GET") task = { ...task, ...route.request().postDataJSON() };
+    await route.fulfill({ json: task });
+  });
+  await page.route("**/api/**/tasks/1/**", async route => {
+    await route.fulfill({ json: route.request().url().includes("custom-fields") ? { can_edit: true, can_manage: true, fields: [field] } : [] });
+  });
+  await page.route("**/api/**/projects/1/custom-fields/1", async route => {
+    field = { ...field, ...route.request().postDataJSON() }; await route.fulfill({ json: field });
+  });
+  await page.route("**/api/**/project-management/timer**", async route => {
+    if (route.request().url().endsWith("/start")) { timer = { ...route.request().postDataJSON(), started_at: new Date().toISOString() }; await route.fulfill({ json: timer }); }
+    else if (route.request().url().endsWith("/stop")) { timer = null; await route.fulfill({ json: { duration_minutes: 1 } }); }
+    else await route.fulfill({ json: timer });
+  });
+  await page.goto("/pms/tasks/1");
+  await page.locator('summary[aria-label="Task priority"]').click();
+  await page.getByLabel("Search priorities", { exact: true }).fill("Urgent");
+  await page.getByRole("button", { name: /Urgent Alt/ }).click();
+  await expect.poll(() => task.priority).toBe("Urgent");
+  await page.getByRole("button", { name: "Start timer", exact: true }).click();
+  expect(timer?.task_id).toBe(1);
+  await expect(page.getByLabel("Timer elapsed", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Stop and save", exact: true }).click();
+  await expect(page.getByText("Saved 1 minute to your time logs", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Edit Billing status definition", exact: true }).click();
+  await page.getByLabel("Edit field name", { exact: true }).fill("Invoice status");
+  await page.getByRole("button", { name: "Save field definition", exact: true }).click();
+  await expect(page.getByLabel("Invoice status", { exact: true })).toHaveValue("Reviewed");
+  await page.reload();
+  await expect(page.getByLabel("Invoice status", { exact: true })).toHaveValue("Reviewed");
+});
+
+
+test("PMS fields chooser persists and view picker opens gallery", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  await page.goto("/pms/tasks");
+  await page.getByRole("button", { name: "Columns", exact: true }).click();
+  await page.getByLabel("Search task fields", { exact: true }).fill("Created");
+  await page.getByLabel("Show Created column", { exact: true }).check();
+  await expect(page.getByRole("columnheader", { name: "Created", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("columnheader", { name: "Created", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Columns", exact: true }).click();
+  await expect(page.getByLabel("Show Title column", { exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Reset columns", exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: "Created", exact: true })).toHaveCount(0);
+  await page.locator('summary[aria-label="Choose task view"]').click();
+  await page.getByLabel("Search task views", { exact: true }).fill("Gallery");
+  await page.getByRole("link", { name: "Gallery Task cards with selected properties", exact: true }).click();
+  await expect(page).toHaveURL(/layout=gallery/);
+  await expect(page.getByRole("heading", { name: "Validate PMS flow", exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Task views" }).getByRole("link", { name: "Table", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Group: None", exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 820 });
+  await page.locator('summary[aria-label="Choose task view"]').click();
+  await expect(page.getByLabel("Search task views", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+
+test("PMS list creates subtasks inline and retains failed drafts", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let attempts = 0;
+  let payload: any;
+  await page.route("**/api/**/tasks/1/subtasks", async route => {
+    attempts++; payload = route.request().postDataJSON();
+    if (attempts === 1) await route.fulfill({ status: 503, json: { detail: "Try saving again" } });
+    else await route.fulfill({ json: { id: 21 + attempts, project_id: 1, task_key: `CERT-1-${attempts}`, ...payload } });
+  });
+  await page.goto("/pms/tasks");
+  await page.getByRole("button", { name: "Add subtask to Validate PMS flow", exact: true }).click();
+  await expect(page).toHaveURL(/pms\/tasks$/);
+  const form = page.getByRole("form", { name: "Add subtask to Validate PMS flow", exact: true });
+  await form.getByLabel("Inline subtask title", { exact: true }).fill("Review evidence");
+  await form.getByLabel("Inline subtask due date", { exact: true }).fill("2026-11-01");
+  await form.getByLabel("Inherit parent assignees", { exact: true }).check();
+  await form.getByRole("button", { name: "Save subtask", exact: true }).click();
+  await expect(form.getByRole("alert")).toContainText("Try saving again");
+  await expect(form.getByLabel("Inline subtask title", { exact: true })).toHaveValue("Review evidence");
+  await form.getByRole("button", { name: "Save subtask", exact: true }).click();
+  await expect(page.getByRole("link", { name: /CERT-1-2.*Review evidence/ })).toBeVisible();
+  expect(payload.assignee_user_ids).toEqual([3]);
+  expect(payload.status).toBe("To Do");
+  expect(payload.due_date).toBe("2026-11-01");
+  await page.setViewportSize({ width: 390, height: 820 });
+  await page.getByRole("button", { name: "Add subtask to Validate PMS flow", exact: true }).click();
+  await form.getByLabel("Inline subtask title", { exact: true }).fill("Mobile child");
+  await form.getByRole("button", { name: "Save subtask", exact: true }).click();
+  await expect(page.getByRole("link", { name: /CERT-1-3.*Mobile child/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});

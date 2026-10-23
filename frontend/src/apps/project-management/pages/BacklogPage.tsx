@@ -237,8 +237,8 @@ export default function BacklogPage() {
           isOpen={showTaskModal}
           onClose={() => setShowTaskModal(false)}
           projectId={Number(projectId)}
-          onTaskCreated={() => {
-            setShowTaskModal(false);
+          onTaskCreated={(_task, createAnother) => {
+            if (!createAnother) setShowTaskModal(false);
             loadBacklog(Number(projectId));
           }}
         />

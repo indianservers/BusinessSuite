@@ -1,3 +1,4 @@
+import GanttPage from "./GanttPage";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
@@ -170,7 +171,9 @@ export default function ProductLaunchPage() {
           <Metric label="Blocked" value={items.filter((item) => item.status === "Blocked").length.toString()} danger />
         </div>
 
-        {activeTab === "List" ? (
+        {activeTab === "Timeline" ? (
+          <div className="space-y-3"><p className="text-sm text-muted-foreground">Live project tasks. Select the launch project below to plan its schedule.</p><GanttPage /></div>
+        ) : activeTab === "List" ? (
           <Card className="overflow-hidden border-slate-300">
             <CardContent className="p-0">
               <div className="grid grid-cols-[3.5rem_1fr_10rem_12rem_10rem] items-center border-b bg-white px-4 py-3 text-sm font-semibold text-slate-600">

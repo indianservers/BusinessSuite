@@ -36,6 +36,10 @@ celery_app = (
 
 celery_app.conf.timezone = settings.CELERY_TIMEZONE
 celery_app.conf.beat_schedule = {
+    "process-pms-operator-queue": {
+        "task": "app.worker.process_operator_queue",
+        "schedule": 5.0,
+    },
     "credit-scheduled-leave-accruals-daily": {
         "task": "app.worker.credit_scheduled_leave_accruals",
         "schedule": crontab(hour=1, minute=0),
@@ -48,5 +52,18 @@ def credit_scheduled_leave_accruals() -> dict:
     db = SessionLocal()
     try:
         return run_scheduled_leave_accruals(db)
+    finally:
+        db.close()
+
+
+@celery_app.task(name="app.worker.process_operator_queue")
+def process_operator_queue() -> dict:
+    from app.module_registry import is_app_enabled
+    if not is_app_enabled("project_management"):
+        return {"disabled": True}
+    from app.ai_operator.jobs import process_batch
+    db = SessionLocal()
+    try:
+        return process_batch(db)
     finally:
         db.close()

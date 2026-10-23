@@ -137,6 +137,8 @@ def _device_name(request: Request | None, explicit: str | None = None) -> str:
 
 
 def _token_response(db: Session, user: User, request: Request | None = None, trusted_device: bool = False, device_name: str | None = None) -> TokenResponse:
+    from app.core.audit_context import set_audit_actor
+    set_audit_actor(user)
     session = UserSession(
         user_id=user.id,
         session_token_hash="pending",

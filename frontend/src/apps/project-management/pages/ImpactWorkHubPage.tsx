@@ -1,3 +1,4 @@
+import GanttPage from "./GanttPage";
 import { useMemo, useState } from "react";
 import {
   DndContext,
@@ -132,7 +133,9 @@ export default function ImpactWorkHubPage() {
           <GoalAlignment goal={goal} items={items} />
           <AiPlanner items={aiItems} setItems={setAiItems} onCreate={createSuggested} />
 
-          {activeTab === "Board" ? (
+          {activeTab === "Timeline" ? (
+            <div className="space-y-3"><p className="text-sm text-muted-foreground">Live project tasks. Select a project below to plan its schedule.</p><GanttPage /></div>
+          ) : activeTab === "Board" ? (
             <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
               <div className="grid gap-4 xl:grid-cols-4">
                 {boardColumns.map((column) => <BoardColumn key={column} column={column} items={filtered.filter((item) => item.boardStatus === column)} />)}

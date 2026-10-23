@@ -9,12 +9,17 @@ import { devIntegrationsAPI, projectsAPI } from "../services/api";
 import type { PMSDevIntegration, PMSProject } from "../types";
 
 const settings = [
+  { label: "AI task operator", href: "/pms/operator", description: "Execute reviewed multi-step task commands through voice or text." },
+  { label: "OpenAI / ChatGPT API", href: "/pms/settings/ai/openai", description: "Configure encrypted API credentials, model, usage analytics and logs." },
+  { label: "Google Gemini API", href: "/pms/settings/ai/gemini", description: "Configure Gemini credentials, model and API usage." },
+  { label: "Anthropic Claude API", href: "/pms/settings/ai/claude", description: "Configure Claude credentials, model and API usage." },
   { label: "Docs", href: "/pms/docs", description: "Project documents, task links, Markdown editing and revision history." },
   { label: "Task Types", href: "/pms/task-types", description: "Configure work types, categories, icons, defaults and practice presets." },
   { label: "Tag Manager", href: "/pms/tags", description: "Search tags, review accessible usage, edit colors and remove unwanted tags." },
   { label: "Plans and capabilities", href: "/pms/plans", description: "Core, Business, Business Plus and Enterprise feature status and remaining work." },
   { label: "Custom Field Manager", href: "/pms/custom-fields", description: "Search, group, create and edit typed fields across your projects." },
   { label: "Direct messages", href: "/pms/messages", description: "Private conversations with workspace collaborators." },
+  { label: "Audit logs", href: "/pms/audit-logs", description: "Admin-only user, task, role and request diagnostics." },
   { label: "Teams", href: "/pms/teams", description: "Create named collaborator groups and manage team membership." },
   { label: "Workspace people and invitations", href: "/pms/workspaces", description: "Open People in your workspace to manage members and invitation links." },
   { label: "Task views", href: "/pms/tasks", description: "Save filters and choose visible columns." },

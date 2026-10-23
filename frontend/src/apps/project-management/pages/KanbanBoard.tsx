@@ -42,6 +42,7 @@ import { useKanbanStore, useProjectStore, useTaskStore } from "../store";
 import { kanbanAPI, projectsAPI } from "../services/api";
 import { usePMSRealtime } from "../realtime";
 
+import TaskViewPicker from "../components/TaskViewPicker";
 import KanbanColumn from "../components/KanbanColumn";
 import CreateTaskModal from "../components/CreateTaskModal";
 
@@ -247,6 +248,7 @@ const KanbanBoard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f8fb]">
+      <TaskViewPicker projectId={projectIdNum || undefined} />
       <div className="border-b bg-white">
         <div className="px-6 py-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -383,9 +385,9 @@ const KanbanBoard: React.FC = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         projectId={projectIdNum}
-        onTaskCreated={(task) => {
+        onTaskCreated={(task, createAnother) => {
           addTask(task);
-          setShowCreateModal(false);
+          if (!createAnother) setShowCreateModal(false);
         }}
       />
     </div>

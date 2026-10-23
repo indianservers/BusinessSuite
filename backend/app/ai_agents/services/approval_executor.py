@@ -26,6 +26,14 @@ class ApprovalActionDefinition:
 
 
 ACTION_DEFINITIONS: dict[str, ApprovalActionDefinition] = {
+    "EXECUTE_PMS_OPERATOR_SETUP": ApprovalActionDefinition(
+        module="PMS", permission="pms_manage_tasks", executor_name="operator.execute_setup",
+        required_fields=("proposal_id", "plan_hash"),
+    ),
+    "EXECUTE_PMS_OPERATOR_PLAN": ApprovalActionDefinition(
+        module="PMS", permission="pms_manage_tasks", executor_name="operator.execute_run",
+        required_fields=("run_id", "plan_hash"),
+    ),
     "CREATE_CRM_FOLLOWUP_TASK": ApprovalActionDefinition(
         module="CRM",
         permission="crm_manage",
@@ -130,6 +138,13 @@ class AiApprovalExecutorService:
         approval = self.db.query(AiActionApproval).filter(AiActionApproval.id == approval_id).with_for_update().first()
         if not approval:
             raise HTTPException(status_code=404, detail="Approval not found")
+        if approval.action_type == "EXECUTE_PMS_OPERATOR_PLAN":
+            from app.ai_operator.models import OperatorRun
+            run_id = (approval.proposed_action_json or {}).get("input", {}).get("run_id")
+            operator_run = self.db.get(OperatorRun, run_id)
+            if operator_run and operator_run.background:
+                from app.ai_operator.jobs import queue_approved_plan
+                return queue_approved_plan(self.db, user, approval)
         if approval.execution_status == "executed":
             approval.execution_result_json = approval.execution_result_json or {"success": True, "message": "This approval was already executed."}
             return approval
@@ -242,6 +257,9 @@ class AiApprovalExecutorService:
 
     def _dispatch(self, definition: ApprovalActionDefinition, user: User, proposed_action: dict[str, Any]) -> dict[str, Any]:
         namespace, method_name = definition.executor_name.split(".", 1)
+        if namespace == "operator":
+            from app.ai_operator.service import OperatorExecutor
+            return getattr(OperatorExecutor(self.db), method_name)(user, proposed_action)
         adapters = {
             "crm": CrmAiAdapter(self.db),
             "pms": PmsAiAdapter(self.db),

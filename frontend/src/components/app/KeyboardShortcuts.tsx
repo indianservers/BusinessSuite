@@ -6,8 +6,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 
-export default function KeyboardShortcuts() {
-  const [open, setOpen] = useState(false);
+export default function KeyboardShortcuts({ open: controlledOpen, onOpenChange }: { open?: boolean; onOpenChange?: (value: boolean) => void } = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   useEffect(() => {
@@ -55,9 +57,9 @@ export default function KeyboardShortcuts() {
   }, [navigate, user?.role, user?.is_superuser]);
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild><Button variant="ghost" size="icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+      {controlledOpen === undefined && <Dialog.Trigger asChild><Button variant="ghost" size="icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
         <Keyboard className="h-5 w-5" />
-      </Button></Dialog.Trigger>
+      </Button></Dialog.Trigger>}
       <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border bg-background p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">

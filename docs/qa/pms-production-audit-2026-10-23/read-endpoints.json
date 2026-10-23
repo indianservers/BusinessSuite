@@ -1,0 +1,437 @@
+{
+  "results": [
+    {
+      "path": "/api/v1/project-management/workspaces/1/activity",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/overview",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/members",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/invitations",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/entries",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/automations",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/automation-runs",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/tools",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/custom-fields",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/custom-fields",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/custom-fields",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tag-manager",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/task-types",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/timer",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/docs",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/teams",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/direct-conversations",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workspaces/1/workflow-events",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/realtime/config",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/module-info",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/clients",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/intake",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/project-templates",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/members",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/epics",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/roadmap",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/components",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/releases",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/tasks",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/gantt",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/dependencies",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/activity",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/attachments",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/time-logs",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/checklists",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/checklist",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/subtasks",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/links",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/tags",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tags",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/board",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/comments",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/users/search",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/notifications",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/milestones",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/sprints",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/velocity",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/task-distribution",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/cumulative-flow",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/cycle-time",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/time-in-status",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/project-health",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/team-performance",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/status-dashboard",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/overdue-tasks",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/milestone-progress",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/planned-vs-actual",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/timesheet",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/resource-utilization",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/budget-vs-actual",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/client-profitability",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/reports/dependency-delays",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/files",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/timesheets",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/time-logs",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/saved-views",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/saved-filters",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/activity",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/projects/1/workload",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/workload",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/dev-integrations",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/tasks/2/dev-links",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/risks",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/portfolio/summary",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/portfolio/projects",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/portfolio/health-trend",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/dashboard/1",
+      "status": 200,
+      "detail": "OK"
+    },
+    {
+      "path": "/api/v1/project-management/trash/tasks",
+      "status": 200,
+      "detail": "OK"
+    }
+  ],
+  "skipped": [
+    "/api/v1/project-management/workspace-invitations/preview",
+    "/api/v1/project-management/docs/{document_id}",
+    "/api/v1/project-management/docs/{document_id}/revisions",
+    "/api/v1/project-management/docs/{document_id}/revisions/{version}",
+    "/api/v1/project-management/workspaces/{workspace_id}/direct-conversations/{conversation_id}/messages",
+    "/api/v1/project-management/realtime/events",
+    "/api/v1/project-management/clients/{client_id}",
+    "/api/v1/project-management/epics/{epic_id}/tasks",
+    "/api/v1/project-management/releases/{release_id}/readiness",
+    "/api/v1/project-management/backlog",
+    "/api/v1/project-management/sprints/{sprint_id}/review",
+    "/api/v1/project-management/sprints/{sprint_id}/burndown",
+    "/api/v1/project-management/reports/burndown",
+    "/api/v1/project-management/reports/velocity",
+    "/api/v1/project-management/reports/export",
+    "/api/v1/project-management/attachments/{file_id}/download"
+  ]
+}

@@ -10,7 +10,8 @@
           "maxDuration": 300,
           "excludeFiles": "{venv/**,.venv/**,.local/**,tests/**,backups/**,uploads/**,alembic/**,app/apps/inventory/vyapara_erp/**,**/__pycache__/**,**/tests/**}"
         }
-      }
+      },
+      "buildCommand": "python scripts/migrate_deployment.py"
     },
     "frontend": {
       "root": "frontend",

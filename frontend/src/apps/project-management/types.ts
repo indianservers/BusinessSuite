@@ -266,6 +266,10 @@ export interface PMSTaskListQuery {
 }
 
 export interface CreateTaskInput {
+  sprint_id?: number;
+  recurrence_rule?: string;
+  recurrence_interval?: number;
+  recurrence_until?: string;
   title: string;
   description?: string;
   task_key: string;

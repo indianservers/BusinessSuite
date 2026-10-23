@@ -4,12 +4,13 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles, ClipboardCheck, Users, BarChart3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuthStore } from "@/store/authStore";
+import "./KaryaLogin.css";
+import { setRememberSession, useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/config/runtime";
@@ -47,7 +48,7 @@ const moduleLogins = {
     product: "KaryaFlow",
     authModule: "project_management",
     tagline: "Project Management Software",
-    description: "Enter your PMS credentials",
+    description: "Enter your PMS credentials to continue",
     afterLogin: "/pms",
     accent: "violet",
     demoLogins: moduleDefaultCredentials.project_management,
@@ -149,6 +150,7 @@ export default function LoginPage() {
   const loginTheme = loginThemes[loginModule];
   const { setTokens, setUser } = useAuthStore();
   const queryClient = useQueryClient();
+  const [rememberSession, setRemember] = useState(() => localStorage.getItem("suite-remember-session") === "true");
   const [showPassword, setShowPassword] = useState(false);
   const [loginPhase, setLoginPhase] = useState<"credentials" | "mfa">("credentials");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
@@ -301,17 +303,18 @@ export default function LoginPage() {
   const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname + location.search)}`;
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${loginTheme.page} p-4`}>
+    <div className={loginModule === "project_management" ? "karya-login" : `min-h-screen flex items-center justify-center bg-gradient-to-br ${loginTheme.page} p-4`}>
+      {loginModule === "project_management" && <><div className="karya-version">v1.0 <span /></div><section className="karya-hero" aria-label="KaryaFlow project management"><div className="karya-brand"><span><Sparkles /></span><div><strong>Karya<span>Flow</span></strong><p>Project Management Software</p></div></div><h2>Plan. Track. Collaborate.<br /><em>Get Results.</em></h2><div className="karya-rule" /><p className="karya-intro">A smarter way to manage your projects,<br />teams and tasks — all in one place.</p><div className="karya-benefits">{[{Icon: ClipboardCheck,title:"Task Management",copy:"Plan and track with ease",color:"purple"},{Icon:Users,title:"Team Collaboration",copy:"Work together seamlessly",color:"blue"},{Icon:BarChart3,title:"Real-time Insights",copy:"Make data-driven decisions",color:"green"},{Icon:ShieldCheck,title:"Secure & Reliable",copy:"Your data, always protected",color:"orange"}].map(({Icon,title,copy,color})=><div key={title}><span className={color}><Icon /></span><div><strong>{title}</strong><p>{copy}</p></div></div>)}</div><small className="karya-motto">From Ideas to Impact</small></section></>}
       {/* Background pattern */}
       <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] ${loginTheme.glow} via-transparent to-transparent`} />
 
-      <div className="relative w-full max-w-md space-y-6">
+      <div className={loginModule === "project_management" ? "karya-signin" : "relative w-full max-w-md space-y-6"}>
         {/* Logo */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-2 login-brand">
           <div className={`inline-flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg ${loginTheme.logo} mx-auto`}>
             <Sparkles className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">{loginConfig.product}</h1>
+          <h1 className="text-3xl font-bold text-white">{loginModule === "project_management" ? <>Karya<span className="karya-wordmark-flow">Flow</span></> : loginConfig.product}</h1>
           <p className={`${loginTheme.textSoft} text-sm`}>{loginConfig.tagline}</p>
         </div>
 
@@ -433,6 +436,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="username"
                   placeholder="you@company.com"
                   className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
                   {...register("email")}
@@ -450,6 +454,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="Enter your password"
                     className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring} pr-10`}
                     {...register("password")}
@@ -457,6 +462,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -467,6 +473,7 @@ export default function LoginPage() {
                 )}
               </div>
 
+              {loginModule === "project_management" && <div className="karya-login-options"><label><input type="checkbox" checked={rememberSession} onChange={e => { setRemember(e.target.checked); setRememberSession(e.target.checked); }} />Keep me signed in</label><button type="button" onClick={() => { setRecoveryEmail(emailValue || ""); setAuthView("forgot"); setInlineError(""); }}>Forgot password?</button></div>}
               <Button
                 type="submit"
                 className={`w-full text-white font-semibold shadow-lg ${loginTheme.button} h-11`}
@@ -475,9 +482,9 @@ export default function LoginPage() {
                 {isSubmitting || ssoBusy ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : null}
-                {isSubmitting || ssoBusy ? "Signing in..." : "Sign in"}
+                {isSubmitting || ssoBusy ? "Signing in..." : "Sign in"}{loginModule === "project_management" && !isSubmitting && <ArrowRight className="ml-2 h-5 w-5" />}
               </Button>
-              <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => { setRecoveryEmail(emailValue || ""); setAuthView("forgot"); setInlineError(""); }}>
+              <button type="button" className={`w-full text-xs text-blue-200/70 hover:text-white ${loginModule === "project_management" ? "hidden" : ""}`} onClick={() => { setRecoveryEmail(emailValue || ""); setAuthView("forgot"); setInlineError(""); }}>
                 Forgot password?
               </button>
               {hintedProvider && (
@@ -500,10 +507,11 @@ export default function LoginPage() {
                 ))}
               </div>
             )}
+            {loginModule === "project_management" && loginPhase === "credentials" && authView === "login" && !ssoProviders?.some(provider => provider.button_icon === "google" || provider.provider_type === "google") && <div className="mt-5"><div className="karya-divider">OR</div><Button type="button" variant="outline" className="karya-google" disabled title="An administrator must configure Google SSO for this workspace"><span className="google-letter">G</span>Continue with Google</Button><p className="karya-sso-note">Google sign-in becomes available when your workspace enables it.</p></div>}
             {inlineError && loginPhase === "credentials" && authView === "login" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
 
             {import.meta.env.DEV && authView === "login" && (
-            <div className="mt-4 space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
+            <details className="mt-4 space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3"><summary className="cursor-pointer text-xs text-slate-500">Development accounts</summary>
               <p className="text-xs font-medium text-blue-200/80">Role logins</p>
               {loginConfig.demoLogins.map((login) => (
                 <button
@@ -526,8 +534,9 @@ export default function LoginPage() {
                   <span className="mt-1 block text-[11px] text-blue-200/45">{login.description}</span>
                 </button>
               ))}
-            </div>
+            </details>
             )}
+            {loginModule === "project_management" && <div className="karya-secure"><ShieldCheck /><div><strong>Secure Access</strong><p>Your data is encrypted and protected</p></div></div>}
           </CardContent>
         </Card>
 

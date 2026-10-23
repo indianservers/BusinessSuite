@@ -1,0 +1,13 @@
+Built-in image_gen was used for both generated project assets. Outputs are optimized WebP copies; original generated PNGs remain unchanged.
+
+Asset: frontend/public/images/karya-login-hero.webp
+Prompt: Use case: product-mockup. Create a photorealistic wide 3:2 website login hero background for KaryaFlow project management. Match reference mood: bright modern Dubai office window, distant Burj Khalifa skyline, warm sunrise, white desk, silver open laptop at lower right showing an elegant purple project dashboard with tiny charts, leafy plant beside laptop and closed notebook in foreground. Soft lavender and ivory palette. Upper left half must be bright soft white negative space for HTML headline and features. No large text, no watermark. High-end real product photography. Asset only, not a whole login UI.
+
+Asset: frontend/public/images/karya-task-clipboard.webp
+Prompt: Use case: stylized-concept. Asset type: task creation sidebar illustration. A polished soft 3D purple clipboard with three checked checklist items and a golden yellow pencil leaning diagonally on its right. White paper, violet edges, rounded friendly shapes, soft ambient shadow, lavender studio background. Centered isolated object, square composition, no text, no watermark. Match premium productivity app artwork.
+
+Verification: npm --prefix frontend run build; node frontend/scripts/check-karyaflow-ui.cjs (Vite development server running on port 5173). Browser verification mocks APIs: it checks layouts, forgot password, password visibility, session preference, description preview, sprint/recurrence/dependency payloads, attachments retry without duplicate task creation, create-another and 320/390 px overflow. It does not claim production-provider integration. Backend recurrence plus existing readiness/multi-assignee tests: 4 passed against isolated release checkout, because a concurrent unfinished AI operator module currently prevents full workspace app import.
+
+Recurrence semantics: completion creates the next scheduled task, using the previous due date; daily, weekly, and calendar-month schedules, optional end date, preserved assignees/tags and no duplicated successor when reopened/completed again. Status patch, board drag and bulk completion trigger generation. Recurrence does not use a background scheduler.
+
+This UI update has not been committed, pushed or deployed.

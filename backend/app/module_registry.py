@@ -19,6 +19,7 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.apps.scheduling.router",
     "app.api.v1.scheduled_jobs",
     "app.api.v1.auth",
     "app.api.v1.approval_os",
@@ -37,6 +38,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.apps.scheduling.models",
     "app.models.deployment",
     "app.models.user",
     "app.models.company",
@@ -138,8 +140,8 @@ APP_MODULES: dict[str, AppModule] = {
     "project_management": AppModule(
         key="project_management",
         label="Project Management",
-        router_modules=("app.apps.project_management.api.router",),
-        model_modules=("app.apps.project_management.models",),
+        router_modules=("app.apps.project_management.api.router", "app.ai_operator.api"),
+        model_modules=("app.apps.project_management.models", "app.ai_operator.models"),
     ),
     "srm": AppModule(
         key="srm",

@@ -418,6 +418,7 @@ function isPmsDeliveryRole(role?: string | null, isSuperuser = false) {
 }
 
 const pmsAdminOnlyPaths = [
+  "/pms/audit-logs",
   "/pms/admin",
   "/pms/settings",
   "/pms/security",
@@ -479,7 +480,7 @@ const pmsDeliveryOnlyPaths = [
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
   // Workspace membership is enforced by the API, independently of company roles.
-  if (["/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates"].includes(pathname.replace(/\/$/, ""))) return true;
+  if (["/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart"].includes(pathname.replace(/\/$/, ""))) return true;
   if (/^\/pms\/projects\/\d+\/(gantt|reports)\/?$/.test(pathname)) return true;
   if (!isProjectManagementRole(role, isSuperuser)) return false;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";
@@ -543,7 +544,7 @@ function isSrmSalesRole(role?: string | null, isSuperuser = false) {
 
 const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/revenue-recognition", "/srm/profitability", "/srm/reports"];
 const srmCollectionOnlyPaths = ["/srm/collections"];
-const srmSalesOnlyPaths = ["/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
+const srmSalesOnlyPaths = ["/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
 
 function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isSrmRole(role, isSuperuser)) return false;
@@ -624,7 +625,7 @@ function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = 
   }
   if (normalizedPath === "/fam/posting-rules" || normalizedPath.startsWith("/fam/posting-rules/")) return isFamAdminRole(role, isSuperuser) || ["finance_manager", "fam_finance_manager"].includes(normalizeRole(role));
   if (normalizedPath === "/fam/voucher-types" || normalizedPath.startsWith("/fam/voucher-types/")) return isFamAdminRole(role, isSuperuser);
-  if (["/fam/financial-years", "/fam/ledger-groups", "/fam/ledgers", "/fam/opening-balances", "/fam/cost-centers", "/fam/branches"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+  if (["/fam/gantt", "/fam/financial-years", "/fam/ledger-groups", "/fam/ledgers", "/fam/opening-balances", "/fam/cost-centers", "/fam/branches"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
     return isFamOperationalRole(role, isSuperuser) || isFamReadOnlyRole(role, isSuperuser);
   }
   if (normalizedPath === "/fam/chart-of-accounts" || normalizedPath.startsWith("/fam/chart-of-accounts/")) return isFamReadOnlyRole(role, isSuperuser);
@@ -648,6 +649,7 @@ const hrNav: RoleNavItem[] = [
   { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
   { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
   { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "Payroll & Finance" },
   { label: "F&F Settlement", icon: FileText, to: "/fnf-settlements", group: "Payroll & Finance" },
@@ -685,6 +687,7 @@ const adminNav: RoleNavItem[] = [
   { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
   { label: "Payroll", icon: DollarSign, to: "/payroll", group: "Payroll & Finance" },
   { label: "Investment Declaration", icon: FileCheck2, to: "/investment-declaration", group: "Payroll & Finance" },
   { label: "F&F Settlement", icon: FileText, to: "/fnf-settlements", group: "Payroll & Finance" },
@@ -752,6 +755,7 @@ const managerNav: RoleNavItem[] = [
   { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
   { label: "Timesheets", icon: Timer, to: "/timesheets", group: "Core HR" },
   { label: "Leave Approvals", icon: CalendarDays, to: "/leave", group: "Core HR" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
   { label: "Recruitment", icon: Briefcase, to: "/recruitment", group: "Core HR" },
   { label: "Assets", icon: Package, to: "/assets", group: "Core HR" },
   { label: "Performance", icon: Target, to: "/performance", group: "Talent" },
@@ -770,6 +774,7 @@ const employeeNav: RoleNavItem[] = [
   { label: "My Profile", icon: UserRound, to: "/profile", group: "Self Service" },
   { label: "My Attendance", icon: Clock, to: "/my-attendance", group: "Self Service" },
   { label: "My Leave", icon: CalendarDays, to: "/leave", group: "Self Service" },
+  { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Self Service" },
   { label: "My Payslips", icon: DollarSign, to: "/my-payslips", group: "Self Service" },
   { label: "My Documents", icon: FileText, to: "/documents", group: "Self Service" },
   { label: "My Approvals", icon: FileCheck2, to: "/approval-os", group: "Home" },
@@ -790,6 +795,7 @@ const crmNav: RoleNavItem[] = [
   { label: "Activities", icon: Clock, to: "/crm/activities", group: "Sales" },
   { label: "Tasks", icon: ClipboardCheck, to: "/crm/tasks", group: "Sales" },
   { label: "Calendar", icon: CalendarDays, to: "/crm/calendar", group: "Sales" },
+  { label: "Gantt", icon: CalendarDays, to: "/crm/gantt", group: "Sales" },
   { label: "Calendar Integrations", icon: CalendarDays, to: "/crm/calendar-integrations", group: "Sales" },
   { label: "Communication Hub", icon: MessageCircle, to: "/crm/communication-hub", group: "Growth" },
   { label: "Email Templates", icon: FileText, to: "/crm/email-templates", group: "Growth" },
@@ -833,6 +839,7 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Project Financials", icon: DollarSign, to: "/pms/project-financials", group: "Project Management", badge: "Cost" },
   { label: "Risk Register", icon: ShieldAlert, to: "/pms/risk-register", group: "Project Management", badge: "RAID" },
   { label: "Impact Work Hub", icon: Target, to: "/pms/work-hub", group: "Project Management", badge: "AI" },
+  { label: "Planner", icon: CalendarDays, to: "/pms/planner", group: "Project Management" },
   { label: "AI Planner", icon: Sparkles, to: "/pms/ai-planner", group: "Project Management" },
   { label: "Live Work", icon: Gauge, to: "/pms/live", group: "Project Management", badge: "Realtime" },
   { label: "Software Delivery", icon: GitBranch, to: "/pms/software", group: "Project Management", badge: "Agile" },
@@ -863,12 +870,16 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Blueprints", icon: Workflow, to: "/pms/blueprints", group: "Project Admin" },
   { label: "Resource Utilization", icon: Users, to: "/pms/resource-utilization", group: "Project Admin" },
   { label: "Apps & Integrations", icon: Network, to: "/pms/apps", group: "Project Admin" },
+  { label: "Org Chart", icon: GitBranch, to: "/pms/org-chart", group: "Project Planning" },
   { label: "Teams Live", icon: Users, to: "/pms/teams-live", group: "Project Admin", badge: "Drag" },
   { label: "Files", icon: FileText, to: "/pms/files", group: "Project Collaboration" },
   { label: "Time Tracking", icon: Clock, to: "/pms/time-tracking", group: "Project Collaboration" },
+  { label: "Team Analytics", icon: Users, to: "/pms/analytics/team", group: "Project Collaboration" },
+  { label: "Project Analytics", icon: BarChart3, to: "/pms/analytics/projects", group: "Project Collaboration" },
   { label: "Reports", icon: BarChart3, to: "/pms/reports", group: "Project Collaboration" },
   { label: "Automation AI", icon: Sparkles, to: "/pms/automation", group: "Project Collaboration", badge: "AI" },
   { label: "Client Portal", icon: Users, to: "/pms/client-portal", group: "Project Collaboration" },
+  { label: "Audit Logs", icon: ShieldCheck, to: "/pms/audit-logs", group: "Project Admin" },
   { label: "PM Settings", icon: Settings, to: "/pms/settings", group: "Project Admin" },
   { label: "Security", icon: ShieldCheck, to: "/pms/security", group: "Project Admin" },
   { label: "PM Admin", icon: ShieldCheck, to: "/pms/admin", group: "Project Admin" },
@@ -879,6 +890,8 @@ const srmNav: RoleNavItem[] = [
   { label: "Sales Orders", icon: Receipt, to: "/srm/sales-orders", group: "Sales & Inventory" },
   { label: "Source Sales Docs", icon: FileText, to: "/srm/sales-inventory/source", group: "Sales & Inventory" },
   { label: "Contracts", icon: FileCheck2, to: "/srm/contracts", group: "Sales & Inventory" },
+  { label: "Gantt", icon: CalendarDays, to: "/srm/gantt", group: "Sales & Inventory" },
+  { label: "Procurement Gantt", icon: CalendarDays, to: "/srm/inventory/gantt", group: "Sales & Inventory" },
   { label: "Engagements", icon: Briefcase, to: "/srm/engagements", group: "Sales & Inventory" },
   { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
   { label: "POS Sessions", icon: FileText, to: "/srm/pos/sessions", group: "Sales & Inventory" },
@@ -916,6 +929,7 @@ const famNav: RoleNavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/fam/dashboard", group: "Finance & Accounting", exact: true },
   { label: "Company Settings", icon: Settings, to: "/fam/settings", group: "Foundation" },
   { label: "Financial Years", icon: CalendarDays, to: "/fam/financial-years", group: "Foundation" },
+  { label: "Gantt", icon: CalendarDays, to: "/fam/gantt", group: "Foundation" },
   { label: "Chart of Accounts", icon: GitBranch, to: "/fam/chart-of-accounts", group: "Chart of Accounts" },
   { label: "Ledger Groups", icon: Layers3, to: "/fam/ledger-groups", group: "Chart of Accounts" },
   { label: "Ledgers", icon: FileText, to: "/fam/ledgers", group: "Chart of Accounts" },

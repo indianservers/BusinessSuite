@@ -123,20 +123,23 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
 
 # GZip compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Audit logging
-app.add_middleware(AuditLogMiddleware)
 app.add_middleware(BusinessOSModuleAccessMiddleware)
+app.add_middleware(AuditLogMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    import logging
+    logging.getLogger("businesssuite.errors").error("request_failed request_id=%s error_type=%s", getattr(request.state, "request_id", None), type(exc).__name__)
     if settings.DEBUG:
         import traceback
         detail = traceback.format_exc()
@@ -144,7 +147,8 @@ async def global_exception_handler(request: Request, exc: Exception):
         detail = "An internal server error occurred"
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": detail},
+        content={"detail": detail, "request_id": getattr(request.state, "request_id", None)},
+        headers={"X-Request-ID": getattr(request.state, "request_id", "")},
     )
 
 

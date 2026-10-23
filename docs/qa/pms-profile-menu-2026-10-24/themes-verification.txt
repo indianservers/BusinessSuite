@@ -1,0 +1,4 @@
+Six palettes: violet, ocean, forest, rose, sunset, slate. Independent Light/Dark/System modes.
+Browser fixture checks: all palette selections and persisted values; profile status/mute/notepad/notifications/shortcuts/pins/logout; theme submenu interaction and overflow at 320/390px; zero page exceptions.
+Production TypeScript/Vite build passed. Workspace neutral surfaces use card/background/border tokens; semantic priority colors preserved.
+Local verification only; no production deployment or live endpoint certification.

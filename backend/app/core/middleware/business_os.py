@@ -14,6 +14,7 @@ API_MODULE_PREFIXES = (
     ("/api/v1/fam/inventory", "inventory"),
     ("/api/v1/fam", "fam"),
     ("/api/v1/project-management", "project_management"),
+    ("/api/v1/ai-operator", "project_management"),
     ("/api/v1/ai", "ai"),
     ("/api/v1/ai-agents", "ai"),
     ("/api/v1/portal", "portals"),

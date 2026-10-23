@@ -1,0 +1,34 @@
+KaryaFlow Profile menu verification — 2026-10-24
+
+Implemented:
+Reusable PMS profile menu in the shared header and standalone workspace header.
+Avatar/account identity; status message, self-set availability and expiry.
+Browser-local PMS notification muting for 30 minutes, 1/4/24 hours, plus resume.
+Muted mode suppresses PMS realtime update toasts and the shared PMS header unread badge.
+Notifications remain available in the inbox and are not marked read by muting.
+Real account notification inbox with pagination, mark-read and error/retry states.
+Light, dark and system themes using the existing theme store.
+Existing keyboard shortcuts dialog, profile settings and password action in the shared header.
+Personal tools: create task, My Work, time tracking, notepad, Docs, People,
+role-appropriate dashboards and Trash, help, logout.
+Pin/unpin personal tools through Customize quick tools.
+My Work clears project/search filters and selects the signed-in user's assignments.
+Existing task composer navigation is reused; workspace callbacks open it directly.
+Logout uses the existing API/session/query-cache cleanup.
+
+Local preferences:
+Status, notes, mute duration and shortcut pins persist per user ID on this browser.
+The UI explicitly describes the browser-only scope. These are not synced account settings.
+Status is self-set, not live presence. Notes support up to 20,000 characters.
+Unsupported screen-recording, dictation, AI and desktop-download controls are not shown.
+
+Validation:
+Playwright component fixture passed status save, mute persistence, dark theme,
+notepad save/reopen, shortcuts, notification listing/mark-read, pin preferences,
+logout API/session cleanup and page/dialog layouts at 320 and 390 px.
+No browser page exceptions. Desktop screenshot visually inspected.
+Production build (TypeScript + Vite) passed; repeated after the final integration adjustment.
+Browser notification/logout responses are fixtures, not production-system verification.
+No backend API changes or schema migration required for this menu.
+
+Local changes only. No commit, push or production deployment performed.

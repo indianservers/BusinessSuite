@@ -1,0 +1,38 @@
+KaryaFlow Organization chart verification — 2026-10-24
+
+Route: /pms/org-chart (linked from Teams and PMS navigation).
+Backend routes:
+GET /api/v1/project-management/workspaces/{wid}/org-chart
+PUT /api/v1/project-management/workspaces/{wid}/org-chart/{person_id}
+
+Implemented:
+Workspace-scoped active collaborators, names/initials, job titles and actual team membership.
+Classic tree with connectors and a level-based layout.
+Multiple top-level people; no reporting relationships invented from access roles.
+Collapsible branches, expand/collapse all, search/jump that expands ancestors,
+team filtering that retains reporting ancestors, focused person highlight.
+Zoom 20–160%, fit chart, mouse drag panning, native touch/scroll panning.
+Accessible person dialog with admin-only display-name/title/manager editing.
+Read-only view for ordinary members and workspace guests; guests are not reporting nodes.
+Cycle/self-manager prevention, stale revision conflicts, cross-workspace manager rejection.
+Inactive/removed collaborators and their stale reporting references omitted from visible graph.
+People CSV/JSON exports, visible chart SVG download, browser Print/Save PDF.
+SVG text is escaped and CSV formula prefixes are neutralized.
+Existing workspace-entry storage reused; no organization-chart schema migration needed.
+Reporting changes do not change workspace permissions.
+
+Validation:
+3 focused backend API tests passed, followed by all 73 PMS backend tests passing.
+API tests cover read/edit permissions, revisions, direct and indirect cycles,
+workspace isolation, guest/inactive people, stale manager removal and team membership.
+Playwright component fixture passes classic/level views, branch collapse,
+search expansion, team filtering, zoom, actual mouse panning, admin editing,
+SVG download/XML parsing, view-only controls, simulated server error/reload,
+and mobile page/dialog overflow checks at 320 and 390 px. No page exceptions.
+Desktop and mobile screenshot layouts visually inspected.
+Final frontend TypeScript and Vite production build passed after visual adjustments.
+
+The browser harness uses API fixtures. Real API behavior was tested against an isolated
+SQLite database, not the deployed database. No production deployment, commit or push.
+Default person names use email local parts until an admin saves a display name.
+No live-presence indicators or agent reporting relationships are fabricated.

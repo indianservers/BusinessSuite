@@ -1,4 +1,5 @@
 import React from "react";
+const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 import type { FAMViewKind } from "./types";
 
@@ -12,6 +13,7 @@ const route = (path: string, kind: FAMViewKind): FrontendRoute => ({
 
 
 export const famRoutes: FrontendRoute[] = [
+  { path: "fam/gantt", element: <ModuleGanttPage key="fam" module="fam" /> },
   route("fam", "dashboard"),
   route("fam/dashboard", "dashboard"),
   { path: "fam/profile", element: <ModuleProfilePage /> },

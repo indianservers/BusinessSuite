@@ -1,0 +1,27 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/reports/global-search?q=audit",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/performance/summary/1",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/fam/integrity/checks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/fam/period-close/checklist",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/fam/final-certification",
+    "status": 200
+  }
+]

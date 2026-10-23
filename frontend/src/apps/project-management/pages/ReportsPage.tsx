@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -150,7 +150,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h1 className="page-title">PMS reports</h1>
+          <h1 className="page-title">PMS reports</h1><div className="flex gap-4 text-sm text-violet-600"><Link to="/pms/analytics/team">Team analytics</Link><Link to="/pms/analytics/projects">Project analytics</Link></div>
           <p className="page-description">Real task, sprint, status-history, flow, cycle-time, health, and team analytics.</p>
         </div>
         <div className="flex flex-wrap gap-2">

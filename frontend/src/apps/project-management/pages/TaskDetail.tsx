@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Bold,
@@ -35,6 +35,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AssigneePicker from "../components/AssigneePicker";
+import RunningTimer from "../components/RunningTimer";
+import PriorityPicker from "../components/PriorityPicker";
 import TaskCustomFields from "../components/TaskCustomFields";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
 import { cn, formatDate, formatDateTime, statusColor } from "@/lib/utils";
@@ -715,6 +717,7 @@ export default function TaskDetail() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Link className="inline-flex items-center rounded-md border px-3 py-2 text-sm" to={`/pms/operator?project=${task.project_id}&task=${task.id}`}>AI operator · voice / text</Link>
               <AskAiButton
                 module="PMS"
                 relatedEntityType="task"
@@ -747,6 +750,7 @@ export default function TaskDetail() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
+          <RunningTimer key={`timer-${task.id}`} projects={project ? [project] : []} fixedTask={task} onSaved={() => { void tasksAPI.listTimeLogs(task.id).then(setTimeLogs).catch(() => setError("Time saved, but time logs could not be refreshed. Reload to retry.")); refreshActivity(); }} />
           <TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} />
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Description</CardTitle></CardHeader>
@@ -1038,9 +1042,7 @@ export default function TaskDetail() {
                 </select>
               </Field>
               <Field label="Priority">
-                <select value={task.priority} onChange={(event) => updateTask({ priority: event.target.value as TaskPriority })} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
-                  {priorities.map((item) => <option key={item}>{item}</option>)}
-                </select>
+                <PriorityPicker value={task.priority} disabled={saving} onChange={priority => updateTask({ priority })} />
               </Field>
               <Field label="Sprint">
                 <select value={task.sprint_id || ""} onChange={(event) => updateTask({ sprint_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
@@ -1782,7 +1784,7 @@ function FilesTab({
       >
         <Upload className="mb-3 h-7 w-7 text-muted-foreground" />
         <span className="font-medium">{uploading ? "Uploading attachments..." : "Drop files here or choose files"}</span>
-        <span className="mt-1 text-xs text-muted-foreground">Images, PDFs, Office docs, text, CSV, and ZIP files up to 25 MB.</span>
+        <span className="mt-1 text-xs text-muted-foreground">Images, PDFs, Office docs, text, CSV, and ZIP. Hosted file limit: 3 MB; self-hosted limits may differ.</span>
         <Input
           type="file"
           multiple

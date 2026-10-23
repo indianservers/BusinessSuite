@@ -1,0 +1,25 @@
+PMS analytics verification — 2026-10-24
+
+Implemented routes:
+/pms/analytics/team
+/pms/analytics/projects
+/pms/projects/:projectId/analytics
+
+Backend endpoint:
+GET /api/v1/project-management/analytics/overview
+Optional filters: workspace_id, project_id, team_id, member_id, start_date, end_date.
+
+Metrics use stored PMS tasks, multi-assignees, time logs, membership groups and activity records. No sample analytics data is shipped in the application. Task snapshots are current; time and activity are scoped to the selected range. Charts use UTC. Recent activity means a recorded action in the last 15 minutes within the selected range; it is not online presence.
+
+Verified backend: all 64 test_pms*.py tests passed against isolated SQLite test databases. New integration tests cover shared-task deduplication, exact time totals, team filtering, focus percentages, outsider/guest access denial, invalid date ranges, empty workspaces, historical periods and completion/reopening timestamps.
+
+Verified frontend: production build and TypeScript checks passed. Browser component checks use fixture API responses to verify filter requests, search, CSV download, 500 error/retry recovery, charts and 320/390 pixel mobile layouts without horizontal overflow. No browser page exceptions. Vite hot-reload websocket warnings in the headless environment do not affect the checks.
+
+Reproduce browser checks with a Vite dev server on 127.0.0.1:5173, then run from the repository root:
+node frontend/scripts/check-pms-analytics.cjs
+
+Navigation: sidebar Team Analytics and Project Analytics; Teams and Reports links; project cards link to scoped project analytics.
+
+Existing task completion flows now persist completed_at on creation as Done, status edits, bulk status updates and board movement; reopening clears it. Historical completion trends can also use recorded status-change events. Unknown historical completion dates are not fabricated.
+
+This feature is implemented and tested locally. It has not been committed, pushed or deployed to the production site.

@@ -2182,16 +2182,24 @@ def get_sales_order(sales_order_id: int, db: Session = Depends(get_db), current_
     }
 
 
+def _validate_schedule_dates(item, changes, start_field: str, end_field: str):
+    start = changes.get(start_field, getattr(item, start_field))
+    end = changes.get(end_field, getattr(item, end_field))
+    if start is not None and end is not None and end < start:
+        raise HTTPException(status_code=422, detail="End date must be on or after start date")
+
+
 @router.patch("/sales-orders/{sales_order_id}")
 def update_sales_order(sales_order_id: int, data: SRMSalesOrderUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     item = get_sales_order_for_user(db, sales_order_id, current_user)
+    _validate_schedule_dates(item, data.model_dump(exclude_unset=True), "expected_start_date", "expected_end_date")
     before = _serialize(item)
     for key, value in data.model_dump(exclude_unset=True).items():
         if key == "status":
             _assert_status(value, SALES_ORDER_STATUSES, "sales order")
             _transition(item.status, value, SALES_ORDER_TRANSITIONS, "sales order")
         setattr(item, key, value)
-    _audit(db, current_user, "sales_order", item.id, "updated", before=before, after=data.model_dump(exclude_unset=True))
+    _audit(db, current_user, "sales_order", item.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
     db.commit()
     db.refresh(item)
     return _serialize(item)
@@ -2434,10 +2442,11 @@ def update_contract(contract_id: int, data: SRMContractUpdate, db: Session = Dep
     item = db.query(SRMContract).filter(SRMContract.id == contract_id, SRMContract.deleted_at == None).first()
     if not item:
         raise HTTPException(status_code=404, detail="Contract not found")
+    _validate_schedule_dates(item, data.model_dump(exclude_unset=True), "effective_date", "expiry_date")
     before = _serialize(item)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
-    _audit(db, current_user, "contract", item.id, "updated", before=before, after=data.model_dump(exclude_unset=True))
+    _audit(db, current_user, "contract", item.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
     db.commit()
     db.refresh(item)
     return _serialize(item)
@@ -2505,12 +2514,13 @@ def get_engagement(engagement_id: int, db: Session = Depends(get_db), current_us
 @router.patch("/engagements/{engagement_id}")
 def update_engagement(engagement_id: int, data: SRMEngagementUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     item = get_engagement_for_user(db, engagement_id, current_user)
+    _validate_schedule_dates(item, data.model_dump(exclude_unset=True), "planned_start_date", "planned_end_date")
     before = _serialize(item)
     for key, value in data.model_dump(exclude_unset=True).items():
         if key == "status":
             _assert_status(value, ENGAGEMENT_STATUSES, "engagement")
         setattr(item, key, value)
-    _audit(db, current_user, "engagement", item.id, "updated", before=before, after=data.model_dump(exclude_unset=True))
+    _audit(db, current_user, "engagement", item.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
     db.commit()
     db.refresh(item)
     return _serialize(item)

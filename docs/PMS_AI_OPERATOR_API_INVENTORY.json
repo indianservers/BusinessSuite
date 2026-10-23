@@ -1,0 +1,3648 @@
+{
+  "review_date": "2026-10-24",
+  "scope": "Source-declared routes; not live OpenAPI or runtime verification",
+  "base_path": "/api/v1 (default API_V1_STR; deployments may override)",
+  "route_count": 312,
+  "routes": [
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/realtime/config",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 463,
+      "handler": "realtime_config",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/realtime/events",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 468,
+      "handler": "realtime_events",
+      "parameters": [
+        "response: Response",
+        "cursor: int | None"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "WEBSOCKET",
+      "path": "/api/v1/project-management/realtime",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 476,
+      "handler": "pms_realtime_socket",
+      "parameters": [
+        "token: str | None"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/module-info",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1702,
+      "handler": "module_info",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/clients",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1739,
+      "handler": "create_client",
+      "parameters": [
+        "client_in: PMSClientCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/clients",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1758,
+      "handler": "list_clients",
+      "parameters": [
+        "skip: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/clients/{client_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1775,
+      "handler": "get_client",
+      "parameters": [
+        "client_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/clients/{client_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1793,
+      "handler": "update_client",
+      "parameters": [
+        "client_id: int",
+        "client_in: PMSClientUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/clients/{client_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1820,
+      "handler": "delete_client",
+      "parameters": [
+        "client_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/intake",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1854,
+      "handler": "create_project_intake",
+      "parameters": [
+        "intake_in: PMSProjectIntakeCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/intake",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1873,
+      "handler": "list_project_intakes",
+      "parameters": [
+        "status_filter: str | None",
+        "skip: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/intake/{intake_id}/review",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1889,
+      "handler": "review_project_intake",
+      "parameters": [
+        "intake_id: int",
+        "review: PMSProjectIntakeReview"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 1959,
+      "handler": "create_project",
+      "parameters": [
+        "project_in: PMSProjectCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2027,
+      "handler": "list_projects",
+      "parameters": [
+        "skip: int",
+        "limit: int",
+        "status: str",
+        "workspace_id: int | None"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2049,
+      "handler": "get_project",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/projects/{project_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2077,
+      "handler": "update_project",
+      "parameters": [
+        "project_id: int",
+        "project_in: PMSProjectUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/projects/{project_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2116,
+      "handler": "delete_project",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/archive",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2133,
+      "handler": "archive_project",
+      "parameters": [
+        "project_id: int",
+        "archive: bool"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/clone",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2149,
+      "handler": "clone_project",
+      "parameters": [
+        "project_id: int",
+        "clone_in: ProjectCloneRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/project-templates",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2262,
+      "handler": "list_project_templates",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/members",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2271,
+      "handler": "add_project_member",
+      "parameters": [
+        "project_id: int",
+        "member_in: PMSProjectMemberCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/members",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2293,
+      "handler": "list_project_members",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/projects/{project_id}/members/{member_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2304,
+      "handler": "update_project_member",
+      "parameters": [
+        "project_id: int",
+        "member_id: int",
+        "member_in: PMSProjectMemberUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/projects/{project_id}/members/{member_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2328,
+      "handler": "remove_project_member",
+      "parameters": [
+        "project_id: int",
+        "member_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/epics",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2349,
+      "handler": "create_epic",
+      "parameters": [
+        "project_id: int",
+        "epic_in: PMSEpicCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/epics",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2377,
+      "handler": "list_epics",
+      "parameters": [
+        "project_id: int",
+        "status_filter: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/epics/{epic_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2392,
+      "handler": "update_epic",
+      "parameters": [
+        "epic_id: int",
+        "epic_in: PMSEpicUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/roadmap",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2417,
+      "handler": "get_roadmap",
+      "parameters": [
+        "projectId: int",
+        "ownerId: int",
+        "status: str",
+        "from_date: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/epics/{epic_id}/schedule",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2502,
+      "handler": "update_epic_schedule",
+      "parameters": [
+        "epic_id: int",
+        "schedule_in: EpicScheduleUpdateRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/epics/{epic_id}/tasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2553,
+      "handler": "list_epic_tasks",
+      "parameters": [
+        "epic_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/components",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2568,
+      "handler": "create_component",
+      "parameters": [
+        "project_id: int",
+        "component_in: PMSComponentCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/components",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2590,
+      "handler": "list_components",
+      "parameters": [
+        "project_id: int",
+        "active_only: bool"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/components/{component_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2605,
+      "handler": "update_component",
+      "parameters": [
+        "component_id: int",
+        "component_in: PMSComponentUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/releases",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2625,
+      "handler": "create_release",
+      "parameters": [
+        "project_id: int",
+        "release_in: PMSReleaseCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/releases",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2648,
+      "handler": "list_releases",
+      "parameters": [
+        "project_id: int",
+        "status_filter: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/releases/{release_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2663,
+      "handler": "update_release",
+      "parameters": [
+        "release_id: int",
+        "release_in: PMSReleaseUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/releases/{release_id}/readiness",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2683,
+      "handler": "get_release_readiness",
+      "parameters": [
+        "release_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/tasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2724,
+      "handler": "create_task",
+      "parameters": [
+        "project_id: int",
+        "task_in: PMSTaskCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/tasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2848,
+      "handler": "list_tasks",
+      "parameters": [
+        "project_id: int",
+        "skip: int",
+        "limit: int",
+        "status: str",
+        "assignee_id: int",
+        "sprint_id: int",
+        "epic_id: int",
+        "component_id: int",
+        "release_id: int",
+        "work_type: str",
+        "epic_key: str",
+        "component: str",
+        "severity: str",
+        "fix_version: str",
+        "release_name: str",
+        "security_level: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 2910,
+      "handler": "list_all_tasks",
+      "parameters": [
+        "projectId: int",
+        "sprintId: int",
+        "epicId: int",
+        "status: str",
+        "priority: str",
+        "assigneeId: int",
+        "reporterId: int",
+        "tag: str",
+        "search: str",
+        "dueFrom: date",
+        "dueTo: date",
+        "createdFrom: date",
+        "createdTo: date",
+        "updatedFrom: date",
+        "updatedTo: date",
+        "storyPointsMin: int",
+        "storyPointsMax: int",
+        "sortBy: str",
+        "sortOrder: str",
+        "page: int",
+        "pageSize: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/backlog",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3086,
+      "handler": "get_backlog",
+      "parameters": [
+        "projectId: int",
+        "search: str",
+        "sortBy: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/gantt",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3159,
+      "handler": "get_gantt",
+      "parameters": [
+        "projectId: int",
+        "sprintId: int",
+        "assigneeId: int",
+        "epicId: int",
+        "status: str",
+        "from_date: date",
+        "to_date: date",
+        "includeUnscheduled: bool"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/bulk",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3238,
+      "handler": "bulk_update_tasks",
+      "parameters": [
+        "bulk_in: TaskBulkUpdateRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3281,
+      "handler": "get_task",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/{task_id}/schedule",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3293,
+      "handler": "update_task_schedule",
+      "parameters": [
+        "task_id: int",
+        "schedule_in: TaskScheduleUpdateRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/dependencies",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3338,
+      "handler": "add_task_dependency",
+      "parameters": [
+        "task_id: int",
+        "dependency_in: PMSTaskDependencyCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/dependencies",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3385,
+      "handler": "list_task_dependencies",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/task-dependencies",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3401,
+      "handler": "create_task_dependency",
+      "parameters": [
+        "dependency_in: TaskDependencyCreateRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/task-dependencies/{dependency_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3457,
+      "handler": "delete_task_dependency",
+      "parameters": [
+        "dependency_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/tasks/{task_id}/dependencies/{dependency_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3493,
+      "handler": "remove_task_dependency",
+      "parameters": [
+        "task_id: int",
+        "dependency_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/{task_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3540,
+      "handler": "update_task",
+      "parameters": [
+        "task_id: int",
+        "task_in: PMSTaskUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/tasks/{task_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3665,
+      "handler": "delete_task",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/move-to-sprint",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3693,
+      "handler": "move_task_to_sprint",
+      "parameters": [
+        "task_id: int",
+        "move_in: TaskSprintMoveRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/remove-from-sprint",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3740,
+      "handler": "remove_task_from_sprint",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/backlog/reorder",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3768,
+      "handler": "reorder_backlog",
+      "parameters": [
+        "reorder_in: TaskReorderListRequest",
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/sprints/{sprint_id}/reorder-tasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3783,
+      "handler": "reorder_sprint_tasks",
+      "parameters": [
+        "sprint_id: int",
+        "reorder_in: TaskReorderListRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/activity",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3801,
+      "handler": "list_task_activity",
+      "parameters": [
+        "task_id: int",
+        "limit: int",
+        "sortOrder: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/attachments",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3815,
+      "handler": "list_task_attachments",
+      "parameters": [
+        "task_id: int",
+        "skip: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/attachments",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3832,
+      "handler": "upload_task_attachment",
+      "parameters": [
+        "task_id: int",
+        "file: UploadFile"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/time-logs",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3909,
+      "handler": "list_task_time_logs",
+      "parameters": [
+        "task_id: int",
+        "skip: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/time-logs",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3922,
+      "handler": "create_task_time_log",
+      "parameters": [
+        "task_id: int",
+        "timelog_in: PMSTimeLogCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/checklists",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3954,
+      "handler": "list_task_checklists",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/checklists",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3965,
+      "handler": "create_task_checklist_item",
+      "parameters": [
+        "task_id: int",
+        "item_in: PMSChecklistItemCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/tasks/{task_id}/checklists/{item_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 3992,
+      "handler": "update_task_checklist_item",
+      "parameters": [
+        "task_id: int",
+        "item_id: int",
+        "item_in: PMSChecklistItemUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/checklist",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4032,
+      "handler": "list_task_checklist",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/checklist",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4042,
+      "handler": "create_task_checklist_entry",
+      "parameters": [
+        "task_id: int",
+        "item_in: PMSChecklistItemCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/checklist/{item_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4053,
+      "handler": "update_checklist_entry",
+      "parameters": [
+        "item_id: int",
+        "item_in: PMSChecklistItemUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/checklist/{item_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4067,
+      "handler": "delete_checklist_entry",
+      "parameters": [
+        "item_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/checklist/reorder",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4093,
+      "handler": "reorder_task_checklist",
+      "parameters": [
+        "task_id: int",
+        "reorder_in: ChecklistReorderRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/subtasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4115,
+      "handler": "list_task_subtasks",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/tasks/{task_id}/subtasks/reorder",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4131,
+      "handler": "reorder_task_subtasks",
+      "parameters": [
+        "task_id: int",
+        "reorder_in: ChecklistReorderRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/subtasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4149,
+      "handler": "create_task_subtask",
+      "parameters": [
+        "task_id: int",
+        "subtask_in: SubtaskCreateRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/links",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4215,
+      "handler": "list_task_links",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/tags",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4225,
+      "handler": "list_task_tags",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tags",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4236,
+      "handler": "list_tags",
+      "parameters": [
+        "q: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tags",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4252,
+      "handler": "create_tag",
+      "parameters": [
+        "tag_in: PMSTagCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/tags",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4278,
+      "handler": "add_task_tag",
+      "parameters": [
+        "task_id: int",
+        "tag_in: TaskTagAttachRequest | None",
+        "name: str",
+        "tag_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/tasks/{task_id}/tags/{tag_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4319,
+      "handler": "remove_task_tag",
+      "parameters": [
+        "task_id: int",
+        "tag_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/board",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4341,
+      "handler": "get_kanban_board",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/board/reorder",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4425,
+      "handler": "reorder_task",
+      "parameters": [
+        "project_id: int",
+        "reorder_req: TaskReorderRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tasks/{task_id}/comments",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4474,
+      "handler": "add_comment_to_task",
+      "parameters": [
+        "task_id: int",
+        "comment_in: PMSCommentCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/comments",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4532,
+      "handler": "list_task_comments",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/comments/{comment_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4552,
+      "handler": "update_comment",
+      "parameters": [
+        "comment_id: int",
+        "comment_in: PMSCommentUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/comments/{comment_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4596,
+      "handler": "delete_comment",
+      "parameters": [
+        "comment_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/users/search",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4622,
+      "handler": "search_pms_users",
+      "parameters": [
+        "q: str",
+        "projectId: int",
+        "taskId: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/notifications",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4651,
+      "handler": "list_pms_notifications",
+      "parameters": [
+        "unreadOnly: bool"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/notifications/{notification_id}/read",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4678,
+      "handler": "mark_pms_notification_read",
+      "parameters": [
+        "notification_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/milestones",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4707,
+      "handler": "create_milestone",
+      "parameters": [
+        "project_id: int",
+        "milestone_in: PMSMilestoneCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/milestones",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4737,
+      "handler": "list_milestones",
+      "parameters": [
+        "project_id: int",
+        "skip: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/milestones/{milestone_id}/submit-approval",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4754,
+      "handler": "submit_milestone_approval",
+      "parameters": [
+        "milestone_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/milestones/{milestone_id}/approve",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4780,
+      "handler": "approve_milestone",
+      "parameters": [
+        "milestone_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/milestones/{milestone_id}/reject",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4805,
+      "handler": "reject_milestone",
+      "parameters": [
+        "milestone_id: int",
+        "approval_in: PMSClientApprovalUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/sprints",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4834,
+      "handler": "create_sprint",
+      "parameters": [
+        "project_id: int",
+        "sprint_in: PMSSprintCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/sprints",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4858,
+      "handler": "list_sprints",
+      "parameters": [
+        "project_id: int",
+        "skip: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/sprints/{sprint_id}/review",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4871,
+      "handler": "get_sprint_review",
+      "parameters": [
+        "sprint_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/sprints/{sprint_id}/review",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4892,
+      "handler": "update_sprint_review",
+      "parameters": [
+        "sprint_id: int",
+        "review_in: SprintCompleteRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/sprints/{sprint_id}/start",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4916,
+      "handler": "start_sprint",
+      "parameters": [
+        "sprint_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/sprints/{sprint_id}/complete",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 4955,
+      "handler": "complete_sprint",
+      "parameters": [
+        "sprint_id: int",
+        "complete_in: SprintCompleteRequest | None"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/sprints/{sprint_id}/burndown",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5034,
+      "handler": "get_sprint_burndown",
+      "parameters": [
+        "sprint_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/velocity",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5071,
+      "handler": "get_project_velocity",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/task-distribution",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5092,
+      "handler": "report_task_distribution",
+      "parameters": [
+        "projectId: int",
+        "assigneeId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/burndown",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5132,
+      "handler": "report_burndown",
+      "parameters": [
+        "sprintId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/velocity",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5141,
+      "handler": "report_velocity",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/cumulative-flow",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5150,
+      "handler": "report_cumulative_flow",
+      "parameters": [
+        "projectId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/cycle-time",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5178,
+      "handler": "report_cycle_time",
+      "parameters": [
+        "projectId: int",
+        "assigneeId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/time-in-status",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5214,
+      "handler": "report_time_in_status",
+      "parameters": [
+        "projectId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/project-health",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5254,
+      "handler": "report_project_health",
+      "parameters": [
+        "projectId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/team-performance",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5276,
+      "handler": "report_team_performance",
+      "parameters": [
+        "projectId: int",
+        "sprintId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/status-dashboard",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5316,
+      "handler": "report_project_status_dashboard",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/overdue-tasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5345,
+      "handler": "report_overdue_tasks",
+      "parameters": [
+        "projectId: int",
+        "assigneeId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/milestone-progress",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5377,
+      "handler": "report_milestone_progress",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/planned-vs-actual",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5406,
+      "handler": "report_planned_vs_actual",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/timesheet",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5440,
+      "handler": "report_timesheet",
+      "parameters": [
+        "projectId: int",
+        "userId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/resource-utilization",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5478,
+      "handler": "report_resource_utilization",
+      "parameters": [
+        "projectId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/budget-vs-actual",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5518,
+      "handler": "report_budget_vs_actual",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/client-profitability",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5527,
+      "handler": "report_client_profitability",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/dependency-delays",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5545,
+      "handler": "report_dependency_delays",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/reports/export",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5578,
+      "handler": "export_reports",
+      "parameters": [
+        "report: str",
+        "format: str",
+        "projectId: int",
+        "sprintId: int",
+        "assigneeId: int",
+        "from_: date",
+        "to: date"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/files",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5643,
+      "handler": "create_file_metadata",
+      "parameters": [
+        "file_in: PMSFileAssetCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/files",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5679,
+      "handler": "list_files",
+      "parameters": [
+        "project_id: int",
+        "task_id: int",
+        "skip: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/files/{file_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5702,
+      "handler": "update_file_metadata",
+      "parameters": [
+        "file_id: int",
+        "file_in: PMSFileAssetUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/attachments/{file_id}/download",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5723,
+      "handler": "download_attachment",
+      "parameters": [
+        "file_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/attachments/{file_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5741,
+      "handler": "delete_attachment",
+      "parameters": [
+        "file_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/timesheets",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5768,
+      "handler": "list_timesheets",
+      "parameters": [
+        "weekStart: date | None",
+        "userId: int | None",
+        "status_filter: str | None"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/timesheets",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5798,
+      "handler": "create_timesheet",
+      "parameters": [
+        "timesheet_in: PMSTimesheetCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/timesheets/{timesheet_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5826,
+      "handler": "update_timesheet",
+      "parameters": [
+        "timesheet_id: int",
+        "timesheet_in: PMSTimesheetUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/timesheets/{timesheet_id}/submit",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5843,
+      "handler": "submit_timesheet",
+      "parameters": [
+        "timesheet_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/timesheets/{timesheet_id}/approve",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5871,
+      "handler": "approve_timesheet",
+      "parameters": [
+        "timesheet_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/timesheets/{timesheet_id}/reject",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5897,
+      "handler": "reject_timesheet",
+      "parameters": [
+        "timesheet_id: int",
+        "reject_in: PMSTimesheetRejectRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/time-logs",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5922,
+      "handler": "create_time_log",
+      "parameters": [
+        "timelog_in: PMSTimeLogCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/time-logs/{time_log_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5955,
+      "handler": "update_time_log",
+      "parameters": [
+        "time_log_id: int",
+        "timelog_in: PMSTimeLogUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/time-logs/{time_log_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 5994,
+      "handler": "delete_time_log",
+      "parameters": [
+        "time_log_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/time-logs",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6024,
+      "handler": "list_time_logs",
+      "parameters": [
+        "skip: int",
+        "limit: int",
+        "project_id: int",
+        "user_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/saved-views",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6050,
+      "handler": "list_saved_views",
+      "parameters": [
+        "entityType: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/saved-views",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6069,
+      "handler": "create_saved_view",
+      "parameters": [
+        "view_in: PMSSavedFilterCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/saved-views/{view_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6101,
+      "handler": "update_saved_view",
+      "parameters": [
+        "view_id: int",
+        "view_in: PMSSavedFilterUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/saved-views/{view_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6131,
+      "handler": "delete_saved_view",
+      "parameters": [
+        "view_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/saved-filters",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6148,
+      "handler": "create_saved_filter",
+      "parameters": [
+        "project_id: int",
+        "filter_in: PMSSavedFilterCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/saved-filters",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6179,
+      "handler": "list_saved_filters",
+      "parameters": [
+        "project_id: int",
+        "view_type: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/saved-filters/{filter_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6197,
+      "handler": "update_saved_filter",
+      "parameters": [
+        "filter_id: int",
+        "filter_in: PMSSavedFilterUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/saved-filters/{filter_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6219,
+      "handler": "delete_saved_filter",
+      "parameters": [
+        "filter_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/activity",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6237,
+      "handler": "list_project_activity",
+      "parameters": [
+        "project_id: int",
+        "task_id: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/workload",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6253,
+      "handler": "get_project_workload",
+      "parameters": [
+        "project_id: int",
+        "group_by: str",
+        "sprint_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workload",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6297,
+      "handler": "get_workload_heatmap",
+      "parameters": [
+        "projectId: int",
+        "teamId: int",
+        "sprintId: int",
+        "from_date: date",
+        "to: date",
+        "basis: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/dev-integrations",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6485,
+      "handler": "list_dev_integrations",
+      "parameters": [
+        "projectId: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/dev-integrations",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6504,
+      "handler": "create_dev_integration",
+      "parameters": [
+        "integration_in: DevIntegrationCreateRequest"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/dev-integrations/{integration_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6542,
+      "handler": "delete_dev_integration",
+      "parameters": [
+        "integration_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/dev-links",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6558,
+      "handler": "list_task_dev_links",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/dev-integrations/webhook/github",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6570,
+      "handler": "github_dev_webhook",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/dev-integrations/webhook/gitlab",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6592,
+      "handler": "gitlab_dev_webhook",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/risks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6633,
+      "handler": "list_risks",
+      "parameters": [
+        "projectId: int",
+        "status: str",
+        "ownerId: int",
+        "severity: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/risks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6667,
+      "handler": "create_risk",
+      "parameters": [
+        "risk_in: PMSRiskCreate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/risks/{risk_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6710,
+      "handler": "update_risk",
+      "parameters": [
+        "risk_id: int",
+        "risk_in: PMSRiskUpdate"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/risks/{risk_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6749,
+      "handler": "delete_risk",
+      "parameters": [
+        "risk_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/portfolio/summary",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6772,
+      "handler": "get_portfolio_summary",
+      "parameters": [
+        "ownerId: int",
+        "clientId: int",
+        "status: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/portfolio/projects",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6827,
+      "handler": "get_portfolio_projects",
+      "parameters": [
+        "ownerId: int",
+        "clientId: int",
+        "status: str",
+        "health: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/portfolio/health-trend",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6847,
+      "handler": "get_portfolio_health_trend",
+      "parameters": [
+        "ownerId: int",
+        "clientId: int",
+        "status: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/dashboard/{project_id}",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6897,
+      "handler": "get_project_dashboard",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/trash/tasks",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6960,
+      "handler": "list_trashed_tasks",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/trash/tasks/{task_id}/restore",
+      "source": "backend/app/apps/project_management/api/router.py",
+      "line": 6970,
+      "handler": "restore_trashed_task",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/activity",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 23,
+      "handler": "workspace_activity",
+      "parameters": [
+        "workspace_id: int",
+        "before: int | None",
+        "action: str",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspace-invitations/preview",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 64,
+      "handler": "preview_invitation",
+      "parameters": [
+        "token: str"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspace-invitations/activate",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 75,
+      "handler": "activate_invitation",
+      "parameters": [
+        "data: ActivateInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 108,
+      "handler": "list_workspaces",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/overview",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 114,
+      "handler": "overview",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 131,
+      "handler": "create_workspace",
+      "parameters": [
+        "data: WorkspaceInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/members",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 145,
+      "handler": "members",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/members/{member_id}",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 162,
+      "handler": "change_role",
+      "parameters": [
+        "workspace_id: int",
+        "member_id: int",
+        "data: MemberInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/members/{member_id}",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 174,
+      "handler": "remove_member",
+      "parameters": [
+        "workspace_id: int",
+        "member_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/invitations",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 197,
+      "handler": "invite",
+      "parameters": [
+        "workspace_id: int",
+        "data: InviteInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/invitations",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 216,
+      "handler": "invitations",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "DELETE",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/invitations/{invitation_id}",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 224,
+      "handler": "revoke",
+      "parameters": [
+        "workspace_id: int",
+        "invitation_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspace-invitations/accept",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 235,
+      "handler": "accept",
+      "parameters": [
+        "data: AcceptInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/entries",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 256,
+      "handler": "list_entries",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/entries",
+      "source": "backend/app/apps/project_management/workspaces.py",
+      "line": 263,
+      "handler": "create_entry",
+      "parameters": [
+        "workspace_id: int",
+        "data: EntryInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/automations",
+      "source": "backend/app/apps/project_management/automations.py",
+      "line": 41,
+      "handler": "list_rules",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/automations",
+      "source": "backend/app/apps/project_management/automations.py",
+      "line": 47,
+      "handler": "create_rule",
+      "parameters": [
+        "workspace_id: int",
+        "data: RuleInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/automations/{rule_id}",
+      "source": "backend/app/apps/project_management/automations.py",
+      "line": 65,
+      "handler": "toggle_rule",
+      "parameters": [
+        "workspace_id: int",
+        "rule_id: int",
+        "data: ToggleInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/automations/{rule_id}",
+      "source": "backend/app/apps/project_management/automations.py",
+      "line": 78,
+      "handler": "edit_rule",
+      "parameters": [
+        "workspace_id: int",
+        "rule_id: int",
+        "data: RuleInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/automation-runs",
+      "source": "backend/app/apps/project_management/automations.py",
+      "line": 95,
+      "handler": "list_runs",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{wid}/forms",
+      "source": "backend/app/apps/project_management/forms.py",
+      "line": 123,
+      "handler": "list_forms",
+      "parameters": [
+        "wid: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{wid}/forms",
+      "source": "backend/app/apps/project_management/forms.py",
+      "line": 131,
+      "handler": "create_form",
+      "parameters": [
+        "wid: int",
+        "data: Definition"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/workspaces/{wid}/forms/{fid}",
+      "source": "backend/app/apps/project_management/forms.py",
+      "line": 144,
+      "handler": "save_form",
+      "parameters": [
+        "wid: int",
+        "fid: int",
+        "data: Save"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{wid}/forms/{fid}/submit",
+      "source": "backend/app/apps/project_management/forms.py",
+      "line": 289,
+      "handler": "submit_form",
+      "parameters": [
+        "wid: int",
+        "fid: int",
+        "data: Submission"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{wid}/forms/{fid}/responses",
+      "source": "backend/app/apps/project_management/forms.py",
+      "line": 309,
+      "handler": "responses",
+      "parameters": [
+        "wid: int",
+        "fid: int",
+        "offset: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{wid}/forms/{fid}/export",
+      "source": "backend/app/apps/project_management/forms.py",
+      "line": 319,
+      "handler": "export",
+      "parameters": [
+        "wid: int",
+        "fid: int",
+        "format: Literal['csv', 'json']"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/tools",
+      "source": "backend/app/apps/project_management/workspace_tools.py",
+      "line": 61,
+      "handler": "list_tools",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/tools",
+      "source": "backend/app/apps/project_management/workspace_tools.py",
+      "line": 68,
+      "handler": "create_tool",
+      "parameters": [
+        "workspace_id: int",
+        "data: ToolInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PATCH",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/tools/{tool_id}",
+      "source": "backend/app/apps/project_management/workspace_tools.py",
+      "line": 101,
+      "handler": "toggle_tool",
+      "parameters": [
+        "workspace_id: int",
+        "tool_id: int",
+        "data: ToolToggle"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/tools/{tool_id}/apply",
+      "source": "backend/app/apps/project_management/workspace_tools.py",
+      "line": 114,
+      "handler": "apply_tool",
+      "parameters": [
+        "workspace_id: int",
+        "tool_id: int",
+        "data: ApplyInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/projects/{project_id}/custom-fields",
+      "source": "backend/app/apps/project_management/custom_fields.py",
+      "line": 41,
+      "handler": "list_fields",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/custom-fields",
+      "source": "backend/app/apps/project_management/custom_fields.py",
+      "line": 49,
+      "handler": "create_field",
+      "parameters": [
+        "project_id: int",
+        "data: FieldInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tasks/{task_id}/custom-fields",
+      "source": "backend/app/apps/project_management/custom_fields.py",
+      "line": 76,
+      "handler": "task_fields",
+      "parameters": [
+        "task_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/tasks/{task_id}/custom-fields/{field_id}",
+      "source": "backend/app/apps/project_management/custom_fields.py",
+      "line": 86,
+      "handler": "save_value",
+      "parameters": [
+        "task_id: int",
+        "field_id: int",
+        "data: ValueInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/custom-fields",
+      "source": "backend/app/apps/project_management/custom_fields.py",
+      "line": 121,
+      "handler": "field_manager",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/projects/{project_id}/custom-fields/{field_id}",
+      "source": "backend/app/apps/project_management/custom_fields.py",
+      "line": 137,
+      "handler": "edit_field",
+      "parameters": [
+        "project_id: int",
+        "field_id: int",
+        "data: EditFieldInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/tag-manager",
+      "source": "backend/app/apps/project_management/tag_manager.py",
+      "line": 40,
+      "handler": "library",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/tag-manager/{tag_id}",
+      "source": "backend/app/apps/project_management/tag_manager.py",
+      "line": 54,
+      "handler": "edit_tag",
+      "parameters": [
+        "tag_id: int",
+        "data: TagInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/tag-manager/delete",
+      "source": "backend/app/apps/project_management/tag_manager.py",
+      "line": 72,
+      "handler": "delete_tags",
+      "parameters": [
+        "data: DeleteInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/task-types",
+      "source": "backend/app/apps/project_management/task_types.py",
+      "line": 36,
+      "handler": "list_types",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/task-types",
+      "source": "backend/app/apps/project_management/task_types.py",
+      "line": 73,
+      "handler": "create_type",
+      "parameters": [
+        "data: TypeInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/task-types/{type_id}",
+      "source": "backend/app/apps/project_management/task_types.py",
+      "line": 78,
+      "handler": "edit_type",
+      "parameters": [
+        "type_id: int",
+        "data: TypeInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/timer",
+      "source": "backend/app/apps/project_management/timers.py",
+      "line": 43,
+      "handler": "get_timer",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/timer/start",
+      "source": "backend/app/apps/project_management/timers.py",
+      "line": 49,
+      "handler": "start_timer",
+      "parameters": [
+        "data: StartInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/timer/stop",
+      "source": "backend/app/apps/project_management/timers.py",
+      "line": 80,
+      "handler": "stop_timer",
+      "parameters": [
+        "data: StopInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/timer/discard",
+      "source": "backend/app/apps/project_management/timers.py",
+      "line": 106,
+      "handler": "discard_timer",
+      "parameters": [
+        "data: StopInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/docs",
+      "source": "backend/app/apps/project_management/documents.py",
+      "line": 51,
+      "handler": "list_documents",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/projects/{project_id}/docs",
+      "source": "backend/app/apps/project_management/documents.py",
+      "line": 59,
+      "handler": "create_document",
+      "parameters": [
+        "project_id: int",
+        "data: DocumentInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/docs/{document_id}",
+      "source": "backend/app/apps/project_management/documents.py",
+      "line": 72,
+      "handler": "get_document",
+      "parameters": [
+        "document_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/docs/{document_id}",
+      "source": "backend/app/apps/project_management/documents.py",
+      "line": 78,
+      "handler": "save_document",
+      "parameters": [
+        "document_id: int",
+        "data: SaveInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/docs/{document_id}/revisions",
+      "source": "backend/app/apps/project_management/documents.py",
+      "line": 94,
+      "handler": "list_revisions",
+      "parameters": [
+        "document_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/docs/{document_id}/revisions/{version}",
+      "source": "backend/app/apps/project_management/documents.py",
+      "line": 102,
+      "handler": "get_revision",
+      "parameters": [
+        "document_id: int",
+        "version: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{wid}/org-chart",
+      "source": "backend/app/apps/project_management/org_chart.py",
+      "line": 50,
+      "handler": "get_chart",
+      "parameters": [
+        "wid: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/workspaces/{wid}/org-chart/{person_id}",
+      "source": "backend/app/apps/project_management/org_chart.py",
+      "line": 56,
+      "handler": "set_reporting",
+      "parameters": [
+        "wid: int",
+        "person_id: int",
+        "data: ReportingInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/teams",
+      "source": "backend/app/apps/project_management/teams.py",
+      "line": 29,
+      "handler": "list_teams",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/teams",
+      "source": "backend/app/apps/project_management/teams.py",
+      "line": 59,
+      "handler": "create_team",
+      "parameters": [
+        "workspace_id: int",
+        "data: TeamInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "PUT",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/teams/{team_id}",
+      "source": "backend/app/apps/project_management/teams.py",
+      "line": 65,
+      "handler": "update_team",
+      "parameters": [
+        "workspace_id: int",
+        "team_id: int",
+        "data: TeamInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/analytics/overview",
+      "source": "backend/app/apps/project_management/analytics.py",
+      "line": 21,
+      "handler": "analytics_overview",
+      "parameters": [
+        "start_date: date | None",
+        "end_date: date | None",
+        "workspace_id: int | None",
+        "project_id: int | None",
+        "team_id: int | None",
+        "member_id: int | None"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/planner",
+      "source": "backend/app/apps/project_management/planner.py",
+      "line": 12,
+      "handler": "planner",
+      "parameters": []
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/direct-conversations",
+      "source": "backend/app/apps/project_management/direct_messages.py",
+      "line": 51,
+      "handler": "list_conversations",
+      "parameters": [
+        "workspace_id: int"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/direct-conversations",
+      "source": "backend/app/apps/project_management/direct_messages.py",
+      "line": 59,
+      "handler": "start_conversation",
+      "parameters": [
+        "workspace_id: int",
+        "data: StartInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/direct-conversations/{conversation_id}/messages",
+      "source": "backend/app/apps/project_management/direct_messages.py",
+      "line": 87,
+      "handler": "list_messages",
+      "parameters": [
+        "workspace_id: int",
+        "conversation_id: int",
+        "before: int | None"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "POST",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/direct-conversations/{conversation_id}/messages",
+      "source": "backend/app/apps/project_management/direct_messages.py",
+      "line": 97,
+      "handler": "send_message",
+      "parameters": [
+        "workspace_id: int",
+        "conversation_id: int",
+        "data: MessageInput"
+      ]
+    },
+    {
+      "group": "PMS",
+      "method": "GET",
+      "path": "/api/v1/project-management/workspaces/{workspace_id}/workflow-events",
+      "source": "backend/app/apps/project_management/workflow_events.py",
+      "line": 17,
+      "handler": "workflow_events",
+      "parameters": [
+        "workspace_id: int",
+        "after_id: int",
+        "limit: int",
+        "replay: bool"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/providers",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 51,
+      "handler": "providers",
+      "parameters": [
+        "workspace_id: int | None"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "PUT",
+      "path": "/api/v1/ai-operator/providers/{provider}",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 58,
+      "handler": "save_provider",
+      "parameters": [
+        "provider: Provider",
+        "payload: ProviderUpdate",
+        "workspace_id: int | None"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/providers/{provider}/test",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 81,
+      "handler": "test_provider",
+      "parameters": [
+        "provider: Provider",
+        "workspace_id: int | None"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/capabilities",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 100,
+      "handler": "capabilities",
+      "parameters": []
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/commands",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 110,
+      "handler": "command",
+      "parameters": [
+        "payload: CommandInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/runs",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 227,
+      "handler": "runs",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/runs/{run_id}",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 235,
+      "handler": "run_detail",
+      "parameters": [
+        "run_id: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/runs/{run_id}/approve",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 241,
+      "handler": "approve",
+      "parameters": [
+        "run_id: int",
+        "payload: ApproveInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/runs/{run_id}/cancel",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 254,
+      "handler": "cancel",
+      "parameters": [
+        "run_id: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/analytics",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 280,
+      "handler": "analytics",
+      "parameters": [
+        "workspace_id: int | None",
+        "days: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/runs/{run_id}/revise",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 301,
+      "handler": "revise",
+      "parameters": [
+        "run_id: int",
+        "payload: RevisionInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/runs/{run_id}/resume",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 310,
+      "handler": "resume",
+      "parameters": [
+        "run_id: int",
+        "payload: ResumeInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/runs/{run_id}/steps",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 332,
+      "handler": "steps",
+      "parameters": [
+        "run_id: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/runs/{run_id}/events",
+      "source": "backend/app/ai_operator/api.py",
+      "line": 341,
+      "handler": "events",
+      "parameters": [
+        "run_id: int",
+        "after_id: int",
+        "limit: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/setup/preview",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 112,
+      "handler": "setup_preview",
+      "parameters": [
+        "payload: SetupInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/proposals/{proposal_id}",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 200,
+      "handler": "proposal_detail",
+      "parameters": [
+        "proposal_id: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/proposals/{proposal_id}/approve",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 206,
+      "handler": "proposal_approve",
+      "parameters": [
+        "proposal_id: int",
+        "payload: ApproveInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/local-context",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 269,
+      "handler": "local_context",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/resolve",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 287,
+      "handler": "resolve",
+      "parameters": [
+        "project_id: int",
+        "q: str"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/monitors",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 322,
+      "handler": "create_monitor",
+      "parameters": [
+        "payload: MonitorInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/monitors",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 335,
+      "handler": "monitors",
+      "parameters": [
+        "project_id: int"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "PUT",
+      "path": "/api/v1/ai-operator/monitors/{monitor_id}",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 342,
+      "handler": "update_monitor",
+      "parameters": [
+        "monitor_id: int",
+        "payload: MonitorInput"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/portfolio",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 388,
+      "handler": "portfolio",
+      "parameters": []
+    },
+    {
+      "group": "AI operator",
+      "method": "GET",
+      "path": "/api/v1/ai-operator/capacity",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 403,
+      "handler": "capacity",
+      "parameters": [
+        "project_id: int",
+        "week_start: date"
+      ]
+    },
+    {
+      "group": "AI operator",
+      "method": "POST",
+      "path": "/api/v1/ai-operator/retention",
+      "source": "backend/app/ai_operator/extensions.py",
+      "line": 445,
+      "handler": "retention",
+      "parameters": [
+        "payload: RetentionInput"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 174,
+      "handler": "list_agents",
+      "parameters": [
+        "module: str | None"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/config",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 196,
+      "handler": "ai_config",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "PUT",
+      "path": "/api/v1/ai-agents/config/{agent_id}",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 220,
+      "handler": "update_ai_config",
+      "parameters": [
+        "agent_id: int",
+        "payload: AiConfigUpdate"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/conversations",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 256,
+      "handler": "create_conversation",
+      "parameters": [
+        "payload: AiConversationCreate"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/conversations",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 298,
+      "handler": "list_conversations",
+      "parameters": [
+        "agent_id: int | None",
+        "module: str | None",
+        "related_entity_type: str | None",
+        "related_entity_id: str | None",
+        "status: str | None"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/tools/test",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 323,
+      "handler": "test_ai_tool",
+      "parameters": [
+        "payload: AiToolTestRequest"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/conversations/{conversation_id}",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 349,
+      "handler": "get_conversation",
+      "parameters": [
+        "conversation_id: int"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/conversations/{conversation_id}/messages",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 367,
+      "handler": "get_conversation_messages",
+      "parameters": [
+        "conversation_id: int"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/conversations/{conversation_id}/messages",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 380,
+      "handler": "save_conversation_message",
+      "parameters": [
+        "conversation_id: int",
+        "payload: AiMessageCreate"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/approvals/pending",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 413,
+      "handler": "pending_approvals",
+      "parameters": [
+        "module: str | None"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/approvals/{approval_id}/approve",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 428,
+      "handler": "approve_ai_action",
+      "parameters": [
+        "approval_id: int"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/approvals/{approval_id}/reject",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 459,
+      "handler": "reject_ai_action",
+      "parameters": [
+        "approval_id: int",
+        "payload: AiApprovalReject"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/logs",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 486,
+      "handler": "ai_logs",
+      "parameters": [
+        "module: str | None"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/usage/limits",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 548,
+      "handler": "get_usage_limits",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "PUT",
+      "path": "/api/v1/ai-agents/usage/limits",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 557,
+      "handler": "update_usage_limits",
+      "parameters": [
+        "payload: list[AiUsageLimitPayload]"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/usage/summary",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 581,
+      "handler": "usage_summary",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/security/settings",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 600,
+      "handler": "get_security_settings",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "PUT",
+      "path": "/api/v1/ai-agents/security/settings",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 617,
+      "handler": "update_security_settings",
+      "parameters": [
+        "payload: AiSecuritySettingsPayload"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/security/summary",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 635,
+      "handler": "security_summary",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/security/events",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 656,
+      "handler": "security_events",
+      "parameters": [
+        "module: str | None"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/security/permissions",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 670,
+      "handler": "get_permissions",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "PUT",
+      "path": "/api/v1/ai-agents/security/permissions",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 678,
+      "handler": "update_permissions",
+      "parameters": [
+        "payload: list[AiPermissionPayload]"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/analytics/summary",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 700,
+      "handler": "analytics_summary",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/analytics/by-agent",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 727,
+      "handler": "analytics_by_agent",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/analytics/by-module",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 739,
+      "handler": "analytics_by_module",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/analytics/by-user",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 750,
+      "handler": "analytics_by_user",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/analytics/cost",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 761,
+      "handler": "analytics_cost",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/cost/summary",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 762,
+      "handler": "analytics_cost",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/cost/by-agent",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 773,
+      "handler": "cost_by_agent",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/cost/by-user",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 784,
+      "handler": "cost_by_user",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/messages/{message_id}/feedback",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 795,
+      "handler": "create_feedback",
+      "parameters": [
+        "message_id: int",
+        "payload: AiFeedbackCreate"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/feedback",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 810,
+      "handler": "list_feedback",
+      "parameters": []
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/handoff-notes",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 818,
+      "handler": "create_handoff",
+      "parameters": [
+        "payload: AiHandoffCreate"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/handoff-notes",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 827,
+      "handler": "list_handoff",
+      "parameters": [
+        "status: str | None"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "PATCH",
+      "path": "/api/v1/ai-agents/handoff-notes/{note_id}/status",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 839,
+      "handler": "update_handoff_status",
+      "parameters": [
+        "note_id: int",
+        "payload: AiHandoffStatusUpdate"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/conversations/{conversation_id}/export",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 852,
+      "handler": "export_conversation",
+      "parameters": [
+        "conversation_id: int",
+        "format: str"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "POST",
+      "path": "/api/v1/ai-agents/{agent_id}/chat",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 905,
+      "handler": "chat_with_agent",
+      "parameters": [
+        "agent_id: int",
+        "payload: AiChatRequest"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "GET",
+      "path": "/api/v1/ai-agents/{agent_id}",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 926,
+      "handler": "get_agent",
+      "parameters": [
+        "agent_id: int"
+      ]
+    },
+    {
+      "group": "AI agents",
+      "method": "PATCH",
+      "path": "/api/v1/ai-agents/{agent_id}/status",
+      "source": "backend/app/ai_agents/api.py",
+      "line": 939,
+      "handler": "update_agent_status",
+      "parameters": [
+        "agent_id: int",
+        "payload: AiAgentStatusUpdate"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "GET",
+      "path": "/api/v1/ai/provider-settings",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 196,
+      "handler": "list_provider_settings",
+      "parameters": []
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/provider-settings",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 201,
+      "handler": "create_provider_setting",
+      "parameters": [
+        "data: AIProviderSettingPayload"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "PUT",
+      "path": "/api/v1/ai/provider-settings/{setting_id}",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 212,
+      "handler": "update_provider_setting",
+      "parameters": [
+        "setting_id: int",
+        "data: AIProviderSettingPayload"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/provider-settings/{setting_id}/test",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 226,
+      "handler": "test_provider_setting",
+      "parameters": [
+        "setting_id: int"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "GET",
+      "path": "/api/v1/ai/prompt-templates",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 245,
+      "handler": "list_prompt_templates",
+      "parameters": []
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/prompt-templates",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 250,
+      "handler": "create_prompt_template",
+      "parameters": [
+        "data: AIPromptTemplatePayload"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/prompt-templates/{template_id}/test",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 261,
+      "handler": "test_prompt_template",
+      "parameters": [
+        "template_id: int",
+        "payload: AIUseCaseRequest | None"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/summary",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 270,
+      "handler": "record_summary",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/deal-coach",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 275,
+      "handler": "deal_coach",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/lead-score",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 280,
+      "handler": "lead_score",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/forecast-insight",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 285,
+      "handler": "forecast_insight",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/email-draft",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 290,
+      "handler": "email_draft",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/meeting-summary",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 297,
+      "handler": "meeting_summary",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/collection-risk",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 302,
+      "handler": "collection_risk",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/workflow-draft",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 307,
+      "handler": "workflow_draft",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/report-explain",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 314,
+      "handler": "report_explain",
+      "parameters": [
+        "payload: AIUseCaseRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/agent-action/preview",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 328,
+      "handler": "preview_agent_action",
+      "parameters": [
+        "payload: AIAgentActionPreviewRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/agent-action/confirm",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 344,
+      "handler": "confirm_agent_action",
+      "parameters": [
+        "payload: AIAgentActionConfirmRequest"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "GET",
+      "path": "/api/v1/ai/action-log",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 366,
+      "handler": "action_log",
+      "parameters": [
+        "limit: int"
+      ]
+    },
+    {
+      "group": "AI copilot",
+      "method": "POST",
+      "path": "/api/v1/ai/feedback",
+      "source": "backend/app/apps/ai_copilot/api/router.py",
+      "line": 379,
+      "handler": "create_feedback",
+      "parameters": [
+        "payload: AIUserFeedbackPayload"
+      ]
+    },
+    {
+      "group": "Adjacent scheduling",
+      "method": "GET",
+      "path": "/api/v1/scheduling/{module}/{source}",
+      "source": "backend/app/apps/scheduling/router.py",
+      "line": 164,
+      "handler": "state",
+      "parameters": [
+        "module: str",
+        "source: str",
+        "ids: str"
+      ]
+    },
+    {
+      "group": "Adjacent scheduling",
+      "method": "PATCH",
+      "path": "/api/v1/scheduling/{module}/{source}/records/{key}",
+      "source": "backend/app/apps/scheduling/router.py",
+      "line": 218,
+      "handler": "save",
+      "parameters": [
+        "module: str",
+        "source: str",
+        "key: str",
+        "payload: SchedulePatch"
+      ]
+    },
+    {
+      "group": "Adjacent scheduling",
+      "method": "POST",
+      "path": "/api/v1/scheduling/{module}/{source}/dependencies",
+      "source": "backend/app/apps/scheduling/router.py",
+      "line": 249,
+      "handler": "create_link",
+      "parameters": [
+        "module: str",
+        "source: str",
+        "payload: LinkPatch"
+      ]
+    },
+    {
+      "group": "Adjacent scheduling",
+      "method": "DELETE",
+      "path": "/api/v1/scheduling/{module}/{source}/dependencies/{link_id}",
+      "source": "backend/app/apps/scheduling/router.py",
+      "line": 273,
+      "handler": "delete_link",
+      "parameters": [
+        "module: str",
+        "source: str",
+        "link_id: str",
+        "revision: int"
+      ]
+    }
+  ]
+}

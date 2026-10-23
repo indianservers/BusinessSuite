@@ -4285,7 +4285,7 @@ def fam_integrity_results(db: Session, company_id: int) -> list[dict[str, Any]]:
     gst_without_voucher = db.query(FAMGSTTransactionLine).filter(FAMGSTTransactionLine.company_id == company_id, FAMGSTTransactionLine.voucher_id == None).count()
     tds_without_voucher = db.query(FAMTDSTransaction).filter(FAMTDSTransaction.company_id == company_id, FAMTDSTransaction.voucher_id == None).count()
     unreconciled_bank = db.query(FAMBankStatementLine).join(FAMBankStatement, FAMBankStatement.id == FAMBankStatementLine.statement_id).filter(FAMBankStatement.company_id == company_id, FAMBankStatementLine.matched_status.in_(["unmatched", "suggested"])).count()
-    stock_value = Decimal(db.query(func.coalesce(func.sum(FAMStockItem.current_value), 0)).filter(FAMStockItem.company_id == company_id).scalar() or 0)
+    stock_value = Decimal(db.query(func.coalesce(func.sum(FAMStockItem.current_quantity * FAMStockItem.average_cost), 0)).filter(FAMStockItem.company_id == company_id).scalar() or 0)
     valuation_value = Decimal(db.query(func.coalesce(func.sum(FAMInventoryValuationLayer.remaining_value), 0)).filter(FAMInventoryValuationLayer.company_id == company_id).scalar() or 0)
     def row(name: str, status_value: str, severity: str, details: dict[str, Any]) -> dict[str, Any]:
         return {"check": name, "status": status_value, "severity": severity, "details": details}

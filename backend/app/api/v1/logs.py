@@ -10,6 +10,8 @@ from app.models.user import User
 from app.schemas.audit import AuditLogSchema, FieldAuditEventSchema
 
 router = APIRouter(prefix="/logs", tags=["Admin Logs"])
+from .request_logs import router as request_logs_router, global_audit_admin
+router.include_router(request_logs_router)
 
 
 @router.get("/audit", response_model=List[AuditLogSchema])
@@ -23,7 +25,7 @@ def list_audit_logs(
     to_at: Optional[datetime] = Query(None),
     limit: int = Query(200, ge=1, le=1000),
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("company_manage")),
+    current_user: User = Depends(global_audit_admin),
 ):
     query = db.query(AuditLog)
     if endpoint:
@@ -55,7 +57,7 @@ def list_field_audit_events(
     value_hash: Optional[str] = Query(None),
     limit: int = Query(200, ge=1, le=1000),
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("company_manage")),
+    current_user: User = Depends(global_audit_admin),
 ):
     query = db.query(FieldAuditEvent)
     if employee_id:
@@ -82,7 +84,7 @@ def list_error_logs(
     endpoint: Optional[str] = Query(None),
     limit: int = Query(200, ge=1, le=1000),
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("company_manage")),
+    current_user: User = Depends(global_audit_admin),
 ):
     query = db.query(AuditLog).filter(AuditLog.status_code >= 400)
     if endpoint:
@@ -96,7 +98,7 @@ def log_analysis(
     from_at: Optional[datetime] = Query(None),
     to_at: Optional[datetime] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("company_manage")),
+    current_user: User = Depends(global_audit_admin),
 ):
     query = db.query(AuditLog)
     if endpoint:

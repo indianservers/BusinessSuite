@@ -1,0 +1,40 @@
+KaryaFlow Forms verification — 2026-10-24
+
+Implemented at /pms/forms:
+- Dedicated responsive form studio, replacing the generic intake-tools route.
+- Click-to-add fields; pointer, touch-sensor and keyboard sorting; move and delete controls.
+- Thirteen field types: text, long text, email, phone, URL, number, date, dropdown, radio, multiple choice, consent checkbox, rating and section.
+- Field labels, help, placeholders, required answers and numeric bounds.
+- Conditional visibility based on an earlier answer; hidden values are discarded server-side.
+- Draft/published snapshots, optimistic revision conflicts, published version validation, close/reopen by publishing.
+- Support, project and feedback starters; definition JSON export/import; color and receipt customization.
+- Workspace share links require authentication; Guests may view but cannot submit.
+- Responses are private to workspace Owner/Admin, paginated and linked to created tasks.
+- CSV and JSON response exports; CSV formula protection. Preview supports browser Print/Save PDF.
+- Workflow project/title mapping, assignee, priority and relative due date.
+- Existing project task.created automation rules run transactionally with task and response creation.
+- UUID replay prevention and savepoints prevent duplicate tasks and partial workflow writes.
+- Existing workspace-entry storage is reused; no new Forms database migration required.
+- Legacy basic intake forms remain available in Workspace tools.
+
+Validation:
+Backend isolated SQLite API regression run: 77 passed across PMS and request audit tests.
+Final focused Forms tests after payload/pagination changes: 4 passed.
+Tests cover role and workspace boundaries, snapshots/version conflicts, field validation,
+hidden answer stripping, CSV injection protection, workflow assignment/automation,
+retry idempotency and rollback after a simulated workflow failure.
+Two audit migration index guards were corrected during the regression run.
+Frontend production build: passed (TypeScript and Vite).
+Playwright component fixture: passed click add, move, keyboard drag, pointer drag,
+conditional preview, workflow configuration, publish, preview without persistence,
+submit, response display, CSV download, 320px and 390px layouts. No page exceptions.
+Desktop screenshot visually inspected. Browser API responses are fixtures; they do not
+certify the deployed application's database or production integrations.
+
+Scope still outstanding for a full external form platform:
+Anonymous public forms/embeds and anti-spam, file-upload questions, signatures, payments,
+multi-page branching, save-and-resume, external webhook/CRM/email delivery, XLSX export,
+response editing/deletion and indexed dedicated response tables for large installations.
+These capabilities are not displayed as working controls.
+
+Deployment: local changes only. No commit, push or production deployment performed.
