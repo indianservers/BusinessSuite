@@ -605,3 +605,52 @@ class PMSWorkspaceEntry(Base):
     body = Column(Text, nullable=False)
     task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+class PMSCustomField(Base):
+    __tablename__ = "pms_custom_fields"
+    __table_args__ = (UniqueConstraint("project_id", "name", name="uq_pms_custom_field_name"),)
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(120), nullable=False)
+    field_type = Column(String(20), nullable=False)
+    options_json = Column(Text, nullable=False, default="[]")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PMSCustomFieldValue(Base):
+    __tablename__ = "pms_custom_field_values"
+    field_id = Column(Integer, ForeignKey("pms_custom_fields.id", ondelete="CASCADE"), primary_key=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    value_json = Column(Text, nullable=False)
+
+
+class PMSWorkspaceTeam(Base):
+    __tablename__ = "pms_workspace_teams"
+    __table_args__ = (UniqueConstraint("workspace_id", "alias", name="uq_pms_team_alias"),)
+    id = Column(Integer, primary_key=True)
+    workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(120), nullable=False)
+    alias = Column(String(60), nullable=False)
+    member_ids_json = Column(Text, nullable=False, default="[]")
+
+
+class PMSDirectConversation(Base):
+    __tablename__ = "pms_direct_conversations"
+    __table_args__ = (UniqueConstraint("workspace_id", "first_user_id", "second_user_id", name="uq_pms_direct_pair"),)
+    id = Column(Integer, primary_key=True)
+    workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    first_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    second_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+class PMSDirectMessage(Base):
+    __tablename__ = "pms_direct_messages"
+    id = Column(Integer, primary_key=True)
+    conversation_id = Column(Integer, ForeignKey("pms_direct_conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    body = Column(Text, nullable=False)
+    client_id = Column(String(36), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    __table_args__ = (UniqueConstraint("conversation_id", "author_id", "client_id", name="uq_pms_dm_client"),)

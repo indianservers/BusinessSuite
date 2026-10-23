@@ -74,6 +74,18 @@ from ..workspaces import router as workspace_router, workspace_member
 
 router = APIRouter(prefix="/project-management", tags=["Project Management"])
 router.include_router(workspace_router)
+from ..automations import router as automation_router, apply_task_rules
+router.include_router(automation_router)
+from ..workspace_tools import router as workspace_tools_router
+router.include_router(workspace_tools_router)
+from ..custom_fields import router as custom_fields_router
+router.include_router(custom_fields_router)
+from ..teams import router as teams_router
+router.include_router(teams_router)
+from ..direct_messages import router as direct_messages_router
+router.include_router(direct_messages_router)
+from ..workflow_events import router as workflow_events_router
+router.include_router(workflow_events_router)
 
 
 DONE_STATUSES = {"Done", "Completed", "Closed", "Resolved"}
@@ -1219,14 +1231,14 @@ def _dependency_conflict(dep: PMSTaskDependency, source: PMSTask, target: PMSTas
     return None
 
 
-def _task_dependency_warnings(db: Session, task_ids: list[int]) -> list[dict]:
+def _task_dependency_warnings(db: Session, task_ids: list[int], user: User) -> list[dict]:
     if not task_ids:
         return []
     deps = db.query(PMSTaskDependency).filter(
         or_(PMSTaskDependency.task_id.in_(task_ids), PMSTaskDependency.depends_on_task_id.in_(task_ids))
     ).all()
     related_ids = {dep.task_id for dep in deps} | {dep.depends_on_task_id for dep in deps}
-    related = {task.id: task for task in db.query(PMSTask).filter(PMSTask.id.in_(related_ids), PMSTask.deleted_at == None).all()} if related_ids else {}
+    related = {task.id: task for task in db.query(PMSTask).filter(PMSTask.id.in_(related_ids), PMSTask.deleted_at == None, PMSTask.project_id.in_(accessible_project_query(db, user).with_entities(PMSProject.id))).all()} if related_ids else {}
     warnings = []
     for dep in deps:
         source = related.get(dep.depends_on_task_id)
@@ -2688,7 +2700,7 @@ def create_task(
 ):
     """Create a new task in a project."""
     # Verify project exists
-    get_project_for_action(db, project_id, current_user, "manage_tasks")
+    project = get_project_for_action(db, project_id, current_user, "manage_tasks")
     
     # Check unique constraint on task_key
     existing = db.query(PMSTask).filter(
@@ -2758,6 +2770,8 @@ def create_task(
     db_task = PMSTask(**task_data)
     
     db.add(db_task)
+    db.flush()
+    apply_task_rules(db, db_task, project, current_user, "task.created")
     db.commit()
     db.refresh(db_task)
     _record_activity(db, project_id, current_user, "task.created", "task", db_task.id, f"Created task {db_task.task_key}", task_id=db_task.id)
@@ -3106,6 +3120,7 @@ def get_gantt(
     status: str = Query(None),
     from_date: date = Query(None, alias="from"),
     to_date: date = Query(None, alias="to"),
+    includeUnscheduled: bool = Query(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -3114,8 +3129,9 @@ def get_gantt(
     query = db.query(PMSTask).filter(
         PMSTask.deleted_at == None,
         PMSTask.project_id.in_(accessible_project_ids),
-        or_(PMSTask.start_date != None, PMSTask.due_date != None),
     )
+    if not includeUnscheduled:
+        query = query.filter(or_(PMSTask.start_date != None, PMSTask.due_date != None))
     if projectId:
         get_project_for_action(db, projectId, current_user, "browse")
         query = query.filter(PMSTask.project_id == projectId)
@@ -3137,7 +3153,7 @@ def get_gantt(
         or_(PMSTaskDependency.task_id.in_(task_ids), PMSTaskDependency.depends_on_task_id.in_(task_ids))
     ).all() if task_ids else []
     related_ids = ({dep.task_id for dep in deps} | {dep.depends_on_task_id for dep in deps} | set(task_ids))
-    related = {task.id: task for task in db.query(PMSTask).filter(PMSTask.id.in_(related_ids), PMSTask.deleted_at == None).all()} if related_ids else {}
+    related = {task.id: task for task in db.query(PMSTask).filter(PMSTask.id.in_(related_ids), PMSTask.deleted_at == None, PMSTask.project_id.in_(accessible_project_ids)).all()} if related_ids else {}
     dependency_payloads = [
         _dependency_detail_payload(dep, related)
         for dep in deps
@@ -3162,7 +3178,7 @@ def get_gantt(
     return {
         "tasks": _task_list_payloads(db, tasks),
         "dependencies": dependency_payloads,
-        "warnings": _task_dependency_warnings(db, task_ids),
+        "warnings": _task_dependency_warnings(db, task_ids, current_user),
         "filters": {
             "projects": projects,
             "sprints": sprints,
@@ -3235,9 +3251,9 @@ def update_task_schedule(
     """Update task start/end dates from the Gantt view."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
     old_values = {"start_date": _json_ready(task.start_date), "due_date": _json_ready(task.due_date)}
-    if schedule_in.start_date is not None:
+    if "start_date" in schedule_in.model_fields_set:
         task.start_date = schedule_in.start_date
-    if schedule_in.due_date is not None:
+    if "due_date" in schedule_in.model_fields_set:
         task.due_date = schedule_in.due_date
     if task.start_date and task.due_date and task.due_date < task.start_date:
         raise HTTPException(status_code=400, detail="Due date cannot be before start date")
@@ -3259,7 +3275,8 @@ def update_task_schedule(
     db.commit()
     db.refresh(task)
     _attach_subtask_counts(db, task)
-    return {"task": task, "warnings": _task_dependency_warnings(db, [task.id])}
+    _broadcast_realtime(current_user, "task.updated", project_id=project.id, task_id=task.id, message=f"Rescheduled {task.task_key}")
+    return {"task": task, "warnings": _task_dependency_warnings(db, [task.id], current_user)}
 
 
 @router.post("/tasks/{task_id}/dependencies", response_model=PMSTaskDependencyResponse, status_code=status.HTTP_201_CREATED)
@@ -3537,6 +3554,8 @@ def update_task(
             task_id=task.id,
             metadata={"changed_fields": changed_fields, "old_values": old_values, "new_values": {field: _json_ready(update_data[field]) for field in changed_fields}},
         )
+    if "status" in changed_fields:
+        apply_task_rules(db, task, project, current_user, "task.status_changed")
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -4928,10 +4947,11 @@ def report_task_distribution(
         by_priority.setdefault(task.priority or "Unspecified", {"name": task.priority or "Unspecified", "tasks": 0, "story_points": 0})
         by_priority[task.priority or "Unspecified"]["tasks"] += 1
         by_priority[task.priority or "Unspecified"]["story_points"] += points
-        key = str(task.assignee_user_id or "Unassigned")
-        by_assignee.setdefault(key, {"assignee_id": task.assignee_user_id, "name": key, "tasks": 0, "story_points": 0})
-        by_assignee[key]["tasks"] += 1
-        by_assignee[key]["story_points"] += points
+        for user_id in task.assignee_user_ids or [None]:
+            key = str(user_id or "Unassigned")
+            by_assignee.setdefault(key, {"assignee_id": user_id, "name": key, "tasks": 0, "story_points": 0})
+            by_assignee[key]["tasks"] += 1
+            by_assignee[key]["story_points"] += points
     user_ids = [item["assignee_id"] for item in by_assignee.values() if item["assignee_id"]]
     users = {user.id: _user_display_name(user) for user in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
     for item in by_assignee.values():
@@ -5036,34 +5056,36 @@ def report_time_in_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _start, end = _date_range_defaults(from_, to)
-    now = datetime.combine(end, datetime.max.time(), tzinfo=timezone.utc)
+    start, end = _date_range_defaults(from_, to)
+    window_start = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc)
+    window_end = min(datetime.combine(end + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc), datetime.now(timezone.utc))
     tasks = _report_task_query(db, current_user, projectId, None, None, end).all()
     changes_by_task = _status_changes_for_tasks(db, [task.id for task in tasks])
     totals: dict[str, float] = {}
     items = []
+    def aware(value):
+        return value.replace(tzinfo=timezone.utc) if value and value.tzinfo is None else value
     for task in tasks:
-        cursor = task.created_at or now
-        cursor = cursor.replace(tzinfo=timezone.utc) if cursor.tzinfo is None else cursor
-        current_status = changes_by_task.get(task.id, [{}])[0].get("old_status") or task.status
-        task_status_hours: dict[str, float] = {}
-        for change in changes_by_task.get(task.id, []):
-            changed_at = change["changed_at"]
-            if changed_at and changed_at.tzinfo is None:
-                changed_at = changed_at.replace(tzinfo=timezone.utc)
-            hours = max((changed_at - cursor).total_seconds() / 3600, 0) if changed_at and cursor else 0
-            task_status_hours[current_status] = task_status_hours.get(current_status, 0) + hours
+        changes = changes_by_task.get(task.id, [])
+        cursor = aware(task.created_at) or window_start
+        current_status = changes[0].get("old_status") if changes else task.status
+        current_status = current_status or task.status
+        task_hours: dict[str, float] = {}
+        def add_until(until):
+            hours = max((min(until, window_end) - max(cursor, window_start)).total_seconds() / 3600, 0)
+            task_hours[current_status] = task_hours.get(current_status, 0) + hours
             totals[current_status] = totals.get(current_status, 0) + hours
+        for change in changes:
+            changed_at = aware(change["changed_at"])
+            if not changed_at or changed_at >= window_end:
+                break
+            add_until(changed_at)
             current_status = change.get("new_status") or current_status
             cursor = changed_at
-        hours = max((now - cursor).total_seconds() / 3600, 0) if cursor else 0
-        task_status_hours[current_status] = task_status_hours.get(current_status, 0) + hours
-        totals[current_status] = totals.get(current_status, 0) + hours
-        items.append({"task_id": task.id, "task_key": task.task_key, "statuses": {key: round(value, 2) for key, value in task_status_hours.items()}})
-    return {
-        "statuses": [{"status": key, "hours": round(value, 2), "days": round(value / 24, 2)} for key, value in sorted(totals.items())],
-        "items": items,
-    }
+        add_until(window_end)
+        items.append({"task_id": task.id, "task_key": task.task_key, "statuses": {key: round(value, 2) for key, value in task_hours.items()}})
+    return {"statuses": [{"status": key, "hours": round(value, 2), "days": round(value / 24, 2)} for key, value in sorted(totals.items())], "items": items}
+
 
 
 @router.get("/reports/project-health")
@@ -5074,20 +5096,18 @@ def report_project_health(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    start, end = _date_range_defaults(from_, to)
+    _date_range_defaults(from_, to)
+    if projectId:
+        get_project_for_action(db, projectId, current_user, "browse")
     projects, tasks_by_project, sprints_by_project, _milestones_by_project, risks_by_project, _owners, _clients = _portfolio_context(db, current_user)
     if projectId:
         projects = [project for project in projects if project.id == projectId]
-    points = []
-    cursor = start
-    while cursor <= end:
-        row = {"date": cursor.isoformat(), "Good": 0, "At Risk": 0, "Blocked": 0, "Completed": 0}
-        for project in projects:
-            health = _portfolio_health(project, tasks_by_project.get(project.id, []), sprints_by_project.get(project.id, []), risks_by_project.get(project.id, []))
-            row[health] = row.get(health, 0) + 1
-        points.append(row)
-        cursor += timedelta(days=7)
-    return {"points": points}
+    row = {"date": date.today().isoformat(), "Good": 0, "At Risk": 0, "Blocked": 0, "Completed": 0}
+    for project in projects:
+        health = _portfolio_health(project, tasks_by_project.get(project.id, []), sprints_by_project.get(project.id, []), risks_by_project.get(project.id, []))
+        row[health] = row.get(health, 0) + 1
+    return {"points": [row], "basis": "current_snapshot"}
+
 
 
 @router.get("/reports/team-performance")
@@ -5107,17 +5127,17 @@ def report_team_performance(
     changes_by_task = _status_changes_for_tasks(db, [task.id for task in tasks])
     by_user: dict[int | str, dict] = {}
     for task in tasks:
-        key: int | str = task.assignee_user_id or "unassigned"
-        row = by_user.setdefault(key, {"assignee_id": task.assignee_user_id, "name": "Unassigned", "assigned_tasks": 0, "completed_tasks": 0, "assigned_points": 0, "completed_points": 0, "avg_cycle_time_hours": 0, "_cycles": []})
-        row["assigned_tasks"] += 1
-        row["assigned_points"] += _task_points(task)
-        if task.status in DONE_STATUSES:
-            row["completed_tasks"] += 1
-            row["completed_points"] += _task_points(task)
-            completed_at = _task_completed_at(task, changes_by_task.get(task.id, []))
-            started_at = _task_started_at(task, changes_by_task.get(task.id, [])) or task.created_at
-            if completed_at and started_at:
-                row["_cycles"].append(max((completed_at - started_at).total_seconds() / 3600, 0))
+        for key in task.assignee_user_ids or ["unassigned"]:
+            row = by_user.setdefault(key, {"assignee_id": key if isinstance(key, int) else None, "name": "Unassigned", "assigned_tasks": 0, "completed_tasks": 0, "assigned_points": 0, "completed_points": 0, "avg_cycle_time_hours": 0, "_cycles": []})
+            row["assigned_tasks"] += 1
+            row["assigned_points"] += _task_points(task)
+            if task.status in DONE_STATUSES:
+                row["completed_tasks"] += 1
+                row["completed_points"] += _task_points(task)
+                completed_at = _task_completed_at(task, changes_by_task.get(task.id, []))
+                started_at = _task_started_at(task, changes_by_task.get(task.id, [])) or task.created_at
+                if completed_at and started_at:
+                    row["_cycles"].append(max((completed_at - started_at).total_seconds() / 3600, 0))
     user_ids = [key for key in by_user if isinstance(key, int)]
     users = {user.id: _user_display_name(user) for user in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
     items = []
@@ -5404,23 +5424,56 @@ def export_reports(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if format.lower() not in {"csv", "xlsx", "excel", "pdf"}:
+        raise HTTPException(422, "Choose csv, xlsx or pdf")
+    _date_range_defaults(from_, to)
     if report == "cycle-time":
         data = report_cycle_time(projectId, assigneeId, from_, to, db, current_user)
-        rows = [[item["task_key"], item["title"], item["lead_time_hours"], item["cycle_time_hours"], item["completed_at"]] for item in data["items"]]
         headers = ["Task", "Title", "Lead Time Hours", "Cycle Time Hours", "Completed At"]
+        rows = [[item["task_key"], item["title"], item["lead_time_hours"], item["cycle_time_hours"], item["completed_at"]] for item in data["items"]]
     elif report == "team-performance":
         data = report_team_performance(projectId, sprintId, db, current_user)
-        rows = [[item["name"], item["assigned_tasks"], item["completed_tasks"], item["assigned_points"], item["completed_points"], item["completion_rate"]] for item in data["items"]]
         headers = ["Assignee", "Assigned Tasks", "Completed Tasks", "Assigned Points", "Completed Points", "Completion Rate"]
-    else:
+        rows = [[item[key] for key in ["name", "assigned_tasks", "completed_tasks", "assigned_points", "completed_points", "completion_rate"]] for item in data["items"]]
+    elif report == "task-distribution":
         data = report_task_distribution(projectId, assigneeId, from_, to, db, current_user)
-        rows = [[item["name"], item["tasks"], item["story_points"]] for item in data["by_status"]]
         headers = ["Status", "Tasks", "Story Points"]
+        rows = [[item["name"], item["tasks"], item["story_points"]] for item in data["by_status"]]
+    elif report == "burndown":
+        if not sprintId:
+            raise HTTPException(422, "Select a sprint for burndown")
+        data = report_burndown(sprintId, db, current_user)
+        headers = ["Date", "Ideal Remaining Points", "Actual Remaining Points", "Completed Points"]
+        rows = [[item.get(key) for key in ["date", "ideal_remaining_points", "actual_remaining_points", "completed_points"]] for item in data["points"]]
+    elif report == "velocity":
+        if not projectId:
+            raise HTTPException(422, "Select a project for velocity")
+        data = report_velocity(projectId, db, current_user)
+        headers = ["Sprint", "End Date", "Velocity Points"]
+        rows = [[item["name"], item["end_date"], item["velocity_points"]] for item in data["sprints"]]
+    elif report == "cumulative-flow":
+        data = report_cumulative_flow(projectId, from_, to, db, current_user)
+        headers = ["Date", *data["statuses"]]
+        rows = [[item["date"], *[item.get(status, 0) for status in data["statuses"]]] for item in data["points"]]
+    elif report == "time-in-status":
+        data = report_time_in_status(projectId, from_, to, db, current_user)
+        headers = ["Status", "Hours", "Days"]
+        rows = [[item["status"], item["hours"], item["days"]] for item in data["statuses"]]
+    elif report == "project-health":
+        data = report_project_health(projectId, from_, to, db, current_user)
+        headers = ["Date", "Good", "At Risk", "Blocked", "Completed"]
+        rows = [[item.get(key, 0) for key in ["date", "Good", "At Risk", "Blocked", "Completed"]] for item in data["points"]]
+    else:
+        raise HTTPException(422, "Unsupported report")
     safe_report = re.sub(r"[^a-z0-9_-]+", "-", report.lower())
+    from ..report_files import xlsx_bytes, pdf_bytes
     if format.lower() == "pdf":
-        lines = [", ".join(map(str, headers))] + [", ".join(map(str, row)) for row in rows]
-        return _simple_pdf_response(f"{safe_report}.pdf", f"PMS {report} report", lines)
-    return _csv_response(f"{safe_report}.{'xlsx' if format.lower() in {'excel', 'xlsx'} else 'csv'}", headers, rows)
+        return Response(pdf_bytes(f"PMS {report}", headers, rows), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{safe_report}.pdf"'})
+    if format.lower() in {"excel", "xlsx"}:
+        return Response(xlsx_bytes(headers, rows), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="{safe_report}.xlsx"'})
+    safe_rows = [[("'" + value) if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")) else value for value in row] for row in rows]
+    return _csv_response(f"{safe_report}.csv", headers, safe_rows)
+
 
 
 # ============= FILES =============
@@ -6739,3 +6792,30 @@ def get_project_dashboard(
         "project": get_project(project_id, db, current_user),
         "metrics": metrics
     }
+
+
+@router.get("/trash/tasks")
+def list_trashed_tasks(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project_ids = accessible_project_query(db, current_user).with_entities(PMSProject.id)
+    rows = db.query(PMSTask, PMSProject.name).join(PMSProject, PMSProject.id == PMSTask.project_id).filter(
+        PMSTask.deleted_at.isnot(None), PMSTask.project_id.in_(project_ids)
+    ).order_by(PMSTask.deleted_at.desc()).all()
+    return [{"id": task.id, "title": task.title, "task_key": task.task_key,
+             "project_name": name, "deleted_at": task.deleted_at} for task, name in rows]
+
+
+@router.post("/trash/tasks/{task_id}/restore")
+def restore_trashed_task(task_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    task = db.query(PMSTask).filter(PMSTask.id == task_id, PMSTask.deleted_at.isnot(None)).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Deleted task not found")
+    project = get_project_for_action(db, task.project_id, current_user, "manage_tasks")
+    if task.parent_task_id:
+        parent = db.query(PMSTask).filter(PMSTask.id == task.parent_task_id, PMSTask.deleted_at.is_(None)).first()
+        if not parent:
+            raise HTTPException(status_code=409, detail="Restore the parent task first")
+    task.deleted_at = None
+    _record_activity(db, project.id, current_user, "task.restored", "task", task.id,
+                     f"Restored task {task.task_key}", task_id=task.id)
+    db.commit()
+    return {"id": task.id, "message": "Task restored"}

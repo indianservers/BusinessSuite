@@ -1,4 +1,5 @@
 import React from "react";
+import { recoverChunkLoad } from "./lib/chunk-recovery";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
@@ -8,6 +9,10 @@ import { applyTheme, useThemeStore } from "./store/themeStore.ts";
 
 const { theme } = useThemeStore.getState();
 applyTheme(theme);
+
+window.addEventListener("vite:preloadError", (event: Event & { payload?: unknown }) => {
+  if (recoverChunkLoad(event.payload)) event.preventDefault();
+});
 
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   if (useThemeStore.getState().theme === "system") {

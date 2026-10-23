@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertTriangle, Link2, RefreshCw, Trash2, ZoomIn } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { beginProgress } from "@/lib/async-progress";
+import { canAccessRoute } from "@/lib/roles";
+import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +33,7 @@ type DragState = {
 };
 
 const rowHeight = 52;
-const labelWidth = 288;
+const desktopLabelWidth = 288;
 const zoomConfig: Record<ZoomLevel, { columnWidth: number; daysPerColumn: number }> = {
   day: { columnWidth: 44, daysPerColumn: 1 },
   week: { columnWidth: 104, daysPerColumn: 7 },
@@ -40,6 +44,7 @@ const defaultFilters: FilterState = { projectId: "", sprintId: "", assigneeId: "
 
 export default function GanttPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const user = useAuthStore(state => state.user);
   const [data, setData] = useState<PMSGanttResponse | null>(null);
   const [tasks, setTasks] = useState<PMSTaskListItem[]>([]);
   const [dependencies, setDependencies] = useState<PMSTaskDependency[]>([]);
@@ -52,21 +57,44 @@ export default function GanttPage() {
   const [lagDays, setLagDays] = useState("0");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editor, setEditor] = useState<PMSTaskListItem | null>(null);
+  const [dates, setDates] = useState({ start: "", due: "" });
+  const [compact, setCompact] = useState(window.innerWidth < 640);
+  const requestSequence = useRef(0);
+  const inFlight = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const labelWidth = compact ? 176 : desktopLabelWidth;
+  useEffect(() => { const resize = () => setCompact(window.innerWidth < 640); window.addEventListener("resize", resize); return () => window.removeEventListener("resize", resize); }, []);
+  const openEditor = (task: PMSTaskListItem) => { setError(null); setDates({ start: task.start_date || "", due: task.due_date || "" }); setEditor(task); };
+  const saveSchedule = async () => {
+    if (!editor || saving || !canEditProject(editor.project_id)) return;
+    if (dates.start && dates.due && dates.start > dates.due) { setError("Due date must be on or after start date."); return; }
+    setSaving(true); setError(null); const finish = beginProgress("Saving task schedule");
+    try { const result = await ganttAPI.updateSchedule(editor.id, { start_date: dates.start || null, due_date: dates.due || null }); setTasks(items => items.map(task => task.id === editor.id ? { ...task, ...result.task } : task)); setNotice("Schedule saved"); setEditor(null); await load(true); finish(); }
+    catch (err: any) { finish(false); setError(err?.response?.data?.detail || "Unable to save this schedule."); }
+    finally { setSaving(false); }
+  };
 
   const canEditProject = (id?: number) => !!data?.filters.projects.find(p => p.id === id)?.can_manage_tasks;
   const readOnly = filters.projectId ? !canEditProject(Number(filters.projectId)) : !data?.filters.projects.some(p => p.can_manage_tasks);
   const load = async (background = false) => {
+    if (background && inFlight.current) return;
+    inFlight.current = true;
+    const sequence = ++requestSequence.current;
     if (!background) setLoading(true);
     setError(null);
     try {
-      const response = await ganttAPI.get(filters);
+      const response = await ganttAPI.get({ ...filters, includeUnscheduled: true });
+      if (sequence !== requestSequence.current) return;
       setData(response);
       setTasks(response.tasks);
       setDependencies(response.dependencies);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Unable to load Gantt timeline.");
+      if (sequence === requestSequence.current) setError(err?.response?.data?.detail || "Unable to load Gantt timeline.");
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) { inFlight.current = false; setLoading(false); }
     }
   };
 
@@ -75,7 +103,8 @@ export default function GanttPage() {
   }, [projectId]);
 
   useEffect(() => {
-    load();
+    void load();
+    return () => { requestSequence.current++; };
   }, [filters.projectId, filters.sprintId, filters.assigneeId, filters.epicId, filters.status]);
 
   useEffect(() => {
@@ -92,15 +121,18 @@ export default function GanttPage() {
       const current = drag;
       setDrag(null);
       const dayDelta = Math.round((event.clientX - current.startX) / pixelsPerDay(zoom));
+      if (!dayDelta) return;
       const next = calculateDraggedDates(current, dayDelta);
+      const finish = beginProgress("Moving task schedule"); setSaving(true);
       try {
         const result = await ganttAPI.updateSchedule(current.taskId, { start_date: toIsoDate(next.start), due_date: toIsoDate(next.end) });
         setTasks((items) => items.map((task) => task.id === current.taskId ? { ...task, ...result.task } : task));
         if (data) setData({ ...data, warnings: result.warnings });
+        finish(); setNotice("Schedule saved");
       } catch (err: any) {
-        setError(err?.response?.data?.detail || "Unable to update schedule.");
-        load();
+        finish(false); await load(); setError(err?.response?.data?.detail || "Unable to update schedule.");
       }
+      finally { setSaving(false); }
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -123,11 +155,13 @@ export default function GanttPage() {
   }, [data?.warnings]);
   const scheduleFocus = useMemo(() => buildScheduleFocus(tasks, dependencies, warningByTask), [tasks, dependencies, warningByTask]);
 
-  usePMSRealtime({ enabled: !drag, projectId: Number(filters.projectId) || undefined, onEvent: () => { void load(true); }, onFallbackPoll: () => { void load(true); }, showToast: false });
+  usePMSRealtime({ enabled: !loading && !drag && !editor && !saving, projectId: Number(filters.projectId) || undefined, onEvent: () => { void load(true); }, onFallbackPoll: () => { void load(true); }, showToast: false });
 
   const createDependency = async () => {
+    if (saving) return;
+    if (!Number.isInteger(Number(lagDays || 0))) { setError("Lag must be a whole number of days."); return; }
     if (!sourceTaskId || !targetTaskId || sourceTaskId === targetTaskId) return;
-    setError(null);
+    setError(null); setSaving(true); const finish = beginProgress("Saving dependency");
     try {
       const created = await ganttAPI.createDependency({
         source_task_id: Number(sourceTaskId),
@@ -138,21 +172,22 @@ export default function GanttPage() {
       setDependencies((items) => [...items, created]);
       setSourceTaskId("");
       setTargetTaskId("");
-      await load();
-    } catch (err: any) {
+      await load(); finish(); setNotice("Dependency saved");
+    } catch (err: any) { finish(false);
       setError(err?.response?.data?.detail || "Unable to create dependency.");
-    }
+    } finally { setSaving(false); }
   };
 
   const deleteDependency = async (dependencyId: number) => {
+    if (saving) return;
+    setSaving(true); const finish = beginProgress("Removing dependency");
     setDependencies((items) => items.filter((item) => item.id !== dependencyId));
     try {
       await ganttAPI.deleteDependency(dependencyId);
-      await load();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Unable to delete dependency.");
-      await load();
-    }
+      await load(); finish(); setNotice("Dependency removed");
+    } catch (err: any) { finish(false);
+      await load(); setError(err?.response?.data?.detail || "Unable to delete dependency.");
+    } finally { setSaving(false); }
   };
 
   const selectedProjectId = filters.projectId || data?.filters.projects[0]?.id;
@@ -165,8 +200,10 @@ export default function GanttPage() {
           <p className="page-description">Timeline planning with dependency arrows, schedule edits, filters, and zoomable dates.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {selectedProjectId ? <Button asChild variant="outline"><Link to={`/pms/projects/${selectedProjectId}/board`}>Open board</Link></Button> : null}
-          <Button variant="outline" onClick={() => { void load(); }}><RefreshCw className="h-4 w-4" />Refresh</Button>
+          {selectedProjectId && canAccessRoute(`/pms/projects/${selectedProjectId}/board`, user?.role, user?.is_superuser) ? <Button asChild variant="outline"><Link to={`/pms/projects/${selectedProjectId}/board`}>Open board</Link></Button> : null}
+          <Button variant="outline" disabled={loading || saving} onClick={() => { setZoom(daysBetween(timeline.start, timeline.end) <= 21 ? "day" : daysBetween(timeline.start, timeline.end) <= 180 ? "week" : "month"); scrollRef.current?.scrollTo({ left: 0 }); }}>Fit dates</Button>
+          <Button variant="outline" disabled={loading || daysBetween(timeline.start, new Date()) < 0 || new Date() > timeline.end} onClick={() => scrollRef.current?.scrollTo({ left: Math.max(0, daysBetween(timeline.start, new Date()) * pixelsPerDay(zoom) - 80) })}>Today</Button>
+          <Button variant="outline" disabled={loading || saving} onClick={() => { void load(); }}><RefreshCw className="h-4 w-4" />Refresh</Button>
         </div>
       </div>
 
@@ -202,16 +239,18 @@ export default function GanttPage() {
         </CardContent>
       </Card>
 
-      {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+      {notice && <p role="status" className="text-sm text-primary">{notice}</p>}
+      <p className="text-sm text-muted-foreground">{tasks.filter(task => task.start_date || task.due_date).length} scheduled · {tasks.filter(task => !task.start_date && !task.due_date).length} unscheduled. Select a task name to edit dates using keyboard or touch.</p>
+      {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
       <Card>
-        <CardContent className="overflow-auto p-0">
+        <CardContent ref={scrollRef} className="max-w-full overflow-auto p-0" aria-label="Scrollable task timeline">
           {loading ? <div className="skeleton m-5 h-96 rounded-lg" /> : null}
           {!loading && !rows.length ? <div className="m-5 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Add task start or due dates to populate the Gantt timeline.</div> : null}
           {!loading && rows.length ? (
             <div className="min-w-full" style={{ width: labelWidth + timeline.width }}>
               <div className="sticky top-0 z-20 grid bg-background" style={{ gridTemplateColumns: `${labelWidth}px ${timeline.width}px` }}>
-                <div className="border-b border-r p-3 text-xs font-semibold uppercase text-muted-foreground">Task</div>
+                <div className="sticky left-0 z-30 border-b border-r bg-background p-3 text-xs font-semibold uppercase text-muted-foreground">Task</div>
                 <div className="relative border-b" style={{ height: 44 }}>
                   {timeline.columns.map((column) => (
                     <div key={column.key} className="absolute top-0 flex h-11 items-center border-r px-2 text-xs font-medium text-muted-foreground" style={{ left: column.x, width: column.width }}>
@@ -221,25 +260,28 @@ export default function GanttPage() {
                 </div>
               </div>
               <div className="relative grid" style={{ gridTemplateColumns: `${labelWidth}px ${timeline.width}px`, minHeight: rows.length * rowHeight }}>
-                <div>
+                <div className="sticky left-0 z-20 bg-background">
                   {rows.map(({ task }) => (
-                    <div key={task.id} className="flex h-[52px] items-center gap-2 border-b border-r px-3">
+                    <button key={task.id} type="button" aria-label={`Edit schedule for ${task.title}`} onClick={() => openEditor(task)} className="flex h-[52px] w-full items-center gap-2 border-b border-r px-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="truncate text-sm font-semibold">{task.task_key}</span>
                           {task.is_blocking ? <Badge variant="outline" className="border-red-200 text-red-700">Blocks other tasks</Badge> : null}
                         </div>
-                        <p className="truncate text-xs text-muted-foreground">{task.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{task.title}</p>{!task.start_date && !task.due_date && <span className="text-xs text-amber-700">Unscheduled</span>}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 <div className="relative overflow-hidden">
+                  {daysBetween(timeline.start, new Date()) >= 0 && new Date() <= timeline.end && <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 z-10 border-l-2 border-violet-500" style={{ left: daysBetween(timeline.start, new Date()) * pixelsPerDay(zoom) }} />}
                   <TimelineGrid rows={rows.length} timeline={timeline} />
                   <DependencyArrows dependencies={dependencies} rows={rows} timelineStart={timeline.start} zoom={zoom} />
-                  {rows.map(({ task, index, schedule }) => (
+                  {rows.filter(({ task }) => task.start_date || task.due_date).map(({ task, index, schedule }) => (
                     <TaskBar
                       key={task.id}
+                      readOnly={!canEditProject(task.project_id)}
+                      onEdit={() => openEditor(task)}
                       task={task}
                       index={index}
                       schedule={schedule}
@@ -260,27 +302,28 @@ export default function GanttPage() {
         </CardContent>
       </Card>
 
+      <Dialog.Root open={!!editor} onOpenChange={open => { if (!open && !saving) setEditor(null); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" /><Dialog.Content onEscapeKeyDown={event => { if (saving) event.preventDefault(); }} onInteractOutside={event => event.preventDefault()} className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border bg-background p-5 shadow-xl"><Dialog.Title className="text-lg font-semibold">Schedule · {editor?.title}</Dialog.Title><Dialog.Description>Choose dates or leave both blank to unschedule. Dependency warnings are checked after saving.</Dialog.Description>{error && <p role="alert" className="my-3 text-destructive">{error}</p>}<form className="mt-4 space-y-4" onSubmit={event => { event.preventDefault(); void saveSchedule(); }}><fieldset disabled={saving || !canEditProject(editor?.project_id)} className="grid gap-4 sm:grid-cols-2"><label>Start date<input aria-label="Schedule start date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.start} onChange={event => setDates({ ...dates, start: event.target.value })} /></label><label>Due date<input aria-label="Schedule due date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.due} onChange={event => setDates({ ...dates, due: event.target.value })} /></label></fieldset>{!canEditProject(editor?.project_id) && <p>You have read-only access.</p>}<div className="flex flex-wrap justify-end gap-3">{canEditProject(editor?.project_id) && <Button type="button" variant="outline" disabled={saving} onClick={() => setDates({ start: "", due: "" })}>Clear dates</Button>}<Button type="button" variant="outline" disabled={saving} onClick={() => setEditor(null)}>Close</Button>{canEditProject(editor?.project_id) && <Button disabled={saving}>{saving ? "Saving…" : "Save schedule"}</Button>}</div></form></Dialog.Content></Dialog.Portal></Dialog.Root>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" />Dependencies</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <fieldset disabled={readOnly} className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
-              <select value={sourceTaskId} onChange={(event) => setSourceTaskId(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+            <form onSubmit={event => { event.preventDefault(); void createDependency(); }}><fieldset disabled={readOnly || saving} className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
+              <select aria-label="Source task" value={sourceTaskId} onChange={(event) => { setSourceTaskId(event.target.value); setTargetTaskId(""); }} className="h-11 rounded-md border bg-background px-3 text-sm">
                 <option value="">Source task</option>
-                {tasks.map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
+                {tasks.filter(task => canEditProject(task.project_id)).map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
               </select>
-              <select value={targetTaskId} onChange={(event) => setTargetTaskId(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+              <select aria-label="Target task" value={targetTaskId} onChange={(event) => setTargetTaskId(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm">
                 <option value="">Target task</option>
-                {tasks.map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
+                {tasks.filter(task => canEditProject(task.project_id) && task.id !== Number(sourceTaskId) && task.project_id === tasks.find(source => source.id === Number(sourceTaskId))?.project_id).map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
               </select>
-              <select value={dependencyType} onChange={(event) => setDependencyType(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+              <select aria-label="Dependency type" value={dependencyType} onChange={(event) => setDependencyType(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm">
                 {dependencyTypes.map((item) => <option key={item}>{item}</option>)}
               </select>
-              <input type="number" value={lagDays} onChange={(event) => setLagDays(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm" placeholder="Lag" />
-              <Button type="button" onClick={createDependency}>Add</Button>
-            </fieldset>{readOnly && <p className="text-sm text-muted-foreground">You have read-only access to this timeline.</p>}
+              <input aria-label="Lag days" type="number" step="1" value={lagDays} onChange={(event) => setLagDays(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm" placeholder="Lag" />
+              <Button type="submit" disabled={saving || !sourceTaskId || !targetTaskId}>Add dependency</Button>
+            </fieldset></form>{readOnly && <p className="text-sm text-muted-foreground">You have read-only access to this timeline.</p>}
             <div className="space-y-2">
-              {dependencies.map((dependency) => <DependencyRow key={dependency.id} dependency={dependency} canEdit={canEditProject(tasks.find(t => t.id === (dependency.source_task_id ?? dependency.depends_on_task_id))?.project_id)} onDelete={() => deleteDependency(dependency.id)} />)}
+              {dependencies.map((dependency) => <DependencyRow key={dependency.id} dependency={dependency} canEdit={!saving && canEditProject(tasks.find(t => t.id === (dependency.source_task_id ?? dependency.depends_on_task_id))?.project_id)} onDelete={() => deleteDependency(dependency.id)} />)}
               {!dependencies.length ? <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">No dependencies for the visible tasks.</p> : null}
             </div>
           </CardContent>
@@ -299,7 +342,7 @@ export default function GanttPage() {
               <p className="mt-1 text-xs text-muted-foreground">Prioritized from blocked status, dependency pressure, warnings, and due dates.</p>
               <div className="mt-3 space-y-2">
                 {scheduleFocus.map((item) => (
-                  <Link key={item.task.id} to={`/pms/tasks/${item.task.id}`} className="block rounded-md border p-2 hover:bg-muted/50">
+                  <button key={item.task.id} type="button" onClick={() => openEditor(item.task)} className="block w-full rounded-md border p-2 text-left hover:bg-muted/50">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate font-medium">{item.task.task_key} - {item.task.title}</p>
@@ -307,7 +350,7 @@ export default function GanttPage() {
                       </div>
                       <Badge className={statusColor(item.task.status)}>{item.task.status}</Badge>
                     </div>
-                  </Link>
+                  </button>
                 ))}
                 {!scheduleFocus.length ? <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">No blocked, warning, or dependency-heavy tasks in the current view.</p> : null}
               </div>
@@ -355,7 +398,7 @@ function SelectFilter({ label, value, onChange, children }: { label: string; val
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-md border bg-background px-3 text-sm">
         {children}
       </select>
     </label>
@@ -370,6 +413,8 @@ function TaskBar({
   zoom,
   warnings,
   onDragStart,
+  onEdit,
+  readOnly,
 }: {
   task: PMSTaskListItem;
   index: number;
@@ -377,6 +422,8 @@ function TaskBar({
   timelineStart: Date;
   zoom: ZoomLevel;
   warnings: string[];
+  onEdit: () => void;
+  readOnly: boolean;
   onDragStart: (mode: DragMode, event: ReactMouseEvent) => void;
 }) {
   const left = daysBetween(timelineStart, schedule.start) * pixelsPerDay(zoom);
@@ -389,11 +436,11 @@ function TaskBar({
       style={{ top: index * rowHeight + 10, left, width }}
       title={`${task.task_key}: ${formatDate(task.start_date || null)} - ${formatDate(task.due_date || null)}${warnings.length ? ` / ${warnings[0]}` : ""}`}
     >
-      <button type="button" aria-label="Resize start date" onMouseDown={(event) => onDragStart("start", event)} className="absolute left-0 top-0 h-full w-2 cursor-ew-resize rounded-l-md bg-black/15" />
-      <button type="button" onMouseDown={(event) => onDragStart("move", event)} className="h-full w-full cursor-grab truncate px-3 text-left text-xs font-semibold text-white">
+      <button type="button" disabled={readOnly} aria-label={`Resize start date for ${task.task_key}`} onMouseDown={(event) => onDragStart("start", event)} className="absolute left-0 top-0 h-full w-2 cursor-ew-resize rounded-l-md bg-black/15" />
+      <button type="button" onDoubleClick={onEdit} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onEdit(); } }} onMouseDown={(event) => onDragStart("move", event)} className="h-full w-full cursor-grab truncate px-3 text-left text-xs font-semibold text-white">
         {task.task_key} {task.title}
       </button>
-      <button type="button" aria-label="Resize end date" onMouseDown={(event) => onDragStart("end", event)} className="absolute right-0 top-0 h-full w-2 cursor-ew-resize rounded-r-md bg-black/15" />
+      <button type="button" disabled={readOnly} aria-label={`Resize end date for ${task.task_key}`} onMouseDown={(event) => onDragStart("end", event)} className="absolute right-0 top-0 h-full w-2 cursor-ew-resize rounded-r-md bg-black/15" />
     </div>
   );
 }
@@ -412,7 +459,7 @@ function DependencyArrows({ dependencies, rows, timelineStart, zoom }: { depende
   const paths = dependencies.map((dependency) => {
     const source = rowByTaskId.get(dependency.source_task_id || dependency.depends_on_task_id);
     const target = rowByTaskId.get(dependency.target_task_id || dependency.task_id);
-    if (!source || !target) return null;
+    if (!source || !target || (!source.task.start_date && !source.task.due_date) || (!target.task.start_date && !target.task.due_date)) return null;
     const anchors = dependencyAnchors(dependency.dependency_type, source.schedule, target.schedule, timelineStart, zoom);
     const sourceY = source.index * rowHeight + 26;
     const targetY = target.index * rowHeight + 26;
@@ -451,7 +498,7 @@ type Timeline = {
 };
 
 function buildTimeline(tasks: PMSTaskListItem[], zoom: ZoomLevel): Timeline {
-  const schedules = tasks.map(taskSchedule);
+  const schedules = tasks.filter(task => task.start_date || task.due_date).map(taskSchedule);
   const min = schedules.length ? new Date(Math.min(...schedules.map((item) => item.start.getTime()))) : new Date();
   const max = schedules.length ? new Date(Math.max(...schedules.map((item) => item.end.getTime()))) : addDays(new Date(), 28);
   const start = addDays(startOfDay(min), zoom === "month" ? -15 : zoom === "week" ? -7 : -2);

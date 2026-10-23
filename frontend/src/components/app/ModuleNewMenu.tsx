@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute, getRoleKey } from "@/lib/roles";
 import NewMenu, { type NewAction } from "./NewMenu";
+import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMenu";
 
 export default function ModuleNewMenu() {
   const { pathname } = useLocation();
@@ -43,5 +44,5 @@ export default function ModuleNewMenu() {
     add("Leave request", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
     add("Support ticket", user?.employee_id ? "Ask your support team for help" : "Link an employee profile to raise tickets", LifeBuoy, "/hrms/helpdesk?new=ticket", true, !user?.employee_id);
   }
-  return <NewMenu actions={actions} />;
+  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <NewMenu actions={actions} />;
 }

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState, Fragment, type ReactNode } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, RefreshCw, Save, Search, SlidersHorizontal, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,7 +100,7 @@ const taskStatuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Revie
 const priorityOrder: Record<string, number> = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
 
 const initialVisibleColumns = columns.reduce<Record<ColumnKey, boolean>>((acc, column) => {
-  acc[column.key] = true;
+  acc[column.key] = ["task", "title", "project", "status", "priority", "assignee", "due_date"].includes(column.key);
   return acc;
 }, {} as Record<ColumnKey, boolean>);
 
@@ -170,6 +170,10 @@ export default function TaskListPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [groupByStatus, setGroupByStatus] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [visibleColumns, setVisibleColumns] = useState(initialVisibleColumns);
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState("");
@@ -239,6 +243,17 @@ export default function TaskListPage() {
     };
   }, []);
 
+  const taskGroups = useMemo(() => {
+    const items = data?.items || [];
+    if (!groupByStatus) return [{ status: "All tasks", items }];
+    return [...taskStatuses, ...new Set(items.map(task => task.status).filter(status => !taskStatuses.includes(status)))].map(status => ({ status, items: items.filter(task => task.status === status) })).filter(group => group.items.length);
+  }, [data?.items, groupByStatus]);
+  const toggleGroup = (status: string) => {
+    setCollapsedGroups(current => current.includes(status)
+      ? current.filter(item => item !== status)
+      : [...current, status]);
+  };
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const visibleColumnList = useMemo(() => columns.filter((column) => visibleColumns[column.key]), [visibleColumns]);
   const currentPageTaskIds = useMemo(() => data?.items.map((task) => task.id) || [], [data?.items]);
   const selectedTasks = useMemo(() => data?.items.filter((task) => selectedTaskIds.includes(task.id)) || [], [data?.items, selectedTaskIds]);
@@ -491,7 +506,7 @@ export default function TaskListPage() {
       case "tags":
         return <TaskBadges task={task} />;
       case "due_date":
-        return <span className={cn(task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done" ? "font-medium text-red-600" : "")}>{formatDate(task.due_date || null)}</span>;
+        return <span className={cn(task.due_date && task.status !== "Done" && task.status !== "Cancelled" && task.due_date.slice(0, 10) < new Date().toLocaleDateString("en-CA") ? "font-medium text-red-600" : "")}>{formatDate(task.due_date || null)}</span>;
       case "created_at":
         return <span>{formatDate(task.created_at || null)}</span>;
       case "updated_at":
@@ -502,13 +517,14 @@ export default function TaskListPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Tasks</h1>
           <p className="page-description">Search, filter, sort, and update work across every project you can access.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link to="/pms/trash" className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><Trash2 className="h-4 w-4" />Trash</Link>
           <select value={selectedViewId} onChange={(event) => handleViewSelect(event.target.value)} className="h-10 min-w-52 rounded-md border bg-background px-3 text-sm">
             <option value="">Unsaved task view</option>
             {savedViews.map((view) => (
@@ -564,14 +580,14 @@ export default function TaskListPage() {
       <Card>
         <CardHeader className="gap-3 lg:flex-row lg:items-center lg:justify-between">
           <CardTitle className="flex items-center gap-2 text-base"><Search className="h-5 w-5" />Task filters</CardTitle>
-          <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+          <div className="flex gap-2"><Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button><Button variant="outline" size="sm" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(open => !open)}>{filtersOpen ? "Hide filters" : `Filters${activeFilterCount ? ` (${activeFilterCount})` : ""}`}<ChevronDown className={cn("h-4 w-4 transition-transform", filtersOpen && "rotate-180")} /></Button></div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input value={filters.search} onChange={(event) => setFilter("search", event.target.value)} placeholder="Search by task key, title, project, epic, component, or release" className="border-0 shadow-none focus-visible:ring-0" />
           </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div hidden={!filtersOpen} className={cn("gap-3 md:grid-cols-2 xl:grid-cols-4", filtersOpen && "grid")}>
             <SelectField label="Project" value={filters.projectId} onChange={(value) => setFilter("projectId", value)}>
               <option value="">All projects</option>
               {data?.filters.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
@@ -642,10 +658,10 @@ export default function TaskListPage() {
 
       <Card>
         <CardHeader className="gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <CardTitle className="flex items-center gap-2 text-base"><Columns3 className="h-5 w-5" />Columns</CardTitle>
+          <div className="flex flex-wrap items-center gap-2"><Button variant={groupByStatus ? "secondary" : "outline"} size="sm" aria-pressed={groupByStatus} onClick={() => setGroupByStatus(value => !value)}>Group: {groupByStatus ? "Status" : "None"}</Button>{groupByStatus && <Button variant="ghost" size="sm" onClick={() => setCollapsedGroups(collapsedGroups.length ? [] : taskGroups.map(group => group.status))}>{collapsedGroups.length ? "Expand all" : "Collapse all"}</Button>}<Button variant="outline" size="sm" aria-expanded={columnsOpen} onClick={() => setColumnsOpen(open => !open)}><Columns3 className="h-4 w-4" />Columns</Button></div>
           <p className="text-sm text-muted-foreground">{firstResult}-{lastResult} of {data?.total || 0}</p>
         </CardHeader>
-        <CardContent>
+        <CardContent hidden={!columnsOpen}>
           <div className="flex flex-wrap gap-2">
             {columns.map((column) => (
               <label key={column.key} className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm">
@@ -717,7 +733,9 @@ export default function TaskListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.items.map((task) => (
+                    {taskGroups.map(group => <Fragment key={group.status}>
+                    {groupByStatus && <tr className="border-b bg-muted/25"><td colSpan={visibleColumnList.length + 1} className="px-4 py-2"><button type="button" className="flex w-full items-center gap-2 py-1 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4 transition-transform", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs font-normal text-muted-foreground">{group.items.length} on this page</span></button></td></tr>}
+                    {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
                       <tr
                         key={task.id}
                         tabIndex={0}
@@ -742,14 +760,16 @@ export default function TaskListPage() {
                           </td>
                         ))}
                       </tr>
-                    ))}
+                    ))}</Fragment>)}
                   </tbody>
                 </table>
               </div>
 
               <div className="space-y-3 p-4 lg:hidden">
-                {data.items.map((task) => (
-                  <button key={task.id} type="button" onClick={() => openTask(task)} className="w-full rounded-lg border bg-background p-4 text-left shadow-sm">
+                {taskGroups.map(group => <Fragment key={group.status}>
+                  {groupByStatus && <button type="button" className="flex w-full items-center gap-2 py-2 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs text-muted-foreground">{group.items.length} on this page</span></button>}
+                  {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
+                  <div role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); } }} key={task.id} onClick={() => openTask(task)} className="w-full rounded-lg border bg-background p-4 text-left shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 gap-3">
                         <input
@@ -773,8 +793,8 @@ export default function TaskListPage() {
                       <span className="text-muted-foreground">Due</span><span className="text-right">{formatDate(task.due_date || null)}</span>
                     </div>
                     <div className="mt-3"><TaskBadges task={task} /></div>
-                  </button>
-                ))}
+                  </div>
+                ))}</Fragment>)}
               </div>
             </>
           ) : null}

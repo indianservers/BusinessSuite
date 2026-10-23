@@ -1432,3 +1432,49 @@ def test_market_gap_api_additions_for_sprints_dependencies_filters_and_reports(d
 
     activity = list_project_activity(project.id, task_id=None, limit=20, db=db, current_user=manager)
     assert any(item.action == "dependency.added" for item in activity)
+
+
+def test_trash_restore_enforces_project_access(db):
+    from app.apps.project_management.api.router import list_trashed_tasks, restore_trashed_task
+    manager = _user(db, "trash-manager@example.com", ["pms_manage_projects"])
+    outsider = _user(db, "trash-outsider@example.com")
+    project = create_project(PMSProjectCreate(name="Recovery", project_key="REC"), db=db, current_user=manager)
+    task = create_task(project.id, PMSTaskCreate(title="Recover me", task_key="REC-1"), db=db, current_user=manager)
+    delete_task(task.id, db=db, current_user=manager)
+    assert [row["id"] for row in list_trashed_tasks(db=db, current_user=manager)] == [task.id]
+    assert list_trashed_tasks(db=db, current_user=outsider) == []
+    with pytest.raises(HTTPException) as denied:
+        restore_trashed_task(task.id, db=db, current_user=outsider)
+    assert denied.value.status_code == 403
+    assert task.deleted_at is not None
+    restore_trashed_task(task.id, db=db, current_user=manager)
+    assert task.deleted_at is None
+    assert list_trashed_tasks(db=db, current_user=manager) == []
+
+
+def test_custom_fields_validate_types_and_project_scope(db):
+    from app.apps.project_management.custom_fields import create_field, save_value, task_fields, FieldInput, ValueInput
+    manager = _user(db, "field-manager@example.com", ["pms_manage_projects"])
+    outsider = _user(db, "field-outsider@example.com")
+    project = create_project(PMSProjectCreate(name="Fields", project_key="FLD"), db=db, current_user=manager)
+    other = create_project(PMSProjectCreate(name="Other fields", project_key="OTH"), db=db, current_user=manager)
+    task = create_task(project.id, PMSTaskCreate(title="Client return", task_key="FLD-1"), db=db, current_user=manager)
+    definition = create_field(project.id, FieldInput(name="Tax period", field_type="dropdown", options=["2025", "2026"]), db=db, user=manager)
+    save_value(task.id, definition["id"], ValueInput(value="2026"), db=db, user=manager)
+    assert task_fields(task.id, db=db, user=manager)["fields"][0]["value"] == "2026"
+    with pytest.raises(HTTPException) as invalid:
+        save_value(task.id, definition["id"], ValueInput(value="invalid"), db=db, user=manager)
+    assert invalid.value.status_code == 422
+    foreign = create_field(other.id, FieldInput(name="Other", field_type="text"), db=db, user=manager)
+    with pytest.raises(HTTPException) as cross_project:
+        save_value(task.id, foreign["id"], ValueInput(value="bad"), db=db, user=manager)
+    assert cross_project.value.status_code == 404
+    with pytest.raises(HTTPException) as denied:
+        task_fields(task.id, db=db, user=outsider)
+    assert denied.value.status_code == 403
+    for field_type, valid, invalid in [("number", 12.5, "no"), ("date", "2026-10-23", "2026-02-30"), ("checkbox", True, "true")]:
+        field = create_field(project.id, FieldInput(name=field_type, field_type=field_type), db=db, user=manager)
+        save_value(task.id, field["id"], ValueInput(value=valid), db=db, user=manager)
+        with pytest.raises(HTTPException) as bad:
+            save_value(task.id, field["id"], ValueInput(value=invalid), db=db, user=manager)
+        assert bad.value.status_code == 422

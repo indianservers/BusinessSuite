@@ -1,4 +1,5 @@
 import React from "react";
+import { recoverChunkLoad } from "@/lib/chunk-recovery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -11,6 +12,10 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    recoverChunkLoad(error);
   }
 
   render() {

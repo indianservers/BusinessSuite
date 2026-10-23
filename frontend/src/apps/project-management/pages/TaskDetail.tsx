@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import TaskCustomFields from "../components/TaskCustomFields";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
 import { cn, formatDate, formatDateTime, statusColor } from "@/lib/utils";
 import { commentsAPI, filesAPI, planningAPI, projectsAPI, tagsAPI, tasksAPI, timeLogsAPI, sprintsAPI, pmsUsersAPI } from "../services/api";
@@ -685,7 +686,10 @@ export default function TaskDetail() {
                 relatedEntityId={task.id}
                 defaultAgentCode="pms_deadline_risk"
                 defaultPrompt="Analyze deadline risk for this task/project."
+                buttonLabel="Analyze risk"
               />
+              <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Summarize task" defaultPrompt="Summarize this task using accessible task data. Include progress, blockers and outstanding work. Clearly identify missing information. Do not modify the task." />
+              <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Plan next steps" defaultPrompt="Suggest a practical checklist of next steps for this task using accessible data. Include dependencies and questions that need answers. Present suggestions for review without modifying the task." />
               <Button onClick={() => updateTask({ title: task.title, description: task.description })} disabled={saving}>
                 <Save className="h-4 w-4" />{saving ? "Saving" : "Save"}
               </Button>
@@ -708,6 +712,7 @@ export default function TaskDetail() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
+          <TaskCustomFields key={task.id} taskId={task.id} projectId={task.project_id} />
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Description</CardTitle></CardHeader>
             <CardContent className="space-y-3">

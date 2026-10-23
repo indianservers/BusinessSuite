@@ -3,6 +3,10 @@ import type { FrontendRoute } from "@/appRegistry";
 
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
 
+const DirectMessagesPage = React.lazy(() => import("./pages/DirectMessagesPage"));
+const TeamsPage = React.lazy(() => import("./pages/TeamsPage"));
+const TrashPage = React.lazy(() => import("./pages/TrashPage"));
+
 // Lazy load components
 const ProjectManagementHomePage = React.lazy(() => import("./ProjectManagementHomePage"));
 const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
@@ -49,6 +53,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/overview", element: <ProjectManagementHomePage /> },
   { path: "pms/profile", element: <ModuleProfilePage /> },
   { path: "pms/command-center", element: <CommandCenterPage /> },
+  { path: "pms/workspace-tools", element: <CommandCenterPage /> },
   { path: "pms/enterprise-engine", element: <EnterpriseEnginePage /> },
   { path: "pms/product-launch", element: <ProductLaunchPage /> },
   { path: "pms/portfolio", element: <PortfolioPage /> },
@@ -97,20 +102,23 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/automation", element: <AutomationAIPage /> },
   { path: "pms/goals", element: <CommandCenterPage /> },
   { path: "pms/forms", element: <CommandCenterPage /> },
+  { path: "pms/messages", element: <DirectMessagesPage /> },
+  { path: "pms/teams", element: <TeamsPage /> },
+  { path: "pms/trash", element: <TrashPage /> },
   { path: "pms/templates", element: <CommandCenterPage /> },
   { path: "pms/components", element: <CommandCenterPage /> },
   { path: "pms/workflows", element: <CommandCenterPage /> },
   { path: "pms/security", element: <CommandCenterPage /> },
-  { path: "pms/dependencies", element: <CommandCenterPage /> },
-  { path: "pms/navigator", element: <CommandCenterPage /> },
+  { path: "pms/dependencies", element: <RoadmapPage /> },
+  { path: "pms/navigator", element: <TaskListPage /> },
   { path: "pms/apps", element: <CommandCenterPage /> },
-  { path: "pms/dashboards", element: <CommandCenterPage /> },
-  { path: "pms/plans", element: <CommandCenterPage /> },
-  { path: "pms/issue-navigator-pro", element: <EnterpriseEnginePage /> },
-  { path: "pms/backlog-grooming", element: <EnterpriseEnginePage /> },
-  { path: "pms/sprint-lifecycle", element: <EnterpriseEnginePage /> },
+  { path: "pms/dashboards", element: <PortfolioPage /> },
+  { path: "pms/plans", element: <RoadmapPage /> },
+  { path: "pms/issue-navigator-pro", element: <TaskListPage /> },
+  { path: "pms/backlog-grooming", element: <BacklogPage /> },
+  { path: "pms/sprint-lifecycle", element: <BacklogPage /> },
   { path: "pms/blueprints", element: <EnterpriseEnginePage /> },
-  { path: "pms/resource-utilization", element: <EnterpriseEnginePage /> },
+  { path: "pms/resource-utilization", element: <WorkloadPage /> },
   
   // Module-level workspaces
   { path: "pms/calendar", element: <CalendarPage /> },

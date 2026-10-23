@@ -349,3 +349,75 @@ function isAllowedConsoleSignal(message: string) {
     "/project-management/realtime?token=cert-token",
   ].some((allowed) => message.includes(allowed));
 }
+
+
+test("PMS custom field values save and survive task reload", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let value = "2025";
+  await page.route("**/api/**/projects/1/epics**", route => route.fulfill({ json: [] }));
+  await page.route("**/api/**/tags", route => route.fulfill({ json: [] }));
+  await page.route("**/api/**/tasks/1/**", async route => {
+    if (!route.request().url().includes("/custom-fields")) { await route.fulfill({ json: [] }); return; }
+    if (route.request().method() === "PUT") {
+      value = route.request().postDataJSON().value;
+      await route.fulfill({ json: { field_id: 1, value } });
+    } else {
+      await route.fulfill({ json: { can_edit: true, can_manage: true, fields: [{ id: 1, name: "Tax period", field_type: "dropdown", options: ["2025", "2026"], value }] } });
+    }
+  });
+  await page.goto("/pms/tasks/1");
+  await page.getByLabel("Tax period", { exact: true }).selectOption("2026");
+  await page.getByRole("button", { name: "Save Tax period", exact: true }).click();
+  await expect(page.getByText("Tax period saved", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Tax period", { exact: true })).toHaveValue("2026");
+});
+
+
+test("PMS team creation and edit render persisted group membership", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  let teams: { id: number; name: string; alias: string; member_ids: number[] }[] = [];
+  await page.route("**/api/**/workspaces", route => route.fulfill({ json: [{ id: 1, name: "Team workspace" }] }));
+  await page.route("**/api/**/workspaces/1/members", route => route.fulfill({ json: [{ id: 5, user_id: 3, email: "pm@test.local", role: "Owner" }] }));
+  await page.route("**/api/**/workspaces/1/teams**", async route => {
+    if (route.request().method() === "GET") await route.fulfill({ json: { teams, can_manage: true } });
+    else { const team = { id: 1, ...route.request().postDataJSON() }; teams = [team]; await route.fulfill({ json: team }); }
+  });
+  await page.goto("/pms/teams");
+  await page.getByLabel("Team name", { exact: true }).fill("Audit reviewers");
+  await page.getByLabel("Alias", { exact: true }).fill("audit-reviewers");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Save team", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Audit reviewers", exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Edit Audit reviewers", exact: true }).click();
+  await expect(page.getByRole("checkbox")).toBeChecked();
+  await page.getByLabel("Team name", { exact: true }).fill("Audit leads");
+  await page.getByRole("button", { name: "Save team", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Audit leads", exact: true })).toBeVisible();
+});
+
+
+test("PMS private message send and reload preserve conversation", async ({ page }) => {
+  await authenticate(page, "pms_user");
+  const conversation = { id: 7, participants: [{ id: 3, email: "pm@test.local" }, { id: 8, email: "reviewer@test.local" }] };
+  let messages: { id: number; author_id: number; body: string; created_at: string }[] = [];
+  await page.route("**/api/**/workspaces", route => route.fulfill({ json: [{ id: 1, name: "Private workspace" }] }));
+  await page.route("**/api/**/workspaces/1/members", route => route.fulfill({ json: [{ id: 8, user_id: 8, email: "reviewer@test.local", role: "Member" }] }));
+  await page.route("**/api/**/workspaces/1/direct-conversations**", async route => {
+    if (route.request().url().endsWith("/messages")) {
+      if (route.request().method() === "POST") {
+        const message = { id: 1, author_id: 3, body: route.request().postDataJSON().body, created_at: "2026-10-23T12:00:00Z" };
+        messages = [message]; await route.fulfill({ json: message });
+      } else await route.fulfill({ json: { messages, has_more: false } });
+    } else await route.fulfill({ json: { conversations: [conversation], can_send: true, user_id: 3 } });
+  });
+  await page.goto("/pms/messages?workspace=1");
+  await page.getByRole("button", { name: "reviewer@test.local", exact: true }).click();
+  await page.getByLabel("Private message", { exact: true }).fill("Please review the audit");
+  await page.getByRole("button", { name: "Send message", exact: true }).click();
+  await expect(page.getByText("Please review the audit", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "reviewer@test.local", exact: true }).click();
+  await expect(page.getByText("Please review the audit", { exact: true })).toBeVisible();
+});

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -24,12 +25,18 @@ export default function AskAiButton({
   variant?: "outline" | "default" | "ghost";
 }) {
   const navigate = useNavigate();
+  const openingRef = useRef(false);
+  const [opening, setOpening] = useState(false);
 
   const openAi = async () => {
+    if (openingRef.current) return;
+    openingRef.current = true;
+    setOpening(true);
     try {
       const response = await aiAgentsApi.getAgents({ module });
       const agents = response.data;
-      const agent = agents.find((item) => item.code === defaultAgentCode) || agents.find((item) => item.is_active) || agents[0];
+      const activeAgents = agents.filter(item => item.is_active);
+      const agent = activeAgents.find((item) => item.code === defaultAgentCode) || activeAgents[0];
       if (!agent) {
         toast({ title: "No AI agent is available", description: "AI Agents are not configured for this module yet.", variant: "destructive" });
         return;
@@ -42,13 +49,16 @@ export default function AskAiButton({
       navigate(`/ai-agents/chat/${agent.id}?${params.toString()}`);
     } catch (error: any) {
       toast({ title: "Could not open AI Agent", description: error?.response?.data?.detail || "Please try again.", variant: "destructive" });
+    } finally {
+      openingRef.current = false;
+      setOpening(false);
     }
   };
 
   return (
-    <Button type="button" size={size} variant={variant} onClick={openAi}>
+    <Button type="button" size={size} variant={variant} onClick={openAi} disabled={opening} aria-busy={opening}>
       <Sparkles className="h-4 w-4" />
-      {buttonLabel}
+      {opening ? "Opening agent…" : buttonLabel}
     </Button>
   );
 }

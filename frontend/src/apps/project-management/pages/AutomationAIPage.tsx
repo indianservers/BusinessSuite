@@ -1,125 +1,62 @@
-import { useState } from "react";
-import { BarChart3, Bot, CheckCircle2, ClipboardList, MoreHorizontal, Play, Plus, Search, Sparkles, Zap } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { api } from "@/services/api";
+import { beginProgress } from "@/lib/async-progress";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { automationAuditRows, automationTemplates } from "../workData";
-
-const tabs = [
-  { label: "Rules", icon: Zap },
-  { label: "Audit log", icon: CheckCircle2 },
-  { label: "Templates", icon: ClipboardList },
-  { label: "Usage", icon: BarChart3 },
-];
-
+import { workspaceError, type WorkspaceProject, type WorkspaceMember } from "./workspaceTypes";
+type Workspace = { id: number; name: string; role: string };
+type Rule = { id: number; name: string; project_id: number; trigger: string; status: string; action: string; priority: string; assignee_id?: number; enabled: boolean };
+type Run = { id: number; summary: string; task_id: number; action: string; created_at: string };
+const base = "/project-management";
+const initial = { name: "", project_id: "", trigger: "task.created", status: "", action: "set_priority", priority: "High", assignee_id: "" };
 export default function AutomationAIPage() {
-  const [activeTab, setActiveTab] = useState("Templates");
-  const [prompt, setPrompt] = useState("When a design request with a 'webpage' label is submitted, create a task and assign it to Daniel.");
-  const [generated, setGenerated] = useState<string[]>([]);
-
-  const generateRule = () => {
-    setGenerated([
-      "Trigger: Work item created from request form",
-      "Condition: labels contains webpage",
-      "Action: Create child task named Webpage design task",
-      "Assignment: Daniel based on design component ownership",
-      "Notification: Comment on parent item with created task link",
-    ]);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h1 className="page-title">Automation</h1>
-          <p className="page-description">Create workflow rules from natural language, templates, triggers, and connected project events.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline">Global automation</Button>
-          <Button><Plus className="h-4 w-4" />Create rule</Button>
-          <Button variant="outline" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-        </div>
-      </div>
-
-      <div className="flex gap-6 border-b">
-        {tabs.map((tab) => (
-          <button key={tab.label} type="button" onClick={() => setActiveTab(tab.label)} className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${activeTab === tab.label ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
-            <tab.icon className="h-4 w-4" />{tab.label}
-          </button>
-        ))}
-      </div>
-
-      <Card className="overflow-hidden border-blue-200">
-        <CardContent className="p-0">
-          <div className="bg-gradient-to-r from-blue-50 via-white to-amber-50 p-6">
-            <h2 className="text-2xl font-semibold">Create rules quickly with the power of AI</h2>
-            <div className="mt-5 rounded-xl border-2 border-blue-400 bg-white p-4 shadow-sm">
-              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} className="min-h-28 w-full resize-none border-0 text-lg outline-none" />
-              <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-3 text-muted-foreground"><Sparkles className="h-6 w-6 text-blue-600" />Karya AI is ready to generate a rule.</div>
-                <div className="flex gap-2"><Button variant="outline">Cancel <Badge variant="outline">Esc</Badge></Button><Button onClick={generateRule}><Bot className="h-4 w-4" />Generate rule</Button></div>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Need inspiration?</span>
-              {["Transition linked issues", "Create new issues", "Email ticket owners", "Set due date by priority"].map((item) => <Button key={item} variant="outline" size="sm" onClick={() => setPrompt(examplePrompt(item))}>{item}</Button>)}
-            </div>
-          </div>
-          {generated.length ? (
-            <div className="border-t bg-muted/20 p-6">
-              <h3 className="font-semibold">Generated rule preview</h3>
-              <div className="mt-3 grid gap-2 md:grid-cols-2">
-                {generated.map((item) => <div key={item} className="rounded-lg border bg-background p-3 text-sm">{item}</div>)}
-              </div>
-              <div className="mt-4 flex justify-end gap-2"><Button variant="outline">Edit rule</Button><Button><Play className="h-4 w-4" />Enable rule</Button></div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 xl:grid-cols-[1fr_24rem]">
-        <div className="space-y-4">
-          <div className="flex max-w-md items-center gap-2 rounded-md border px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search for template" className="border-0 p-0 shadow-none focus-visible:ring-0" />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {automationTemplates.map((template) => (
-              <Card key={template.title} className="transition hover:border-primary/50 hover:shadow-md">
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Zap className="h-5 w-5 text-primary" />{template.title}</CardTitle></CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{template.description}</p>
-                  <Badge className="mt-4" variant="outline">{template.category}</Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-        <Card className="h-fit">
-          <CardHeader><CardTitle>Audit and Usage</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {automationAuditRows.map((row) => (
-              <div key={`${row.rule}-${row.time}`} className="rounded-lg border bg-muted/30 p-3 text-sm">
-                <p className="font-medium">{row.rule}</p>
-                <p className="text-muted-foreground">{row.actor}: {row.result}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{row.time}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+  const [params] = useSearchParams();
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [selected, setSelected] = useState(0);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [projects, setProjects] = useState<WorkspaceProject[]>([]);
+  const [people, setPeople] = useState<WorkspaceMember[]>([]);
+  const [ruleSearch, setRuleSearch] = useState("");
+  const [ruleState, setRuleState] = useState("all");
+  const [editingRule, setEditingRule] = useState<number | null>(null);
+  const [editingEnabled, setEditingEnabled] = useState(true);
+  const [draft, setDraft] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [workspacesLoading, setWorkspacesLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const workspace = workspaces.find(w => w.id === selected);
+  const manages = !!workspace && ["Owner", "Admin"].includes(workspace.role);
+  useEffect(() => { let active = true; setWorkspacesLoading(true); api.get<Workspace[]>(base + "/workspaces").then(({ data }) => { if (active) { setWorkspaces(data); setSelected(data.some(w => w.id === Number(params.get("workspace"))) ? Number(params.get("workspace")) : data[0]?.id || 0); } }).catch(e => { if (active) setError(workspaceError(e)); }).finally(() => { if (active) setWorkspacesLoading(false); }); return () => { active = false; }; }, [params]);
+  const load = useCallback(async () => {
+    if (!selected || !manages) return;
+    const [r, log, overview, members] = await Promise.all([api.get<Rule[]>(`${base}/workspaces/${selected}/automations`), api.get<Run[]>(`${base}/workspaces/${selected}/automation-runs`), api.get<{ projects: WorkspaceProject[] }>(`${base}/workspaces/${selected}/overview`), api.get<WorkspaceMember[]>(`${base}/workspaces/${selected}/members`)]);
+    return { rules: r.data, runs: log.data, projects: overview.data.projects, people: members.data };
+  }, [selected, manages]);
+  const apply = (data: Awaited<ReturnType<typeof load>>) => { if (data) { setRules(data.rules); setRuns(data.runs); setProjects(data.projects); setPeople(data.people); } };
+  useEffect(() => { let active = true; setRules([]); setRuns([]); setProjects([]); setPeople([]); setDraft(initial); setEditingRule(null); setError(""); setLoading(true); load().then(data => { if (active) apply(data); }).catch(e => { if (active) setError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [load]);
+  async function act(label: string, action: () => Promise<unknown>) { if (busy) return; setBusy(true); setError(""); setNotice(""); const finish = beginProgress(label); try { await action(); apply(await load()); finish(); setNotice("Workspace updated"); } catch (e) { finish(false); setError(workspaceError(e)); } finally { setBusy(false); } }
+  const visibleRules = rules.filter(rule => (ruleState === "all" || rule.enabled === (ruleState === "active"))
+    && `${rule.name} ${projects.find(project => project.id === rule.project_id)?.name || ""}`.toLowerCase().includes(ruleSearch.trim().toLowerCase()));
+  const ruleSummary = `When ${draft.trigger === "task.created" ? "a task is created" : "a task status changes"}${draft.status ? ` and its status is ${draft.status}` : ""}, ${draft.action === "set_priority" ? `set priority to ${draft.priority}` : `add ${people.find(person => person.user_id === Number(draft.assignee_id))?.email || "the selected collaborator"} as an assignee`}.`;
+  const selectClass = "mt-1 h-11 w-full rounded border bg-background px-3";
+  return <div className="space-y-5 max-w-5xl"><header className="flex flex-wrap justify-between gap-3"><div><h1 className="page-title">Task automation</h1><p className="page-description">Saved rules run on task creation and status changes. No AI or email provider required.</p></div><Link className="text-primary underline" to={`/pms/workspaces?workspace=${selected}`}>Back to workspace</Link></header>
+    <label className="block max-w-md">Workspace<select aria-label="Automation workspace" className={selectClass} disabled={busy} value={selected} onChange={e => setSelected(Number(e.target.value))}><option value={0} disabled>Choose workspace</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name} · {w.role}</option>)}</select></label>
+    {error && <div role="alert" className="border border-destructive p-3 text-destructive">{error}<Button variant="outline" onClick={() => void act("Refreshing rules", async () => undefined)}>Retry</Button></div>}{notice && <p role="status">{notice}</p>}
+    {workspacesLoading || loading ? <p role="status">Loading automation…</p> : !workspace ? <p>Create or join a workspace first.</p> : !manages ? <p role="status">Only workspace owners and admins can manage automation. Members can work on tasks; guests have read-only access.</p> : <>
+      <form className="rounded-lg border bg-card p-5 space-y-4" onSubmit={e => { e.preventDefault(); void act("Saving automation rule", async () => { const payload = { ...draft, enabled: editingRule ? editingEnabled : true, project_id: Number(draft.project_id), assignee_id: draft.action === "assign_user" ? Number(draft.assignee_id) : null }; if (editingRule) await api.put(`${base}/workspaces/${selected}/automations/${editingRule}`, payload); else await api.post(`${base}/workspaces/${selected}/automations`, payload); setDraft(initial); setEditingRule(null); }); }}><h2 className="text-lg font-semibold">{editingRule ? "Edit rule" : "Create a rule"}</h2><fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
+        <label>Rule name<Input aria-label="Rule name" required maxLength={120} value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>
+        <label>Project<select aria-label="Automation project" required className={selectClass} value={draft.project_id} onChange={e => setDraft({ ...draft, project_id: e.target.value })}><option value="" disabled>Choose project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <div className="space-y-4 rounded-xl border bg-muted/20 p-4"><h3 className="font-semibold">1. Trigger and condition</h3><label className="block">When<select aria-label="Automation trigger" className={selectClass} value={draft.trigger} onChange={e => setDraft({ ...draft, trigger: e.target.value })}><option value="task.created">Task is created</option><option value="task.status_changed">Task status changes</option></select></label>
+        <label className="block">Only when status is<select aria-label="Automation status condition" className={selectClass} value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value })}><option value="">Any status</option>{["To Do", "In Progress", "In Review", "Blocked", "Done"].map(status => <option key={status}>{status}</option>)}</select></label>
+        </div><div className="space-y-4 rounded-xl border bg-primary/5 p-4"><h3 className="font-semibold">2. Action</h3><label className="block">Then<select aria-label="Automation action" className={selectClass} value={draft.action} onChange={e => setDraft({ ...draft, action: e.target.value })}><option value="set_priority">Set priority</option><option value="assign_user">Add an assignee</option></select></label>
+        {draft.action === "set_priority" ? <label>Priority<select aria-label="Automation priority" className={selectClass} value={draft.priority} onChange={e => setDraft({ ...draft, priority: e.target.value })}>{["Low", "Medium", "High", "Urgent"].map(priority => <option key={priority}>{priority}</option>)}</select></label> : <label>Collaborator<select required aria-label="Automation assignee" className={selectClass} value={draft.assignee_id} onChange={e => setDraft({ ...draft, assignee_id: e.target.value })}><option value="" disabled>Choose member</option>{people.filter(p => p.role !== "Guest").map(p => <option key={p.id} value={p.user_id}>{p.email}</option>)}</select></label>}
+      </div></fieldset><p role="status" className="rounded-lg border border-dashed p-4 text-sm">{ruleSummary}</p><Button type="submit" disabled={busy || !projects.length}>{busy ? "Saving…" : "Save and enable rule"}</Button></form>
+      <section className="space-y-3" aria-label="Saved automation rules"><h2 className="text-lg font-semibold">Rules · {rules.length}</h2><div className="flex flex-wrap gap-3"><Input aria-label="Search automation rules" placeholder="Search rules or projects�" className="max-w-md" value={ruleSearch} onChange={event => setRuleSearch(event.target.value)} /><select aria-label="Filter automation state" className="min-h-10 rounded-md border bg-background px-3" value={ruleState} onChange={event => setRuleState(event.target.value)}><option value="all">All rules ({rules.length})</option><option value="active">Active ({rules.filter(rule => rule.enabled).length})</option><option value="paused">Paused ({rules.filter(rule => !rule.enabled).length})</option></select></div>{!!rules.length && !visibleRules.length && <p role="status">No rules match your search and filters.</p>}{!rules.length && <p>No rules yet. Save a rule above to automate task events.</p>}{visibleRules.map(rule => <article key={rule.id} className="flex flex-wrap justify-between gap-3 rounded border p-4"><div><strong>{rule.name}</strong><p className="text-sm text-muted-foreground">{projects.find(p => p.id === rule.project_id)?.name} · {rule.trigger === "task.created" ? "Task created" : "Status changed"} {rule.status ? `when ${rule.status}` : ""} → {rule.action === "set_priority" ? `priority ${rule.priority}` : people.find(p => p.user_id === rule.assignee_id)?.email || "Assign collaborator"}</p><span>{rule.enabled ? "Enabled" : "Paused"}</span></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy} onClick={() => { setEditingRule(rule.id); setEditingEnabled(rule.enabled); setDraft({ name: rule.name, project_id: String(rule.project_id), trigger: rule.trigger, status: rule.status || "", action: rule.action, priority: rule.priority || "High", assignee_id: rule.assignee_id ? String(rule.assignee_id) : "" }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Edit</Button><Button variant="outline" disabled={busy} onClick={() => void act("Duplicating rule", () => api.post(`${base}/workspaces/${selected}/automations`, { name: `${rule.name.slice(0, 110)} (copy)`, project_id: rule.project_id, trigger: rule.trigger, status: rule.status || "", action: rule.action, priority: rule.priority || "High", assignee_id: rule.assignee_id || null, enabled: false }))}>Duplicate paused</Button><Button variant="outline" disabled={busy} onClick={() => void act("Updating automation", () => api.patch(`${base}/workspaces/${selected}/automations/${rule.id}`, { enabled: !rule.enabled }))}>{rule.enabled ? "Pause" : "Enable"} {rule.name}</Button></div></article>)}</section>
+      <section className="space-y-3" aria-label="Automation execution history"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Recent executions</h2><Button variant="outline" disabled={busy} onClick={() => void act("Refreshing executions", async () => undefined)}>Refresh executions</Button></div>{!runs.length && <p>No executions yet. Matching task events will appear here.</p>}{runs.map(run => <article className="border-b py-3" key={run.id}><Link className="text-primary underline" to={`/pms/tasks/${run.task_id}`}>{run.summary}</Link><p className="text-sm text-muted-foreground">{new Date(run.created_at).toLocaleString()} · {run.action}</p></article>)}</section>
+    </>}
+  </div>;
 }
-
-function examplePrompt(label: string) {
-  const prompts: Record<string, string> = {
-    "Transition linked issues": "When a blocker issue is marked done, transition all linked issues that were blocked into Selected and notify their assignees.",
-    "Create new issues": "When a feature request form is submitted, create design, API, QA, and documentation tasks and assign them by component owner.",
-    "Email ticket owners": "When a support ticket is due in 24 hours and still open, email the ticket owner and project manager.",
-    "Set due date by priority": "When a critical bug is created, set the due date to the next business day and assign it to the component lead.",
-  };
-  return prompts[label] || "";
-}
-

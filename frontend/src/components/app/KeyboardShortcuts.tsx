@@ -2,62 +2,66 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useAuthStore } from "@/store/authStore";
+import { canAccessRoute } from "@/lib/roles";
 
 export default function KeyboardShortcuts() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const user = useAuthStore(s => s.user);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.repeat || event.defaultPrevented || (event.target as HTMLElement)?.closest("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
       if (event.key === "?" && !event.ctrlKey && !event.metaKey) setOpen(true);
       if (event.key === "Escape") setOpen(false);
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      const go = (path: string) => { if (canAccessRoute(path, user?.role, user?.is_superuser)) navigate(path); };
       if (event.altKey && event.key.toLowerCase() === "h") {
         event.preventDefault();
-        if (window.location.pathname.startsWith("/crm")) navigate("/crm");
-        else if (window.location.pathname.startsWith("/hrms")) navigate("/hrms");
-        else if (window.location.pathname.startsWith("/pms")) navigate("/pms");
-        else navigate("/dashboard");
+        if (window.location.pathname.startsWith("/crm")) go("/crm");
+        else if (window.location.pathname.startsWith("/hrms")) go("/hrms");
+        else if (window.location.pathname.startsWith("/pms")) go("/pms");
+        else go("/dashboard");
       }
       if (event.altKey && event.key.toLowerCase() === "a") {
         event.preventDefault();
-        if (window.location.pathname.startsWith("/crm")) navigate("/crm/tickets");
-        else if (window.location.pathname.startsWith("/hrms")) navigate("/hrms/leave-requests");
-        else if (window.location.pathname.startsWith("/pms")) navigate("/pms/enterprise-engine");
-        else navigate("/approvals");
+        if (window.location.pathname.startsWith("/crm")) go("/crm/tickets");
+        else if (window.location.pathname.startsWith("/hrms")) go("/hrms/leave-requests");
+        else if (window.location.pathname.startsWith("/pms")) go("/pms/enterprise-engine");
+        else go("/approvals");
       }
       if (event.altKey && event.key.toLowerCase() === "r") {
         event.preventDefault();
-        if (window.location.pathname.startsWith("/crm")) navigate("/crm/reports");
-        else if (window.location.pathname.startsWith("/hrms")) navigate("/hrms/reports");
-        else if (window.location.pathname.startsWith("/pms")) navigate("/pms/reports");
-        else navigate("/reports");
+        if (window.location.pathname.startsWith("/crm")) go("/crm/reports");
+        else if (window.location.pathname.startsWith("/hrms")) go("/hrms/reports");
+        else if (window.location.pathname.startsWith("/pms")) go("/pms/reports");
+        else go("/reports");
       }
       if (event.key.toLowerCase() === "n" && !event.ctrlKey && !event.metaKey && !event.altKey) {
-        if (window.location.pathname.startsWith("/crm")) navigate("/crm/leads");
-        if (window.location.pathname.startsWith("/hrms")) navigate("/hrms/employees/new");
-        if (window.location.pathname.startsWith("/pms")) navigate("/pms/projects/new");
+        if (window.location.pathname.startsWith("/crm")) go("/crm/leads");
+        if (window.location.pathname.startsWith("/hrms")) go("/hrms/employees/new");
+        if (window.location.pathname.startsWith("/pms")) go("/pms/projects/new");
       }
-      if (event.key.toLowerCase() === "c" && window.location.pathname.startsWith("/pms")) navigate("/pms/projects/new");
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "c" && window.location.pathname.startsWith("/pms")) go("/pms/projects/new");
       if (event.key === "/" && window.location.pathname.startsWith("/pms")) {
         event.preventDefault();
-        navigate("/pms/issue-navigator-pro");
+        go("/pms/issue-navigator-pro");
       }
-      if (event.key.toLowerCase() === "a" && window.location.pathname.startsWith("/pms")) navigate("/pms/enterprise-engine");
-      if (event.key.toLowerCase() === "m" && window.location.pathname.startsWith("/pms")) navigate("/pms/backlog-grooming");
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "a" && window.location.pathname.startsWith("/pms")) go("/pms/enterprise-engine");
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "m" && window.location.pathname.startsWith("/pms")) go("/pms/backlog-grooming");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [navigate]);
+  }, [navigate, user?.role, user?.is_superuser]);
   return (
-    <>
-      <Button variant="ghost" size="icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts" onClick={() => setOpen(true)}>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger asChild><Button variant="ghost" size="icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
         <Keyboard className="h-5 w-5" />
-      </Button>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-md rounded-lg border bg-background p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      </Button></Dialog.Trigger>
+      <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border bg-background p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
+              <Dialog.Title className="text-lg font-semibold">Keyboard Shortcuts</Dialog.Title><Dialog.Description className="sr-only">Navigation shortcuts do not run while typing or using a dialog.</Dialog.Description>
               <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Close</Button>
             </div>
             <div className="space-y-3 text-sm">
@@ -80,9 +84,8 @@ export default function KeyboardShortcuts() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      )}
-    </>
+          </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

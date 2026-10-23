@@ -1,0 +1,11 @@
+{
+  "name": "PMS — inspect workspace events (configure before activation)",
+  "active": false,
+  "nodes": [
+    { "id": "manual", "name": "Run manually", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    { "id": "read", "name": "Read PMS events", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [260, 0], "parameters": { "url": "https://businesssuite-rosy.vercel.app/api/v1/project-management/workspaces/REPLACE_WORKSPACE_ID/workflow-events", "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth", "sendQuery": true, "queryParameters": { "parameters": [{ "name": "after_id", "value": "0" }, { "name": "limit", "value": "100" }] }, "options": {} }, "notes": "Select a Header Auth credential. Replace the workspace ID. Before scheduled use, add durable cursor storage, event-ID deduplication and refresh-token handling. See docs/pms-n8n-integration.md.", "notesInFlow": true }
+  ],
+  "connections": { "Run manually": { "main": [[{ "node": "Read PMS events", "type": "main", "index": 0 }]] } },
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Kolkata" },
+  "pinData": {}
+}

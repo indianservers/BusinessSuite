@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { FormEvent, useEffect, useState } from "react";
 import { Github, Gitlab, Settings, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -8,14 +9,13 @@ import { devIntegrationsAPI, projectsAPI } from "../services/api";
 import type { PMSDevIntegration, PMSProject } from "../types";
 
 const settings = [
-  "Organization profile",
-  "Project statuses",
-  "Task priorities",
-  "Client visibility defaults",
-  "Time approval rules",
-  "Compact mode",
-  "Notification preferences",
-  "Import and export settings",
+  { label: "Direct messages", href: "/pms/messages", description: "Private conversations with workspace collaborators." },
+  { label: "Teams", href: "/pms/teams", description: "Create named collaborator groups and manage team membership." },
+  { label: "Workspace people and invitations", href: "/pms/workspaces", description: "Open People in your workspace to manage members and invitation links." },
+  { label: "Task views", href: "/pms/tasks", description: "Save filters and choose visible columns." },
+  { label: "Templates and intake", href: "/pms/workspace-tools", description: "Manage saved templates, goals and authenticated intake." },
+  { label: "Task automation", href: "/pms/automation", description: "Create and manage workspace automation rules." },
+  { label: "Task recovery", href: "/pms/trash", description: "Find and restore deleted tasks." },
 ];
 
 export default function SettingsPage() {
@@ -85,12 +85,8 @@ export default function SettingsPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" />KaryaFlow settings</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
-          {settings.map((item) => (
-            <label key={item} className="flex items-center justify-between rounded-lg border p-4 text-sm">
-              <span>{item}</span>
-              <input type="checkbox" className="h-4 w-4" />
-            </label>
-          ))}
+          {settings.map(item => <Link key={item.href} to={item.href} className="rounded-lg border p-4 hover:bg-muted/40"><strong className="text-sm">{item.label}</strong><p className="mt-1 text-xs text-muted-foreground">{item.description}</p></Link>)}
+          <p className="text-sm text-muted-foreground md:col-span-2">Custom fields are configured from task details and apply to the task's project. Workspace-wide preference controls will appear here as their saved behavior is implemented.</p>
         </CardContent>
       </Card>
 

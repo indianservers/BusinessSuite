@@ -440,6 +440,7 @@ export const backlogAPI = {
 
 export const ganttAPI = {
   get: async (query: {
+    includeUnscheduled?: boolean;
     projectId?: number | string;
     sprintId?: number | string;
     assigneeId?: number | string;
@@ -457,7 +458,7 @@ export const ganttAPI = {
     return response.data;
   },
 
-  updateSchedule: async (taskId: number, data: { start_date?: string; due_date?: string }) => {
+  updateSchedule: async (taskId: number, data: { start_date?: string | null; due_date?: string | null }) => {
     const response = await api.patch<{ task: PMSTask; warnings: PMSGanttResponse["warnings"] }>(`${BASE_URL}/tasks/${taskId}/schedule`, data);
     return response.data;
   },
