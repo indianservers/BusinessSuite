@@ -735,3 +735,6 @@ class PMSCalendarEvent(Base):
     visibility = Column(String(20), nullable=False, default="private")
     meeting_url = Column(String(2000), nullable=False, default="")
     revision = Column(Integer, nullable=False, default=1)
+
+# Register additive messaging tables for module metadata / migration discovery.
+from .chat_models import ChatConversation, ChatMember, ChatMessage, ChatAttachment  # noqa: E402,F401

@@ -895,7 +895,12 @@ def create_or_get_bill_reference(
 
 
 def post_srm_invoice_to_fam(db: Session, request: Request, user: User, company_id: int, invoice_id: int) -> dict[str, Any]:
-    invoice = db.query(SRMInvoice).filter(SRMInvoice.id == invoice_id, SRMInvoice.deleted_at == None).first()
+    from app.apps.srm.services.commercial import invoice_for
+    from app.apps.srm.commercial_models import InvoiceContext
+    invoice = invoice_for(db, invoice_id, user, lock=True)
+    ctx = db.get(InvoiceContext, invoice.id)
+    if ctx and ctx.seller_id != company_id:
+        raise HTTPException(422, "This seller requires its own authorized FAM company posting context; no cross-company posting was made")
     if not invoice:
         raise HTTPException(status_code=404, detail="SRM invoice not found")
     if invoice.status in {"draft", "pending_approval", "cancelled"}:
@@ -906,7 +911,7 @@ def post_srm_invoice_to_fam(db: Session, request: Request, user: User, company_i
         voucher = db.query(FAMVoucher).filter(FAMVoucher.id == mapped.fam_record_id).first()
         return {"status": "posted", "idempotent": True, "postingJob": serialize(job), "voucher": serialize(voucher), "accountingStatus": source_status(db, company_id, "invoice", invoice.id)}
     party = ensure_srm_customer_party(db, company_id, invoice.customer_id, "invoice", invoice.id)
-    sales = Decimal(invoice.subtotal or 0) or (Decimal(invoice.total_amount or 0) - Decimal(invoice.tax_amount or 0))
+    sales = (Decimal(invoice.subtotal or 0) - Decimal(invoice.discount_amount or 0)) or (Decimal(invoice.total_amount or 0) - Decimal(invoice.tax_amount or 0))
     tax = Decimal(invoice.tax_amount or 0)
     total = Decimal(invoice.total_amount or 0)
     invoice_date = invoice.issue_date or date.today()
@@ -941,10 +946,15 @@ def ensure_receipt_advance_reference(db: Session, company_id: int, receipt: SRMR
 
 
 def post_srm_receipt_to_fam(db: Session, request: Request, user: User, company_id: int, receipt_id: int) -> dict[str, Any]:
-    receipt = db.query(SRMReceipt).filter(SRMReceipt.id == receipt_id).first()
+    from app.apps.srm.services.commercial import scoped
+    receipt = db.query(SRMReceipt).filter(SRMReceipt.id == receipt_id, scoped(SRMReceipt.organization_id, user)).first()
     if not receipt:
         raise HTTPException(status_code=404, detail="SRM receipt not found")
-    if receipt.status == "draft":
+    from app.apps.srm.commercial_models import ReceiptContext
+    context = db.get(ReceiptContext, receipt.id)
+    if context and context.seller_id != company_id:
+        raise HTTPException(422, "This receipt requires its seller's authorized FAM company context")
+    if receipt.status in {"draft", "cancelled"}:
         raise HTTPException(status_code=409, detail="Only confirmed/allocated SRM receipts can be posted")
     job = posting_job(db, company_id, "receipt", receipt.id, "receipt")
     mapped = mapping_for(db, company_id, "receipt", receipt.id, "voucher")
@@ -985,6 +995,10 @@ def post_srm_allocation_to_fam(db: Session, request: Request, user: User, compan
     allocation = db.query(SRMReceiptAllocation).filter(SRMReceiptAllocation.id == allocation_id).first()
     if not allocation:
         raise HTTPException(status_code=404, detail="SRM receipt allocation not found")
+    from app.apps.srm.services.commercial import invoice_for, scoped
+    invoice_for(db, allocation.invoice_id, user)
+    if not db.query(SRMReceipt.id).filter(SRMReceipt.id == allocation.receipt_id, scoped(SRMReceipt.organization_id, user)).first():
+        raise HTTPException(404, "Receipt not found in your organization")
     job = posting_job(db, company_id, "allocation", allocation.id, "allocation")
     mapped = mapping_for(db, company_id, "allocation", allocation.id, "allocation")
     if mapped and job.status == "posted":
@@ -1940,7 +1954,7 @@ def srm_integration_status(db: Session = Depends(get_db), current_user: User = D
     failed = db.query(FAMPostingJob).filter(FAMPostingJob.company_id == company_id, FAMPostingJob.status == "failed").count()
     posted_today = db.query(FAMPostingJob).filter(FAMPostingJob.company_id == company_id, FAMPostingJob.status.in_(["posted", "reversed"]), FAMPostingJob.posted_at >= datetime(today.year, today.month, today.day, tzinfo=timezone.utc)).count()
     mapped_customers = db.query(FAMSRMMapping).filter(FAMSRMMapping.company_id == company_id, FAMSRMMapping.srm_record_type == "customer", FAMSRMMapping.fam_record_type == "party").count()
-    invoice_count = db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None).count()
+    invoice_count = db.query(SRMInvoice).filter(func.coalesce(SRMInvoice.organization_id, 1) == company_id, SRMInvoice.deleted_at == None).count()
     return {
         "pending_postings": pending,
         "failed_postings": failed,

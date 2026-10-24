@@ -1,3 +1,5 @@
+import ConnectedCollectionsPage from "./ConnectedCollectionsPage";
+import { InvoiceList, SharedCustomerSelect } from "@/apps/project-management/pages/ProjectBillingPage";
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
@@ -936,6 +938,8 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
 
 function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
   const createRef = useNewRecordFocus();
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const [savedInvoice, setSavedInvoice] = useState<SRMRecord | null>(null);
   const [form, setForm] = useState({
     template: "services",
     customer_id: "",
@@ -971,6 +975,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
       }
       if (!preparedLines.length) throw new Error("Add at least one invoice line with a description.");
       return srmApi.manualInvoice(compactRecord({
+        request_id: requestId,
         customer_id: numericField(form.customer_id),
         sales_order_id: numericField(form.sales_order_id),
         engagement_id: numericField(form.engagement_id),
@@ -980,7 +985,8 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
         lines: preparedLines,
       }));
     },
-    onSuccess: () => {
+    onSuccess: (invoice: SRMRecord) => {
+      setSavedInvoice(invoice);
       const text = "Manual invoice created from entered details";
       setMessage(text);
       toast({ title: text });
@@ -1011,8 +1017,8 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
               </select>
             </label>
             <label className="space-y-2 text-sm">
-              <span className="font-medium">Customer ID</span>
-              <Input inputMode="numeric" value={form.customer_id} onChange={(event) => update("customer_id", event.target.value)} />
+              <span className="font-medium">Shared customer</span>
+              <SharedCustomerSelect value={form.customer_id} onChange={value => update("customer_id", value)} />
             </label>
             <label className="space-y-2 text-sm">
               <span className="font-medium">Sales order ID</span>
@@ -1100,7 +1106,8 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled={create.isPending}>{create.isPending ? "Creating..." : "Create Invoice"}</Button>
+            <Button type="submit" disabled={create.isPending || !!savedInvoice}>{create.isPending ? "Creating..." : "Create Invoice"}</Button>
+            {savedInvoice && <><Link className="text-primary underline" to={`/srm/invoices/${savedInvoice.id}`}>Open {String(savedInvoice.invoice_number)}</Link><Button type="button" variant="outline" onClick={() => { setSavedInvoice(null); setRequestId(crypto.randomUUID()); setLines([createInvoiceLineDraft()]); setMessage(""); }}>Create another invoice</Button></>}
             <ActionMessage message={message} />
           </div>
         </form>
@@ -1191,6 +1198,7 @@ function InvoicesView() {
   const pdfHref = `/api/v1/srm/invoices/${invoiceId}/pdf`;
   return (
     <div className="space-y-5">
+      <InvoiceList invoices={asList(list.data)} />
       <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); if (invoiceId) detail.refetch(); }} />
       <ActionMessage message={!canManage ? "Read-only revenue access: invoice approval, send/export, and line edits are hidden for this role." : action.message} />
       {canManage ? <ManualInvoiceComposer onCreated={() => { list.refetch(); if (invoiceId) detail.refetch(); }} /> : null}
@@ -1238,42 +1246,7 @@ function InvoicesView() {
 }
 
 function CollectionsView() {
-  const canManage = useCanManageRevenue();
-  const aging = useQuery({ queryKey: ["srm", "collectionsAging"], queryFn: srmApi.collectionsAging });
-  const invoices = useQuery({ queryKey: ["srm", "collectionInvoices"], queryFn: srmApi.invoices });
-  const customer = useQuery({ queryKey: ["srm", "customerCollections", 10], queryFn: () => srmApi.customerCollections(10) });
-  const action = useRevenueAction();
-  const invoiceId = Number(asList(invoices.data)[0]?.id || 1);
-  const [receiptId, setReceiptId] = useState(1);
-  return (
-    <div className="space-y-5">
-      <PageHeader meta={viewMeta.collections} isFetching={aging.isFetching || invoices.isFetching} onRefresh={() => { aging.refetch(); invoices.refetch(); customer.refetch(); }} />
-      <ActionMessage message={!canManage ? "Read-only collection access: receipt, reminder, escalation, and write-off actions are hidden for this role." : action.message} />
-      <div className="grid gap-3 md:grid-cols-6">
-        {["Not due", "Due", "Overdue", "Escalated", "Collected", "Written-off"].map((label) => <MetricCard key={label} label={label} value={label === "Overdue" ? "Review" : "Tracked"} />)}
-      </div>
-      {canManage ? (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Receipts and Collection Actions</CardTitle></CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Button onClick={() => action.mutate({ label: "Receipt created", run: async () => { const receipt = await srmApi.createReceipt({ customer_id: 10, amount: 100000, payment_method: "bank_transfer" }) as SRMRecord; setReceiptId(Number(receipt.id || 1)); return receipt; } })}>Create Receipt</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Receipt confirmed", run: () => srmApi.confirmReceipt(receiptId) })}>Confirm Receipt</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Partial allocation", run: () => srmApi.allocateReceipt(receiptId, { invoice_id: invoiceId, amount: 50000 }) })}>Allocate Partial Payment</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Full allocation", run: () => srmApi.allocateReceipt(receiptId, { invoice_id: invoiceId, amount: 100000 }) })}>Allocate Full Payment</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Reminder sent", run: () => srmApi.sendCollectionReminder({ customer_id: 10, invoice_id: invoiceId, message: "Payment reminder" }) })}>Send Reminder</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Collection escalated", run: () => srmApi.escalateCollection(invoiceId, { message: "Escalate overdue invoice" }) })}>Escalate</Button>
-            <Button variant="outline" onClick={() => action.mutate({ label: "Write-off requested", run: () => srmApi.requestWriteOff(invoiceId, { reason: "Commercial approval required", amount: 10000 }) })}>Request Write-off</Button>
-          </CardContent>
-        </Card>
-      ) : null}
-      <div className="grid gap-4 xl:grid-cols-2">
-        <RecordList title="Invoice Aging" records={asList(aging.data)} primaryKey="customer_id" secondaryKey="days_1_30" amountKey="total_outstanding" />
-        <RecordList title="Customer Outstanding and FAM Links" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).invoices : [])} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
-        <RecordList title="Receipts and FAM Accounting Status" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).receipts : [])} primaryKey="receipt_number" secondaryKey="status" amountKey="unallocated_amount" />
-        <RecordList title="Reminder / Escalation / Write-off History" records={asList(customer.data && typeof customer.data === "object" ? (customer.data as SRMRecord).reminders : [])} primaryKey="reminder_type" secondaryKey="status" amountKey="invoice_id" />
-      </div>
-    </div>
-  );
+  return <ConnectedCollectionsPage />;
 }
 
 function ProfitabilityView() {

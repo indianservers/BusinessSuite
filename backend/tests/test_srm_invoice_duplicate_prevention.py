@@ -1,7 +1,9 @@
+from tests.srm_test_utils import seed_invoice_parties
 from tests.srm_test_utils import create_sales_order
 
 
 def test_srm_sales_order_and_manual_source_duplicate_prevention(client, db, superuser_headers):
+    seed_invoice_parties(db)
     order = create_sales_order(client, superuser_headers)
 
     first = client.post(f"/api/v1/srm/invoices/draft-from-sales-order/{order['id']}", headers=superuser_headers)

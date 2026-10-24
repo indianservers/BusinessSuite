@@ -124,6 +124,8 @@ def _require_template(db: Session, template_id: int | None) -> CommunicationEmai
 
 
 def _create_email_message(db: Session, data: EmailDraftPayload | EmailSendPayload, current_user: User, status: str = "draft") -> CommunicationEmailMessage:
+    if data.related_record_type == "srm_invoice":
+        raise HTTPException(409, "Use the invoice delivery action so issuance, recipients, attachments and retries are validated")
     to_email = normalize_email(str(data.to_email))
     validate_email(to_email)
     message = CommunicationEmailMessage(
@@ -255,11 +257,19 @@ def get_email(message_id: int, db: Session = Depends(get_db), current_user: User
     item = db.query(CommunicationEmailMessage).filter(CommunicationEmailMessage.id == message_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Email message not found")
+    if item.related_record_type == "srm_invoice":
+        from app.apps.srm.services.commercial import require, invoice_for
+        require(current_user, "srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin")
+        invoice_for(db, item.related_record_id, current_user)
     return _serialize(item)
 
 
 @communication_router.get("/timeline/{record_type}/{record_id}")
 def get_timeline(record_type: str, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_view", "communication_email_send"))):
+    if record_type == "srm_invoice":
+        from app.apps.srm.services.commercial import require, invoice_for
+        require(current_user, "srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin")
+        invoice_for(db, record_id, current_user)
     items = db.query(CommunicationTimelineEvent).filter(CommunicationTimelineEvent.record_type == record_type, CommunicationTimelineEvent.record_id == record_id).order_by(CommunicationTimelineEvent.created_at.desc()).all()
     return _list_payload(items)
 
@@ -527,7 +537,13 @@ def create_whatsapp_template(data: WhatsAppTemplatePayload, db: Session = Depend
 
 @communication_router.get("/delivery-logs")
 def list_delivery_logs(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_logs_view", "communication_view"))):
-    return _list_payload(db.query(CommunicationDeliveryLog).order_by(CommunicationDeliveryLog.created_at.desc()).limit(250).all())
+    from sqlalchemy import or_, and_
+    from app.apps.srm.services.commercial import invoice_query
+    from app.apps.srm.models import SRMInvoice
+    names = {p.name for p in (current_user.role.permissions if current_user.role else [])}
+    ids = invoice_query(db, current_user).with_entities(SRMInvoice.id) if current_user.is_superuser or names.intersection({"srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"}) else []
+    query = db.query(CommunicationDeliveryLog).outerjoin(CommunicationEmailMessage, and_(CommunicationDeliveryLog.channel == "email", CommunicationEmailMessage.id == CommunicationDeliveryLog.related_message_id)).filter(or_(CommunicationEmailMessage.id.is_(None), CommunicationEmailMessage.related_record_type != "srm_invoice", CommunicationEmailMessage.related_record_id.in_(ids)))
+    return _list_payload(query.order_by(CommunicationDeliveryLog.created_at.desc()).limit(250).all())
 
 
 router.include_router(communication_router)

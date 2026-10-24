@@ -51,7 +51,7 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
     } catch (e) { if (mounted.current) setError(workspaceError(e)); }
     finally { if (mounted.current) setBusy(false); }
   }
-  return <aside className="ws-collaboration" aria-label="Team collaboration">
+  return <aside className="ws-collaboration" aria-label="Team collaboration"><Link className="ws-collab-sync" to={`/pms/messages?workspace=${workspaceId}`}>Open channels, messages & threads ↗</Link>
     <div className="ws-collab-tabs" role="tablist" aria-label="Collaboration views">
       <button role="tab" aria-selected={tab === "chat"} onClick={() => setTab("chat")}><MessageSquare size={16} />Team chat</button>
       <button role="tab" aria-selected={tab === "note"} onClick={() => setTab("note")}><StickyNote size={16} />Quick notes</button>

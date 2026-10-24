@@ -487,6 +487,7 @@ class SRMInvoiceLineInput(BaseModel):
     description: str
     quantity: Decimal = Decimal("1")
     unit_price: Decimal = Decimal("0")
+    discount_amount: Decimal = Decimal("0")
     tax_amount: Decimal = Decimal("0")
     line_total: Decimal | None = None
 
@@ -510,6 +511,9 @@ class SRMTimeLogInvoiceRequest(BaseModel):
 
 
 class SRMManualInvoiceCreate(BaseModel):
+    request_id: str | None = Field(None, min_length=36, max_length=36)
+    seller_id: int | None = None
+    contact_id: int | None = None
     sales_order_id: int | None = None
     engagement_id: int | None = None
     customer_id: int | None = None

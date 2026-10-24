@@ -3,8 +3,8 @@ from tests.test_fam_srm_invoice_posting import create_sent_srm_invoice
 
 
 def test_fam_creates_srm_customer_party_and_reuses_mapping(client, db, superuser_headers):
-    first = create_sent_srm_invoice(client, superuser_headers, customer_id=1001)
-    second = create_sent_srm_invoice(client, superuser_headers, customer_id=1001)
+    first = create_sent_srm_invoice(client, db, superuser_headers, customer_id=1001)
+    second = create_sent_srm_invoice(client, db, superuser_headers, customer_id=1001)
 
     first_post = client.post(f"/api/v1/fam/integrations/srm/post-invoice/{first['id']}", headers=superuser_headers).json()
     second_post = client.post(f"/api/v1/fam/integrations/srm/post-invoice/{second['id']}", headers=superuser_headers).json()

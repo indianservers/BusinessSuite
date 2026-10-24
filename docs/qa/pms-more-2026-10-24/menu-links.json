@@ -1,0 +1,397 @@
+[
+  {
+    "label": "PM Dashboard/pms",
+    "path": "/pms",
+    "workspace": "7"
+  },
+  {
+    "label": "Command Centercommand center",
+    "path": "/pms/command-center",
+    "workspace": "7"
+  },
+  {
+    "label": "Enterprise Engineenterprise engine",
+    "path": "/pms/enterprise-engine",
+    "workspace": "7"
+  },
+  {
+    "label": "Product Launchproduct launch",
+    "path": "/pms/product-launch",
+    "workspace": "7"
+  },
+  {
+    "label": "Dependency Managementdependency management",
+    "path": "/pms/dependency-management",
+    "workspace": "7"
+  },
+  {
+    "label": "Resource Planningresource planning",
+    "path": "/pms/resource-planning",
+    "workspace": "7"
+  },
+  {
+    "label": "Agile Executionagile execution",
+    "path": "/pms/agile-execution",
+    "workspace": "7"
+  },
+  {
+    "label": "Project Financialsproject financials",
+    "path": "/pms/project-financials",
+    "workspace": "7"
+  },
+  {
+    "label": "Risk Registerrisk register",
+    "path": "/pms/risk-register",
+    "workspace": "7"
+  },
+  {
+    "label": "Impact Work Hubwork hub",
+    "path": "/pms/work-hub",
+    "workspace": "7"
+  },
+  {
+    "label": "Plannerplanner",
+    "path": "/pms/planner",
+    "workspace": "7"
+  },
+  {
+    "label": "AI Plannerai planner",
+    "path": "/pms/ai-planner",
+    "workspace": "7"
+  },
+  {
+    "label": "Live Worklive",
+    "path": "/pms/live",
+    "workspace": "7"
+  },
+  {
+    "label": "Software Deliverysoftware",
+    "path": "/pms/software",
+    "workspace": "7"
+  },
+  {
+    "label": "Backlogbacklog",
+    "path": "/pms/backlog",
+    "workspace": "7"
+  },
+  {
+    "label": "Backlog Groomingbacklog grooming",
+    "path": "/pms/backlog-grooming",
+    "workspace": "7"
+  },
+  {
+    "label": "Issuesissues",
+    "path": "/pms/issues",
+    "workspace": "7"
+  },
+  {
+    "label": "Taskstasks",
+    "path": "/pms/tasks",
+    "workspace": "7"
+  },
+  {
+    "label": "Issue Navigatornavigator",
+    "path": "/pms/navigator",
+    "workspace": "7"
+  },
+  {
+    "label": "Issue Navigator Proissue navigator pro",
+    "path": "/pms/issue-navigator-pro",
+    "workspace": "7"
+  },
+  {
+    "label": "Dashboardsdashboards",
+    "path": "/pms/dashboards",
+    "workspace": "7"
+  },
+  {
+    "label": "Workspacesworkspaces",
+    "path": "/pms/workspaces",
+    "workspace": "7"
+  },
+  {
+    "label": "Projectsprojects",
+    "path": "/pms/projects",
+    "workspace": "7"
+  },
+  {
+    "label": "Create projectprojects/new",
+    "path": "/pms/projects/new",
+    "workspace": "7"
+  },
+  {
+    "label": "AI Operatoroperator",
+    "path": "/pms/operator",
+    "workspace": "7"
+  },
+  {
+    "label": "Workspace toolsworkspace tools",
+    "path": "/pms/workspace-tools",
+    "workspace": "7"
+  },
+  {
+    "label": "Goalsgoals",
+    "path": "/pms/goals",
+    "workspace": "7"
+  },
+  {
+    "label": "Roadmaproadmap",
+    "path": "/pms/roadmap",
+    "workspace": "7"
+  },
+  {
+    "label": "Timeline Plustimeline plus",
+    "path": "/pms/timeline-plus",
+    "workspace": "7"
+  },
+  {
+    "label": "Dependenciesdependencies",
+    "path": "/pms/dependencies",
+    "workspace": "7"
+  },
+  {
+    "label": "Plans and capabilitiesplans",
+    "path": "/pms/plans",
+    "workspace": "7"
+  },
+  {
+    "label": "Releasesreleases",
+    "path": "/pms/releases",
+    "workspace": "7"
+  },
+  {
+    "label": "Formsforms",
+    "path": "/pms/forms",
+    "workspace": "7"
+  },
+  {
+    "label": "Templatestemplates",
+    "path": "/pms/templates",
+    "workspace": "7"
+  },
+  {
+    "label": "Calendarcalendar",
+    "path": "/pms/calendar",
+    "workspace": "7"
+  },
+  {
+    "label": "Ganttgantt",
+    "path": "/pms/gantt",
+    "workspace": "7"
+  },
+  {
+    "label": "Sprintssprints",
+    "path": "/pms/sprints",
+    "workspace": "7"
+  },
+  {
+    "label": "Sprint Lifecyclesprint lifecycle",
+    "path": "/pms/sprint-lifecycle",
+    "workspace": "7"
+  },
+  {
+    "label": "Org Chartorg chart",
+    "path": "/pms/org-chart",
+    "workspace": "7"
+  },
+  {
+    "label": "Workloadworkload",
+    "path": "/pms/workload",
+    "workspace": "7"
+  },
+  {
+    "label": "Componentscomponents",
+    "path": "/pms/components",
+    "workspace": "7"
+  },
+  {
+    "label": "Workflowsworkflows",
+    "path": "/pms/workflows",
+    "workspace": "7"
+  },
+  {
+    "label": "Blueprintsblueprints",
+    "path": "/pms/blueprints",
+    "workspace": "7"
+  },
+  {
+    "label": "Resource Utilizationresource utilization",
+    "path": "/pms/resource-utilization",
+    "workspace": "7"
+  },
+  {
+    "label": "Apps & Integrationsapps",
+    "path": "/pms/apps",
+    "workspace": "7"
+  },
+  {
+    "label": "Teams Liveteams live",
+    "path": "/pms/teams-live",
+    "workspace": "7"
+  },
+  {
+    "label": "Audit Logsaudit logs",
+    "path": "/pms/audit-logs",
+    "workspace": "7"
+  },
+  {
+    "label": "PM Settingssettings",
+    "path": "/pms/settings",
+    "workspace": "7"
+  },
+  {
+    "label": "Securitysecurity",
+    "path": "/pms/security",
+    "workspace": "7"
+  },
+  {
+    "label": "PM Adminadmin",
+    "path": "/pms/admin",
+    "workspace": "7"
+  },
+  {
+    "label": "OpenAI settingssettings/ai/openai",
+    "path": "/pms/settings/ai/openai",
+    "workspace": "7"
+  },
+  {
+    "label": "Gemini settingssettings/ai/gemini",
+    "path": "/pms/settings/ai/gemini",
+    "workspace": "7"
+  },
+  {
+    "label": "Claude settingssettings/ai/claude",
+    "path": "/pms/settings/ai/claude",
+    "workspace": "7"
+  },
+  {
+    "label": "Custom fieldscustom fields",
+    "path": "/pms/custom-fields",
+    "workspace": "7"
+  },
+  {
+    "label": "Task typestask types",
+    "path": "/pms/task-types",
+    "workspace": "7"
+  },
+  {
+    "label": "Tagstags",
+    "path": "/pms/tags",
+    "workspace": "7"
+  },
+  {
+    "label": "Trashtrash",
+    "path": "/pms/trash",
+    "workspace": "7"
+  },
+  {
+    "label": "My profileprofile",
+    "path": "/pms/profile",
+    "workspace": "7"
+  },
+  {
+    "label": "Filesfiles",
+    "path": "/pms/files",
+    "workspace": "7"
+  },
+  {
+    "label": "Time Trackingtime tracking",
+    "path": "/pms/time-tracking",
+    "workspace": "7"
+  },
+  {
+    "label": "Team Analyticsanalytics/team",
+    "path": "/pms/analytics/team",
+    "workspace": "7"
+  },
+  {
+    "label": "Project Analyticsanalytics/projects",
+    "path": "/pms/analytics/projects",
+    "workspace": "7"
+  },
+  {
+    "label": "Reportsreports",
+    "path": "/pms/reports",
+    "workspace": "7"
+  },
+  {
+    "label": "Automation AIautomation",
+    "path": "/pms/automation",
+    "workspace": "7"
+  },
+  {
+    "label": "Client Portalclient portal",
+    "path": "/pms/client-portal",
+    "workspace": "7"
+  },
+  {
+    "label": "Timesheetstimesheets",
+    "path": "/pms/timesheets",
+    "workspace": "7"
+  },
+  {
+    "label": "Teamsteams",
+    "path": "/pms/teams",
+    "workspace": "7"
+  },
+  {
+    "label": "Messagesmessages",
+    "path": "/pms/messages",
+    "workspace": "7"
+  },
+  {
+    "label": "Docsdocs",
+    "path": "/pms/docs",
+    "workspace": "7"
+  },
+  {
+    "label": "Overviewoverview",
+    "path": "/pms/overview",
+    "workspace": "7"
+  },
+  {
+    "label": "Portfolioportfolio",
+    "path": "/pms/portfolio",
+    "workspace": "7"
+  },
+  {
+    "label": "Project dashboardprojects/4",
+    "path": "/pms/projects/4",
+    "workspace": "7"
+  },
+  {
+    "label": "Project boardprojects/4/board",
+    "path": "/pms/projects/4/board",
+    "workspace": "7"
+  },
+  {
+    "label": "Project Ganttprojects/4/gantt",
+    "path": "/pms/projects/4/gantt",
+    "workspace": "7"
+  },
+  {
+    "label": "Milestonesprojects/4/milestones",
+    "path": "/pms/projects/4/milestones",
+    "workspace": "7"
+  },
+  {
+    "label": "Project filesprojects/4/files",
+    "path": "/pms/projects/4/files",
+    "workspace": "7"
+  },
+  {
+    "label": "Project reportsprojects/4/reports",
+    "path": "/pms/projects/4/reports",
+    "workspace": "7"
+  },
+  {
+    "label": "Project risksprojects/4/risks",
+    "path": "/pms/projects/4/risks",
+    "workspace": "7"
+  },
+  {
+    "label": "Project analyticsprojects/4/analytics",
+    "path": "/pms/projects/4/analytics",
+    "workspace": "7"
+  }
+]

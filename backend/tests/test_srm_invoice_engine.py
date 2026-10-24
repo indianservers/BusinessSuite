@@ -1,9 +1,13 @@
+from tests.srm_test_utils import seed_invoice_parties
 from app.apps.srm.models import SRMInvoice, SRMInvoiceHistory
 
 from tests.srm_test_utils import create_sales_order
 
 
-def test_srm_invoice_draft_approve_send_and_duplicate_guard(client, db, superuser_headers):
+def test_srm_invoice_draft_approve_send_and_duplicate_guard(client, db, superuser_headers, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "COMMUNICATION_EMAIL_PROVIDER", "stub")
+    seed_invoice_parties(db)
     order = create_sales_order(client, superuser_headers)
 
     draft = client.post(f"/api/v1/srm/invoices/draft-from-sales-order/{order['id']}", headers=superuser_headers)
@@ -35,6 +39,7 @@ def test_srm_invoice_draft_approve_send_and_duplicate_guard(client, db, superuse
 
 
 def test_srm_manual_invoice_and_reports(client, db, superuser_headers):
+    seed_invoice_parties(db, (202,))
     response = client.post("/api/v1/srm/invoices/manual", headers=superuser_headers, json={
         "customer_id": 202,
         "currency": "INR",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.apps.srm.models import SRMEngagement, SRMSalesOrder
 from app.models.user import User
@@ -27,7 +28,8 @@ def normalize_role(role: str | None) -> str:
 
 
 def organization_id_for(user: User) -> int | None:
-    return getattr(user, "organization_id", None)
+    from app.apps.srm.services.commercial import tenant
+    return tenant(user)
 
 
 def user_permission_names(user: User) -> set[str]:
@@ -55,21 +57,21 @@ def can_view_all_srm(user: User) -> bool:
 
 
 def sales_order_query(db: Session, user: User):
-    query = db.query(SRMSalesOrder).filter(SRMSalesOrder.deleted_at == None)
+    query = db.query(SRMSalesOrder).filter(SRMSalesOrder.deleted_at == None, func.coalesce(SRMSalesOrder.organization_id, 1) == organization_id_for(user))
     if user.is_superuser:
         return query
     if can_view_all_srm(user):
-        return query.filter(SRMSalesOrder.organization_id == organization_id_for(user))
-    return query.filter(SRMSalesOrder.assigned_user_id == user.id)
+        return query.filter(func.coalesce(SRMSalesOrder.organization_id, 1) == organization_id_for(user))
+    return query.filter(func.coalesce(SRMSalesOrder.organization_id, 1) == organization_id_for(user), SRMSalesOrder.assigned_user_id == user.id)
 
 
 def engagement_query(db: Session, user: User):
-    query = db.query(SRMEngagement).filter(SRMEngagement.deleted_at == None)
+    query = db.query(SRMEngagement).filter(SRMEngagement.deleted_at == None, func.coalesce(SRMEngagement.organization_id, 1) == organization_id_for(user))
     if user.is_superuser:
         return query
     if can_view_all_srm(user):
-        return query.filter(SRMEngagement.organization_id == organization_id_for(user))
-    return query.filter((SRMEngagement.assigned_user_id == user.id) | (SRMEngagement.project_manager_user_id == user.id))
+        return query.filter(func.coalesce(SRMEngagement.organization_id, 1) == organization_id_for(user))
+    return query.filter(func.coalesce(SRMEngagement.organization_id, 1) == organization_id_for(user), (SRMEngagement.assigned_user_id == user.id) | (SRMEngagement.project_manager_user_id == user.id))
 
 
 def get_sales_order_for_user(db: Session, sales_order_id: int, user: User) -> SRMSalesOrder:

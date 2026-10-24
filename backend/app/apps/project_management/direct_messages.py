@@ -97,21 +97,9 @@ def list_messages(workspace_id: int, conversation_id: int, before: int | None = 
 @router.post("/workspaces/{workspace_id}/direct-conversations/{conversation_id}/messages")
 def send_message(workspace_id: int, conversation_id: int, data: MessageInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     access(db, workspace_id, conversation_id, user, write=True)
-    if not data.body.strip():
-        raise HTTPException(422, "Message cannot be blank")
-    query = lambda: db.query(PMSDirectMessage).filter_by(conversation_id=conversation_id, author_id=user.id, client_id=str(data.client_id)).first()
-    row = query()
-    if row:
-        if row.body != data.body.strip():
-            raise HTTPException(409, "This message request ID has already been used")
-        return message_data(row)
-    row = PMSDirectMessage(conversation_id=conversation_id, author_id=user.id, body=data.body.strip(), client_id=str(data.client_id))
-    db.add(row)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        row = query()
-        if not row or row.body != data.body.strip():
-            raise HTTPException(409, "Message request conflict")
-    return message_data(row)
+    from .chat import sync_legacy, send, Send
+    from .chat_models import ChatConversation
+    sync_legacy(db, workspace_id, user)
+    room = db.query(ChatConversation).filter_by(legacy_dm_id=conversation_id).one()
+    value = send(workspace_id, room.id, Send(body=data.body, client_id=data.client_id), db, user)
+    return message_data(db.get(PMSDirectMessage, value["legacy_message_id"]))

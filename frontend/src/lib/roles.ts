@@ -480,7 +480,7 @@ const pmsDeliveryOnlyPaths = [
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
   // Workspace membership is enforced by the API, independently of company roles.
-  if (["/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart"].includes(pathname.replace(/\/$/, ""))) return true;
+  if (["/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart", "/pms/dashboards", "/pms/messages"].includes(pathname.replace(/\/$/, ""))) return true;
   if (/^\/pms\/projects\/\d+\/(gantt|reports)\/?$/.test(pathname)) return true;
   if (!isProjectManagementRole(role, isSuperuser)) return false;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";
@@ -1240,6 +1240,8 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  // Linked-record entry is authenticated by App; financial/project permissions stay server-authoritative.
+  if (/^\/srm\/invoices\/\d+\/?$/.test(pathname) || /^\/pms\/projects\/\d+\/billing\/?$/.test(pathname)) return true;
   const lowercasePathname = pathname.toLowerCase();
   if (pathname === "/") return true;
   if (pathname.startsWith("/crm") && !isFrontendModuleEnabled("crm")) return false;

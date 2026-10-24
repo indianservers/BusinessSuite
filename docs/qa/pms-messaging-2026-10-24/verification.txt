@@ -1,0 +1,63 @@
+PMS COLLABORATION IMPLEMENTATION — 2026-10-24
+Scope: repository implementation and isolated local verification. No production deployment, merge, push, migration or real-user messages performed.
+
+IMPLEMENTED
+- Shared general workspace chat, with legacy entries retained and bidirectional root-message compatibility.
+- Private one-to-one DMs with canonical pair deduplication and original API/message IDs preserved.
+- Public/private workspace channels, discovery, joining, invitation by membership management, rename/description/archive/unarchive.
+- Group conversations, optional names, member addition/removal/leave and owner succession.
+- Root messages, separate paginated threads, root context, reply counts and latest previews.
+- Message edit metadata and soft-delete tombstones; replies remain attached.
+- Per-member read markers, conversation and aggregate unread, explicit read/all-read, persisted mute and in-app notifications.
+- Multiple staged attachments, file-only sends, progress/cancel/retry, authenticated downloads, validated PNG/JPEG/WebP previews, project-file chooser/sharing.
+- Scoped message/filename search, all-term matching, author/date/conversation/file filters, cursor pages, safe highlighting and historical deep links.
+- Existing authenticated realtime invalidation, reconciliation, event/message deduplication, polling recovery and guarded conversation switching.
+- Per-conversation session drafts, pending sends, Ctrl/Command+Enter, mobile layout and readable error states.
+
+ARCHITECTURE / POLICY
+Four additive tables: pms_chat_conversations, pms_chat_members, pms_chat_messages, pms_chat_attachments. Existing source tables remain authoritative for legacy identifiers. A repeat-safe, bounded, locked lazy adapter copies source history without backfill notifications; current legacy DM sends use the new send path. New shared-inbox IDs have explicit legacy source-ID fields.
+Workspace membership and organization context (when present) are rechecked server-side. Public means current workspace only. Guests cannot create, send, upload or manage. Private rooms require current conversation membership. Channel management: creator and joined workspace Owners/Admins. Group management: owner; leaving transfers ownership to an eligible remaining member. No one-to-one expansion into groups.
+New private/group members cannot see pre-join roots or any continuations of those threads. Read/unread/search/notifications/files use this same boundary. Public self-join has public history. Every visible other-authored root or reply contributes to unread; own, deleted and edited messages do not inflate counts. Read markers never move backward.
+Only content-free hints travel over realtime to current room/workspace members. Removed members receive one invalidation, then no room events. Every payload/download/search goes through current API authorization. Serverless/offline recovery uses durable APIs on a 10-second poll.
+Search: 12 words/200 characters max, all terms, newest IDs first. PostgreSQL simple-dictionary FTS + GIN; SQLite escaped case-insensitive substring fallback. Dates use UTC. Deleted and inaccessible history/files are excluded before returning results.
+Files: existing private local/S3/Vercel Blob abstraction, configured upload ceiling, safe UUID paths, extension/signature validation, owner-bound staging, savepoint-backed atomic message/attachment association. Project files remain linked, never copied or deleted by chat. Linked project images are download-only; only signature-validated native chat images preview. Chat download responses are authenticated proxies, not public/reusable links. Hourly cleanup expires staging at 24h and deleted-message files at 30 days (configurable). Message rows/IDs remain intact.
+
+VERIFICATION
+- Full PMS + PostgreSQL configuration selection: 93 tests passed (see final command output).
+- Frontend production build (TypeScript + Vite): passed.
+- Migration functions rerun twice on SQLite for both maintained paths; original legacy records/IDs preserved, 202-record batched import deduplicated, no historical notifications.
+- Actual concurrent HTTP checks against isolated SQLite API: 6 one-to-one starts -> 1 conversation, 6 identical sends -> 1 message.
+- Backend coverage: visibility/role/membership, group join boundaries and old-thread continuations, parent validation, pagination, search scope, read monotonicity, mute/dedup, staging ownership/atomicity, upload validation, download access, project sharing and cross-workspace denial, revocation, retention cleanup, owner transfer, organization mismatch.
+
+EXECUTED BROWSER JOURNEYS (real UI + real local API, no mocked message responses)
+B01 Private channel creation with invited synthetic member; root send saved.
+B02 Reply in thread; reload reopened correct thread and persistent reply.
+B03 Native file chooser upload; attachment-only reply; second member downloaded identical text bytes.
+B04 Signature-valid PNG upload and authenticated preview decoded (naturalWidth=1).
+B05 Workspace message and attachment-filename searches; older reply opened correct thread.
+B06 One-to-one and three-person group creation and sends.
+B07 Member saw 3 unread (root+replies), explicit mark-read removed badge.
+B08 Two synthetic clients connected to authenticated realtime; posted message appeared in peer client.
+B09 Owner removed member from group; group disappeared and later group message stayed invisible.
+B10 Delayed real send while switching conversations; message stayed in original room; draft survived switch/reload.
+B11 Text entered during pending send survived acknowledgement; exactly one sent message appeared.
+B12 Ctrl+Enter submitted message; delete confirmation produced tombstone.
+B13 Historical reply link without thread parameter inferred thread and highlighted the correct message.
+B14 Existing project-file chooser attached a permitted file through real API.
+B15 320px thread layout: documentWidth=314 <= viewportWidth=320.
+B16 Realtime disabled deliberately; peer received persisted message via subsequent polling refresh.
+Screenshots: desktop.png, mobile-320.png. Data/account names are synthetic audit.invalid accounts.
+
+REPRODUCE
+1. backend/venv/Scripts/python.exe backend/scripts/run_pms_messaging_qa.py
+2. Start frontend Vite on loopback 5176.
+3. node frontend/scripts/prepare-pms-messaging-qa.cjs
+4. Open emitted owner/member/third-user entry pages. Use unique test names if retaining previous QA data. poll-only=1 disables realtime; delay=1 delays send 1.5s.
+5. node frontend/scripts/prepare-pms-messaging-qa.cjs --clean
+The QA server exposes synthetic sessions only on loopback 8774, using a temporary SQLite database/upload root and separate random signing key. Never deploy it or the generated pages.
+
+DEPLOYMENT / LIMITS
+Apply 20261024_005 or pg_20261024_005 before new app/worker rollout. Downgrades preserve history. Run existing Celery worker+beat for cleanup. No deployment or worker activation performed here.
+Real PostgreSQL execution/GIN behavior, cloud storage providers and production acceptance were not available for integration testing. Their adapters/migrations are implemented; SQLite exercises the API and both migration functions. Production capability stays Partial pending acceptance.
+Optional presence, typing, structured mention indicators and per-thread follow preferences are not claimed. Plain-text messages render safely. Native OS drag/drop was not separately exercised; its shared upload handler and file-selection path are implemented and exercised.
+The local API harness mounts the real PMS router/auth/storage/realtime with synthetic data; it is not a certification of the deployed app or all navigation surfaces. Root project-file routes and stored project files were preserved.

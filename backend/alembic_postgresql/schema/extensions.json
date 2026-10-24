@@ -289,5 +289,142 @@
     "visibility",
     "meeting_url",
     "revision"
+  ],
+  "pms_chat_conversations": [
+    "id",
+    "workspace_id",
+    "key",
+    "kind",
+    "name",
+    "description",
+    "visibility",
+    "owner_id",
+    "legacy_dm_id",
+    "archived",
+    "created_at"
+  ],
+  "pms_chat_members": [
+    "conversation_id",
+    "user_id",
+    "history_after",
+    "read_id",
+    "muted",
+    "active"
+  ],
+  "pms_chat_messages": [
+    "id",
+    "conversation_id",
+    "author_id",
+    "client_id",
+    "body",
+    "parent_id",
+    "legacy_dm_message_id",
+    "legacy_entry_id",
+    "created_at",
+    "edited_at",
+    "deleted_at"
+  ],
+  "pms_chat_attachments": [
+    "id",
+    "conversation_id",
+    "message_id",
+    "owner_id",
+    "name",
+    "mime",
+    "size",
+    "path",
+    "project_file_id",
+    "created_at"
+  ],
+  "business_customer_links": [
+    "id",
+    "organization_id",
+    "customer_id",
+    "source_type",
+    "source_id",
+    "actor_id",
+    "created_at"
+  ],
+  "business_project_commercial": [
+    "project_id",
+    "customer_id",
+    "contact_id",
+    "seller_id",
+    "team_id",
+    "currency",
+    "opportunity_id",
+    "sales_order_id",
+    "engagement_id",
+    "updated_by",
+    "updated_at"
+  ],
+  "business_invoice_contexts": [
+    "invoice_id",
+    "project_id",
+    "seller_id",
+    "contact_id",
+    "request_id",
+    "origin",
+    "customer_snapshot",
+    "seller_snapshot",
+    "contact_snapshot",
+    "issued_at",
+    "created_at"
+  ],
+  "business_invoice_deliveries": [
+    "id",
+    "invoice_id",
+    "request_id",
+    "message_id",
+    "actor_id",
+    "status",
+    "error",
+    "created_at"
+  ],
+  "business_seller_grants": [
+    "organization_id",
+    "seller_id",
+    "active"
+  ],
+  "business_time_billing_allocations": [
+    "id",
+    "time_log_id",
+    "invoice_id",
+    "minutes",
+    "created_at"
+  ],
+  "business_sales_team_assignments": [
+    "sales_order_id",
+    "team_id",
+    "assigned_by",
+    "assigned_at"
+  ],
+  "business_milestone_billing_sources": [
+    "pms_milestone_id",
+    "billing_milestone_id"
+  ],
+  "business_number_sequences": [
+    "series",
+    "last_number"
+  ],
+  "srm_invoice_lines": [
+    "id",
+    "invoice_id",
+    "source_type",
+    "source_id",
+    "description",
+    "quantity",
+    "unit_price",
+    "discount_amount",
+    "tax_amount",
+    "line_total"
+  ],
+  "business_receipt_contexts": [
+    "receipt_id",
+    "seller_id",
+    "invoice_id",
+    "request_id",
+    "reversed_at",
+    "reversal_reason"
   ]
 }

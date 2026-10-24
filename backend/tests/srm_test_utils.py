@@ -54,3 +54,15 @@ def create_engagement_via_confirm(client, headers):
         response = client.post(f"/api/v1/srm/sales-orders/{order['id']}/confirm", headers=headers)
     assert response.status_code == 200, response.text
     return response.json()["engagement"], order
+
+
+def seed_invoice_parties(db, customer_ids=(101,)):
+    """Real canonical counterparties for issue/snapshot tests; never delivery to real recipients."""
+    from app.models.company import Company
+    from app.apps.crm.models import CRMCompany
+    if not db.get(Company, 1):
+        db.add(Company(id=1, name="Synthetic seller", legal_name="Synthetic seller Ltd", address="Test seller address"))
+    for ident in customer_ids:
+        if not db.get(CRMCompany, ident):
+            db.add(CRMCompany(id=ident, organization_id=1, name=f"Synthetic customer {ident}", email="billing@example.invalid", address="Test customer address"))
+    db.commit()

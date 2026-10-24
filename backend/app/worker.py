@@ -36,6 +36,10 @@ celery_app = (
 
 celery_app.conf.timezone = settings.CELERY_TIMEZONE
 celery_app.conf.beat_schedule = {
+    "cleanup-abandoned-chat-uploads": {
+        "task": "app.worker.cleanup_chat_uploads",
+        "schedule": 3600.0,
+    },
     "process-pms-operator-queue": {
         "task": "app.worker.process_operator_queue",
         "schedule": 5.0,
@@ -45,6 +49,18 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(hour=1, minute=0),
     },
 }
+
+@celery_app.task(name="app.worker.cleanup_chat_uploads")
+def cleanup_chat_uploads() -> dict:
+    from app.module_registry import is_app_enabled
+    if not is_app_enabled("project_management"):
+        return {"disabled": True}
+    from app.apps.project_management.chat_cleanup import cleanup_chat_uploads as cleanup
+    db = SessionLocal()
+    try:
+        return cleanup(db)
+    finally:
+        db.close()
 
 
 @celery_app.task(name="app.worker.credit_scheduled_leave_accruals")

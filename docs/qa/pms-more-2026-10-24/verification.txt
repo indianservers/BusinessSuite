@@ -1,0 +1,7 @@
+PMS MORE MENU — 2026-10-24
+Added to workspace rail and standard PMS sidebar.
+Admin fixture: 79 unique destination links including 8 current-project links. All matched local route declarations.
+Valid PMS team-member fixture: 43 allowed links; Admin and Audit Logs absent. Uses existing canAccessRoute filtering; no authorization policy changes.
+Executed browser checks: search auto-focus; Forms search and navigation to /pms/forms?workspace=7; dialog closed after navigation; category Planning returned 14 links; no-result search feedback; Escape restored focus to More trigger; narrow 320px dialog fit viewport with no horizontal overflow; browser error log empty.
+Build: TypeScript + Vite production build passed.
+Scope: component fixture and source route checks. Destination feature workflows and backend permissions not audited by this test. Not deployed.

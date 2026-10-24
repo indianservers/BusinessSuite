@@ -25,7 +25,7 @@ from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import asc, case, desc, or_
+from sqlalchemy import asc, case, desc, func, or_
 from sqlalchemy.inspection import inspect as sa_inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.sqltypes import Boolean, Date, DateTime, Integer, Numeric
@@ -1464,12 +1464,8 @@ def _coerce_value(column: Any, value: Any) -> Any:
 
 
 def _organization_id(db: Session, user: User) -> int:
-    employee = db.query(Employee).filter(Employee.user_id == user.id).first()
-    if employee and employee.branch_id:
-        branch = db.query(Branch).filter(Branch.id == employee.branch_id).first()
-        if branch:
-            return branch.company_id
-    return 1
+    from app.apps.srm.services.commercial import tenant
+    return tenant(user)
 
 
 def _crm_user_organization_id(db: Session, user: User) -> int:
@@ -1495,8 +1491,8 @@ def _crm_user_scope(db: Session, user: User) -> dict[str, Any]:
     employee = db.query(Employee).filter(Employee.user_id == user.id).first()
     team_ids = [
         row.team_id
-        for row in db.query(CRMOwner)
-        .filter(CRMOwner.user_id == user.id, CRMOwner.status == "Active", CRMOwner.deleted_at.is_(None))
+        for row in db.query(CRMOwner).join(CRMTeam, CRMTeam.id == CRMOwner.team_id)
+        .filter(CRMOwner.user_id == user.id, CRMOwner.status == "Active", CRMOwner.deleted_at.is_(None), CRMTeam.status == "Active", CRMTeam.deleted_at.is_(None), CRMTeam.organization_id == _organization_id(db, user), CRMOwner.organization_id == _organization_id(db, user))
         .all()
         if row.team_id
     ]
@@ -1947,6 +1943,10 @@ def _serialize(record: Any) -> dict[str, Any]:
         elif isinstance(value, Decimal):
             value = float(value)
         item[column.key] = value
+
+    if isinstance(record, CRMAccount):
+        from app.apps.srm.services.customer_identity import overlay
+        item = overlay(record, item)
 
     aliases = {
         "organization_id": "organizationId",
@@ -3051,7 +3051,7 @@ def _timeline_title(entity: str, item: dict[str, Any]) -> str:
     return str(item.get("subject") or "Activity")
 
 
-def _related_for(db: Session, entity: str, record: Any, organization_id: int) -> dict[str, Any]:
+def _related_for(db: Session, entity: str, record: Any, organization_id: int, user: User | None = None) -> dict[str, Any]:
     related: dict[str, Any] = {}
     if entity in DETAIL_ENTITY_FIELDS:
         field = DETAIL_ENTITY_FIELDS[entity]
@@ -3100,11 +3100,24 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int) ->
             from app.apps.srm.models import SRMBillingPlan, SRMContract, SRMEngagement, SRMSalesOrder
             from app.apps.project_management.models import PMSProject
 
-            sales_order = db.query(SRMSalesOrder).filter(SRMSalesOrder.crm_deal_id == record.id, SRMSalesOrder.deleted_at == None).first()
-            engagement = db.query(SRMEngagement).filter(SRMEngagement.crm_deal_id == record.id, SRMEngagement.deleted_at == None).first()
-            contract = db.query(SRMContract).filter(SRMContract.sales_order_id == sales_order.id, SRMContract.deleted_at == None).first() if sales_order else None
-            billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
-            project = db.query(PMSProject).filter(PMSProject.id == engagement.pms_project_id, PMSProject.deleted_at == None).first() if engagement and engagement.pms_project_id else None
+            sales_order = db.query(SRMSalesOrder).filter(func.coalesce(SRMSalesOrder.organization_id, 1) == organization_id).filter(SRMSalesOrder.crm_deal_id == record.id, SRMSalesOrder.deleted_at == None).first()
+            engagement = db.query(SRMEngagement).filter(func.coalesce(SRMEngagement.organization_id, 1) == organization_id).filter(SRMEngagement.crm_deal_id == record.id, SRMEngagement.deleted_at == None).first()
+            contract = db.query(SRMContract).filter(func.coalesce(SRMContract.organization_id, 1) == organization_id).filter(SRMContract.sales_order_id == sales_order.id, SRMContract.deleted_at == None).first() if sales_order else None
+            billing_plan = db.query(SRMBillingPlan).filter(func.coalesce(SRMBillingPlan.organization_id, 1) == organization_id).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
+            project = db.query(PMSProject).filter(func.coalesce(PMSProject.organization_id, 1) == organization_id).filter(PMSProject.id == engagement.pms_project_id, PMSProject.deleted_at == None).first() if engagement and engagement.pms_project_id else None
+            from app.apps.project_management.access import can_access_project
+            if project and (user is None or not can_access_project(db, project, user)):
+                project = None
+            from app.apps.srm.access import sales_order_query, engagement_query
+            permission_names = {p.name for p in (user.role.permissions if user and user.role else [])}
+            allowed = bool(user and (user.is_superuser or permission_names.intersection({"srm_sales_order_view", "srm_engagement_view", "srm_admin"})))
+            if not allowed:
+                sales_order = engagement = contract = billing_plan = None
+            else:
+                if sales_order and not sales_order_query(db, user).filter(SRMSalesOrder.id == sales_order.id).first():
+                    sales_order = contract = None
+                if engagement and not engagement_query(db, user).filter(SRMEngagement.id == engagement.id).first():
+                    engagement = billing_plan = None
             if sales_order or engagement or project:
                 related["srm"] = {
                     "salesOrder": _serialize(sales_order) if sales_order else None,
@@ -3682,13 +3695,13 @@ def _convert_quote_to_srm(db: Session, quotation: CRMQuotation, current_user: Us
     return {"idempotent": bool(result.get("idempotent")), "quote": _quote_payload(db, quotation), "conversionLog": _serialize(log), "srm": result}
 
 
-def _detail_payload(db: Session, entity: str, record: Any, organization_id: int) -> dict[str, Any]:
+def _detail_payload(db: Session, entity: str, record: Any, organization_id: int, user: User | None = None) -> dict[str, Any]:
     canonical = _canonical_entity(entity)
     payload = _serialize(record)
     payload["entity"] = canonical
     payload["customFields"] = _custom_fields_for(db, canonical, record.id, organization_id)
     payload["timeline"] = _timeline_for(db, canonical, record, organization_id)
-    payload["related"] = _related_for(db, canonical, record, organization_id)
+    payload["related"] = _related_for(db, canonical, record, organization_id, user)
     if canonical == "quotations":
         payload.update({key: value for key, value in _quote_payload(db, record).items() if key not in payload or key in {"lines", "versions", "approvals", "srmConversionLogs"}})
     return payload
@@ -7199,7 +7212,7 @@ def enrichment_apply(
     db.commit()
     db.refresh(record)
     db.refresh(log)
-    return {"record": _detail_payload(db, resource_name, record, organization_id), "log": _enrichment_log_payload(log), "appliedFields": applied}
+    return {"record": _detail_payload(db, resource_name, record, organization_id, current_user), "log": _enrichment_log_payload(log), "appliedFields": applied}
 
 
 @router.get("/enrichment/history")
@@ -7680,7 +7693,7 @@ def qualify_lead(
     )
     db.commit()
     db.refresh(lead)
-    return _detail_payload(db, "leads", lead, organization_id)
+    return _detail_payload(db, "leads", lead, organization_id, current_user)
 
 
 @router.post("/deals/{deal_id}/move-stage")
@@ -8010,7 +8023,7 @@ def get_record(
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
     canonical = _canonical_entity(entity)
     if canonical in {"leads", "contacts", "companies", "deals", "quotations", "tasks"}:
-        return _detail_payload(db, entity, record, organization_id)
+        return _detail_payload(db, entity, record, organization_id, current_user)
     return _serialize(record)
 
 
@@ -8032,7 +8045,7 @@ def get_related_records(
     return {
         "entity": canonical,
         "id": record.id,
-        "related": _related_for(db, canonical, record, organization_id),
+        "related": _related_for(db, canonical, record, organization_id, current_user),
         "timeline": _timeline_for(db, canonical, record, organization_id),
         "customFields": _custom_fields_for(db, canonical, record.id, organization_id),
     }
@@ -8105,6 +8118,9 @@ def create_record(
         _apply_ticket_csat_flow(record, data)
     db.add(record)
     db.flush()
+    if resource.model is CRMAccount:
+        from app.apps.srm.services.customer_identity import account_write
+        account_write(db, record, current_user)
     if resource.model is CRMDeal:
         _create_deal_contact_links_from_payload(db, record, deal_contacts_payload, organization_id, current_user.id)
     if resource.model is CRMMeeting and raw_payload.get("syncToCalendar"):
@@ -8184,6 +8200,9 @@ def update_record(
     for key, value in data.items():
         if key not in {"id", "organization_id", "created_at", "created_by_user_id"}:
             setattr(record, key, value)
+    if resource.model is CRMAccount:
+        from app.apps.srm.services.customer_identity import account_write
+        account_write(db, record, current_user, data)
     if resource.model is CRMDeal:
         _apply_deal_close_fields(record, data)
     if resource.model is CRMTicket:

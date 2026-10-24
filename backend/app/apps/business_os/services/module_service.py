@@ -70,7 +70,8 @@ DEFAULT_POSTING_RULES = [
 
 
 def company_id_for(user: User) -> int:
-    return int(getattr(user, "company_id", None) or getattr(user, "organization_id", None) or 1)
+    from app.apps.srm.services.commercial import tenant
+    return tenant(user)
 
 
 def normalize_module_key(value: str) -> str:

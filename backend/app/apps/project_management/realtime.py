@@ -72,6 +72,8 @@ class PMSRealtimeManager:
 
         stale: list[WebSocket] = []
         for connection in connections:
+            if event.get("recipientIds") is not None and connection.user_id not in event["recipientIds"]:
+                continue
             if organization_id is not None and connection.organization_id != organization_id:
                 continue
             if project_id is not None:

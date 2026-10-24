@@ -6,6 +6,7 @@ import type { FAMViewKind } from "@/apps/fam/types";
 import { inventorySourceAppPaths } from "@/apps/inventory/sourceCatalog";
 
 const SRMWorkspacePage = React.lazy(() => import("./pages/SRMWorkspacePage"));
+const SharedInvoicePage = React.lazy(() => import("./pages/SharedInvoicePage"));
 const SRMCommercialDetailPage = React.lazy(() => import("./pages/SRMCommercialDetailPage"));
 const SRMPOSPage = React.lazy(() => import("./pages/SRMPOSPage"));
 const FAMWorkspacePage = React.lazy(() => import("@/apps/fam/FAMWorkspacePage"));
@@ -43,6 +44,7 @@ export const srmRoutes: FrontendRoute[] = [
   { path: "srm/billing-plans/:id", element: <SRMCommercialDetailPage kind="billingPlan" /> },
   route("srm/invoice-drafts", "invoiceDrafts"),
   route("srm/invoices", "invoices"),
+  { path: "srm/invoices/:id", element: <SharedInvoicePage /> },
   route("srm/collections", "collections"),
   route("srm/revenue-recognition", "revenueRecognition"),
   route("srm/profitability", "profitability"),

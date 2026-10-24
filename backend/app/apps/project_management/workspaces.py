@@ -256,7 +256,7 @@ class EntryInput(BaseModel):
 @router.get("/workspaces/{workspace_id}/entries")
 def list_entries(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     workspace_member(db, workspace_id, user)
-    rows = db.query(PMSWorkspaceEntry, User.email).join(User, User.id == PMSWorkspaceEntry.author_id).filter(PMSWorkspaceEntry.workspace_id == workspace_id).order_by(PMSWorkspaceEntry.id.desc()).limit(200).all()
+    rows = db.query(PMSWorkspaceEntry, User.email).join(User, User.id == PMSWorkspaceEntry.author_id).filter(PMSWorkspaceEntry.workspace_id == workspace_id, PMSWorkspaceEntry.kind.in_(["note", "chat"])).order_by(PMSWorkspaceEntry.id.desc()).limit(200).all()
     return [{"id": e.id, "kind": e.kind, "body": e.body, "task_id": e.task_id, "author_id": e.author_id, "author": email, "created_at": e.created_at} for e, email in reversed(rows)]
 
 
@@ -275,4 +275,13 @@ def create_entry(workspace_id: int, data: EntryInput, db: Session = Depends(get_
     db.add(entry)
     db.commit()
     db.refresh(entry)
+    if data.kind == "chat":
+        from .chat import sync_legacy, commit_chat
+        from .chat_models import ChatMessage, ChatMember, ChatConversation
+        sync_legacy(db, workspace_id, user)
+        message = db.query(ChatMessage).filter_by(legacy_entry_id=entry.id).one()
+        members = db.query(ChatMember).join(PMSWorkspaceMember, (PMSWorkspaceMember.user_id == ChatMember.user_id) & (PMSWorkspaceMember.workspace_id == workspace_id)).filter(ChatMember.conversation_id == message.conversation_id, ChatMember.active.is_(True), ChatMember.muted.is_(False), ChatMember.user_id != user.id).all()
+        for recipient in members:
+            db.add(Notification(user_id=recipient.user_id, title="New workspace message", message="Open Messages to view an update in a conversation you joined.", module="project_management", event_type="chat.message", related_entity_type="pms_chat", related_entity_id=message.id, action_url=f"/pms/messages?workspace={workspace_id}&conversation={message.conversation_id}&message={message.id}"))
+        commit_chat(db, workspace_id, message.conversation_id)
     return {"id": entry.id}

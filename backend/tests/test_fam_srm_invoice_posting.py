@@ -1,7 +1,9 @@
+from tests.srm_test_utils import seed_invoice_parties
 from app.apps.fam.models import FAMBillReference, FAMLedgerEntry, FAMPostingJob, FAMSRMMapping, FAMVoucher
 
 
-def create_sent_srm_invoice(client, headers, customer_id=501, total=11800, tax=1800):
+def create_sent_srm_invoice(client, db, headers, customer_id=501, total=11800, tax=1800):
+    seed_invoice_parties(db, (customer_id,))
     response = client.post("/api/v1/srm/invoices/manual", headers=headers, json={
         "customer_id": customer_id,
         "currency": "INR",
@@ -17,12 +19,13 @@ def create_sent_srm_invoice(client, headers, customer_id=501, total=11800, tax=1
     })
     assert response.status_code == 201, response.text
     invoice = response.json()
-    client.post(f"/api/v1/srm/invoices/{invoice['id']}/approve", headers=headers)
-    return client.post(f"/api/v1/srm/invoices/{invoice['id']}/send", headers=headers).json()
+    issued = client.post(f"/api/v1/srm/invoices/{invoice['id']}/approve", headers=headers)
+    assert issued.status_code == 200, issued.text
+    return issued.json()
 
 
 def test_fam_posts_srm_invoice_to_sales_voucher_bill_reference_and_ar(client, db, superuser_headers):
-    invoice = create_sent_srm_invoice(client, superuser_headers)
+    invoice = create_sent_srm_invoice(client, db, superuser_headers)
 
     response = client.post(f"/api/v1/fam/integrations/srm/post-invoice/{invoice['id']}", headers=superuser_headers)
 

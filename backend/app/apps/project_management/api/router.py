@@ -101,6 +101,11 @@ from ..calendar_settings import router as calendar_settings_router
 router.include_router(calendar_settings_router)
 from ..planner import router as planner_router
 router.include_router(planner_router)
+from ..dashboards import router as dashboards_router
+router.include_router(dashboards_router)
+from ..chat import router as chat_router, summary_router as chat_summary_router
+router.include_router(chat_router)
+router.include_router(chat_summary_router)
 from ..direct_messages import router as direct_messages_router
 router.include_router(direct_messages_router)
 from ..workflow_events import router as workflow_events_router
@@ -1771,7 +1776,8 @@ def list_clients(
         PMSClient.organization_id == organization_id_for(current_user),
         PMSClient.deleted_at == None
     ).offset(skip).limit(limit).all()
-    return clients
+    from app.apps.srm.services.customer_identity import overlay
+    return [overlay(c, {col.name: getattr(c, col.name) for col in c.__table__.columns}) for c in clients]
 
 
 @router.get("/clients/{client_id}", response_model=PMSClientResponse)
@@ -1789,7 +1795,8 @@ def get_client(
     ).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    return client
+    from app.apps.srm.services.customer_identity import overlay
+    return overlay(client, {col.name: getattr(client, col.name) for col in client.__table__.columns})
 
 
 @router.patch("/clients/{client_id}", response_model=PMSClientResponse)
@@ -1810,6 +1817,12 @@ def update_client(
         raise HTTPException(status_code=404, detail="Client not found")
     
     update_data = client_in.dict(exclude_unset=True)
+    from app.apps.srm.services.customer_identity import linked_customer, CLIENT_FIELDS
+    buyer = linked_customer(db, "pms_client", client.id)
+    if buyer:
+        for field, value in update_data.items():
+            if field in CLIENT_FIELDS:
+                setattr(buyer, CLIENT_FIELDS[field], value)
     for field, value in update_data.items():
         setattr(client, field, value)
     
@@ -6984,3 +6997,6 @@ def restore_trashed_task(task_id: int, db: Session = Depends(get_db), current_us
                      f"Restored task {task.task_key}", task_id=task.id)
     db.commit()
     return {"id": task.id, "message": "Task restored"}
+
+from app.apps.srm.commercial_api import router as commercial_router
+router.include_router(commercial_router)

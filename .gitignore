@@ -40,3 +40,9 @@ backend/.vercel/
 frontend/.vercel/
 .vercel
 .env*
+
+# Generated loopback-only messaging QA entry pages
+frontend/__pms-messaging-qa-*.html
+
+# Generated loopback-only commercial QA page
+frontend/__commercial-browser-qa.html

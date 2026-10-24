@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.apps.project_management.models import PMSMilestone, PMSProject
+from app.apps.srm.commercial_models import MilestoneBillingSource
 from app.apps.srm.models import SRMBillingMilestone, SRMEngagement
 from tests.srm_test_utils import create_engagement_via_confirm
 
@@ -35,11 +36,15 @@ def test_srm_client_approved_pms_milestone_creates_invoice(client, db, superuser
         client_approved_at=datetime.now(timezone.utc),
     )
     db.add(milestone)
+    db.flush()
+    source = db.query(SRMBillingMilestone).first()
+    source.status = "approved"
+    db.add(MilestoneBillingSource(pms_milestone_id=milestone.id, billing_milestone_id=source.id))
     db.commit()
 
     response = client.post(f"/api/v1/srm/invoices/draft-from-pms-milestone/{milestone.id}", headers=superuser_headers)
     assert response.status_code == 201, response.text
-    assert response.json()["source_type"] == "pms_milestone"
+    assert response.json()["source_type"] == "billing_milestone"
 
     duplicate = client.post(f"/api/v1/srm/invoices/draft-from-pms-milestone/{milestone.id}", headers=superuser_headers)
     assert duplicate.status_code == 409

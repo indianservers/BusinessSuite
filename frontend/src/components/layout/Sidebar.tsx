@@ -1,3 +1,5 @@
+import MessagingNavLink from "./MessagingNavLink";
+import PMSMoreMenu from "./PMSMoreMenu";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { Fragment, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -159,7 +161,9 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
             })}
           </ul>
           {!navItems.length && <p className="px-5 py-3 text-xs text-sidebar-foreground/60">No matching pages.</p>}
-          {allNavItems.length > 6 && !query && <button type="button" aria-label={showAll ? "Show fewer pages" : "Show all pages"} aria-expanded={showAll} onClick={() => setShowAll(value => !value)} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs"><MoreHorizontal className="h-4 w-4" />{!collapsed && (showAll ? "Show fewer" : `More pages (${allNavItems.length - navItems.length})`)}</button>}
+          {moduleKey === "pms" && <MessagingNavLink collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
+          {moduleKey === "pms" && <PMSMoreMenu collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
+          {moduleKey !== "pms" && allNavItems.length > 6 && !query && <button type="button" aria-label={showAll ? "Show fewer pages" : "Show all pages"} aria-expanded={showAll} onClick={() => setShowAll(value => !value)} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs"><MoreHorizontal className="h-4 w-4" />{!collapsed && (showAll ? "Show fewer" : `More pages (${allNavItems.length - navItems.length})`)}</button>}
         </nav>
 
         {/* User section */}

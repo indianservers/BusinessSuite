@@ -59,6 +59,7 @@ export default function ProjectDashboard() {
             defaultAgentCode="pms_project_status"
             defaultPrompt="Summarize this project status with delays, blockers, and risks."
           />
+          <Button asChild variant="outline"><Link to={`/pms/projects/${id}/billing`}>Billing & invoices</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/milestones`}><Milestone className="h-4 w-4" />Milestones</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/risks`}><ShieldAlert className="h-4 w-4" />Risks</Link></Button>
           <Button asChild><Link to={`/pms/projects/${id}/board`}><Kanban className="h-4 w-4" />Open board</Link></Button>

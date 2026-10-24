@@ -729,8 +729,9 @@ class SRMInvoiceLine(Base):
     source_type = Column(String(60), nullable=True, index=True)
     source_id = Column(Integer, nullable=True, index=True)
     description = Column(Text, nullable=False)
-    quantity = Column(Numeric(12, 2), default=1)
+    quantity = Column(Numeric(24, 10), default=1)
     unit_price = Column(Numeric(14, 2), default=0)
+    discount_amount = Column(Numeric(14, 2), default=0)
     tax_amount = Column(Numeric(14, 2), default=0)
     line_total = Column(Numeric(14, 2), default=0)
 
@@ -876,3 +877,6 @@ class SRMSetting(Base):
     is_active = Column(Boolean, default=True, index=True)
     updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+# Shared commercial relationships are additive; SRM remains the invoice ledger.
+from app.apps.srm.commercial_models import CustomerLink, ProjectCommercial, InvoiceContext, InvoiceDelivery, SellerGrant, TimeBillingAllocation, SalesTeamAssignment, MilestoneBillingSource, CommercialNumberSequence, ReceiptContext  # noqa: E402,F401

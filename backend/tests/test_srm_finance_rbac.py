@@ -1,7 +1,9 @@
+from tests.srm_test_utils import seed_invoice_parties
 from tests.srm_test_utils import auth_headers_for, create_sales_order
 
 
 def test_srm_finance_collection_and_sales_rbac(client, db, superuser_headers):
+    seed_invoice_parties(db)
     order = create_sales_order(client, superuser_headers)
     finance_headers = auth_headers_for(client, db, "finance@srm.example.com", "srm_finance_manager", permissions=[
         "srm_invoice_view",

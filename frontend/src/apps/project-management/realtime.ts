@@ -55,6 +55,7 @@ export const useRealtimeStore = create<RealtimeState>((set, get) => ({
       action: event.action || event.type.replace("task.", "").replace("_", " "),
       target: event.target || event.message || "",
     };
+    if (get().events.some(existing => existing.id === normalized.id)) return;
     set({ events: [normalized, ...get().events].slice(0, 50), onlineUsers });
   },
   publish: (event) => {

@@ -197,3 +197,97 @@ submission is guarded. Successful creation updates the parent's displayed count
 and shows the new child beneath the parent with a task-detail link. These inline
 child previews are session-local; full existing-child expansion remains pending.
 Desktop/mobile browser coverage includes failure/retry and assignee inheritance.
+
+
+## 2026-10-24 — Unified collaboration messaging
+
+The `/pms/messages` inbox now includes workspace general chat, public/private
+channels, one-to-one conversations, group messages, root messages and threaded
+replies, soft-delete tombstones, edit metadata, paginated history, search, read
+markers, mute state and in-app notifications. The workspace rail and PMS sidebar
+include aggregate unread badges. Existing project files may be selected from an
+authorized workspace file picker without copying or broadening project access.
+
+### Data and compatibility
+
+Four additive tables (`pms_chat_conversations`, `pms_chat_members`,
+`pms_chat_messages`, `pms_chat_attachments`) share one DTO/access model. This
+avoids a destructive rewrite of the established two-person DM schema. Legacy
+conversations/messages and workspace chat entries retain their original IDs and
+API URLs. A repeat-safe lazy adapter copies their history with source-ID foreign
+keys; it generates no backfill notifications. New DM and general-root sends also
+write the legacy source record. The old DM send API delegates to the new send
+path. New shared-inbox IDs are separate canonical IDs, with legacy IDs returned
+for compatibility; this is not an in-place ID replacement.
+
+### Policy
+
+- Public means discoverable only inside the current workspace, never anonymous.
+- Workspace Owners/Admins create channels. Their creator and joined workspace
+  Owners/Admins manage channels. Groups are managed by their creator; leaving a
+  group as owner transfers ownership to an eligible remaining collaborator.
+- Current workspace membership is required at every boundary. Guests retain
+  read-only workspace chat access and cannot send/create/upload/manage.
+- Private channels and DMs require active conversation membership. Newly invited
+  private/group participants see messages after an ID join boundary; they cannot
+  reply to earlier roots. Later continuations of pre-join threads are also hidden
+  from history, search, unread totals and notifications. Public self-join permits
+  public history. One-to-one
+  participants cannot be expanded; create a fresh group instead.
+- Every visible, nondeleted message by another author, including thread replies,
+  counts as unread. Mark-read/mark-all-read is explicit and monotonic. Own sends,
+  edits and tombstones do not inflate unread counts. Mute suppresses in-app
+  notifications, not unread tracking. No email/external delivery was added.
+- All query terms must match text or permitted attachment filenames (maximum 12
+  words, 200 characters). PostgreSQL uses a simple-dictionary full-text GIN index;
+  SQLite uses escaped case-insensitive substring matching. Search returns ID
+  cursors and visible root-message context; dates are UTC.
+- Authenticated realtime sends content-free invalidation hints only to current
+  room/workspace members. Removed participants receive one invalidation to clear
+  their view, and no subsequent room hints. Durable APIs always recheck access.
+  Ten-second inbox/history polling is the recovery/serverless fallback.
+
+### Files and deployment
+
+Uploads use the established private local/S3/Vercel Blob storage abstraction,
+`MAX_UPLOAD_SIZE_MB`, extension/magic checks, safe generated keys, rate limits,
+owner-bound staging and atomic association. Downloads are authenticated proxy
+responses, not public links. HTML/SVG/executable uploads are rejected. Only
+native PNG/JPEG/WebP chat uploads have authenticated object-URL image previews.
+Linked project images use download-only metadata because their original MIME
+claims are not revalidated by chat. A shared project file
+retains its source permission and is never deleted by chat cleanup.
+
+Apply `20261024_005` (SQLite path) or `pg_20261024_005` (PostgreSQL path) before
+rolling out the application/worker. Downgrades retain history. Both migration
+functions were exercised twice on SQLite; a real PostgreSQL execution was not
+available in this session. Existing Celery worker plus beat performs hourly
+cleanup: staged uploads expire after 24 hours, deleted-message files after 30
+days (configurable via `PMS_CHAT_DELETED_FILE_RETENTION_DAYS`). No deployment,
+production migration, worker activation, or external delivery was performed.
+
+### Local verification and reproduction
+
+The full PMS and PostgreSQL-configuration test selection passed (93 tests).
+Focused browser checks used real React components and authenticated APIs backed
+by a disposable SQLite database, not mocked message responses. They exercised
+private channel, DM/group creation, threads, reload persistence, upload/download,
+image preview, project-file selection, search/deep links, unread/read state,
+live delivery/removal, delayed sends/drafts, keyboard send, deletion, and a 320px
+layout. Six concurrent HTTP starts deduplicated to one DM; six identical sends
+deduplicated to one message. PostgreSQL locks/FTS and cloud-provider storage were
+not integration-tested against live services.
+
+Reproduce locally with `backend/venv/Scripts/python.exe
+backend/scripts/run_pms_messaging_qa.py`, start Vite on 5176, then run
+`node frontend/scripts/prepare-pms-messaging-qa.cjs`. Open the three emitted
+loopback URLs for synthetic owner/member/third-user sessions. These entry pages
+and the QA session endpoint must never be deployed. The QA server uses a separate
+temporary database, upload directory and signing key. Add `poll-only=1` to disable
+realtime in the harness or `delay=1` to delay a send by 1.5 seconds. Remove entry
+pages with `node frontend/scripts/prepare-pms-messaging-qa.cjs --clean`.
+
+Optional presence/typing and structured mentions/thread-follow preferences are
+not claimed. The Chat capability remains Partial pending production/PostgreSQL
+acceptance. Native operating-system file drag/drop was not separately exercised;
+file selection and the shared upload path were verified.

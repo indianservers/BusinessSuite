@@ -1,3 +1,4 @@
+import DashboardsPage from "./pages/DashboardsPage";
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
@@ -19,6 +20,7 @@ const TrashPage = React.lazy(() => import("./pages/TrashPage"));
 
 // Lazy load components
 const ProjectManagementHomePage = React.lazy(() => import("./ProjectManagementHomePage"));
+const ProjectBillingPage = React.lazy(() => import("./pages/ProjectBillingPage"));
 const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
 const KanbanBoard = React.lazy(() => import("./pages/KanbanBoard"));
 const ProjectsList = React.lazy(() => import("./pages/ProjectsList"));
@@ -86,6 +88,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/projects/new", element: <CreateProjectPage /> },
   
   // Project Dashboard & Views
+  { path: "pms/projects/:projectId/billing", element: <ProjectBillingPage /> },
   { path: "pms/projects/:projectId", element: <ProjectDashboard /> },
   { path: "pms/projects/:projectId/board", element: <KanbanBoard /> },
   { path: "pms/projects/:projectId/timeline", element: <GanttPage /> },
@@ -131,7 +134,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/dependencies", element: <RoadmapPage /> },
   { path: "pms/navigator", element: <TaskListPage /> },
   { path: "pms/apps", element: <CommandCenterPage /> },
-  { path: "pms/dashboards", element: <PortfolioPage /> },
+  { path: "pms/dashboards", element: <DashboardsPage /> },
   { path: "pms/docs", element: <DocsPage /> },
   { path: "pms/task-types", element: <TaskTypesPage /> },
   { path: "pms/tags", element: <TagManagerPage /> },

@@ -185,4 +185,5 @@ def require_fam_permission(user: User, permissions: set[str]) -> None:
 
 
 def company_id_for(user: User) -> int:
-    return int(getattr(user, "organization_id", None) or 1)
+    from app.apps.srm.services.commercial import tenant
+    return tenant(user)

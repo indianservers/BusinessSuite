@@ -1,3 +1,4 @@
+import CustomerCommercialHistory from "./CustomerCommercialHistory";
 import { useEffect, useMemo, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -394,6 +395,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
             <main className="space-y-5">
+              {(["accounts", "contacts", "deals"].includes(kind)) && <CustomerCommercialHistory customerId={Number(record.shared_customer_id || (kind === "accounts" ? recordId : 0) || record.company_id || record.companyId || 0)} />}
               <DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving} />
               {kind === "deals" ? <CommercialHandoff related={record.related || {}} /> : null}
               <FullDetails kind={kind} record={record} onSave={saveInlineField} />

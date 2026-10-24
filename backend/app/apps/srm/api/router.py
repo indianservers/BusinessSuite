@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
@@ -104,6 +104,7 @@ from app.core.deps import RequirePermission, get_current_user, get_db
 from app.models.approval_os import ApprovalHistory, ApprovalRequest
 from app.models.notification import Notification
 from app.models.user import User
+from app.apps.srm.services.commercial import invoice_query as authorized_invoice_query, invoice_for, scoped, lock_tenant, normalize_lines, issue_snapshot, invoice_document, context as invoice_context, tenant
 
 
 router = APIRouter(prefix="/srm", tags=["Sales & Inventory Management"])
@@ -160,8 +161,12 @@ def _org(user: User) -> int | None:
 
 
 def _next_number(db: Session, model, prefix: str, column_name: str, org_id: int | None) -> str:
-    count = db.query(func.count(model.id)).filter(getattr(model, "organization_id") == org_id).scalar() or 0
-    return f"{prefix}-{(count + 1):06d}"
+    if model is SRMInvoice:
+        from app.apps.srm.services.commercial import next_invoice_number
+        return next_invoice_number(db, prefix)
+    numbers = db.query(getattr(model, column_name)).filter(func.coalesce(getattr(model, "organization_id"), 1) == (org_id or 1)).all()
+    last = max((int(n[0].split("-")[-1]) for n in numbers if n[0] and n[0].startswith(prefix + "-") and n[0].split("-")[-1].isdigit()), default=0)
+    return f"{prefix}-{last + 1:06d}"
 
 
 def _audit(db: Session, user: User, entity_type: str, entity_id: int | None, action: str, before=None, after=None) -> None:
@@ -258,24 +263,23 @@ def _recalculate_invoice(db: Session, invoice: SRMInvoice) -> None:
     db.flush()
     subtotal = Decimal("0")
     tax = Decimal("0")
+    discount = Decimal("0")
     total = Decimal("0")
     for line in invoice.lines:
         line_total = line.line_total if line.line_total is not None else (_decimal(line.quantity) * _decimal(line.unit_price) + _decimal(line.tax_amount))
-        subtotal += _decimal(line.quantity) * _decimal(line.unit_price)
+        subtotal += (_decimal(line.quantity) * _decimal(line.unit_price)).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
         tax += _decimal(line.tax_amount)
+        discount += _decimal(line.discount_amount)
         total += _decimal(line_total)
+    invoice.discount_amount = discount
     invoice.subtotal = subtotal
     invoice.tax_amount = tax
     invoice.total_amount = total
     invoice.balance_amount = total - _decimal(invoice.paid_amount)
 
 
-def _get_invoice(db: Session, invoice_id: int) -> SRMInvoice:
-    invoice = db.query(SRMInvoice).filter(SRMInvoice.id == invoice_id, SRMInvoice.deleted_at == None).first()
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    return invoice
-
+def _get_invoice(db: Session, invoice_id: int, user: User) -> SRMInvoice:
+    return invoice_for(db, invoice_id, user)
 
 def _srm_accounting_status(db: Session | None, organization_id: int | None, source_record_type: str, source_record_id: int) -> dict:
     if db is None:
@@ -295,13 +299,22 @@ def _srm_accounting_status(db: Session | None, organization_id: int | None, sour
 def _invoice_payload(invoice: SRMInvoice, db: Session | None = None) -> dict:
     payload = _serialize(invoice)
     if invoice.invoice_draft_id:
-        draft = getattr(invoice, "_srm_loaded_draft", None)
+        from sqlalchemy.orm import object_session
+        session = db or object_session(invoice)
+        draft = session.get(SRMInvoiceDraft, invoice.invoice_draft_id) if session else None
         payload["source_type"] = getattr(draft, "source_type", None)
         payload["source_id"] = None
     lines = [_serialize(line) for line in invoice.lines]
     if lines:
         payload["source_type"] = payload.get("source_type") or lines[0].get("source_type")
         payload["source_id"] = lines[0].get("source_id")
+    from app.apps.srm.commercial_models import InvoiceContext, InvoiceDelivery
+    ctx = db.get(InvoiceContext, invoice.id) if db else None
+    latest = db.query(InvoiceDelivery).filter_by(invoice_id=invoice.id).order_by(InvoiceDelivery.id.desc()).first() if db else None
+    payload.update(origin=ctx.origin if ctx else "srm", project_id=ctx.project_id if ctx else None,
+        seller_id=ctx.seller_id if ctx else None, document_status="cancelled" if invoice.status == "cancelled" else ("issued" if invoice.approved_at else "draft"),
+        payment_status="not_payable" if invoice.status == "cancelled" else "paid" if _decimal(invoice.balance_amount) <= 0 and _decimal(invoice.total_amount) > 0 else ("partially_paid" if _decimal(invoice.paid_amount) > 0 else "unpaid"),
+        delivery_status=latest.status if latest else ("legacy_sent" if invoice.sent_at else "not_sent"))
     return payload | {"lines": lines, "accounting_status": _srm_accounting_status(db, invoice.organization_id, "invoice", invoice.id)}
 
 
@@ -311,19 +324,43 @@ def _assert_invoice_source_available(db: Session, source_type: str, source_id: i
     existing = db.query(SRMInvoiceLine).filter(SRMInvoiceLine.source_type == source_type, SRMInvoiceLine.source_id == source_id).first()
     if existing:
         raise HTTPException(status_code=409, detail="Invoice already drafted for this source")
+    # Whole-order/engagement drafts and milestone installments draw on the same
+    # commercial obligation. A second source route must not bypass reservations.
+    if source_type in {"sales_order", "engagement", "billing_milestone"}:
+        order_id = source_id if source_type == "sales_order" else None
+        engagement_id = source_id if source_type == "engagement" else None
+        if source_type == "billing_milestone":
+            milestone = db.get(SRMBillingMilestone, source_id)
+            plan = db.get(SRMBillingPlan, milestone.billing_plan_id) if milestone else None
+            engagement_id = plan.engagement_id if plan else None
+        engagement = db.get(SRMEngagement, engagement_id) if engagement_id else None
+        order_id = order_id or (engagement.sales_order_id if engagement else None)
+        if order_id:
+            order_line_ids = db.query(SRMSalesOrderLine.id).filter(SRMSalesOrderLine.sales_order_id == order_id)
+            engagement_ids = db.query(SRMEngagement.id).filter(SRMEngagement.sales_order_id == order_id)
+            guard = ((SRMInvoiceLine.source_type == "sales_order") & (SRMInvoiceLine.source_id == order_id)) | ((SRMInvoiceLine.source_type == "sales_order_line") & SRMInvoiceLine.source_id.in_(order_line_ids)) | ((SRMInvoiceLine.source_type == "engagement") & SRMInvoiceLine.source_id.in_(engagement_ids))
+            if source_type != "billing_milestone":
+                plans = db.query(SRMBillingPlan.id).filter(SRMBillingPlan.engagement_id.in_(engagement_ids))
+                milestones = db.query(SRMBillingMilestone.id).filter(SRMBillingMilestone.billing_plan_id.in_(plans))
+                guard = guard | ((SRMInvoiceLine.source_type == "billing_milestone") & SRMInvoiceLine.source_id.in_(milestones))
+            if db.query(SRMInvoiceLine.id).filter(guard).first():
+                raise HTTPException(409, "This commercial source is reserved through an order, engagement or milestone invoice")
 
 
-def _find_handoff_records(db: Session, deal_id: int) -> dict:
-    order = db.query(SRMSalesOrder).filter(SRMSalesOrder.crm_deal_id == deal_id, SRMSalesOrder.deleted_at == None).first()
-    engagement = db.query(SRMEngagement).filter(SRMEngagement.crm_deal_id == deal_id, SRMEngagement.deleted_at == None).first()
-    contract = db.query(SRMContract).filter(SRMContract.sales_order_id == order.id, SRMContract.deleted_at == None).first() if order else None
-    billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
+def _find_handoff_records(db: Session, deal_id: int, user: User) -> dict:
+    order = db.query(SRMSalesOrder).filter(scoped(SRMSalesOrder.organization_id, user)).filter(SRMSalesOrder.crm_deal_id == deal_id, SRMSalesOrder.deleted_at == None).first()
+    engagement = db.query(SRMEngagement).filter(scoped(SRMEngagement.organization_id, user)).filter(SRMEngagement.crm_deal_id == deal_id, SRMEngagement.deleted_at == None).first()
+    contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, user)).filter(SRMContract.sales_order_id == order.id, SRMContract.deleted_at == None).first() if order else None
+    billing_plan = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, user)).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
     project = None
     if engagement and engagement.pms_project_id:
         try:
             from app.apps.project_management.models import PMSProject
 
-            project = db.query(PMSProject).filter(PMSProject.id == engagement.pms_project_id, PMSProject.deleted_at == None).first()
+            project = db.query(PMSProject).filter(scoped(PMSProject.organization_id, user)).filter(PMSProject.id == engagement.pms_project_id, PMSProject.deleted_at == None).first()
+            from app.apps.project_management.access import can_access_project
+            if project and not can_access_project(db, project, user):
+                project = None
         except Exception:
             project = None
     return {
@@ -390,11 +427,16 @@ def create_sales_order_from_crm_deal_service(deal_id: int, db: Session, current_
         db.add(BOSLifecycleEvent(company_id=company_id, module_key="crm", entity_type="deal", entity_id=str(deal_id), event_name="crm_deal_won_handoff_skipped", status="skipped", message="SRM not enabled", source_module="crm", target_module="srm", actor_user_id=current_user.id))
         db.commit()
         return {"status": "skipped", "idempotent": True, "message": "SRM not enabled", "sales_order": None, "engagement": None, "contract": None, "billing_plan": None, "pms_project": None}
-    existing_records = _find_handoff_records(db, deal_id)
+    lock_tenant(db, current_user)
+    from app.apps.crm.models import CRMDeal
+    permitted_deal = db.query(CRMDeal).filter(CRMDeal.id == deal_id, scoped(CRMDeal.organization_id, current_user), CRMDeal.deleted_at.is_(None)).first()
+    if not permitted_deal:
+        raise HTTPException(404, "CRM deal not found")
+    existing_records = _find_handoff_records(db, deal_id, current_user)
     if existing_records["sales_order"]:
         _audit(db, current_user, "sales_order", existing_records["sales_order"].id, "crm_won_handoff_idempotent", after={"crm_deal_id": deal_id})
         db.commit()
-        return _handoff_payload(_find_handoff_records(db, deal_id), idempotent=True)
+        return _handoff_payload(_find_handoff_records(db, deal_id, current_user), idempotent=True)
     try:
         from app.apps.crm.models import CRMDeal, CRMQuotation, CRMQuotationItem
     except Exception as exc:
@@ -490,7 +532,7 @@ def create_sales_order_from_crm_deal_service(deal_id: int, db: Session, current_
     _notify(db, order.assigned_user_id, "SRM sales order created", f"{order.order_number} was created from CRM deal {deal.name}.", "sales_order", order.id, f"/srm/sales-orders/{order.id}")
     _notify(db, engagement.project_manager_user_id, "SRM engagement ready", f"{engagement.engagement_number} is ready for project creation.", "engagement", engagement.id, f"/srm/engagements/{engagement.id}")
     db.commit()
-    return _handoff_payload(_find_handoff_records(db, deal_id), idempotent=False)
+    return _handoff_payload(_find_handoff_records(db, deal_id, current_user), idempotent=False)
 
 
 def _create_profitability_snapshot(db: Session, engagement: SRMEngagement | None, user: User | None = None) -> SRMProfitabilitySnapshot:
@@ -2157,9 +2199,9 @@ def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db),
 @router.get("/sales-orders/{sales_order_id}")
 def get_sales_order(sales_order_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     item = get_sales_order_for_user(db, sales_order_id, current_user)
-    contract = db.query(SRMContract).filter(SRMContract.sales_order_id == item.id, SRMContract.deleted_at == None).first()
+    contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.sales_order_id == item.id, SRMContract.deleted_at == None).first()
     engagement = db.query(SRMEngagement).filter(SRMEngagement.sales_order_id == item.id, SRMEngagement.deleted_at == None).first()
-    billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
+    billing_plan = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
     project = None
     if engagement and engagement.pms_project_id:
         try:
@@ -2168,7 +2210,7 @@ def get_sales_order(sales_order_id: int, db: Session = Depends(get_db), current_
             project = db.query(PMSProject).filter(PMSProject.id == engagement.pms_project_id, PMSProject.deleted_at == None).first()
         except Exception:
             project = None
-    audits = db.query(SRMAuditLog).filter(
+    audits = db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(
         ((SRMAuditLog.entity_type == "sales_order") & (SRMAuditLog.entity_id == item.id))
         | ((SRMAuditLog.entity_type == "sales_order_line") & (SRMAuditLog.entity_id.in_([line.id for line in item.lines] or [0])))
     ).order_by(SRMAuditLog.created_at.desc()).limit(30).all()
@@ -2346,7 +2388,7 @@ def confirm_sales_order(sales_order_id: int, db: Session = Depends(get_db), curr
         ]:
             if entity_id:
                 db.add(SRMEngagementLink(engagement_id=engagement.id, linked_module=module, linked_entity_type=entity_type, linked_entity_id=entity_id, label=f"{module}:{entity_type}"))
-    contract = db.query(SRMContract).filter(SRMContract.sales_order_id == item.id, SRMContract.deleted_at == None).first()
+    contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.sales_order_id == item.id, SRMContract.deleted_at == None).first()
     billing_plan = _ensure_billing_plan_from_sales_order(db, current_user, item, engagement, contract)
     _audit(db, current_user, "sales_order", item.id, "confirmed", after={"engagement_id": engagement.id, "billing_plan_id": billing_plan.id})
     for movement in issued_movements:
@@ -2391,7 +2433,9 @@ def create_sales_order_from_crm_deal(deal_id: int, db: Session = Depends(get_db)
 
 @router.get("/by-crm-deal/{deal_id}")
 def get_by_crm_deal(deal_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
-    records = _find_handoff_records(db, deal_id)
+    if not sales_order_query(db, current_user).filter(SRMSalesOrder.crm_deal_id == deal_id).first() and not engagement_query(db, current_user).filter(SRMEngagement.crm_deal_id == deal_id).first():
+        raise HTTPException(404, "SRM handoff not found")
+    records = _find_handoff_records(db, deal_id, current_user)
     if not records["sales_order"] and not records["engagement"]:
         raise HTTPException(status_code=404, detail="SRM handoff not found for CRM deal")
     return _handoff_payload(records, idempotent=True)
@@ -2399,14 +2443,16 @@ def get_by_crm_deal(deal_id: int, db: Session = Depends(get_db), current_user: U
 
 @router.get("/contracts")
 def list_contracts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
-    return [_serialize(item) for item in db.query(SRMContract).filter(SRMContract.deleted_at == None).order_by(SRMContract.id.desc()).limit(200).all()]
+    return [_serialize(item) for item in db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.deleted_at == None).order_by(SRMContract.id.desc()).limit(200).all()]
 
 
 @router.post("/contracts", status_code=201)
 def create_contract(data: SRMContractCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    if data.sales_order_id:
+        get_sales_order_for_user(db, data.sales_order_id, current_user)
     org_id = _org(current_user)
     if data.contract_number:
-        existing = db.query(SRMContract).filter(SRMContract.organization_id == org_id, SRMContract.contract_number == data.contract_number, SRMContract.deleted_at == None).first()
+        existing = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.organization_id == org_id, SRMContract.contract_number == data.contract_number, SRMContract.deleted_at == None).first()
         if existing:
             raise HTTPException(status_code=409, detail="Contract number already exists")
     item = SRMContract(organization_id=org_id, contract_number=data.contract_number or _next_number(db, SRMContract, "CTR", "contract_number", org_id), created_by=current_user.id, **data.model_dump(exclude={"contract_number"}))
@@ -2420,14 +2466,14 @@ def create_contract(data: SRMContractCreate, db: Session = Depends(get_db), curr
 
 @router.get("/contracts/{contract_id}")
 def get_contract(contract_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
-    item = db.query(SRMContract).filter(SRMContract.id == contract_id, SRMContract.deleted_at == None).first()
+    item = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.id == contract_id, SRMContract.deleted_at == None).first()
     if not item:
         raise HTTPException(status_code=404, detail="Contract not found")
     sales_order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == item.sales_order_id, SRMSalesOrder.deleted_at == None).first() if item.sales_order_id else None
     engagement = db.query(SRMEngagement).filter(SRMEngagement.contract_id == item.id, SRMEngagement.deleted_at == None).first()
-    billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.engagement_id == engagement.id, SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).limit(20).all() if engagement else []
-    audits = db.query(SRMAuditLog).filter(SRMAuditLog.entity_type == "contract", SRMAuditLog.entity_id == item.id).order_by(SRMAuditLog.created_at.desc()).limit(30).all()
+    billing_plan = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.engagement_id == engagement.id, SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).limit(20).all() if engagement else []
+    audits = db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(SRMAuditLog.entity_type == "contract", SRMAuditLog.entity_id == item.id).order_by(SRMAuditLog.created_at.desc()).limit(30).all()
     return _serialize(item) | {
         "sales_order": _serialize(sales_order),
         "engagement": _serialize(engagement),
@@ -2439,7 +2485,7 @@ def get_contract(contract_id: int, db: Session = Depends(get_db), current_user: 
 
 @router.patch("/contracts/{contract_id}")
 def update_contract(contract_id: int, data: SRMContractUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
-    item = db.query(SRMContract).filter(SRMContract.id == contract_id, SRMContract.deleted_at == None).first()
+    item = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.id == contract_id, SRMContract.deleted_at == None).first()
     if not item:
         raise HTTPException(status_code=404, detail="Contract not found")
     _validate_schedule_dates(item, data.model_dump(exclude_unset=True), "effective_date", "expiry_date")
@@ -2453,7 +2499,7 @@ def update_contract(contract_id: int, data: SRMContractUpdate, db: Session = Dep
 
 
 def _contract_status(contract_id: int, target_status: str, action: str, db: Session, current_user: User):
-    item = db.query(SRMContract).filter(SRMContract.id == contract_id, SRMContract.deleted_at == None).first()
+    item = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.id == contract_id, SRMContract.deleted_at == None).first()
     if not item:
         raise HTTPException(status_code=404, detail="Contract not found")
     _transition(item.status, target_status, CONTRACT_TRANSITIONS, "contract")
@@ -2494,6 +2540,11 @@ def list_engagements(db: Session = Depends(get_db), current_user: User = Depends
 
 @router.post("/engagements", status_code=201)
 def create_engagement(data: SRMEngagementCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    if data.sales_order_id:
+        get_sales_order_for_user(db, data.sales_order_id, current_user)
+    if data.contract_id:
+        from app.apps.srm.services.commercial import record
+        record(db, SRMContract, data.contract_id, current_user)
     org_id = _org(current_user)
     item = SRMEngagement(organization_id=org_id, engagement_number=data.engagement_number or _next_number(db, SRMEngagement, "ENG", "engagement_number", org_id), created_by=current_user.id, **data.model_dump(exclude={"engagement_number"}))
     db.add(item)
@@ -2513,6 +2564,9 @@ def get_engagement(engagement_id: int, db: Session = Depends(get_db), current_us
 
 @router.patch("/engagements/{engagement_id}")
 def update_engagement(engagement_id: int, data: SRMEngagementUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    if data.pms_project_id:
+        from app.apps.srm.commercial_api import project as accessible_billing_project
+        accessible_billing_project(db, data.pms_project_id, current_user)
     item = get_engagement_for_user(db, engagement_id, current_user)
     _validate_schedule_dates(item, data.model_dump(exclude_unset=True), "planned_start_date", "planned_end_date")
     before = _serialize(item)
@@ -2561,7 +2615,7 @@ def update_engagement_status(engagement_id: int, target_status: str, db: Session
 @router.get("/engagements/{engagement_id}/timeline")
 def engagement_timeline(engagement_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     item = get_engagement_for_user(db, engagement_id, current_user)
-    audits = db.query(SRMAuditLog).filter(
+    audits = db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(
         ((SRMAuditLog.entity_type == "engagement") & (SRMAuditLog.entity_id == item.id))
         | ((SRMAuditLog.entity_type == "sales_order") & (SRMAuditLog.entity_id == item.sales_order_id))
     ).order_by(SRMAuditLog.created_at.asc()).all()
@@ -2573,11 +2627,11 @@ def engagement_timeline(engagement_id: int, db: Session = Depends(get_db), curre
 def engagement_lifecycle(engagement_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     item = get_engagement_for_user(db, engagement_id, current_user)
     sales_order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == item.sales_order_id, SRMSalesOrder.deleted_at == None).first() if item.sales_order_id else None
-    contract = db.query(SRMContract).filter(SRMContract.id == item.contract_id, SRMContract.deleted_at == None).first() if item.contract_id else None
-    billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == item.id).first()
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.engagement_id == item.id, SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).all()
+    contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.id == item.contract_id, SRMContract.deleted_at == None).first() if item.contract_id else None
+    billing_plan = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.engagement_id == item.id).first()
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.engagement_id == item.id, SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).all()
     links = db.query(SRMEngagementLink).filter(SRMEngagementLink.engagement_id == item.id).all()
-    audits = db.query(SRMAuditLog).filter(
+    audits = db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(
         ((SRMAuditLog.entity_type == "engagement") & (SRMAuditLog.entity_id == item.id))
         | ((SRMAuditLog.entity_type == "sales_order") & (SRMAuditLog.entity_id == item.sales_order_id))
         | ((SRMAuditLog.entity_type == "billing_plan") & (SRMAuditLog.entity_id == (billing_plan.id if billing_plan else 0)))
@@ -2609,6 +2663,7 @@ def create_pms_project(engagement_id: int, db: Session = Depends(get_db), curren
         db.add(BOSLifecycleEvent(company_id=company_id, module_key="srm", entity_type="engagement", entity_id=str(engagement_id), event_name="srm_pms_handoff_skipped", status="skipped", message="PMS is not enabled", source_module="srm", target_module="project_management", actor_user_id=current_user.id))
         db.commit()
         return {"status": "skipped", "idempotent": True, "message": "PMS is not enabled", "engagement": None, "project": None}
+    lock_tenant(db, current_user)
     engagement = get_engagement_for_user(db, engagement_id, current_user)
     if engagement.pms_project_id:
         try:
@@ -2658,6 +2713,12 @@ def create_pms_project(engagement_id: int, db: Session = Depends(get_db), curren
         )
         db.add(milestone)
         db.flush()
+        from app.apps.srm.commercial_models import MilestoneBillingSource
+        plans = db.query(SRMBillingPlan.id).filter(SRMBillingPlan.engagement_id == engagement.id)
+        candidates = db.query(SRMBillingMilestone).filter(SRMBillingMilestone.billing_plan_id.in_(plans)).all()
+        source = next((m for m in candidates if (m.metadata_json or {}).get("sales_order_line_id") == line.id), None)
+        if source:
+            db.add(MilestoneBillingSource(pms_milestone_id=milestone.id, billing_milestone_id=source.id))
         db.add(PMSTask(
             project_id=project.id,
             milestone_id=milestone.id,
@@ -2671,6 +2732,22 @@ def create_pms_project(engagement_id: int, db: Session = Depends(get_db), curren
             estimated_hours=8,
             is_client_visible=True,
         ))
+    from app.apps.srm.commercial_models import ProjectCommercial, SalesTeamAssignment
+    shared_assignment = db.get(SalesTeamAssignment, order.id)
+    from app.apps.crm.models import CRMCompany, CRMContact
+    buyer = db.query(CRMCompany).filter(CRMCompany.id == engagement.customer_id, scoped(CRMCompany.organization_id, current_user), CRMCompany.deleted_at.is_(None)).first()
+    from app.models.company import Company
+    from app.apps.srm.services.commercial import seller as authorized_seller
+    source_seller_id = (order.metadata_json or {}).get("seller_id") or tenant(current_user)
+    if not isinstance(source_seller_id, int) or isinstance(source_seller_id, bool):
+        raise HTTPException(422, "Commercial seller must use an explicit legal entity ID")
+    legal_entity = db.get(Company, source_seller_id)
+    if (order.metadata_json or {}).get("seller_id"):
+        authorized_seller(db, source_seller_id, current_user)
+    if buyer and legal_entity:
+        contact = db.query(CRMContact).filter(CRMContact.id == order.crm_contact_id, CRMContact.company_id == buyer.id, scoped(CRMContact.organization_id, current_user)).first() if order.crm_contact_id else None
+        db.add(ProjectCommercial(project_id=project.id, customer_id=buyer.id, seller_id=source_seller_id, contact_id=contact.id if contact else None,
+            team_id=shared_assignment.team_id if shared_assignment else buyer.assigned_team_id, currency=engagement.currency, opportunity_id=engagement.crm_deal_id, sales_order_id=order.id, engagement_id=engagement.id, updated_by=current_user.id))
     engagement.pms_project_id = project.id
     engagement.status = "project_created"
     db.add(SRMEngagementLink(engagement_id=engagement.id, linked_module="project_management", linked_entity_type="project", linked_entity_id=project.id, label=project.project_key))
@@ -2683,7 +2760,7 @@ def create_pms_project(engagement_id: int, db: Session = Depends(get_db), curren
 
 @router.get("/billing-plans")
 def list_billing_plans(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
-    return [_serialize(item) for item in db.query(SRMBillingPlan).order_by(SRMBillingPlan.id.desc()).limit(200).all()]
+    return [_serialize(item) for item in db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).order_by(SRMBillingPlan.id.desc()).limit(200).all()]
 
 
 @router.post("/sales-orders/{sales_order_id}/billing-plan", status_code=201)
@@ -2692,7 +2769,7 @@ def create_billing_plan_from_sales_order(sales_order_id: int, db: Session = Depe
     engagement = db.query(SRMEngagement).filter(SRMEngagement.sales_order_id == order.id, SRMEngagement.deleted_at == None).first()
     if not engagement:
         raise HTTPException(status_code=400, detail="Sales order must have an SRM engagement before billing plan creation")
-    contract = db.query(SRMContract).filter(SRMContract.sales_order_id == order.id, SRMContract.deleted_at == None).first()
+    contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.sales_order_id == order.id, SRMContract.deleted_at == None).first()
     plan = _ensure_billing_plan_from_sales_order(db, current_user, order, engagement, contract)
     db.commit()
     db.refresh(plan)
@@ -2719,16 +2796,16 @@ def create_billing_plan(data: SRMBillingPlanCreate, db: Session = Depends(get_db
 
 @router.get("/billing-plans/{billing_plan_id}")
 def get_billing_plan(billing_plan_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
-    item = db.query(SRMBillingPlan).filter(SRMBillingPlan.id == billing_plan_id).first()
+    item = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.id == billing_plan_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Billing plan not found")
     engagement = get_engagement_for_user(db, item.engagement_id, current_user)
     sales_order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == engagement.sales_order_id, SRMSalesOrder.deleted_at == None).first() if engagement.sales_order_id else None
-    contract = db.query(SRMContract).filter(SRMContract.id == engagement.contract_id, SRMContract.deleted_at == None).first() if engagement.contract_id else None
+    contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.id == engagement.contract_id, SRMContract.deleted_at == None).first() if engagement.contract_id else None
     milestones = db.query(SRMBillingMilestone).filter(SRMBillingMilestone.billing_plan_id == item.id).all()
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.engagement_id == engagement.id, SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).limit(20).all()
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.engagement_id == engagement.id, SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).limit(20).all()
     invoiced_value = sum(_decimal(invoice.total_amount) for invoice in invoices)
-    audits = db.query(SRMAuditLog).filter(
+    audits = db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(
         ((SRMAuditLog.entity_type == "billing_plan") & (SRMAuditLog.entity_id == item.id))
         | ((SRMAuditLog.entity_type == "billing_milestone") & (SRMAuditLog.entity_id.in_([milestone.id for milestone in milestones] or [0])))
     ).order_by(SRMAuditLog.created_at.desc()).limit(30).all()
@@ -2746,7 +2823,7 @@ def get_billing_plan(billing_plan_id: int, db: Session = Depends(get_db), curren
 
 @router.patch("/billing-plans/{billing_plan_id}")
 def update_billing_plan(billing_plan_id: int, data: SRMBillingPlanUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
-    item = db.query(SRMBillingPlan).filter(SRMBillingPlan.id == billing_plan_id).first()
+    item = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.id == billing_plan_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Billing plan not found")
     get_engagement_for_user(db, item.engagement_id, current_user)
@@ -2761,7 +2838,7 @@ def update_billing_plan(billing_plan_id: int, data: SRMBillingPlanUpdate, db: Se
 
 @router.post("/billing-plans/{billing_plan_id}/milestones", status_code=201)
 def add_billing_milestone(billing_plan_id: int, data: SRMBillingMilestoneInput, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
-    item = db.query(SRMBillingPlan).filter(SRMBillingPlan.id == billing_plan_id).first()
+    item = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.id == billing_plan_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Billing plan not found")
     get_engagement_for_user(db, item.engagement_id, current_user)
@@ -2776,7 +2853,7 @@ def add_billing_milestone(billing_plan_id: int, data: SRMBillingMilestoneInput, 
 
 
 def _billing_plan_status(billing_plan_id: int, target_status: str, action: str, db: Session, current_user: User):
-    item = db.query(SRMBillingPlan).filter(SRMBillingPlan.id == billing_plan_id).first()
+    item = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.id == billing_plan_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Billing plan not found")
     get_engagement_for_user(db, item.engagement_id, current_user)
@@ -2820,6 +2897,10 @@ def _create_invoice_from_lines(
     currency: str,
     billing_plan_id: int | None = None,
 ) -> SRMInvoice:
+    lock_tenant(db, user)
+    from app.apps.srm.services.commercial import currency_code
+    currency_code(currency)
+    lines = normalize_lines(lines)
     _assert_invoice_source_available(db, source_type, source_id)
     if not lines:
         raise HTTPException(status_code=400, detail="At least one invoice line is required")
@@ -2827,9 +2908,13 @@ def _create_invoice_from_lines(
         line_source_type = line.get("source_type") or source_type
         line_source_id = line.get("source_id") if line.get("source_id") is not None else source_id
         _assert_invoice_source_available(db, line_source_type, line_source_id)
-    subtotal = sum((_decimal(line.get("quantity", 1)) * _decimal(line.get("unit_price", 0))) for line in lines)
+    subtotal = sum((_decimal(line.get("quantity", 1)) * _decimal(line.get("unit_price", 0))).quantize(Decimal(".01"), rounding=ROUND_HALF_UP) for line in lines)
+    discount = sum(_decimal(line.get("discount_amount", 0)) for line in lines)
     tax = sum(_decimal(line.get("tax_amount", 0)) for line in lines)
     total = sum(_decimal(line.get("line_total")) if line.get("line_total") is not None else (_decimal(line.get("quantity", 1)) * _decimal(line.get("unit_price", 0)) + _decimal(line.get("tax_amount", 0))) for line in lines)
+    from app.apps.srm.services.commercial import money
+    for value in [subtotal, tax, discount, total]:
+        money(value)
     org_id = (engagement.organization_id if engagement else None) or (sales_order.organization_id if sales_order else _org(user))
     draft = SRMInvoiceDraft(
         organization_id=org_id,
@@ -2840,6 +2925,7 @@ def _create_invoice_from_lines(
         source_type=source_type,
         currency=currency,
         subtotal=subtotal,
+        discount_amount=discount,
         tax_amount=tax,
         total_amount=total,
         created_by=user.id,
@@ -2858,6 +2944,7 @@ def _create_invoice_from_lines(
         due_date=date.today() + timedelta(days=30),
         currency=currency,
         subtotal=subtotal,
+        discount_amount=discount,
         tax_amount=tax,
         total_amount=total,
         balance_amount=total,
@@ -2873,6 +2960,7 @@ def _create_invoice_from_lines(
             description=line["description"],
             quantity=line.get("quantity", 1),
             unit_price=line.get("unit_price", 0),
+            discount_amount=line.get("discount_amount", 0),
             tax_amount=line.get("tax_amount", 0),
             line_total=line.get("line_total"),
         ))
@@ -2899,7 +2987,8 @@ def _create_invoice_from_amount(db: Session, user: User, source_type: str, sourc
 @router.post("/invoices/draft-from-sales-order/{sales_order_id}", status_code=201)
 def draft_from_sales_order(sales_order_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_create", "srm_admin"))):
     order = get_sales_order_for_user(db, sales_order_id, current_user)
-    invoice = _create_invoice_from_amount(db, current_user, "sales_order", order.id, None, order, _decimal(order.total_amount), order.title, order.currency)
+    invoice = _create_invoice_from_lines(db, current_user, "sales_order", order.id, None, order,
+        [{"source_type": "sales_order_line", "source_id": line.id, "description": line.description or order.title, "quantity": line.quantity, "unit_price": line.unit_price, "tax_amount": line.tax_amount, "discount_amount": line.discount_amount} for line in order.lines] or [{"description": order.title, "quantity": 1, "unit_price": order.total_amount}], order.currency)
     db.commit()
     db.refresh(invoice)
     return _invoice_payload(invoice)
@@ -2914,19 +3003,40 @@ def draft_from_engagement(engagement_id: int, db: Session = Depends(get_db), cur
     return _invoice_payload(invoice)
 
 
+def billing_milestone_line(db: Session, milestone: SRMBillingMilestone) -> dict:
+    """Carry the agreed gross installment and explicit order-line tax basis."""
+    amount = _decimal(milestone.amount)
+    tax = discount = Decimal("0")
+    source_id = (milestone.metadata_json or {}).get("sales_order_line_id")
+    if source_id:
+        line = db.get(SRMSalesOrderLine, source_id)
+        plan = db.get(SRMBillingPlan, milestone.billing_plan_id)
+        engagement = db.get(SRMEngagement, plan.engagement_id) if plan else None
+        if not line or not engagement or line.sales_order_id != engagement.sales_order_id:
+            raise HTTPException(422, "Billing milestone has an invalid commercial source mapping")
+        gross = _decimal(line.line_total)
+        if gross > 0:
+            tax = (amount * _decimal(line.tax_amount) / gross).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
+            discount = (amount * _decimal(line.discount_amount) / gross).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
+    return {"source_type": "billing_milestone", "source_id": milestone.id, "description": milestone.name, "quantity": 1, "unit_price": amount - tax + discount, "tax_amount": tax, "discount_amount": discount}
+
+
 @router.post("/invoices/draft-from-billing-milestone/{milestone_id}", status_code=201)
 def draft_from_billing_milestone(milestone_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_create", "srm_admin"))):
-    milestone = db.query(SRMBillingMilestone).filter(SRMBillingMilestone.id == milestone_id).first()
+    lock_tenant(db, current_user)
+    milestone = db.query(SRMBillingMilestone).filter(SRMBillingMilestone.id == milestone_id).with_for_update().first()
     if not milestone:
         raise HTTPException(status_code=404, detail="Billing milestone not found")
+    plan = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.id == milestone.billing_plan_id).first()
+    if not plan or not plan.engagement_id:
+        raise HTTPException(422, "Billing milestone must belong to an accessible engagement")
+    engagement = get_engagement_for_user(db, plan.engagement_id, current_user)
     if milestone.invoice_draft_id:
         raise HTTPException(status_code=409, detail="Billing milestone is already invoiced")
-    plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.id == milestone.billing_plan_id).first()
-    engagement = get_engagement_for_user(db, plan.engagement_id, current_user) if plan else None
     order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == engagement.sales_order_id).first() if engagement and engagement.sales_order_id else None
     if milestone.status not in {"approved", "ready", "completed"}:
         raise HTTPException(status_code=400, detail="Billing milestone must be approved or completed before invoicing")
-    invoice = _create_invoice_from_amount(db, current_user, "billing_milestone", milestone.id, engagement, order, _decimal(milestone.amount), milestone.name, plan.currency if plan else "INR", billing_plan_id=plan.id if plan else None)
+    invoice = _create_invoice_from_lines(db, current_user, "billing_milestone", milestone.id, engagement, order, [billing_milestone_line(db, milestone)], plan.currency, billing_plan_id=plan.id)
     db.flush()
     milestone.invoice_draft_id = invoice.invoice_draft_id
     milestone.status = "invoiced"
@@ -2945,6 +3055,8 @@ def draft_from_pms_milestone(pms_milestone_id: int, db: Session = Depends(get_db
     milestone = db.query(PMSMilestone).filter(PMSMilestone.id == pms_milestone_id).first()
     if not milestone:
         raise HTTPException(status_code=404, detail="PMS milestone not found")
+    from app.apps.srm.commercial_api import project as accessible_billing_project
+    accessible_billing_project(db, milestone.project_id, current_user)
     if str(milestone.client_approval_status or "").lower() not in {"approved", "client approved", "accepted"} and not milestone.client_approved_at:
         raise HTTPException(status_code=400, detail="PMS milestone must be client-approved before invoicing")
     engagement = db.query(SRMEngagement).filter(SRMEngagement.pms_project_id == milestone.project_id, SRMEngagement.deleted_at == None).first()
@@ -2952,13 +3064,11 @@ def draft_from_pms_milestone(pms_milestone_id: int, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="No SRM engagement is linked to this PMS project")
     get_engagement_for_user(db, engagement.id, current_user)
     order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == engagement.sales_order_id).first() if engagement.sales_order_id else None
-    amount = _decimal(db.query(func.coalesce(func.sum(SRMBillingMilestone.amount), 0)).join(SRMBillingPlan, SRMBillingPlan.id == SRMBillingMilestone.billing_plan_id).filter(SRMBillingPlan.engagement_id == engagement.id, SRMBillingMilestone.name == milestone.name).scalar())
-    if amount <= 0:
-        amount = _decimal(engagement.budget_amount)
-    invoice = _create_invoice_from_amount(db, current_user, "pms_milestone", milestone.id, engagement, order, amount, milestone.name, engagement.currency)
-    db.commit()
-    db.refresh(invoice)
-    return _invoice_payload(invoice)
+    from app.apps.srm.commercial_models import MilestoneBillingSource
+    mapping = db.get(MilestoneBillingSource, milestone.id)
+    if not mapping:
+        raise HTTPException(422, "Map this milestone to a commercial billing milestone; names and project budgets cannot determine an invoice amount")
+    return draft_from_billing_milestone(mapping.billing_milestone_id, db, current_user)
 
 
 @router.post("/invoices/draft-from-timesheets", status_code=201)
@@ -2967,13 +3077,24 @@ def draft_from_timesheets(data: SRMTimeLogInvoiceRequest, db: Session = Depends(
         from app.apps.project_management.models import PMSTimeLog
     except Exception as exc:
         raise HTTPException(status_code=400, detail="PMS time logs are not available") from exc
+    lock_tenant(db, current_user)
     logs = db.query(PMSTimeLog).filter(PMSTimeLog.id.in_(data.time_log_ids), PMSTimeLog.is_billable == True, PMSTimeLog.approval_status.in_(["Approved", "approved"])).all() if data.time_log_ids else []
     if len(logs) != len(set(data.time_log_ids)):
         raise HTTPException(status_code=400, detail="All selected time logs must be approved and billable")
+    from app.apps.project_management.access import get_project_for_action
+    from app.apps.srm.commercial_models import TimeBillingAllocation
+    for project_id in {log.project_id for log in logs}:
+        project = get_project_for_action(db, project_id, current_user, "browse")
+        if not (project.organization_id == tenant(current_user) or project.organization_id is None and tenant(current_user) == 1):
+            raise HTTPException(404, "Time source project not found")
+    if len({log.project_id for log in logs}) > 1:
+        raise HTTPException(422, "Invoice time from one project at a time")
+    if db.query(TimeBillingAllocation).filter(TimeBillingAllocation.time_log_id.in_(data.time_log_ids)).first():
+        raise HTTPException(409, "Time already reserved through project billing")
     minutes = sum(log.duration_minutes for log in logs)
     if not minutes:
         raise HTTPException(status_code=400, detail="No billable time logs selected")
-    engagement = db.query(SRMEngagement).filter(SRMEngagement.id == data.engagement_id).first() if data.engagement_id else None
+    engagement = get_engagement_for_user(db, data.engagement_id, current_user) if data.engagement_id else None
     amount = Decimal(str(minutes)) / Decimal("60") * data.hourly_rate
     for time_log_id in data.time_log_ids:
         _assert_invoice_source_available(db, "pms_time_log", time_log_id)
@@ -3001,15 +3122,41 @@ def draft_from_timesheets(data: SRMTimeLogInvoiceRequest, db: Session = Depends(
 
 @router.post("/invoices/manual", status_code=201)
 def manual_invoice(data: SRMManualInvoiceCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_create", "srm_admin"))):
+    from uuid import UUID, uuid4
+    from app.apps.srm.services.commercial import customer, seller, record
+    from app.apps.srm.commercial_models import InvoiceContext
+    from app.apps.crm.models import CRMContact
+    lock_tenant(db, current_user)
+    try:
+        request_key = f"manual:{current_user.id}:" + str(UUID(data.request_id)) if data.request_id else str(uuid4())
+    except ValueError:
+        raise HTTPException(422, "Use a UUID request_id")
+    previous = db.query(InvoiceContext).join(SRMInvoice, SRMInvoice.id == InvoiceContext.invoice_id).filter(InvoiceContext.request_id == request_key, scoped(SRMInvoice.organization_id, current_user), SRMInvoice.created_by == current_user.id).first()
+    if previous:
+        return _invoice_payload(invoice_for(db, previous.invoice_id, current_user), db)
+    if data.customer_id:
+        customer(db, data.customer_id, current_user)
+    if data.seller_id:
+        seller(db, data.seller_id, current_user)
     engagement = get_engagement_for_user(db, data.engagement_id, current_user) if data.engagement_id else None
     order = get_sales_order_for_user(db, data.sales_order_id, current_user) if data.sales_order_id else None
     lines = []
     for line in data.lines:
         payload = line.model_dump()
+        if payload.get("source_type") not in {None, "manual", "external_adjustment"} or (payload.get("source_id") is not None and payload.get("source_type") != "external_adjustment"):
+            raise HTTPException(422, "Manual invoices cannot reserve billing sources; use the source billing endpoint")
+        if payload.get("source_type") == "external_adjustment":
+            payload["source_type"] = f"external_adjustment_t{tenant(current_user)}"
         payload["source_type"] = payload.get("source_type") or "manual"
         lines.append(payload)
     invoice = _create_invoice_from_lines(db, current_user, "manual", None, engagement, order, lines, data.currency)
-    invoice.customer_id = data.customer_id or invoice.customer_id
+    effective_customer = data.customer_id or invoice.customer_id
+    if data.customer_id and invoice.customer_id and data.customer_id != invoice.customer_id:
+        raise HTTPException(422, "Invoice customer must match the commercial source")
+    if data.contact_id and record(db, CRMContact, data.contact_id, current_user).company_id != effective_customer:
+        raise HTTPException(422, "Billing contact must belong to the invoice customer")
+    invoice.customer_id = effective_customer
+    db.add(InvoiceContext(invoice_id=invoice.id, seller_id=data.seller_id or tenant(current_user), contact_id=data.contact_id, request_id=request_key, origin="srm"))
     if data.issue_date:
         invoice.issue_date = data.issue_date
     if data.due_date:
@@ -3020,32 +3167,32 @@ def manual_invoice(data: SRMManualInvoiceCreate, db: Session = Depends(get_db), 
 
 
 @router.get("/invoice-drafts")
-def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_admin"))):
-    return [_serialize(item) for item in db.query(SRMInvoiceDraft).order_by(SRMInvoiceDraft.id.desc()).limit(200).all()]
+def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
+    return [_serialize(item) for item in db.query(SRMInvoiceDraft).filter(scoped(SRMInvoiceDraft.organization_id, current_user)).order_by(SRMInvoiceDraft.id.desc()).limit(200).all()]
 
 
 @router.get("/invoices")
-def list_invoices(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_admin"))):
-    return [_invoice_payload(item, db) for item in db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None).order_by(SRMInvoice.id.desc()).limit(200).all()]
+def list_invoices(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
+    return [_invoice_payload(item, db) for item in authorized_invoice_query(db, current_user).order_by(SRMInvoice.id.desc()).limit(200).all()]
 
 
 @router.get("/invoices/{invoice_id}")
-def get_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
+def get_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
+    invoice = _get_invoice(db, invoice_id, current_user)
     return _invoice_payload(invoice, db)
 
 
 @router.patch("/invoices/{invoice_id}")
 def patch_invoice(invoice_id: int, data: SRMInvoicePatch, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_create", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
+    invoice = invoice_for(db, invoice_id, current_user, lock=True)
+    if invoice.status not in {"draft", "pending_approval"}:
+        raise HTTPException(409, "Issued invoices are immutable; use the accounting adjustment flow")
+    updates = data.model_dump(exclude_unset=True)
+    if set(updates) - {"issue_date", "due_date"}:
+        raise HTTPException(422, "Only draft dates can be patched; totals are calculated from lines and finance approval issues the invoice")
     before = _serialize(invoice)
-    for key, value in data.model_dump(exclude_unset=True).items():
-        if key == "status":
-            _assert_status(value, INVOICE_STATUSES, "invoice")
-            _transition(invoice.status, value, INVOICE_TRANSITIONS, "invoice")
+    for key, value in updates.items():
         setattr(invoice, key, value)
-    if data.total_amount is not None:
-        invoice.balance_amount = _decimal(invoice.total_amount) - _decimal(invoice.paid_amount)
     _audit(db, current_user, "invoice", invoice.id, "updated", before=before, after=data.model_dump(exclude_unset=True))
     db.commit()
     db.refresh(invoice)
@@ -3054,15 +3201,15 @@ def patch_invoice(invoice_id: int, data: SRMInvoicePatch, db: Session = Depends(
 
 @router.post("/invoices/{invoice_id}/lines", status_code=201)
 def add_invoice_line(invoice_id: int, data: SRMInvoiceLineInput, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_create", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
+    invoice = invoice_for(db, invoice_id, current_user, lock=True)
     if invoice.status not in {"draft", "pending_approval"}:
         raise HTTPException(status_code=400, detail="Invoice lines can only be changed before approval")
     if data.source_type and data.source_id:
         existing = db.query(SRMInvoiceLine).filter(SRMInvoiceLine.source_type == data.source_type, SRMInvoiceLine.source_id == data.source_id).first()
         if existing:
             raise HTTPException(status_code=409, detail="Invoice line source already billed")
-    line_total = data.line_total if data.line_total is not None else (_decimal(data.quantity) * _decimal(data.unit_price) + _decimal(data.tax_amount))
-    line = SRMInvoiceLine(invoice_id=invoice.id, line_total=line_total, **data.model_dump(exclude={"line_total"}))
+    payload = normalize_lines([data.model_dump()])[0]
+    line = SRMInvoiceLine(invoice_id=invoice.id, **payload)
     db.add(line)
     _recalculate_invoice(db, invoice)
     _audit(db, current_user, "invoice_line", line.id, "created", after=_serialize(line))
@@ -3073,9 +3220,12 @@ def add_invoice_line(invoice_id: int, data: SRMInvoiceLineInput, db: Session = D
 
 @router.post("/invoices/{invoice_id}/approve")
 def approve_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_approve", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
+    invoice = invoice_for(db, invoice_id, current_user, lock=True)
     if invoice.status not in {"draft", "pending_approval", "approved"}:
         raise HTTPException(status_code=400, detail="Only draft or pending invoices can be approved")
+    if invoice.approved_at:
+        return _invoice_payload(invoice, db)
+    issue_snapshot(db, invoice, current_user)
     before = invoice.status
     invoice.status = "approved"
     invoice.approved_by = current_user.id
@@ -3089,29 +3239,25 @@ def approve_invoice(invoice_id: int, db: Session = Depends(get_db), current_user
 
 @router.post("/invoices/{invoice_id}/send")
 def send_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_create", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
-    if invoice.status not in {"approved", "sent"}:
-        raise HTTPException(status_code=400, detail="Only approved invoices can be sent")
-    before = invoice.status
-    invoice.status = "sent"
-    invoice.sent_at = datetime.now(timezone.utc)
-    db.add(SRMInvoiceHistory(invoice_id=invoice.id, from_status=before, to_status="sent", actor_user_id=current_user.id))
-    db.add(SRMRevenueEvent(organization_id=invoice.organization_id, engagement_id=invoice.engagement_id, invoice_id=invoice.id, event_type="invoice_sent", amount=invoice.total_amount, currency=invoice.currency, recognized_on=date.today()))
-    _audit(db, current_user, "invoice", invoice.id, "sent", before={"status": before}, after={"status": invoice.status})
-    db.commit()
-    db.refresh(invoice)
-    return _serialize(invoice)
+    invoice = invoice_for(db, invoice_id, current_user, lock=True)
+    from app.apps.srm.services.commercial import send
+    from app.apps.srm.commercial_models import InvoiceDelivery
+    lock_tenant(db, current_user)
+    existing = db.query(InvoiceDelivery).filter_by(invoice_id=invoice.id).populate_existing().order_by(InvoiceDelivery.id.desc()).first()
+    key = existing.request_id if existing else "initial-delivery"
+    result = send(db, invoice, current_user, key)
+    return _invoice_payload(invoice, db) | {"delivery": result}
 
 
 @router.get("/invoices/{invoice_id}/pdf")
-def invoice_pdf(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
-    body = f"%PDF-1.4\n1 0 obj<<>>stream\nSRM Invoice {invoice.invoice_number} Amount {invoice.currency} {invoice.total_amount}\nendstream\nendobj\n%%EOF"
-    return Response(content=body.encode("utf-8"), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{invoice.invoice_number}.pdf"'})
+def invoice_pdf(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
+    invoice = _get_invoice(db, invoice_id, current_user)
+    return Response(content=invoice_document(db, invoice), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{invoice.invoice_number}.pdf"', "Cache-Control": "private, no-store"})
 
 
 @router.post("/receipts", status_code=201)
 def create_receipt(data: SRMReceiptCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
+    lock_tenant(db, current_user)
     org_id = _org(current_user)
     item = SRMReceipt(organization_id=org_id, receipt_number=data.receipt_number or _next_number(db, SRMReceipt, "RCT", "receipt_number", org_id), created_by=current_user.id, unallocated_amount=data.amount, **data.model_dump(exclude={"receipt_number"}))
     db.add(item)
@@ -3124,12 +3270,12 @@ def create_receipt(data: SRMReceiptCreate, db: Session = Depends(get_db), curren
 
 @router.get("/receipts")
 def list_receipts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
-    return [_serialize(item) | {"accounting_status": _srm_accounting_status(db, item.organization_id, "receipt", item.id)} for item in db.query(SRMReceipt).order_by(SRMReceipt.id.desc()).limit(200).all()]
+    return [_serialize(item) | {"accounting_status": _srm_accounting_status(db, item.organization_id, "receipt", item.id)} for item in db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).order_by(SRMReceipt.id.desc()).limit(200).all()]
 
 
 @router.get("/receipts/{receipt_id}")
 def get_receipt(receipt_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
-    item = db.query(SRMReceipt).filter(SRMReceipt.id == receipt_id).first()
+    item = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.id == receipt_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Receipt not found")
     allocations = db.query(SRMReceiptAllocation).filter(SRMReceiptAllocation.receipt_id == item.id).all()
@@ -3138,7 +3284,7 @@ def get_receipt(receipt_id: int, db: Session = Depends(get_db), current_user: Us
 
 @router.post("/receipts/{receipt_id}/confirm")
 def confirm_receipt(receipt_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
-    receipt = db.query(SRMReceipt).filter(SRMReceipt.id == receipt_id).first()
+    receipt = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.id == receipt_id, scoped(SRMReceipt.organization_id, current_user)).with_for_update().first()
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
     _transition(receipt.status, "confirmed", RECEIPT_TRANSITIONS, "receipt")
@@ -3152,10 +3298,19 @@ def confirm_receipt(receipt_id: int, db: Session = Depends(get_db), current_user
 
 @router.post("/receipts/{receipt_id}/allocate")
 def allocate_receipt(receipt_id: int, data: SRMReceiptAllocationRequest, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
-    receipt = db.query(SRMReceipt).filter(SRMReceipt.id == receipt_id).first()
-    invoice = db.query(SRMInvoice).filter(SRMInvoice.id == data.invoice_id, SRMInvoice.deleted_at == None).first()
+    receipt = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.id == receipt_id, scoped(SRMReceipt.organization_id, current_user)).with_for_update().first()
+    lock_tenant(db, current_user)
+    invoice = invoice_for(db, data.invoice_id, current_user, lock=True)
     if not receipt or not invoice:
         raise HTTPException(status_code=404, detail="Receipt or invoice not found")
+    from app.apps.srm.commercial_models import InvoiceContext, ReceiptContext
+    invoice_ctx, receipt_ctx = db.get(InvoiceContext, invoice.id), db.get(ReceiptContext, receipt.id)
+    invoice_seller = invoice_ctx.seller_id if invoice_ctx else (invoice.organization_id or 1)
+    receipt_seller = receipt_ctx.seller_id if receipt_ctx else (receipt.organization_id or 1)
+    if invoice_seller != receipt_seller:
+        raise HTTPException(422, "Receipt and invoice must use the same seller legal entity")
+    if receipt.customer_id != invoice.customer_id or receipt.currency != invoice.currency or invoice.status in {"draft", "pending_approval", "cancelled"}:
+        raise HTTPException(422, "Apply a matching customer/currency receipt to an issued invoice")
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="Allocation amount must be positive")
     if _decimal(receipt.unallocated_amount) < data.amount:
@@ -3191,7 +3346,7 @@ def _mark_invoice_collection_status(invoice: SRMInvoice, status_value: str) -> N
 
 @router.post("/collections/{invoice_id}/escalate")
 def escalate_collection(invoice_id: int, data: SRMReminderRequest | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
+    invoice = invoice_for(db, invoice_id, current_user, lock=True)
     if invoice.balance_amount <= 0:
         raise HTTPException(status_code=400, detail="Paid invoices cannot be escalated")
     before = invoice.status
@@ -3217,7 +3372,7 @@ def escalate_collection(invoice_id: int, data: SRMReminderRequest | None = None,
 
 @router.post("/collections/{invoice_id}/write-off-request")
 def write_off_request(invoice_id: int, data: SRMWriteOffRequest | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
-    invoice = _get_invoice(db, invoice_id)
+    invoice = invoice_for(db, invoice_id, current_user, lock=True)
     if invoice.balance_amount <= 0:
         raise HTTPException(status_code=400, detail="Paid invoices cannot be written off")
     amount = data.amount if data and data.amount is not None else _decimal(invoice.balance_amount)
@@ -3244,7 +3399,7 @@ def write_off_request(invoice_id: int, data: SRMWriteOffRequest | None = None, d
 @router.get("/collections/aging")
 def collections_aging(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
     today = date.today()
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None, SRMInvoice.balance_amount > 0).all()
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None, SRMInvoice.balance_amount > 0).all()
     buckets: dict[int, dict] = {}
     for invoice in invoices:
         customer_id = invoice.customer_id or 0
@@ -3263,7 +3418,7 @@ def collections_aging(db: Session = Depends(get_db), current_user: User = Depend
             bucket["days_90_plus"] += amount
         bucket["total_outstanding"] += amount
     for customer_id, bucket in buckets.items():
-        aging = db.query(SRMCustomerAging).filter(SRMCustomerAging.organization_id == _org(current_user), SRMCustomerAging.customer_id == customer_id).first()
+        aging = db.query(SRMCustomerAging).filter(scoped(SRMCustomerAging.organization_id, current_user)).filter(scoped(SRMCustomerAging.organization_id, current_user), SRMCustomerAging.customer_id == customer_id).first()
         if not aging:
             aging = SRMCustomerAging(organization_id=_org(current_user), customer_id=customer_id)
             db.add(aging)
@@ -3275,15 +3430,15 @@ def collections_aging(db: Session = Depends(get_db), current_user: User = Depend
 
 @router.get("/collections/customer/{customer_id}")
 def customer_collections(customer_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.customer_id == customer_id, SRMInvoice.deleted_at == None).all()
-    receipts = db.query(SRMReceipt).filter(SRMReceipt.customer_id == customer_id).all()
-    reminders = db.query(SRMCollectionReminder).filter(SRMCollectionReminder.customer_id == customer_id).all()
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.customer_id == customer_id, SRMInvoice.deleted_at == None).all()
+    receipts = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.customer_id == customer_id).all()
+    reminders = db.query(SRMCollectionReminder).filter(scoped(SRMCollectionReminder.organization_id, current_user)).filter(SRMCollectionReminder.customer_id == customer_id).all()
     return {"invoices": [_serialize(item) for item in invoices], "receipts": [_serialize(item) for item in receipts], "reminders": [_serialize(item) for item in reminders]}
 
 
 @router.post("/collections/reminders/send")
 def send_collection_reminder(data: SRMReminderRequest, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
-    invoice = db.query(SRMInvoice).filter(SRMInvoice.id == data.invoice_id).first() if data.invoice_id else None
+    invoice = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.id == data.invoice_id).first() if data.invoice_id else None
     item = SRMCollectionReminder(
         organization_id=_org(current_user),
         customer_id=data.customer_id or (invoice.customer_id if invoice else None),
@@ -3336,21 +3491,21 @@ def profitability(
         snapshots = [_create_profitability_snapshot(db, engagement, current_user) for engagement in engagements]
         db.commit()
         return [_profitability_payload(snapshot) for snapshot in snapshots]
-    latest = db.query(SRMProfitabilitySnapshot).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(100).all()
+    latest = db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user)).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(100).all()
     return [_profitability_payload(item) for item in latest]
 
 
 @router.get("/reports")
 def reports(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_admin"))):
     aging = collections_aging(db, current_user)
-    invoice_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.total_amount), 0)).filter(SRMInvoice.deleted_at == None).scalar())
-    collected_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.paid_amount), 0)).filter(SRMInvoice.deleted_at == None).scalar())
-    outstanding_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.balance_amount), 0)).filter(SRMInvoice.deleted_at == None).scalar())
-    snapshots = [_profitability_payload(item) for item in db.query(SRMProfitabilitySnapshot).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(50).all()]
+    invoice_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.total_amount), 0)).filter(SRMInvoice.deleted_at == None, SRMInvoice.id.in_(authorized_invoice_query(db, current_user).with_entities(SRMInvoice.id))).scalar())
+    collected_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.paid_amount), 0)).filter(SRMInvoice.deleted_at == None, SRMInvoice.id.in_(authorized_invoice_query(db, current_user).with_entities(SRMInvoice.id))).scalar())
+    outstanding_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.balance_amount), 0)).filter(SRMInvoice.deleted_at == None, SRMInvoice.id.in_(authorized_invoice_query(db, current_user).with_entities(SRMInvoice.id))).scalar())
+    snapshots = [_profitability_payload(item) for item in db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user)).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(50).all()]
     return {
         "sales_order_report": {"count": db.query(SRMSalesOrder).filter(SRMSalesOrder.deleted_at == None).count()},
-        "contract_report": {"count": db.query(SRMContract).filter(SRMContract.deleted_at == None).count()},
-        "invoice_register": {"count": db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None).count(), "total": float(invoice_total)},
+        "contract_report": {"count": db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.deleted_at == None).count()},
+        "invoice_register": {"count": authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None).count(), "total": float(invoice_total)},
         "invoice_aging": aging,
         "collection_aging": aging,
         "customer_outstanding": {"total_outstanding": float(outstanding_total), "customers": aging},
@@ -3371,12 +3526,12 @@ def _dashboard_payload(db: Session, current_user: User) -> dict:
     sales_order_ids = [item.id for item in sales_orders.with_entities(SRMSalesOrder.id).all()]
     engagement_ids = [item.id for item in engagements.with_entities(SRMEngagement.id).all()]
 
-    invoice_query = db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None)
+    invoice_query = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None)
     invoice_draft_query = db.query(SRMInvoiceDraft)
-    contract_query = db.query(SRMContract).filter(SRMContract.deleted_at == None)
-    billing_plan_query = db.query(SRMBillingPlan)
-    revenue_query = db.query(SRMRevenueEvent)
-    snapshot_query = db.query(SRMProfitabilitySnapshot)
+    contract_query = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.deleted_at == None)
+    billing_plan_query = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user))
+    revenue_query = db.query(SRMRevenueEvent).filter(scoped(SRMRevenueEvent.organization_id, current_user))
+    snapshot_query = db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user))
     if not current_user.is_superuser:
         invoice_query = invoice_query.filter(SRMInvoice.organization_id == org_id)
         invoice_draft_query = invoice_draft_query.filter(SRMInvoiceDraft.organization_id == org_id)
@@ -3499,8 +3654,8 @@ def _find_customer_id_for_360(
         like = f"%{value}%"
         order = order or sales_order_query(db, current_user).filter((SRMSalesOrder.order_number.ilike(like)) | (SRMSalesOrder.title.ilike(like))).first()
         engagement = engagement or engagement_query(db, current_user).filter((SRMEngagement.engagement_number.ilike(like)) | (SRMEngagement.name.ilike(like))).first()
-        contract = db.query(SRMContract).filter(SRMContract.deleted_at == None, (SRMContract.contract_number.ilike(like)) | (SRMContract.title.ilike(like))).first()
-        invoice = db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None, SRMInvoice.invoice_number.ilike(like)).first()
+        contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.deleted_at == None, (SRMContract.contract_number.ilike(like)) | (SRMContract.title.ilike(like))).first()
+        invoice = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None, SRMInvoice.invoice_number.ilike(like)).first()
         for item in (order, engagement, contract, invoice):
             if item and getattr(item, "customer_id", None) is not None:
                 return item.customer_id
@@ -3538,18 +3693,18 @@ def _customer_360_payload(db: Session, current_user: User, customer_id: int | No
     engagements = engagement_query(db, current_user).filter(SRMEngagement.customer_id == customer_id).all()
     engagement_ids = [item.id for item in engagements]
     order_ids = [item.id for item in orders]
-    contracts = db.query(SRMContract).filter(SRMContract.customer_id == customer_id, SRMContract.deleted_at == None).all()
-    billing_plans = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id.in_(engagement_ids)).all() if engagement_ids else []
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.customer_id == customer_id, SRMInvoice.deleted_at == None).all()
-    receipts = db.query(SRMReceipt).filter(SRMReceipt.customer_id == customer_id).all()
-    reminders = db.query(SRMCollectionReminder).filter(SRMCollectionReminder.customer_id == customer_id).order_by(SRMCollectionReminder.created_at.desc()).limit(20).all()
-    aging = db.query(SRMCustomerAging).filter(SRMCustomerAging.organization_id == _org(current_user), SRMCustomerAging.customer_id == customer_id).first()
-    profitability_rows = db.query(SRMProfitabilitySnapshot).filter(SRMProfitabilitySnapshot.customer_id == customer_id).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(20).all()
+    contracts = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.customer_id == customer_id, SRMContract.deleted_at == None).all()
+    billing_plans = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.engagement_id.in_(engagement_ids)).all() if engagement_ids else []
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.customer_id == customer_id, SRMInvoice.deleted_at == None).all()
+    receipts = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.customer_id == customer_id).all()
+    reminders = db.query(SRMCollectionReminder).filter(scoped(SRMCollectionReminder.organization_id, current_user)).filter(SRMCollectionReminder.customer_id == customer_id).order_by(SRMCollectionReminder.created_at.desc()).limit(20).all()
+    aging = db.query(SRMCustomerAging).filter(scoped(SRMCustomerAging.organization_id, current_user)).filter(scoped(SRMCustomerAging.organization_id, current_user), SRMCustomerAging.customer_id == customer_id).first()
+    profitability_rows = db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user)).filter(SRMProfitabilitySnapshot.customer_id == customer_id).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(20).all()
     audits = []
     if order_ids:
-        audits.extend(db.query(SRMAuditLog).filter(SRMAuditLog.entity_type == "sales_order", SRMAuditLog.entity_id.in_(order_ids)).order_by(SRMAuditLog.created_at.desc()).limit(20).all())
+        audits.extend(db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(SRMAuditLog.entity_type == "sales_order", SRMAuditLog.entity_id.in_(order_ids)).order_by(SRMAuditLog.created_at.desc()).limit(20).all())
     if engagement_ids:
-        audits.extend(db.query(SRMAuditLog).filter(SRMAuditLog.entity_type == "engagement", SRMAuditLog.entity_id.in_(engagement_ids)).order_by(SRMAuditLog.created_at.desc()).limit(20).all())
+        audits.extend(db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(SRMAuditLog.entity_type == "engagement", SRMAuditLog.entity_id.in_(engagement_ids)).order_by(SRMAuditLog.created_at.desc()).limit(20).all())
     pms_projects = []
     project_ids = [item.pms_project_id for item in engagements if item.pms_project_id]
     if project_ids:
@@ -3629,8 +3784,8 @@ def dashboard(db: Session = Depends(get_db), current_user: User = Depends(Requir
 def lead_to_cash_report(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_admin"))):
     orders = db.query(SRMSalesOrder).filter(SRMSalesOrder.deleted_at == None).count()
     engagements = db.query(SRMEngagement).filter(SRMEngagement.deleted_at == None).count()
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.deleted_at == None).count()
-    receipts = db.query(SRMReceipt).count()
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None).count()
+    receipts = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).count()
     return {"crm_won_to_sales_order": orders, "sales_order_to_engagement": engagements, "engagement_to_invoice": invoices, "invoice_to_collection": receipts}
 
 
@@ -3652,3 +3807,6 @@ def upsert_setting(key: str, data: SRMSettingUpsert, db: Session = Depends(get_d
     db.commit()
     db.refresh(item)
     return _serialize(item)
+
+from app.apps.srm.commercial_api import router as commercial_router
+router.include_router(commercial_router)

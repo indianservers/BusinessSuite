@@ -1,0 +1,194 @@
+.dash-library {
+  padding: 24px;
+  max-width: 1500px;
+  margin: auto;
+  color: hsl(var(--foreground));
+}
+.dash-library > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.dash-library h1 {
+  font-size: 26px;
+  font-weight: 700;
+}
+.dash-library h2 {
+  font-size: 22px;
+  font-weight: 650;
+  margin: 16px 0;
+}
+.dash-library p,
+.dash-library small {
+  color: hsl(var(--muted-foreground));
+  margin: 10px 0;
+  font-size: 13px;
+}
+.dash-library button,
+.dash-library input,
+.dash-library select,
+.dash-dialog button,
+.dash-dialog input,
+.dash-dialog select,
+.dash-dialog textarea {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  border-radius: 7px;
+  padding: 8px 12px;
+  color: inherit;
+  min-height: 40px;
+  font-size: 13px;
+}
+.dash-library button:hover {
+  background: hsl(var(--muted));
+}
+.dash-library button:disabled,
+.dash-dialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dash-library > header > button,
+.dash-dialog footer button:last-child {
+  background: hsl(var(--primary));
+  color: white;
+}
+.dash-library nav {
+  display: flex;
+  gap: 7px;
+  overflow: auto;
+  padding: 20px 0;
+}
+.dash-library nav button[aria-pressed="true"] {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+.dash-controls {
+  display: flex;
+  gap: 12px;
+  margin: 10px 0 20px;
+}
+.dash-controls input {
+  flex: 1;
+  min-width: 0;
+}
+.dash-table {
+  overflow: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+}
+.dash-table table {
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+}
+.dash-table th,
+.dash-table td {
+  padding: 12px;
+  border-bottom: 1px solid hsl(var(--border));
+  vertical-align: top;
+}
+.dash-table td small {
+  display: block;
+  max-width: 300px;
+  overflow-wrap: anywhere;
+}
+.dash-table td svg {
+  display: inline;
+}
+.dash-table td:last-child {
+  min-width: 250px;
+}
+.dash-table td button {
+  margin: 2px;
+}
+.dash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #10182770;
+}
+.dash-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 91;
+  width: min(500px, calc(100vw - 24px));
+  max-height: 90dvh;
+  overflow: auto;
+  padding: 24px;
+  background: hsl(var(--popover));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+}
+.dash-dialog h2 {
+  font-size: 20px;
+  font-weight: 650;
+  margin-right: 25px;
+}
+.dash-dialog p {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  margin: 12px 0;
+}
+.dash-dialog label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  margin: 16px 0;
+}
+.dash-dialog textarea {
+  min-height: 80px;
+}
+.dash-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.dash-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+.dash-library .dash-error {
+  color: hsl(var(--destructive));
+}
+.dash-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+.dash-metrics article {
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  padding: 20px;
+}
+.dash-metrics strong {
+  display: block;
+  font-size: 28px;
+}
+.dash-metrics span {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+@media (max-width: 640px) {
+  .dash-library {
+    padding: 14px;
+  }
+  .dash-library > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .dash-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dash-library button,
+  .dash-dialog button {
+    min-height: 44px;
+  }
+}
