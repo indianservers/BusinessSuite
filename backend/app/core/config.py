@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
     SERVERLESS: bool = bool(os.environ.get("VERCEL"))
+    BUSINESSSUITE_BACKUP_SCHEDULER: bool = False
+    BUSINESSSUITE_BACKUP_DIR: str = ""
     CRON_SECRET: str = ""
     REALTIME_TRANSPORT: str = "database" if os.environ.get("VERCEL") else "websocket"
 

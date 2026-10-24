@@ -7,6 +7,8 @@ import { routeCommand } from "@/lib/operator/commandRouter";
 import { expandLocalFollowup, mergeLocalRevision } from "@/lib/operator/localCommands";
 import { continueLocalCommand, type ConversationState, type LocalContext, type ConversationDecision } from "@/lib/operator/localConversation";
 import { OperatorWorkspaceTools } from '../components/OperatorWorkspaceTools';
+import { LocalBrainPanel, type LocalBrainHandle } from '../components/LocalBrainPanel';
+import { useAuthStore } from '@/store/authStore';
 
 type Project = { id: number; name: string; workspace_id?: number | null };
 type Task = { id: number; task_key: string; title: string; status: string };
@@ -17,6 +19,8 @@ type SpeechWindow = Window & { SpeechRecognition?: new () => Recognition; webkit
 const errorText = (e: any) => e?.message === "LOCAL_ROUTING_REQUIRED" ? "This command needs LLM reasoning. Edit it to a supported local command or select automatic routing. No LLM request was sent." : e?.message === "PROVIDER_REQUIRED" ? "This command needs LLM reasoning. Configure a provider or use a supported local command. No LLM request was sent." : typeof e?.response?.data?.detail === "string" ? e.response.data.detail : "Request failed. Check access, provider settings and connection.";
 
 export default function AIOperatorPage() {
+  const uid=useAuthStore(s=>s.user?.id);
+  const brain=useRef<LocalBrainHandle>(null);
   const [params] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState(Number(params.get("project")) || 0);
@@ -138,6 +142,7 @@ export default function AIOperatorPage() {
         next = (await operatorApi.command({ ...data, command: decision.command, task_ids: followUp && run ? run.selection : decision.selection, request_key: requestKey, local_plan: decision.plan,
           ...(followUp && run ? { parent_run_id: run.id, parent_plan_hash: run.plan_hash } : {}) })).data;
       } else {
+        if(routingMode!=='cloud' && await brain.current?.plan(command))return;
         setRoutingStatus(`LLM required: ${decision.reason}`);
         if (routingMode === "local") throw new Error("LOCAL_ROUTING_REQUIRED");
         if (!available.includes(provider)) throw new Error("PROVIDER_REQUIRED");
@@ -162,6 +167,10 @@ export default function AIOperatorPage() {
   }
   return <div className="max-w-6xl space-y-5">
     <header><h1 className="page-title">AI task operator</h1><p className="page-description">Give a multi-step command by voice or text. Review the exact plan before applying it.</p><Link className="text-primary underline" to={`/pms/settings/ai/openai${project?.workspace_id ? `?workspace=${project.workspace_id}` : ""}`}>Provider settings and API usage</Link></header>
+    <LocalBrainPanel key={uid} ref={brain} projectId={projectId} workspaceId={project?.workspace_id} provider={provider}
+      cloudEnabled={available.includes(provider)} allowCloud={routingMode!=='local'} selected={selection}
+      onRun={next=>{setRun(next);setHistory(h=>[next,...h.filter(r=>r.id!==next.id)]);setFollowUp(false);setLocalDialogue(null);}}
+      onSetup={next=>{setLocalSetup(next);setLocalDialogue(null);}} />
     {error && <p role="alert" className="text-destructive">{error}</p>}
     <fieldset disabled={busy || recording || followUp || !!localDialogue} className="flex flex-wrap gap-4">
       <label>Project<select aria-label="Operator project" className="ml-2 rounded border bg-background p-2" value={projectId} onChange={e => { setProjectId(Number(e.target.value)); requestRef.current = null; }}><option value={0}>Choose project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>

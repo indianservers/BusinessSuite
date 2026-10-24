@@ -39,9 +39,11 @@ class Revision(BaseModel):
     revision: int = Field(gt=0)
 
 def scoped(db, user):
+    from .workspace_lifecycle import archived_ids
     # NULL organization is never treated as a shared tenant.
     return db.query(PMSWorkspaceEntry).join(PMSWorkspace, PMSWorkspace.id == PMSWorkspaceEntry.workspace_id).filter(
         PMSWorkspaceEntry.kind == KIND,
+        PMSWorkspace.id.notin_(archived_ids()),
         PMSWorkspace.organization_id == organization_id_for(user),
     )
 

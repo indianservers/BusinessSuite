@@ -70,6 +70,9 @@ def project_member(db: Session, project_id: int, user_id: int) -> PMSProjectMemb
 
 def can_access_project(db: Session, project: PMSProject, user: User, action: str = "browse") -> bool:
     if project.workspace_id:
+        from .workspace_lifecycle import is_archived
+        if is_archived(db, project.workspace_id):
+            return False
         membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=user.id).first()
         if not membership:
             return False
@@ -114,7 +117,8 @@ def can_access_project(db: Session, project: PMSProject, user: User, action: str
 
 def accessible_project_query(db: Session, user: User):
     query = db.query(PMSProject).filter(PMSProject.deleted_at == None)
-    workspace_ids = db.query(PMSWorkspaceMember.workspace_id).filter(PMSWorkspaceMember.user_id == user.id)
+    from .workspace_lifecycle import archived_ids
+    workspace_ids = db.query(PMSWorkspaceMember.workspace_id).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspaceMember.workspace_id.notin_(archived_ids()))
     workspace_access = PMSProject.workspace_id.in_(workspace_ids)
     from app.apps.srm.services.commercial import tenant
     legacy = PMSProject.workspace_id.is_(None) & (func.coalesce(PMSProject.organization_id, 1) == tenant(user))

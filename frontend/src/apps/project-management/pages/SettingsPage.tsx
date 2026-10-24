@@ -9,6 +9,7 @@ import { devIntegrationsAPI, projectsAPI } from "../services/api";
 import type { PMSDevIntegration, PMSProject } from "../types";
 
 const settings = [
+  { label: "Backup & recovery", href: "/pms/recovery", description: "Undo, redo, named savepoints and automatic or manual backups." },
   { label: "AI task operator", href: "/pms/operator", description: "Execute reviewed multi-step task commands through voice or text." },
   { label: "OpenAI / ChatGPT API", href: "/pms/settings/ai/openai", description: "Configure encrypted API credentials, model, usage analytics and logs." },
   { label: "Google Gemini API", href: "/pms/settings/ai/gemini", description: "Configure Gemini credentials, model and API usage." },

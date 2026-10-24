@@ -451,5 +451,40 @@
     "status",
     "result",
     "created_at"
+  ],
+  "pms_recovery_changes": [
+    "id",
+    "workspace_id",
+    "task_id",
+    "actor_id",
+    "before",
+    "after",
+    "state",
+    "created_at"
+  ],
+  "pms_recovery_points": [
+    "id",
+    "workspace_id",
+    "actor_id",
+    "name",
+    "automatic",
+    "payload",
+    "checksum",
+    "created_at"
+  ],
+  "pms_recovery_policies": [
+    "workspace_id",
+    "actor_id",
+    "enabled",
+    "interval_hours",
+    "retain_automatic",
+    "last_success_at"
+  ],
+  "pms_workspace_archives": [
+    "workspace_id",
+    "deleted_at",
+    "deleted_by",
+    "batch_key",
+    "restored_at"
   ]
 }

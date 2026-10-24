@@ -738,3 +738,8 @@ class PMSCalendarEvent(Base):
 
 # Register additive messaging tables for module metadata / migration discovery.
 from .chat_models import ChatConversation, ChatMember, ChatMessage, ChatAttachment  # noqa: E402,F401
+
+# Register recovery tables with both migration chains.
+from .recovery_models import RecoveryChange, RecoveryPoint, RecoveryPolicy  # noqa: E402, F401
+
+from .workspace_lifecycle import WorkspaceArchive  # noqa: E402, F401

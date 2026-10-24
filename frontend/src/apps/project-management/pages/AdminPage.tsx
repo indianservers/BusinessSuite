@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const adminSections = [
+  { title: "Workspace reset & restore", description: "Soft-delete all organization workspaces, regardless of creator, and restore preserved workspaces.", href: "/pms/admin/workspaces", icon: ShieldCheck, status: "Admin only" },
   {
     title: "Workspace Settings",
     description: "Organization preferences, repository mappings, import/export settings, and notification defaults.",

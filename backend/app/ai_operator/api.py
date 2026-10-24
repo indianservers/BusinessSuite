@@ -25,6 +25,8 @@ from app.ai_operator.extensions import router as extensions_router
 router.include_router(extensions_router)
 from app.ai_operator.assistant_api import router as assistant_router
 router.include_router(assistant_router)
+from app.ai_operator.brain_api import router as brain_router
+router.include_router(brain_router)
 
 
 def public_provider(row):

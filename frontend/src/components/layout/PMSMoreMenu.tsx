@@ -22,6 +22,8 @@ const additionalPages = [
   ["Custom fields", "/pms/custom-fields", "Manage & customize"],
   ["Task types", "/pms/task-types", "Manage & customize"],
   ["Tags", "/pms/tags", "Manage & customize"],
+  ["Workspace reset & restore", "/pms/admin/workspaces", "Manage & customize"],
+  ["Backup & recovery", "/pms/recovery", "Manage & customize"],
   ["Trash", "/pms/trash", "Manage & customize"],
   ["AI Operator", "/pms/operator", "Work & delivery"],
   ["Workspace tools", "/pms/workspace-tools", "Work & delivery"],

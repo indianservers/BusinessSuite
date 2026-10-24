@@ -75,6 +75,12 @@ from ..workspaces import router as workspace_router, workspace_member
 
 router = APIRouter(prefix="/project-management", tags=["Project Management"])
 router.include_router(workspace_router)
+from ..recovery import router as recovery_router
+router.include_router(recovery_router)
+from ..workspace_lifecycle import router as workspace_lifecycle_router
+router.include_router(workspace_lifecycle_router)
+from app.services.data_backups import router as data_backups_router
+router.include_router(data_backups_router)
 from ..automations import router as automation_router, apply_task_rules
 router.include_router(automation_router)
 from ..forms import router as forms_router
@@ -2858,6 +2864,10 @@ def create_task_operation(
     db.add(db_task)
     db.flush()
     apply_task_rules(db, db_task, project, current_user, "task.created")
+    from ..recovery import task_state, record_edit
+    recovery_before = task_state(db_task)
+    recovery_before["deleted_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+    record_edit(db, project, db_task, current_user, recovery_before)
     db.commit() if commit else db.flush()
     db.refresh(db_task)
     _record_activity(db, project_id, current_user, "task.created", "task", db_task.id, f"Created task {db_task.task_key}", task_id=db_task.id)
@@ -3592,6 +3602,12 @@ def update_task(
 def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
     """Update a task."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
+    from ..recovery import task_state, record_edit
+    if project.workspace_id:
+        from ..models import PMSWorkspace
+        db.query(PMSWorkspace).filter_by(id=project.workspace_id).with_for_update().one()
+        db.refresh(task)
+    recovery_before = task_state(task)
 
     update_data = task_in.dict(exclude_unset=True)
     if update_data.get("work_type") and update_data["work_type"] != task.work_type:
@@ -3682,6 +3698,7 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
         apply_task_rules(db, task, project, current_user, "task.status_changed")
     db.add(task)
     db.flush()
+    record_edit(db, project, task, current_user, recovery_before)
     if commit:
         db.commit()
         db.refresh(task)
@@ -3712,6 +3729,12 @@ def delete_task(
 ):
     """Soft delete a task."""
     task, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
+    from ..recovery import task_state, record_edit
+    if project.workspace_id:
+        from ..models import PMSWorkspace
+        db.query(PMSWorkspace).filter_by(id=project.workspace_id).with_for_update().one()
+        db.refresh(task)
+    recovery_before = task_state(task)
 
     from datetime import datetime
     task.deleted_at = datetime.utcnow()
@@ -3728,6 +3751,7 @@ def delete_task(
             task_id=task.parent_task_id,
             metadata={"subtask_id": task.id, "subtask_key": task.task_key, "title": task.title},
         )
+    record_edit(db, project, task, current_user, recovery_before)
     db.commit()
     return {"message": "Task deleted"}
 

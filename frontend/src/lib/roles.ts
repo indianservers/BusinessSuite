@@ -480,7 +480,7 @@ const pmsDeliveryOnlyPaths = [
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
   // Workspace membership is enforced by the API, independently of company roles.
-  if (["/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart", "/pms/dashboards", "/pms/messages"].includes(pathname.replace(/\/$/, ""))) return true;
+  if (["/pms/recovery", "/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart", "/pms/dashboards", "/pms/messages"].includes(pathname.replace(/\/$/, ""))) return true;
   if (/^\/pms\/projects\/\d+\/(gantt|reports)\/?$/.test(pathname)) return true;
   if (!isProjectManagementRole(role, isSuperuser)) return false;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";

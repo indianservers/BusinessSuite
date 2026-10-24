@@ -17,6 +17,9 @@ os.environ["DATABASE_URL"] = (
 os.environ["SECRET_KEY"] = secrets.token_urlsafe(48)
 os.environ["DATABASE_AUTO_MIGRATE"] = "false"
 os.environ["ENVIRONMENT"] = "test"
+os.environ["STORAGE_BACKEND"] = "local"
+os.environ["UPLOAD_DIR"] = str(Path(tempfile.gettempdir()) / "businesssuite-commercial-qa-uploads")
+os.environ.setdefault("BUSINESSSUITE_BACKUP_DIR", str(Path(tempfile.gettempdir()) / "businesssuite-commercial-qa-backups"))
 os.environ["COMMUNICATION_EMAIL_PROVIDER"] = "stub"
 os.environ["INSTALLED_APPS"] = "hrms,crm,project_management,srm,fam"
 from fastapi import FastAPI

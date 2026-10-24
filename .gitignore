@@ -49,3 +49,7 @@ frontend/__commercial-browser-qa.html
 
 # Local commercial audit browser results (may contain test session data)
 /test-results/commercial-audit/
+
+# Sensitive full-system backup archives
+/recovery_backups/
+/backend/recovery_backups/

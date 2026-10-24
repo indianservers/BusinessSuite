@@ -44,6 +44,7 @@ summary_router = APIRouter()
 def unread_summary(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    from .workspace_lifecycle import archived_ids
     # Current workspace membership is part of the query, never a cached room list.
     count = (
         db.query(func.count(Message.id))
@@ -66,6 +67,7 @@ def unread_summary(
         )
         .filter(
             PMSWorkspace.organization_id == organization_id_for(user),
+            PMSWorkspace.id.notin_(archived_ids()),
             Message.id > Member.history_after,
             or_(Message.parent_id.is_(None), Message.parent_id > Member.history_after),
             Message.id > Member.read_id,

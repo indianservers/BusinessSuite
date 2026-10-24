@@ -16,6 +16,8 @@ const AuditLogsPage = React.lazy(() => import("./pages/AuditLogsPage"));
 const AnalyticsPage = React.lazy(() => import("./pages/AnalyticsPage"));
 const OrgChartPage = React.lazy(() => import("./pages/OrgChartPage"));
 const TeamsPage = React.lazy(() => import("./pages/TeamsPage"));
+const WorkspaceAdminPage = React.lazy(() => import("./pages/WorkspaceAdminPage"));
+const RecoveryPage = React.lazy(() => import("./pages/RecoveryPage"));
 const TrashPage = React.lazy(() => import("./pages/TrashPage"));
 
 // Lazy load components
@@ -60,6 +62,8 @@ const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
  * Complete routing for Project Management module
  */
 export const projectManagementRoutes: FrontendRoute[] = [
+  { path: "pms/admin/workspaces", element: <WorkspaceAdminPage /> },
+  { path: "pms/recovery", element: <RecoveryPage /> },
   { path: "pms/audit-logs", element: <AuditLogsPage /> },
   { path: "pms/analytics/team", element: <AnalyticsPage mode="team" /> },
   { path: "pms/analytics/projects", element: <AnalyticsPage mode="project" /> },

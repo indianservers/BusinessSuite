@@ -16,6 +16,8 @@ from .models import PMSWorkspace, PMSWorkspaceMember, PMSWorkspaceInvitation, PM
 from .models import PMSActivity
 from .access import has_any_permission, PMS_GLOBAL_MANAGE_PROJECTS, organization_id_for
 
+from .workspace_lifecycle import is_archived, archived_ids
+
 router = APIRouter()
 Role = Literal["Admin", "Member", "Guest"]
 
@@ -56,7 +58,7 @@ class ActivateInput(AcceptInput):
 def pending_invitation(db, token, *, lock=False):
     query = db.query(PMSWorkspaceInvitation).filter_by(token_hash=hashlib.sha256(token.encode()).hexdigest())
     invitation = (query.with_for_update() if lock else query).first()
-    if not invitation or invitation.status != "pending" or invitation.expires_at <= datetime.utcnow():
+    if not invitation or invitation.status != "pending" or invitation.expires_at <= datetime.utcnow() or is_archived(db, invitation.workspace_id):
         raise HTTPException(400, "Invitation is invalid, expired, or already used")
     return invitation
 
@@ -98,7 +100,7 @@ def activate_invitation(data: ActivateInput, db: Session = Depends(get_db)):
 def workspace_member(db, workspace_id, user, manage=False):
     workspace = db.get(PMSWorkspace, workspace_id)
     member = db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id, user_id=user.id).first()
-    if not workspace or not member:
+    if not workspace or not member or is_archived(db, workspace_id):
         raise HTTPException(404, "Workspace not found")
     if manage and member.role not in {"Owner", "Admin"}:
         raise HTTPException(403, "Workspace administrator required")
@@ -107,7 +109,7 @@ def workspace_member(db, workspace_id, user, manage=False):
 
 @router.get("/workspaces")
 def list_workspaces(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    rows = db.query(PMSWorkspace, PMSWorkspaceMember.role).join(PMSWorkspaceMember, PMSWorkspaceMember.workspace_id == PMSWorkspace.id).filter(PMSWorkspaceMember.user_id == user.id).all()
+    rows = db.query(PMSWorkspace, PMSWorkspaceMember.role).join(PMSWorkspaceMember, PMSWorkspaceMember.workspace_id == PMSWorkspace.id).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspace.id.notin_(archived_ids())).all()
     return [{"id": w.id, "name": w.name, "role": role} for w, role in rows]
 
 

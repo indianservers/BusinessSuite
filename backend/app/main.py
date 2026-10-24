@@ -93,7 +93,15 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    yield
+    backup_worker = None
+    if settings.BUSINESSSUITE_BACKUP_SCHEDULER:
+        from app.services.backup_scheduler import start_scheduler
+        backup_worker = start_scheduler()
+    try:
+        yield
+    finally:
+        if backup_worker:
+            backup_worker[0].set()
     # Shutdown
 
 
