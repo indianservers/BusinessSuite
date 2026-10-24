@@ -234,6 +234,10 @@ def link_project(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    return link_project_service(project_id,data,db,user)
+
+
+def link_project_service(project_id,data,db,user,*,commit=True):
     from app.apps.srm.api.router import _audit
 
     project(db, project_id, user, "edit_project")
@@ -287,7 +291,7 @@ def link_project(
     _audit(
         db, user, "project", project_id, "commercial_linked", after=data.model_dump()
     )
-    db.commit()
+    db.commit() if commit else db.flush()
     return output(value)
 
 
@@ -442,6 +446,10 @@ def draft(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    return draft_project_invoice_service(project_id,data,db,user)
+
+
+def draft_project_invoice_service(project_id,data,db,user,*,commit=True):
     from app.apps.srm.api.router import _create_invoice_from_lines, _invoice_payload
 
     require(user, "srm_invoice_create", "srm_admin")
@@ -629,7 +637,7 @@ def draft(
         "project_invoice_created",
         after={"project_id": project_id, "correlation_id": str(data.request_id)},
     )
-    db.commit()
+    db.commit() if commit else db.flush()
     return _invoice_payload(invoice, db)
 
 

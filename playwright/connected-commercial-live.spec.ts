@@ -1,0 +1,45 @@
+import { expect, test } from "../frontend/node_modules/playwright/test";
+import { randomUUID } from "node:crypto";
+// Real loopback API and actual application components; no route.fulfill or service mocks.
+test("CRM opportunity/order/project through invoice delivery and full payment",async({page,request})=>{
+ const session=await(await request.get("http://127.0.0.1:8775/qa-session")).json();
+ const headers={Authorization:`Bearer ${session.token}`};
+ async function post(path:string,data:any={}){const r=await request.post(`http://127.0.0.1:8775/api/v1${path}`,{headers,data});expect(r.ok(),`${path}: ${await r.text()}`).toBeTruthy();return r.json();}
+ const run=randomUUID().slice(0,8);
+ const buyer=await post('/crm/companies',{name:`Audit buyer ${run}`,email:'buyer@audit.invalid',address:'Synthetic audit address'});
+ const contact=await post('/crm/contacts',{first_name:'Synthetic',full_name:'Audit billing contact',company_id:buyer.id,email:'contact@audit.invalid'});
+ const pipeline=await post('/crm/pipelines',{name:`Audit ${run}`});
+ const stage=await post(`/crm/pipelines/${pipeline.id}/stages`,{name:'Open',position:1,probability:50});
+ const deal=await post('/crm/deals',{name:`Audit opportunity ${run}`,company_id:buyer.id,contact_id:contact.id,pipeline_id:pipeline.id,stage_id:stage.id,amount:100,currency:'INR'});
+ await post(`/crm/deals/${deal.id}/mark-won`);
+ const handoff=await post(`/srm/from-crm/deals/${deal.id}/create-sales-order`);
+ const repeated=await post(`/srm/from-crm/deals/${deal.id}/create-sales-order`);expect(repeated.sales_order.id).toBe(handoff.sales_order.id);
+ await post(`/srm/sales-orders/${handoff.sales_order.id}/submit`);await post(`/srm/sales-orders/${handoff.sales_order.id}/approve`);await post(`/srm/sales-orders/${handoff.sales_order.id}/confirm`);
+ const project=await post(`/srm/engagements/${handoff.engagement.id}/create-pms-project`);const projectId=project.project.id;
+ const go=(path:string)=>page.goto(`/__commercial-browser-qa.html?path=${encodeURIComponent(path)}`);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error') console.log(m.text())});
+ await go(`/pms/projects/${projectId}/billing`);
+ await expect(page.locator('#root')).not.toBeEmpty();
+ expect(errors).toEqual([]);
+ await expect(page.getByLabel('Shared customer',{exact:true})).toHaveValue(String(buyer.id));
+ await expect(page.getByLabel('Originating sales order',{exact:true})).toHaveValue(String(handoff.sales_order.id));await expect(page.getByLabel('Originating engagement',{exact:true})).toHaveValue(String(handoff.engagement.id));
+ await page.getByLabel('description',{exact:true}).fill(`Audit service ${run}`);
+ await page.getByLabel('unit price',{exact:true}).fill('100.10');await page.getByLabel('quantity',{exact:true}).fill('2');await page.getByLabel('discount amount',{exact:true}).fill('0.20');await page.getByLabel('tax amount',{exact:true}).fill('36');
+ await page.getByRole('button',{name:'Save invoice draft',exact:true}).click();
+ const group=page.getByRole('group',{name:/Invoice INV-/}).first();await expect(group).toContainText('236');
+ const invoiceLink=group.getByRole('link',{name:/INV-/});const invoiceNumber=await invoiceLink.innerText();const invoiceId=Number((await invoiceLink.getAttribute('href'))!.split('/').pop());await invoiceLink.click();
+ await expect(page.getByRole('heading',{name:invoiceNumber,exact:true})).toBeVisible();
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'Preview / download PDF',exact:true}).click();expect((await download).suggestedFilename()).toBe(`${invoiceNumber}.pdf`);
+ await page.getByRole('button',{name:/Issue invoice/}).click();
+ await expect(page.getByText(/Document:.*issued/)).toBeVisible();
+ await page.getByRole('button',{name:'Send to billing recipient',exact:true}).click();await expect(page.getByText(/Delivery:.*sent/).first()).toBeVisible();
+ await page.getByText('Record payment',{exact:true}).click();await page.getByLabel('Amount received',{exact:true}).fill('36');await page.getByRole('button',{name:'Record received payment',exact:true}).click();await expect(page.getByText(/Outstanding:.*200/).first()).toBeVisible();
+ await page.getByLabel('Amount received',{exact:true}).fill('200');await page.getByRole('button',{name:'Record received payment',exact:true}).click();await expect(page.getByText(/Outstanding:.*0/).first()).toBeVisible();
+ await go(`/pms/projects/${projectId}/billing`);await expect(page.getByRole('group',{name:`Invoice ${invoiceNumber}`})).toContainText('paid');
+ await page.screenshot({path:'docs/qa/connected-commercial-2026-10-24/audit-lifecycle-paid.png',fullPage:true});
+ await page.reload();await expect(page.getByRole('group',{name:`Invoice ${invoiceNumber}`})).toContainText('paid');
+ const detail=await(await request.get(`http://127.0.0.1:8775/api/v1/srm/business/invoices/${invoiceId}`,{headers})).json();expect(detail.context.project_id).toBe(projectId);expect(detail.customer_id).toBe(buyer.id);expect(Number(detail.balance_amount)).toBe(0);expect(detail.payments).toHaveLength(2);expect(detail.deliveries).toHaveLength(1);
+ await go(`/crm/history/${buyer.id}`);await expect(page.getByRole('group',{name:`Invoice ${invoiceNumber}`})).toContainText('paid');
+ await page.setViewportSize({width:320,height:760});await go(`/pms/projects/${projectId}/billing`);await expect(page.getByRole('heading',{name:'Project billing',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+ expect(errors).toEqual([]);
+});

@@ -498,12 +498,18 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
         if not current_user or not current_user.is_active:
             await websocket.close(code=1008)
             return
+        from starlette.concurrency import run_in_threadpool
+        if not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, None, payload.get("sid"), payload.get("exp")):
+            await websocket.close(code=1008)
+            return
         accessible_ids = _accessible_project_ids(db, current_user)
         await pms_realtime_manager.connect(
             websocket,
             user_id=current_user.id,
             organization_id=organization_id_for(current_user),
             accessible_project_ids=accessible_ids,
+            session_id=payload.get("sid"),
+            token_expires_at=payload.get("exp"),
         )
         await websocket.send_json({
             "type": "connected",
@@ -517,6 +523,9 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
             message = await websocket.receive_json()
             db.rollback()
             db.expire_all()
+            if not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, None, payload.get("sid"), payload.get("exp")):
+                await websocket.close(code=1008)
+                return
             accessible_ids = _accessible_project_ids(db, current_user)
             action = message.get("action")
             if action == "subscribe":
@@ -2074,10 +2083,14 @@ def get_project(
     try:
         from app.apps.srm.models import SRMBillingPlan, SRMContract, SRMEngagement, SRMSalesOrder
 
-        engagement = db.query(SRMEngagement).filter(SRMEngagement.pms_project_id == project.id, SRMEngagement.deleted_at == None).first()
-        sales_order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == engagement.sales_order_id, SRMSalesOrder.deleted_at == None).first() if engagement and engagement.sales_order_id else None
-        contract = db.query(SRMContract).filter(SRMContract.id == engagement.contract_id, SRMContract.deleted_at == None).first() if engagement and engagement.contract_id else None
-        billing_plan = db.query(SRMBillingPlan).filter(SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
+        from app.apps.srm.access import engagement_query
+        from app.apps.srm.services.commercial import scoped
+        names = {p.name for p in (current_user.role.permissions if current_user.role else [])}
+        can_view_commercial = current_user.is_superuser or bool(names.intersection({"srm_engagement_view", "srm_admin"}))
+        engagement = engagement_query(db, current_user).filter(SRMEngagement.pms_project_id == project.id).first() if can_view_commercial else None
+        sales_order = db.query(SRMSalesOrder).filter(scoped(SRMSalesOrder.organization_id, current_user), SRMSalesOrder.id == engagement.sales_order_id, SRMSalesOrder.deleted_at == None).first() if engagement and engagement.sales_order_id else None
+        contract = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user), SRMContract.id == engagement.contract_id, SRMContract.deleted_at == None).first() if engagement and engagement.contract_id else None
+        billing_plan = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user), SRMBillingPlan.engagement_id == engagement.id).first() if engagement else None
         payload["srm_links"] = {
             "engagement": _model_payload(engagement) if engagement else None,
             "sales_order": _model_payload(sales_order) if sales_order else None,
@@ -2291,7 +2304,17 @@ def add_project_member(
     current_user: User = Depends(get_current_user),
 ):
     """Add a user to a project with a project role."""
-    get_project_for_action(db, project_id, current_user, "manage_members")
+    project = get_project_for_action(db, project_id, current_user, "manage_members")
+    target = db.get(User, member_in.user_id)
+    from app.apps.srm.services.commercial import tenant
+    if not target or not target.is_active:
+        raise HTTPException(404, "Eligible project user not found")
+    if project.workspace_id:
+        membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=target.id).first()
+        if not membership:
+            raise HTTPException(404, "Eligible project user not found")
+    elif tenant(target) != (project.organization_id or 1):
+        raise HTTPException(404, "Eligible project user not found")
     existing = db.query(PMSProjectMember).filter(
         PMSProjectMember.project_id == project_id,
         PMSProjectMember.user_id == member_in.user_id,
@@ -2355,8 +2378,12 @@ def remove_project_member(
     ).first()
     if not member:
         raise HTTPException(status_code=404, detail="Project member not found")
+    removed_user_id = member.user_id
     db.delete(member)
     db.commit()
+    from app.apps.project_management.realtime import pms_realtime_manager
+    import anyio
+    anyio.from_thread.run(pms_realtime_manager.revoke_projects, removed_user_id, {project_id})
     return {"message": "Project member removed"}
 
 

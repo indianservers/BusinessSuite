@@ -1,3 +1,4 @@
+import PMSAssistant from "@/apps/project-management/components/PMSAssistant";
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import AsyncProgress from "@/components/app/AsyncProgress";
@@ -24,11 +25,11 @@ export default function AppLayout() {
   }, [sidebarCollapsed]);
 
   if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="h-dvh overflow-hidden"><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /></div>;
+    return <div className="h-dvh overflow-hidden" style={{"--pms-assistant-left":"318px"} as import("react").CSSProperties}><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><PMSAssistant /></div>;
   }
 
   return (
-    <div className={`product-shell ${product.themeClass} flex h-screen overflow-hidden bg-background`} data-product={product.key}>
+    <div className={`product-shell ${product.themeClass} flex h-screen overflow-hidden bg-background`} data-product={product.key} style={{"--pms-assistant-left":sidebarCollapsed ? "80px" : "272px"} as import("react").CSSProperties}>
       <AsyncProgress />
       {/* Sidebar */}
       <Sidebar
@@ -55,6 +56,7 @@ export default function AppLayout() {
         <BackToTop />
       </div>
       <SessionTimeoutWarning />
+      <PMSAssistant />
 
       {/* Mobile overlay */}
       {sidebarOpen && (

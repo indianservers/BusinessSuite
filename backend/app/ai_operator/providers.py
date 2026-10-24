@@ -39,6 +39,14 @@ def generate_json(db, user, config, *, prompt, schema, run_id=None, purpose="pla
             headers = {"Authorization": f"Bearer {key}"}
             body = {"model": config.model, "instructions": instruction, "input": prompt,
                     "max_output_tokens": config.max_tokens, "store": False, "text": {"format": {"type": "json_object"}}}
+            if purpose == "assistant":
+                # Propose exactly one bounded application tool. The application,
+                # not the provider, validates permissions and requests approval.
+                body.pop("text", None)
+                body.update(tools=[{"type":"function","name":"propose_assistant_action",
+                    "description":"Propose a validated PMS read or reviewable action; never execute it.",
+                    "parameters":schema,"strict":False}],
+                    tool_choice={"type":"function","name":"propose_assistant_action"},parallel_tool_calls=False)
         elif config.provider == "claude":
             url = "https://api.anthropic.com/v1/messages"
             headers = {"x-api-key": key, "anthropic-version": "2023-06-01"}
@@ -66,7 +74,13 @@ def generate_json(db, user, config, *, prompt, schema, run_id=None, purpose="pla
             log.input_tokens, log.output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
             if data.get("status") != "completed":
                 raise ValueError("Incomplete response")
-            text = "".join(p.get("text", "") for o in data.get("output", []) for p in o.get("content", []) if p.get("type") == "output_text")
+            if purpose == "assistant":
+                calls=[o for o in data.get("output",[]) if o.get("type")=="function_call" and o.get("name")=="propose_assistant_action"]
+                if len(calls)!=1:
+                    raise ValueError("Expected one bounded function call")
+                text=calls[0]["arguments"]
+            else:
+                text = "".join(p.get("text", "") for o in data.get("output", []) for p in o.get("content", []) if p.get("type") == "output_text")
             result = json.loads(text)
         elif config.provider == "claude":
             usage = data.get("usage", {})

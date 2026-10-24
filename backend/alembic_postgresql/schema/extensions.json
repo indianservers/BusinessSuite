@@ -426,5 +426,30 @@
     "request_id",
     "reversed_at",
     "reversal_reason"
+  ],
+  "pms_assistant_conversations": [
+    "id",
+    "organization_id",
+    "user_id",
+    "workspace_id",
+    "title",
+    "references",
+    "deleted_at",
+    "created_at"
+  ],
+  "pms_assistant_messages": [
+    "id",
+    "conversation_id",
+    "request_key",
+    "request_hash",
+    "prompt",
+    "tool",
+    "arguments",
+    "proposal",
+    "approval_hash",
+    "expires_at",
+    "status",
+    "result",
+    "created_at"
   ]
 }

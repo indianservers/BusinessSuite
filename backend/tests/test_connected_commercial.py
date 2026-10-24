@@ -672,3 +672,31 @@ def test_commercial_handoff_carries_customer_contact_team_and_origin(client, db,
     assert again.json()["project"]["id"] == project_id
     related = client.get(f"/api/v1/srm/business/related-projects?engagement_id={engagement['id']}", headers=superuser_headers)
     assert related.json()[0]["id"] == project_id
+
+
+def test_pms_legacy_project_tenant_boundary_applies_before_global_role_and_membership(db, superuser_headers):
+    from app.apps.project_management.access import can_access_project, accessible_project_query
+    from app.apps.project_management.models import PMSProjectMember
+    buyer, contact, local, team = setup_business(db)
+    owner = db.query(User).first()
+    foreign = PMSProject(organization_id=2, name="Other tenant confidential", project_key="OTHER-TENANT", manager_user_id=owner.id)
+    db.add(foreign); db.flush()
+    db.add(PMSProjectMember(project_id=foreign.id, user_id=owner.id, role="Manager")); db.commit()
+    assert not can_access_project(db, foreign, owner), "Tenant admin/membership must not override another tenant boundary"
+    assert foreign.id not in {p.id for p in accessible_project_query(db, owner).all()}
+    assert can_access_project(db, local, owner)
+
+
+def test_pms_task_access_does_not_expose_srm_commercial_payload(client, db, superuser_headers):
+    from app.apps.srm.models import SRMEngagement
+    from app.apps.project_management.models import PMSProjectMember
+    buyer, contact, project, team = setup_business(db)
+    headers = auth_headers_for(client, db, "contributor-audit@example.com", "srm_viewer", permissions=["pms_manage_tasks", "srm_view"])
+    user = db.query(User).filter_by(email="contributor-audit@example.com").one()
+    db.add(PMSProjectMember(project_id=project.id, user_id=user.id, role="Member"))
+    db.add(SRMEngagement(organization_id=1, engagement_number="PRIVATE-COMMERCIAL", name="Sensitive commercial", pms_project_id=project.id, budget_amount=98765))
+    db.commit()
+    response = client.get(f"/api/v1/project-management/projects/{project.id}", headers=headers)
+    assert response.status_code == 200, response.text
+    assert response.json().get("srm_links") is None
+    assert client.get(f"/api/v1/project-management/projects/{project.id}/billing", headers=headers).status_code == 403

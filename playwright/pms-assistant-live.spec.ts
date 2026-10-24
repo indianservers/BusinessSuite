@@ -1,0 +1,22 @@
+import { expect,test } from "../frontend/node_modules/playwright/test";
+test("assistant creates a real invoice only after approval and supports keyboard/mobile",async({page,request})=>{
+ const session=await(await request.get('http://127.0.0.1:8775/qa-session')).json();const headers={Authorization:`Bearer ${session.token}`};
+ const linked=await request.put('http://127.0.0.1:8775/api/v1/project-management/projects/1/commercial',{headers,data:{customer_id:1,seller_id:1,contact_id:1,currency:'INR'}});expect(linked.ok()).toBeTruthy();
+ const before=await(await request.get('http://127.0.0.1:8775/api/v1/srm/invoices',{headers})).json();
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/__commercial-browser-qa.html');await page.getByRole('button',{name:'Ask AI Assistant',exact:true}).click();
+ const panel=page.getByRole('dialog',{name:'PMS AI Assistant',exact:true});await expect(panel).toBeVisible();
+ await panel.getByRole('button',{name:'Create an Invoice',exact:true}).click();
+ await panel.getByLabel('amount',{exact:true}).fill('1250.25');await panel.getByLabel('tax amount',{exact:true}).fill('0');
+ await panel.getByRole('button',{name:'Prepare for review',exact:true}).click();await expect(panel.getByText('Invoice proposal',{exact:false})).toBeVisible();
+ const still=await(await request.get('http://127.0.0.1:8775/api/v1/srm/invoices',{headers})).json();expect(still).toHaveLength(before.length);
+ await panel.getByRole('button',{name:'Confirm & create invoice',exact:true}).click();await expect(panel.getByText(/Saved in Sales invoicing/)).toBeVisible();
+ await expect(page.getByRole('group',{name:/Invoice INV-/}).first()).toBeVisible();
+ const after=await(await request.get('http://127.0.0.1:8775/api/v1/srm/invoices',{headers})).json();expect(after).toHaveLength(before.length+1);expect(Number(after[0].total_amount)).toBe(1250.25);
+ await panel.getByRole('button',{name:'Download PDF',exact:true}).click();
+ await page.screenshot({path:'docs/qa/connected-commercial-2026-10-24/assistant-invoice-desktop.png',fullPage:true,animations:"disabled"});
+ await panel.getByRole('button',{name:'Close assistant',exact:true}).click();await expect(page.getByRole('button',{name:'Ask AI Assistant',exact:true})).toBeFocused();
+ await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Ask AI Assistant',exact:true}).click();await expect(panel).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+ await page.screenshot({path:'docs/qa/connected-commercial-2026-10-24/assistant-mobile.png',fullPage:true,animations:"disabled"});
+ await page.getByLabel('Message AI Assistant',{exact:true}).press('Escape');await expect(panel).not.toBeVisible();expect(errors).toEqual([]);
+});

@@ -7,6 +7,7 @@ export const capabilityTiers: { name: Tier; description: string; features: Capab
     { name: "Forms", status: "Partial", detail: "Authenticated intake creates tasks. A general form builder, public submissions and unlimited usage are not implemented.", href: "/pms/forms" },
     { name: "Gantt charts", status: "Available", detail: "Project schedules and dependencies with lag are available; this does not imply unlimited usage or advanced scheduling parity.", href: "/pms/gantt" },
     { name: "Chat", status: "Partial", detail: "Channels, one-to-one/group messages, threads, durable unread state, in-app notifications, safe attachments, and permission-scoped message search are implemented and locally exercised. Production migration/worker rollout and PostgreSQL acceptance remain unverified.", href: "/pms/messages" },
+    { name: "Contextual AI Assistant", status: "Partial", detail: "Floating assistant, private history, guided/model tool proposals, expiring approvals, real project/task actions and authoritative invoice/PDF/issue/send/payment flows. Advanced multi-step orchestration, expense/quotation/custom-field writes and live provider acceptance remain pending.", href: "/pms/operator" },
     { name: "Task automation", status: "Partial", detail: "Creation/status triggers, priority and assignee actions, rule editing and paused duplication. Monthly usage accounting is not implemented.", href: "/pms/automation" },
   ] },
   { name: "Business", description: "Visibility, integrations and resource planning", features: [

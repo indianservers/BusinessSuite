@@ -46,3 +46,6 @@ frontend/__pms-messaging-qa-*.html
 
 # Generated loopback-only commercial QA page
 frontend/__commercial-browser-qa.html
+
+# Local commercial audit browser results (may contain test session data)
+/test-results/commercial-audit/

@@ -138,3 +138,5 @@ class OperatorMonitor(Base):
     findings = Column(JSON, nullable=True)
     checked_at = Column(DateTime(timezone=True), nullable=True)
     error_code = Column(String(60), nullable=True)
+
+from app.ai_operator.assistant_models import AssistantConversation, AssistantMessage  # noqa: F401

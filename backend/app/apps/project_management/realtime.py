@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import WebSocket
@@ -18,10 +18,13 @@ class PMSRealtimeConnection:
     accessible_project_ids: set[int] = field(default_factory=set)
     project_ids: set[int] = field(default_factory=set)
     task_ids: set[int] = field(default_factory=set)
+    session_id: int | None = None
+    token_expires_at: float | None = None
 
 
 class PMSRealtimeManager:
-    def __init__(self) -> None:
+    def __init__(self, db_factory=None) -> None:
+        self._db_factory = db_factory
         self._connections: dict[WebSocket, PMSRealtimeConnection] = {}
         self._lock = asyncio.Lock()
 
@@ -32,6 +35,8 @@ class PMSRealtimeManager:
         user_id: int,
         organization_id: int | None,
         accessible_project_ids: set[int],
+        session_id: int | None = None,
+        token_expires_at: float | None = None,
     ) -> None:
         await websocket.accept()
         async with self._lock:
@@ -40,6 +45,8 @@ class PMSRealtimeManager:
                 user_id=user_id,
                 organization_id=organization_id,
                 accessible_project_ids=accessible_project_ids,
+                session_id=session_id,
+                token_expires_at=token_expires_at,
             )
 
     async def disconnect(self, websocket: WebSocket) -> None:
@@ -61,6 +68,29 @@ class PMSRealtimeManager:
                 return
             connection.project_ids = project_ids
             connection.task_ids = task_ids
+
+    def _authorized(self, user_id, project_id, session_id=None, token_expires_at=None):
+        from app.db.session import SessionLocal
+        from app.models.user import User, UserSession
+        from .access import accessible_project_query
+        from .models import PMSProject
+        now = datetime.now(timezone.utc)
+        if token_expires_at is not None and float(token_expires_at) <= now.timestamp():
+            return False
+        with (self._db_factory or SessionLocal)() as db:
+            if session_id is not None:
+                session = db.get(UserSession, int(session_id))
+                expires = session.expires_at if session else None
+                if expires and expires.tzinfo is None:
+                    expires = expires.replace(tzinfo=timezone.utc)
+                if not session or session.user_id != user_id or session.status.lower() == "revoked" or (expires and expires <= now):
+                    return False
+            user = db.get(User, user_id)
+            if not user or not user.is_active:
+                return False
+            if project_id is None:
+                return True
+            return accessible_project_query(db, user).filter(PMSProject.id == int(project_id)).first() is not None
 
     async def broadcast(self, event: dict[str, Any]) -> None:
         payload = json.dumps(event, default=str)
@@ -86,7 +116,13 @@ class PMSRealtimeManager:
                 if connection.project_ids and numeric_project_id not in connection.project_ids:
                     if task_id is None or int(task_id) not in connection.task_ids:
                         continue
+            # A connected socket is not a permanent authorization grant. Re-read
+            # active identity and project access before delivering sensitive events.
             try:
+                from starlette.concurrency import run_in_threadpool
+                allowed = await run_in_threadpool(self._authorized, connection.user_id, project_id, connection.session_id, connection.token_expires_at)
+                if not allowed:
+                    continue
                 await connection.websocket.send_text(payload)
             except Exception:
                 stale.append(connection.websocket)

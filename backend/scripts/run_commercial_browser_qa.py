@@ -7,9 +7,12 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+qa_database = os.environ.get("COMMERCIAL_QA_DATABASE_NAME", "businesssuite-commercial-browser.db")
+if not qa_database.startswith("businesssuite-commercial-") or Path(qa_database).name != qa_database or not qa_database.endswith(".db"):
+    raise RuntimeError("QA database must be a dedicated businesssuite-commercial-*.db filename")
 os.environ["DATABASE_URL"] = (
     "sqlite:///"
-    + (Path(tempfile.gettempdir()) / "businesssuite-commercial-browser.db").as_posix()
+    + (Path(tempfile.gettempdir()) / qa_database).as_posix()
 )
 os.environ["SECRET_KEY"] = secrets.token_urlsafe(48)
 os.environ["DATABASE_AUTO_MIGRATE"] = "false"
@@ -29,6 +32,7 @@ from app.apps.project_management.api.router import router as pms
 from app.apps.srm.api.router import router as sales
 from app.apps.crm.api.router import router as crm
 from app.core.security import create_access_token
+from app.ai_operator.api import router as ai_operator
 
 Base.metadata.create_all(engine)
 # Keep this reusable disposable fixture current when iterating locally.
@@ -100,11 +104,11 @@ with SessionLocal() as db:
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5176"],
+    allow_origins=["http://127.0.0.1:5176", "http://127.0.0.1:5191"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-for router in [pms, sales, crm]:
+for router in [pms, sales, crm, ai_operator]:
     app.include_router(router, prefix="/api/v1")
 
 

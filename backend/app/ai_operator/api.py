@@ -23,6 +23,8 @@ from app.apps.project_management.access import get_project_for_action
 router = APIRouter(prefix="/ai-operator", tags=["AI Operator"])
 from app.ai_operator.extensions import router as extensions_router
 router.include_router(extensions_router)
+from app.ai_operator.assistant_api import router as assistant_router
+router.include_router(assistant_router)
 
 
 def public_provider(row):
