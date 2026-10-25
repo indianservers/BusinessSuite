@@ -1,0 +1,79 @@
+Attachments, rich editor and note-to-task audit — 24 October 2026
+
+Delivered
+- Owner-only binary attachments stored in private database rows, never public /uploads.
+- Validated extension/signature, UTF-8 text, non-empty uploads and bounded reads.
+- Limits: min(server upload limit, 10 MB) per file; 20 files / 50 MB per note,
+  including removed files retained for recovery. Limits are shown in the UI.
+- Image, UTF-8 text and PDF previews; authenticated downloads; removal with immediate
+  undo and persistent Removed files recovery after reload.
+- TipTap rich editor: headings, bold, italic, underline, strike, highlight, lists,
+  checklists, quotes, code, HTTP(S) links, visual table/row/column editing, undo/redo.
+- Markdown source, existing note compatibility, formatted read-only previews/revisions.
+- Project/privacy label always visible; project/task/tag details collapse to prioritize writing.
+- Create task or create from selection: destination, title, optional selected description,
+  due date and priority are reviewed before an explicit publication confirmation.
+- Standard PMS task service used; note-to-task relation remains private. Personal note
+  context is preserved even when the approved task is created in a work project.
+- Idempotent task requests prevent duplicate tasks on retry.
+
+Automated verification
+- 23 passed: private notes, recovery and task composer suites (tests.log).
+- TypeScript noEmit, ESLint on all new note components and production Vite build passed.
+- PostgreSQL migration graph has one head: pg_20261024_012.
+- SQLite real HTTP/API tests cover:
+  owner/admin isolation; cross-note attachment ID substitution; download cache/security
+  headers; unsupported/mismatched/empty/non-UTF8/oversized files; file quota; soft removal,
+  recovery, trash write rejection; publication confirmation and permissions; task retry
+  idempotency and conflicting payload; source privacy and workspace export exclusion.
+
+Live browser verification (isolated synthetic SQLite fixture, real APIs)
+- Markdown note opened in rich mode; headings, bold, checklists, table, quote, code and link rendered.
+- Applied underline/highlight, undo/redo and checklist toggle; reloaded and verified marks/table persisted.
+- Added a table row and column: three rows/three columns confirmed in rendered DOM.
+- Uploaded TXT, PNG and PDF; text/image/PDF previews verified visually.
+- Native PDF iframe failed in this browser; replaced with a lazy-loaded bundled PDF.js
+  renderer. Final desktop and 320px PDF previews rendered actual page content successfully.
+- Downloaded TXT and verified contents; removed/restored it, including recovery after reload.
+- Unsupported HTML upload rejected; existing attachments and note retained.
+- Selected one action; reviewed task destination/title/description/date/priority; created task.
+- A second project member saw the approved task with zero copied files and no private note text.
+  Their My Notes/search remained empty. Real JWT requests for source note, attachment list,
+  attachment download and private task links all returned 404 for that member.
+- Task description contained only the approved selection. Original note stayed Personal/private.
+- 320px/390px layouts had document width equal to scrollWidth. Mobile task modal fitted;
+  changing reviewed fields reset confirmation; cancellation created no additional task.
+- Unsafe Markdown/HTML probe produced no executable script, iframe, image or javascript: link.
+- Caught preview/editability toggle triggering normalization; disabled update emission on mode
+  changes. Rechecked a legacy source: version stayed 1; original HTML/spacing/trailing newline
+  preserved after opening and toggling Preview/Edit. Read-only contenteditable=false and
+  aria-readonly=true verified.
+- Final owner and collaborator flows had no unexpected browser errors. One earlier iframe
+  navigation emitted a MutationObserver error; a fresh mobile session was rerun separately.
+
+Privacy controls
+- Owner checks precede attachment metadata/bytes and every task-link operation; admins have no override.
+- No direct file paths, public URLs or bearer download URLs returned.
+- Downloads use private/no-store, nosniff and attachment disposition; client previews use temporary blobs.
+- PDF pages render to canvas; PDF scripting/form actions are not instantiated.
+- Attachments and private task-link tables excluded from workspace exports.
+- Only explicitly reviewed title/description enter the shared task. No private source ID, body,
+  filenames or attachment bytes are copied into project activity or task attachment records.
+
+Dependency audit and limits
+- Current production npm audit: 7 high and 4 moderate advisories. All affected installed versions
+  match HEAD's existing lockfile. No added TipTap/PDF.js package is flagged in the current report.
+  See dependency-audit.json; broader dependency remediation was not mixed into this feature.
+- Application privacy, not end-to-end encryption. Private bytes consume database/backup storage.
+- File signature validation is not malware scanning. Office/ZIP files download; previews cover text,
+  images and PDF. Attachment bundles are not included in Markdown export.
+- No live PostgreSQL/S3/Vercel deployment run; no production migration/deployment performed.
+
+Final follow-up checks
+- Date input initially failed to retain a date across other form edits in browser automation.
+  Added native input-event handling alongside change handling. Repeated the full creation flow:
+  reviewed date 2026-11-02 persisted in task 2 with High priority and only the approved description.
+- Traced the mobile MutationObserver console entry using visible error capture in both the mobile
+  application and parent fixture. Both reported No page runtime errors while the complete PDF
+  open/render/close flow succeeded. The frame automation console noise is retained in this record;
+  no corresponding application error was observed in the repeat.

@@ -18,6 +18,7 @@ from app.ai_operator.models import OperatorApiLog, OperatorProvider, OperatorRun
 from app.ai_operator.providers import encrypt_key, generate_json
 from app.ai_operator.schemas import ApproveInput, CommandInput, Provider, ProviderUpdate, TaskPlan, RevisionInput, ResumeInput
 from app.ai_operator.service import context_for, digest, require_enabled, scope_key, validate_plan
+from app.ai_operator.provider_scope import resolve_provider
 from app.apps.project_management.access import get_project_for_action
 
 router = APIRouter(prefix="/ai-operator", tags=["AI Operator"])
@@ -27,12 +28,17 @@ from app.ai_operator.assistant_api import router as assistant_router
 router.include_router(assistant_router)
 from app.ai_operator.brain_api import router as brain_router
 router.include_router(brain_router)
+from app.ai_operator.workbench import router as workbench_router
+router.include_router(workbench_router)
+from app.ai_operator.suite import router as suite_router
+router.include_router(suite_router)
 
 
 def public_provider(row):
     return {"provider": row.provider, "model": row.model, "enabled": row.enabled,
         "data_sharing_allowed": row.data_sharing_allowed, "has_key": bool(row.encrypted_key),
-        "max_tokens": row.max_tokens, "input_price": row.input_price, "output_price": row.output_price}
+        "max_tokens": row.max_tokens, "input_price": row.input_price, "output_price": row.output_price,
+        "allow_workspace_inheritance": row.allow_workspace_inheritance}
 
 
 def public_run(row):
@@ -56,7 +62,12 @@ def owned_run(db, user, run_id, lock=False):
 def providers(workspace_id: int | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _require_ai_access(user)
     scope = scope_key(db, user, workspace_id)
-    return {"items": [public_provider(r) for r in db.query(OperatorProvider).filter_by(scope_key=scope).all()]}
+    rows = []
+    for provider in ('gemini', 'openai', 'claude'):
+        row = resolve_provider(db, user, provider, workspace_id)
+        if row:
+            rows.append({**public_provider(row), 'inherited': row.scope_key != scope, 'configuration_scope': row.scope_key})
+    return {"items": rows}
 
 
 @router.put("/providers/{provider}")
@@ -88,12 +99,12 @@ def test_provider(provider: Provider, request: Request, workspace_id: int | None
     _require_ai_admin(user)
     _require_ai_rate_limit(db, request, user, bucket="operator_provider_test")
     scope = scope_key(db, user, workspace_id, manage=True)
-    config = db.query(OperatorProvider).filter_by(scope_key=scope, provider=provider).first()
+    config = resolve_provider(db, user, provider, workspace_id)
     if not config:
         raise HTTPException(404, "Provider not configured")
     try:
         generate_json(db, user, config, prompt="Connectivity test. Return summary 'Connection verified', clarification null, steps []. No business data.",
-            schema=TaskPlan.model_json_schema(), purpose="test")
+            schema=TaskPlan.model_json_schema(), purpose="test", usage_scope=scope)
     except HTTPException:
         db.commit()  # Preserve sanitized failure telemetry too.
         raise
@@ -134,7 +145,9 @@ def command(payload: CommandInput, request: Request, db: Session = Depends(get_d
         raise HTTPException(403, "Task planning agent is disabled")
     project, tasks, context = context_for(db, user, payload.project_id, payload.task_ids)
     scope = scope_key(db, user, project.workspace_id)
-    config = db.query(OperatorProvider).filter_by(scope_key=scope, provider=payload.provider, enabled=True, data_sharing_allowed=True).first()
+    config = resolve_provider(db, user, payload.provider, project.workspace_id)
+    if config and (not config.enabled or not config.data_sharing_allowed):
+        config = None
     if not config and not payload.local_plan:
         raise HTTPException(409, "Configure and enable this provider for the project's workspace in AI settings")
     parent = None
@@ -167,6 +180,8 @@ def command(payload: CommandInput, request: Request, db: Session = Depends(get_d
     db.add(run)
     try:
         db.flush()
+        from app.ai_operator.workbench import remember_run_before
+        remember_run_before(db, run, tasks)
         if payload.local_plan:
             validate_plan(db, user, run, payload.local_plan)
             from app.ai_operator.planner import publish_plan
@@ -194,7 +209,7 @@ def command(payload: CommandInput, request: Request, db: Session = Depends(get_d
         outbound = AiDataRedactionService().redact_for_ai(user, "PMS", {"command": payload.command, "authorized_context": context})
         output = generate_json(db, user, config,
             prompt=json.dumps(outbound),
-            schema=TaskPlan.model_json_schema(), run_id=run.id)
+            schema=TaskPlan.model_json_schema(), run_id=run.id, usage_scope=scope)
         run = db.query(OperatorRun).filter_by(id=run.id).populate_existing().with_for_update().one()
         if run.status == "cancelled":
             db.commit()
@@ -293,7 +308,7 @@ def analytics(workspace_id: int | None = None, days: int = Query(30, ge=1, le=36
         func.sum(OperatorApiLog.output_tokens).label("output_tokens"), func.sum(OperatorApiLog.estimated_cost).label("estimated_cost"),
         func.count(OperatorApiLog.estimated_cost).label("priced_requests"), func.avg(OperatorApiLog.duration_ms).label("average_latency_ms")
         ).filter(OperatorApiLog.scope_key == scope, OperatorApiLog.created_at >= start).group_by(OperatorApiLog.provider, OperatorApiLog.model, OperatorApiLog.status).all()
-    fields = ("id", "user_id", "run_id", "provider", "model", "purpose", "status", "error_code", "http_status",
+    fields = ("id", "user_id", "run_id", "suite_run_id", "module", "provider", "model", "purpose", "status", "error_code", "http_status",
               "provider_request_id", "input_tokens", "output_tokens", "estimated_cost", "duration_ms", "created_at")
     local_plans = db.query(func.count(OperatorEvent.id)).join(OperatorRun, OperatorRun.id == OperatorEvent.run_id).filter(
         OperatorRun.scope_key == scope, OperatorEvent.event_type == "plan.local", OperatorEvent.created_at >= start).scalar()

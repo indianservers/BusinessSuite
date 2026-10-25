@@ -1,0 +1,31 @@
+flowchart TB
+  subgraph CLIENT[Untrusted customer and browser boundary]
+    HR[HRMS admin and employee frontend]
+    HUB[Separate Interns Hub frontend]
+  end
+  IDP[External Google identity provider]
+  subgraph API[Trusted shared API boundary]
+    GATE[Portal, active session, RBAC and tenant/object authorization]
+    HRS[HRMS identities, applications and batches]
+    PMS[PMS authoritative tasks, submissions and reviews]
+    FILES[File authorization and expiring application capabilities]
+    AUDIT[Request audit: actor, outcome and request ID]
+    JOBS[Server-owned scheduler with separate cron secret]
+  end
+  subgraph DATA[Restricted persistence boundary]
+    DB[(Shared PostgreSQL in deployment)]
+    BLOB[(Private file storage)]
+  end
+  HR -->|Bearer session; restricted HR data| GATE
+  HUB -->|Intern-only bearer session| GATE
+  IDP -->|RS256 signature, issuer, audience, nonce and access-token hash checks| GATE
+  GATE --> HRS
+  GATE --> PMS
+  GATE --> FILES
+  GATE --> AUDIT
+  JOBS -->|Bounded, idempotent distribution| PMS
+  HRS -->|Restricted identity and approval records| DB
+  PMS -->|Confidential work and performance history| DB
+  AUDIT -->|No credentials, request bodies or raw query values| DB
+  FILES -->|Validated storage path| BLOB
+  FILES -->|Audience-bound expiring download capability| HUB

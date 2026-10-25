@@ -1,3 +1,4 @@
+from tests.security_file_fixtures import uploaded_reference
 from datetime import date
 from decimal import Decimal
 
@@ -94,7 +95,7 @@ def test_tax_declaration_proof_and_projection(client, db):
 
     proof = client.post("/api/v1/payroll/tax/proofs", json={
         "declaration_id": declaration_id,
-        "file_url": "/uploads/tax/elss.pdf",
+        "file_url": uploaded_reference('tax/elss.pdf'),
         "original_filename": "elss.pdf",
     }, headers=employee_headers)
     assert proof.status_code == 201

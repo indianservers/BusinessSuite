@@ -59,7 +59,7 @@ def test_webform_auto_response_can_queue_whatsapp_placeholder(client, db):
 
     submitted = client.post(
         "/api/v1/public/webforms/whatsapp-lead-capture/submit",
-        json={"values": {"first_name": "Asha", "email": "asha-wa@example.com", "phone": "+919900000001"}, "anti_spam": ""},
+        json={"values": {"first_name": "Asha", "email": "asha-wa@example.com", "phone": "9900000001", "phone_country_code": "+91"}, "anti_spam": ""},
     )
 
     assert submitted.status_code == 201, submitted.text

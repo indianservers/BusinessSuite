@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
+from app.apps.crm.lead_models import CRMLeadManagementConfig, CRMLeadOperatingState  # noqa: F401
 
 
 class CRMCompany(Base):
@@ -20,6 +21,7 @@ class CRMCompany(Base):
     industry = Column(String(120), index=True)
     website = Column(String(200))
     phone = Column(String(40))
+    phone_country_code = Column(String(5), nullable=True)
     email = Column(String(150), index=True)
     address = Column(Text)
     city = Column(String(100), index=True)
@@ -53,6 +55,7 @@ class CRMAccount(Base):
     industry = Column(String(120), index=True)
     website = Column(String(200))
     phone = Column(String(40))
+    phone_country_code = Column(String(5), nullable=True)
     billing_address = Column(Text)
     shipping_address = Column(Text)
     country = Column(String(100), default="India", index=True)
@@ -81,7 +84,9 @@ class CRMContact(Base):
     full_name = Column(String(220), nullable=False, index=True)
     email = Column(String(150), index=True)
     phone = Column(String(40))
+    phone_country_code = Column(String(5), nullable=True)
     alternate_phone = Column(String(40))
+    alternate_phone_country_code = Column(String(5), nullable=True)
     job_title = Column(String(120))
     department = Column(String(120))
     lifecycle_stage = Column(String(60), default="Lead", index=True)
@@ -132,7 +137,9 @@ class CRMLead(Base):
     full_name = Column(String(220), nullable=False, index=True)
     email = Column(String(150), index=True)
     phone = Column(String(40), index=True)
+    phone_country_code = Column(String(5), nullable=True)
     alternate_phone = Column(String(40))
+    alternate_phone_country_code = Column(String(5), nullable=True)
     company_name = Column(String(180), index=True)
     job_title = Column(String(120))
     source = Column(String(80), default="Other", index=True)
@@ -836,6 +843,7 @@ class CRMCallLog(Base):
     owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     direction = Column(String(20), nullable=False, index=True)
     phone_number = Column(String(40), nullable=False)
+    phone_number_country_code = Column(String(5), nullable=True)
     duration_seconds = Column(Integer)
     outcome = Column(String(160))
     notes = Column(Text)
@@ -1064,6 +1072,7 @@ class CRMOwner(Base):
     full_name = Column(String(180), nullable=False, index=True)
     email = Column(String(150), nullable=False, index=True)
     phone = Column(String(40))
+    phone_country_code = Column(String(5), nullable=True)
     role = Column(String(80), default="Sales Executive", index=True)
     status = Column(String(30), default="Active", index=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

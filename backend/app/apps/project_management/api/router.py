@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
+from ..models import PMSTaskAssignee
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import Response, StreamingResponse
 from app.core.storage import persist_file, upload_exists, FileResponse
@@ -97,6 +98,10 @@ from ..timers import router as timers_router
 router.include_router(timers_router)
 from ..documents import router as documents_router
 router.include_router(documents_router)
+from ..notes import router as private_notes_router
+router.include_router(private_notes_router)
+from ..note_actions import router as note_actions_router
+router.include_router(note_actions_router)
 from ..org_chart import router as org_chart_router
 router.include_router(org_chart_router)
 from ..teams import router as teams_router
@@ -328,6 +333,8 @@ def _get_file_for_action(db: Session, file_id: int, current_user: User, action: 
     if not file_asset.project_id:
         raise HTTPException(status_code=404, detail="Attachment project not found")
     project = get_project_for_action(db, file_asset.project_id, current_user, action)
+    if file_asset.visibility == "Work Evidence" and file_asset.uploaded_by_user_id != current_user.id and not can_access_project(db, project, current_user, "approve"):
+        raise HTTPException(403, "Submitted work requires PMS review permission")
     return file_asset, project
 
 
@@ -493,6 +500,9 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
         await websocket.close(code=1008)
         return
     payload = verify_access_token(token)
+    if payload and payload.get('portal')=='interns_hub':
+        await websocket.close(code=1008)
+        return
     user_id = payload.get("sub") if payload else None
     if not user_id:
         await websocket.close(code=1008)
@@ -3115,7 +3125,8 @@ def list_all_tasks(
         "pages": (total + pageSize - 1) // pageSize,
         "filters": {
             "projects": [
-                {"id": project.id, "name": project.name, "project_key": project.project_key}
+                {"id": project.id, "name": project.name, "project_key": project.project_key,
+                 "can_manage_tasks": can_access_project(db, project, current_user, "manage_tasks")}
                 for project in accessible_project_query(db, current_user).order_by(PMSProject.name).all()
             ],
             "sprints": [
@@ -3315,6 +3326,8 @@ def bulk_update_tasks(
             if sprint.status == "Active":
                 sprint.scope_change_count = (sprint.scope_change_count or 0) + len(project_tasks)
         for task in project_tasks:
+            if update_data.get("status") in DONE_STATUSES and db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id == task.id, PMSTaskAssignee.source_key.isnot(None), PMSTaskAssignee.execution_status != "Done").first():
+                raise HTTPException(409, "Approve each PMS work submission before closing this task")
             for field, value in update_data.items():
                 setattr(task, field, value)
             if "status" in update_data:
@@ -3610,6 +3623,8 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
     recovery_before = task_state(task)
 
     update_data = task_in.dict(exclude_unset=True)
+    if update_data.get("status") in DONE_STATUSES and db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id == task.id, PMSTaskAssignee.source_key.isnot(None), PMSTaskAssignee.execution_status != "Done").first():
+        raise HTTPException(409, "Approve each PMS work submission before closing this task")
     if update_data.get("work_type") and update_data["work_type"] != task.work_type:
         validate_task_type(db, update_data["work_type"], project.organization_id)
     old_values = {field: _json_ready(getattr(task, field)) for field in update_data}
@@ -3892,6 +3907,7 @@ def list_task_attachments(
         PMSFileAsset.task_id == task.id,
         PMSFileAsset.deleted_at == None,
     ).order_by(desc(PMSFileAsset.created_at)).offset(skip).limit(limit).all()
+    files = [f for f in files if f.visibility != "Work Evidence" or f.uploaded_by_user_id == current_user.id]
     return _file_payloads(db, files)
 
 
@@ -4514,7 +4530,10 @@ def reorder_task(
     task.column_id = column.id
     task.position = reorder_req.position
     status_map = {"BACKLOG": "Backlog", "TODO": "To Do", "IN_PROGRESS": "In Progress", "IN_REVIEW": "In Review", "DONE": "Done"}
-    task.status = status_map.get(column.status_key, column.name)
+    target_status = status_map.get(column.status_key, column.name)
+    if target_status in DONE_STATUSES and db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id==task.id,PMSTaskAssignee.source_key.isnot(None),PMSTaskAssignee.execution_status!="Done").first():
+        raise HTTPException(409,"PMS work approvals are required for every intern assignee before completion")
+    task.status = target_status
     task.completed_at = (task.completed_at or datetime.now(timezone.utc)) if task.status in DONE_STATUSES else None
     if task.status in DONE_STATUSES:
         create_next_occurrence(db, task)
@@ -5762,6 +5781,7 @@ def list_files(
     if task_id:
         query = query.filter(PMSFileAsset.task_id == task_id)
     files = query.order_by(desc(PMSFileAsset.created_at)).offset(skip).limit(limit).all()
+    files = [f for f in files if f.visibility != "Work Evidence" or f.uploaded_by_user_id == current_user.id]
     return _file_payloads(db, files)
 
 
@@ -5778,6 +5798,8 @@ def update_file_metadata(
         raise HTTPException(status_code=404, detail="File not found")
     if file_asset.project_id:
         get_project_for_action(db, file_asset.project_id, current_user, "upload")
+    if file_asset.visibility == "Work Evidence":
+        raise HTTPException(409, "Submitted evidence metadata is immutable; submit a new version")
     for field, value in file_in.dict(exclude_unset=True).items():
         setattr(file_asset, field, value)
     db.add(file_asset)
@@ -5812,6 +5834,8 @@ def delete_attachment(
 ):
     """Soft-delete an attachment after validating project access."""
     file_asset, project = _get_file_for_action(db, file_id, current_user, "upload")
+    if file_asset.visibility=="Work Evidence":
+        raise HTTPException(409,"Preserve evidence history; upload a new version instead")
     file_asset.deleted_at = datetime.utcnow()
     db.add(file_asset)
     if file_asset.task_id:
@@ -7051,3 +7075,7 @@ def restore_trashed_task(task_id: int, db: Session = Depends(get_db), current_us
 
 from app.apps.srm.commercial_api import router as commercial_router
 router.include_router(commercial_router)
+
+
+from ..work_api import router as work_router
+router.include_router(work_router)

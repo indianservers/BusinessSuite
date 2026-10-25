@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import ast
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from app.core.input_validation import email_address, national_phone, calling_code
+from urllib.parse import urlsplit
 from typing import Any
 
 from fastapi import HTTPException
@@ -51,6 +53,8 @@ def validate_rollup_config(config: dict[str, Any] | None) -> None:
 
 
 def validate_formula_expression(expression: str) -> None:
+    from app.core.formula_limits import bounded_formula_tree
+    bounded_formula_tree(expression)
     try:
         tree = ast.parse(expression, mode="eval")
     except SyntaxError as exc:
@@ -72,7 +76,21 @@ def validate_formula_expression(expression: str) -> None:
 
 def evaluate_formula(expression: str, record: dict[str, Any]) -> Any:
     validate_formula_expression(expression)
-    variables = {key: Decimal(str(value)) if isinstance(value, (int, float, str)) and str(value).replace(".", "", 1).replace("-", "", 1).isdigit() else value for key, value in record.items()}
+    tree=ast.parse(expression,mode='eval')
+    names={node.id for node in ast.walk(tree) if isinstance(node,ast.Name)}-{'min','max','round','abs'}
+    variables={}
+    for key in names:
+        value=record.get(key)
+        if isinstance(value,(dict,list,tuple,set)) or isinstance(value,str) and len(value)>4096:
+            raise HTTPException(400,'Formula inputs must be bounded scalar values')
+        if isinstance(value,(int,float,Decimal)) or isinstance(value,str) and value[:1] in '0123456789+-' and value:
+            try:value=Decimal(int(value) if isinstance(value,bool) else str(value))
+            except InvalidOperation:pass
+        if isinstance(value,Decimal) and (not value.is_finite() or abs(value)>10**15):
+            raise HTTPException(400,'Formula input exceeds numeric limits')
+        variables[key]=value
+    if any(isinstance(node,ast.Mult) for node in ast.walk(tree)) and any(not isinstance(value,Decimal) for value in variables.values()):
+        raise HTTPException(400,'Formula multiplication requires numeric inputs')
     try:
         return eval(compile(ast.parse(expression, mode="eval"), "<customization_formula>", "eval"), {"__builtins__": {}, "min": min, "max": max, "round": round, "abs": abs}, variables)
     except Exception as exc:
@@ -121,19 +139,25 @@ def validate_field_value(db: Session, field: CustomizationField, value: Any, rec
         raise HTTPException(status_code=400, detail=f"{field.field_label} is required")
     if value in (None, ""):
         return
-    if field.field_type in {"number"} and not isinstance(value, int):
+    if field.field_type in {"number"} and (isinstance(value,bool) or not isinstance(value, int)):
         raise HTTPException(status_code=400, detail=f"{field.field_label} must be a whole number")
     if field.field_type in {"decimal", "percentage", "currency"}:
         try:
-            Decimal(str(value))
+            numeric=Decimal(str(value))
+            if isinstance(value,bool) or not numeric.is_finite():raise ValueError()
+            if field.field_type=='percentage' and not 0<=numeric<=100:raise ValueError()
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"{field.field_label} must be numeric") from exc
     if field.field_type == "checkbox" and not isinstance(value, bool):
         raise HTTPException(status_code=400, detail=f"{field.field_label} must be true or false")
-    if field.field_type == "email" and "@" not in str(value):
-        raise HTTPException(status_code=400, detail=f"{field.field_label} must be an email")
-    if field.field_type == "url" and not str(value).startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail=f"{field.field_label} must be a URL")
+    if field.field_type == "email":
+        try:email_address(value)
+        except ValueError as exc:raise HTTPException(422,detail=str(exc)) from None
+    if field.field_type == "url":
+        try:
+            parsed=urlsplit(value)
+            if parsed.scheme not in {'http','https'} or not parsed.hostname or any(c.isspace() for c in value):raise ValueError()
+        except (TypeError,ValueError):raise HTTPException(422,detail=f'{field.field_label} must be a complete HTTP or HTTPS URL') from None
     if field.field_type == "picklist":
         allowed = [item.get("value") for item in (field.validation_json or {}).get("options", [])]
         if allowed and value not in allowed:
@@ -152,7 +176,15 @@ def validate_record_payload(db: Session, module_name: str, values: dict[str, Any
     field_map = {field.field_api_name: field for field in fields}
     for field in fields:
         validate_field_value(db, field, values.get(field.field_api_name, field.default_value), record_id)
-    unknown = [key for key in values if key not in field_map]
+    companions=set()
+    for field in fields:
+        if field.field_type=='phone':
+            key=field.field_api_name
+            companions.add(key+'_country_code')
+            if values.get(key) not in (None,''):
+                try:national_phone(values[key]);calling_code(values.get(key+'_country_code'))
+                except ValueError as exc:raise HTTPException(422,detail=[{'loc':['body',key],'msg':str(exc),'type':'value_error'}]) from None
+    unknown = [key for key in values if key not in field_map and key not in companions]
     if unknown:
         raise HTTPException(status_code=400, detail=f"Unknown custom fields: {', '.join(sorted(unknown))}")
     rules = db.query(CustomizationValidationRule).filter(CustomizationValidationRule.module_name == module_name, CustomizationValidationRule.active == True).all()

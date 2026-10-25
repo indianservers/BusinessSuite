@@ -1,0 +1,140 @@
+[
+  {
+    "table": "common_people",
+    "phones": [
+      "phone_number"
+    ]
+  },
+  {
+    "table": "companies",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "branches",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "employees",
+    "phones": [
+      "phone_number",
+      "alternate_phone",
+      "whatsapp_number",
+      "emergency_contact_number"
+    ]
+  },
+  {
+    "table": "employee_family_members",
+    "phones": [
+      "phone_number"
+    ]
+  },
+  {
+    "table": "candidates",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "mfa_methods",
+    "phones": [
+      "phone_number"
+    ]
+  },
+  {
+    "table": "whatsapp_ess_configs",
+    "phones": [
+      "business_phone_number"
+    ]
+  },
+  {
+    "table": "whatsapp_ess_sessions",
+    "phones": [
+      "phone_number"
+    ]
+  },
+  {
+    "table": "whatsapp_ess_messages",
+    "phones": [
+      "phone_number"
+    ]
+  },
+  {
+    "table": "whatsapp_ess_opt_ins",
+    "phones": [
+      "phone_number"
+    ]
+  },
+  {
+    "table": "communication_consents",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "crm_companies",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "crm_accounts",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "crm_contacts",
+    "phones": [
+      "phone",
+      "alternate_phone"
+    ]
+  },
+  {
+    "table": "crm_leads",
+    "phones": [
+      "phone",
+      "alternate_phone"
+    ]
+  },
+  {
+    "table": "crm_call_logs",
+    "phones": [
+      "phone_number"
+    ]
+  },
+  {
+    "table": "crm_owners",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "fam_parties",
+    "phones": [
+      "phone",
+      "mobile"
+    ]
+  },
+  {
+    "table": "fam_party_contacts",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "fam_warehouses",
+    "phones": [
+      "phone"
+    ]
+  },
+  {
+    "table": "pms_clients",
+    "phones": [
+      "phone"
+    ]
+  }
+]

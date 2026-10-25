@@ -4,7 +4,7 @@ from io import BytesIO
 from xml.etree import ElementTree
 from zipfile import ZipFile
 
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from app.apps.project_management.models import PMSActivity, PMSTask, PMSTaskDependency
 from app.apps.project_management.report_files import xlsx_bytes, pdf_bytes
 from tests.test_pms_automations import setup_workspace

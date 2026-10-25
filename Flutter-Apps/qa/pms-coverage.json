@@ -1,0 +1,1624 @@
+{
+  "source": "docs/mobile-api-reference/openapi.json",
+  "total": 312,
+  "deployed": 293,
+  "internal": [
+    {
+      "id": "realtime_config_api_v1_project_management_realtime_config_get",
+      "method": "GET",
+      "path": "/project-management/realtime/config",
+      "title": "Realtime Config",
+      "area": "Work & activity",
+      "description": "",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": true,
+      "restricted": false
+    },
+    {
+      "id": "realtime_events_api_v1_project_management_realtime_events_get",
+      "method": "GET",
+      "path": "/project-management/realtime/events",
+      "title": "Realtime Events",
+      "area": "Work & activity",
+      "description": "",
+      "parameters": [
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Cursor",
+            "nullable": true
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": true,
+      "restricted": false
+    },
+    {
+      "id": "module_info_api_v1_project_management_module_info_get",
+      "method": "GET",
+      "path": "/project-management/module-info",
+      "title": "Module Info",
+      "area": "Work & activity",
+      "description": "",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": true,
+      "restricted": false
+    },
+    {
+      "id": "github_dev_webhook_api_v1_project_management_dev_integrations_webhook_github_post",
+      "method": "POST",
+      "path": "/project-management/dev-integrations/webhook/github",
+      "title": "Github Dev Webhook",
+      "area": "Configuration",
+      "description": "Ingest GitHub push and pull request events and link them to task keys.",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": true,
+      "restricted": false
+    },
+    {
+      "id": "gitlab_dev_webhook_api_v1_project_management_dev_integrations_webhook_gitlab_post",
+      "method": "POST",
+      "path": "/project-management/dev-integrations/webhook/gitlab",
+      "title": "Gitlab Dev Webhook",
+      "area": "Configuration",
+      "description": "Ingest GitLab push and merge request events and link them to task keys.",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": true,
+      "restricted": false
+    }
+  ],
+  "restricted": [
+    {
+      "id": "listing_api_v1_project_management_admin_workspaces_get",
+      "method": "GET",
+      "path": "/project-management/admin/workspaces",
+      "title": "Listing",
+      "area": "Recovery & administration",
+      "description": "",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": false,
+      "restricted": true
+    },
+    {
+      "id": "reset_api_v1_project_management_admin_workspaces_reset_all_post",
+      "method": "POST",
+      "path": "/project-management/admin/workspaces/reset-all",
+      "title": "Reset",
+      "area": "Recovery & administration",
+      "description": "",
+      "parameters": [],
+      "body": {
+        "properties": {
+          "confirmation": {
+            "type": "string",
+            "title": "Confirmation"
+          },
+          "preview_hash": {
+            "type": "string",
+            "title": "Preview Hash"
+          }
+        },
+        "type": "object",
+        "required": [
+          "confirmation",
+          "preview_hash"
+        ],
+        "title": "ResetInput"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": false,
+      "restricted": true
+    },
+    {
+      "id": "restore_api_v1_project_management_admin_workspaces__workspace_id__restore_post",
+      "method": "POST",
+      "path": "/project-management/admin/workspaces/{workspace_id}/restore",
+      "title": "Restore",
+      "area": "Recovery & administration",
+      "description": "",
+      "parameters": [
+        {
+          "name": "workspace_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Workspace Id"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": false,
+      "restricted": true
+    },
+    {
+      "id": "list_archives_api_v1_project_management_data_backups_get",
+      "method": "GET",
+      "path": "/project-management/data-backups",
+      "title": "List Archives",
+      "area": "Recovery & administration",
+      "description": "",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": false,
+      "restricted": true
+    },
+    {
+      "id": "manual_archive_api_v1_project_management_data_backups_post",
+      "method": "POST",
+      "path": "/project-management/data-backups",
+      "title": "Manual Archive",
+      "area": "Recovery & administration",
+      "description": "",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": false,
+      "restricted": true
+    },
+    {
+      "id": "full_policy_api_v1_project_management_data_backups_policy_put",
+      "method": "PUT",
+      "path": "/project-management/data-backups/policy",
+      "title": "Full Policy",
+      "area": "Recovery & administration",
+      "description": "",
+      "parameters": [],
+      "body": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "interval_hours": {
+            "type": "integer",
+            "maximum": 720.0,
+            "minimum": 1.0,
+            "title": "Interval Hours",
+            "default": 24
+          },
+          "retain_automatic": {
+            "type": "integer",
+            "maximum": 90.0,
+            "minimum": 2.0,
+            "title": "Retain Automatic",
+            "default": 14
+          }
+        },
+        "type": "object",
+        "title": "FullPolicy"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": true,
+      "internal": false,
+      "restricted": true
+    },
+    {
+      "id": "full_download_api_v1_project_management_data_backups__key__download_get",
+      "method": "GET",
+      "path": "/project-management/data-backups/{key}/download",
+      "title": "Full Download",
+      "area": "Recovery & administration",
+      "description": "",
+      "parameters": [
+        {
+          "name": "key",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "title": "Key"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": true,
+      "available": true,
+      "internal": false,
+      "restricted": true
+    }
+  ],
+  "undeployed": [
+    {
+      "id": "list_notes_api_v1_project_management_notes_get",
+      "method": "GET",
+      "path": "/project-management/notes",
+      "title": "List Notes",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "maxLength": 200,
+            "default": "",
+            "title": "Q"
+          }
+        },
+        {
+          "name": "view",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "enum": [
+              "all",
+              "pinned",
+              "archive",
+              "trash"
+            ],
+            "type": "string",
+            "default": "all",
+            "title": "View"
+          }
+        },
+        {
+          "name": "project_id",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "title": "Project Id",
+            "nullable": true
+          }
+        },
+        {
+          "name": "tag",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "maxLength": 40,
+            "default": "",
+            "title": "Tag"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "create_note_api_v1_project_management_notes_post",
+      "method": "POST",
+      "path": "/project-management/notes",
+      "title": "Create Note",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [],
+      "body": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 180,
+            "title": "Title",
+            "default": "Untitled note"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 200000,
+            "title": "Content",
+            "default": ""
+          },
+          "project_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Project Id",
+            "nullable": true
+          },
+          "task_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Task Id",
+            "nullable": true
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Tags"
+          },
+          "pinned": {
+            "type": "boolean",
+            "title": "Pinned",
+            "default": false
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "NoteInput"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "get_note_api_v1_project_management_notes__note_id__get",
+      "method": "GET",
+      "path": "/project-management/notes/{note_id}",
+      "title": "Get Note",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [
+        {
+          "name": "note_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Note Id"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "save_note_api_v1_project_management_notes__note_id__put",
+      "method": "PUT",
+      "path": "/project-management/notes/{note_id}",
+      "title": "Save Note",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [
+        {
+          "name": "note_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Note Id"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 180,
+            "title": "Title",
+            "default": "Untitled note"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 200000,
+            "title": "Content",
+            "default": ""
+          },
+          "project_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Project Id",
+            "nullable": true
+          },
+          "task_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Task Id",
+            "nullable": true
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Tags"
+          },
+          "pinned": {
+            "type": "boolean",
+            "title": "Pinned",
+            "default": false
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived",
+            "default": false
+          },
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "NoteSave"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "trash_note_api_v1_project_management_notes__note_id__delete",
+      "method": "DELETE",
+      "path": "/project-management/notes/{note_id}",
+      "title": "Trash Note",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [
+        {
+          "name": "note_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Note Id"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "VersionInput"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "restore_note_api_v1_project_management_notes__note_id__restore_post",
+      "method": "POST",
+      "path": "/project-management/notes/{note_id}/restore",
+      "title": "Restore Note",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [
+        {
+          "name": "note_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Note Id"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "VersionInput"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "list_revisions_api_v1_project_management_notes__note_id__revisions_get",
+      "method": "GET",
+      "path": "/project-management/notes/{note_id}/revisions",
+      "title": "List Revisions",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [
+        {
+          "name": "note_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Note Id"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "get_revision_api_v1_project_management_notes__note_id__revisions__version__get",
+      "method": "GET",
+      "path": "/project-management/notes/{note_id}/revisions/{version}",
+      "title": "Get Revision",
+      "area": "Documents & files",
+      "description": "",
+      "parameters": [
+        {
+          "name": "note_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Note Id"
+          }
+        },
+        {
+          "name": "version",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Version"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "catalog_api_v1_project_management_dashboards_catalog_get",
+      "method": "GET",
+      "path": "/project-management/dashboards/catalog",
+      "title": "Catalog",
+      "area": "Insights",
+      "description": "",
+      "parameters": [],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "suggest_api_v1_project_management_dashboards_suggest_post",
+      "method": "POST",
+      "path": "/project-management/dashboards/suggest",
+      "title": "Suggest",
+      "area": "Insights",
+      "description": "",
+      "parameters": [],
+      "body": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Prompt"
+          },
+          "workspace_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Workspace Id",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "claude",
+              "gemini"
+            ],
+            "title": "Provider",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "title": "Suggest"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "permanent_api_v1_project_management_dashboards__did__delete",
+      "method": "DELETE",
+      "path": "/project-management/dashboards/{did}",
+      "title": "Permanent",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Revision"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "name"
+        ],
+        "title": "Permanent"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "query_api_v1_project_management_dashboards__did__query_post",
+      "method": "POST",
+      "path": "/project-management/dashboards/{did}/query",
+      "title": "Query",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              2
+            ],
+            "const": 2,
+            "title": "Version",
+            "default": 2
+          },
+          "widgets": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9_-]+$",
+                  "title": "Id"
+                },
+                "type": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "minLength": 1,
+                  "title": "Type"
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 120,
+                  "title": "Title",
+                  "default": ""
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "title": "Description",
+                  "default": ""
+                },
+                "icon": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "chart",
+                    "tasks",
+                    "projects",
+                    "team",
+                    "calendar",
+                    "time",
+                    "target",
+                    "activity",
+                    "notes"
+                  ],
+                  "title": "Icon",
+                  "default": "auto"
+                },
+                "x": {
+                  "type": "integer",
+                  "maximum": 11.0,
+                  "minimum": 0.0,
+                  "title": "X",
+                  "default": 0
+                },
+                "y": {
+                  "type": "integer",
+                  "maximum": 10000.0,
+                  "minimum": 0.0,
+                  "title": "Y",
+                  "default": 0
+                },
+                "w": {
+                  "type": "integer",
+                  "maximum": 12.0,
+                  "minimum": 2.0,
+                  "title": "W",
+                  "default": 4
+                },
+                "h": {
+                  "type": "integer",
+                  "maximum": 24.0,
+                  "minimum": 3.0,
+                  "title": "H",
+                  "default": 7
+                },
+                "drilldown": {
+                  "type": "boolean",
+                  "title": "Drilldown",
+                  "default": false
+                },
+                "hidden": {
+                  "type": "boolean",
+                  "title": "Hidden",
+                  "default": false
+                },
+                "locked": {
+                  "type": "boolean",
+                  "title": "Locked",
+                  "default": false
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "tasks",
+                    "projects",
+                    "time",
+                    "activity",
+                    "sprints",
+                    "milestones",
+                    "risks"
+                  ],
+                  "title": "Source",
+                  "default": "tasks"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "count",
+                    "estimated_hours",
+                    "actual_hours",
+                    "story_points",
+                    "progress_percent",
+                    "budget_amount",
+                    "actual_cost",
+                    "duration_hours",
+                    "risk_score",
+                    "completion_rate"
+                  ],
+                  "title": "Metric",
+                  "default": "count"
+                },
+                "aggregation": {
+                  "type": "string",
+                  "enum": [
+                    "count",
+                    "sum",
+                    "average",
+                    "minimum",
+                    "maximum",
+                    "median",
+                    "distinct_count",
+                    "percentage"
+                  ],
+                  "title": "Aggregation",
+                  "default": "count"
+                },
+                "group_by": {
+                  "type": "string",
+                  "enum": [
+                    "status",
+                    "priority",
+                    "project",
+                    "assignee",
+                    "day",
+                    "week",
+                    "month",
+                    "quarter",
+                    "year"
+                  ],
+                  "title": "Group By",
+                  "default": "status"
+                },
+                "filters": {
+                  "properties": {
+                    "project_ids": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array",
+                      "maxItems": 200,
+                      "title": "Project Ids"
+                    },
+                    "statuses": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array",
+                      "maxItems": 40,
+                      "title": "Statuses"
+                    },
+                    "priorities": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array",
+                      "maxItems": 20,
+                      "title": "Priorities"
+                    },
+                    "assignee_ids": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array",
+                      "maxItems": 200,
+                      "title": "Assignee Ids"
+                    },
+                    "sprint_ids": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array",
+                      "maxItems": 200,
+                      "title": "Sprint Ids"
+                    },
+                    "tag_ids": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array",
+                      "maxItems": 100,
+                      "title": "Tag Ids"
+                    },
+                    "team_ids": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array",
+                      "maxItems": 100,
+                      "title": "Team Ids"
+                    },
+                    "project_statuses": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array",
+                      "maxItems": 30,
+                      "title": "Project Statuses"
+                    },
+                    "date_from": {
+                      "type": "string",
+                      "format": "date",
+                      "title": "Date From",
+                      "nullable": true
+                    },
+                    "date_to": {
+                      "type": "string",
+                      "format": "date",
+                      "title": "Date To",
+                      "nullable": true
+                    },
+                    "date_field": {
+                      "type": "string",
+                      "enum": [
+                        "created_at",
+                        "due_date",
+                        "completed_at",
+                        "start_date"
+                      ],
+                      "title": "Date Field",
+                      "default": "created_at"
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "maxLength": 80,
+                      "title": "Timezone",
+                      "default": "UTC"
+                    },
+                    "custom_field_id": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0.0,
+                      "title": "Custom Field Id",
+                      "nullable": true
+                    },
+                    "custom_field_value": {
+                      "type": "string",
+                      "maxLength": 300,
+                      "title": "Custom Field Value",
+                      "default": ""
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "title": "Filters",
+                  "nullable": true
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "title": "Color",
+                  "default": "#6d3df5"
+                },
+                "legend": {
+                  "type": "boolean",
+                  "title": "Legend",
+                  "default": true
+                },
+                "gridlines": {
+                  "type": "boolean",
+                  "title": "Gridlines",
+                  "default": true
+                },
+                "labels": {
+                  "type": "boolean",
+                  "title": "Labels",
+                  "default": false
+                },
+                "tooltips": {
+                  "type": "boolean",
+                  "title": "Tooltips",
+                  "default": true
+                },
+                "comparison": {
+                  "type": "boolean",
+                  "title": "Comparison",
+                  "default": false
+                },
+                "decimals": {
+                  "type": "integer",
+                  "maximum": 4.0,
+                  "minimum": 0.0,
+                  "title": "Decimals",
+                  "default": 0
+                },
+                "number_format": {
+                  "type": "string",
+                  "enum": [
+                    "number",
+                    "percent",
+                    "hours",
+                    "currency"
+                  ],
+                  "title": "Number Format",
+                  "default": "number"
+                },
+                "sort": {
+                  "type": "string",
+                  "enum": [
+                    "value_desc",
+                    "value_asc",
+                    "name"
+                  ],
+                  "title": "Sort",
+                  "default": "value_desc"
+                },
+                "limit": {
+                  "type": "integer",
+                  "maximum": 100.0,
+                  "minimum": 1.0,
+                  "title": "Limit",
+                  "default": 10
+                },
+                "notes": {
+                  "type": "string",
+                  "maxLength": 5000,
+                  "title": "Notes",
+                  "default": ""
+                },
+                "url": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "title": "Url",
+                  "default": ""
+                },
+                "formula": {
+                  "type": "string",
+                  "enum": [
+                    "completion_rate",
+                    "on_time_rate",
+                    "remaining_hours",
+                    "budget_utilization"
+                  ],
+                  "title": "Formula",
+                  "default": "completion_rate"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "id",
+                "type"
+              ],
+              "title": "Widget"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Widgets"
+          },
+          "filters": {
+            "properties": {
+              "project_ids": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array",
+                "maxItems": 200,
+                "title": "Project Ids"
+              },
+              "statuses": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 40,
+                "title": "Statuses"
+              },
+              "priorities": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 20,
+                "title": "Priorities"
+              },
+              "assignee_ids": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array",
+                "maxItems": 200,
+                "title": "Assignee Ids"
+              },
+              "sprint_ids": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array",
+                "maxItems": 200,
+                "title": "Sprint Ids"
+              },
+              "tag_ids": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array",
+                "maxItems": 100,
+                "title": "Tag Ids"
+              },
+              "team_ids": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array",
+                "maxItems": 100,
+                "title": "Team Ids"
+              },
+              "project_statuses": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 30,
+                "title": "Project Statuses"
+              },
+              "date_from": {
+                "type": "string",
+                "format": "date",
+                "title": "Date From",
+                "nullable": true
+              },
+              "date_to": {
+                "type": "string",
+                "format": "date",
+                "title": "Date To",
+                "nullable": true
+              },
+              "date_field": {
+                "type": "string",
+                "enum": [
+                  "created_at",
+                  "due_date",
+                  "completed_at",
+                  "start_date"
+                ],
+                "title": "Date Field",
+                "default": "created_at"
+              },
+              "timezone": {
+                "type": "string",
+                "maxLength": 80,
+                "title": "Timezone",
+                "default": "UTC"
+              },
+              "custom_field_id": {
+                "type": "integer",
+                "exclusiveMinimum": 0.0,
+                "title": "Custom Field Id",
+                "nullable": true
+              },
+              "custom_field_value": {
+                "type": "string",
+                "maxLength": 300,
+                "title": "Custom Field Value",
+                "default": ""
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "title": "Filters"
+          },
+          "template": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Template",
+            "default": "project_overview"
+          },
+          "refresh_seconds": {
+            "type": "integer",
+            "maximum": 3600.0,
+            "minimum": 30.0,
+            "title": "Refresh Seconds",
+            "default": 120
+          },
+          "density": {
+            "type": "string",
+            "enum": [
+              "comfortable",
+              "compact"
+            ],
+            "title": "Density",
+            "default": "comfortable"
+          },
+          "filter_presets": {
+            "additionalProperties": {
+              "properties": {
+                "project_ids": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array",
+                  "maxItems": 200,
+                  "title": "Project Ids"
+                },
+                "statuses": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "maxItems": 40,
+                  "title": "Statuses"
+                },
+                "priorities": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "maxItems": 20,
+                  "title": "Priorities"
+                },
+                "assignee_ids": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array",
+                  "maxItems": 200,
+                  "title": "Assignee Ids"
+                },
+                "sprint_ids": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array",
+                  "maxItems": 200,
+                  "title": "Sprint Ids"
+                },
+                "tag_ids": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array",
+                  "maxItems": 100,
+                  "title": "Tag Ids"
+                },
+                "team_ids": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array",
+                  "maxItems": 100,
+                  "title": "Team Ids"
+                },
+                "project_statuses": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "maxItems": 30,
+                  "title": "Project Statuses"
+                },
+                "date_from": {
+                  "type": "string",
+                  "format": "date",
+                  "title": "Date From",
+                  "nullable": true
+                },
+                "date_to": {
+                  "type": "string",
+                  "format": "date",
+                  "title": "Date To",
+                  "nullable": true
+                },
+                "date_field": {
+                  "type": "string",
+                  "enum": [
+                    "created_at",
+                    "due_date",
+                    "completed_at",
+                    "start_date"
+                  ],
+                  "title": "Date Field",
+                  "default": "created_at"
+                },
+                "timezone": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "title": "Timezone",
+                  "default": "UTC"
+                },
+                "custom_field_id": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0.0,
+                  "title": "Custom Field Id",
+                  "nullable": true
+                },
+                "custom_field_value": {
+                  "type": "string",
+                  "maxLength": 300,
+                  "title": "Custom Field Value",
+                  "default": ""
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "title": "Filters"
+            },
+            "type": "object",
+            "maxProperties": 12,
+            "title": "Filter Presets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Configuration"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "scope_api_v1_project_management_dashboards__did__scope_get",
+      "method": "GET",
+      "path": "/project-management/dashboards/{did}/scope",
+      "title": "Scope",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "favorite_api_v1_project_management_dashboards__did__favorite_post",
+      "method": "POST",
+      "path": "/project-management/dashboards/{did}/favorite",
+      "title": "Favorite",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "favorite": {
+            "type": "boolean",
+            "title": "Favorite",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "Preference"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "visit_api_v1_project_management_dashboards__did__visit_post",
+      "method": "POST",
+      "path": "/project-management/dashboards/{did}/visit",
+      "title": "Visit",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "history_api_v1_project_management_dashboards__did__history_get",
+      "method": "GET",
+      "path": "/project-management/dashboards/{did}/history",
+      "title": "History",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "restore_version_api_v1_project_management_dashboards__did__history__rid__restore_post",
+      "method": "POST",
+      "path": "/project-management/dashboards/{did}/history/{rid}/restore",
+      "title": "Restore Version",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        },
+        {
+          "name": "rid",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Rid"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision"
+        ],
+        "title": "Revision"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "duplicate_api_v1_project_management_dashboards__did__duplicate_post",
+      "method": "POST",
+      "path": "/project-management/dashboards/{did}/duplicate",
+      "title": "Duplicate",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {},
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    },
+    {
+      "id": "transfer_api_v1_project_management_dashboards__did__transfer_post",
+      "method": "POST",
+      "path": "/project-management/dashboards/{did}/transfer",
+      "title": "Transfer",
+      "area": "Insights",
+      "description": "",
+      "parameters": [
+        {
+          "name": "did",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "title": "Did"
+          }
+        }
+      ],
+      "body": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Revision"
+          },
+          "owner_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Owner Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "owner_id"
+        ],
+        "title": "Transfer"
+      },
+      "mime": "application/json",
+      "download": false,
+      "available": false,
+      "internal": false,
+      "restricted": false
+    }
+  ],
+  "mobile_form_operations": 281
+}

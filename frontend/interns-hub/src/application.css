@@ -1,0 +1,1000 @@
+.application-page {
+  min-height: 100dvh;
+  background: linear-gradient(125deg, #f6faff, #f0f7fc);
+  color: #0d183e;
+}
+.application-header {
+  height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 12px max(28px, calc((100vw - 1500px) / 2));
+  background: #fff;
+  border-bottom: 1px solid #edf3fb;
+}
+.application-header .logo > div {
+  font-size: 25px;
+}
+.application-header .logo small {
+  font-size: 9px;
+}
+.application-header nav {
+  display: flex;
+  align-items: center;
+  gap: 29px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.application-header nav a {
+  font-size: 12px;
+  color: #58648c;
+  white-space: nowrap;
+}
+.application-header nav a:hover {
+  color: #2155ff;
+}
+.public-actions {
+  display: flex;
+  gap: 10px;
+}
+.public-actions .button {
+  font-size: 12px;
+  min-height: 36px;
+  padding: 8px 19px;
+}
+.public-actions .button:not(.outline),
+.application-actions .button:not(.outline) {
+  background: linear-gradient(105deg, #8133f3, #124fff);
+  border-color: transparent;
+}
+.application-layout {
+  max-width: 1530px;
+  padding: 22px 30px 26px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(330px, 0.53fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+.application-promo {
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #e7f0ff, #f4f8ff);
+  padding: 40px 33px 270px;
+  isolation: isolate;
+  min-width: 0;
+}
+.build-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #dde8ff;
+  border-radius: 30px;
+  padding: 8px 13px;
+  color: #124eff;
+  font-size: 12px;
+  font-weight: 650;
+}
+.application-promo h1 {
+  font-size: 42px;
+  line-height: 1.12;
+  letter-spacing: -1.8px;
+  margin: 18px 0;
+  color: #071437;
+  position: relative;
+  z-index: 2;
+}
+.application-promo h1 > span {
+  background: linear-gradient(110deg, #0755ff, #6c2bff);
+  color: transparent;
+  background-clip: text;
+}
+.application-promo > p {
+  font-size: 15px;
+  line-height: 1.65;
+  max-width: 310px;
+  color: #58668c;
+  position: relative;
+  z-index: 2;
+}
+.benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 28px;
+  position: relative;
+  z-index: 2;
+}
+.benefits > div {
+  display: flex;
+  gap: 17px;
+  align-items: flex-start;
+}
+.benefits > div > span {
+  width: 49px;
+  height: 49px;
+  flex-shrink: 0;
+  background: linear-gradient(130deg, #dce9ff, #ebebff);
+  color: #2c47ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.benefits b {
+  font-size: 13px;
+}
+.benefits p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  max-width: 210px;
+}
+.application-art {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: url("/application-students.png") center bottom/100% auto no-repeat;
+  pointer-events: none;
+}
+.application-promo:after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(
+    #eaf2ff 0%,
+    #eff5ff 36%,
+    #eff5ffed 52%,
+    transparent 73%
+  );
+  pointer-events: none;
+}
+.promo-note {
+  position: absolute;
+  bottom: 295px;
+  left: 28px;
+  font-size: 14px;
+  color: #5e68a3;
+  transform: rotate(-8deg);
+  z-index: 2;
+  font-style: italic;
+}
+.application-panel {
+  background: white;
+  border: 1px solid #eff3fa;
+  border-radius: 20px;
+  padding: 24px 27px;
+  min-width: 0;
+  scroll-margin-top: 20px;
+  box-shadow: 0 8px 35px #8cafd405;
+}
+.application-steps {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  list-style: none;
+  margin: 0 auto 27px;
+  padding: 0;
+  width: min(440px, 100%);
+}
+.application-steps li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  position: relative;
+  gap: 7px;
+  text-align: center;
+}
+.application-steps li:before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  height: 2px;
+  background: #e6e9f0;
+  left: calc(-50% + 20px);
+  right: calc(50% + 20px);
+}
+.application-steps li:first-child:before {
+  display: none;
+}
+.application-steps span {
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  background: #edeff3;
+  color: #58617b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.application-steps b {
+  font-size: 10px;
+  font-weight: 500;
+  color: #56617f;
+}
+.application-steps .current span,
+.application-steps .complete span {
+  background: linear-gradient(130deg, #3458ff, #0e51d9);
+  color: white;
+  box-shadow: 0 2px 8px #2350db22;
+}
+.application-steps .current b {
+  color: #142043;
+  font-weight: 700;
+}
+.application-title {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 3px 0 22px;
+}
+.application-title > span {
+  width: 47px;
+  height: 47px;
+  border-radius: 50%;
+  background: linear-gradient(130deg, #1d5dff, #1d4cb5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px #1d50c922;
+}
+.application-title h2,
+.application-title h1 {
+  font-size: 27px;
+  letter-spacing: -0.9px;
+  font-weight: 800;
+  color: #0b123e;
+}
+.application-title p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #8993af;
+}
+.application-fields {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px 19px;
+}
+.application-field {
+  grid-column: span 4;
+  min-width: 0;
+}
+.application-field.wide {
+  grid-column: span 8;
+}
+.application-field label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #13254c;
+  font-weight: 650;
+  margin: 0 0 6px;
+  white-space: normal;
+  line-height: 1.4;
+}
+.application-field label > svg {
+  color: #1a55a5;
+  width: 14px;
+  height: 14px;
+}
+.required {
+  color: #f3284b;
+}
+.application-field input,
+.application-field select,
+.application-field textarea {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 11px;
+  border-color: #dce2ef;
+  color: #36436b;
+  border-radius: 5px;
+}
+.application-field input::placeholder,
+.application-field textarea::placeholder {
+  color: #8a96b0;
+}
+.application-field select {
+  appearance: auto;
+  padding-right: 4px;
+}
+.application-field textarea {
+  min-height: 78px;
+}
+.application-field small {
+  font-size: 9px;
+  color: #7d89a6;
+  font-weight: 450;
+}
+.application-field:has(#application-date_of_birth),
+.application-field:has(#application-city),
+.application-field:has(#application-state),
+.application-field:has([name="gender"]),
+.application-field:has(#application-tenth_marks),
+.application-field:has(#application-twelfth_marks),
+.application-field:has(#application-degree),
+.application-field:has(#application-current_year) {
+  grid-column: span 3;
+}
+.application-field:has(#application-address) {
+  grid-column: span 12;
+}
+.application-radios {
+  display: flex;
+  align-items: center;
+  gap: 8px 13px;
+  flex-wrap: wrap;
+  min-height: 34px;
+  border: 0;
+  padding: 3px 0;
+  margin: 0;
+}
+.application-radios label {
+  font-weight: 450;
+  font-size: 10px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.application-radios input {
+  width: 15px;
+  height: 15px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  accent-color: #2254f7;
+}
+.application-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 19px;
+  padding-top: 17px;
+  border-top: 1px solid #edf1f7;
+}
+.application-actions .button {
+  min-height: 40px;
+  font-size: 11px;
+  min-width: 140px;
+}
+.application-actions .button:not(.outline) {
+  min-width: 215px;
+}
+.application-actions .outline {
+  border-color: #d9dfed;
+  color: #122553;
+}
+.application-assurance {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #8a93ac;
+  margin-top: 15px;
+}
+.application-assurance svg {
+  color: #24aa87;
+}
+.application-notice {
+  padding: 10px 13px;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: #40628b;
+  background: #edf5ff;
+  margin-bottom: 16px;
+}
+.application-review {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  padding: 17px;
+  border: 1px solid #e5ebf6;
+  border-radius: 9px;
+  background: #fcfdff;
+}
+.application-review dt {
+  font-size: 10px;
+  color: #828da9;
+}
+.application-review dd {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: #23365a;
+  overflow-wrap: anywhere;
+}
+.application-account {
+  padding: 20px;
+  border: 1px solid #e6e4ff;
+  border-radius: 10px;
+  background: #fbfaff;
+  margin-top: 20px;
+}
+.application-account h3 {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 14px;
+}
+.application-account h3 svg {
+  color: #5141ff;
+}
+.application-account p {
+  font-size: 12px;
+}
+.application-passwords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.application-passwords label {
+  font-size: 11px;
+}
+.application-passwords input {
+  font-size: 12px;
+}
+.application-consent {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 15px 0 0;
+}
+.application-consent input {
+  width: 17px;
+  min-height: 17px;
+  margin-top: 3px;
+}
+.application-success {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 50px 25px;
+  text-align: center;
+}
+.application-success h1 {
+  font-size: 29px;
+  margin-top: 22px;
+}
+.application-success p {
+  max-width: 490px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.success-mark {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #e5fcf2;
+  color: #08b97d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.application-receipt {
+  padding: 24px;
+  border: 1px solid #e8e4fd;
+  background: #f7f5ff;
+  border-radius: 12px;
+  margin: 18px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.application-receipt small {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #7c6eac;
+}
+.application-receipt strong {
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: #363072;
+}
+.text-link {
+  display: block;
+  font-size: 12px;
+  margin-top: 16px;
+}
+.application-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 23px max(30px, calc((100vw - 1500px) / 2));
+  background: #fff;
+  border-top: 1px solid #edf3fb;
+}
+.application-footer .logo > div {
+  font-size: 21px;
+}
+.application-footer .logo > svg {
+  width: 33px;
+  height: 33px;
+}
+.application-footer > div:not(.logo) {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+}
+.application-footer a {
+  font-size: 11px;
+  color: #7c8bad;
+}
+.application-footer > p {
+  font-size: 11px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin: 0;
+  color: #6a7c9c;
+}
+.application-footer > p svg {
+  color: #2451cf;
+}
+.status-layout {
+  max-width: 610px;
+  margin: auto;
+  padding: 50px 20px 70px;
+  min-height: calc(100dvh - 165px);
+}
+.status-layout .application-panel {
+  padding: 30px;
+}
+.status-layout h1 {
+  font-size: 25px;
+}
+.status-result {
+  padding: 20px;
+  border: 1px solid #e7ebfa;
+  border-radius: 12px;
+  background: #fbfcff;
+  margin-top: 25px;
+}
+.status-result p {
+  font-size: 12px;
+}
+.status-bottom {
+  font-size: 12px;
+  text-align: center;
+  margin: 25px 0 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (min-width: 1600px) {
+  .application-layout {
+    padding-top: 35px;
+  }
+  .application-promo {
+    padding-top: 47px;
+  }
+  .application-promo h1 {
+    font-size: 46px;
+  }
+  .application-title h2 {
+    font-size: 30px;
+  }
+  .application-fields {
+    gap: 18px 22px;
+  }
+  .application-field label {
+    font-size: 11.5px;
+  }
+  .application-field input,
+  .application-field select {
+    font-size: 12px;
+    min-height: 37px;
+  }
+  .application-promo > p {
+    font-size: 17px;
+  }
+  .benefits {
+    gap: 25px;
+    margin-top: 32px;
+  }
+  .benefits b {
+    font-size: 14px;
+  }
+  .benefits p {
+    font-size: 13px;
+  }
+}
+@media (max-width: 1200px) {
+  .application-header nav {
+    gap: 16px;
+  }
+  .application-header nav a {
+    font-size: 11px;
+  }
+  .application-header {
+    padding: 12px 25px;
+  }
+  .application-layout {
+    padding: 22px;
+    grid-template-columns: minmax(285px, 0.48fr) minmax(0, 1fr);
+    gap: 15px;
+  }
+  .application-promo {
+    padding: 30px 25px 270px;
+  }
+  .application-promo h1 {
+    font-size: 35px;
+  }
+  .application-promo > p {
+    font-size: 13px;
+  }
+  .benefits {
+    gap: 18px;
+  }
+  .benefits > div {
+    gap: 12px;
+  }
+  .benefits > div > span {
+    width: 40px;
+    height: 40px;
+  }
+  .application-panel {
+    padding: 21px;
+  }
+  .application-title {
+    gap: 12px;
+  }
+  .application-title h2 {
+    font-size: 23px;
+  }
+  .application-fields {
+    gap: 13px 13px;
+  }
+  .application-field label {
+    font-size: 10px;
+  }
+  .application-field:has(#application-date_of_birth),
+  .application-field:has(#application-city),
+  .application-field:has(#application-state),
+  .application-field:has([name="gender"]),
+  .application-field:has(#application-tenth_marks),
+  .application-field:has(#application-twelfth_marks),
+  .application-field:has(#application-degree),
+  .application-field:has(#application-current_year) {
+    grid-column: span 6;
+  }
+  .application-field {
+    grid-column: span 6;
+  }
+  .application-field.wide {
+    grid-column: span 12;
+  }
+  .application-field:has(#application-college) {
+    grid-column: span 12;
+  }
+  .application-footer {
+    padding: 20px 25px;
+  }
+  .application-footer > p {
+    display: none;
+  }
+  .application-review {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .promo-note {
+    bottom: 275px;
+    font-size: 12px;
+  }
+  .application-art {
+    background-size: auto 650px;
+  }
+}
+@media (max-width: 950px) {
+  .application-header nav {
+    display: none;
+  }
+  .application-layout {
+    grid-template-columns: 1fr;
+    max-width: 800px;
+  }
+  .application-promo {
+    display: none;
+  }
+  .application-panel {
+    padding: 26px;
+  }
+  .application-fields {
+    gap: 20px;
+  }
+  .application-field label {
+    font-size: 12px;
+  }
+  .application-field input,
+  .application-field select {
+    min-height: 42px;
+    font-size: 13px;
+  }
+  .application-field:has(#application-college) {
+    grid-column: span 6;
+  }
+  .application-title h2 {
+    font-size: 27px;
+  }
+  .application-title p {
+    font-size: 13px;
+  }
+  .application-steps {
+    margin-bottom: 30px;
+  }
+  .application-steps b {
+    font-size: 11px;
+  }
+  .application-radios label {
+    font-size: 12px;
+  }
+  .application-radios input {
+    min-height: 0;
+  }
+  .application-header .logo > div {
+    font-size: 23px;
+  }
+}
+@media (max-width: 600px) {
+  .application-header {
+    height: 68px;
+    padding: 12px 17px;
+    gap: 12px;
+  }
+  .application-header .logo > div {
+    font-size: 22px;
+  }
+  .application-header .logo > svg {
+    width: 34px;
+    height: 34px;
+  }
+  .application-header .logo small {
+    font-size: 8px;
+  }
+  .public-actions {
+    gap: 0;
+  }
+  .public-actions > .button:not(.outline) {
+    display: none;
+  }
+  .public-actions .button {
+    padding: 7px 16px;
+    min-height: 35px;
+    font-size: 12px;
+  }
+  .application-layout {
+    padding: 18px 12px 24px;
+    gap: 0;
+  }
+  .application-panel {
+    border-radius: 15px;
+    padding: 24px 18px;
+  }
+  .application-title {
+    gap: 11px;
+    align-items: flex-start;
+    margin: 7px 0 26px;
+  }
+  .application-title > span {
+    width: 39px;
+    height: 39px;
+  }
+  .application-title > span > svg {
+    width: 21px;
+    height: 21px;
+  }
+  .application-title h2 {
+    font-size: 22px;
+    letter-spacing: -0.7px;
+    line-height: 1.25;
+  }
+  .application-title p {
+    font-size: 11px;
+    line-height: 1.6;
+    margin-top: 6px;
+  }
+  .application-steps {
+    margin-bottom: 30px;
+  }
+  .application-steps span {
+    width: 27px;
+    height: 27px;
+  }
+  .application-steps b {
+    font-size: 9px;
+  }
+  .application-steps li:before {
+    top: 13px;
+  }
+  .application-fields {
+    grid-template-columns: 1fr;
+    gap: 19px;
+  }
+  .application-field,
+  .application-field.wide,
+  .application-field:has(#application-date_of_birth),
+  .application-field:has(#application-city),
+  .application-field:has(#application-state),
+  .application-field:has([name="gender"]),
+  .application-field:has(#application-tenth_marks),
+  .application-field:has(#application-twelfth_marks),
+  .application-field:has(#application-degree),
+  .application-field:has(#application-current_year),
+  .application-field:has(#application-address),
+  .application-field:has(#application-college) {
+    grid-column: auto;
+  }
+  .application-field label {
+    font-size: 12px;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .application-field label > svg {
+    width: 15px;
+    height: 15px;
+  }
+  .application-field input,
+  .application-field select,
+  .application-field textarea {
+    font-size: 16px;
+    min-height: 45px;
+    padding: 10px 11px;
+    border-radius: 6px;
+  }
+  .application-field input::placeholder,
+  .application-field textarea::placeholder {
+    font-size: 12px;
+  }
+  .application-radios {
+    gap: 11px 18px;
+    min-height: 38px;
+  }
+  .application-radios label {
+    font-size: 12px;
+    margin: 0;
+  }
+  .application-radios input {
+    width: 17px;
+    height: 17px;
+    min-height: 0;
+  }
+  .application-actions {
+    flex-wrap: wrap;
+    margin-top: 25px;
+    padding-top: 20px;
+    gap: 10px;
+  }
+  .application-actions .button,
+  .application-actions .button:not(.outline) {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    padding: 11px 10px;
+    min-height: 44px;
+  }
+  .application-actions .button > svg {
+    width: 14px;
+  }
+  .application-assurance {
+    font-size: 9px;
+    align-items: flex-start;
+    line-height: 1.6;
+    justify-content: flex-start;
+    margin-top: 17px;
+  }
+  .application-assurance svg {
+    margin-top: 1px;
+  }
+  .application-footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 25px 18px;
+  }
+  .application-footer .logo > div {
+    font-size: 21px;
+  }
+  .application-footer > div:not(.logo) {
+    gap: 19px;
+  }
+  .application-footer a {
+    font-size: 10px;
+  }
+  .application-review {
+    grid-template-columns: 1fr 1fr;
+    padding: 14px;
+    gap: 20px 12px;
+  }
+  .application-review dd {
+    font-size: 11px;
+  }
+  .application-review dt {
+    font-size: 9px;
+  }
+  .application-account {
+    padding: 16px;
+  }
+  .application-account p {
+    font-size: 11px;
+  }
+  .application-passwords {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .application-passwords input {
+    font-size: 16px;
+  }
+  .application-consent {
+    font-size: 10px;
+  }
+  .application-consent input {
+    min-height: 17px;
+  }
+  .application-success {
+    padding: 30px 0;
+  }
+  .application-success h1 {
+    font-size: 24px;
+  }
+  .application-success p {
+    font-size: 12px;
+  }
+  .application-receipt {
+    padding: 20px 12px;
+  }
+  .application-receipt strong {
+    font-size: 17px;
+  }
+  .status-layout {
+    padding: 25px 12px 40px;
+  }
+  .status-layout .application-panel {
+    padding: 25px 20px;
+  }
+  .status-layout h1 {
+    font-size: 23px;
+  }
+  .status-layout input {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .application-page * {
+    scroll-behavior: auto !important;
+  }
+}
+
+.build-pill {
+  position: relative;
+  z-index: 2;
+}
+.application-field {
+  align-self: end;
+}

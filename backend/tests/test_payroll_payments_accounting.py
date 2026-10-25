@@ -38,7 +38,8 @@ def test_payment_batch_status_import_gl_and_statutory_validation(client, db):
     assert batch.status_code == 201
     batch_body = batch.json()
     assert batch_body["total_amount"] != "0.00"
-    assert batch_body["generated_file_url"].endswith(".csv")
+    from app.core.storage import normalize_upload_references
+    assert normalize_upload_references(batch_body["generated_file_url"]).endswith(".csv")
     employee_line = next(line for line in batch_body["lines"] if line["employee_id"] == employee.id)
     assert employee_line["bank_account"] == "1234567890"
 
@@ -65,8 +66,8 @@ def test_payment_batch_status_import_gl_and_statutory_validation(client, db):
     )
     assert validation.status_code == 201
     assert validation.json()["total_rows"] >= 1
-    assert validation.json()["output_file_url"].endswith(".csv")
+    assert normalize_upload_references(validation.json()["output_file_url"]).endswith(".csv")
 
     template = client.post("/api/v1/payroll/statutory/templates/form_16", headers=headers)
     assert template.status_code == 201
-    assert template.json()["file_url"].endswith("form_16_template.csv")
+    assert normalize_upload_references(template.json()["file_url"]).endswith("form_16_template.csv")

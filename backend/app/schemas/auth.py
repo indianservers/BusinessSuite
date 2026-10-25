@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
+from app.core.input_validation import EmailAddress
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: EmailAddress
     password: str
     module: Optional[str] = None
     trusted_device_token: Optional[str] = None
@@ -43,7 +44,7 @@ class RefreshTokenRequest(BaseModel):
 
 
 class PasswordResetRequest(BaseModel):
-    email: EmailStr
+    email: EmailAddress
 
 
 class PasswordResetConfirm(BaseModel):
@@ -90,14 +91,14 @@ class RoleSchema(BaseModel):
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    email: EmailAddress
     password: str
     role_id: Optional[int] = None
     is_superuser: bool = False
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
+    email: Optional[EmailAddress] = None
     role_id: Optional[int] = None
     is_active: Optional[bool] = None
 
@@ -139,6 +140,7 @@ class MFAMethodCreate(BaseModel):
     method_type: str
     secret_ref: Optional[str] = None
     phone_number: Optional[str] = None
+    phone_number_country_code: str | None = None
     email: Optional[str] = None
     is_primary: bool = False
 

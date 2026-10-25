@@ -43,6 +43,8 @@ def authorize(db, user, run):
     if not has_any_permission(user, PMS_GLOBAL_MANAGE_TASKS):
         raise HTTPException(403, "Task management permission required")
     planning_agent(db, user)
+    from app.ai_operator.workbench import check_standing_consent
+    check_standing_consent(db,user,run)
 
 
 def queue_approved_plan(db, user, approval):
@@ -132,6 +134,8 @@ def receipts_for(db, run):
 def finish(db, job, run, approval):
     run.status = "succeeded"
     run.result = {"success": True, "run_id": run.id, "receipts": receipts_for(db, run)}
+    from app.ai_operator.workbench import remember_run_after
+    remember_run_after(db, run)
     approval.execution_status, approval.executed_at = "executed", now_utc()
     approval.execution_result_json = {"success": True, "result": run.result}
     job.status, job.lease_token, job.lease_until = "completed", None, None
@@ -239,7 +243,7 @@ def process_claim(db, job_id, token):
             job.status = "completed"
         else:
             code = str(exc.detail) if isinstance(exc, HTTPException) and isinstance(exc.detail, str) else "OPERATOR_JOB_FAILED"
-            code = code if code in {"STALE_PLAN", "APPROVAL_CHANGED", "PLAN_CHANGED", "STEP_GRAPH_BLOCKED", "RETRY_LIMIT_REACHED"} or code.startswith("PROVIDER_") else "OPERATOR_JOB_FAILED"
+            code = code if code in {"STALE_PLAN", "APPROVAL_CHANGED", "PLAN_CHANGED", "STEP_GRAPH_BLOCKED", "RETRY_LIMIT_REACHED", "AUTO_POLICY_REVOKED"} or code.startswith("PROVIDER_") else "OPERATOR_JOB_FAILED"
             job.failures += 1
             permanent_provider_error = code in {"PROVIDER_HTTP_400", "PROVIDER_HTTP_401", "PROVIDER_HTTP_403", "PROVIDER_HTTP_404"}
             retry = job.failures < 3 and not permanent_provider_error and not (isinstance(exc, HTTPException) and exc.status_code in {400, 403, 404, 409, 422})
@@ -277,4 +281,8 @@ def process_batch(db, *, limit=20, time_budget=50):
     monitors = check_monitors(db, limit=min(limit, 20))
     if monitors["checked"]:
         counts["monitors"] = monitors
+    from app.ai_operator.workbench import tick_rules
+    rules = tick_rules(db, limit=min(limit, 10))
+    if rules['checked']:
+        counts['assistant_rules'] = rules
     return counts

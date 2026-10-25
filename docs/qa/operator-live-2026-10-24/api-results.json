@@ -1,0 +1,344 @@
+{
+  "started_at": "2026-10-24T15:31:36.431040+00:00",
+  "checks": [
+    {
+      "name": "Plan editor contract, impact, approval hash, voice provenance, worker receipts",
+      "status": "passed",
+      "evidence": {
+        "run_id": 1,
+        "mode": "checkpointed",
+        "input_mode": "voice",
+        "step_count": 2,
+        "event_count": 5
+      }
+    },
+    {
+      "name": "Recovery through separately approved inverse plan",
+      "status": "passed",
+      "evidence": {
+        "undo_run_id": 2
+      }
+    },
+    {
+      "name": "Persistent memory, corrections, stale revision and authorized context",
+      "status": "passed",
+      "evidence": {
+        "memory_id": 3,
+        "session_id": 1,
+        "context_tasks": 2
+      }
+    },
+    {
+      "name": "Follow-up conversation persistence",
+      "status": "passed",
+      "evidence": {
+        "session_id": 1,
+        "saved_revision": 1,
+        "note": "Persistence contract; generated follow-up checked separately in browser"
+      }
+    },
+    {
+      "name": "Dependency and working-calendar scheduling",
+      "status": "passed",
+      "evidence": {
+        "plan": {
+          "summary": "Schedule selected work around dependencies and the working calendar",
+          "steps": [
+            {
+              "tool": "schedule_task",
+              "task_id": 1,
+              "start_date": "2026-10-27",
+              "due_date": "2026-10-27",
+              "lag_days": 0
+            },
+            {
+              "tool": "schedule_task",
+              "task_id": 2,
+              "start_date": "2026-10-28",
+              "due_date": "2026-10-28",
+              "lag_days": 0
+            }
+          ]
+        },
+        "assumptions": "One person per task; estimates rounded to working days. All four dependency relationships and calendar-day lag are respected. Finish To Start begins the next working day. Calendar uses this assistant policy; preview before applying."
+      }
+    },
+    {
+      "name": "Workload-aware assignment and delivery risks",
+      "status": "passed",
+      "evidence": {
+        "project": {
+          "id": 2,
+          "name": "AI Operator live QA 84F1FE",
+          "project_key": "AIQA84F1FE",
+          "workspace_id": null
+        },
+        "risks": [
+          {
+            "task_id": 1,
+            "task_key": "QA-1",
+            "title": "QA execution target",
+            "reasons": [
+              "unassigned"
+            ]
+          },
+          {
+            "task_id": 2,
+            "task_key": "QA-2",
+            "title": "QA dependency target",
+            "reasons": [
+              "unassigned"
+            ]
+          }
+        ],
+        "workload": [
+          {
+            "user_id": 1,
+            "email": "admin@aihrms.com",
+            "capacity_hours": 40.0,
+            "allocated_hours": 0.0,
+            "overload_hours": 0,
+            "unscheduled_tasks": 0,
+            "skills": [],
+            "away": false,
+            "available_hours": 40.0
+          }
+        ],
+        "status_counts": {
+          "To Do": 2
+        },
+        "assumptions": "Monday\u2013Friday; estimates spread equally across working days and assignees. Authorized projects only. Weekly PMS capacity overrides default 40h. Leave/holiday calendars are not yet deducted. Away people are excluded from recommendations; skills are explicitly maintained, not inferred.",
+        "complete": true
+      }
+    },
+    {
+      "name": "Natural-language task search",
+      "status": "passed",
+      "evidence": {
+        "items": [
+          {
+            "id": 2,
+            "key": "QA-2",
+            "title": "QA dependency target",
+            "status": "To Do",
+            "priority": "Medium",
+            "due_date": null,
+            "href": "/pms/projects/2/tasks/2"
+          },
+          {
+            "id": 1,
+            "key": "QA-1",
+            "title": "QA execution target",
+            "status": "To Do",
+            "priority": "Medium",
+            "due_date": null,
+            "href": "/pms/projects/2/tasks/1"
+          }
+        ],
+        "filters": [],
+        "limit": 50
+      }
+    },
+    {
+      "name": "Project kickoff, milestones, subtasks and dependencies",
+      "status": "passed",
+      "evidence": {
+        "proposal_id": 1,
+        "result": {
+          "success": true,
+          "project_id": 3,
+          "receipts": [
+            {
+              "tool": "create_milestone",
+              "record_id": 1,
+              "key": "M1"
+            },
+            {
+              "tool": "create_task",
+              "record_id": 3,
+              "key": "PARENT"
+            },
+            {
+              "tool": "create_task",
+              "record_id": 4,
+              "key": "CHILD"
+            },
+            {
+              "tool": "add_dependency",
+              "record_id": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Playbooks, cancel, live event agents and bounded autonomous execution",
+      "status": "passed",
+      "evidence": {
+        "playbook_id": 6,
+        "manual_cancelled_run": 4,
+        "rule_id": 9,
+        "automatic_run_id": 6
+      }
+    },
+    {
+      "name": "Proactive delivery monitor through worker",
+      "status": "passed",
+      "evidence": {
+        "id": 1,
+        "project_id": 2,
+        "name": "Live QA delivery watch",
+        "enabled": true,
+        "interval_minutes": 60,
+        "findings": [
+          {
+            "task_id": 1,
+            "task_key": "QA-1",
+            "title": "QA execution target",
+            "reasons": [
+              "blocked",
+              "unassigned"
+            ]
+          },
+          {
+            "task_id": 2,
+            "task_key": "QA-2",
+            "title": "QA dependency target",
+            "reasons": [
+              "unassigned"
+            ]
+          }
+        ],
+        "checked_at": "2026-10-24T15:31:52.309196+00:00",
+        "next_check_at": "2026-10-24T16:31:52.309196+00:00",
+        "error_code": null
+      }
+    },
+    {
+      "name": "Teaching review and approved-only export",
+      "status": "passed",
+      "evidence": {
+        "teaching_id": 11,
+        "reviewed_export_count": 1
+      }
+    },
+    {
+      "name": "Quality validation and feedback persistence",
+      "status": "passed",
+      "evidence": {
+        "case_id": 12,
+        "passed": true,
+        "actual_kind": "task_plan",
+        "tools": [
+          "add_checklist",
+          "update_task"
+        ],
+        "duration_ms": 10
+      }
+    },
+    {
+      "name": "Routing, provider-usage and execution analytics",
+      "status": "passed",
+      "evidence": {
+        "run_status": {
+          "succeeded": 5,
+          "cancelled": 1
+        },
+        "routing": {
+          "browser": 1
+        },
+        "feedback_counts": {
+          "incorrect_plan": 1
+        },
+        "repeated_questions": 0,
+        "fallback_reasons": {},
+        "evaluations": [
+          {
+            "case_id": 12,
+            "passed": true,
+            "actual_kind": "task_plan",
+            "tools": [
+              "add_checklist",
+              "update_task"
+            ],
+            "duration_ms": 10
+          }
+        ],
+        "evaluation_passes": 1,
+        "providers": [
+          {
+            "provider": "openai",
+            "requests": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "priced_cost": 0,
+            "unpriced_requests": 0,
+            "average_latency_ms": 0
+          },
+          {
+            "provider": "gemini",
+            "requests": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "priced_cost": 0,
+            "unpriced_requests": 0,
+            "average_latency_ms": 0
+          },
+          {
+            "provider": "claude",
+            "requests": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "priced_cost": 0,
+            "unpriced_requests": 0,
+            "average_latency_ms": 0
+          }
+        ],
+        "limits": "Latest 100 project runs/evaluations and 200 personal provider calls in this scope; unknown prices are not zero cost."
+      }
+    },
+    {
+      "name": "Provider settings availability (no credentials fabricated)",
+      "status": "passed",
+      "evidence": {
+        "items": []
+      }
+    }
+  ],
+  "project_id": 2,
+  "task_ids": [
+    1,
+    2
+  ],
+  "executed_run": 1,
+  "session_id": 1,
+  "policy": {
+    "id": 4,
+    "project_id": 2,
+    "kind": "policy",
+    "key": "policy",
+    "title": "Live QA policy",
+    "payload": {
+      "timezone": "Asia/Kolkata",
+      "auto_enabled": false,
+      "allowed_tools": [],
+      "max_steps": 3,
+      "weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "holidays": [
+        "2026-10-26"
+      ],
+      "hours_per_day": 8.0,
+      "skills": {},
+      "away_user_ids": []
+    },
+    "revision": 1,
+    "updated_at": "2026-10-24T15:31:42.922045+00:00"
+  },
+  "rule_id": 9
+}

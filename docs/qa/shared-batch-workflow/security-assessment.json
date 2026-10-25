@@ -1,0 +1,362 @@
+{
+  "title": "Business Suite security assessment",
+  "date": "2026-10-25",
+  "scope": "HRMS, PMS, Interns Hub, shared authentication, file storage, background jobs, dependencies and deployment configuration",
+  "environment": "Disposable loopback browser/HTTP QA and isolated business-data test databases. An earlier secondary audit factory escaped unit-test isolation; SEC-13 records the confirmed default development audit impact and containment.",
+  "recommendation": "Production clearance pending",
+  "recommendationDetail": "The verified local fixes are suitable for staging review. This assessment does not certify production or every endpoint. PostgreSQL concurrency, production infrastructure, malware scanning, alert delivery and customer-domain tenant routing require separate verification before enterprise release.",
+  "inventory": {
+    "registeredEndpoints": 2136,
+    "sourceRouteDeclarations": 2425,
+    "hiddenRegisteredEndpoints": 1,
+    "note": "Inventory covers 2,135 HTTP endpoints and one WebSocket, plus source-only route declarations. One HTTP endpoint is hidden from OpenAPI. Dependency names do not prove object-level authorization.",
+    "registeredHttpEndpoints": 2135,
+    "webSocketEndpoints": 1
+  },
+  "validation": {
+    "liveHttpPassed": 30,
+    "liveHttpTotal": 30,
+    "newSecurityRegressionSnapshot": "33 passed; additional tenancy and storage retests recorded separately",
+    "fullSuite": "901 passed, 7 PostgreSQL integration skips in security-final-isolated-suite.xml. The final account/logging changes are additionally covered by the focused retests listed below.",
+    "pythonDeclaredAdvisories": 0,
+    "mainFrontendProductionAdvisories": 0,
+    "internsFrontendProductionAdvisories": 0,
+    "mainFrontendDevelopmentAdvisories": 0,
+    "note": "Native dependency audit snapshots report zero advisories for both frontend dependency trees and the declared Python application requirements. This is not a guarantee of absence of vulnerabilities. See the SBOM and audit JSON files.",
+    "focusedIsolationTests": "Independent signing keys, local-only storage and disposable secondary/audit factories have dedicated regressions. Account creation retest: 31 passed. Logging/audit retest: 28 passed.",
+    "installedPythonAdvisories": 0,
+    "finalFocusedFixes": "31 account/authentication cases, 40 realtime/session/logging/file cases, 24 formula/account cases and 14 production-configuration cases passed in their respective focused retests. Both frontend builds passed."
+  },
+  "findings": [
+    {
+      "id": "SEC-01",
+      "severity": "High",
+      "title": "Anonymous local access to private HR files",
+      "status": "Fixed and regression tested",
+      "cause": "The static upload mount excluded PMS evidence but allowed HR document and certificate folders.",
+      "change": "Only explicit public asset folders use permanent static URLs. Private files use expiring, audience-bound capabilities and attachment downloads with no-store and nosniff headers.",
+      "evidence": "test_intern_evidence_storage.py; test_security_files_and_formulas.py; security-private-file-denied.png; security-live-http.json"
+    },
+    {
+      "id": "SEC-02",
+      "severity": "High",
+      "title": "Employee permissions lacked consistent company boundaries",
+      "status": "Fixed and regression tested",
+      "cause": "Legacy employee handlers checked role permissions but fetched records by employee ID across companies.",
+      "change": "Request-local ORM restrictions cover employees and their HR child records. Cross-company branch, department, designation and manager assignments are rejected. Private document metadata is removed from masked profiles.",
+      "evidence": "test_security_employee_scope.py; security-tenancy-retest.xml"
+    },
+    {
+      "id": "SEC-03",
+      "severity": "High",
+      "title": "Expired server sessions could refresh tokens",
+      "status": "Fixed and regression tested",
+      "cause": "Refresh checked revocation but omitted the session expiry date.",
+      "change": "Refresh now checks session expiry. Suspension revokes sessions; access and refresh replay fail after logout. Current intern identity also enforces portal boundaries, including older tokens. PMS WebSocket handshakes reject intern portal tokens and broadcast authorization rechecks current intern identity.",
+      "evidence": "test_security_sessions.py; test_enterprise_security_hardening.py; security-live-http.json; security-realtime-final.xml and live WebSocket handshake denial."
+    },
+    {
+      "id": "SEC-04",
+      "severity": "High",
+      "title": "Email logging could disclose authentication secrets",
+      "status": "Fixed and regression tested",
+      "cause": "The email stub logged recipient, subject and full body, including reset links or one-time codes.",
+      "change": "Email logging records only a dispatch event. Settings validation hides secret input values.",
+      "evidence": "test_security_sessions.py: email and configuration redaction cases"
+    },
+    {
+      "id": "SEC-05",
+      "severity": "High",
+      "title": "Vulnerable production dependency versions",
+      "status": "Production dependency audit clean at assessment time",
+      "cause": "Native npm and pip audits identified outdated authentication, parsing, framework, cryptography and frontend validation dependencies.",
+      "change": "Upgraded compatible dependencies, migrated python-jose to PyJWT and PyPDF2 to pypdf, retained Google signature/audience/issuer/nonce/access-token-hash checks, removed the unused SMTP framework dependency, and added CI dependency gates and regression checks.",
+      "evidence": "pip-audit-declared-verified.json; npm-audit-main-final.json; npm-audit-interns-all-final.json; security-library-retest.xml; CycloneDX SBOM files"
+    },
+    {
+      "id": "SEC-06",
+      "severity": "Medium",
+      "title": "Malformed signed claims caused server errors",
+      "status": "Fixed and regression tested",
+      "cause": "Subject and session claims were converted to integers without validating type, range or syntax; expiry was not mandatory in all shared verification paths.",
+      "change": "Invalid claims return 401. Shared access/refresh tokens require expiry and subject; private links require their audience, purpose, path and expiry.",
+      "evidence": "test_security_sessions.py; test_vercel_blob_links.py"
+    },
+    {
+      "id": "SEC-07",
+      "severity": "Medium",
+      "title": "Applicant upload abuse and unsafe archive entries",
+      "status": "Controls implemented; malware scanning remains unverified",
+      "cause": "Anonymous uploads lacked a persistent per-source allowance, and DOCX validation did not exclude traversal paths.",
+      "change": "Persisted HMAC source identifiers enforce daily count/byte allowances with a PostgreSQL advisory lock. Uploads have size, type, magic-byte and archive expansion limits. Traversal and macro entries are rejected. HR document upload reads are bounded.",
+      "evidence": "test_security_files_and_formulas.py; application_documents.py; migration 018; migration 020 upgrades earlier document schemas with the source-hash column/index."
+    },
+    {
+      "id": "SEC-08",
+      "severity": "Medium",
+      "title": "Formula expressions permitted resource exhaustion",
+      "status": "Fixed and regression tested",
+      "cause": "Syntax whitelists still allowed exponentiation and string multiplication.",
+      "change": "Bounded expression length and AST size, rejected exponentiation and nonnumeric constants, retained bounded Decimal literals and ordinary financial calculations. Referenced formula variables are bounded scalar inputs; strings and collections cannot bypass multiplication limits.",
+      "evidence": "test_security_files_and_formulas.py; test_salary_structure_versioning.py; test_customization_formula_fields.py"
+    },
+    {
+      "id": "SEC-09",
+      "severity": "High",
+      "title": "Private storage references could be promoted into fresh links",
+      "status": "Fixed and regression tested",
+      "cause": "Generic response signing could grant a capability for a raw private path supplied through editable metadata. Legacy S3 URL normalization trusted URL shape rather than an authenticated application capability.",
+      "change": "Client-supplied raw private paths, traversal variants and expired capabilities are rejected. S3, local and Blob links now use application-signed capabilities. Forged external S3 URL parameters are never converted into trusted storage paths.",
+      "evidence": "test_security_files_and_formulas.py; private-storage-regressions.xml; security-live-http.json"
+    },
+    {
+      "id": "SEC-10",
+      "severity": "Medium",
+      "title": "Missing API privacy headers and unsafe production options",
+      "status": "Fixed and regression tested",
+      "cause": "API failures and local responses did not consistently receive privacy headers; debug tracebacks could be enabled in production.",
+      "change": "Added no-store, nosniff, no-referrer, frame and permissions headers; HTTPS responses add HSTS. Production rejects debug mode, demo seeding and missing/weak session secrets. Production tracebacks are suppressed independently of DEBUG. Production browser origins and public API/frontend URLs must use HTTPS.",
+      "evidence": "test_security_files_and_formulas.py; test_security_hardening.py; test_serverless_configuration.py"
+    },
+    {
+      "id": "SEC-11",
+      "severity": "High",
+      "title": "Policies and templates lacked tenant ownership",
+      "status": "Fixed with migration; production migration not applied",
+      "cause": "Company policies and document templates had no organization column. Generated HR letters could also be listed by broad employee-view permission.",
+      "change": "Migration 019 adds tenant ownership. Requests filter policies, versions and templates by tenant; creation stamps the trusted tenant. Generated documents require own-record access or privileged HR permission.",
+      "evidence": "test_security_employee_scope.py; security-tenancy-retest.xml; migration 019"
+    },
+    {
+      "id": "SEC-12",
+      "severity": "Medium",
+      "title": "Membership CSV cells could contain formulas",
+      "status": "Fixed",
+      "cause": "Editable employee identifiers were exported without a spreadsheet formula guard.",
+      "change": "Membership CSV identifiers and names are emitted as text. Existing performance CSV text guards are retained.",
+      "evidence": "management_api.py: membership_export"
+    },
+    {
+      "id": "SEC-13",
+      "severity": "High",
+      "title": "Secondary audit factory escaped unit-test database isolation",
+      "status": "Contained; historical audit attribution/cleanup pending",
+      "cause": "Overriding get_db did not override the independent request-audit SessionLocal. Earlier test runs could therefore write synthetic request audit entries to the configured default database.",
+      "change": "The test harness now sets a temporary DATABASE_URL before application import and overrides the audit factory/commit/close policy. Live QA also sets its global DATABASE_URL to its own disposable SQLite file. A dedicated isolation regression checks the factories. QA also uses independent signing secrets, clears previous signing keys and provider credentials, and forces local storage. Earlier synthetic browser applications are preserved in a private checkpoint.",
+      "evidence": "audit-isolation-check.json: 23,319 testclient audit entries in the default loopback development database in the inspected six-hour window; the aggregate may include other test activity. Existing audit history was preserved. test_security_test_isolation.py; isolated-security-retest.xml The contained full-suite run passed 898 tests; a read-only follow-up found zero testclient audit entries after the containment timestamp."
+    },
+    {
+      "id": "SEC-14",
+      "severity": "High",
+      "title": "Server access logs could expose private download capabilities",
+      "status": "Fixed; unit and live HTTP checks passed",
+      "cause": "Uvicorn access logs normally include raw query parameters, including bearer file links. Exception traces can also contain database parameter values.",
+      "change": "Server access-log queries are removed. Production/non-debug server exception logs retain the exception type without parameter values; safe request IDs and audit error locations remain available. WebSocket access-log query tokens are also removed.",
+      "evidence": "test_security_logging.py; security-logging-isolation.xml; security-live-http.json verifies that an actual download capability is absent from server logs."
+    },
+    {
+      "id": "SEC-15",
+      "severity": "High",
+      "title": "Employee login creation used a predictable shared password",
+      "status": "Creation path fixed; historical accounts need review",
+      "cause": "Employee account creation could substitute a shared password and did not assign a normal employee role for non-intern accounts.",
+      "change": "A login requires an explicit password of at least 12 characters, the configured password policy and the bcrypt UTF-8 byte limit. The HRMS form collects the password and no longer advertises a default or an unenforced first-login reset. The server assigns the least-privilege employee or intern role.",
+      "evidence": "test_security_employee_passwords.py; security-account-final.xml; frontend-build-final-accounts.log; live HTTP missing-password rejection."
+    }
+  ],
+  "coverage": [
+    {
+      "area": "A01 Broken access control",
+      "status": "Tested on critical flows",
+      "evidence": "Cross-company employee read/write, HR documents, intern/admin separation, PMS project access and existing RBAC regression suite.",
+      "limit": "Not every one of the 2,135 endpoints received an active cross-tenant test."
+    },
+    {
+      "area": "A02 Security misconfiguration",
+      "status": "Local controls tested",
+      "evidence": "Production settings validation, debug suppression, CORS tests, response headers, private static mount and serverless configuration tests.",
+      "limit": "Production proxy, TLS configuration and actual deployed environment were not inspected."
+    },
+    {
+      "area": "A03 Software supply chain failures",
+      "status": "Audited and remediated for production dependencies",
+      "evidence": "Native npm/pip audits, lockfile updates, declared Python audit, CycloneDX SBOMs and CI workflow.",
+      "limit": "Hosted CI has been written but not executed in this assessment. Registry results are snapshots and do not verify dependency provenance or every reachable code path."
+    },
+    {
+      "area": "A04 Cryptographic failures",
+      "status": "Application paths tested",
+      "evidence": "Signed-token verification, required expiry/audience, key rotation regression, encrypted applicant identity fields and Google SSO verification.",
+      "limit": "Production key custody, rotation execution, database encryption and backup encryption are unverified."
+    },
+    {
+      "area": "A05 Injection",
+      "status": "Sampled code and regression review",
+      "evidence": "Reviewed dynamic evaluation and subprocess locations; bounded payroll/custom formula ASTs, CSV text guards and existing formula-injection tests.",
+      "limit": "No exhaustive SQL injection or stored-XSS test was performed against every module."
+    },
+    {
+      "area": "A06 Insecure design",
+      "status": "Reviewed with residual risks recorded",
+      "evidence": "One PMS task/review history, HR approval before account creation, immutable review history, tenant ownership and public upload quotas.",
+      "limit": "Public applications still use the existing tenant-1 enrollment partition; shared-backend customer-domain enrollment needs an authoritative tenant resolver before a multi-tenant rollout."
+    },
+    {
+      "area": "A07 Authentication failures",
+      "status": "Critical flows tested",
+      "evidence": "Login, MFA regression suite, session expiry, logout/refresh replay, suspended accounts, portal claims and current identity checks.",
+      "limit": "Live MFA provider delivery, enterprise SSO configuration and production rate-limit topology remain unverified."
+    },
+    {
+      "area": "A08 Software/data integrity failures",
+      "status": "Critical workflow tests passed",
+      "evidence": "PMS per-assignee execution, versioned evidence, approval/score ownership, deduplicated distribution and migration preservation checks.",
+      "limit": "PostgreSQL transaction races and worker crash/retry behavior require the guarded PostgreSQL integration run."
+    },
+    {
+      "area": "A09 Logging and alerting failures",
+      "status": "Logging controls tested; alert delivery unverified",
+      "evidence": "Existing request-audit tests, request IDs, authentication outcomes and redaction of email/configuration secrets.",
+      "limit": "Email delivery is an unconfigured application stub. Production alert delivery, retention, immutability and audit-storage failure alerting are not established. Earlier unit-test audit traffic reached the default development database; historical attribution and any cleanup remain a reviewed follow-up."
+    },
+    {
+      "area": "A10 Exceptional conditions",
+      "status": "Sampled failures tested",
+      "evidence": "Malformed tokens, invalid file capabilities, missing files, upload limits, invalid archive content and formula limits return bounded errors.",
+      "limit": "No production dependency-outage, disk-exhaustion or destructive fault test was run."
+    },
+    {
+      "area": "11 BOLA / IDOR",
+      "status": "Critical objects tested",
+      "evidence": "Own/other-company employee IDs, child records, certificates, policies/templates, existing PMS task/project access tests and intern assignment boundaries.",
+      "limit": "Record-sharing policies in all other Business Suite modules are not certified by this sample."
+    },
+    {
+      "area": "12 Mass assignment / API tampering",
+      "status": "Critical inputs tested",
+      "evidence": "Submission/review extra fields are forbidden, client score/status tampering is rejected, and employee tenant-link changes are validated.",
+      "limit": "Legacy schema fields across all modules still require an endpoint-by-endpoint field authorization matrix."
+    },
+    {
+      "area": "13 Sensitive data leakage",
+      "status": "Confirmed leaks fixed",
+      "evidence": "Private static files blocked, masked employee responses omit documents, application identities remain encrypted/masked, secret logs removed and API responses marked no-store.",
+      "limit": "Public asset folders and production access logs need deployment-specific privacy review."
+    },
+    {
+      "area": "14 Upload / download security",
+      "status": "Type/path/access controls tested",
+      "evidence": "Magic bytes, DOCX bounds/traversal/macros, private claim tokens, source quotas, size limits, signed download expiry and negative anonymous-file tests.",
+      "limit": "Malware scanning and content disarm are not configured. Real restricted documents should not be accepted for enterprise rollout until that control is deployed and tested."
+    },
+    {
+      "area": "15 Workflow / business-logic tampering",
+      "status": "Shared PMS and HR critical flows tested",
+      "evidence": "Approval before login, per-assignee progress, versioned submissions, reviewer delegation, score ceilings, completion controls, membership capacity and idempotent distribution tests.",
+      "limit": "The separate six-applicant/three-batch browser acceptance campaign is not completed by this security assessment."
+    }
+  ],
+  "authorizationMatrix": [
+    {
+      "actor": "Anonymous",
+      "allowed": "Public application/options/status with applicant credentials; explicitly public presentation assets",
+      "denied": "Employee directory, HR approval, batches, private storage and scheduler without its secret"
+    },
+    {
+      "actor": "Intern",
+      "allowed": "Interns Hub own profile, assigned PMS work, own submissions/reports and permitted portal aggregates",
+      "denied": "HRMS administration, application approval, batch management, other assignee work and client-set review scores"
+    },
+    {
+      "actor": "Employee",
+      "allowed": "Existing HRMS login and authorized own PMS assignments",
+      "denied": "Other-company HR records and privileged PMS review without delegation"
+    },
+    {
+      "actor": "Manager / reviewer",
+      "allowed": "Authorized project/batch scope and delegated reviews",
+      "denied": "Cross-company records and reviews outside current project/delegation scope"
+    },
+    {
+      "actor": "HR administrator",
+      "allowed": "Permission-authorized recruitment and company-scoped employee/document management",
+      "denied": "Other-company records; HR role alone does not grant PMS review approval"
+    },
+    {
+      "actor": "Platform superuser",
+      "allowed": "Explicit platform-wide administrative access",
+      "denied": "Unauthenticated file-path minting and invalid/revoked sessions"
+    },
+    {
+      "actor": "Background scheduler",
+      "allowed": "Internal cron only with the configured server secret",
+      "denied": "Anonymous scheduler invocation; jobs remain server-owned"
+    }
+  ],
+  "classification": [
+    {
+      "level": "Public",
+      "data": "Application program options and explicitly public branding assets"
+    },
+    {
+      "level": "Internal",
+      "data": "Organization metadata, project/task descriptions and authorized directory presentation"
+    },
+    {
+      "level": "Confidential",
+      "data": "Performance scores, reviews, work evidence, reports and business records"
+    },
+    {
+      "level": "Restricted",
+      "data": "Identity documents and numbers, private HR documents, payroll/private contact information, passwords, tokens and cryptographic keys"
+    }
+  ],
+  "trustFlow": [
+    "Separate HRMS and Interns Hub browsers / customer origins",
+    "Shared API: portal restriction, active account/session, permission and object/tenant checks",
+    "HRMS employee/application/batch data + authoritative PMS tasks/submissions/reviews",
+    "Shared PostgreSQL in deployment; isolated SQLite for this local assessment",
+    "Private storage behind expiring application capabilities; explicit public asset allowlist",
+    "Server-owned scheduler, audit records and notification integrations"
+  ],
+  "migrationPlan": [
+    "No production database was migrated during this assessment.",
+    "Before applying migrations 018, 019 and 020, take an encrypted database backup and verify a restore into an isolated staging database.",
+    "Review the ownership of legacy policy/template rows assigned to tenant 1; correct the mapping in staging before rollout.",
+    "Run both migration chains on staging, verify row preservation, tenant reads/writes and PostgreSQL concurrency tests, then review the migration diff.",
+    "Deploy compatible backend/frontend versions together: private file display links now expire and must be refreshed from authorized records.",
+    "Keep a write-frozen backup and previous deployment available. Downgrades preserve ownership/history; use a reviewed restore or fix-forward procedure rather than deleting audit data."
+  ],
+  "remainingReleaseChecks": [
+    "Guarded real-PostgreSQL migration, row-lock, worker-claim and concurrency tests (seven existing integration cases are skipped locally).",
+    "Production TLS/proxy/body-size/CORS policy, DB least privilege, encrypted backup restore and secret rotation evidence.",
+    "A configured and tested malware-scanning/quarantine pipeline before accepting real restricted documents.",
+    "Working security-alert delivery, audit-retention policy and monitoring of audit persistence failures.",
+    "Authoritative customer-domain-to-tenant enrollment for a shared-backend multi-domain rollout; current public applications remain in tenant 1.",
+    "Complete the separate batch-management browser acceptance campaign and endpoint-specific authorization review for unsampled modules.",
+    "Review the default development audit entries identified in audit-isolation-check.json. Preserve a backup and attribute exact entries before any cleanup; no audit history was deleted by this assessment.",
+    "Review historical accounts created with shared/default or demo passwords. Rotate or disable them through an approved credential-management process; no existing user passwords were changed by this assessment."
+  ],
+  "sources": [
+    {
+      "title": "OWASP Top 10:2025",
+      "url": "https://top10.owasp.org/2025/"
+    }
+  ],
+  "auditIsolationIncident": {
+    "check": "Default database audit test-client traffic",
+    "operation": "Read-only aggregate; no records exported",
+    "window": "Last 6 hours",
+    "status": "Checked",
+    "matching_request_count": 23319,
+    "configured_environment": "development",
+    "database_location": "loopback",
+    "attribution": "Aggregate includes all test-client activity in the window; not solely attributed to this assessment.",
+    "containment": "Test conftest now sets a disposable DATABASE_URL before importing the application and overrides the audit session factory. Live QA also overrides the global DATABASE_URL.",
+    "cleanup": "No audit history deleted. A reviewed backup and precise attribution are required before any cleanup.",
+    "containment_check_since": "2026-10-25T15:49:36.966691+00:00",
+    "post_containment_matching_request_count": 0,
+    "post_containment_test_result": "901 passed, 7 PostgreSQL integration skips in the full isolated run; subsequent focused security retests passed.",
+    "verification_time": "2026-10-25T16:59:58.998762+00:00"
+  }
+}

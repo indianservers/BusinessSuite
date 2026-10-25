@@ -19,6 +19,8 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.common.profile_api",
+    "app.forms.router",
     "app.apps.scheduling.router",
     "app.api.v1.scheduled_jobs",
     "app.api.v1.auth",
@@ -38,6 +40,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.forms.models",
     "app.apps.scheduling.models",
     "app.models.deployment",
     "app.models.user",
@@ -64,6 +67,7 @@ APP_MODULES: dict[str, AppModule] = {
         key="hrms",
         label="HRMS",
         router_modules=(
+            "app.apps.interns_hub.router",
             "app.api.v1.ai",
             "app.api.v1.assets",
             "app.api.v1.attendance",
@@ -106,6 +110,8 @@ APP_MODULES: dict[str, AppModule] = {
             "app.api.v1.workflow",
         ),
         model_modules=(
+            "app.apps.interns_hub.models",
+            "app.apps.interns_hub.management_models",
             "app.models.company",
             "app.models.employee",
             "app.models.expense",

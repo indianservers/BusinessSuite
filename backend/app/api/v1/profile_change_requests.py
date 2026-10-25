@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.input_validation import contact_change_errors
 
 from datetime import datetime, timezone
 from typing import Any
@@ -42,8 +43,8 @@ def _load_employee(db: Session, employee_id: int, current_user: User) -> Employe
     employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
-    org_id = _org_id(current_user)
-    if org_id is not None and getattr(employee, "company_id", None) not in {None, org_id}:
+    from app.common.services.profiles import employee_tenant, tenant
+    if employee_tenant(employee) != tenant(current_user):
         raise HTTPException(status_code=404, detail="Employee not found")
     return employee
 
@@ -65,7 +66,12 @@ def _can_view_employee(employee: Employee, current_user: User) -> bool:
 def _validate_changes(changes: dict[str, Any], current_user: User, employee: Employee) -> None:
     if not isinstance(changes, dict) or not changes:
         raise HTTPException(status_code=400, detail="fieldChanges must contain at least one field")
-    allowed_special = {"education_details", "experience_details", "document_details", "nominee_details"}
+    errors=contact_change_errors(changes,employee)
+    if errors:raise HTTPException(422,detail=errors)
+    allowed_special = {"education_details", "experience_details", "document_details", "nominee_details", "unified_profile"}
+    if "unified_profile" in changes:
+        from app.common.services.profiles import normalize_values
+        normalize_values(changes["unified_profile"], {key: getattr(employee, key, None) for key in ("phone_number", "phone_number_country_code", "emergency_contact_number", "emergency_contact_number_country_code")})
     unsupported = set(changes) - PROFILE_CHANGE_FIELDS - allowed_special
     if unsupported:
         raise HTTPException(status_code=400, detail=f"Unsupported change field(s): {', '.join(sorted(unsupported))}")

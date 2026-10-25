@@ -1,0 +1,231 @@
+{
+  "target": "http://127.0.0.1:1549",
+  "data": "Synthetic QA fixtures only",
+  "cases": [
+    {
+      "case": "Anonymous employee directory",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "passed": true
+    },
+    {
+      "case": "Anonymous restricted file: employee_docs",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "passed": true
+    },
+    {
+      "case": "Anonymous restricted file: certificates",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "passed": true
+    },
+    {
+      "case": "Anonymous restricted file: _private",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "passed": true
+    },
+    {
+      "case": "Forged download capability",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "passed": true
+    },
+    {
+      "case": "Scheduler without secret",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "passed": true
+    },
+    {
+      "case": "Intern cannot use HRMS login",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "passed": true
+    },
+    {
+      "case": "Approved intern login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "passed": true
+    },
+    {
+      "case": "Intern own profile",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "passed": true
+    },
+    {
+      "case": "Intern own assignments",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "passed": true
+    },
+    {
+      "case": "Intern token blocked at HRMS",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "passed": true
+    },
+    {
+      "case": "Intern cannot review applications",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "passed": true
+    },
+    {
+      "case": "Intern cannot administer batches",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "passed": true
+    },
+    {
+      "case": "Intern portal token rejected at PMS WebSocket",
+      "status": 403,
+      "expected": [
+        403,
+        1008
+      ],
+      "passed": true
+    },
+    {
+      "case": "WebSocket access token omitted from server logs",
+      "passed": true
+    },
+    {
+      "case": "Client score tampering rejected",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "passed": true
+    },
+    {
+      "case": "Logout",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "passed": true
+    },
+    {
+      "case": "Access replay after logout",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "passed": true
+    },
+    {
+      "case": "Refresh replay after logout",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "passed": true
+    },
+    {
+      "case": "Legitimate administrator login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "passed": true
+    },
+    {
+      "case": "Administrator directory",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "passed": true
+    },
+    {
+      "case": "Employee account requires explicit password",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "passed": true
+    },
+    {
+      "case": "Authorized private upload",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "passed": true
+    },
+    {
+      "case": "Authorized private capability download",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "passed": true
+    },
+    {
+      "case": "Private download attachment and cache headers",
+      "passed": true
+    },
+    {
+      "case": "Anonymous direct path of uploaded file",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "passed": true
+    },
+    {
+      "case": "Private capability omitted from server access logs",
+      "passed": true
+    },
+    {
+      "case": "Storage path re-signing rejected",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "passed": true
+    },
+    {
+      "case": "Invalid document signature",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "passed": true
+    },
+    {
+      "case": "Sensitive API security headers",
+      "passed": true
+    }
+  ]
+}

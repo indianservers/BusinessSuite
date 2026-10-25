@@ -5,8 +5,9 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
-from jose import JWTError, jwt
-from app.core.deps import get_current_active_superuser, get_db, get_current_user
+import jwt
+from jwt import PyJWTError as JWTError
+from app.core.deps import get_current_active_superuser, get_db, get_current_user, token_record_id
 from app.core.config import settings
 from app.core.email import send_email
 from app.core.security import (
@@ -99,7 +100,7 @@ def _normalize_module(module: str | None) -> str | None:
     value = module.strip().lower().replace("-", "_")
     if value in {"pms", "project", "project_management"}:
         return "project_management"
-    if value in {"crm", "hrms", "srm", "fam"}:
+    if value in {"crm", "hrms", "srm", "fam", "interns_hub"}:
         return value
     return None
 
@@ -108,6 +109,12 @@ def _ensure_module_login_allowed(user: User, module: str | None) -> None:
     module_key = _normalize_module(module)
     if not module_key:
         return
+    if module_key == "interns_hub":
+        from app.apps.interns_hub.router import ensure_intern
+        ensure_intern(user)
+        return
+    if module_key == "hrms" and getattr(user, "employee", None) and (user.employee.employment_type or "").lower() == "intern":
+        raise HTTPException(status_code=403, detail="Please use the dedicated Interns Hub login")
     role_name = user.role.name if user.role else None
     if role_name not in MODULE_ROLE_MAP[module_key]:
         raise HTTPException(
@@ -136,7 +143,7 @@ def _device_name(request: Request | None, explicit: str | None = None) -> str:
     return (agent or "Unknown device")[:150]
 
 
-def _token_response(db: Session, user: User, request: Request | None = None, trusted_device: bool = False, device_name: str | None = None) -> TokenResponse:
+def _token_response(db: Session, user: User, request: Request | None = None, trusted_device: bool = False, device_name: str | None = None, portal: str | None = None) -> TokenResponse:
     from app.core.audit_context import set_audit_actor
     set_audit_actor(user)
     session = UserSession(
@@ -152,8 +159,8 @@ def _token_response(db: Session, user: User, request: Request | None = None, tru
     )
     db.add(session)
     db.flush()
-    access_token = create_access_token(user.id, session_id=session.id)
-    refresh_token = create_refresh_token(user.id, session_id=session.id)
+    access_token = create_access_token(user.id, session_id=session.id, portal=portal)
+    refresh_token = create_refresh_token(user.id, session_id=session.id, portal=portal)
     session.session_token_hash = _hash_token(access_token)
     db.flush()
     employee = getattr(user, "employee", None)
@@ -207,6 +214,8 @@ def _active_password_policy(db: Session) -> PasswordPolicy | None:
 
 
 def _validate_password_policy(db: Session, password: str) -> None:
+    if len(password.encode('utf-8'))>72:
+        raise HTTPException(400,'Password must not exceed 72 UTF-8 bytes')
     policy = _active_password_policy(db)
     min_length = policy.min_length if policy else 8
     if len(password) < min_length:
@@ -242,9 +251,9 @@ def _bearer_token(request: Request | None) -> str | None:
     return authorization.split(" ", 1)[1].strip()
 
 
-def _create_mfa_token(user: User) -> str:
+def _create_mfa_token(user: User, module: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=5)
-    return jwt.encode({"sub": str(user.id), "scope": "mfa", "exp": expire}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return jwt.encode({"sub": str(user.id), "scope": "mfa", "module": module, "exp": expire}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def _decode_mfa_token(token: str) -> dict:
@@ -360,6 +369,13 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
         _log_attempt(db, user, request_data.email, False, "Account disabled", request)
         db.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
+    # An intern identity always receives a portal-restricted session, including
+    # callers that omit the module in the login payload.
+    employee = getattr(user, "employee", None)
+    if employee and (employee.employment_type or "").strip().lower() == "intern":
+        if request_data.module and _normalize_module(request_data.module) != "interns_hub":
+            raise HTTPException(status_code=403, detail="Please use the dedicated Interns Hub login")
+        request_data.module = "interns_hub"
     _ensure_module_login_allowed(user, request_data.module)
 
     user.last_login = datetime.now(timezone.utc)
@@ -367,13 +383,13 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
     db.commit()
 
     if user.mfa_enabled and _trusted_device_valid(db, user.id, request_data.trusted_device_token):
-        token_response = _token_response(db, user, request, trusted_device=True)
+        token_response = _token_response(db, user, request, trusted_device=True, portal="interns_hub" if request_data.module == "interns_hub" else None)
         db.commit()
         return token_response
     if user.mfa_enabled or _active_policy_mfa_required(db):
-        return {"mfa_required": True, "mfa_token": _create_mfa_token(user), "mfa_methods": ["totp", "recovery"]}
+        return {"mfa_required": True, "mfa_token": _create_mfa_token(user, request_data.module), "mfa_methods": ["totp", "recovery"]}
 
-    token_response = _token_response(db, user, request)
+    token_response = _token_response(db, user, request, portal="interns_hub" if request_data.module == "interns_hub" else None)
     db.commit()
     return token_response
 
@@ -382,12 +398,13 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
 def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Depends(get_db)):
     """Complete the second login phase using TOTP or a recovery code."""
     payload = _decode_mfa_token(data.mfa_token)
-    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    user = db.query(User).filter(User.id == token_record_id(payload.get("sub"))).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
     lockout = check_lockout(db, user)
     if lockout:
         raise HTTPException(status_code=423, detail=f"Account locked after {lockout['attempts']} failed attempts. Try again in {lockout['unlock_after_minutes']} minutes.")
+    _ensure_module_login_allowed(user, payload.get("module"))
     method = _active_totp(db, user.id)
     valid = False
     if data.method == "totp" and method:
@@ -411,7 +428,7 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
     user.last_login = datetime.now(timezone.utc)
     _log_attempt(db, user, user.email, True, request=request, mfa_attempted=True, mfa_success=True)
     trusted_device_token = _create_trusted_device(db, user, request, data.device_name) if data.trust_device else None
-    token_response = _token_response(db, user, request, trusted_device=bool(data.trust_device), device_name=data.device_name)
+    token_response = _token_response(db, user, request, trusted_device=bool(data.trust_device), device_name=data.device_name, portal="interns_hub" if payload.get("module") == "interns_hub" else None)
     db.commit()
     body = token_response.model_dump()
     if trusted_device_token:
@@ -425,19 +442,24 @@ def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)):
     if not payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    user = db.query(User).filter(User.id == token_record_id(payload.get("sub"))).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+    if payload.get("portal") == "interns_hub":
+        _ensure_module_login_allowed(user, "interns_hub")
     session_id = payload.get("sid")
     if session_id:
-        session = db.query(UserSession).filter(UserSession.id == int(session_id), UserSession.user_id == user.id).first()
-        if not session or session.status.lower() == "revoked":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked")
+        session = db.query(UserSession).filter(UserSession.id == token_record_id(session_id), UserSession.user_id == user.id).first()
+        expires_at = session.expires_at if session else None
+        if expires_at and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if not session or session.status.lower() == "revoked" or (expires_at and expires_at <= datetime.now(timezone.utc)):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked or expired")
     else:
         session = None
 
-    access_token = create_access_token(user.id, session_id=session.id if session else None)
-    refresh_token_new = create_refresh_token(user.id, session_id=session.id if session else None)
+    access_token = create_access_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"))
+    refresh_token_new = create_refresh_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"))
     if session:
         session.session_token_hash = _hash_token(access_token)
         session.last_seen_at = datetime.now(timezone.utc)

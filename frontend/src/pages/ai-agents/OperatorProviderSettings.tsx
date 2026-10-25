@@ -21,6 +21,7 @@ export default function OperatorProviderSettings() {
   const [key, setKey] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [inherit, setInherit] = useState(false);
   const [maxTokens, setMaxTokens] = useState(3000);
   const [inputPrice, setInputPrice] = useState("");
   const [outputPrice, setOutputPrice] = useState("");
@@ -43,6 +44,7 @@ export default function OperatorProviderSettings() {
   }, [workspace]);
   useEffect(() => {
     setModel(saved?.model || ""); setKey(""); setEnabled(saved?.enabled || false); setSharing(saved?.data_sharing_allowed || false);
+    setInherit(saved?.allow_workspace_inheritance || false);
     setMaxTokens(saved?.max_tokens || 3000); setInputPrice(saved?.input_price == null ? "" : String(saved.input_price));
     setOutputPrice(saved?.output_price == null ? "" : String(saved.output_price));
   }, [saved, provider]);
@@ -51,7 +53,7 @@ export default function OperatorProviderSettings() {
     e.preventDefault(); setBusy(true); setError(""); setNotice("");
     try {
       await operatorApi.saveProvider(provider, { model, enabled, data_sharing_allowed: sharing, max_tokens: maxTokens,
-        input_price: inputPrice === "" ? null : Number(inputPrice), output_price: outputPrice === "" ? null : Number(outputPrice),
+        input_price: inputPrice === "" ? null : Number(inputPrice), output_price: outputPrice === "" ? null : Number(outputPrice), allow_workspace_inheritance: !workspace && inherit,
         ...(key ? { api_key: key } : {}) }, workspace);
       setKey(""); await load(); setNotice("Provider settings saved. Run a connection test to verify the key and model.");
     } catch (e) { setError(message(e)); } finally { setBusy(false); }
@@ -69,10 +71,12 @@ export default function OperatorProviderSettings() {
     <nav className="flex gap-4">{names.map(n => <Link key={n} aria-current={provider === n ? "page" : undefined} className={provider === n ? "font-semibold underline" : "text-primary"} to={`/pms/settings/ai/${n}${workspace ? `?workspace=${workspace}` : ""}`}>{labels[n]}</Link>)}</nav>
     {error && <p role="alert" className="text-destructive">{error}</p>}{notice && <p role="status">{notice}</p>}
     {loading ? <p>Loading provider settings…</p> : <form onSubmit={save} className="rounded-lg border p-5 space-y-4 max-w-2xl"><h2 className="text-lg font-semibold">{labels[provider]}</h2><fieldset disabled={busy} className="space-y-4">
+      {saved?.inherited && <p role="status">Using inherited Gemini configuration. Enter a workspace API key to create an override. A disabled override blocks inheritance.</p>}
       <label className="block">Model ID<Input aria-label="Model ID" required maxLength={120} value={model} onChange={e => setModel(e.target.value)} placeholder="Enter a model available to your API account" /></label>
-      <label className="block">API key<Input aria-label="Provider API key" type="password" autoComplete="new-password" value={key} onChange={e => setKey(e.target.value)} required={!saved?.has_key} placeholder={saved?.has_key ? "Key configured; leave blank to keep it" : "Enter API key"} /></label>
+      <label className="block">API key<Input aria-label="Provider API key" type="password" autoComplete="new-password" value={key} onChange={e => setKey(e.target.value)} required={!saved?.has_key || !!saved?.inherited} placeholder={saved?.inherited ? "Enter a workspace key to override inheritance" : saved?.has_key ? "Key configured; leave blank to keep it" : "Enter API key"} /></label>
       <label className="block"><input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} /> Enable this provider</label>
       <label className="block"><input type="checkbox" checked={sharing} onChange={e => setSharing(e.target.checked)} /> Allow authorized task context to be sent to this provider</label>
+      {provider==='gemini'&&!workspace&&<label className="block"><input type="checkbox" checked={inherit} onChange={e=>setInherit(e.target.checked)}/> Allow owned/company workspaces to inherit Gemini settings</label>}
       <label className="block">Maximum output tokens<Input type="number" min={512} max={8192} value={maxTokens} onChange={e => setMaxTokens(Number(e.target.value))} /></label>
       <p className="text-sm">Optional USD rates per million tokens. Use your provider contract; unknown costs stay blank in analytics.</p>
       <div className="grid grid-cols-2 gap-4"><label>Input rate<Input aria-label="Input token rate" type="number" min={0} max={10000} step="any" value={inputPrice} onChange={e => setInputPrice(e.target.value)} /></label><label>Output rate<Input aria-label="Output token rate" type="number" min={0} max={10000} step="any" value={outputPrice} onChange={e => setOutputPrice(e.target.value)} /></label></div>

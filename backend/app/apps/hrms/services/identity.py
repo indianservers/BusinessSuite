@@ -18,6 +18,7 @@ class HrmsIdentityService:
                 employee.user,
                 display_name=" ".join(part for part in [employee.first_name, employee.last_name] if part).strip(),
                 phone_number=employee.phone_number,
+                phone_number_country_code=employee.phone_number_country_code,
                 source_module="hrms",
                 source_record_type="employee",
                 source_record_id=employee.id,

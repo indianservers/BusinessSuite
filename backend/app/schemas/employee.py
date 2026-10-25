@@ -1,7 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, List, Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator, ValidationInfo
+from app.core.input_validation import clean_text,email_address,EmailAddress
 
 
 class EmployeeEducationBase(BaseModel):
@@ -160,10 +161,13 @@ class EmployeeBase(BaseModel):
     work_email: Optional[str] = None
     personal_email: Optional[str] = None
     phone_number: Optional[str] = None
+    phone_number_country_code: str | None = None
     alternate_phone: Optional[str] = None
+    alternate_phone_country_code: str | None = None
     office_extension: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_number: Optional[str] = None
+    emergency_contact_number_country_code: str | None = None
     emergency_contact_relation: Optional[str] = None
     present_address: Optional[str] = None
     permanent_address: Optional[str] = None
@@ -216,13 +220,64 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
+    last_name: str = ""
+    @field_validator('first_name','last_name',mode='before')
+    @classmethod
+    def valid_person_name(cls,value,info: ValidationInfo):
+        if value is None:
+            if info.field_name=='last_name':return ''
+            raise ValueError('First name is required')
+        return clean_text(value,160,required=info.field_name=='first_name')
+
+    @field_validator('personal_email','work_email',mode='before')
+    @classmethod
+    def valid_contact_email(cls,value):
+        return email_address(value) if value not in (None,'') else value
+
+    @field_validator('date_of_birth')
+    @classmethod
+    def past_birth_date(cls,value):
+        if value is not None and value>=date.today():raise ValueError('Date of birth must be in the past')
+        return value
+
+    @field_validator('gender')
+    @classmethod
+    def supported_gender(cls,value):
+        if value not in (None,'','Male','Female','Other','Prefer not to say'):raise ValueError('Select a supported gender')
+        return value
+
     employee_id: Optional[str] = None  # auto-generated if not provided
     create_user_account: bool = True
-    user_email: Optional[EmailStr] = None
+    user_email: Optional[EmailAddress] = None
     user_password: Optional[str] = None
 
 
 class EmployeeUpdate(BaseModel):
+    @field_validator('first_name','last_name',mode='before')
+    @classmethod
+    def valid_person_name(cls,value,info: ValidationInfo):
+        if value is None:
+            if info.field_name=='last_name':return ''
+            raise ValueError('First name is required')
+        return clean_text(value,160,required=info.field_name=='first_name')
+
+    @field_validator('personal_email','work_email',mode='before')
+    @classmethod
+    def valid_contact_email(cls,value):
+        return email_address(value) if value not in (None,'') else value
+
+    @field_validator('date_of_birth')
+    @classmethod
+    def past_birth_date(cls,value):
+        if value is not None and value>=date.today():raise ValueError('Date of birth must be in the past')
+        return value
+
+    @field_validator('gender')
+    @classmethod
+    def supported_gender(cls,value):
+        if value not in (None,'','Male','Female','Other','Prefer not to say'):raise ValueError('Select a supported gender')
+        return value
+
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -234,10 +289,13 @@ class EmployeeUpdate(BaseModel):
     work_email: Optional[str] = None
     personal_email: Optional[str] = None
     phone_number: Optional[str] = None
+    phone_number_country_code: str | None = None
     alternate_phone: Optional[str] = None
+    alternate_phone_country_code: str | None = None
     office_extension: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_number: Optional[str] = None
+    emergency_contact_number_country_code: str | None = None
     emergency_contact_relation: Optional[str] = None
     present_address: Optional[str] = None
     permanent_address: Optional[str] = None
@@ -293,6 +351,7 @@ class EmployeeListSchema(BaseModel):
     work_email: Optional[str] = None
     personal_email: Optional[str] = None
     phone_number: Optional[str] = None
+    phone_number_country_code: str | None = None
     office_extension: Optional[str] = None
     designation_id: Optional[int] = None
     department_id: Optional[int] = None
@@ -320,6 +379,7 @@ class EmployeeListSchema(BaseModel):
 
 
 class EmployeeSchema(EmployeeBase):
+    phone_validation_issues: dict[str,str] = {}
     id: int
     employee_id: str
     user_id: Optional[int] = None

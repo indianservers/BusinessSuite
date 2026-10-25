@@ -170,7 +170,9 @@ export function usePMSRealtime({
         if (!["connected", "subscribed", "user.presence"].includes(event.type)) {
           onEventRef.current?.(event);
           const name = actorName(event.actor);
-          if (showToast && name && !notificationsMuted(useAuthStore.getState().user?.id)) {
+          const currentUser = useAuthStore.getState().user;
+          const ownEvent = typeof event.actor === "object" && event.actor?.id === currentUser?.id;
+          if (showToast && name && !ownEvent && !notificationsMuted(currentUser?.id)) {
             toast({ title: event.message || "PMS updated", description: `By ${name}` });
           }
         }

@@ -1,3 +1,4 @@
+from app.core.input_validation import national_phone, calling_code, email_address, clean_text, EmailAddress
 from app.core.storage import persist_file
 from datetime import date, datetime, timedelta, timezone
 from io import StringIO
@@ -7,7 +8,7 @@ import json
 import time
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 from app.core.deps import get_db, get_current_user, RequirePermission
@@ -33,7 +34,8 @@ from app.schemas.common import PaginatedResponse
 import os, shutil
 from app.core.config import settings
 
-router = APIRouter(prefix="/employees", tags=["Employees"])
+from app.core.employee_scope import employee_tenant_scope, validate_employee_links
+router = APIRouter(prefix="/employees", tags=["Employees"], dependencies=[Depends(employee_tenant_scope)])
 _DIRECTORY_SEARCH_BUCKETS: dict[int, list[float]] = {}
 
 
@@ -42,8 +44,8 @@ class EmployeeUserLinkUpdate(BaseModel):
 
 
 class EmployeeUserAccountCreate(BaseModel):
-    email: str
-    password: str
+    email: EmailAddress
+    password: str = Field(min_length=8,max_length=72)
     role_id: Optional[int] = None
 
 
@@ -64,6 +66,7 @@ class EmployeeDirectoryItem(BaseModel):
     email: Optional[str] = None
     work_email: Optional[str] = None
     phone_number: Optional[str] = None
+    phone_number_country_code: str | None = None
     office_extension: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
@@ -85,6 +88,7 @@ class EmployeeProfileCard(BaseModel):
     full_name: str
     email: Optional[str] = None
     phone_number: Optional[str] = None
+    phone_number_country_code: str | None = None
     department: Optional[str] = None
     designation: Optional[str] = None
     branch: Optional[str] = None
@@ -269,6 +273,7 @@ def _to_directory_item(employee: Employee, current_user: User) -> EmployeeDirect
         email=_mask(employee.work_email or employee.personal_email, can_contact),
         work_email=_mask(employee.work_email, can_contact),
         phone_number=_mask(employee.phone_number, can_contact),
+        phone_number_country_code=_mask(employee.phone_number_country_code,can_contact),
         office_extension=_mask(employee.office_extension, can_contact),
         department=employee.department.name if employee.department else None,
         designation=employee.designation.name if employee.designation else None,
@@ -299,10 +304,13 @@ PROFILE_CHANGE_FIELDS = {
     "permanent_state",
     "permanent_pincode",
     "phone_number",
+    "phone_number_country_code",
     "alternate_phone",
+    "alternate_phone_country_code",
     "personal_email",
     "emergency_contact_name",
     "emergency_contact_number",
+    "emergency_contact_number_country_code",
     "emergency_contact_relation",
     "bank_name",
     "bank_branch",
@@ -360,6 +368,10 @@ def _serialize_change_request(item: EmployeeChangeRequest, employee: Employee | 
 
 def _apply_profile_change(db: Session, employee: Employee, changes: dict) -> None:
     for field, value in (changes or {}).items():
+        if field == "unified_profile":
+            from app.common.services.profiles import apply_approved_profile
+            apply_approved_profile(db, employee, value)
+            continue
         if field in PROFILE_CHANGE_FIELDS and hasattr(employee, field):
             setattr(employee, field, value)
         elif field == "education_details":
@@ -507,7 +519,7 @@ def export_employee_directory(
     rows = query.order_by(Employee.first_name.asc(), Employee.last_name.asc()).limit(5000).all()
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["employee_id", "name", "email", "phone", "department", "designation", "branch", "manager", "location"])
+    writer.writerow(["employee_id", "name", "email", "phone", "phone_country_code", "department", "designation", "branch", "manager", "location"])
     for employee in rows:
         item = _to_directory_item(employee, current_user)
         writer.writerow([
@@ -515,6 +527,7 @@ def export_employee_directory(
             item.full_name,
             item.email or "",
             item.phone_number or "",
+            item.phone_number_country_code or "",
             item.department or "",
             item.designation or "",
             item.branch or "",
@@ -722,6 +735,7 @@ def employee_profile_card(
         full_name=_directory_name(employee),
         email=_mask(employee.work_email or employee.personal_email, can_contact),
         phone_number=_mask(employee.phone_number, can_contact),
+        phone_number_country_code=_mask(employee.phone_number_country_code,can_contact),
         department=employee.department.name if employee.department else None,
         designation=employee.designation.name if employee.designation else None,
         branch=employee.branch.name if employee.branch else None,
@@ -824,6 +838,7 @@ def create_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_create")),
 ):
+    validate_employee_links(db, current_user, data.model_dump())
     if data.employee_id and crud_employee.get_by_employee_id(db, data.employee_id):
         raise HTTPException(status_code=400, detail="Employee ID already exists")
     if data.create_user_account and not current_user.is_superuser:
@@ -882,7 +897,7 @@ def export_employees(
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "employee_id", "first_name", "last_name", "personal_email", "phone_number",
+        "employee_id", "first_name", "last_name", "personal_email", "phone_number", "phone_number_country_code",
         "date_of_joining", "employment_type", "status", "work_location",
         "branch_id", "department_id", "designation_id", "reporting_manager_id",
     ])
@@ -897,6 +912,7 @@ def export_employees(
             emp.last_name,
             emp.personal_email or "",
             emp.phone_number or "",
+            emp.phone_number_country_code or "",
             emp.date_of_joining.isoformat() if emp.date_of_joining else "",
             emp.employment_type,
             emp.status,
@@ -926,7 +942,7 @@ async def import_employees(
 
     raw = (await file.read()).decode("utf-8-sig")
     reader = csv.DictReader(StringIO(raw))
-    required = {"first_name", "last_name", "date_of_joining"}
+    required = {"first_name", "date_of_joining"}
     headers = set(reader.fieldnames or [])
     missing = sorted(required - headers)
     if missing:
@@ -942,8 +958,6 @@ async def import_employees(
         employee_id = (row.get("employee_id") or "").strip() or f"EMPIMP{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{row_number:04d}"
         if not first_name:
             row_errors.append("first_name is required")
-        if not last_name:
-            row_errors.append("last_name is required")
         if crud_employee.get_by_employee_id(db, employee_id):
             row_errors.append(f"employee_id {employee_id} already exists")
         if employee_id in seen_employee_ids:
@@ -975,6 +989,16 @@ async def import_employees(
         designation_id = optional_int("designation_id")
         reporting_manager_id = optional_int("reporting_manager_id")
 
+        for field,validate in [('first_name',lambda value:clean_text(value,160)),('last_name',lambda value:clean_text(value,160)),('personal_email',email_address),('phone_number',national_phone)]:
+            value=row.get(field)
+            if value:
+                try:validate(value)
+                except ValueError as exc:row_errors.append(f'{field}: {exc}')
+        if row.get('phone_number'):
+            try:calling_code(row.get('phone_number_country_code'))
+            except ValueError as exc:row_errors.append(f'phone_number_country_code: {exc}')
+        try:validate_employee_links(db,current_user,{'branch_id':branch_id,'department_id':department_id,'designation_id':designation_id,'reporting_manager_id':reporting_manager_id})
+        except HTTPException as exc:row_errors.append(str(exc.detail))
         if row_errors:
             errors.append({"row": row_number, "employee_id": employee_id, "errors": row_errors})
             seen_employee_ids.add(employee_id)
@@ -985,7 +1009,8 @@ async def import_employees(
             first_name=first_name,
             last_name=last_name,
             personal_email=(row.get("personal_email") or "").strip() or None,
-            phone_number=(row.get("phone_number") or "").strip() or None,
+            phone_number=row.get("phone_number") or None,
+            phone_number_country_code=row.get("phone_number_country_code") or None,
             date_of_joining=joining_date,
             date_of_confirmation=confirmation_date,
             employment_type=(row.get("employment_type") or "Full-time").strip() or "Full-time",
@@ -1093,6 +1118,16 @@ def create_employee_change_request(
         current_user.employee and current_user.employee.id == employee.id
     ) and not (_has_permission(current_user, "employee_update") or _has_permission(current_user, "payroll_run")):
         raise HTTPException(status_code=403, detail="Sensitive profile changes require HR/payroll access")
+    for field in ('phone_number','alternate_phone','emergency_contact_number'):
+        code=field+'_country_code'
+        if field in changes or code in changes:
+            value=changes.get(field,getattr(employee,field,None))
+            if value not in (None,''):
+                try:national_phone(value);calling_code(changes.get(code,getattr(employee,code,None)))
+                except ValueError as exc:raise HTTPException(422,detail=[{'loc':['body',field],'msg':str(exc),'type':'value_error'}]) from None
+    if 'personal_email' in changes and changes['personal_email']:
+        try:email_address(changes['personal_email'])
+        except ValueError as exc:raise HTTPException(422,detail=str(exc)) from None
     values = data.model_dump()
     values["organization_id"] = _org_id(current_user)
     values["field_name"] = data.field_name or (next(iter(changes.keys())) if len(changes) == 1 else "multiple")
@@ -1296,16 +1331,24 @@ def create_employee_user_account(
     email = data.email.strip().lower()
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
-    if len(data.password or "") < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    from app.api.v1.auth import _validate_password_policy
+    _validate_password_policy(db,data.password)
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="User email already exists")
 
     role_id = data.role_id
+    if role_id and not current_user.is_superuser:raise HTTPException(403,"Only an administrator can choose an account role")
     if role_id:
         role = db.query(Role).filter(Role.id == role_id).first()
         if not role:
             raise HTTPException(status_code=404, detail="Role not found")
+    elif (emp.employment_type or "").strip().lower() == "intern":
+        role = db.query(Role).filter(Role.name == "intern").first()
+        if not role:
+            role = Role(name="intern", description="Interns Hub only", is_system=True)
+            db.add(role)
+            db.flush()
+        role_id = role.id
     else:
         role = db.query(Role).filter(func.lower(Role.name).like("%employee%")).order_by(Role.id.asc()).first()
         role_id = role.id if role else None
@@ -1359,6 +1402,7 @@ def update_employee(
     emp = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
+    validate_employee_links(db, current_user, data.model_dump(exclude_unset=True), emp)
     record_employee_field_changes(db, emp, data.model_dump(exclude_unset=True), current_user.id)
     return crud_employee.update(db, db_obj=emp, obj_in=data)
 
@@ -1490,8 +1534,12 @@ async def upload_document(
     filename = f"{uuid.uuid4().hex}.{ext}"
     file_path = os.path.join(upload_path, filename)
 
+    limit = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    body = await file.read(limit + 1)
+    if not body or len(body) > limit:
+        raise HTTPException(413, 'Upload exceeds the configured file size limit')
     with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+        f.write(body)
     persist_file(file_path)
 
     file_url = f"/uploads/employee_docs/{employee_id}/{filename}"

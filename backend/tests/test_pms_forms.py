@@ -121,7 +121,7 @@ def test_all_answer_controls_and_payload_limits():
         {"id": "number", "type": "number", "label": "Number"},
         {"id": "followup", "type": "text", "label": "Follow-up", "required": True, "condition": {"field": "number", "value": "1"}},
         {"id": "section", "type": "section", "label": "Section"}]})
-    valid = {"phone": "+91 12345 67890", "site": "https://example.com", "date": "2026-10-24", "choice": "A", "multiple": ["A", "B"], "number": 1, "followup": "yes"}
+    valid = {"phone": "1234567890", "phone_country_code": "+91", "site": "https://example.com", "date": "2026-10-24", "choice": "A", "multiple": ["A", "B"], "number": 1, "followup": "yes"}
     assert clean_answers(d, valid)["followup"] == "yes"
     for change in [{"site": "javascript:alert(1)"}, {"date": "2026-02-30"}, {"phone": "abc"}, {"choice": "C"}, {"multiple": ["A", "A"]}, {"multiple": []}, {"followup": ""}, {"number": True}, {"followup": "x" * 20001}]:
         with pytest.raises(HTTPException) as error:

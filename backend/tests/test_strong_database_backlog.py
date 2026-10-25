@@ -1,3 +1,4 @@
+from tests.security_file_fixtures import uploaded_reference
 from datetime import date
 from decimal import Decimal
 
@@ -206,7 +207,7 @@ def test_payroll_database_backlog_foundations(client, db):
             "notice_recovery_amount": "5000",
             "gratuity_amount": "20000",
             "loan_recovery_amount": "10000",
-            "settlement_letter_url": "/uploads/settlements/demo.pdf",
+            "settlement_letter_url": uploaded_reference('settlements/demo.pdf'),
             "lines": [{"line_type": "Payable", "component_name": "Bonus", "amount": "3000"}],
         },
         headers=admin_headers,

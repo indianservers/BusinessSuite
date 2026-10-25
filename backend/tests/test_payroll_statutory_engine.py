@@ -1,3 +1,4 @@
+from tests.security_file_fixtures import uploaded_reference
 from app.db.init_db import init_db
 from app.models.employee import Employee
 
@@ -154,7 +155,7 @@ def test_statutory_rules_profiles_calculation_challan_and_return_file(client, db
 
     valid_return = client.post(
         "/api/v1/payroll/statutory/return-files",
-        json={"challan_id": challan_id, "return_type": "PF_ECR", "format_version": "v1", "file_url": "/uploads/statutory/pf-ecr.csv"},
+        json={"challan_id": challan_id, "return_type": "PF_ECR", "format_version": "v1", "file_url": uploaded_reference('statutory/pf-ecr.csv')},
         headers=headers,
     )
     assert valid_return.status_code == 201

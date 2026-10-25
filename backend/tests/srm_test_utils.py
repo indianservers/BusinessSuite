@@ -64,5 +64,5 @@ def seed_invoice_parties(db, customer_ids=(101,)):
         db.add(Company(id=1, name="Synthetic seller", legal_name="Synthetic seller Ltd", address="Test seller address"))
     for ident in customer_ids:
         if not db.get(CRMCompany, ident):
-            db.add(CRMCompany(id=ident, organization_id=1, name=f"Synthetic customer {ident}", email="billing@example.invalid", address="Test customer address"))
+            db.add(CRMCompany(id=ident, organization_id=1, name=f"Synthetic customer {ident}", email="billing@example.com", address="Test customer address"))
     db.commit()

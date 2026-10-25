@@ -75,7 +75,8 @@ def resolve(db, user, module, source, key, lock=False):
         if not key.isdigit(): fail("Invalid record", 404)
         query = sales_order_query(db, user) if source == "sales-orders" else engagement_query(db, user) if source == "engagements" else db.query(model).filter(model.deleted_at.is_(None))
         # Even superusers must use the board's tenant, preventing cross-tenant links.
-        query = query.filter(model.organization_id == _org(user), model.id == int(key))
+        from app.apps.srm.services.commercial import scoped
+        query = query.filter(scoped(model.organization_id,user), model.id == int(key))
     elif module == "fam":
         from app.apps.fam.models import FAMFinancialYear
         from app.apps.fam.api.router import company_id_for

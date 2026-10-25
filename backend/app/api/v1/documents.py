@@ -34,7 +34,9 @@ from app.schemas.document import (
     TemplateGenerateRequest,
 )
 
-router = APIRouter(prefix="/documents", tags=["Documents & Policies"])
+from app.core.employee_scope import employee_tenant_scope
+from app.apps.srm.services.commercial import tenant
+router = APIRouter(prefix="/documents", tags=["Documents & Policies"], dependencies=[Depends(employee_tenant_scope)])
 
 
 def _validate_upload(file: UploadFile, extra_extensions: set[str] | None = None) -> str:
@@ -58,8 +60,12 @@ def _save_upload(
     os.makedirs(upload_path, exist_ok=True)
     filename = f"{prefix}{uuid.uuid4().hex}.{ext}"
     file_path = os.path.join(upload_path, filename)
+    limit=settings.MAX_UPLOAD_SIZE_MB*1024*1024
+    body=file.file.read(limit+1)
+    if not body or len(body)>limit:
+        raise HTTPException(413,'Upload exceeds the configured file size limit')
     with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+        f.write(body)
     persist_file(file_path)
     size = os.path.getsize(file_path)
     return f"/uploads/{folder}/{filename}", file.content_type or "", size
@@ -87,7 +93,7 @@ def list_templates(db: Session = Depends(get_db), current_user: User = Depends(R
 
 @router.post("/templates", response_model=DocumentTemplateSchema, status_code=status.HTTP_201_CREATED)
 def create_template(data: DocumentTemplateCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("company_manage"))):
-    template = DocumentTemplate(**data.model_dump())
+    template = DocumentTemplate(organization_id=tenant(current_user),**data.model_dump())
     db.add(template)
     db.commit()
     db.refresh(template)
@@ -149,7 +155,7 @@ def list_policies(db: Session = Depends(get_db), current_user: User = Depends(Re
 
 @router.post("/policies", response_model=CompanyPolicySchema, status_code=status.HTTP_201_CREATED)
 def create_policy(data: CompanyPolicyCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("company_manage"))):
-    policy = CompanyPolicy(**data.model_dump())
+    policy = CompanyPolicy(organization_id=tenant(current_user),**data.model_dump())
     db.add(policy)
     db.flush()
     version = CompanyPolicyVersion(
@@ -203,6 +209,8 @@ def publish_policy_version(
 @router.get("/generated", response_model=list[GeneratedDocumentSchema])
 def list_generated(employee_id: int | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_view"))):
     query = db.query(GeneratedDocument)
+    if not user_has_permission(current_user,'employee_update') and not user_has_permission(current_user,'employee_sensitive_view'):
+        query=query.filter(GeneratedDocument.employee_id==(current_user.employee.id if current_user.employee else -1))
     if employee_id:
         query = query.filter(GeneratedDocument.employee_id == employee_id)
     return query.order_by(GeneratedDocument.created_at.desc()).limit(200).all()
@@ -210,6 +218,10 @@ def list_generated(employee_id: int | None = None, db: Session = Depends(get_db)
 
 @router.post("/generated", response_model=GeneratedDocumentSchema, status_code=status.HTTP_201_CREATED)
 def create_generated(data: GeneratedDocumentCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    if not db.query(Employee.id).filter(Employee.id==data.employee_id).first():
+        raise HTTPException(404,'Employee not found')
+    if data.template_id and not db.query(DocumentTemplate.id).filter(DocumentTemplate.id==data.template_id).first():
+        raise HTTPException(404,'Document template not found')
     document = GeneratedDocument(**data.model_dump(), generated_by=current_user.id)
     db.add(document)
     db.commit()
@@ -326,6 +338,8 @@ async def upload_certificate_import(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_update")),
 ):
+    if employee_id and not db.query(Employee.id).filter(Employee.id==employee_id).first():
+        raise HTTPException(404,'Employee not found')
     file_url, _, _ = _save_upload(file, "certificate_imports", prefix="import_", extra_extensions={"csv", "xls", "xlsx"})
     batch = CertificateImportExportBatch(
         operation_type="Import",
@@ -351,6 +365,8 @@ def create_certificate_export_log(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("reports_view")),
 ):
+    if employee_id and not db.query(Employee.id).filter(Employee.id==employee_id).first():
+        raise HTTPException(404,'Employee not found')
     batch = CertificateImportExportBatch(
         operation_type="Export",
         employee_id=employee_id,

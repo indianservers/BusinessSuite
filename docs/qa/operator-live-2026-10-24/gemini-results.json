@@ -1,0 +1,156 @@
+{
+  "provider": "gemini",
+  "project_id": 2,
+  "started_at": "2026-10-24T16:13:36.177137+00:00",
+  "checks": [
+    {
+      "name": "Encrypted settings exposed without key material",
+      "status": "passed",
+      "evidence": {
+        "model": "gemini-3.5-flash-lite",
+        "has_key": true
+      }
+    },
+    {
+      "name": "Real provider connectivity through PMS gateway",
+      "status": "passed",
+      "evidence": {
+        "provider": "gemini"
+      }
+    },
+    {
+      "name": "Real model multi-step plan, idempotent replay, approval and worker execution",
+      "status": "passed",
+      "evidence": {
+        "run_id": 13,
+        "task_id": 8,
+        "receipts": [
+          {
+            "step": 1,
+            "tool": "update_task",
+            "task_id": 8,
+            "record_id": 8,
+            "status": "succeeded"
+          },
+          {
+            "step": 2,
+            "tool": "add_checklist",
+            "task_id": 8,
+            "record_id": 3,
+            "status": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Real cloud fallback, validated follow-up and persisted routing reason",
+      "status": "passed",
+      "evidence": {
+        "session_id": 3,
+        "kind": "ask"
+      }
+    },
+    {
+      "name": "Usage analytics: actual tokens, latency, estimated cost and sanitized logs",
+      "status": "passed",
+      "evidence": {
+        "log_ids": [
+          9,
+          8,
+          7
+        ]
+      }
+    }
+  ],
+  "model": "gemini-3.5-flash-lite",
+  "logs": [
+    {
+      "id": 9,
+      "user_id": 1,
+      "run_id": null,
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "brain_fallback",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "Udncau6zJ_XB694P1syfmQ4",
+      "input_tokens": 4737,
+      "output_tokens": 26,
+      "estimated_cost": 0.0014861,
+      "duration_ms": 10766,
+      "created_at": "2026-10-24T16:14:04.176158+00:00"
+    },
+    {
+      "id": 8,
+      "user_id": 1,
+      "run_id": 13,
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "plan",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "QtncarHvMJqC694PotanmA4",
+      "input_tokens": 1794,
+      "output_tokens": 141,
+      "estimated_cost": 0.0008907,
+      "duration_ms": 13202,
+      "created_at": "2026-10-24T16:13:48.392678+00:00"
+    },
+    {
+      "id": 7,
+      "user_id": 1,
+      "run_id": null,
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "test",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "NdncavHUGbfe694PgtGE8AY",
+      "input_tokens": 1260,
+      "output_tokens": 26,
+      "estimated_cost": 0.000443,
+      "duration_ms": 10875,
+      "created_at": "2026-10-24T16:13:36.301264+00:00"
+    }
+  ],
+  "groups": [
+    {
+      "provider": "gemini",
+      "model": "gemini-2.5-flash-lite",
+      "status": "failed",
+      "requests": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "estimated_cost": null,
+      "priced_requests": 0,
+      "average_latency_ms": 5139.0
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "status": "failed",
+      "requests": 2,
+      "input_tokens": null,
+      "output_tokens": null,
+      "estimated_cost": null,
+      "priced_requests": 0,
+      "average_latency_ms": 7359.5
+    },
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "status": "success",
+      "requests": 6,
+      "input_tokens": 12098,
+      "output_tokens": 381,
+      "estimated_cost": 0.0041404,
+      "priced_requests": 5,
+      "average_latency_ms": 11291.5
+    }
+  ],
+  "cost_note": "USD estimates use administrator-supplied rates per million tokens. Null means unknown; not a provider invoice. Logs exclude prompts, responses and credentials.",
+  "status": "passed"
+}

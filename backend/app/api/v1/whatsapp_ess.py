@@ -69,14 +69,15 @@ def _response_for(db: Session, employee: Employee, intent: str) -> str:
     return "You can ask for payslip, leave balance, or attendance."
 
 
-def _active_session(db: Session, employee: Employee, phone_number: str) -> WhatsAppESSSession:
+def _active_session(db: Session, employee: Employee, phone_number: str, country_code: str) -> WhatsAppESSSession:
     session = db.query(WhatsAppESSSession).filter(
         WhatsAppESSSession.employee_id == employee.id,
         WhatsAppESSSession.phone_number == phone_number,
+        WhatsAppESSSession.phone_number_country_code == country_code,
         WhatsAppESSSession.status == "Active",
     ).first()
     if not session:
-        session = WhatsAppESSSession(employee_id=employee.id, phone_number=phone_number)
+        session = WhatsAppESSSession(employee_id=employee.id, phone_number=phone_number, phone_number_country_code=country_code)
         db.add(session)
         db.flush()
     return session
@@ -135,9 +136,10 @@ def upsert_opt_in(
     opt_in = db.query(WhatsAppESSOptIn).filter(
         WhatsAppESSOptIn.employee_id == data.employee_id,
         WhatsAppESSOptIn.phone_number == data.phone_number,
+        WhatsAppESSOptIn.phone_number_country_code == data.phone_number_country_code,
     ).first()
     if not opt_in:
-        opt_in = WhatsAppESSOptIn(employee_id=data.employee_id, phone_number=data.phone_number)
+        opt_in = WhatsAppESSOptIn(employee_id=data.employee_id, phone_number=data.phone_number,phone_number_country_code=data.phone_number_country_code)
         db.add(opt_in)
     opt_in.status = data.status
     opt_in.source = data.source
@@ -159,6 +161,7 @@ def send_outbound_message(
     opt_in = db.query(WhatsAppESSOptIn).filter(
         WhatsAppESSOptIn.employee_id == employee.id,
         WhatsAppESSOptIn.phone_number == data.phone_number,
+        WhatsAppESSOptIn.phone_number_country_code == data.phone_number_country_code,
         WhatsAppESSOptIn.status == "Opted In",
     ).first()
     if not opt_in:
@@ -167,12 +170,13 @@ def send_outbound_message(
     message_text = data.message_text or (template.body_text if template else None)
     if not message_text:
         raise HTTPException(status_code=400, detail="message_text or template_id is required")
-    session = _active_session(db, employee, data.phone_number)
+    session = _active_session(db, employee, data.phone_number,data.phone_number_country_code)
     message = WhatsAppESSMessage(
         session_id=session.id,
         employee_id=employee.id,
         direction="Outbound",
         phone_number=data.phone_number,
+        phone_number_country_code=data.phone_number_country_code,
         message_text=message_text,
         intent=data.intent,
         status="Queued",
@@ -211,10 +215,10 @@ def receive_inbound_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("notification_manage")),
 ):
-    employee = db.query(Employee).filter(Employee.phone_number == data.phone_number).first()
+    employee = db.query(Employee).filter(Employee.phone_number == data.phone_number,Employee.phone_number_country_code == data.phone_number_country_code).first()
     if not employee:
         raise HTTPException(status_code=404, detail="No employee mapped to this WhatsApp phone number")
-    session = _active_session(db, employee, data.phone_number)
+    session = _active_session(db, employee, data.phone_number,data.phone_number_country_code)
     intent = _intent_for(data.message_text)
     response_text = _response_for(db, employee, intent)
     session.last_intent = intent
@@ -224,6 +228,7 @@ def receive_inbound_message(
         employee_id=employee.id,
         direction="Inbound",
         phone_number=data.phone_number,
+        phone_number_country_code=data.phone_number_country_code,
         message_text=data.message_text,
         intent=intent,
         status="Responded",

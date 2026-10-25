@@ -1,0 +1,381 @@
+Based on the current PMS code, these are the available operations. Permissions apply; some operations are exposed through APIs or connected BusinessSuite modules rather than a dedicated PMS button.
+
+1. **Workspaces**
+   - Create a workspace.
+   - List and switch workspaces.
+   - View workspace overview, projects, tasks and activity.
+   - Invite users.
+   - Preview, accept and activate invitations.
+   - List and revoke pending invitations.
+   - Change workspace member roles.
+   - Remove workspace members.
+   - Add workspace notes and chat entries.
+   - **Admin:** preview “Reset all,” soft-delete workspaces created by admins or users, and restore them.
+
+2. **Projects**
+   - Create a project.
+   - List, search, filter and open projects.
+   - Edit project name and description.
+   - Change client, owner, manager, department and branch.
+   - Change category, status, priority and health.
+   - Change start, due, planned and actual dates.
+   - Update budget, estimates, costs, billing status and reported progress.
+   - Change client visibility.
+   - Mark a project as a template.
+   - Clone a project.
+   - Archive and unarchive a project.
+   - Soft-delete a project.
+   - View project dashboard, activity, files, workload, reports and analytics.
+
+3. **Project members**
+   - Add project members.
+   - List members.
+   - Change project member roles.
+   - Remove members.
+   - Search eligible users for assignment.
+
+4. **Tasks**
+   - Create a task inside a project.
+   - List all accessible tasks or tasks within a project.
+   - Search, filter, sort and open tasks.
+   - Edit task title and description.
+   - Change work-item type.
+   - Change status and priority.
+   - Mark complete or reopen.
+   - Assign one or multiple people.
+   - Remove assignees.
+   - Change reporter.
+   - Set or clear start and due dates.
+   - Update estimated, actual, original and remaining hours.
+   - Update story points and rank.
+   - Set blocking status and client visibility.
+   - Change security level.
+   - Associate a milestone, sprint, epic, component or release.
+   - Edit issue details: severity, environment, affected version and fix version.
+   - Edit development references: branch, commits, pull requests, deployments and build.
+   - Duplicate a task.
+   - Soft-delete a task.
+   - View task activity and related records.
+
+5. **Subtasks and hierarchy**
+   - Create a subtask under a task.
+   - List and expand subtasks.
+   - Edit a subtask using task operations.
+   - Assign people, dates, priority and status to subtasks.
+   - Reorder subtasks.
+   - Change a task’s parent.
+   - Remove its parent relationship.
+   - Soft-delete and restore subtasks.
+
+6. **Bulk task operations**
+   - Select multiple tasks.
+   - Bulk-change status.
+   - Bulk-change assignee.
+   - Bulk-change priority.
+   - Bulk-assign sprint, release or component.
+
+7. **Task checklists**
+   - Add checklist items.
+   - Edit checklist text.
+   - Mark items complete or incomplete.
+   - Reorder items.
+   - Delete checklist items.
+
+8. **Task comments**
+   - Add comments.
+   - Read task conversations.
+   - Edit permitted comments.
+   - Delete permitted comments.
+
+9. **Tags**
+   - Create tags.
+   - Add and remove task tags.
+   - Enter multiple tags using comma separation.
+   - Search and select existing tags.
+   - Browse tags and their usage.
+   - Rename tags and change colors.
+   - Filter tag usage by location.
+   - Delete selected tags through Tag Manager.
+
+10. **Custom fields and task types**
+    - Create project custom fields.
+    - Choose supported field types and options.
+    - List and search field definitions.
+    - Rename fields and edit options.
+    - Read and update task custom-field values.
+    - Filter dashboard tasks by custom-field value.
+    - Create custom task types.
+    - Edit task-type names, descriptions, category, icon and color.
+    - Set default priority.
+    - Archive task types.
+
+11. **Dependencies**
+    - Add a dependency between tasks.
+    - List task dependencies.
+    - Remove dependencies.
+    - Configure supported dependency relationships and lag.
+    - Inspect dependency-related delays.
+
+12. **Boards, lists and task interactions**
+    - View tasks in board and list layouts.
+    - Drag tasks between Kanban columns.
+    - Reorder tasks within columns.
+    - Use right-click and three-dot menus.
+    - Show task hover information.
+    - Double-click supported task representations to open details.
+    - Open a record in a new tab.
+    - Copy task/project links and IDs.
+    - Navigate from a task to its project.
+
+13. **Backlog and sprints**
+    - View and filter backlog tasks.
+    - Reorder backlog tasks.
+    - Create sprints.
+    - List project sprints.
+    - Move tasks into a sprint.
+    - Remove tasks from a sprint.
+    - Reorder sprint tasks.
+    - Start and complete sprints.
+    - Move incomplete work to the backlog or another sprint.
+    - Keep incomplete work in its current sprint where supported.
+    - Record review and retrospective notes.
+    - Record what went well, problems and outcomes.
+    - Add retrospective action items.
+    - Create tasks from retrospective action items.
+    - View sprint review, burndown and project velocity.
+
+14. **Epics, components, releases and roadmap**
+    - Create and edit epics.
+    - List tasks associated with an epic.
+    - Change epic scheduling.
+    - Create and edit project components.
+    - Create and edit releases.
+    - Assign tasks to components and releases.
+    - View release readiness.
+    - View roadmap and Gantt schedules.
+    - Update task dates from scheduling views.
+
+15. **Milestones and approvals**
+    - Create milestones with owner, dates and other supported details.
+    - List project milestones.
+    - Associate tasks with milestones.
+    - Submit milestones for approval.
+    - Approve or reject milestones.
+    - View milestone progress and approval status.
+
+16. **Calendar and planner**
+    - View scheduled tasks and events.
+    - Navigate dates and return to Today.
+    - Switch between supported calendar views.
+    - Search and filter planner items.
+    - Create tasks from supported calendar interactions.
+    - Double-click supported calendar cells to start creation.
+    - Open task previews and task details.
+    - Reschedule supported task entries.
+    - Create, edit and delete calendar events.
+    - Create supported meeting and focus-time entries.
+    - Link events to tasks.
+    - Set event visibility, timezone and meeting URL.
+    - Find available time slots from configured schedules.
+    - Configure grid size, event style, default duration and task colors.
+    - Configure timezone, first weekday, weekends and week numbers.
+    - Configure planner sidebar sections.
+    - Configure task visibility, completed tasks and recurring-task display.
+    - Configure working days, working hours and focus-time defaults.
+    - Configure supported browser reminders and meeting preferences.
+
+17. **Recurring tasks**
+    - Configure daily, weekly or monthly recurrence.
+    - Set recurrence interval and end date.
+    - Edit or remove recurrence.
+    - Generate the next occurrence when a recurring task is completed.
+
+18. **Time tracking and timesheets**
+    - Start, inspect, stop and discard a task timer.
+    - Add time logs manually.
+    - View task and project time logs.
+    - Edit and delete permitted time logs.
+    - Mark time as billable or non-billable.
+    - Create and edit timesheets.
+    - Submit timesheets.
+    - Approve or reject timesheets.
+    - View timesheet and recorded-time reports.
+
+19. **Files and attachments**
+    - Upload task attachments.
+    - List attachments.
+    - Download and delete permitted attachments.
+    - Create and edit project file metadata.
+    - Browse project files.
+    - Upload conversation attachments.
+    - Share an existing project file in a conversation.
+    - Cancel unused conversation uploads.
+    - Download permitted conversation attachments.
+
+20. **Messaging and notifications**
+    - Start direct conversations.
+    - Create group conversations or channels.
+    - Rename/edit permitted conversations.
+    - Join eligible conversations.
+    - Add and remove conversation members.
+    - Send and read messages.
+    - Reply using supported conversation/thread controls.
+    - Edit and delete permitted messages.
+    - Search accessible messages.
+    - View unread counts.
+    - Mark conversations read.
+    - Mark all conversations read.
+    - Mute or unmute conversations.
+    - View in-app notifications.
+    - Mark notifications read.
+    - Receive supported real-time updates.
+
+21. **Teams and organization chart**
+    - Create teams.
+    - Edit team names and aliases.
+    - Add or remove team members.
+    - List workspace teams.
+    - View the organization chart.
+    - Set or change reporting relationships.
+    - Remove reporting relationships.
+    - Use supported chart layouts, search and navigation.
+    - View team and project analytics.
+    - Inspect task workload and assignment distribution.
+
+22. **Forms and intake**
+    - Create and edit forms.
+    - Add, configure and reorder supported questions.
+    - Configure labels, help text, placeholders and required fields.
+    - Configure choices, numeric limits and supported conditional visibility.
+    - Customize description, accent, submit label and success message.
+    - Publish or close forms.
+    - Submit authenticated responses.
+    - View responses.
+    - Export responses.
+    - Configure submissions to create tasks.
+    - Map the task title and set project, assignee, priority and due-date offset.
+    - Create, list and review project intake requests.
+
+23. **Documents and personal notes**
+    - Create project documents.
+    - Open and edit documents.
+    - Preview supported document formatting.
+    - View document revision history and previous versions.
+    - Create personal or project-linked notes.
+    - Search, open and edit notes.
+    - Move notes to trash.
+    - Restore notes.
+    - View note revisions.
+
+24. **Dashboards**
+    - Create a dashboard from a template or blank canvas.
+    - Rename it and edit its description, icon, accent and category.
+    - Browse, search, favorite and duplicate dashboards.
+    - Add, configure, duplicate, hide, show and remove widgets.
+    - Drag, resize, reorder and lock widgets.
+    - Configure data sources, metrics, grouping, aggregation and formatting.
+    - Apply dashboard filters and widget-specific overrides.
+    - Save and reuse filter presets.
+    - Refresh data automatically or manually.
+    - Drill into authorized records.
+    - Expand widgets.
+    - Undo and redo layout changes.
+    - Recover local drafts.
+    - Save and reopen layouts.
+    - Share privately, with selected members, with a workspace or within the organization.
+    - Assign supported viewer/editor access.
+    - Transfer ownership.
+    - View and restore configuration history.
+    - Archive, unarchive, trash and restore dashboards.
+    - Permanently delete a trashed dashboard with confirmation.
+    - Export CSV or PNG; print/save PDF.
+    - Use presentation mode.
+    - Preview guided or configured-provider layout suggestions.
+
+25. **Automation, goals and templates**
+    - Create automation rules.
+    - Edit rules.
+    - Enable or pause rules.
+    - Duplicate supported rules.
+    - Trigger supported actions on task creation or status changes.
+    - Automatically update supported priority/assignee fields.
+    - View automation execution history.
+    - Create task-linked goals and inspect progress.
+    - Create reusable task templates.
+    - Apply templates to create tasks.
+    - Create supported intake tools.
+    - Enable or disable workspace tools.
+
+26. **Clients and project billing**
+    - Create, list, view, edit and delete permitted client records.
+    - Associate projects with clients.
+    - Configure project billing identity and supported commercial links.
+    - View billing sources, billable time and mapped milestones.
+    - Prepare invoices from supported project billing sources.
+    - Review invoice lines, amounts and taxes.
+    - Generate invoice PDFs.
+    - Issue and explicitly send invoices.
+    - Record payments and inspect balances.
+    - View permitted client-visible projects and work.
+
+27. **Risks, portfolio and reports**
+    - Create, view, edit and soft-delete risks.
+    - Set probability, impact, owner, dates and linked tasks.
+    - Maintain mitigation and contingency plans.
+    - View portfolio summaries, projects and health trends.
+    - View task distribution, status, overdue work and milestone reports.
+    - View burndown, velocity, cumulative-flow, cycle-time and time-in-status reports where source data supports them.
+    - View project health, team performance and workload reports.
+    - View planned-versus-actual, timesheet and resource reports.
+    - View budget-versus-actual and client-profitability reports.
+    - Export supported reports.
+
+28. **Saved views and navigation**
+    - Create, rename, update and delete saved views/filters.
+    - Save queries, filters, sorting and supported columns.
+    - Set default views.
+    - Configure supported private/shared visibility.
+    - Use global search and the command palette.
+    - Switch modules.
+    - Use recent and favorite navigation.
+    - Change supported theme and density preferences.
+
+29. **Recovery and backups**
+    - View recorded operation history.
+    - Undo and redo supported recorded changes.
+    - Create manual workspace savepoints.
+    - Configure automatic savepoint policies.
+    - List and download backups.
+    - Preview a restore before applying it.
+    - Restore authorized workspace data.
+    - View trashed tasks and restore them.
+    - Restore soft-deleted workspaces.
+    - Restore dashboard configurations and trashed notes.
+
+30. **AI assistant and integrations**
+    - Search authorized projects, tasks, users, documents and customers.
+    - Find personal and overdue tasks.
+    - Summarize projects, recorded time and assignments.
+    - Read supported custom-field definitions.
+    - Propose project/task creation and task assignment.
+    - Propose supported invoice and payment operations.
+    - Review and approve proposed mutations.
+    - Inspect, cancel, revise and resume supported operator runs.
+    - View run steps, events and usage analytics.
+    - Configure and test permitted AI providers.
+    - Preview supported project-setup proposals.
+    - Create and manage supported monitors.
+    - Configure GitHub/GitLab development integrations.
+    - Receive supported development webhook events.
+    - View task development links and workflow-event feeds.
+
+31. **Administration and diagnostics**
+    - Inspect admin-only audit logs.
+    - Filter logs by supported user, role, task, project, workspace, endpoint, status and time criteria.
+    - Inspect timestamps, IP information, client details and request duration.
+    - Inspect request correlation IDs, changed-field names and recorded error locations.
+    - Copy request IDs for investigation.
+    - Manage permitted workspace/project access.
+    - Preview and execute admin-only workspace soft-reset and restoration.
+
+**Not all visible integration options are completed:** Google/Outlook calendar synchronization and Zoom connections still require integration work/configuration; several enterprise controls remain unfinished. The dashboard catalog also has **18 explicitly unavailable advanced widgets**. These should not be counted as working operations merely because they appear in a menu.

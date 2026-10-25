@@ -1,0 +1,273 @@
+{
+  "date": "2026-10-24",
+  "backend": "https://businesssuite-rosy.vercel.app/api/v1",
+  "run_id": "1024214529",
+  "device": "CPH2717 Android 16 physical phone",
+  "workspace_id": 19,
+  "project_id": 16,
+  "task_id": 31,
+  "passed": 43,
+  "failed": 0,
+  "batches": 3,
+  "operations": [
+    {
+      "number": 1,
+      "operation": "Create epic",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:16:56.470945Z"
+    },
+    {
+      "number": 2,
+      "operation": "Read epic list",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:04.101717Z"
+    },
+    {
+      "number": 3,
+      "operation": "Update epic through record picker",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:18.233864Z"
+    },
+    {
+      "number": 4,
+      "operation": "Create project component",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:29.676032Z"
+    },
+    {
+      "number": 5,
+      "operation": "Read components",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:37.405623Z"
+    },
+    {
+      "number": 6,
+      "operation": "Create release",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:48.916194Z"
+    },
+    {
+      "number": 7,
+      "operation": "Read releases",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:56.659404Z"
+    },
+    {
+      "number": 8,
+      "operation": "Read release readiness",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:07.653205Z"
+    },
+    {
+      "number": 9,
+      "operation": "Create milestone",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:19.793372Z"
+    },
+    {
+      "number": 10,
+      "operation": "Read milestones",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:27.723438Z"
+    },
+    {
+      "number": 11,
+      "operation": "Create sprint with dates",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:44.532570Z"
+    },
+    {
+      "number": 12,
+      "operation": "Read sprints",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:52.323636Z"
+    },
+    {
+      "number": 13,
+      "operation": "Create project risk",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:04.683833Z"
+    },
+    {
+      "number": 14,
+      "operation": "Read risk register",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:12.377899Z"
+    },
+    {
+      "number": 15,
+      "operation": "Add task comment",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:26.472096Z"
+    },
+    {
+      "number": 16,
+      "operation": "Read task comments",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:36.728614Z"
+    },
+    {
+      "number": 17,
+      "operation": "Add checklist item",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:49.737306Z"
+    },
+    {
+      "number": 18,
+      "operation": "Read checklist",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:20:00.097754Z"
+    },
+    {
+      "number": 19,
+      "operation": "Create subtask",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:20:14.057459Z"
+    },
+    {
+      "number": 20,
+      "operation": "Read subtasks",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:20:24.683507Z"
+    },
+    {
+      "number": 21,
+      "operation": "Add task tag",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:29:00.821506Z"
+    },
+    {
+      "number": 22,
+      "operation": "Read task tags",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:29:11.329203Z"
+    },
+    {
+      "number": 23,
+      "operation": "Log task time",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:29:27.933582Z"
+    },
+    {
+      "number": 24,
+      "operation": "Read task time logs",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:29:38.529305Z"
+    },
+    {
+      "number": 25,
+      "operation": "Create saved project filter",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:29:50.333634Z"
+    },
+    {
+      "number": 26,
+      "operation": "Read saved filters",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:29:58.197957Z"
+    },
+    {
+      "number": 27,
+      "operation": "Create workspace team",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:30:09.789002Z"
+    },
+    {
+      "number": 28,
+      "operation": "Read teams",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:30:17.622828Z"
+    },
+    {
+      "number": 29,
+      "operation": "Create project document",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:30:29.626884Z"
+    },
+    {
+      "number": 30,
+      "operation": "Read documents",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:30:37.438325Z"
+    },
+    {
+      "number": 31,
+      "operation": "Read Kanban board",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:30:45.466633Z"
+    },
+    {
+      "number": 32,
+      "operation": "Read project dashboard",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:30:53.360869Z"
+    },
+    {
+      "number": 33,
+      "operation": "Read task distribution report",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:31:01.289485Z"
+    },
+    {
+      "number": 34,
+      "operation": "Read resource workload",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:31:09.035185Z"
+    },
+    {
+      "number": 35,
+      "operation": "Read workspace activity",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:31:16.599580Z"
+    },
+    {
+      "number": 36,
+      "operation": "Read notification inbox",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:31:24.456428Z"
+    },
+    {
+      "number": 37,
+      "operation": "Read trash",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:31:32.120300Z"
+    },
+    {
+      "number": 38,
+      "operation": "Start native project timer",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:31:44.477036Z"
+    },
+    {
+      "number": 39,
+      "operation": "Stop timer and persist time log",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:31:48.941470Z"
+    },
+    {
+      "number": 40,
+      "operation": "Create private chat channel",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:32:07.130410Z"
+    },
+    {
+      "number": 41,
+      "operation": "Send native chat message",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:32:16.807683Z"
+    },
+    {
+      "number": 42,
+      "operation": "Edit own chat message",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:32:27.587473Z"
+    },
+    {
+      "number": 43,
+      "operation": "Reply in message thread",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:36:21.421142Z"
+    }
+  ],
+  "apk_sha256": "f5b4f52a1c87a9df1edfc15b2a111e34d900ff5425aa6d3cdbd6dd9d0042925a"
+}

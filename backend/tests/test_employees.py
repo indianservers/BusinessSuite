@@ -75,11 +75,11 @@ def test_update_employee(client, superuser_headers, db):
     db.commit()
 
     response = client.put(f"/api/v1/employees/{emp.id}", json={
-        "phone_number": "+91-9876543210",
+        "phone_number": "9876543210", "phone_number_country_code": "+91",
         "marital_status": "Single",
     }, headers=superuser_headers)
     assert response.status_code == 200
-    assert response.json()["phone_number"] == "+91-9876543210"
+    assert response.json()["phone_number"] == "9876543210"
 
 
 def test_get_employee_stats(client, superuser_headers):
@@ -97,10 +97,10 @@ def test_employee_not_found(client, superuser_headers):
 
 def test_employee_csv_import_export_with_row_errors(client, superuser_headers):
     csv_body = (
-        "employee_id,first_name,last_name,date_of_joining,personal_email,phone_number\n"
-        "BULK001,Bulk,Good,2024-01-15,bulk.good@test.com,9999999999\n"
-        "BULK002,,Missing,2024-01-16,missing@test.com,8888888888\n"
-        "BULK003,Bad,Date,15-01-2024,bad.date@test.com,7777777777\n"
+        "employee_id,first_name,last_name,date_of_joining,personal_email,phone_number,phone_number_country_code\n"
+        "BULK001,Bulk,Good,2024-01-15,bulk.good@test.com,9999999999,+91\n"
+        "BULK002,,Missing,2024-01-16,missing@test.com,8888888888,+91\n"
+        "BULK003,Bad,Date,15-01-2024,bad.date@test.com,7777777777,+91\n"
     )
 
     response = client.post(

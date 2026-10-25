@@ -58,7 +58,8 @@ def test_payroll_variance_and_export_batches(client, db):
     data = exported.json()
     assert data["export_type"] == "pf_ecr"
     assert data["status"] == "Generated"
-    assert data["output_file_url"].endswith("/pf_ecr.csv")
+    from app.core.storage import normalize_upload_references
+    assert normalize_upload_references(data["output_file_url"]).endswith("/pf_ecr.csv")
     assert data["total_records"] == 1
 
     audit = client.get(f"/api/v1/payroll/runs/{current_run.id}/audit", headers=admin_headers)

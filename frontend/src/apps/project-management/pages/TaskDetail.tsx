@@ -1,3 +1,5 @@
+import WorkReviewPanel from "../components/WorkReviewPanel";
+import RecordActions from "../components/RecordActions";
 import { FormEvent, useCallback, useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -61,7 +63,7 @@ import type {
   TaskStatus,
 } from "../types";
 
-type TabKey = "comments" | "activity" | "time" | "files" | "links" | "development" | "history";
+type TabKey = "work" | "comments" | "activity" | "time" | "files" | "links" | "development" | "history";
 type ActivityFilter = "all" | "comments" | "changes" | "time" | "files";
 type ActivitySort = "desc" | "asc";
 
@@ -71,6 +73,7 @@ const checklistCloseGuardConfig = {
   warnOnIncompleteBeforeClose: false,
 };
 const tabs: { key: TabKey; label: string; icon: ReactNode }[] = [
+  { key: "work", label: "Submissions & Reviews", icon: <CheckSquare className="h-4 w-4" /> },
   { key: "comments", label: "Comments", icon: <MessageSquare className="h-4 w-4" /> },
   { key: "activity", label: "Activity", icon: <GitBranch className="h-4 w-4" /> },
   { key: "time", label: "Time Logs", icon: <Timer className="h-4 w-4" /> },
@@ -689,12 +692,12 @@ export default function TaskDetail() {
         <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
       </Button>
 
-      <Card>
+      <RecordActions preview={false} record={{...task,key:task.task_key,project_name:project?.name}} canEdit={project?.can_manage_tasks===true} onChanged={deleted=>{if(deleted)navigate("/pms/tasks");else loadTaskData(true);}}>{menu=><Card>
         <CardContent className="p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{task.task_key || `Task #${task.id}`}</Badge>
+                <Badge variant="outline">{task.task_key || `Task #${task.id}`}</Badge>{menu}
                 <span className="text-sm text-muted-foreground">{project?.name || `Project #${task.project_id}`}</span>
                 {selectedSprint ? <Badge variant="secondary">{selectedSprint.name}</Badge> : null}
                 {selectedEpic ? <Badge variant="secondary">{selectedEpic.epic_key}</Badge> : null}
@@ -746,7 +749,7 @@ export default function TaskDetail() {
             <DetailMetric label="Links" value={String(links.length)} hint="dependencies" />
           </div>
         </CardContent>
-      </Card>
+      </Card>}</RecordActions>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
@@ -946,6 +949,7 @@ export default function TaskDetail() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {activeTab === "work" ? <WorkReviewPanel taskId={task.id} onReviewed={() => { refreshActivity(); }} /> : null}
               {activeTab === "comments" ? (
                 <CommentsTab
                   taskId={task.id}

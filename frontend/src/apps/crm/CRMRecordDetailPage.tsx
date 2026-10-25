@@ -1,4 +1,7 @@
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneFields } from "@/lib/validation";
 import CustomerCommercialHistory from "./CustomerCommercialHistory";
+import LeadEmployeeAssignment from "./leads/LeadEmployeeAssignment";
 import { useEffect, useMemo, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -109,7 +112,6 @@ const detailInlineEditConfig: Record<DetailKind, Record<string, DetailInlineConf
     estimated_value: { type: "number" },
     expected_close_date: { type: "date" },
     next_follow_up_at: { type: "datetime" },
-    owner_user_id: { type: "number", apiField: "ownerId" },
     territory_id: { type: "number", apiField: "territoryId" },
     tags_text: { type: "tags" },
   },
@@ -215,7 +217,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       .finally(() => setSaving(false));
   };
 
-  const saveInlineField = (key: string, value: string | number | boolean | null) => {
+  const saveInlineField = (key: string, value: string | number | boolean | null, extra: CRMApiRecord = {}) => {
     if (!record) return Promise.resolve();
     const configItem = detailInlineEditConfig[kind]?.[key];
     if (!configItem) return Promise.resolve();
@@ -225,7 +227,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
     setSaving(true);
     setError(null);
     return crmApi
-      .update<DetailRecord>(config.entity, recordId, { [configItem.apiField || key]: normalizeDetailInlineValue(configItem, value) })
+      .update<DetailRecord>(config.entity, recordId, { ...extra, [configItem.apiField || key]: normalizeDetailInlineValue(configItem, value) })
       .then((response) => setRecord(response.data))
       .catch((err) => {
         setRecord(previous);
@@ -234,7 +236,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       .finally(() => setSaving(false));
   };
 
-  const saveCustomField = (field: CustomFieldDetail, value: string | number | boolean | null) => {
+  const saveCustomField = (field: CustomFieldDetail, value: CRMApiValue) => {
     if (!record) return Promise.resolve();
     const previous = record;
     const customFields = (record.customFields || []).map((item) => (Number(item.id) === Number(field.id) ? { ...item, value } : item)) as CustomFieldDetail[];
@@ -363,7 +365,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
                   {duplicateCount ? <Badge className="bg-amber-100 text-amber-800"><GitMerge className="mr-1 h-3.5 w-3.5" />{duplicateCount} possible duplicate{duplicateCount === 1 ? "" : "s"}</Badge> : null}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><UserRound className="h-4 w-4" />Owner {valueText(record.ownerId || record.owner_user_id) || "Unassigned"}</span>
+                  {kind === "leads" ? <LeadEmployeeAssignment leadId={recordId} ownerId={Number(record.ownerId || record.owner_user_id) || undefined} onAssigned={loadRecord} /> : <span className="flex items-center gap-1"><UserRound className="h-4 w-4" />Owner {valueText(record.ownerId || record.owner_user_id) || "Unassigned"}</span>}
                   <span>Last updated {formatDate(valueText(record.updatedAt || record.updated_at || record.createdAt || record.created_at))}</span>
                 </div>
               </div>
@@ -421,12 +423,12 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   );
 }
 
-function DetailFields({ kind, record, fields, onSave, saving }: { kind: DetailKind; record: DetailRecord; fields: string[]; onSave: (key: string, value: string | number | boolean | null) => Promise<unknown>; saving: boolean }) {
+function DetailFields({ kind, record, fields, onSave, saving }: { kind: DetailKind; record: DetailRecord; fields: string[]; onSave: (key: string, value: string | number | boolean | null, extra?: CRMApiRecord) => Promise<unknown>; saving: boolean }) {
   return (
     <Card>
       <CardHeader><CardTitle>Key Fields</CardTitle></CardHeader>
       <CardContent className="grid gap-3 md:grid-cols-2">
-        {fields.map((key) => <InlineField key={key} config={detailInlineEditConfig[kind]?.[key]} fieldKey={key} value={record[key]} onSave={onSave} saving={saving} />)}
+        {fields.map((key) => <InlineField key={key} config={detailInlineEditConfig[kind]?.[key]} fieldKey={key} value={record[key]} countryCode={valueText(record[key+"_country_code"])} onSave={onSave} saving={saving} />)}
       </CardContent>
     </Card>
   );
@@ -483,18 +485,20 @@ function HandoffLine({ label, value, to }: { label: string; value: string; to?: 
   );
 }
 
-function InlineField({ fieldKey, value, config, onSave, saving }: { fieldKey: string; value: unknown; config?: DetailInlineConfig; onSave: (key: string, value: string | number | boolean | null) => Promise<unknown>; saving: boolean }) {
+function InlineField({ fieldKey, value, countryCode, config, onSave, saving }: { fieldKey: string; value: unknown; countryCode?: string; config?: DetailInlineConfig; onSave: (key: string, value: string | number | boolean | null, extra?: CRMApiRecord) => Promise<unknown>; saving: boolean }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(valueText(value));
+  const [code,setCode]=useState(countryCode || (value ? "" : "+91"));
+  useEffect(()=>setCode(countryCode || (value ? "" : "+91")),[countryCode,value]);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => setDraft(valueText(value)), [value]);
   const commit = () => {
-    if (!config || draft === valueText(value)) {
+    if (!config || (draft === valueText(value) && (!phoneFields.has(fieldKey) || code===countryCode))) {
       setEditing(false);
       return;
     }
     setError(null);
-    onSave(fieldKey, draft)
+    onSave(fieldKey, draft, phoneFields.has(fieldKey) ? {[fieldKey+"_country_code"]:code} : {})
       .then(() => setEditing(false))
       .catch((err) => {
         setDraft(valueText(value));
@@ -507,7 +511,7 @@ function InlineField({ fieldKey, value, config, onSave, saving }: { fieldKey: st
       {editing ? (
         <div className="mt-2 space-y-1">
           <div className="flex gap-2">
-            <DetailInlineEditor config={config || { type: "text" }} value={draft} onChange={setDraft} onCommit={commit} onCancel={() => { setDraft(valueText(value)); setEditing(false); setError(null); }} />
+            {phoneFields.has(fieldKey) ? <PhoneInput label={labelFor(fieldKey)} value={draft} countryCode={code} onChange={setDraft} onCountryCodeChange={setCode} /> : <DetailInlineEditor config={config || { type: "text" }} value={draft} onChange={setDraft} onCommit={commit} onCancel={() => { setDraft(valueText(value)); setEditing(false); setError(null); }} />}
             <Button size="sm" onClick={commit} disabled={saving}><Save className="h-4 w-4" /></Button>
           </div>
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -522,26 +526,39 @@ function InlineField({ fieldKey, value, config, onSave, saving }: { fieldKey: st
   );
 }
 
-function FullDetails({ kind, record, onSave }: { kind: DetailKind; record: DetailRecord; onSave: (key: string, value: string | number | boolean | null) => Promise<unknown> }) {
+function FullDetails({ kind, record, onSave }: { kind: DetailKind; record: DetailRecord; onSave: (key: string, value: string | number | boolean | null, extra?: CRMApiRecord) => Promise<unknown> }) {
   const entries = Object.entries(record).filter(([key]) => !readOnlyKeys.has(key) && !key.endsWith("Id"));
   return (
     <Card>
       <CardHeader><CardTitle>Full Details</CardTitle></CardHeader>
       <CardContent className="grid gap-2 md:grid-cols-2">
         {entries.map(([key, value]) => (
-          <InlineField key={key} config={detailInlineEditConfig[kind]?.[key]} fieldKey={key} value={value} onSave={onSave} saving={false} />
+          <InlineField key={key} config={detailInlineEditConfig[kind]?.[key]} fieldKey={key} value={value} countryCode={valueText(record[key+"_country_code"])} onSave={onSave} saving={false} />
         ))}
       </CardContent>
     </Card>
   );
 }
 
-function CustomFields({ fields, onSave }: { fields: CustomFieldDetail[]; onSave: (field: CustomFieldDetail, value: string | number | boolean | null) => Promise<unknown> }) {
+function CustomPhoneField({field,onSave}:{field:CustomFieldDetail;onSave:(field:CustomFieldDetail,value:CRMApiValue)=>Promise<unknown>}){
+  const pair=field.value&&typeof field.value==='object'&&!Array.isArray(field.value)?field.value as CRMApiRecord:null;
+  const [number,setNumber]=useState(valueText(pair?.national_number ?? field.value));
+  const [code,setCode]=useState(valueText(pair?.country_code) || (field.value ? '' : '+91'));
+  const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+  return <form className="space-y-2 rounded-md border p-3" onSubmit={event=>{event.preventDefault();if(busy)return;setBusy(true);setError('');void onSave(field,{national_number:number,country_code:code}).catch(()=>setError('Check the phone number and country code.')).finally(()=>setBusy(false));}}>
+    <label className="text-sm font-medium">{valueText(field.label || field.field_key)}</label>
+    <PhoneInput label={valueText(field.label || field.field_key)} value={number} countryCode={code} onChange={setNumber} onCountryCodeChange={setCode} disabled={busy}/>
+    {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
+    <Button size="sm" disabled={busy}>Save phone</Button>
+  </form>;
+}
+
+function CustomFields({ fields, onSave }: { fields: CustomFieldDetail[]; onSave: (field: CustomFieldDetail, value: CRMApiValue) => Promise<unknown> }) {
   return (
     <Card>
       <CardHeader><CardTitle>Custom Fields</CardTitle></CardHeader>
       <CardContent className="grid gap-2 md:grid-cols-2">
-        {fields.map((field) => (
+        {fields.map((field) => String(field.field_type || field.fieldType)==='phone' ? <CustomPhoneField key={String(field.id)} field={field} onSave={onSave} /> : (
           <InlineField
             key={String(field.id)}
             config={customFieldConfig(field)}
@@ -754,8 +771,8 @@ function RelatedRecords({ related }: { related: Record<string, unknown> }) {
 }
 
 function EditRecordModal({ record, title, saving, onClose, onSave }: { record: DetailRecord; title: string; saving: boolean; onClose: () => void; onSave: (data: CRMApiRecord) => Promise<void> }) {
-  const editableEntries = Object.entries(record).filter(([key, value]) => !readOnlyKeys.has(key) && typeof value !== "object");
-  const [draft, setDraft] = useState<CRMApiRecord>(() => Object.fromEntries(editableEntries) as CRMApiRecord);
+  const editableEntries = Object.entries(record).filter(([key, value]) => !readOnlyKeys.has(key) && !key.endsWith("_country_code") && typeof value !== "object");
+  const [draft, setDraft] = useState<CRMApiRecord>(() => ({...Object.fromEntries(editableEntries),...Object.fromEntries(Object.entries(record).filter(([key])=>key.endsWith("_country_code")))} as CRMApiRecord));
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden">
@@ -767,7 +784,7 @@ function EditRecordModal({ record, title, saving, onClose, onSave }: { record: D
           <div className="grid gap-3 md:grid-cols-2">
             {editableEntries.map(([key]) => (
               <Field key={key} label={labelFor(key)}>
-                <Input value={valueText(draft[key])} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />
+                {phoneFields.has(key) ? <PhoneInput label={labelFor(key)} value={valueText(draft[key])} countryCode={valueText(draft[key+"_country_code"])} onChange={value=>setDraft(current=>({...current,[key]:value}))} onCountryCodeChange={value=>setDraft(current=>({...current,[key+"_country_code"]:value}))} /> : <Input value={valueText(draft[key])} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />}
               </Field>
             ))}
           </div>
@@ -804,6 +821,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
     linkedInUrl: record.linkedin_url || "",
     location: record.city || "",
     phone: record.phone || "",
+    phone_country_code: record.phone_country_code || (record.phone ? "" : "+91"),
   }));
   const [preview, setPreview] = useState<CRMEnrichmentPreview | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -860,7 +878,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
             <div className="grid gap-3 md:grid-cols-3">
               {enrichmentInputFields.map(([key, label]) => (
                 <Field key={key} label={label}>
-                  <Input value={valueText(draft[key])} onChange={(event) => patch(key, event.target.value)} />
+                  {key==="phone" ? <PhoneInput label={label} value={valueText(draft[key])} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch(key,value)} onCountryCodeChange={value=>patch("phone_country_code",value)} /> : <Input value={valueText(draft[key])} onChange={(event) => patch(key, event.target.value)} />}
                 </Field>
               ))}
             </div>
@@ -924,9 +942,9 @@ function QuickActionModal({ action, kind, record, entity, recordId, onClose, onD
         <CardContent className="space-y-4">
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
           <div className="grid gap-3 md:grid-cols-2">
-            {Object.entries(draft).filter(([key]) => !key.endsWith("_id")).map(([key, value]) => (
+            {Object.entries(draft).filter(([key]) => !key.endsWith("_id") && !key.endsWith("_country_code")).map(([key, value]) => (
               <Field key={key} label={labelFor(key)}>
-                {action === "note" && key === "body" ? (
+                {phoneFields.has(key) ? <PhoneInput label={labelFor(key)} value={valueText(value)} countryCode={valueText(draft[key+"_country_code"])} onChange={next=>setDraft(current=>({...current,[key]:next}))} onCountryCodeChange={code=>setDraft(current=>({...current,[key+"_country_code"]:code}))} /> : action === "note" && key === "body" ? (
                   <MentionTextarea
                     value={valueText(value)}
                     onChange={(nextValue) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: nextValue }))}
@@ -1127,6 +1145,7 @@ function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKi
     entityId: Number(record.id),
     channel: "sms",
     to: valueText(record.phone || record.mobile || record.mobile_phone),
+    country_code:valueText(record.phone_country_code || record.mobile_country_code),
     templateId: "",
     body: `Hi ${recordName}, following up from our CRM conversation.`,
   }));
@@ -1185,7 +1204,7 @@ function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKi
               </select>
             </Field>
             <Field label="To">
-              <Input value={valueText(draft.to)} onChange={(event) => patch("to", event.target.value)} placeholder="+919876543210" />
+              <PhoneInput label="Recipient phone" value={valueText(draft.to)} countryCode={valueText(draft.country_code)} onChange={value=>patch("to",value)} onCountryCodeChange={value=>patch("country_code",value)} required />
             </Field>
           </div>
           <Field label="Template">
@@ -1233,7 +1252,7 @@ function defaultActionPayload(action: QuickAction, kind: DetailKind, record: Det
   const linked = { [linkField]: recordId };
   if (action === "note") return { body: `Note for ${titleFor(record, detailConfig[kind].nameKeys, detailConfig[kind].singular)}`, ...linked };
   if (action === "task") return { title: "Follow up", status: "To Do", priority: "Medium", due_date: new Date().toISOString(), ...linked };
-  if (action === "call") return { direction: "Outbound", phone_number: valueText(record.phone) || "+91 ", call_time: new Date().toISOString(), outcome: "Logged", ...linked };
+  if (action === "call") return { direction: "Outbound", phone_number: valueText(record.phone), phone_number_country_code:valueText(record.phone_country_code) || (record.phone ? "" : "+91"), call_time: new Date().toISOString(), outcome: "Logged", ...linked };
   if (action === "email") return { subject: "Follow up", to_email: valueText(record.email) || "customer@example.com", direction: "Outbound", body: "", ...linked };
   if (action === "meeting") return { title: "Customer meeting", start_time: new Date().toISOString(), end_time: new Date(Date.now() + 30 * 60000).toISOString(), status: "Scheduled", location: "", ...linked };
   const today = new Date();

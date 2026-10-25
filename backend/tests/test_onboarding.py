@@ -42,7 +42,7 @@ def test_employee_creation_auto_starts_onboarding(client, superuser_headers):
             "employment_type": "Full-time",
             "create_user_account": True,
             "user_email": "new.joiner@example.com",
-            "user_password": "Joiner@123",
+            "user_password": "JoinerUnique@123456",
         },
     )
     assert employee_response.status_code == 201
@@ -59,7 +59,7 @@ def test_employee_creation_auto_starts_onboarding(client, superuser_headers):
 
     login = client.post(
         "/api/v1/auth/login",
-        json={"email": "new.joiner@example.com", "password": "Joiner@123"},
+        json={"email": "new.joiner@example.com", "password": "JoinerUnique@123456"},
     )
     assert login.status_code == 200
     employee_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}

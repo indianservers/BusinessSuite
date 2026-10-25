@@ -1,0 +1,4274 @@
+[
+  {
+    "declared_path": "/chart",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 22,
+      "handler": "chart"
+    },
+    "description": "chart",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/journals",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 28,
+      "handler": "journals"
+    },
+    "description": "journals",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/itc",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 34,
+      "handler": "itc_register"
+    },
+    "description": "itc register",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/itc/<int:id>/update",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 51,
+      "handler": "itc_update"
+    },
+    "description": "itc update",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/journals/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 67,
+      "handler": "journal_create"
+    },
+    "description": "journal create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/receipts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 82,
+      "handler": "receipts"
+    },
+    "description": "receipts",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/receipts/<int:id>/allocate",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 109,
+      "handler": "receipt_allocate"
+    },
+    "description": "receipt allocate",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/receipts/<int:id>/reverse",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 123,
+      "handler": "receipt_reverse"
+    },
+    "description": "receipt reverse",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/payments",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 148,
+      "handler": "payments"
+    },
+    "description": "payments",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/payments/<int:id>/allocate",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 175,
+      "handler": "payment_allocate"
+    },
+    "description": "payment allocate",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/payments/<int:id>/reverse",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 189,
+      "handler": "payment_reverse"
+    },
+    "description": "payment reverse",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/expenses",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 216,
+      "handler": "expenses"
+    },
+    "description": "expenses",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/cash-book",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 225,
+      "handler": "cash_book"
+    },
+    "description": "cash book",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/bank-book",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 230,
+      "handler": "bank_book"
+    },
+    "description": "bank book",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/banks/<int:id>/reconcile",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 236,
+      "handler": "reconcile"
+    },
+    "description": "reconcile",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/banks/<int:id>/import",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 246,
+      "handler": "import_bank_statement"
+    },
+    "description": "import bank statement",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/banks/<int:id>/match/<int:line_id>",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 272,
+      "handler": "match_bank_line"
+    },
+    "description": "match bank line",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/banks/<int:id>/auto-match",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 283,
+      "handler": "auto_match_bank"
+    },
+    "description": "auto match bank",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/banks/<int:id>/create-entry/<int:line_id>",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 303,
+      "handler": "create_entry_from_bank"
+    },
+    "description": "create entry from bank",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tds/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 317,
+      "handler": "tds_ledger"
+    },
+    "description": "tds ledger",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tds/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 324,
+      "handler": "tds_create"
+    },
+    "description": "tds create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tds/challan",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 352,
+      "handler": "tds_challan"
+    },
+    "description": "tds challan",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tcs/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/accounts_routes.py",
+      "line": 360,
+      "handler": "tcs_ledger"
+    },
+    "description": "tcs ledger",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/products",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 120,
+      "handler": "products"
+    },
+    "description": "products",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/products/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 137,
+      "handler": "product_detail"
+    },
+    "description": "product detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/customers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 143,
+      "handler": "customers"
+    },
+    "description": "customers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/suppliers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 157,
+      "handler": "suppliers"
+    },
+    "description": "suppliers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sales",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 171,
+      "handler": "sales"
+    },
+    "description": "sales",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sales/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 184,
+      "handler": "sale_detail"
+    },
+    "description": "sale detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/customer/<int:id>/price-list",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 191,
+      "handler": "customer_price_list"
+    },
+    "description": "customer price list",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/invoices",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 201,
+      "handler": "invoices"
+    },
+    "description": "invoices",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/invoices/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 212,
+      "handler": "invoice_detail"
+    },
+    "description": "invoice detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchases",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 219,
+      "handler": "purchases"
+    },
+    "description": "purchases",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reports/sales",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 232,
+      "handler": "report_sales"
+    },
+    "description": "report sales",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reports/stock",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 238,
+      "handler": "report_stock"
+    },
+    "description": "report stock",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reports/profit-loss",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 244,
+      "handler": "report_profit_loss"
+    },
+    "description": "report profit loss",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/products",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 257,
+      "handler": "v1_products"
+    },
+    "description": "v1 products",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/products",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 264,
+      "handler": "v1_product_create"
+    },
+    "description": "v1 product create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/products/<int:id>",
+    "methods": [
+      "PUT"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 278,
+      "handler": "v1_product_update"
+    },
+    "description": "v1 product update",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/customers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 291,
+      "handler": "v1_customers"
+    },
+    "description": "v1 customers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/suppliers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 298,
+      "handler": "v1_suppliers"
+    },
+    "description": "v1 suppliers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/vendors",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 305,
+      "handler": "v1_vendors"
+    },
+    "description": "v1 vendors",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/stock",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 312,
+      "handler": "v1_stock"
+    },
+    "description": "v1 stock",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/stock/movements",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 322,
+      "handler": "v1_stock_movements"
+    },
+    "description": "v1 stock movements",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/pos-invoices",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 334,
+      "handler": "v1_pos_invoices"
+    },
+    "description": "v1 pos invoices",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/sales-orders",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 342,
+      "handler": "v1_sales_orders"
+    },
+    "description": "v1 sales orders",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/purchase-orders",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 350,
+      "handler": "v1_purchase_orders"
+    },
+    "description": "v1 purchase orders",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/payments",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 358,
+      "handler": "v1_payments"
+    },
+    "description": "v1 payments",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/reports/summary",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 367,
+      "handler": "v1_reports_summary"
+    },
+    "description": "v1 reports summary",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/webhooks/events",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 374,
+      "handler": "v1_webhook_events"
+    },
+    "description": "v1 webhook events",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/v1/reports/profit-loss",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 381,
+      "handler": "v1_profit_loss"
+    },
+    "description": "v1 profit loss",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/openapi",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 387,
+      "handler": "openapi_docs"
+    },
+    "description": "openapi docs",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/openapi.json",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+      "line": 393,
+      "handler": "openapi_json"
+    },
+    "description": "openapi json",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/login",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 22,
+      "handler": "login"
+    },
+    "description": "login",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/logout",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 54,
+      "handler": "logout"
+    },
+    "description": "logout",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/profile",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 64,
+      "handler": "profile"
+    },
+    "description": "profile",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/change-password",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 75,
+      "handler": "change_password"
+    },
+    "description": "change password",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/forgot-password",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 86,
+      "handler": "forgot_password"
+    },
+    "description": "forgot password",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/auth/2fa/setup",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 92,
+      "handler": "two_factor_setup"
+    },
+    "description": "two factor setup",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/auth/2fa/verify",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 107,
+      "handler": "two_factor_verify"
+    },
+    "description": "two factor verify",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/auth/2fa/disable",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 123,
+      "handler": "two_factor_disable"
+    },
+    "description": "two factor disable",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/auth/2fa/check",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+      "line": 133,
+      "handler": "two_factor_check"
+    },
+    "description": "two factor check",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/dashboard_routes.py",
+      "line": 15,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/dashboard",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/dashboard_routes.py",
+      "line": 15,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/offline",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/dashboard_routes.py",
+      "line": 32,
+      "handler": "offline"
+    },
+    "description": "offline",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/email-templates",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 65,
+      "handler": "email_templates"
+    },
+    "description": "email templates",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/communication-settings",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 87,
+      "handler": "communication_settings"
+    },
+    "description": "communication settings",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/communication-settings/test-email",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 108,
+      "handler": "test_email"
+    },
+    "description": "test email",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/payment-gateways",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 117,
+      "handler": "payment_gateways"
+    },
+    "description": "payment gateways",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/loyalty",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 139,
+      "handler": "loyalty_settings"
+    },
+    "description": "loyalty settings",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/coupons",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 156,
+      "handler": "coupons"
+    },
+    "description": "coupons",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/payment-links/<int:sale_id>/create",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 168,
+      "handler": "create_payment_link"
+    },
+    "description": "create payment link",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/ecommerce-integrations",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 193,
+      "handler": "ecommerce_integrations"
+    },
+    "description": "ecommerce integrations",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/shipping-providers",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 207,
+      "handler": "shipping_providers"
+    },
+    "description": "shipping providers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/api-keys",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 221,
+      "handler": "api_keys"
+    },
+    "description": "api keys",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/webhooks",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 235,
+      "handler": "webhooks"
+    },
+    "description": "webhooks",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/webhooks/test/<int:id>",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 246,
+      "handler": "webhook_test"
+    },
+    "description": "webhook test",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/webhooks/incoming/<provider>",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 255,
+      "handler": "incoming_webhook"
+    },
+    "description": "incoming webhook",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/payments/webhook/<provider>",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 263,
+      "handler": "payment_webhook"
+    },
+    "description": "payment webhook",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/custom-fields",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 271,
+      "handler": "custom_fields"
+    },
+    "description": "custom fields",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/custom-views",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 282,
+      "handler": "custom_views"
+    },
+    "description": "custom views",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/customization",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 297,
+      "handler": "customization"
+    },
+    "description": "customization",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/custom-modules",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 306,
+      "handler": "custom_modules"
+    },
+    "description": "custom modules",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/custom-modules/<int:id>",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 340,
+      "handler": "custom_module_detail"
+    },
+    "description": "custom module detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/custom-modules/<int:id>/fields",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 376,
+      "handler": "custom_module_fields"
+    },
+    "description": "custom module fields",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/custom-modules/<int:id>/toggle",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 405,
+      "handler": "custom_module_toggle"
+    },
+    "description": "custom module toggle",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/workflows",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 415,
+      "handler": "workflows"
+    },
+    "description": "workflows",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/scheduled-jobs",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 431,
+      "handler": "scheduled_jobs"
+    },
+    "description": "scheduled jobs",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/settings/scheduled-jobs/run-due",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 445,
+      "handler": "run_due_jobs"
+    },
+    "description": "run due jobs",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reports/communication-logs",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 453,
+      "handler": "communication_logs"
+    },
+    "description": "communication logs",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reports/webhook-logs",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 459,
+      "handler": "webhook_logs"
+    },
+    "description": "webhook logs",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reports/scheduler-logs",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/integration_routes.py",
+      "line": 465,
+      "handler": "scheduler_logs"
+    },
+    "description": "scheduler logs",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 37,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 56,
+      "handler": "create"
+    },
+    "description": "create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 76,
+      "handler": "detail"
+    },
+    "description": "detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 83,
+      "handler": "edit"
+    },
+    "description": "edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/issue",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 106,
+      "handler": "issue"
+    },
+    "description": "issue",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/payments",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 120,
+      "handler": "payment"
+    },
+    "description": "payment",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/cancel",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 136,
+      "handler": "cancel"
+    },
+    "description": "cancel",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/print",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 151,
+      "handler": "print_invoice"
+    },
+    "description": "print invoice",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/pdf",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 161,
+      "handler": "pdf"
+    },
+    "description": "pdf",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/api",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 169,
+      "handler": "api_index"
+    },
+    "description": "api index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/api/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 181,
+      "handler": "api_detail"
+    },
+    "description": "api detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/pay",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 187,
+      "handler": "pay"
+    },
+    "description": "pay",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/create-order",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 194,
+      "handler": "create_order"
+    },
+    "description": "create order",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/payment-callback",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/invoice_routes.py",
+      "line": 211,
+      "handler": "payment_callback"
+    },
+    "description": "payment callback",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/bom/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/manufacturing_routes.py",
+      "line": 16,
+      "handler": "bom_index"
+    },
+    "description": "bom index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/bom/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/manufacturing_routes.py",
+      "line": 23,
+      "handler": "bom_create"
+    },
+    "description": "bom create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/bom/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/manufacturing_routes.py",
+      "line": 29,
+      "handler": "bom_edit"
+    },
+    "description": "bom edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/manufacturing_routes.py",
+      "line": 35,
+      "handler": "order_index"
+    },
+    "description": "order index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/manufacturing_routes.py",
+      "line": 42,
+      "handler": "order_create"
+    },
+    "description": "order create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/<int:id>/complete",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/manufacturing_routes.py",
+      "line": 74,
+      "handler": "order_complete"
+    },
+    "description": "order complete",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/categories",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 50,
+      "handler": "categories"
+    },
+    "description": "categories",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/categories/<int:id>/delete",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 61,
+      "handler": "delete_category"
+    },
+    "description": "delete category",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/brands",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 68,
+      "handler": "brands"
+    },
+    "description": "brands",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/brands/<int:id>/delete",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 77,
+      "handler": "delete_brand"
+    },
+    "description": "delete brand",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/units",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 84,
+      "handler": "units"
+    },
+    "description": "units",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/units/<int:id>/delete",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 93,
+      "handler": "delete_unit"
+    },
+    "description": "delete unit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/warehouses",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 100,
+      "handler": "warehouses"
+    },
+    "description": "warehouses",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/warehouses/<int:id>/delete",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 106,
+      "handler": "delete_warehouse"
+    },
+    "description": "delete warehouse",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/taxes",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 116,
+      "handler": "taxes"
+    },
+    "description": "taxes",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tax-groups",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 125,
+      "handler": "tax_groups"
+    },
+    "description": "tax groups",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tax-rates",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+      "line": 135,
+      "handler": "tax_rates"
+    },
+    "description": "tax rates",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/credit-notes/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 30,
+      "handler": "credit_notes"
+    },
+    "description": "credit notes",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/credit-notes/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 36,
+      "handler": "credit_note_create"
+    },
+    "description": "credit note create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/credit-notes/<int:id>/print",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 57,
+      "handler": "credit_note_print"
+    },
+    "description": "credit note print",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/credit-notes/<int:id>/pdf",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 63,
+      "handler": "credit_note_pdf"
+    },
+    "description": "credit note pdf",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/credit-notes/<int:id>/apply",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 70,
+      "handler": "credit_note_apply"
+    },
+    "description": "credit note apply",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/credit-notes/<int:id>/refund",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 88,
+      "handler": "credit_note_refund"
+    },
+    "description": "credit note refund",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/debit-notes/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 108,
+      "handler": "debit_notes"
+    },
+    "description": "debit notes",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/debit-notes/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 114,
+      "handler": "debit_note_create"
+    },
+    "description": "debit note create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/debit-notes/<int:id>/print",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 131,
+      "handler": "debit_note_print"
+    },
+    "description": "debit note print",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/debit-notes/<int:id>/pdf",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/note_routes.py",
+      "line": 137,
+      "handler": "debit_note_pdf"
+    },
+    "description": "debit note pdf",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/customers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 50,
+      "handler": "customers"
+    },
+    "description": "customers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/customers/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 59,
+      "handler": "customer_create"
+    },
+    "description": "customer create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/customers/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 72,
+      "handler": "customer_edit"
+    },
+    "description": "customer edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/customers/<int:id>/ledger",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 85,
+      "handler": "customer_ledger"
+    },
+    "description": "customer ledger",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/suppliers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 95,
+      "handler": "suppliers"
+    },
+    "description": "suppliers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/suppliers/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 104,
+      "handler": "supplier_create"
+    },
+    "description": "supplier create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/suppliers/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 117,
+      "handler": "supplier_edit"
+    },
+    "description": "supplier edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/hover-card/<party_type>/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 130,
+      "handler": "hover_card"
+    },
+    "description": "hover card",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/suppliers/<int:id>/ledger",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+      "line": 154,
+      "handler": "supplier_ledger"
+    },
+    "description": "supplier ledger",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 24,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/open-session",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 33,
+      "handler": "open_session"
+    },
+    "description": "open session",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/terminal",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 52,
+      "handler": "terminal"
+    },
+    "description": "terminal",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/products/search",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 64,
+      "handler": "product_search"
+    },
+    "description": "product search",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sale",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 89,
+      "handler": "sale"
+    },
+    "description": "sale",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/hold",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 167,
+      "handler": "hold_bill"
+    },
+    "description": "hold bill",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/held",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 190,
+      "handler": "held_bills"
+    },
+    "description": "held bills",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/held.json",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 196,
+      "handler": "held_bills_json"
+    },
+    "description": "held bills json",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/held/<int:id>/json",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 213,
+      "handler": "held_bill_json"
+    },
+    "description": "held bill json",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/held/<int:id>/delete",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 222,
+      "handler": "held_bill_delete"
+    },
+    "description": "held bill delete",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/cash-movement",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 235,
+      "handler": "cash_movement"
+    },
+    "description": "cash movement",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/close-session",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 252,
+      "handler": "close_session"
+    },
+    "description": "close session",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sessions",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 272,
+      "handler": "sessions"
+    },
+    "description": "sessions",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/receipt/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/pos_routes.py",
+      "line": 278,
+      "handler": "receipt"
+    },
+    "description": "receipt",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/price_routes.py",
+      "line": 14,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/price_routes.py",
+      "line": 24,
+      "handler": "edit"
+    },
+    "description": "edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/items",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/price_routes.py",
+      "line": 35,
+      "handler": "items"
+    },
+    "description": "items",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 131,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/export",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 164,
+      "handler": "export"
+    },
+    "description": "export",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/import",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 202,
+      "handler": "import_products"
+    },
+    "description": "import products",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/qr",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 264,
+      "handler": "qr_label"
+    },
+    "description": "qr label",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 276,
+      "handler": "create"
+    },
+    "description": "create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 296,
+      "handler": "edit"
+    },
+    "description": "edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/images/<int:id>/primary",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 314,
+      "handler": "set_primary_image"
+    },
+    "description": "set primary image",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/images/<int:id>/delete",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 325,
+      "handler": "delete_image"
+    },
+    "description": "delete image",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/delete",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 336,
+      "handler": "delete"
+    },
+    "description": "delete",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/barcode-labels",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/product_routes.py",
+      "line": 346,
+      "handler": "barcode_labels"
+    },
+    "description": "barcode labels",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 29,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 35,
+      "handler": "create"
+    },
+    "description": "create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 53,
+      "handler": "detail"
+    },
+    "description": "detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/<int:id>/send",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 60,
+      "handler": "send"
+    },
+    "description": "send",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/<int:id>/cancel",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 70,
+      "handler": "cancel"
+    },
+    "description": "cancel",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/<int:id>/print",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 80,
+      "handler": "print_po"
+    },
+    "description": "print po",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/<int:id>/convert-bill",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 87,
+      "handler": "convert_bill"
+    },
+    "description": "convert bill",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-orders/<int:id>/grn",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 110,
+      "handler": "grn_from_po"
+    },
+    "description": "grn from po",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/grn/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_order_routes.py",
+      "line": 119,
+      "handler": "grn_create"
+    },
+    "description": "grn create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 48,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 63,
+      "handler": "create"
+    },
+    "description": "create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/approve",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 102,
+      "handler": "approve_purchase"
+    },
+    "description": "approve purchase",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/cancel",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 123,
+      "handler": "cancel_purchase"
+    },
+    "description": "cancel purchase",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/print",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 150,
+      "handler": "print_purchase"
+    },
+    "description": "print purchase",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/pdf",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 157,
+      "handler": "purchase_pdf"
+    },
+    "description": "purchase pdf",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/whatsapp",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 165,
+      "handler": "whatsapp_purchase"
+    },
+    "description": "whatsapp purchase",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/returns",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 186,
+      "handler": "returns"
+    },
+    "description": "returns",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/returns/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 192,
+      "handler": "return_create"
+    },
+    "description": "return create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/vendor-credits",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 220,
+      "handler": "vendor_credits"
+    },
+    "description": "vendor credits",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/vendor-credits/<int:id>/apply",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 226,
+      "handler": "vendor_credit_apply"
+    },
+    "description": "vendor credit apply",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/vendor-credits/<int:id>/refund",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+      "line": 243,
+      "handler": "vendor_credit_refund"
+    },
+    "description": "vendor credit refund",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/recurring_routes.py",
+      "line": 32,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/recurring_routes.py",
+      "line": 39,
+      "handler": "create"
+    },
+    "description": "create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/recurring_routes.py",
+      "line": 71,
+      "handler": "edit"
+    },
+    "description": "edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/pause",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/recurring_routes.py",
+      "line": 100,
+      "handler": "pause"
+    },
+    "description": "pause",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/run-now",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/recurring_routes.py",
+      "line": 110,
+      "handler": "run_now"
+    },
+    "description": "run now",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/history",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/recurring_routes.py",
+      "line": 120,
+      "handler": "history"
+    },
+    "description": "history",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/run-due",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/recurring_routes.py",
+      "line": 129,
+      "handler": "run_due"
+    },
+    "description": "run due",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 22,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tally-export",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 28,
+      "handler": "tally_export"
+    },
+    "description": "tally export",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sales",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 42,
+      "handler": "sales_report"
+    },
+    "description": "sales report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchases",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 52,
+      "handler": "purchase_report"
+    },
+    "description": "purchase report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/stock",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 62,
+      "handler": "stock_report"
+    },
+    "description": "stock report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/low-stock",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 72,
+      "handler": "low_stock_report"
+    },
+    "description": "low stock report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reorder",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 86,
+      "handler": "reorder_report"
+    },
+    "description": "reorder report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/valuation",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 95,
+      "handler": "valuation_report"
+    },
+    "description": "valuation report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/expiry",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 109,
+      "handler": "expiry_report"
+    },
+    "description": "expiry report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/inventory-ledger",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 129,
+      "handler": "inventory_ledger"
+    },
+    "description": "inventory ledger",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/profit-loss",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 139,
+      "handler": "profit_loss"
+    },
+    "description": "profit loss",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/receivables-aging",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 150,
+      "handler": "receivables_aging"
+    },
+    "description": "receivables aging",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/payables-aging",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 162,
+      "handler": "payables_aging"
+    },
+    "description": "payables aging",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/trial-balance",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 174,
+      "handler": "trial_balance"
+    },
+    "description": "trial balance",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/balance-sheet",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 183,
+      "handler": "balance_sheet"
+    },
+    "description": "balance sheet",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/cash-flow",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 197,
+      "handler": "cash_flow"
+    },
+    "description": "cash flow",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tax-summary",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 214,
+      "handler": "tax_summary"
+    },
+    "description": "tax summary",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/gstr1",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 226,
+      "handler": "gstr1_report"
+    },
+    "description": "gstr1 report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/gstr3b",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 241,
+      "handler": "gstr3b_report"
+    },
+    "description": "gstr3b report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/abc-analysis",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 286,
+      "handler": "abc_analysis"
+    },
+    "description": "abc analysis",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/dead-stock",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 305,
+      "handler": "dead_stock"
+    },
+    "description": "dead stock",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/stock-health",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 323,
+      "handler": "stock_health_dashboard"
+    },
+    "description": "stock health dashboard",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sales-velocity",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 335,
+      "handler": "sales_velocity"
+    },
+    "description": "sales velocity",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sales-summary",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 352,
+      "handler": "sales_summary"
+    },
+    "description": "sales summary",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/item-wise-sales",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 365,
+      "handler": "item_wise_sales"
+    },
+    "description": "item wise sales",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/customer-wise-sales",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 378,
+      "handler": "customer_wise_sales"
+    },
+    "description": "customer wise sales",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/sales-returns",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 389,
+      "handler": "sales_return_report"
+    },
+    "description": "sales return report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/payments-received",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 400,
+      "handler": "payments_received_report"
+    },
+    "description": "payments received report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-summary",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 411,
+      "handler": "purchase_summary"
+    },
+    "description": "purchase summary",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/vendor-wise-purchase",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 422,
+      "handler": "vendor_wise_purchase"
+    },
+    "description": "vendor wise purchase",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/purchase-returns",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 433,
+      "handler": "purchase_return_report"
+    },
+    "description": "purchase return report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/vendor-payments",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 444,
+      "handler": "vendor_payment_report"
+    },
+    "description": "vendor payment report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/stock-summary",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 457,
+      "handler": "stock_summary"
+    },
+    "description": "stock summary",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/stock-movement",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 471,
+      "handler": "stock_movement_report"
+    },
+    "description": "stock movement report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/serial-numbers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 486,
+      "handler": "serial_number_report"
+    },
+    "description": "serial number report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/tax-report",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 498,
+      "handler": "tax_report"
+    },
+    "description": "tax report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/cashier-closing",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 510,
+      "handler": "cashier_closing_report"
+    },
+    "description": "cashier closing report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/activity-log",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/reports_routes.py",
+      "line": 520,
+      "handler": "activity_log_report"
+    },
+    "description": "activity log report",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 142,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 148,
+      "handler": "orders"
+    },
+    "description": "orders",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 154,
+      "handler": "order_create"
+    },
+    "description": "order create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/<int:id>",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 193,
+      "handler": "order_detail"
+    },
+    "description": "order detail",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/<int:id>/convert-invoice",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 199,
+      "handler": "order_convert_invoice"
+    },
+    "description": "order convert invoice",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/<int:id>/delivery-bill",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 215,
+      "handler": "order_delivery_bill"
+    },
+    "description": "order delivery bill",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/orders/<int:id>/purchase-order",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 227,
+      "handler": "order_purchase_order"
+    },
+    "description": "order purchase order",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 258,
+      "handler": "create"
+    },
+    "description": "create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/print",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 289,
+      "handler": "print_sale"
+    },
+    "description": "print sale",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/pdf",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 299,
+      "handler": "sale_pdf"
+    },
+    "description": "sale pdf",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/e-invoice.json",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 307,
+      "handler": "e_invoice_json"
+    },
+    "description": "e invoice json",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/email",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 316,
+      "handler": "email_invoice"
+    },
+    "description": "email invoice",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/receipt-email",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 326,
+      "handler": "email_receipt"
+    },
+    "description": "email receipt",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/whatsapp",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 335,
+      "handler": "whatsapp_invoice"
+    },
+    "description": "whatsapp invoice",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/generate-irn",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 356,
+      "handler": "generate_irn"
+    },
+    "description": "generate irn",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/eway-bill",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 393,
+      "handler": "eway_bill"
+    },
+    "description": "eway bill",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/packing-slip",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 423,
+      "handler": "packing_slip"
+    },
+    "description": "packing slip",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/shipping-label",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 430,
+      "handler": "shipping_label"
+    },
+    "description": "shipping label",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/returns",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 437,
+      "handler": "returns"
+    },
+    "description": "returns",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/returns/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 443,
+      "handler": "return_create"
+    },
+    "description": "return create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/refunds",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 469,
+      "handler": "refunds"
+    },
+    "description": "refunds",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/delivery-bills",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 506,
+      "handler": "delivery_bills"
+    },
+    "description": "delivery bills",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/delivery-bills/<int:id>/status",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 512,
+      "handler": "delivery_bill_status"
+    },
+    "description": "delivery bill status",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/<int:id>/delivery-bill",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 526,
+      "handler": "sale_delivery_bill"
+    },
+    "description": "sale delivery bill",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/picklists",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 537,
+      "handler": "picklists"
+    },
+    "description": "picklists",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/picklists/create",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 543,
+      "handler": "picklist_create"
+    },
+    "description": "picklist create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/picklists/<int:id>/mark-picked",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 561,
+      "handler": "picklist_mark_picked"
+    },
+    "description": "picklist mark picked",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/packages",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 576,
+      "handler": "packages"
+    },
+    "description": "packages",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/packages/create-from-picklist/<int:id>",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 582,
+      "handler": "package_create_from_picklist"
+    },
+    "description": "package create from picklist",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/packages/<int:id>/packing-slip",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 600,
+      "handler": "package_packing_slip"
+    },
+    "description": "package packing slip",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/quotations",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 606,
+      "handler": "quotations"
+    },
+    "description": "quotations",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/quotations/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 612,
+      "handler": "quotation_create"
+    },
+    "description": "quotation create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/quotations/<int:id>/convert",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 625,
+      "handler": "quotation_convert"
+    },
+    "description": "quotation convert",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/proforma",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 636,
+      "handler": "proforma"
+    },
+    "description": "proforma",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/proforma/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 642,
+      "handler": "proforma_create"
+    },
+    "description": "proforma create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/proforma/<int:id>/convert",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 655,
+      "handler": "proforma_convert"
+    },
+    "description": "proforma convert",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/challans",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 666,
+      "handler": "challans"
+    },
+    "description": "challans",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/challans/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+      "line": 672,
+      "handler": "challan_create"
+    },
+    "description": "challan create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/search_routes.py",
+      "line": 11,
+      "handler": "index"
+    },
+    "description": "index",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/company",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 23,
+      "handler": "company"
+    },
+    "description": "company",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/business-profile",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 80,
+      "handler": "business_profile"
+    },
+    "description": "business profile",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/users",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 121,
+      "handler": "users"
+    },
+    "description": "users",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/users/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 133,
+      "handler": "user_create"
+    },
+    "description": "user create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/users/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 140,
+      "handler": "user_edit"
+    },
+    "description": "user edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/users/<int:id>/toggle",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 146,
+      "handler": "user_toggle"
+    },
+    "description": "user toggle",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/roles",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 160,
+      "handler": "roles"
+    },
+    "description": "roles",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/roles/<int:id>/edit",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 183,
+      "handler": "role_edit"
+    },
+    "description": "role edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/branches",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 204,
+      "handler": "branches"
+    },
+    "description": "branches",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/branches/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 226,
+      "handler": "branch_edit"
+    },
+    "description": "branch edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/branches/<int:id>/toggle",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 238,
+      "handler": "branch_toggle"
+    },
+    "description": "branch toggle",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/warehouses",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 249,
+      "handler": "warehouses"
+    },
+    "description": "warehouses",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/warehouses/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 271,
+      "handler": "warehouse_edit"
+    },
+    "description": "warehouse edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/warehouses/<int:id>/toggle",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 283,
+      "handler": "warehouse_toggle"
+    },
+    "description": "warehouse toggle",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/registers",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 294,
+      "handler": "registers"
+    },
+    "description": "registers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/registers/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 316,
+      "handler": "register_edit"
+    },
+    "description": "register edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/registers/<int:id>/toggle",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 328,
+      "handler": "register_toggle"
+    },
+    "description": "register toggle",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/roles/<int:id>/permissions",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 339,
+      "handler": "role_permissions"
+    },
+    "description": "role permissions",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/audit",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 358,
+      "handler": "audit"
+    },
+    "description": "audit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/api-tokens",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 365,
+      "handler": "api_tokens"
+    },
+    "description": "api tokens",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/api-tokens/<int:id>/revoke",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 385,
+      "handler": "revoke_api_token"
+    },
+    "description": "revoke api token",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/backup",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 396,
+      "handler": "backup"
+    },
+    "description": "backup",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/backup/uploads",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 411,
+      "handler": "backup_upload_files"
+    },
+    "description": "backup upload files",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/currencies",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 418,
+      "handler": "currencies"
+    },
+    "description": "currencies",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/currencies/update-rates",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 438,
+      "handler": "update_currency_rates"
+    },
+    "description": "update currency rates",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/templates/",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 456,
+      "handler": "templates"
+    },
+    "description": "templates",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/templates/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 463,
+      "handler": "template_create"
+    },
+    "description": "template create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/templates/<int:id>/edit",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 470,
+      "handler": "template_edit"
+    },
+    "description": "template edit",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/templates/<int:id>/default",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 476,
+      "handler": "template_default"
+    },
+    "description": "template default",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/templates/<int:id>/preview",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 487,
+      "handler": "template_preview"
+    },
+    "description": "template preview",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/templates/preview-live",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 498,
+      "handler": "template_preview_live"
+    },
+    "description": "template preview live",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/scheduled-reports/",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 505,
+      "handler": "scheduled_reports"
+    },
+    "description": "scheduled reports",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/scheduled-reports/<int:id>/run-now",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 528,
+      "handler": "scheduled_report_run_now"
+    },
+    "description": "scheduled report run now",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/scheduled-reports/run-due",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+      "line": 537,
+      "handler": "scheduled_report_run_due"
+    },
+    "description": "scheduled report run due",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/current",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 17,
+      "handler": "current"
+    },
+    "description": "current",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/ledger",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 23,
+      "handler": "ledger"
+    },
+    "description": "ledger",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/reorder-suggestions",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 29,
+      "handler": "reorder_suggestions"
+    },
+    "description": "reorder suggestions",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/adjustments",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 57,
+      "handler": "adjustments"
+    },
+    "description": "adjustments",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/opening-stock",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 73,
+      "handler": "opening_stock"
+    },
+    "description": "opening stock",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/transfers",
+    "methods": [
+      "GET"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 97,
+      "handler": "transfers"
+    },
+    "description": "transfers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/batches",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 103,
+      "handler": "batches"
+    },
+    "description": "batches",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/transfers/create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 134,
+      "handler": "transfer_create"
+    },
+    "description": "transfer create",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/transfers/<int:id>/send",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 177,
+      "handler": "transfer_send"
+    },
+    "description": "transfer send",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/transfers/<int:id>/receive",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 192,
+      "handler": "transfer_receive"
+    },
+    "description": "transfer receive",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/transfers/<int:id>/cancel",
+    "methods": [
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 211,
+      "handler": "transfer_cancel"
+    },
+    "description": "transfer cancel",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/serial-numbers",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 224,
+      "handler": "serial_numbers"
+    },
+    "description": "serial numbers",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/composite-items",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 242,
+      "handler": "composite_items"
+    },
+    "description": "composite items",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  },
+  {
+    "declared_path": "/repacking",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "source": {
+      "file": "backend/app/apps/inventory/vyapara_erp/app/routes/stock_routes.py",
+      "line": 257,
+      "handler": "repacking"
+    },
+    "description": "repacking",
+    "status": "Not registered in the main FastAPI app with all five product modules enabled; may belong to a separate app"
+  }
+]

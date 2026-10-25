@@ -84,7 +84,8 @@ def test_form16_generate_upload_publish_and_download(client, db, superuser_heade
     )
     assert generated.status_code == 200, generated.text
     assert generated.json()[0]["status"] == "generated"
-    assert generated.json()[0]["partBFilePath"].endswith("form16_part_b.pdf")
+    from app.core.storage import normalize_upload_references
+    assert normalize_upload_references(generated.json()[0]["partBFilePath"]).endswith("form16_part_b.pdf")
     assert Decimal(str(generated.json()[0]["taxDeducted"])) == Decimal("3500.00")
     assert Decimal(str(generated.json()[0]["taxableIncome"])) == Decimal("0.00")
 
@@ -99,8 +100,8 @@ def test_form16_generate_upload_publish_and_download(client, db, superuser_heade
         headers=superuser_headers,
     )
     assert uploaded.status_code == 200, uploaded.text
-    assert uploaded.json()["partAFilePath"].endswith(".pdf")
-    assert uploaded.json()["combinedFilePath"].endswith(".pdf")
+    assert normalize_upload_references(uploaded.json()["partAFilePath"]).endswith(".pdf")
+    assert normalize_upload_references(uploaded.json()["combinedFilePath"]).endswith(".pdf")
 
     published = client.post(f"/api/v1/hrms/form16/{record_id}/publish", headers=superuser_headers)
     assert published.status_code == 200

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -24,6 +25,7 @@ from app.ai_operator.extensions import SetupPlan, local_context
 from app.ai_operator.models import OperatorProvider, OperatorRun
 from app.ai_operator.planner import planning_agent
 from app.ai_operator.providers import generate_json
+from app.ai_operator.provider_scope import resolve_provider
 from app.ai_operator.schemas import Provider, TaskPlan
 from app.ai_operator.service import scope_key, context_for, validate_plan, digest
 from app.apps.project_management.access import get_project_for_action
@@ -48,6 +50,9 @@ Status values: To Do, In Progress, In Review, Blocked, Done. Priority: Low, Medi
 Choose at most 25 tasks and 75 steps. Project setup has at most 50 tasks/20 milestones; draft-key references must point to earlier tasks.
 Prefer small complete plans. If a goal needs research, tools outside this contract or absent records, ask or return unsupported.
 Return only the fields appropriate to your kind. Example: {"kind":"ask","message":"I can plan the launch.","question":"What is the target date?"}.
+For a request to mark authorized task 7 High priority: {"kind":"task_plan","message":"Review this priority change.","task_ids":[7],"task_plan":{"summary":"Raise task priority","steps":[{"tool":"update_task","task_id":7,"changes":{"priority":"High"}}]}}.
+Example IDs illustrate the format only; never use them unless they are current authorized targets.
+Keep messages under 20 words. Example missing detail: {"kind":"ask","message":"I need a date.","question":"When is the deadline?"}
 """
 
 
@@ -90,8 +95,9 @@ class TurnInput(Strict):
     revision: int = Field(ge=0)
     text: str = Field(min_length=1, max_length=4000)
     reply: BrainReply
-    runtime: Literal["browser", "ollama", "cloud"]
+    runtime: Literal["browser", "cloud"]
     model: str = Field(min_length=1, max_length=180)
+    fallback_reason: Literal['unavailable','unsupported','invalid_output','context_limit','timeout'] | None = None
 
 
 class ValidateInput(Strict):
@@ -103,6 +109,15 @@ class CloudInput(Strict):
     provider: Provider
     timezone: str = Field(default="Asia/Kolkata", max_length=80)
     fallback_reason: Literal["unavailable", "unsupported", "invalid_output", "context_limit", "timeout"]
+    task_ids: list[int] = Field(default_factory=list, max_length=25)
+
+    @model_validator(mode="after")
+    def validate_timezone(self):
+        try:
+            ZoneInfo(self.timezone)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("Unknown timezone")
+        return self
 
 
 def brain_session(db, user, ident, lock=False):
@@ -167,6 +182,10 @@ def brain_context(ident: int, db: Session = Depends(get_db), user: User = Depend
     context["tasks_complete"] = context["tasks_complete"] and original_count <= 60
     context["selected_task_ids"] = selected
     context["task_context_limit"] = 60
+    from app.ai_operator.workbench import memory_context
+    context['project_memory'] = memory_context(db, user, project.id)
+    from app.ai_operator.pms_agent import enrich_context
+    enrich_context(db, user, project.id, context)
     runs = db.query(OperatorRun).filter_by(user_id=user.id, project_id=project.id).order_by(OperatorRun.id.desc()).limit(5).all()
     context["execution_history"] = [{"run_id": r.id, "status": r.status, "summary": (r.plan or {}).get("summary"), "result": r.result} for r in runs]
     return {"session": public_session(row), "context": context, "instructions": INSTRUCTIONS, "schema": BrainReply.model_json_schema(), "as_of": datetime.now(timezone.utc).isoformat()}
@@ -207,7 +226,7 @@ def remember(ident: int, data: TurnInput, db: Session = Depends(get_db), user: U
     encoded = json.dumps(reply)
     saved_reply = reply if len(encoded) <= 8000 else {"kind": reply["kind"], "message": reply["message"], "draft_details_omitted": True}
     turns = (turns + [{"request_key": str(data.request_key), "fingerprint": fingerprint, "text": data.text, "reply": saved_reply,
-        "runtime": data.runtime, "model": data.model, "at": datetime.now(timezone.utc).isoformat(), "execution": "draft_only"}])[-24:]
+        "runtime": data.runtime, "model": data.model, "fallback_reason":data.fallback_reason, "at": datetime.now(timezone.utc).isoformat(), "execution": "draft_only"}])[-24:]
     refs.update(brain_turns=turns, brain_revision=data.revision+1)
     row.references = refs
     AiAuditService(db).log(user=user, agent_id=None, module="PMS", action="operator.brain.turn",
@@ -228,15 +247,21 @@ def clear(ident: int, db: Session = Depends(get_db), user: User = Depends(get_cu
 def cloud(ident: int, data: CloudInput, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     row, project = brain_session(db, user, ident)
     _require_ai_rate_limit(db, request, user, bucket="brain_cloud_fallback")
-    config = db.query(OperatorProvider).filter_by(scope_key=scope_key(db,user,project.workspace_id), provider=data.provider, enabled=True, data_sharing_allowed=True).first()
-    if not config:
+    config = resolve_provider(db, user, data.provider, project.workspace_id)
+    if not config or not config.enabled or not config.data_sharing_allowed:
         raise HTTPException(409, "Selected cloud provider is unavailable for this workspace")
-    packet = brain_context(ident, db, user)
+    packet = brain_context(ident, db, user, ','.join(map(str, data.task_ids)))
+    turns = packet["session"]["turns"]
+    history = [turns[0], *turns[-7:]] if len(turns) > 8 else turns
     outbound = AiDataRedactionService().redact_for_ai(user, "PMS", {"command": data.text, "timezone": data.timezone,
-        "authorized_context": packet["context"], "private_conversation": packet["session"]["turns"][-8:], "instructions": INSTRUCTIONS})
+        "current_date": datetime.now(ZoneInfo(data.timezone)).date().isoformat(),
+        "authorized_context": packet["context"], "private_conversation": history, "instructions": INSTRUCTIONS})
     try:
-        result = generate_json(db,user,config,prompt=json.dumps(outbound),schema=BrainReply.model_json_schema(),purpose="brain_fallback",output_type=BrainReply)
-        result = validate_reply(db,user,project,BrainReply.model_validate(result))
+        result = generate_json(db,user,config,prompt=json.dumps(outbound),schema=BrainReply.model_json_schema(),purpose="brain_fallback",output_type=BrainReply,usage_scope=scope_key(db,user,project.workspace_id))
+        reply = BrainReply.model_validate(result)
+        if data.task_ids and reply.kind=='task_plan' and not set(reply.task_ids).issubset(set(data.task_ids)):
+            raise HTTPException(422,'The model proposed targets outside your selected tasks')
+        result = validate_reply(db,user,project,reply)
     except HTTPException:
         db.commit()
         raise

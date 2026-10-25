@@ -13,7 +13,16 @@ def cron(response: Response, authorization: str = Header(""), db=Depends(get_db)
     if not settings.CRON_SECRET or not secrets.compare_digest(authorization, f"Bearer {settings.CRON_SECRET}"):
         raise HTTPException(401, "Invalid scheduler credentials")
     response.headers["Cache-Control"] = "no-store"
-    return run_cron_batch(db)
+    result = run_cron_batch(db)
+    from app.module_registry import is_app_enabled
+    if is_app_enabled("crm"):
+        from app.apps.crm.lead_management import scheduled_lead_alerts
+        result["lead_management"] = scheduled_lead_alerts(db)
+    if is_app_enabled("hrms") and is_app_enabled("project_management"):
+        from app.apps.interns_hub.distribution import scheduled_tick
+        from app.apps.interns_hub.router import today
+        result["intern_management"] = scheduled_tick(db,today())
+    return result
 
 
 @router.get("/internal/jobs")

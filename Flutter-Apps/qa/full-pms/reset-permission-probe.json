@@ -1,0 +1,12 @@
+{
+  "channel": "Host diagnostic; not counted as a physical-device pass",
+  "is_superuser": false,
+  "role": "pms_org_admin",
+  "preview_status": 200,
+  "expected_non_superuser_preview_status": 403,
+  "reset_executed": false,
+  "invalid_confirmation_status": 422,
+  "expected_non_superuser_status": 403,
+  "workspace_state_unchanged": true,
+  "finding": "Non-superuser with PMS admin permission reaches the global reset handler"
+}

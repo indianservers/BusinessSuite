@@ -23,7 +23,7 @@ def test_private_task_attachment_survives_instance_loss_and_preserves_permission
     file_id = uploaded.json()["id"]
     download = client.get(f"{BASE}/attachments/{file_id}/download", headers=superuser_headers, follow_redirects=False)
     assert download.status_code == 307
-    assert "X-Amz-Signature=" in download.headers["location"]
+    assert "/api/v1/files/blob?token=" in download.headers["location"]
     outsider = User(email="cloud-file-outsider@test.local", hashed_password="unused", is_active=True)
     db.add(outsider)
     db.commit()

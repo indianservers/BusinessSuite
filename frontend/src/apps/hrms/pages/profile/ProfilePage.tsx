@@ -1,3 +1,4 @@
+import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,11 +27,13 @@ import { getRoleKey } from "@/lib/roles";
 
 const CHANGE_FIELDS = [
   "phone_number",
+  "phone_number_country_code",
   "personal_email",
   "present_address",
   "permanent_address",
   "emergency_contact_name",
   "emergency_contact_number",
+  "emergency_contact_number_country_code",
   "emergency_contact_relation",
   "marital_status",
   "bank_name",
@@ -57,6 +60,8 @@ type ChangeDraft = Record<(typeof CHANGE_FIELDS)[number], string>;
 
 const emptyChangeDraft: ChangeDraft = {
   phone_number: "",
+  phone_number_country_code: "",
+  emergency_contact_number_country_code: "",
   personal_email: "",
   present_address: "",
   permanent_address: "",
@@ -456,11 +461,11 @@ export default function ProfilePage() {
         <CardContent className="space-y-5">
           <form onSubmit={submitChange} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div className="space-y-1.5"><Label>Phone</Label><Input value={changeDraft.phone_number} onChange={(e) => updateChange("phone_number", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Phone</Label><PhoneInput value={changeDraft.phone_number || ""} countryCode={changeDraft.phone_number_country_code ?? (employee.data?.phone_number ? "" : "+91")} onChange={value=>{updateChange("phone_number",value);if(!changeDraft.phone_number_country_code&&!employee.data?.phone_number)updateChange("phone_number_country_code","+91");}} onCountryCodeChange={value=>updateChange("phone_number_country_code",value)} /></div>
               <div className="space-y-1.5"><Label>Personal email</Label><Input type="email" value={changeDraft.personal_email} onChange={(e) => updateChange("personal_email", e.target.value)} /></div>
               <div className="space-y-1.5"><Label>Marital status</Label><Input value={changeDraft.marital_status} onChange={(e) => updateChange("marital_status", e.target.value)} /></div>
               <div className="space-y-1.5"><Label>Emergency contact</Label><Input value={changeDraft.emergency_contact_name} onChange={(e) => updateChange("emergency_contact_name", e.target.value)} /></div>
-              <div className="space-y-1.5"><Label>Emergency phone</Label><Input value={changeDraft.emergency_contact_number} onChange={(e) => updateChange("emergency_contact_number", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Emergency phone</Label><PhoneInput value={changeDraft.emergency_contact_number || ""} countryCode={changeDraft.emergency_contact_number_country_code ?? (employee.data?.emergency_contact_number ? "" : "+91")} onChange={value=>{updateChange("emergency_contact_number",value);if(!changeDraft.emergency_contact_number_country_code&&!employee.data?.emergency_contact_number)updateChange("emergency_contact_number_country_code","+91");}} onCountryCodeChange={value=>updateChange("emergency_contact_number_country_code",value)} /></div>
               <div className="space-y-1.5"><Label>Emergency relation</Label><Input value={changeDraft.emergency_contact_relation} onChange={(e) => updateChange("emergency_contact_relation", e.target.value)} /></div>
               <div className="space-y-1.5"><Label>PAN</Label><Input value={changeDraft.pan_number} onChange={(e) => updateChange("pan_number", e.target.value.toUpperCase())} /></div>
               <div className="space-y-1.5"><Label>Aadhaar</Label><Input value={changeDraft.aadhaar_number} onChange={(e) => updateChange("aadhaar_number", e.target.value)} /></div>

@@ -34,6 +34,7 @@ def test_employee_profile_change_request_requires_approval(client, db, superuser
             "requestType": "Profile Update",
             "fieldChanges": {
                 "phone_number": "9111111111",
+                "phone_number_country_code": "+91",
                 "emergency_contact_name": "New Contact",
                 "marital_status": "Married",
             },

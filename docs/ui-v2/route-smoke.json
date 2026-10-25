@@ -1,0 +1,6045 @@
+[
+  {
+    "path": "/admin/automation",
+    "resolved": "/admin/automation",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/automation/workflows",
+    "resolved": "/admin/automation/workflows",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/automation/workflows/:id",
+    "resolved": "/admin/automation/workflows/1",
+    "dynamic": true,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/admin/automation/blueprints",
+    "resolved": "/admin/automation/blueprints",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/automation/assignment-rules",
+    "resolved": "/admin/automation/assignment-rules",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/automation/approvals",
+    "resolved": "/admin/automation/approvals",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/automation/webhooks",
+    "resolved": "/admin/automation/webhooks",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/automation/cadences",
+    "resolved": "/admin/automation/cadences",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/automation/logs",
+    "resolved": "/admin/automation/logs",
+    "dynamic": false,
+    "heading": "Automation Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization",
+    "resolved": "/admin/customization",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/modules",
+    "resolved": "/admin/customization/modules",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/modules/:id",
+    "resolved": "/admin/customization/modules/1",
+    "dynamic": true,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/admin/customization/layouts",
+    "resolved": "/admin/customization/layouts",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/fields",
+    "resolved": "/admin/customization/fields",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/kanban",
+    "resolved": "/admin/customization/kanban",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/views",
+    "resolved": "/admin/customization/views",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/validation-rules",
+    "resolved": "/admin/customization/validation-rules",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/buttons",
+    "resolved": "/admin/customization/buttons",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/picklists",
+    "resolved": "/admin/customization/picklists",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/formulas",
+    "resolved": "/admin/customization/formulas",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/rollups",
+    "resolved": "/admin/customization/rollups",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/customization/audit",
+    "resolved": "/admin/customization/audit",
+    "dynamic": false,
+    "heading": "Customization Studio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/business-os/integrations",
+    "resolved": "/admin/business-os/integrations",
+    "dynamic": false,
+    "heading": "Business OS Modular Foundation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/business-os/modules",
+    "resolved": "/admin/business-os/modules",
+    "dynamic": false,
+    "heading": "Business OS Modular Foundation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/business-os/lifecycle",
+    "resolved": "/admin/business-os/lifecycle",
+    "dynamic": false,
+    "heading": "Business OS Modular Foundation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/business-os",
+    "resolved": "/business-os",
+    "dynamic": false,
+    "heading": "Business OS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/business-os/customer-720",
+    "resolved": "/business-os/customer-720",
+    "dynamic": false,
+    "heading": "Business OS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/business-os/dashboard",
+    "resolved": "/business-os/dashboard",
+    "dynamic": false,
+    "heading": "Business OS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/business-os/reports",
+    "resolved": "/business-os/reports",
+    "dynamic": false,
+    "heading": "Business OS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/business-os/ai",
+    "resolved": "/business-os/ai",
+    "dynamic": false,
+    "heading": "Business OS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/report-builder",
+    "resolved": "/analytics/report-builder",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics",
+    "resolved": "/analytics",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/reports",
+    "resolved": "/analytics/reports",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/reports/:id",
+    "resolved": "/analytics/reports/1",
+    "dynamic": true,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/analytics/dashboards",
+    "resolved": "/analytics/dashboards",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/dashboards/:id",
+    "resolved": "/analytics/dashboards/1",
+    "dynamic": true,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/analytics/scheduled-reports",
+    "resolved": "/analytics/scheduled-reports",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/exports",
+    "resolved": "/analytics/exports",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/funnel",
+    "resolved": "/analytics/funnel",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/forecast",
+    "resolved": "/analytics/forecast",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/profitability",
+    "resolved": "/analytics/profitability",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/collections",
+    "resolved": "/analytics/collections",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/campaigns",
+    "resolved": "/analytics/campaigns",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/analytics/anomalies",
+    "resolved": "/analytics/anomalies",
+    "dynamic": false,
+    "heading": "Analytics and Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/reset-password",
+    "resolved": "/reset-password",
+    "dynamic": false,
+    "heading": "AI HRMS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/login",
+    "resolved": "/login",
+    "dynamic": false,
+    "heading": "AI HRMS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/login",
+    "resolved": "/hrms/login",
+    "dynamic": false,
+    "heading": "AI HRMS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/login",
+    "resolved": "/crm/login",
+    "dynamic": false,
+    "heading": "VyaparaCRM",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/invitation",
+    "resolved": "/pms/invitation",
+    "dynamic": false,
+    "heading": "Workspace invitation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/login",
+    "resolved": "/pms/login",
+    "dynamic": false,
+    "heading": "Plan. Track. Collaborate.\nGet Results.",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/login",
+    "resolved": "/srm/login",
+    "dynamic": false,
+    "heading": "Sales & Inventory",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/login",
+    "resolved": "/fam/login",
+    "dynamic": false,
+    "heading": "FinanceFlow FAM",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/portal/customer/*",
+    "resolved": "/portal/customer/__qa_unmatched__",
+    "dynamic": true,
+    "heading": "Customer Portal",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/portal/customer/login",
+    "resolved": "/portal/customer/login",
+    "dynamic": false,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/portal/partner/*",
+    "resolved": "/portal/partner/__qa_unmatched__",
+    "dynamic": true,
+    "heading": "Partner Portal",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/portal/partner/login",
+    "resolved": "/portal/partner/login",
+    "dynamic": false,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/Inventory/login",
+    "resolved": "/Inventory/login",
+    "dynamic": false,
+    "heading": "Sales & Inventory",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/inventory/login",
+    "resolved": "/inventory/login",
+    "dynamic": false,
+    "heading": "Sales & Inventory",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/Inventory",
+    "resolved": "/Inventory",
+    "dynamic": false,
+    "heading": "Inventory Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/Inventory/*",
+    "resolved": "/Inventory/__qa_unmatched__",
+    "dynamic": true,
+    "heading": "Inventory Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/inventory/*",
+    "resolved": "/inventory/__qa_unmatched__",
+    "dynamic": true,
+    "heading": "Inventory Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/inventory",
+    "resolved": "/inventory",
+    "dynamic": false,
+    "heading": "Inventory Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/",
+    "resolved": "/",
+    "dynamic": false,
+    "heading": "Your business, connected.",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/security",
+    "resolved": "/admin/security",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/profiles",
+    "resolved": "/admin/profiles",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/roles",
+    "resolved": "/admin/roles",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/field-security",
+    "resolved": "/admin/field-security",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/record-sharing",
+    "resolved": "/admin/record-sharing",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/data-sharing",
+    "resolved": "/admin/data-sharing",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/ip-restrictions",
+    "resolved": "/admin/ip-restrictions",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/audit-logs",
+    "resolved": "/admin/audit-logs",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/import",
+    "resolved": "/admin/import",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/duplicates",
+    "resolved": "/admin/duplicates",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/export-control",
+    "resolved": "/admin/export-control",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/backups",
+    "resolved": "/admin/backups",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/compliance",
+    "resolved": "/admin/compliance",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/data-retention",
+    "resolved": "/admin/data-retention",
+    "dynamic": false,
+    "heading": "Enterprise Security and Data Governance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/copilot",
+    "resolved": "/ai/copilot",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/record-summary",
+    "resolved": "/ai/record-summary",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/deal-coach",
+    "resolved": "/ai/deal-coach",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/forecast",
+    "resolved": "/ai/forecast",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/collection-risk",
+    "resolved": "/ai/collection-risk",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/workflow-builder",
+    "resolved": "/ai/workflow-builder",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/report-explainer",
+    "resolved": "/ai/report-explainer",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/prompt-templates",
+    "resolved": "/ai/prompt-templates",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/provider-settings",
+    "resolved": "/ai/provider-settings",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai/action-log",
+    "resolved": "/ai/action-log",
+    "dynamic": false,
+    "heading": "AI Copilot",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/gantt",
+    "resolved": "/crm/gantt",
+    "dynamic": false,
+    "heading": "CRM Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm",
+    "resolved": "/crm",
+    "dynamic": false,
+    "heading": "CRM Overview",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/dashboard",
+    "resolved": "/crm/dashboard",
+    "dynamic": false,
+    "heading": "CRM Overview",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/profile",
+    "resolved": "/crm/profile",
+    "dynamic": false,
+    "heading": "CRM Profile",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/leads",
+    "resolved": "/crm/leads",
+    "dynamic": false,
+    "heading": "Leads",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/*",
+    "resolved": "/__qa_unmatched__",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/contacts",
+    "resolved": "/crm/contacts",
+    "dynamic": false,
+    "heading": "Contacts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/contacts/:id",
+    "resolved": "/crm/contacts/1",
+    "dynamic": true,
+    "heading": "Synthetic billing contact",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/accounts",
+    "resolved": "/crm/accounts",
+    "dynamic": false,
+    "heading": "Accounts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/accounts/:id",
+    "resolved": "/crm/accounts/1",
+    "dynamic": true,
+    "heading": "Synthetic shared customer",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/companies",
+    "resolved": "/crm/companies",
+    "dynamic": false,
+    "heading": "Accounts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/companies/:id",
+    "resolved": "/crm/companies/1",
+    "dynamic": true,
+    "heading": "Synthetic shared customer",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/deals",
+    "resolved": "/crm/deals",
+    "dynamic": false,
+    "heading": "Deals",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/deals/:id",
+    "resolved": "/crm/deals/1",
+    "dynamic": true,
+    "heading": "Audit opportunity 397520c0",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/pipeline",
+    "resolved": "/crm/pipeline",
+    "dynamic": false,
+    "heading": "Sales command pipeline",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/templates",
+    "resolved": "/crm/templates",
+    "dynamic": false,
+    "heading": "Customized CRM templates",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/pipeline-settings",
+    "resolved": "/crm/pipeline-settings",
+    "dynamic": false,
+    "heading": "Pipeline Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/pipelines",
+    "resolved": "/crm/pipelines",
+    "dynamic": false,
+    "heading": "Pipeline Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/pipelines/:id",
+    "resolved": "/crm/pipelines/1",
+    "dynamic": true,
+    "heading": "Pipeline Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/activities",
+    "resolved": "/crm/activities",
+    "dynamic": false,
+    "heading": "Activities",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/tasks",
+    "resolved": "/crm/tasks",
+    "dynamic": false,
+    "heading": "CRM Tasks",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/calendar",
+    "resolved": "/crm/calendar",
+    "dynamic": false,
+    "heading": "CRM calendar",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/calendar-integrations",
+    "resolved": "/crm/calendar-integrations",
+    "dynamic": false,
+    "heading": "Calendar Integrations",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/webhooks",
+    "resolved": "/crm/webhooks",
+    "dynamic": false,
+    "heading": "Webhook Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/communication-hub",
+    "resolved": "/crm/communication-hub",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/email-templates",
+    "resolved": "/crm/email-templates",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/emails",
+    "resolved": "/crm/emails",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/webforms",
+    "resolved": "/crm/webforms",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/webforms/:id",
+    "resolved": "/crm/webforms/1",
+    "dynamic": true,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/campaigns",
+    "resolved": "/crm/campaigns",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/campaigns/:id",
+    "resolved": "/crm/campaigns/1",
+    "dynamic": true,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/consents",
+    "resolved": "/crm/consents",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/whatsapp",
+    "resolved": "/crm/whatsapp",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/auto-responses",
+    "resolved": "/crm/auto-responses",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/delivery-logs",
+    "resolved": "/crm/delivery-logs",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/communication-timeline",
+    "resolved": "/crm/communication-timeline",
+    "dynamic": false,
+    "heading": "Communication Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/products",
+    "resolved": "/crm/products",
+    "dynamic": false,
+    "heading": "Products",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/leads/:id",
+    "resolved": "/crm/leads/1",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/products/:id",
+    "resolved": "/crm/products/1",
+    "dynamic": true,
+    "heading": "Products",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/services/:id",
+    "resolved": "/crm/services/1",
+    "dynamic": true,
+    "heading": "Services",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/services",
+    "resolved": "/crm/services",
+    "dynamic": false,
+    "heading": "Services",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/price-books",
+    "resolved": "/crm/price-books",
+    "dynamic": false,
+    "heading": "Price Books",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/price-books/:id",
+    "resolved": "/crm/price-books/1",
+    "dynamic": true,
+    "heading": "Price Books",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/quotes",
+    "resolved": "/crm/quotes",
+    "dynamic": false,
+    "heading": "Quotes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/quotes/:id",
+    "resolved": "/crm/quotes/1",
+    "dynamic": true,
+    "heading": "Quote Builder",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/quotes/:id/builder",
+    "resolved": "/crm/quotes/1/builder",
+    "dynamic": true,
+    "heading": "Quote Builder",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/crm/quote-approvals",
+    "resolved": "/crm/quote-approvals",
+    "dynamic": false,
+    "heading": "Quote Approvals",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/cpq",
+    "resolved": "/crm/cpq",
+    "dynamic": false,
+    "heading": "CPQ Rules",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/guided-selling",
+    "resolved": "/crm/guided-selling",
+    "dynamic": false,
+    "heading": "Guided Selling",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/quotations",
+    "resolved": "/crm/quotations",
+    "dynamic": false,
+    "heading": "Quotations",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/approval-settings",
+    "resolved": "/crm/approval-settings",
+    "dynamic": false,
+    "heading": "Approval Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/my-approvals",
+    "resolved": "/crm/my-approvals",
+    "dynamic": false,
+    "heading": "My Approvals",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/duplicates",
+    "resolved": "/crm/duplicates",
+    "dynamic": false,
+    "heading": "Duplicate Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/territories",
+    "resolved": "/crm/territories",
+    "dynamic": false,
+    "heading": "Territory Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/tickets",
+    "resolved": "/crm/tickets",
+    "dynamic": false,
+    "heading": "Support Tickets",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/files",
+    "resolved": "/crm/files",
+    "dynamic": false,
+    "heading": "Files",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/reports",
+    "resolved": "/crm/reports",
+    "dynamic": false,
+    "heading": "Win/Loss Analysis",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/automation",
+    "resolved": "/crm/automation",
+    "dynamic": false,
+    "heading": "Sales Automation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/lead-to-cash",
+    "resolved": "/crm/lead-to-cash",
+    "dynamic": false,
+    "heading": "Lead-to-Cash",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/forecasting",
+    "resolved": "/crm/forecasting",
+    "dynamic": false,
+    "heading": "Forecasting",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/forecasts",
+    "resolved": "/crm/forecasts",
+    "dynamic": false,
+    "heading": "Forecasting",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/targets",
+    "resolved": "/crm/targets",
+    "dynamic": false,
+    "heading": "Sales Targets",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/sales-performance",
+    "resolved": "/crm/sales-performance",
+    "dynamic": false,
+    "heading": "Sales Performance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/funnel",
+    "resolved": "/crm/funnel",
+    "dynamic": false,
+    "heading": "Sales Funnel",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/lost-analysis",
+    "resolved": "/crm/lost-analysis",
+    "dynamic": false,
+    "heading": "Lost Analysis",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/customer-360",
+    "resolved": "/crm/customer-360",
+    "dynamic": false,
+    "heading": "Customer 360",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/import-export",
+    "resolved": "/crm/import-export",
+    "dynamic": false,
+    "heading": "Import & Export Engine",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/settings",
+    "resolved": "/crm/settings",
+    "dynamic": false,
+    "heading": "Custom Fields",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/lead-scoring",
+    "resolved": "/crm/lead-scoring",
+    "dynamic": false,
+    "heading": "Lead Scoring",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/feature-checklist",
+    "resolved": "/crm/feature-checklist",
+    "dynamic": false,
+    "heading": "CRM Feature Checklist",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/admin",
+    "resolved": "/crm/admin",
+    "dynamic": false,
+    "heading": "CRM Admin",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gantt",
+    "resolved": "/fam/gantt",
+    "dynamic": false,
+    "heading": "Finance Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam",
+    "resolved": "/fam",
+    "dynamic": false,
+    "heading": "FAM Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/dashboard",
+    "resolved": "/fam/dashboard",
+    "dynamic": false,
+    "heading": "FAM Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/profile",
+    "resolved": "/fam/profile",
+    "dynamic": false,
+    "heading": "FAM Profile",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/settings",
+    "resolved": "/fam/settings",
+    "dynamic": false,
+    "heading": "Company Financial Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/financial-years",
+    "resolved": "/fam/financial-years",
+    "dynamic": false,
+    "heading": "Financial Years",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/chart-of-accounts",
+    "resolved": "/fam/chart-of-accounts",
+    "dynamic": false,
+    "heading": "Chart of Accounts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ledger-groups",
+    "resolved": "/fam/ledger-groups",
+    "dynamic": false,
+    "heading": "Ledger Groups",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ledgers",
+    "resolved": "/fam/ledgers",
+    "dynamic": false,
+    "heading": "Ledgers",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ledgers/:id/entries",
+    "resolved": "/fam/ledgers/1/entries",
+    "dynamic": true,
+    "heading": "Ledger Drill-Down",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/fam/opening-balances",
+    "resolved": "/fam/opening-balances",
+    "dynamic": false,
+    "heading": "Opening Balances",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/voucher-types",
+    "resolved": "/fam/voucher-types",
+    "dynamic": false,
+    "heading": "Voucher Types",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/vouchers",
+    "resolved": "/fam/vouchers",
+    "dynamic": false,
+    "heading": "Vouchers",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/vouchers/new",
+    "resolved": "/fam/vouchers/new",
+    "dynamic": false,
+    "heading": "New Voucher",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/vouchers/:id",
+    "resolved": "/fam/vouchers/1",
+    "dynamic": true,
+    "heading": "Voucher Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/journal",
+    "resolved": "/fam/journal",
+    "dynamic": false,
+    "heading": "Journal Voucher",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/day-book",
+    "resolved": "/fam/day-book",
+    "dynamic": false,
+    "heading": "Day Book",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ledger-entries",
+    "resolved": "/fam/ledger-entries",
+    "dynamic": false,
+    "heading": "Ledger Entries",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/parties",
+    "resolved": "/fam/parties",
+    "dynamic": false,
+    "heading": "Parties",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/customers",
+    "resolved": "/fam/customers",
+    "dynamic": false,
+    "heading": "Customers",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/vendors",
+    "resolved": "/fam/vendors",
+    "dynamic": false,
+    "heading": "Vendors",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/parties/:id",
+    "resolved": "/fam/parties/1",
+    "dynamic": true,
+    "heading": "Party Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/ar",
+    "resolved": "/fam/ar",
+    "dynamic": false,
+    "heading": "Accounts Receivable",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ar/aging",
+    "resolved": "/fam/ar/aging",
+    "dynamic": false,
+    "heading": "AR Aging",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ar/outstanding",
+    "resolved": "/fam/ar/outstanding",
+    "dynamic": false,
+    "heading": "AR Outstanding",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ap",
+    "resolved": "/fam/ap",
+    "dynamic": false,
+    "heading": "Accounts Payable",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ap/aging",
+    "resolved": "/fam/ap/aging",
+    "dynamic": false,
+    "heading": "AP Aging",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/ap/outstanding",
+    "resolved": "/fam/ap/outstanding",
+    "dynamic": false,
+    "heading": "AP Outstanding",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/bill-references",
+    "resolved": "/fam/bill-references",
+    "dynamic": false,
+    "heading": "Bill References",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/bill-allocations",
+    "resolved": "/fam/bill-allocations",
+    "dynamic": false,
+    "heading": "Bill Allocations",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/integrations/srm",
+    "resolved": "/fam/integrations/srm",
+    "dynamic": false,
+    "heading": "SRM Accounting Integration",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/posting-jobs",
+    "resolved": "/fam/posting-jobs",
+    "dynamic": false,
+    "heading": "Posting Jobs",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/posting-jobs/:id",
+    "resolved": "/fam/posting-jobs/1",
+    "dynamic": true,
+    "heading": "Posting Job Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/posting-rules",
+    "resolved": "/fam/posting-rules",
+    "dynamic": false,
+    "heading": "Posting Rules",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/banking",
+    "resolved": "/fam/banking",
+    "dynamic": false,
+    "heading": "Banking",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/bank-accounts",
+    "resolved": "/fam/bank-accounts",
+    "dynamic": false,
+    "heading": "Bank Accounts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/payment-modes",
+    "resolved": "/fam/payment-modes",
+    "dynamic": false,
+    "heading": "Payment Modes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/bank-statements",
+    "resolved": "/fam/bank-statements",
+    "dynamic": false,
+    "heading": "Bank Statements",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/bank-statements/:id",
+    "resolved": "/fam/bank-statements/1",
+    "dynamic": true,
+    "heading": "Bank Statement Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/bank-reconciliation",
+    "resolved": "/fam/bank-reconciliation",
+    "dynamic": false,
+    "heading": "Bank Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/bank-book",
+    "resolved": "/fam/bank-book",
+    "dynamic": false,
+    "heading": "Bank Book",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/cash-book",
+    "resolved": "/fam/cash-book",
+    "dynamic": false,
+    "heading": "Cash Book",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/contra",
+    "resolved": "/fam/contra",
+    "dynamic": false,
+    "heading": "Contra",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/bank-charges",
+    "resolved": "/fam/bank-charges",
+    "dynamic": false,
+    "heading": "Bank Charges",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst",
+    "resolved": "/fam/gst",
+    "dynamic": false,
+    "heading": "India GST",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/settings",
+    "resolved": "/fam/gst/settings",
+    "dynamic": false,
+    "heading": "GST Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/crm/quotations/:id",
+    "resolved": "/crm/quotations/1",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/fam/gst/registrations",
+    "resolved": "/fam/gst/registrations",
+    "dynamic": false,
+    "heading": "GST Registrations",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/rates",
+    "resolved": "/fam/gst/rates",
+    "dynamic": false,
+    "heading": "GST Rates",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/hsn-sac",
+    "resolved": "/fam/gst/hsn-sac",
+    "dynamic": false,
+    "heading": "HSN/SAC Master",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/sales-register",
+    "resolved": "/fam/gst/sales-register",
+    "dynamic": false,
+    "heading": "GST Sales Register",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/purchase-register",
+    "resolved": "/fam/gst/purchase-register",
+    "dynamic": false,
+    "heading": "GST Purchase Register",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/gstr1",
+    "resolved": "/fam/gst/gstr1",
+    "dynamic": false,
+    "heading": "GSTR-1 Framework",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/gstr3b",
+    "resolved": "/fam/gst/gstr3b",
+    "dynamic": false,
+    "heading": "GSTR-3B Framework",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/reconciliation",
+    "resolved": "/fam/gst/reconciliation",
+    "dynamic": false,
+    "heading": "GST Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/einvoice",
+    "resolved": "/fam/gst/einvoice",
+    "dynamic": false,
+    "heading": "E-Invoice Readiness",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/gst/ewaybill",
+    "resolved": "/fam/gst/ewaybill",
+    "dynamic": false,
+    "heading": "E-Way Bill Readiness",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/purchases",
+    "resolved": "/fam/purchases",
+    "dynamic": false,
+    "heading": "Purchases",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/purchase-bills",
+    "resolved": "/fam/purchase-bills",
+    "dynamic": false,
+    "heading": "Vendor Purchase Bills",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/purchase-bills/new",
+    "resolved": "/fam/purchase-bills/new",
+    "dynamic": false,
+    "heading": "New Purchase Bill",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/purchase-bills/:id",
+    "resolved": "/fam/purchase-bills/1",
+    "dynamic": true,
+    "heading": "Purchase Bill Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/expenses",
+    "resolved": "/fam/expenses",
+    "dynamic": false,
+    "heading": "Expenses",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/expenses/new",
+    "resolved": "/fam/expenses/new",
+    "dynamic": false,
+    "heading": "New Expense Claim",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/tds",
+    "resolved": "/fam/tds",
+    "dynamic": false,
+    "heading": "TDS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/tds/sections",
+    "resolved": "/fam/tds/sections",
+    "dynamic": false,
+    "heading": "TDS Sections",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/tds/transactions",
+    "resolved": "/fam/tds/transactions",
+    "dynamic": false,
+    "heading": "TDS Transactions",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/tds/payable",
+    "resolved": "/fam/tds/payable",
+    "dynamic": false,
+    "heading": "TDS Payable",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/purchase-register",
+    "resolved": "/fam/purchase-register",
+    "dynamic": false,
+    "heading": "Purchase Register",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/expense-register",
+    "resolved": "/fam/expense-register",
+    "dynamic": false,
+    "heading": "Expense Register",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/vendor-payments",
+    "resolved": "/fam/vendor-payments",
+    "dynamic": false,
+    "heading": "Vendor Payments",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/payables/dashboard",
+    "resolved": "/fam/payables/dashboard",
+    "dynamic": false,
+    "heading": "Payables Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory",
+    "resolved": "/fam/inventory",
+    "dynamic": false,
+    "heading": "Inventory",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/accounting",
+    "resolved": "/fam/inventory/accounting",
+    "dynamic": false,
+    "heading": "Inventory Accounting",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/dashboard",
+    "resolved": "/fam/inventory/dashboard",
+    "dynamic": false,
+    "heading": "Inventory Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/items",
+    "resolved": "/fam/inventory/items",
+    "dynamic": false,
+    "heading": "Stock Items",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/items/:id",
+    "resolved": "/fam/inventory/items/1",
+    "dynamic": true,
+    "heading": "Stock Item Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/inventory/items/:id/ledger-mapping",
+    "resolved": "/fam/inventory/items/1/ledger-mapping",
+    "dynamic": true,
+    "heading": "Item Ledger Mapping",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/inventory/categories",
+    "resolved": "/fam/inventory/categories",
+    "dynamic": false,
+    "heading": "Stock Groups",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/stock-groups",
+    "resolved": "/fam/inventory/stock-groups",
+    "dynamic": false,
+    "heading": "Stock Groups",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/units",
+    "resolved": "/fam/inventory/units",
+    "dynamic": false,
+    "heading": "Units of Measure",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/warehouses",
+    "resolved": "/fam/inventory/warehouses",
+    "dynamic": false,
+    "heading": "Warehouses",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/stock-in",
+    "resolved": "/fam/inventory/stock-in",
+    "dynamic": false,
+    "heading": "Stock In",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/stock-out",
+    "resolved": "/fam/inventory/stock-out",
+    "dynamic": false,
+    "heading": "Stock Out",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/stock-transfers",
+    "resolved": "/fam/inventory/stock-transfers",
+    "dynamic": false,
+    "heading": "Stock Transfers",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/stock-adjustments",
+    "resolved": "/fam/inventory/stock-adjustments",
+    "dynamic": false,
+    "heading": "Stock Adjustments",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/purchase-receipts",
+    "resolved": "/fam/inventory/purchase-receipts",
+    "dynamic": false,
+    "heading": "Purchase Receipts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/delivery-notes",
+    "resolved": "/fam/inventory/delivery-notes",
+    "dynamic": false,
+    "heading": "Delivery Notes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/stock-summary",
+    "resolved": "/fam/inventory/stock-summary",
+    "dynamic": false,
+    "heading": "Stock Summary",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/item-ledger/:id",
+    "resolved": "/fam/inventory/item-ledger/1",
+    "dynamic": true,
+    "heading": "Item Ledger",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/fam/inventory/warehouse-stock",
+    "resolved": "/fam/inventory/warehouse-stock",
+    "dynamic": false,
+    "heading": "Warehouse Stock",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/stock-aging",
+    "resolved": "/fam/inventory/stock-aging",
+    "dynamic": false,
+    "heading": "Stock Aging",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reorder-report",
+    "resolved": "/fam/inventory/reorder-report",
+    "dynamic": false,
+    "heading": "Reorder Report",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/dead-stock",
+    "resolved": "/fam/inventory/dead-stock",
+    "dynamic": false,
+    "heading": "Dead Stock",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/fast-slow-moving",
+    "resolved": "/fam/inventory/fast-slow-moving",
+    "dynamic": false,
+    "heading": "Fast/Slow Moving Items",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/valuation",
+    "resolved": "/fam/inventory/valuation",
+    "dynamic": false,
+    "heading": "Inventory Valuation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/gross-margin",
+    "resolved": "/fam/inventory/gross-margin",
+    "dynamic": false,
+    "heading": "Gross Margin",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/cogs",
+    "resolved": "/fam/inventory/cogs",
+    "dynamic": false,
+    "heading": "COGS Report",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/grni",
+    "resolved": "/fam/inventory/grni",
+    "dynamic": false,
+    "heading": "GRNI",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reconciliation",
+    "resolved": "/fam/inventory/reconciliation",
+    "dynamic": false,
+    "heading": "Inventory Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reconciliation/gl",
+    "resolved": "/fam/inventory/reconciliation/gl",
+    "dynamic": false,
+    "heading": "Inventory to GL",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reconciliation/grni",
+    "resolved": "/fam/inventory/reconciliation/grni",
+    "dynamic": false,
+    "heading": "GRNI Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reconciliation/cogs",
+    "resolved": "/fam/inventory/reconciliation/cogs",
+    "dynamic": false,
+    "heading": "COGS Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reconciliation/gst",
+    "resolved": "/fam/inventory/reconciliation/gst",
+    "dynamic": false,
+    "heading": "GST Item Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reports/cogs",
+    "resolved": "/fam/inventory/reports/cogs",
+    "dynamic": false,
+    "heading": "COGS Report",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reports/gross-margin",
+    "resolved": "/fam/inventory/reports/gross-margin",
+    "dynamic": false,
+    "heading": "Gross Margin",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reports/hsn-summary",
+    "resolved": "/fam/inventory/reports/hsn-summary",
+    "dynamic": false,
+    "heading": "HSN Summary",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/audit",
+    "resolved": "/fam/inventory/audit",
+    "dynamic": false,
+    "heading": "Inventory Audit",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/crm-link",
+    "resolved": "/fam/inventory/crm-link",
+    "dynamic": false,
+    "heading": "CRM Inventory Link",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/srm-link",
+    "resolved": "/fam/inventory/srm-link",
+    "dynamic": false,
+    "heading": "SRM Inventory Link",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reorder-alerts",
+    "resolved": "/fam/inventory/reorder-alerts",
+    "dynamic": false,
+    "heading": "Reorder Alerts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/reports",
+    "resolved": "/fam/inventory/reports",
+    "dynamic": false,
+    "heading": "Inventory Reports",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/inventory/ai",
+    "resolved": "/fam/inventory/ai",
+    "dynamic": false,
+    "heading": "Inventory AI",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/cost-centers",
+    "resolved": "/fam/cost-centers",
+    "dynamic": false,
+    "heading": "Cost Centers",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/branches",
+    "resolved": "/fam/branches",
+    "dynamic": false,
+    "heading": "Branches",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fam/audit",
+    "resolved": "/fam/audit",
+    "dynamic": false,
+    "heading": "Accounting Audit",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/leave/gantt",
+    "resolved": "/hrms/leave/gantt",
+    "dynamic": false,
+    "heading": "HR Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms",
+    "resolved": "/hrms",
+    "dynamic": false,
+    "heading": "Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/dashboard",
+    "resolved": "/hrms/dashboard",
+    "dynamic": false,
+    "heading": "Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/role-home",
+    "resolved": "/hrms/role-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/admin-home",
+    "resolved": "/hrms/admin-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/hr-home",
+    "resolved": "/hrms/hr-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/executive-home",
+    "resolved": "/hrms/executive-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/manager-dashboard",
+    "resolved": "/hrms/manager-dashboard",
+    "dynamic": false,
+    "heading": "Manager Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/ess",
+    "resolved": "/hrms/ess",
+    "dynamic": false,
+    "heading": "ESS Portal",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/employee-directory",
+    "resolved": "/hrms/employee-directory",
+    "dynamic": false,
+    "heading": "Employee Directory",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/employees",
+    "resolved": "/hrms/employees",
+    "dynamic": false,
+    "heading": "Employees",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/employees/new",
+    "resolved": "/hrms/employees/new",
+    "dynamic": false,
+    "heading": "Add New Employee",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/employees/:id",
+    "resolved": "/hrms/employees/1",
+    "dynamic": true,
+    "heading": "Employee profile could not be loaded",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/hrms/probation",
+    "resolved": "/hrms/probation",
+    "dynamic": false,
+    "heading": "Probation management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/attendance",
+    "resolved": "/hrms/attendance",
+    "dynamic": false,
+    "heading": "Attendance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/my-attendance",
+    "resolved": "/hrms/my-attendance",
+    "dynamic": false,
+    "heading": "My Attendance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/attendance/shift-roster",
+    "resolved": "/hrms/attendance/shift-roster",
+    "dynamic": false,
+    "heading": "Shift Roster",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/my-roster",
+    "resolved": "/hrms/my-roster",
+    "dynamic": false,
+    "heading": "My Roster",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/timesheets",
+    "resolved": "/hrms/timesheets",
+    "dynamic": false,
+    "heading": "Timesheets",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/approval-os",
+    "resolved": "/hrms/approval-os",
+    "dynamic": false,
+    "heading": "Approval OS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/workflow",
+    "resolved": "/hrms/workflow",
+    "dynamic": false,
+    "heading": "Workflow inbox",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/workflow-designer",
+    "resolved": "/hrms/workflow-designer",
+    "dynamic": false,
+    "heading": "Workflows",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/notifications",
+    "resolved": "/hrms/notifications",
+    "dynamic": false,
+    "heading": "Inbox and delivery hooks",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/leave",
+    "resolved": "/hrms/leave",
+    "dynamic": false,
+    "heading": "Leave Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/payroll",
+    "resolved": "/hrms/payroll",
+    "dynamic": false,
+    "heading": "Payroll",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/my-payslips",
+    "resolved": "/hrms/my-payslips",
+    "dynamic": false,
+    "heading": "My Payslips",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/fnf-settlements",
+    "resolved": "/hrms/fnf-settlements",
+    "dynamic": false,
+    "heading": "Full & Final settlement",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/investment-declaration",
+    "resolved": "/hrms/investment-declaration",
+    "dynamic": false,
+    "heading": "Investment declaration",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/recruitment",
+    "resolved": "/hrms/recruitment",
+    "dynamic": false,
+    "heading": "Recruitment",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/performance",
+    "resolved": "/hrms/performance",
+    "dynamic": false,
+    "heading": "Performance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/benefits",
+    "resolved": "/hrms/benefits",
+    "dynamic": false,
+    "heading": "Benefits Administration",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/lms",
+    "resolved": "/hrms/lms",
+    "dynamic": false,
+    "heading": "Learning Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/statutory-compliance",
+    "resolved": "/hrms/statutory-compliance",
+    "dynamic": false,
+    "heading": "Statutory Compliance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/background-verification",
+    "resolved": "/hrms/background-verification",
+    "dynamic": false,
+    "heading": "Background Verification",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/whatsapp-ess",
+    "resolved": "/hrms/whatsapp-ess",
+    "dynamic": false,
+    "heading": "WhatsApp ESS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/custom-fields",
+    "resolved": "/hrms/custom-fields",
+    "dynamic": false,
+    "heading": "Custom Fields & Forms",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/enterprise",
+    "resolved": "/hrms/enterprise",
+    "dynamic": false,
+    "heading": "Enterprise Platform",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/helpdesk",
+    "resolved": "/hrms/helpdesk",
+    "dynamic": false,
+    "heading": "Helpdesk",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/engagement",
+    "resolved": "/hrms/engagement",
+    "dynamic": false,
+    "heading": "Announcements & Engagement",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/advanced-analytics",
+    "resolved": "/hrms/advanced-analytics",
+    "dynamic": false,
+    "heading": "Advanced Analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/reports",
+    "resolved": "/hrms/reports",
+    "dynamic": false,
+    "heading": "Reports & Analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/logs",
+    "resolved": "/hrms/logs",
+    "dynamic": false,
+    "heading": "Request logs and error analysis",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/company",
+    "resolved": "/hrms/company",
+    "dynamic": false,
+    "heading": "Company",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/org-chart",
+    "resolved": "/hrms/org-chart",
+    "dynamic": false,
+    "heading": "Real-Time Org Chart",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/settings",
+    "resolved": "/hrms/settings",
+    "dynamic": false,
+    "heading": "Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/assets",
+    "resolved": "/hrms/assets",
+    "dynamic": false,
+    "heading": "Asset management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/onboarding",
+    "resolved": "/hrms/onboarding",
+    "dynamic": false,
+    "heading": "New hire onboarding",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/documents",
+    "resolved": "/hrms/documents",
+    "dynamic": false,
+    "heading": "Employee certificates and documents",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/exit",
+    "resolved": "/hrms/exit",
+    "dynamic": false,
+    "heading": "Exit management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/ai-assistant",
+    "resolved": "/hrms/ai-assistant",
+    "dynamic": false,
+    "heading": "HR Assistant",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hrms/profile",
+    "resolved": "/hrms/profile",
+    "dynamic": false,
+    "heading": "My Profile",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/dashboard",
+    "resolved": "/dashboard",
+    "dynamic": false,
+    "heading": "Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/role-home",
+    "resolved": "/role-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin-home",
+    "resolved": "/admin-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/hr-home",
+    "resolved": "/hr-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/executive-home",
+    "resolved": "/executive-home",
+    "dynamic": false,
+    "heading": "Admin Home",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/manager-dashboard",
+    "resolved": "/manager-dashboard",
+    "dynamic": false,
+    "heading": "Manager Dashboard",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ess",
+    "resolved": "/ess",
+    "dynamic": false,
+    "heading": "ESS Portal",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/employee-directory",
+    "resolved": "/employee-directory",
+    "dynamic": false,
+    "heading": "Employee Directory",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/employees",
+    "resolved": "/employees",
+    "dynamic": false,
+    "heading": "Employees",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/employees/new",
+    "resolved": "/employees/new",
+    "dynamic": false,
+    "heading": "Add New Employee",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/employees/:id",
+    "resolved": "/employees/1",
+    "dynamic": true,
+    "heading": "Employee profile could not be loaded",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/probation",
+    "resolved": "/probation",
+    "dynamic": false,
+    "heading": "Probation management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/my-attendance",
+    "resolved": "/my-attendance",
+    "dynamic": false,
+    "heading": "My Attendance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/attendance",
+    "resolved": "/attendance",
+    "dynamic": false,
+    "heading": "Attendance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/attendance/shift-roster",
+    "resolved": "/attendance/shift-roster",
+    "dynamic": false,
+    "heading": "Shift Roster",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/my-roster",
+    "resolved": "/my-roster",
+    "dynamic": false,
+    "heading": "My Roster",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/timesheets",
+    "resolved": "/timesheets",
+    "dynamic": false,
+    "heading": "Timesheets",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/approval-os",
+    "resolved": "/approval-os",
+    "dynamic": false,
+    "heading": "Approval OS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/workflow-designer",
+    "resolved": "/workflow-designer",
+    "dynamic": false,
+    "heading": "Workflows",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/workflow",
+    "resolved": "/workflow",
+    "dynamic": false,
+    "heading": "Workflow inbox",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/leave",
+    "resolved": "/leave",
+    "dynamic": false,
+    "heading": "Leave Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/notifications",
+    "resolved": "/notifications",
+    "dynamic": false,
+    "heading": "Inbox and delivery hooks",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/my-payslips",
+    "resolved": "/my-payslips",
+    "dynamic": false,
+    "heading": "My Payslips",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/payroll",
+    "resolved": "/payroll",
+    "dynamic": false,
+    "heading": "Payroll",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/fnf-settlements",
+    "resolved": "/fnf-settlements",
+    "dynamic": false,
+    "heading": "Full & Final settlement",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/investment-declaration",
+    "resolved": "/investment-declaration",
+    "dynamic": false,
+    "heading": "Investment declaration",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/performance",
+    "resolved": "/performance",
+    "dynamic": false,
+    "heading": "Performance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/recruitment",
+    "resolved": "/recruitment",
+    "dynamic": false,
+    "heading": "Recruitment",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/lms",
+    "resolved": "/lms",
+    "dynamic": false,
+    "heading": "Learning Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/benefits",
+    "resolved": "/benefits",
+    "dynamic": false,
+    "heading": "Benefits Administration",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/background-verification",
+    "resolved": "/background-verification",
+    "dynamic": false,
+    "heading": "Background Verification",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/statutory-compliance",
+    "resolved": "/statutory-compliance",
+    "dynamic": false,
+    "heading": "Statutory Compliance",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/custom-fields",
+    "resolved": "/custom-fields",
+    "dynamic": false,
+    "heading": "Custom Fields & Forms",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/whatsapp-ess",
+    "resolved": "/whatsapp-ess",
+    "dynamic": false,
+    "heading": "WhatsApp ESS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/engagement",
+    "resolved": "/engagement",
+    "dynamic": false,
+    "heading": "Announcements & Engagement",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/enterprise",
+    "resolved": "/enterprise",
+    "dynamic": false,
+    "heading": "Enterprise Platform",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/helpdesk",
+    "resolved": "/helpdesk",
+    "dynamic": false,
+    "heading": "Helpdesk",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/reports",
+    "resolved": "/reports",
+    "dynamic": false,
+    "heading": "Reports & Analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/logs",
+    "resolved": "/logs",
+    "dynamic": false,
+    "heading": "Request logs and error analysis",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/advanced-analytics",
+    "resolved": "/advanced-analytics",
+    "dynamic": false,
+    "heading": "Advanced Analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/org-chart",
+    "resolved": "/org-chart",
+    "dynamic": false,
+    "heading": "Real-Time Org Chart",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/company",
+    "resolved": "/company",
+    "dynamic": false,
+    "heading": "Company",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/assets",
+    "resolved": "/assets",
+    "dynamic": false,
+    "heading": "Asset management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/settings",
+    "resolved": "/settings",
+    "dynamic": false,
+    "heading": "Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/onboarding",
+    "resolved": "/onboarding",
+    "dynamic": false,
+    "heading": "New hire onboarding",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/documents",
+    "resolved": "/documents",
+    "dynamic": false,
+    "heading": "Employee certificates and documents",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-assistant",
+    "resolved": "/ai-assistant",
+    "dynamic": false,
+    "heading": "HR Assistant",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/exit",
+    "resolved": "/exit",
+    "dynamic": false,
+    "heading": "Exit management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/profile",
+    "resolved": "/profile",
+    "dynamic": false,
+    "heading": "My Profile",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/admin/workspaces",
+    "resolved": "/pms/admin/workspaces",
+    "dynamic": false,
+    "heading": "Workspace reset & restore",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/recovery",
+    "resolved": "/pms/recovery",
+    "dynamic": false,
+    "heading": "Backup & recovery",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/audit-logs",
+    "resolved": "/pms/audit-logs",
+    "dynamic": false,
+    "heading": "Audit & diagnostic logs",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/analytics/projects",
+    "resolved": "/pms/analytics/projects",
+    "dynamic": false,
+    "heading": "Project analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/analytics/team",
+    "resolved": "/pms/analytics/team",
+    "dynamic": false,
+    "heading": "Team analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/projects/:projectId/analytics",
+    "resolved": "/pms/projects/2/analytics",
+    "dynamic": true,
+    "heading": "Project analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/operator",
+    "resolved": "/pms/operator",
+    "dynamic": false,
+    "heading": "AI task operator",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/settings/ai/:provider",
+    "resolved": "/pms/settings/ai/1",
+    "dynamic": true,
+    "heading": "AI provider settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/workspaces",
+    "resolved": "/pms/workspaces",
+    "dynamic": false,
+    "heading": "Reset UI 1792821631461",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms",
+    "resolved": "/pms",
+    "dynamic": false,
+    "heading": "Reset UI 1792821631461",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/overview",
+    "resolved": "/pms/overview",
+    "dynamic": false,
+    "heading": "Project overview",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/profile",
+    "resolved": "/pms/profile",
+    "dynamic": false,
+    "heading": "PMS Profile",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/command-center",
+    "resolved": "/pms/command-center",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/workspace-tools",
+    "resolved": "/pms/workspace-tools",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/enterprise-engine",
+    "resolved": "/pms/enterprise-engine",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/portfolio",
+    "resolved": "/pms/portfolio",
+    "dynamic": false,
+    "heading": "Portfolio",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/product-launch",
+    "resolved": "/pms/product-launch",
+    "dynamic": false,
+    "heading": "New Product Launch",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/resource-planning",
+    "resolved": "/pms/resource-planning",
+    "dynamic": false,
+    "heading": "Resource Planning",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/dependency-management",
+    "resolved": "/pms/dependency-management",
+    "dynamic": false,
+    "heading": "Dependency Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/agile-execution",
+    "resolved": "/pms/agile-execution",
+    "dynamic": false,
+    "heading": "Agile Execution",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/project-financials",
+    "resolved": "/pms/project-financials",
+    "dynamic": false,
+    "heading": "Project Financials",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/risk-register",
+    "resolved": "/pms/risk-register",
+    "dynamic": false,
+    "heading": "Risk Register",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/risks",
+    "resolved": "/pms/risks",
+    "dynamic": false,
+    "heading": "Risk Register",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/projects",
+    "resolved": "/pms/projects",
+    "dynamic": false,
+    "heading": "Projects",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/projects/new",
+    "resolved": "/pms/projects/new",
+    "dynamic": false,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/projects/:projectId/billing",
+    "resolved": "/pms/projects/2/billing",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId",
+    "resolved": "/pms/projects/2",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [
+      "Request failed with status code 403",
+      "Request failed with status code 403"
+    ],
+    "serverErrors": [],
+    "outcome": "render-error"
+  },
+  {
+    "path": "/pms/projects/:projectId/board",
+    "resolved": "/pms/projects/2/board",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId/timeline",
+    "resolved": "/pms/projects/2/timeline",
+    "dynamic": true,
+    "heading": "Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId/milestones",
+    "resolved": "/pms/projects/2/milestones",
+    "dynamic": true,
+    "heading": "Milestones",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId/gantt",
+    "resolved": "/pms/projects/2/gantt",
+    "dynamic": true,
+    "heading": "Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId/files",
+    "resolved": "/pms/projects/2/files",
+    "dynamic": true,
+    "heading": "Files",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId/reports",
+    "resolved": "/pms/projects/2/reports",
+    "dynamic": true,
+    "heading": "PMS reports",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId/risks",
+    "resolved": "/pms/projects/2/risks",
+    "dynamic": true,
+    "heading": "Risk Register",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/tasks",
+    "resolved": "/pms/tasks",
+    "dynamic": false,
+    "heading": "Tasks",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/tasks/:taskId",
+    "resolved": "/pms/tasks/1",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/projects/:projectId/tasks/:taskId",
+    "resolved": "/pms/projects/2/tasks/1",
+    "dynamic": true,
+    "heading": "",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/pms/work-hub",
+    "resolved": "/pms/work-hub",
+    "dynamic": false,
+    "heading": "The Next Big Thing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/impact",
+    "resolved": "/pms/impact",
+    "dynamic": false,
+    "heading": "The Next Big Thing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/ai-planner",
+    "resolved": "/pms/ai-planner",
+    "dynamic": false,
+    "heading": "AI task operator",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/timeline-plus",
+    "resolved": "/pms/timeline-plus",
+    "dynamic": false,
+    "heading": "Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/automation-ai",
+    "resolved": "/pms/automation-ai",
+    "dynamic": false,
+    "heading": "Task automation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/dependency-timeline",
+    "resolved": "/pms/dependency-timeline",
+    "dynamic": false,
+    "heading": "Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/live",
+    "resolved": "/pms/live",
+    "dynamic": false,
+    "heading": "Live Work Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/software",
+    "resolved": "/pms/software",
+    "dynamic": false,
+    "heading": "Software Delivery",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/backlog",
+    "resolved": "/pms/backlog",
+    "dynamic": false,
+    "heading": "Backlog",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/teams-live",
+    "resolved": "/pms/teams-live",
+    "dynamic": false,
+    "heading": "Live Work Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/roadmap",
+    "resolved": "/pms/roadmap",
+    "dynamic": false,
+    "heading": "Roadmap",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/issues",
+    "resolved": "/pms/issues",
+    "dynamic": false,
+    "heading": "Software Delivery",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/workload",
+    "resolved": "/pms/workload",
+    "dynamic": false,
+    "heading": "Workload",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/capacity",
+    "resolved": "/pms/capacity",
+    "dynamic": false,
+    "heading": "Workload",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/automation",
+    "resolved": "/pms/automation",
+    "dynamic": false,
+    "heading": "Task automation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/releases",
+    "resolved": "/pms/releases",
+    "dynamic": false,
+    "heading": "Software Delivery",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/goals",
+    "resolved": "/pms/goals",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/forms",
+    "resolved": "/pms/forms",
+    "dynamic": false,
+    "heading": "Good questions. Great workflows.",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/messages",
+    "resolved": "/pms/messages",
+    "dynamic": false,
+    "heading": "Messages",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/custom-fields",
+    "resolved": "/pms/custom-fields",
+    "dynamic": false,
+    "heading": "Custom Field Manager",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/org-chart",
+    "resolved": "/pms/org-chart",
+    "dynamic": false,
+    "heading": "Organization chart",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/teams",
+    "resolved": "/pms/teams",
+    "dynamic": false,
+    "heading": "Teams",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/trash",
+    "resolved": "/pms/trash",
+    "dynamic": false,
+    "heading": "Task trash",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/templates",
+    "resolved": "/pms/templates",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/components",
+    "resolved": "/pms/components",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/workflows",
+    "resolved": "/pms/workflows",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/security",
+    "resolved": "/pms/security",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/dependencies",
+    "resolved": "/pms/dependencies",
+    "dynamic": false,
+    "heading": "Roadmap",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/apps",
+    "resolved": "/pms/apps",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/navigator",
+    "resolved": "/pms/navigator",
+    "dynamic": false,
+    "heading": "Tasks",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/dashboards",
+    "resolved": "/pms/dashboards",
+    "dynamic": false,
+    "heading": "Dashboards",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/docs",
+    "resolved": "/pms/docs",
+    "dynamic": false,
+    "heading": "Docs",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/task-types",
+    "resolved": "/pms/task-types",
+    "dynamic": false,
+    "heading": "Task Types",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/tags",
+    "resolved": "/pms/tags",
+    "dynamic": false,
+    "heading": "Tag Manager",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/plans",
+    "resolved": "/pms/plans",
+    "dynamic": false,
+    "heading": "Plans and capabilities",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/issue-navigator-pro",
+    "resolved": "/pms/issue-navigator-pro",
+    "dynamic": false,
+    "heading": "Tasks",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/backlog-grooming",
+    "resolved": "/pms/backlog-grooming",
+    "dynamic": false,
+    "heading": "Backlog",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/sprint-lifecycle",
+    "resolved": "/pms/sprint-lifecycle",
+    "dynamic": false,
+    "heading": "Backlog",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/blueprints",
+    "resolved": "/pms/blueprints",
+    "dynamic": false,
+    "heading": "Workspace tools",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/resource-utilization",
+    "resolved": "/pms/resource-utilization",
+    "dynamic": false,
+    "heading": "Workload",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/planner",
+    "resolved": "/pms/planner",
+    "dynamic": false,
+    "heading": "Planner",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/calendar",
+    "resolved": "/pms/calendar",
+    "dynamic": false,
+    "heading": "Planner",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/gantt",
+    "resolved": "/pms/gantt",
+    "dynamic": false,
+    "heading": "Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/sprints",
+    "resolved": "/pms/sprints",
+    "dynamic": false,
+    "heading": "Sprints",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/files",
+    "resolved": "/pms/files",
+    "dynamic": false,
+    "heading": "Files",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/time-tracking",
+    "resolved": "/pms/time-tracking",
+    "dynamic": false,
+    "heading": "Time tracking",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/timesheets",
+    "resolved": "/pms/timesheets",
+    "dynamic": false,
+    "heading": "Weekly timesheets",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/reports",
+    "resolved": "/pms/reports",
+    "dynamic": false,
+    "heading": "PMS reports",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/client-portal",
+    "resolved": "/pms/client-portal",
+    "dynamic": false,
+    "heading": "Client portal",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/settings",
+    "resolved": "/pms/settings",
+    "dynamic": false,
+    "heading": "Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/mobile",
+    "resolved": "/mobile",
+    "dynamic": false,
+    "heading": "Mobile CRM",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/pms/admin",
+    "resolved": "/pms/admin",
+    "dynamic": false,
+    "heading": "Admin",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/mobile/deals",
+    "resolved": "/mobile/deals",
+    "dynamic": false,
+    "heading": "Mobile CRM",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/mobile/leads",
+    "resolved": "/mobile/leads",
+    "dynamic": false,
+    "heading": "Mobile CRM",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/mobile/check-in",
+    "resolved": "/mobile/check-in",
+    "dynamic": false,
+    "heading": "Mobile CRM",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/mobile/activities",
+    "resolved": "/mobile/activities",
+    "dynamic": false,
+    "heading": "Mobile CRM",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/developer/api-keys",
+    "resolved": "/developer/api-keys",
+    "dynamic": false,
+    "heading": "Developer Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/developer",
+    "resolved": "/developer",
+    "dynamic": false,
+    "heading": "Admin SaaS Controls",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/developer/webhooks",
+    "resolved": "/developer/webhooks",
+    "dynamic": false,
+    "heading": "Developer Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/developer/api-logs",
+    "resolved": "/developer/api-logs",
+    "dynamic": false,
+    "heading": "Developer Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/marketplace",
+    "resolved": "/marketplace",
+    "dynamic": false,
+    "heading": "Marketplace",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/developer/docs",
+    "resolved": "/developer/docs",
+    "dynamic": false,
+    "heading": "Developer Hub",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/marketplace/apps",
+    "resolved": "/marketplace/apps",
+    "dynamic": false,
+    "heading": "Marketplace",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/marketplace/installed",
+    "resolved": "/marketplace/installed",
+    "dynamic": false,
+    "heading": "Marketplace",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/sandbox",
+    "resolved": "/admin/sandbox",
+    "dynamic": false,
+    "heading": "Admin SaaS Controls",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/company-settings",
+    "resolved": "/admin/company-settings",
+    "dynamic": false,
+    "heading": "Admin SaaS Controls",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/feature-flags",
+    "resolved": "/admin/feature-flags",
+    "dynamic": false,
+    "heading": "Admin SaaS Controls",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/subscription",
+    "resolved": "/admin/subscription",
+    "dynamic": false,
+    "heading": "Admin SaaS Controls",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/admin/usage",
+    "resolved": "/admin/usage",
+    "dynamic": false,
+    "heading": "Admin SaaS Controls",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/gantt",
+    "resolved": "/srm/gantt",
+    "dynamic": false,
+    "heading": "SRM Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/gantt",
+    "resolved": "/srm/inventory/gantt",
+    "dynamic": false,
+    "heading": "Inventory Gantt",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm",
+    "resolved": "/srm",
+    "dynamic": false,
+    "heading": "Sales Revenue Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/dashboard",
+    "resolved": "/srm/dashboard",
+    "dynamic": false,
+    "heading": "Sales Revenue Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/profile",
+    "resolved": "/srm/profile",
+    "dynamic": false,
+    "heading": "Sales + Inventory Profile",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-orders",
+    "resolved": "/srm/sales-orders",
+    "dynamic": false,
+    "heading": "Sales Orders",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-orders/:id",
+    "resolved": "/srm/sales-orders/1",
+    "dynamic": true,
+    "heading": "Sales Order Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/srm/contracts",
+    "resolved": "/srm/contracts",
+    "dynamic": false,
+    "heading": "Contracts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/contracts/:id",
+    "resolved": "/srm/contracts/1",
+    "dynamic": true,
+    "heading": "Contract Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/srm/engagements",
+    "resolved": "/srm/engagements",
+    "dynamic": false,
+    "heading": "Engagements",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/engagements/:id",
+    "resolved": "/srm/engagements/1",
+    "dynamic": true,
+    "heading": "Engagement Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/srm/billing-plans",
+    "resolved": "/srm/billing-plans",
+    "dynamic": false,
+    "heading": "Billing Plans",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/billing-plans/:id",
+    "resolved": "/srm/billing-plans/1",
+    "dynamic": true,
+    "heading": "Billing Plan Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/srm/invoice-drafts",
+    "resolved": "/srm/invoice-drafts",
+    "dynamic": false,
+    "heading": "Invoice Drafts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/invoices",
+    "resolved": "/srm/invoices",
+    "dynamic": false,
+    "heading": "Invoices",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/invoices/:id",
+    "resolved": "/srm/invoices/1",
+    "dynamic": true,
+    "heading": "INV-000001",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/srm/collections",
+    "resolved": "/srm/collections",
+    "dynamic": false,
+    "heading": "Collections",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/revenue-recognition",
+    "resolved": "/srm/revenue-recognition",
+    "dynamic": false,
+    "heading": "Revenue Events / Revenue Operations",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/profitability",
+    "resolved": "/srm/profitability",
+    "dynamic": false,
+    "heading": "Profitability",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/customer-360",
+    "resolved": "/srm/customer-360",
+    "dynamic": false,
+    "heading": "Customer 360",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/pos",
+    "resolved": "/srm/pos",
+    "dynamic": false,
+    "heading": "Sales & Inventory POS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/pos/terminal",
+    "resolved": "/srm/pos/terminal",
+    "dynamic": false,
+    "heading": "Sales & Inventory POS",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/pos/sessions",
+    "resolved": "/srm/pos/sessions",
+    "dynamic": false,
+    "heading": "POS Sessions",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/pos/cashier-closing",
+    "resolved": "/srm/pos/cashier-closing",
+    "dynamic": false,
+    "heading": "Cashier Closing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/pos/returns",
+    "resolved": "/srm/pos/returns",
+    "dynamic": false,
+    "heading": "POS Returns",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory",
+    "resolved": "/srm/inventory",
+    "dynamic": false,
+    "heading": "Inventory Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/dashboard",
+    "resolved": "/srm/inventory/dashboard",
+    "dynamic": false,
+    "heading": "Inventory Management",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/items",
+    "resolved": "/srm/inventory/items",
+    "dynamic": false,
+    "heading": "Stock Items",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/items/:id",
+    "resolved": "/srm/inventory/items/1",
+    "dynamic": true,
+    "heading": "Stock Item Detail",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/srm/inventory/items/:id/ledger-mapping",
+    "resolved": "/srm/inventory/items/1/ledger-mapping",
+    "dynamic": true,
+    "heading": "Item Ledger Mapping",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/srm/inventory/products",
+    "resolved": "/srm/inventory/products",
+    "dynamic": false,
+    "heading": "Products & Barcodes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/products/create",
+    "resolved": "/srm/inventory/products/create",
+    "dynamic": false,
+    "heading": "Products & Barcodes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/products/import",
+    "resolved": "/srm/inventory/products/import",
+    "dynamic": false,
+    "heading": "Products & Barcodes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/products/export",
+    "resolved": "/srm/inventory/products/export",
+    "dynamic": false,
+    "heading": "Products & Barcodes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/products/barcodes",
+    "resolved": "/srm/inventory/products/barcodes",
+    "dynamic": false,
+    "heading": "Products & Barcodes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/price-lists",
+    "resolved": "/srm/inventory/price-lists",
+    "dynamic": false,
+    "heading": "Price Lists",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-groups",
+    "resolved": "/srm/inventory/stock-groups",
+    "dynamic": false,
+    "heading": "Stock Groups",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/units",
+    "resolved": "/srm/inventory/units",
+    "dynamic": false,
+    "heading": "Units of Measure",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/warehouses",
+    "resolved": "/srm/inventory/warehouses",
+    "dynamic": false,
+    "heading": "Warehouses",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-in",
+    "resolved": "/srm/inventory/stock-in",
+    "dynamic": false,
+    "heading": "Stock In",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/opening-stock",
+    "resolved": "/srm/inventory/opening-stock",
+    "dynamic": false,
+    "heading": "Opening Stock",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-out",
+    "resolved": "/srm/inventory/stock-out",
+    "dynamic": false,
+    "heading": "Stock Out",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-transfers",
+    "resolved": "/srm/inventory/stock-transfers",
+    "dynamic": false,
+    "heading": "Stock Transfers",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-adjustments",
+    "resolved": "/srm/inventory/stock-adjustments",
+    "dynamic": false,
+    "heading": "Stock Adjustments",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/purchase-receipts",
+    "resolved": "/srm/inventory/purchase-receipts",
+    "dynamic": false,
+    "heading": "Purchase Receipts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/delivery-notes",
+    "resolved": "/srm/inventory/delivery-notes",
+    "dynamic": false,
+    "heading": "Delivery Notes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-summary",
+    "resolved": "/srm/inventory/stock-summary",
+    "dynamic": false,
+    "heading": "Stock Summary",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/item-ledger/:id",
+    "resolved": "/srm/inventory/item-ledger/1",
+    "dynamic": true,
+    "heading": "Item Ledger",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "error-state"
+  },
+  {
+    "path": "/srm/inventory/warehouse-stock",
+    "resolved": "/srm/inventory/warehouse-stock",
+    "dynamic": false,
+    "heading": "Warehouse Stock",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-aging",
+    "resolved": "/srm/inventory/stock-aging",
+    "dynamic": false,
+    "heading": "Stock Aging",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reorder-report",
+    "resolved": "/srm/inventory/reorder-report",
+    "dynamic": false,
+    "heading": "Reorder Report",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/dead-stock",
+    "resolved": "/srm/inventory/dead-stock",
+    "dynamic": false,
+    "heading": "Dead Stock",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/fast-slow-moving",
+    "resolved": "/srm/inventory/fast-slow-moving",
+    "dynamic": false,
+    "heading": "Fast/Slow Moving Items",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/valuation",
+    "resolved": "/srm/inventory/valuation",
+    "dynamic": false,
+    "heading": "Inventory Valuation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/gross-margin",
+    "resolved": "/srm/inventory/gross-margin",
+    "dynamic": false,
+    "heading": "Gross Margin",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/cogs",
+    "resolved": "/srm/inventory/cogs",
+    "dynamic": false,
+    "heading": "COGS Report",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reconciliation",
+    "resolved": "/srm/inventory/reconciliation",
+    "dynamic": false,
+    "heading": "Inventory Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reconciliation/gl",
+    "resolved": "/srm/inventory/reconciliation/gl",
+    "dynamic": false,
+    "heading": "Inventory to GL",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reconciliation/grni",
+    "resolved": "/srm/inventory/reconciliation/grni",
+    "dynamic": false,
+    "heading": "GRNI Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reconciliation/gst",
+    "resolved": "/srm/inventory/reconciliation/gst",
+    "dynamic": false,
+    "heading": "GST Item Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reconciliation/cogs",
+    "resolved": "/srm/inventory/reconciliation/cogs",
+    "dynamic": false,
+    "heading": "COGS Reconciliation",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/cogs",
+    "resolved": "/srm/inventory/reports/cogs",
+    "dynamic": false,
+    "heading": "COGS Report",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/gross-margin",
+    "resolved": "/srm/inventory/reports/gross-margin",
+    "dynamic": false,
+    "heading": "Gross Margin",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/hsn-summary",
+    "resolved": "/srm/inventory/reports/hsn-summary",
+    "dynamic": false,
+    "heading": "HSN Summary",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/complete",
+    "resolved": "/srm/inventory/reports/complete",
+    "dynamic": false,
+    "heading": "Complete Inventory Reports",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/batches",
+    "resolved": "/srm/inventory/batches",
+    "dynamic": false,
+    "heading": "Batches & Serials",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/serial-numbers",
+    "resolved": "/srm/inventory/serial-numbers",
+    "dynamic": false,
+    "heading": "Batches & Serials",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/purchase-orders",
+    "resolved": "/srm/inventory/purchase-orders",
+    "dynamic": false,
+    "heading": "Purchase Orders",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/purchase-orders/create",
+    "resolved": "/srm/inventory/purchase-orders/create",
+    "dynamic": false,
+    "heading": "Purchase Orders",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/grn",
+    "resolved": "/srm/inventory/grn",
+    "dynamic": false,
+    "heading": "Purchase Orders",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/manufacturing",
+    "resolved": "/srm/inventory/manufacturing",
+    "dynamic": false,
+    "heading": "Manufacturing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/manufacturing/bom",
+    "resolved": "/srm/inventory/manufacturing/bom",
+    "dynamic": false,
+    "heading": "Manufacturing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/manufacturing/bom/create",
+    "resolved": "/srm/inventory/manufacturing/bom/create",
+    "dynamic": false,
+    "heading": "Manufacturing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/manufacturing/orders",
+    "resolved": "/srm/inventory/manufacturing/orders",
+    "dynamic": false,
+    "heading": "Manufacturing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/manufacturing/orders/create",
+    "resolved": "/srm/inventory/manufacturing/orders/create",
+    "dynamic": false,
+    "heading": "Manufacturing",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/audit",
+    "resolved": "/srm/inventory/audit",
+    "dynamic": false,
+    "heading": "Inventory Audit",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reorder-alerts",
+    "resolved": "/srm/inventory/reorder-alerts",
+    "dynamic": false,
+    "heading": "Reorder Alerts",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports",
+    "resolved": "/srm/inventory/reports",
+    "dynamic": false,
+    "heading": "Inventory Reports",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/ai",
+    "resolved": "/srm/inventory/ai",
+    "dynamic": false,
+    "heading": "Inventory AI",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/source",
+    "resolved": "/srm/inventory/source",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/source",
+    "resolved": "/srm/sales-inventory/source",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/pos/held-bills",
+    "resolved": "/srm/pos/held-bills",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/pos/registers",
+    "resolved": "/srm/pos/registers",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/invoices",
+    "resolved": "/srm/sales-inventory/invoices",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/invoices/create",
+    "resolved": "/srm/sales-inventory/invoices/create",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/orders",
+    "resolved": "/srm/sales-inventory/orders",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/orders/create",
+    "resolved": "/srm/sales-inventory/orders/create",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/delivery-bills",
+    "resolved": "/srm/sales-inventory/delivery-bills",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/picklists",
+    "resolved": "/srm/sales-inventory/picklists",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/packages",
+    "resolved": "/srm/sales-inventory/packages",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/returns",
+    "resolved": "/srm/sales-inventory/returns",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/quotations",
+    "resolved": "/srm/sales-inventory/quotations",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/proforma",
+    "resolved": "/srm/sales-inventory/proforma",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/challans",
+    "resolved": "/srm/sales-inventory/challans",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/sales-inventory/refunds",
+    "resolved": "/srm/sales-inventory/refunds",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/stock-transfers/create",
+    "resolved": "/srm/inventory/stock-transfers/create",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/branches",
+    "resolved": "/srm/inventory/branches",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/composite-items",
+    "resolved": "/srm/inventory/composite-items",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/repacking",
+    "resolved": "/srm/inventory/repacking",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/stock",
+    "resolved": "/srm/inventory/reports/stock",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/low-stock",
+    "resolved": "/srm/inventory/reports/low-stock",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/reorder",
+    "resolved": "/srm/inventory/reports/reorder",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/valuation",
+    "resolved": "/srm/inventory/reports/valuation",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/expiry",
+    "resolved": "/srm/inventory/reports/expiry",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/inventory-ledger",
+    "resolved": "/srm/inventory/reports/inventory-ledger",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/abc-analysis",
+    "resolved": "/srm/inventory/reports/abc-analysis",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/dead-stock-source",
+    "resolved": "/srm/inventory/reports/dead-stock-source",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/stock-health",
+    "resolved": "/srm/inventory/reports/stock-health",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/sales-velocity",
+    "resolved": "/srm/inventory/reports/sales-velocity",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/stock-movement",
+    "resolved": "/srm/inventory/reports/stock-movement",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/stock-summary-source",
+    "resolved": "/srm/inventory/reports/stock-summary-source",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/inventory/reports/serial-numbers",
+    "resolved": "/srm/inventory/reports/serial-numbers",
+    "dynamic": false,
+    "heading": "Sales & Inventory Source",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/reports",
+    "resolved": "/srm/reports",
+    "dynamic": false,
+    "heading": "Reports",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents",
+    "resolved": "/ai-agents",
+    "dynamic": false,
+    "heading": "AI Agents",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/srm/settings",
+    "resolved": "/srm/settings",
+    "dynamic": false,
+    "heading": "Settings",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/config",
+    "resolved": "/ai-agents/config",
+    "dynamic": false,
+    "heading": "AI Agent Configuration",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/chat/:agentId",
+    "resolved": "/ai-agents/chat/1",
+    "dynamic": true,
+    "heading": "Lead Qualification Agent",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "fixture-review-needed"
+  },
+  {
+    "path": "/ai-agents/analytics",
+    "resolved": "/ai-agents/analytics",
+    "dynamic": false,
+    "heading": "AI Analytics",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/approvals",
+    "resolved": "/ai-agents/approvals",
+    "dynamic": false,
+    "heading": "Pending AI Approvals",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/security",
+    "resolved": "/ai-agents/security",
+    "dynamic": false,
+    "heading": "AI Security",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/usage",
+    "resolved": "/ai-agents/usage",
+    "dynamic": false,
+    "heading": "AI Usage",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/security/permissions",
+    "resolved": "/ai-agents/security/permissions",
+    "dynamic": false,
+    "heading": "AI Permission Matrix",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/feedback",
+    "resolved": "/ai-agents/feedback",
+    "dynamic": false,
+    "heading": "AI Feedback",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/handoff",
+    "resolved": "/ai-agents/handoff",
+    "dynamic": false,
+    "heading": "AI Handoff Notes",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  },
+  {
+    "path": "/ai-agents/logs",
+    "resolved": "/ai-agents/logs",
+    "dynamic": false,
+    "heading": "AI Activity Logs",
+    "overflow": false,
+    "errors": [],
+    "serverErrors": [],
+    "outcome": "rendered"
+  }
+]

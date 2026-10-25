@@ -5,7 +5,8 @@ from pathlib import Path
 from urllib.parse import urlsplit, unquote, parse_qs, urlencode
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError as JWTError
 from fastapi import HTTPException
 from fastapi.responses import FileResponse as LocalFileResponse, RedirectResponse
 from app.core.config import settings
@@ -50,7 +51,7 @@ def blob_session():
 def blob_token_path(token: str, *, verify_exp: bool = True) -> str:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
-                             options={"verify_exp": verify_exp}, audience="private-file")
+                             options={"verify_exp": verify_exp,"require":["exp","path","purpose","aud"]}, audience="private-file")
         relative = payload["path"]
         if payload.get("purpose") != "blob-download" or not isinstance(relative, str):
             raise ValueError("Invalid file token")
@@ -119,7 +120,7 @@ def materialize_file(path: str) -> str:
 
 
 def signed_file_url(path: str) -> str:
-    if settings.STORAGE_BACKEND == "vercel_blob":
+    if settings.STORAGE_BACKEND in {"local", "vercel_blob", "s3"}:
         storage_key(path)
         relative = Path(path).resolve().relative_to(Path(settings.UPLOAD_DIR).resolve()).as_posix()
         token = jwt.encode({"path": relative, "purpose": "blob-download", "aud": "private-file",
@@ -152,25 +153,14 @@ def sign_upload_references(value):
 
 def normalize_upload_references(value):
     """Do not save expiring display links when a record is edited and resubmitted."""
-    if isinstance(value, str) and settings.STORAGE_BACKEND == "vercel_blob":
+    if isinstance(value, str) and settings.STORAGE_BACKEND in {"local", "vercel_blob", "s3"}:
         url = urlsplit(value)
         if url.path == "/api/v1/files/blob" and url.netloc == urlsplit(settings.BACKEND_PUBLIC_URL).netloc:
             tokens = parse_qs(url.query).get("token", [])
             if tokens:
-                path = blob_token_path(tokens[0], verify_exp=False)
+                path = blob_token_path(tokens[0])
                 relative = Path(path).resolve().relative_to(Path(settings.UPLOAD_DIR).resolve()).as_posix()
                 return f"/uploads/{relative}"
-    if isinstance(value, str) and "X-Amz-Signature=" in value and settings.STORAGE_BACKEND == "s3":
-        url = urlsplit(value)
-        service_host = urlsplit(s3_client().meta.endpoint_url).hostname
-        if url.hostname in {service_host, f"{settings.S3_BUCKET}.{service_host}"}:
-            path = unquote(url.path)
-            prefixes = [f"/{settings.S3_PREFIX.strip('/')}/", f"/{settings.S3_BUCKET}/{settings.S3_PREFIX.strip('/')}/"]
-            for prefix in prefixes:
-                if path.startswith(prefix):
-                    relative = path[len(prefix):]
-                    storage_key(str(Path(settings.UPLOAD_DIR) / relative))
-                    return f"/uploads/{relative}"
     if isinstance(value, list):
         return [normalize_upload_references(item) for item in value]
     if isinstance(value, dict):

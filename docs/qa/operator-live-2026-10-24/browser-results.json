@@ -1,0 +1,73 @@
+{
+  "checks": [
+    {
+      "name": "Live tab: Your workspace",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Conversation",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Plan builder",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Execution center",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Delivery insights",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Project memory",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Playbooks & agents",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Models & usage",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Teach assistant",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Quality lab",
+      "status": "passed"
+    },
+    {
+      "name": "Live tab: Autonomy & calendar",
+      "status": "passed"
+    },
+    {
+      "name": "Browser memory create against live API",
+      "status": "passed"
+    },
+    {
+      "name": "Real local command model and multi-turn missing fields through task creation",
+      "status": "passed",
+      "cloudRequests": 0
+    },
+    {
+      "name": "Simulated speech transcript to live approval and worker execution",
+      "status": "passed",
+      "physicalMicrophone": false
+    },
+    {
+      "name": "Quality lab executes real local parser and persists passing result",
+      "status": "passed"
+    },
+    {
+      "name": "Live desktop and mobile rendering",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "failures": [],
+  "cloudRequests": 0
+}

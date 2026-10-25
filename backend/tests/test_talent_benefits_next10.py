@@ -1,3 +1,4 @@
+from tests.security_file_fixtures import uploaded_reference
 from app.db.init_db import init_db
 from app.models.employee import Employee
 
@@ -151,7 +152,7 @@ def test_benefit_claims_and_esop_vesting_foundations(client, db):
         "claim_type": "Medical",
         "claim_date": "2026-05-02",
         "claim_amount": "5000",
-        "receipt_url": "/uploads/benefits/receipt.pdf",
+        "receipt_url": uploaded_reference('benefits/receipt.pdf'),
     }, headers=admin)
     assert claim.status_code == 201
     reviewed = client.put(f"/api/v1/benefits/claims/{claim.json()['id']}/review", json={

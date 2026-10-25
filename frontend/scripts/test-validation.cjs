@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const {buildSync}=require('esbuild');
+const root=path.resolve(__dirname,'../..');
+const output=buildSync({entryPoints:[path.join(root,'shared/validation/index.ts')],bundle:true,platform:'node',format:'cjs',write:false,nodePaths:[path.join(root,'frontend/node_modules')]}).outputFiles[0].text;
+const compiled={exports:{}};
+new Function('module','exports','require',output)(compiled,compiled.exports,require);
+const {phoneError,emailError,textError,identityError,applicationErrors,contract}=compiled.exports;
+let count=0;
+function check(actual,expected){assert.equal(actual,expected);count++;}
+for(const value of ['9876543210','0001234567'])check(phoneError(value,'+91',true),'');
+for(const value of ['987654321','98765432101','abcdefghij','98765abc10','+919876543210','98765 43210','98765.3210','-987654321','1e00000009','😀123456789','９８７６５４３２１０',9876543210,null])check(!!phoneError(value,'+91',true),true);
+for(const code of ['','91','+999',null,91])check(!!phoneError('9876543210',code,true),true);
+for(const country of contract.countries)check(phoneError('0001234567',country.code,true),'');
+for(const value of ['invalid','a@','@example.com','a b@example.com',' a@example.com','a@example.com ','a@example.invalid'])check(!!emailError(value,true),true);
+for(const value of ["o.brien+intern@example.com",'名@example.com'])check(emailError(value,true),'');
+check(textError(' 李 ',160),'');check(!!textError('   ',160),true);check(!!textError('Name\u0000',160),true);check(!!textError('\u200b',160),true);
+check(identityError('PAN','ABCDE1234F'),'');check(!!identityError('PAN','bad'),true);check(identityError('Passport','AB-123456'),'');
+const valid={full_name:'李',parent_name:'O’Brien',mobile:'0001234567',mobile_country_code:'+1',email:'qa@example.com',identity_type:'Other',identity_number:'TEST-ONLY',gender:'Prefer not to say',date_of_birth:'2000-01-01',city:'São Paulo',state:'Other',tenth_marks:'0',twelfth_marks:'',degree:'Other',current_year:'Graduated',college:'Example University',specialization:'Design',passout_year:'2020',area_of_interest:'Software Development',skills:'Python',role:'Other',mode:'Remote',available_from:'2026-12-01',duration:'3 Months',address:'Synthetic QA address',emergency_contact:'2025550100',emergency_contact_country_code:'+1',employment_type:'Intern'};
+check(Object.keys(applicationErrors(valid,['Other'],'2026-10-25')).length,0);
+for(const [key,value] of Object.entries({full_name:'   ',email:'bad',date_of_birth:'2025-02-30',tenth_marks:'101',twelfth_marks:'-1',state:'tampered',gender:'tampered',passout_year:'2099',available_from:'2020-01-01'}))check(!!applicationErrors({...valid,[key]:value},['Other'],'2026-10-25')[key],true);
+console.log(`${count} frontend validation checks passed.`);

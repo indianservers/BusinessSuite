@@ -15,6 +15,8 @@ export type Palette = (typeof palettes)[number]["id"];
 interface ThemeState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  density: "comfortable" | "compact";
+  setDensity: (density: "comfortable" | "compact") => void;
   palette: Palette;
   setPalette: (palette: Palette) => void;
 }
@@ -30,6 +32,7 @@ export function applyTheme(theme: Theme) {
   root.classList.add(getResolvedTheme(theme));
   root.style.colorScheme = getResolvedTheme(theme);
   root.dataset.palette = useThemeStore.getState().palette;
+  root.dataset.density = useThemeStore.getState().density || "comfortable";
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -37,6 +40,8 @@ export const useThemeStore = create<ThemeState>()(
     (set) => ({
       theme: "light",
       palette: "violet",
+      density: "comfortable",
+      setDensity: (density) => { set({density}); applyTheme(useThemeStore.getState().theme); },
       setPalette: (palette) => {
         if (!palettes.some((p) => p.id === palette)) return;
         set({ palette });

@@ -1,0 +1,9 @@
+{
+  "file": "build\\releases\\KaryaFlow-PMS-0.2.0-arm64.apk",
+  "bytes": 89274636,
+  "sha256": "f5b4f52a1c87a9df1edfc15b2a111e34d900ff5425aa6d3cdbd6dd9d0042925a",
+  "normal_entrypoint": true,
+  "test_password_absent": true,
+  "qa_driver_absent": true,
+  "backend": "https://businesssuite-rosy.vercel.app/api/v1"
+}

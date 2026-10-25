@@ -135,11 +135,11 @@ export default function FnFSettlementPage() {
   });
 
   const action = useMutation({
-    mutationFn: ({ type, id }: { type: "submit" | "approve" | "reject" | "paid"; id: number }) => {
-      if (type === "submit") return fnfApi.submit(id);
-      if (type === "approve") return fnfApi.approve(id, { remarks });
-      if (type === "reject") return fnfApi.reject(id, { rejection_reason: remarks || "Rejected during finance review" });
-      return fnfApi.markPaid(id, { remarks });
+    mutationFn: async ({ type, id }: { type: "submit" | "approve" | "reject" | "paid"; id: number }) => {
+      if (type === "submit") { await fnfApi.submit(id); return; }
+      if (type === "approve") { await fnfApi.approve(id, { remarks }); return; }
+      if (type === "reject") { await fnfApi.reject(id, { rejection_reason: remarks || "Rejected during finance review" }); return; }
+      await fnfApi.markPaid(id, { remarks });
     },
     onSuccess: () => {
       toast({ title: "Settlement status updated" });

@@ -33,6 +33,7 @@ export default function PMSQuickAddMenu() {
     navigate(`/pms/workspaces?${params}`);
   };
   const actions: NewAction[] = [];
+  actions.push({ label: "Private note", description: "Capture an idea, with or without a project", icon: FileText, onSelect: () => { const project = location.pathname.match(/\/pms\/projects\/(\d+)/)?.[1]; navigate(`/pms/notes?new=1${project ? `&project=${project}` : ""}`); } });
   if (context && context.role !== "Guest") {
     for (const [label, kind, icon] of [["Task", "task", CheckCircle2], ["Story", "story", FileText], ["Bug", "bug", Bug]] as const) actions.push({ label, description: `Add to ${context.name}`, icon, onSelect: () => open(kind) });
   }

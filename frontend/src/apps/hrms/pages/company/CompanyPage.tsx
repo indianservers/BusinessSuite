@@ -1,3 +1,5 @@
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneFields } from "@/lib/validation";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,8 +28,8 @@ import { toast } from "@/hooks/use-toast";
 type OrgForm = Record<string, any>;
 type OrgKind = "branch" | "department" | "designation";
 
-const emptyCompany = { country: "India" };
-const emptyBranch = { country: "India" };
+const emptyCompany = { country: "India", phone_country_code: "+91" };
+const emptyBranch = { country: "India", phone_country_code: "+91" };
 const emptyDepartment = {};
 const emptyDesignation = { level: 1 };
 
@@ -238,7 +240,7 @@ export default function CompanyPage() {
                 <Field label="TAN"><Input value={form.tan_number || ""} onChange={(e) => update("tan_number", e.target.value)} /></Field>
                 <Field label="GSTIN"><Input value={form.gstin || ""} onChange={(e) => update("gstin", e.target.value)} /></Field>
                 <Field label="Email"><Input value={form.email || ""} onChange={(e) => update("email", e.target.value)} /></Field>
-                <Field label="Phone"><Input value={form.phone || ""} onChange={(e) => update("phone", e.target.value)} /></Field>
+                <Field label="Phone"><PhoneInput value={form.phone || ""} countryCode={form.phone_country_code ?? (form.id ? "" : "+91")} onChange={value=>setForm({...form,phone:value,phone_country_code:form.phone_country_code ?? (form.id ? "" : "+91")})} onCountryCodeChange={value=>update("phone_country_code",value)} /></Field>
                 <Field label="Website"><Input value={form.website || ""} onChange={(e) => update("website", e.target.value)} /></Field>
                 <Field label="City"><Input value={form.city || ""} onChange={(e) => update("city", e.target.value)} /></Field>
                 <Field label="State"><Input value={form.state || ""} onChange={(e) => update("state", e.target.value)} /></Field>
@@ -423,7 +425,7 @@ function OrgPanel({
         >
           {fields.map((field) => (
             <Field key={field.key} label={field.label}>
-              {field.type === "select" ? (
+              {phoneFields.has(field.key) ? <PhoneInput label={field.label} value={form[field.key] || ""} countryCode={form[field.key+"_country_code"] ?? ""} onChange={value=>onChange(field.key,value)} onCountryCodeChange={value=>onChange(field.key+"_country_code",value)} /> : field.type === "select" ? (
                 <select
                   value={form[field.key] || ""}
                   onChange={(event) => onChange(field.key, Number(event.target.value))}

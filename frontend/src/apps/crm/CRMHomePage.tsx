@@ -1,3 +1,4 @@
+import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Building2, CheckCircle2, Kanban, Plus, Users } from "lucide-react";
@@ -77,6 +78,7 @@ const emptyQuickDraft: Record<string, string> = {
   company: "",
   email: "",
   phone: "",
+  phone_country_code: "+91",
   source: "",
   industry: "",
   amount: "",
@@ -208,13 +210,13 @@ export default function CRMHomePage() {
                   {field.label}
                   {field.required ? <span className="text-red-600"> *</span> : null}
                 </Label>
-                <Input
+                {field.key==='phone' ? <PhoneInput label={field.label} value={quickDraft.phone || ''} countryCode={quickDraft.phone_country_code || ''} onChange={value=>patchQuickDraft('phone',value)} onCountryCodeChange={value=>patchQuickDraft('phone_country_code',value)} /> : <Input
                   id={`quick-${field.key}`}
                   type={field.type || "text"}
                   value={quickDraft[field.key] || ""}
                   placeholder={field.placeholder}
                   onChange={(event) => patchQuickDraft(field.key, event.target.value)}
-                />
+                />}
               </div>
             ))}
           </div>
@@ -266,6 +268,7 @@ async function buildQuickCreatePayload(type: QuickCreateType, draft: Record<stri
       company_name: draft.company || undefined,
       email: draft.email || undefined,
       phone: draft.phone || undefined,
+      phone_country_code: draft.phone_country_code || undefined,
       source: draft.source || "Manual Entry",
       status: "New",
     };
@@ -278,6 +281,7 @@ async function buildQuickCreatePayload(type: QuickCreateType, draft: Record<stri
       full_name: name.fullName,
       email: draft.email || undefined,
       phone: draft.phone || undefined,
+      phone_country_code: draft.phone_country_code || undefined,
       source: draft.source || "Manual Entry",
       status: "Active",
     };
@@ -288,6 +292,7 @@ async function buildQuickCreatePayload(type: QuickCreateType, draft: Record<stri
       industry: draft.industry || undefined,
       email: draft.email || undefined,
       phone: draft.phone || undefined,
+      phone_country_code: draft.phone_country_code || undefined,
       status: "Active",
       account_type: "Prospect",
     };

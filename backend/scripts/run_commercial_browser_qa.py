@@ -111,21 +111,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if os.environ.get("SUITE_UI_QA") == "1":
+    app.include_router(imported_app.router)
+
 for router in [pms, sales, crm, ai_operator]:
     app.include_router(router, prefix="/api/v1")
 
 
 @app.get("/qa-session")
-def qa_session():
+def qa_session(guest: bool = False):
     with SessionLocal() as db:
-        user = db.query(User).filter_by(email="commercial@audit.invalid").one()
+        email = "commercial-guest@audit.invalid" if guest else "commercial@audit.invalid"
+        user = db.query(User).filter_by(email=email).first()
+        if guest and not user:
+            user = User(email=email, hashed_password="unused", is_active=True, is_superuser=False)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
         return {
             "token": create_access_token(user.id),
             "user": {
                 "id": user.id,
                 "email": user.email,
-                "role": "super_admin",
-                "is_superuser": True,
+                "role": "pms_viewer" if guest else "super_admin",
+                "is_superuser": not guest,
             },
         }
 

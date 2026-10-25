@@ -1,3 +1,4 @@
+from app.core.input_validation import NationalPhone,CallingCode
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
@@ -6,6 +7,7 @@ from pydantic import BaseModel
 class WhatsAppESSConfigCreate(BaseModel):
     provider: str = "WhatsApp Business"
     business_phone_number: str
+    business_phone_number_country_code: str | None = None
     webhook_url: Optional[str] = None
     access_token_ref: Optional[str] = None
     app_secret_ref: Optional[str] = None
@@ -25,7 +27,8 @@ class WhatsAppESSConfigSchema(WhatsAppESSConfigCreate):
 
 
 class WhatsAppInboundMessage(BaseModel):
-    phone_number: str
+    phone_number: NationalPhone
+    phone_number_country_code: CallingCode
     message_text: str
     provider_message_id: Optional[str] = None
 
@@ -36,6 +39,7 @@ class WhatsAppESSMessageSchema(BaseModel):
     employee_id: int
     direction: str
     phone_number: str
+    phone_number_country_code: str | None = None
     message_text: str
     intent: Optional[str] = None
     status: str
@@ -67,6 +71,7 @@ class WhatsAppTemplateSchema(WhatsAppTemplateCreate):
 class WhatsAppOptInCreate(BaseModel):
     employee_id: int
     phone_number: str
+    phone_number_country_code: str | None = None
     status: str = "Opted In"
     source: str = "ESS"
     consent_text: Optional[str] = None
@@ -82,7 +87,8 @@ class WhatsAppOptInSchema(WhatsAppOptInCreate):
 
 class WhatsAppOutboundMessage(BaseModel):
     employee_id: int
-    phone_number: str
+    phone_number: NationalPhone
+    phone_number_country_code: CallingCode
     template_id: Optional[int] = None
     message_text: Optional[str] = None
     intent: str = "notification"

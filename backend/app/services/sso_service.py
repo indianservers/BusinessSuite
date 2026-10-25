@@ -3,7 +3,7 @@ import hashlib
 import secrets
 from urllib.parse import urlencode
 import httpx
-from jose import jwt
+import jwt
 from app.core.config import settings
 from app.models.sso import SSOProvider
 
@@ -45,9 +45,18 @@ def validate_google_identity(id_token: str, jwks: dict, provider: SSOProvider, n
     """Accept only signed, current, audience-bound Google Workspace identities."""
     if not nonce or not provider.domain_hint:
         raise ValueError("Google Workspace domain and nonce are required")
-    claims = jwt.decode(id_token, jwks, algorithms=["RS256"], audience=provider.client_id, access_token=access_token,
+    header=jwt.get_unverified_header(id_token)
+    keys=[key for key in jwks.get('keys',[]) if key.get('kid')==header.get('kid') and key.get('kty')=='RSA' and key.get('use','sig')=='sig']
+    if len(keys)!=1 or header.get('alg')!='RS256':
+        raise ValueError('Unexpected identity signing key')
+    key=jwt.PyJWK.from_dict(keys[0],algorithm='RS256').key
+    claims = jwt.decode(id_token, key, algorithms=["RS256"], audience=provider.client_id,
         issuer=["https://accounts.google.com", "accounts.google.com"],
-        options={"require_exp": True, "require_iat": True, "require_sub": True, "require_aud": True, "require_iss": True})
+        options={"require": ["exp","iat","sub","aud","iss"]})
+    if claims.get('at_hash'):
+        expected=base64.urlsafe_b64encode(hashlib.sha256((access_token or '').encode()).digest()[:16]).rstrip(b'=').decode()
+        if not access_token or not isinstance(claims['at_hash'],str) or not secrets.compare_digest(claims['at_hash'],expected):
+            raise ValueError('Identity access token hash mismatch')
     if not isinstance(claims.get("nonce"), str) or not secrets.compare_digest(claims["nonce"], nonce):
         raise ValueError("Google login nonce mismatch")
     if claims.get("azp") and claims["azp"] != provider.client_id:

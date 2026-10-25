@@ -1,0 +1,146 @@
+[
+  {
+    "route": "/pms",
+    "theme": "light",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "light",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/crm",
+    "theme": "light",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/fam",
+    "theme": "light",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/srm",
+    "theme": "light",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/hrms",
+    "theme": "light",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/pms",
+    "theme": "light",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "light",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/crm",
+    "theme": "light",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/fam",
+    "theme": "light",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/srm",
+    "theme": "light",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/hrms",
+    "theme": "light",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/pms",
+    "theme": "dark",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "dark",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/crm",
+    "theme": "dark",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/fam",
+    "theme": "dark",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/srm",
+    "theme": "dark",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/hrms",
+    "theme": "dark",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "route": "/pms",
+    "theme": "dark",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "dark",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/crm",
+    "theme": "dark",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/fam",
+    "theme": "dark",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/srm",
+    "theme": "dark",
+    "width": 375,
+    "violations": []
+  },
+  {
+    "route": "/hrms",
+    "theme": "dark",
+    "width": 375,
+    "violations": []
+  }
+]

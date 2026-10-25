@@ -66,6 +66,7 @@ class Candidate(Base):
     last_name = Column(String(80), nullable=False)
     email = Column(String(150), nullable=False)
     phone = Column(String(20))
+    phone_country_code = Column(String(5), nullable=True)
     current_company = Column(String(200))
     current_designation = Column(String(150))
     total_experience = Column(Numeric(4, 1))

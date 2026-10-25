@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-25",
+  "database": "Disposable SQLite; production migration not applied",
+  "regression_tests": {
+    "passed": 78,
+    "files": [
+      "test_intern_management.py",
+      "test_intern_management_migration.py",
+      "test_intern_evidence_storage.py",
+      "test_interns_hub.py",
+      "test_intern_applications.py",
+      "test_pms_project_access.py",
+      "test_pms_task_composer.py",
+      "test_employees.py",
+      "test_auth.py"
+    ]
+  },
+  "final_focused_checks": [
+    "PMS submitted metric remains counted after approval",
+    "PMS work upload uses configured storage root",
+    "Private static uploads reject work evidence URLs"
+  ],
+  "frontend": {
+    "main_typescript": "passed",
+    "interns_hub_production_build": "passed"
+  },
+  "browser": {
+    "desktop_viewport": [
+      1680,
+      987
+    ],
+    "mobile_viewport": [
+      390,
+      844
+    ],
+    "mobile_document_width": 390,
+    "verified": [
+      "HRMS and separate intern login",
+      "Batch creation and lifecycle",
+      "Batch enrollment",
+      "Overlapping cohort recipient deduplication",
+      "PMS task publish/start/submission",
+      "HRMS revision request and intern version-2 resubmission",
+      "Direct PMS approval",
+      "Server performance and selected-batch eligibility",
+      "Manager completion and HRMS document certificate issuance",
+      "Daily-report manager review",
+      "Mobile navigation/filter layout",
+      "Mobile application without artwork or resume upload"
+    ]
+  },
+  "security": [
+    "Portal restrictions",
+    "Manager scope boundaries",
+    "Tenant project and course isolation",
+    "PMS viewer cannot approve",
+    "Self-scoring rejected",
+    "Immutable review decisions",
+    "Own-task evidence authorization",
+    "Public static evidence blocked",
+    "Completion policy cannot be bypassed by frontend fields"
+  ],
+  "limits": [
+    "PostgreSQL staging migration/concurrency not executed",
+    "External email/SMS not added",
+    "Page-limited export and bounded option lists",
+    "Cron configuration required for deferred distribution and recurrence"
+  ]
+}

@@ -1,0 +1,1898 @@
+[
+  {
+    "id": "1.1",
+    "category": "Workspaces",
+    "operation": "Create a workspace.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.2",
+    "category": "Workspaces",
+    "operation": "List and switch workspaces.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.3",
+    "category": "Workspaces",
+    "operation": "View workspace overview, projects, tasks and activity.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.4",
+    "category": "Workspaces",
+    "operation": "Invite users.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.5",
+    "category": "Workspaces",
+    "operation": "Preview, accept and activate invitations.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.6",
+    "category": "Workspaces",
+    "operation": "List and revoke pending invitations.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.7",
+    "category": "Workspaces",
+    "operation": "Change workspace member roles.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.8",
+    "category": "Workspaces",
+    "operation": "Remove workspace members.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.9",
+    "category": "Workspaces",
+    "operation": "Add workspace notes and chat entries.",
+    "status": "not_run"
+  },
+  {
+    "id": "1.10",
+    "category": "Workspaces",
+    "operation": "**Admin:** preview \u201cReset all,\u201d soft-delete workspaces created by admins or users, and restore them.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.1",
+    "category": "Projects",
+    "operation": "Create a project.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.2",
+    "category": "Projects",
+    "operation": "List, search, filter and open projects.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.3",
+    "category": "Projects",
+    "operation": "Edit project name and description.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.4",
+    "category": "Projects",
+    "operation": "Change client, owner, manager, department and branch.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.5",
+    "category": "Projects",
+    "operation": "Change category, status, priority and health.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.6",
+    "category": "Projects",
+    "operation": "Change start, due, planned and actual dates.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.7",
+    "category": "Projects",
+    "operation": "Update budget, estimates, costs, billing status and reported progress.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.8",
+    "category": "Projects",
+    "operation": "Change client visibility.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.9",
+    "category": "Projects",
+    "operation": "Mark a project as a template.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.10",
+    "category": "Projects",
+    "operation": "Clone a project.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.11",
+    "category": "Projects",
+    "operation": "Archive and unarchive a project.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.12",
+    "category": "Projects",
+    "operation": "Soft-delete a project.",
+    "status": "not_run"
+  },
+  {
+    "id": "2.13",
+    "category": "Projects",
+    "operation": "View project dashboard, activity, files, workload, reports and analytics.",
+    "status": "not_run"
+  },
+  {
+    "id": "3.1",
+    "category": "Project members",
+    "operation": "Add project members.",
+    "status": "not_run"
+  },
+  {
+    "id": "3.2",
+    "category": "Project members",
+    "operation": "List members.",
+    "status": "not_run"
+  },
+  {
+    "id": "3.3",
+    "category": "Project members",
+    "operation": "Change project member roles.",
+    "status": "not_run"
+  },
+  {
+    "id": "3.4",
+    "category": "Project members",
+    "operation": "Remove members.",
+    "status": "not_run"
+  },
+  {
+    "id": "3.5",
+    "category": "Project members",
+    "operation": "Search eligible users for assignment.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.1",
+    "category": "Tasks",
+    "operation": "Create a task inside a project.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.2",
+    "category": "Tasks",
+    "operation": "List all accessible tasks or tasks within a project.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.3",
+    "category": "Tasks",
+    "operation": "Search, filter, sort and open tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.4",
+    "category": "Tasks",
+    "operation": "Edit task title and description.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.5",
+    "category": "Tasks",
+    "operation": "Change work-item type.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.6",
+    "category": "Tasks",
+    "operation": "Change status and priority.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.7",
+    "category": "Tasks",
+    "operation": "Mark complete or reopen.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.8",
+    "category": "Tasks",
+    "operation": "Assign one or multiple people.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.9",
+    "category": "Tasks",
+    "operation": "Remove assignees.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.10",
+    "category": "Tasks",
+    "operation": "Change reporter.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.11",
+    "category": "Tasks",
+    "operation": "Set or clear start and due dates.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.12",
+    "category": "Tasks",
+    "operation": "Update estimated, actual, original and remaining hours.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.13",
+    "category": "Tasks",
+    "operation": "Update story points and rank.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.14",
+    "category": "Tasks",
+    "operation": "Set blocking status and client visibility.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.15",
+    "category": "Tasks",
+    "operation": "Change security level.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.16",
+    "category": "Tasks",
+    "operation": "Associate a milestone, sprint, epic, component or release.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.17",
+    "category": "Tasks",
+    "operation": "Edit issue details: severity, environment, affected version and fix version.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.18",
+    "category": "Tasks",
+    "operation": "Edit development references: branch, commits, pull requests, deployments and build.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.19",
+    "category": "Tasks",
+    "operation": "Duplicate a task.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.20",
+    "category": "Tasks",
+    "operation": "Soft-delete a task.",
+    "status": "not_run"
+  },
+  {
+    "id": "4.21",
+    "category": "Tasks",
+    "operation": "View task activity and related records.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.1",
+    "category": "Subtasks and hierarchy",
+    "operation": "Create a subtask under a task.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.2",
+    "category": "Subtasks and hierarchy",
+    "operation": "List and expand subtasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.3",
+    "category": "Subtasks and hierarchy",
+    "operation": "Edit a subtask using task operations.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.4",
+    "category": "Subtasks and hierarchy",
+    "operation": "Assign people, dates, priority and status to subtasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.5",
+    "category": "Subtasks and hierarchy",
+    "operation": "Reorder subtasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.6",
+    "category": "Subtasks and hierarchy",
+    "operation": "Change a task\u2019s parent.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.7",
+    "category": "Subtasks and hierarchy",
+    "operation": "Remove its parent relationship.",
+    "status": "not_run"
+  },
+  {
+    "id": "5.8",
+    "category": "Subtasks and hierarchy",
+    "operation": "Soft-delete and restore subtasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "6.1",
+    "category": "Bulk task operations",
+    "operation": "Select multiple tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "6.2",
+    "category": "Bulk task operations",
+    "operation": "Bulk-change status.",
+    "status": "not_run"
+  },
+  {
+    "id": "6.3",
+    "category": "Bulk task operations",
+    "operation": "Bulk-change assignee.",
+    "status": "not_run"
+  },
+  {
+    "id": "6.4",
+    "category": "Bulk task operations",
+    "operation": "Bulk-change priority.",
+    "status": "not_run"
+  },
+  {
+    "id": "6.5",
+    "category": "Bulk task operations",
+    "operation": "Bulk-assign sprint, release or component.",
+    "status": "not_run"
+  },
+  {
+    "id": "7.1",
+    "category": "Task checklists",
+    "operation": "Add checklist items.",
+    "status": "not_run"
+  },
+  {
+    "id": "7.2",
+    "category": "Task checklists",
+    "operation": "Edit checklist text.",
+    "status": "not_run"
+  },
+  {
+    "id": "7.3",
+    "category": "Task checklists",
+    "operation": "Mark items complete or incomplete.",
+    "status": "not_run"
+  },
+  {
+    "id": "7.4",
+    "category": "Task checklists",
+    "operation": "Reorder items.",
+    "status": "not_run"
+  },
+  {
+    "id": "7.5",
+    "category": "Task checklists",
+    "operation": "Delete checklist items.",
+    "status": "not_run"
+  },
+  {
+    "id": "8.1",
+    "category": "Task comments",
+    "operation": "Add comments.",
+    "status": "not_run"
+  },
+  {
+    "id": "8.2",
+    "category": "Task comments",
+    "operation": "Read task conversations.",
+    "status": "not_run"
+  },
+  {
+    "id": "8.3",
+    "category": "Task comments",
+    "operation": "Edit permitted comments.",
+    "status": "not_run"
+  },
+  {
+    "id": "8.4",
+    "category": "Task comments",
+    "operation": "Delete permitted comments.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.1",
+    "category": "Tags",
+    "operation": "Create tags.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.2",
+    "category": "Tags",
+    "operation": "Add and remove task tags.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.3",
+    "category": "Tags",
+    "operation": "Enter multiple tags using comma separation.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.4",
+    "category": "Tags",
+    "operation": "Search and select existing tags.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.5",
+    "category": "Tags",
+    "operation": "Browse tags and their usage.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.6",
+    "category": "Tags",
+    "operation": "Rename tags and change colors.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.7",
+    "category": "Tags",
+    "operation": "Filter tag usage by location.",
+    "status": "not_run"
+  },
+  {
+    "id": "9.8",
+    "category": "Tags",
+    "operation": "Delete selected tags through Tag Manager.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.1",
+    "category": "Custom fields and task types",
+    "operation": "Create project custom fields.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.2",
+    "category": "Custom fields and task types",
+    "operation": "Choose supported field types and options.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.3",
+    "category": "Custom fields and task types",
+    "operation": "List and search field definitions.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.4",
+    "category": "Custom fields and task types",
+    "operation": "Rename fields and edit options.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.5",
+    "category": "Custom fields and task types",
+    "operation": "Read and update task custom-field values.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.6",
+    "category": "Custom fields and task types",
+    "operation": "Filter dashboard tasks by custom-field value.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.7",
+    "category": "Custom fields and task types",
+    "operation": "Create custom task types.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.8",
+    "category": "Custom fields and task types",
+    "operation": "Edit task-type names, descriptions, category, icon and color.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.9",
+    "category": "Custom fields and task types",
+    "operation": "Set default priority.",
+    "status": "not_run"
+  },
+  {
+    "id": "10.10",
+    "category": "Custom fields and task types",
+    "operation": "Archive task types.",
+    "status": "not_run"
+  },
+  {
+    "id": "11.1",
+    "category": "Dependencies",
+    "operation": "Add a dependency between tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "11.2",
+    "category": "Dependencies",
+    "operation": "List task dependencies.",
+    "status": "not_run"
+  },
+  {
+    "id": "11.3",
+    "category": "Dependencies",
+    "operation": "Remove dependencies.",
+    "status": "not_run"
+  },
+  {
+    "id": "11.4",
+    "category": "Dependencies",
+    "operation": "Configure supported dependency relationships and lag.",
+    "status": "not_run"
+  },
+  {
+    "id": "11.5",
+    "category": "Dependencies",
+    "operation": "Inspect dependency-related delays.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.1",
+    "category": "Boards, lists and task interactions",
+    "operation": "View tasks in board and list layouts.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.2",
+    "category": "Boards, lists and task interactions",
+    "operation": "Drag tasks between Kanban columns.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.3",
+    "category": "Boards, lists and task interactions",
+    "operation": "Reorder tasks within columns.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.4",
+    "category": "Boards, lists and task interactions",
+    "operation": "Use right-click and three-dot menus.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.5",
+    "category": "Boards, lists and task interactions",
+    "operation": "Show task hover information.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.6",
+    "category": "Boards, lists and task interactions",
+    "operation": "Double-click supported task representations to open details.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.7",
+    "category": "Boards, lists and task interactions",
+    "operation": "Open a record in a new tab.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.8",
+    "category": "Boards, lists and task interactions",
+    "operation": "Copy task/project links and IDs.",
+    "status": "not_run"
+  },
+  {
+    "id": "12.9",
+    "category": "Boards, lists and task interactions",
+    "operation": "Navigate from a task to its project.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.1",
+    "category": "Backlog and sprints",
+    "operation": "View and filter backlog tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.2",
+    "category": "Backlog and sprints",
+    "operation": "Reorder backlog tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.3",
+    "category": "Backlog and sprints",
+    "operation": "Create sprints.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.4",
+    "category": "Backlog and sprints",
+    "operation": "List project sprints.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.5",
+    "category": "Backlog and sprints",
+    "operation": "Move tasks into a sprint.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.6",
+    "category": "Backlog and sprints",
+    "operation": "Remove tasks from a sprint.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.7",
+    "category": "Backlog and sprints",
+    "operation": "Reorder sprint tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.8",
+    "category": "Backlog and sprints",
+    "operation": "Start and complete sprints.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.9",
+    "category": "Backlog and sprints",
+    "operation": "Move incomplete work to the backlog or another sprint.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.10",
+    "category": "Backlog and sprints",
+    "operation": "Keep incomplete work in its current sprint where supported.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.11",
+    "category": "Backlog and sprints",
+    "operation": "Record review and retrospective notes.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.12",
+    "category": "Backlog and sprints",
+    "operation": "Record what went well, problems and outcomes.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.13",
+    "category": "Backlog and sprints",
+    "operation": "Add retrospective action items.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.14",
+    "category": "Backlog and sprints",
+    "operation": "Create tasks from retrospective action items.",
+    "status": "not_run"
+  },
+  {
+    "id": "13.15",
+    "category": "Backlog and sprints",
+    "operation": "View sprint review, burndown and project velocity.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.1",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "Create and edit epics.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.2",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "List tasks associated with an epic.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.3",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "Change epic scheduling.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.4",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "Create and edit project components.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.5",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "Create and edit releases.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.6",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "Assign tasks to components and releases.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.7",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "View release readiness.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.8",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "View roadmap and Gantt schedules.",
+    "status": "not_run"
+  },
+  {
+    "id": "14.9",
+    "category": "Epics, components, releases and roadmap",
+    "operation": "Update task dates from scheduling views.",
+    "status": "not_run"
+  },
+  {
+    "id": "15.1",
+    "category": "Milestones and approvals",
+    "operation": "Create milestones with owner, dates and other supported details.",
+    "status": "not_run"
+  },
+  {
+    "id": "15.2",
+    "category": "Milestones and approvals",
+    "operation": "List project milestones.",
+    "status": "not_run"
+  },
+  {
+    "id": "15.3",
+    "category": "Milestones and approvals",
+    "operation": "Associate tasks with milestones.",
+    "status": "not_run"
+  },
+  {
+    "id": "15.4",
+    "category": "Milestones and approvals",
+    "operation": "Submit milestones for approval.",
+    "status": "not_run"
+  },
+  {
+    "id": "15.5",
+    "category": "Milestones and approvals",
+    "operation": "Approve or reject milestones.",
+    "status": "not_run"
+  },
+  {
+    "id": "15.6",
+    "category": "Milestones and approvals",
+    "operation": "View milestone progress and approval status.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.1",
+    "category": "Calendar and planner",
+    "operation": "View scheduled tasks and events.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.2",
+    "category": "Calendar and planner",
+    "operation": "Navigate dates and return to Today.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.3",
+    "category": "Calendar and planner",
+    "operation": "Switch between supported calendar views.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.4",
+    "category": "Calendar and planner",
+    "operation": "Search and filter planner items.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.5",
+    "category": "Calendar and planner",
+    "operation": "Create tasks from supported calendar interactions.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.6",
+    "category": "Calendar and planner",
+    "operation": "Double-click supported calendar cells to start creation.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.7",
+    "category": "Calendar and planner",
+    "operation": "Open task previews and task details.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.8",
+    "category": "Calendar and planner",
+    "operation": "Reschedule supported task entries.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.9",
+    "category": "Calendar and planner",
+    "operation": "Create, edit and delete calendar events.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.10",
+    "category": "Calendar and planner",
+    "operation": "Create supported meeting and focus-time entries.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.11",
+    "category": "Calendar and planner",
+    "operation": "Link events to tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.12",
+    "category": "Calendar and planner",
+    "operation": "Set event visibility, timezone and meeting URL.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.13",
+    "category": "Calendar and planner",
+    "operation": "Find available time slots from configured schedules.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.14",
+    "category": "Calendar and planner",
+    "operation": "Configure grid size, event style, default duration and task colors.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.15",
+    "category": "Calendar and planner",
+    "operation": "Configure timezone, first weekday, weekends and week numbers.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.16",
+    "category": "Calendar and planner",
+    "operation": "Configure planner sidebar sections.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.17",
+    "category": "Calendar and planner",
+    "operation": "Configure task visibility, completed tasks and recurring-task display.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.18",
+    "category": "Calendar and planner",
+    "operation": "Configure working days, working hours and focus-time defaults.",
+    "status": "not_run"
+  },
+  {
+    "id": "16.19",
+    "category": "Calendar and planner",
+    "operation": "Configure supported browser reminders and meeting preferences.",
+    "status": "not_run"
+  },
+  {
+    "id": "17.1",
+    "category": "Recurring tasks",
+    "operation": "Configure daily, weekly or monthly recurrence.",
+    "status": "not_run"
+  },
+  {
+    "id": "17.2",
+    "category": "Recurring tasks",
+    "operation": "Set recurrence interval and end date.",
+    "status": "not_run"
+  },
+  {
+    "id": "17.3",
+    "category": "Recurring tasks",
+    "operation": "Edit or remove recurrence.",
+    "status": "not_run"
+  },
+  {
+    "id": "17.4",
+    "category": "Recurring tasks",
+    "operation": "Generate the next occurrence when a recurring task is completed.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.1",
+    "category": "Time tracking and timesheets",
+    "operation": "Start, inspect, stop and discard a task timer.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.2",
+    "category": "Time tracking and timesheets",
+    "operation": "Add time logs manually.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.3",
+    "category": "Time tracking and timesheets",
+    "operation": "View task and project time logs.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.4",
+    "category": "Time tracking and timesheets",
+    "operation": "Edit and delete permitted time logs.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.5",
+    "category": "Time tracking and timesheets",
+    "operation": "Mark time as billable or non-billable.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.6",
+    "category": "Time tracking and timesheets",
+    "operation": "Create and edit timesheets.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.7",
+    "category": "Time tracking and timesheets",
+    "operation": "Submit timesheets.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.8",
+    "category": "Time tracking and timesheets",
+    "operation": "Approve or reject timesheets.",
+    "status": "not_run"
+  },
+  {
+    "id": "18.9",
+    "category": "Time tracking and timesheets",
+    "operation": "View timesheet and recorded-time reports.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.1",
+    "category": "Files and attachments",
+    "operation": "Upload task attachments.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.2",
+    "category": "Files and attachments",
+    "operation": "List attachments.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.3",
+    "category": "Files and attachments",
+    "operation": "Download and delete permitted attachments.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.4",
+    "category": "Files and attachments",
+    "operation": "Create and edit project file metadata.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.5",
+    "category": "Files and attachments",
+    "operation": "Browse project files.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.6",
+    "category": "Files and attachments",
+    "operation": "Upload conversation attachments.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.7",
+    "category": "Files and attachments",
+    "operation": "Share an existing project file in a conversation.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.8",
+    "category": "Files and attachments",
+    "operation": "Cancel unused conversation uploads.",
+    "status": "not_run"
+  },
+  {
+    "id": "19.9",
+    "category": "Files and attachments",
+    "operation": "Download permitted conversation attachments.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.1",
+    "category": "Messaging and notifications",
+    "operation": "Start direct conversations.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.2",
+    "category": "Messaging and notifications",
+    "operation": "Create group conversations or channels.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.3",
+    "category": "Messaging and notifications",
+    "operation": "Rename/edit permitted conversations.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.4",
+    "category": "Messaging and notifications",
+    "operation": "Join eligible conversations.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.5",
+    "category": "Messaging and notifications",
+    "operation": "Add and remove conversation members.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.6",
+    "category": "Messaging and notifications",
+    "operation": "Send and read messages.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.7",
+    "category": "Messaging and notifications",
+    "operation": "Reply using supported conversation/thread controls.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.8",
+    "category": "Messaging and notifications",
+    "operation": "Edit and delete permitted messages.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.9",
+    "category": "Messaging and notifications",
+    "operation": "Search accessible messages.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.10",
+    "category": "Messaging and notifications",
+    "operation": "View unread counts.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.11",
+    "category": "Messaging and notifications",
+    "operation": "Mark conversations read.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.12",
+    "category": "Messaging and notifications",
+    "operation": "Mark all conversations read.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.13",
+    "category": "Messaging and notifications",
+    "operation": "Mute or unmute conversations.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.14",
+    "category": "Messaging and notifications",
+    "operation": "View in-app notifications.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.15",
+    "category": "Messaging and notifications",
+    "operation": "Mark notifications read.",
+    "status": "not_run"
+  },
+  {
+    "id": "20.16",
+    "category": "Messaging and notifications",
+    "operation": "Receive supported real-time updates.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.1",
+    "category": "Teams and organization chart",
+    "operation": "Create teams.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.2",
+    "category": "Teams and organization chart",
+    "operation": "Edit team names and aliases.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.3",
+    "category": "Teams and organization chart",
+    "operation": "Add or remove team members.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.4",
+    "category": "Teams and organization chart",
+    "operation": "List workspace teams.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.5",
+    "category": "Teams and organization chart",
+    "operation": "View the organization chart.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.6",
+    "category": "Teams and organization chart",
+    "operation": "Set or change reporting relationships.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.7",
+    "category": "Teams and organization chart",
+    "operation": "Remove reporting relationships.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.8",
+    "category": "Teams and organization chart",
+    "operation": "Use supported chart layouts, search and navigation.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.9",
+    "category": "Teams and organization chart",
+    "operation": "View team and project analytics.",
+    "status": "not_run"
+  },
+  {
+    "id": "21.10",
+    "category": "Teams and organization chart",
+    "operation": "Inspect task workload and assignment distribution.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.1",
+    "category": "Forms and intake",
+    "operation": "Create and edit forms.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.2",
+    "category": "Forms and intake",
+    "operation": "Add, configure and reorder supported questions.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.3",
+    "category": "Forms and intake",
+    "operation": "Configure labels, help text, placeholders and required fields.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.4",
+    "category": "Forms and intake",
+    "operation": "Configure choices, numeric limits and supported conditional visibility.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.5",
+    "category": "Forms and intake",
+    "operation": "Customize description, accent, submit label and success message.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.6",
+    "category": "Forms and intake",
+    "operation": "Publish or close forms.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.7",
+    "category": "Forms and intake",
+    "operation": "Submit authenticated responses.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.8",
+    "category": "Forms and intake",
+    "operation": "View responses.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.9",
+    "category": "Forms and intake",
+    "operation": "Export responses.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.10",
+    "category": "Forms and intake",
+    "operation": "Configure submissions to create tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.11",
+    "category": "Forms and intake",
+    "operation": "Map the task title and set project, assignee, priority and due-date offset.",
+    "status": "not_run"
+  },
+  {
+    "id": "22.12",
+    "category": "Forms and intake",
+    "operation": "Create, list and review project intake requests.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.1",
+    "category": "Documents and personal notes",
+    "operation": "Create project documents.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.2",
+    "category": "Documents and personal notes",
+    "operation": "Open and edit documents.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.3",
+    "category": "Documents and personal notes",
+    "operation": "Preview supported document formatting.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.4",
+    "category": "Documents and personal notes",
+    "operation": "View document revision history and previous versions.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.5",
+    "category": "Documents and personal notes",
+    "operation": "Create personal or project-linked notes.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.6",
+    "category": "Documents and personal notes",
+    "operation": "Search, open and edit notes.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.7",
+    "category": "Documents and personal notes",
+    "operation": "Move notes to trash.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.8",
+    "category": "Documents and personal notes",
+    "operation": "Restore notes.",
+    "status": "not_run"
+  },
+  {
+    "id": "23.9",
+    "category": "Documents and personal notes",
+    "operation": "View note revisions.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.1",
+    "category": "Dashboards",
+    "operation": "Create a dashboard from a template or blank canvas.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.2",
+    "category": "Dashboards",
+    "operation": "Rename it and edit its description, icon, accent and category.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.3",
+    "category": "Dashboards",
+    "operation": "Browse, search, favorite and duplicate dashboards.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.4",
+    "category": "Dashboards",
+    "operation": "Add, configure, duplicate, hide, show and remove widgets.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.5",
+    "category": "Dashboards",
+    "operation": "Drag, resize, reorder and lock widgets.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.6",
+    "category": "Dashboards",
+    "operation": "Configure data sources, metrics, grouping, aggregation and formatting.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.7",
+    "category": "Dashboards",
+    "operation": "Apply dashboard filters and widget-specific overrides.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.8",
+    "category": "Dashboards",
+    "operation": "Save and reuse filter presets.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.9",
+    "category": "Dashboards",
+    "operation": "Refresh data automatically or manually.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.10",
+    "category": "Dashboards",
+    "operation": "Drill into authorized records.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.11",
+    "category": "Dashboards",
+    "operation": "Expand widgets.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.12",
+    "category": "Dashboards",
+    "operation": "Undo and redo layout changes.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.13",
+    "category": "Dashboards",
+    "operation": "Recover local drafts.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.14",
+    "category": "Dashboards",
+    "operation": "Save and reopen layouts.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.15",
+    "category": "Dashboards",
+    "operation": "Share privately, with selected members, with a workspace or within the organization.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.16",
+    "category": "Dashboards",
+    "operation": "Assign supported viewer/editor access.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.17",
+    "category": "Dashboards",
+    "operation": "Transfer ownership.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.18",
+    "category": "Dashboards",
+    "operation": "View and restore configuration history.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.19",
+    "category": "Dashboards",
+    "operation": "Archive, unarchive, trash and restore dashboards.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.20",
+    "category": "Dashboards",
+    "operation": "Permanently delete a trashed dashboard with confirmation.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.21",
+    "category": "Dashboards",
+    "operation": "Export CSV or PNG; print/save PDF.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.22",
+    "category": "Dashboards",
+    "operation": "Use presentation mode.",
+    "status": "not_run"
+  },
+  {
+    "id": "24.23",
+    "category": "Dashboards",
+    "operation": "Preview guided or configured-provider layout suggestions.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.1",
+    "category": "Automation, goals and templates",
+    "operation": "Create automation rules.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.2",
+    "category": "Automation, goals and templates",
+    "operation": "Edit rules.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.3",
+    "category": "Automation, goals and templates",
+    "operation": "Enable or pause rules.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.4",
+    "category": "Automation, goals and templates",
+    "operation": "Duplicate supported rules.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.5",
+    "category": "Automation, goals and templates",
+    "operation": "Trigger supported actions on task creation or status changes.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.6",
+    "category": "Automation, goals and templates",
+    "operation": "Automatically update supported priority/assignee fields.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.7",
+    "category": "Automation, goals and templates",
+    "operation": "View automation execution history.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.8",
+    "category": "Automation, goals and templates",
+    "operation": "Create task-linked goals and inspect progress.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.9",
+    "category": "Automation, goals and templates",
+    "operation": "Create reusable task templates.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.10",
+    "category": "Automation, goals and templates",
+    "operation": "Apply templates to create tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.11",
+    "category": "Automation, goals and templates",
+    "operation": "Create supported intake tools.",
+    "status": "not_run"
+  },
+  {
+    "id": "25.12",
+    "category": "Automation, goals and templates",
+    "operation": "Enable or disable workspace tools.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.1",
+    "category": "Clients and project billing",
+    "operation": "Create, list, view, edit and delete permitted client records.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.2",
+    "category": "Clients and project billing",
+    "operation": "Associate projects with clients.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.3",
+    "category": "Clients and project billing",
+    "operation": "Configure project billing identity and supported commercial links.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.4",
+    "category": "Clients and project billing",
+    "operation": "View billing sources, billable time and mapped milestones.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.5",
+    "category": "Clients and project billing",
+    "operation": "Prepare invoices from supported project billing sources.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.6",
+    "category": "Clients and project billing",
+    "operation": "Review invoice lines, amounts and taxes.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.7",
+    "category": "Clients and project billing",
+    "operation": "Generate invoice PDFs.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.8",
+    "category": "Clients and project billing",
+    "operation": "Issue and explicitly send invoices.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.9",
+    "category": "Clients and project billing",
+    "operation": "Record payments and inspect balances.",
+    "status": "not_run"
+  },
+  {
+    "id": "26.10",
+    "category": "Clients and project billing",
+    "operation": "View permitted client-visible projects and work.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.1",
+    "category": "Risks, portfolio and reports",
+    "operation": "Create, view, edit and soft-delete risks.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.2",
+    "category": "Risks, portfolio and reports",
+    "operation": "Set probability, impact, owner, dates and linked tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.3",
+    "category": "Risks, portfolio and reports",
+    "operation": "Maintain mitigation and contingency plans.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.4",
+    "category": "Risks, portfolio and reports",
+    "operation": "View portfolio summaries, projects and health trends.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.5",
+    "category": "Risks, portfolio and reports",
+    "operation": "View task distribution, status, overdue work and milestone reports.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.6",
+    "category": "Risks, portfolio and reports",
+    "operation": "View burndown, velocity, cumulative-flow, cycle-time and time-in-status reports where source data supports them.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.7",
+    "category": "Risks, portfolio and reports",
+    "operation": "View project health, team performance and workload reports.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.8",
+    "category": "Risks, portfolio and reports",
+    "operation": "View planned-versus-actual, timesheet and resource reports.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.9",
+    "category": "Risks, portfolio and reports",
+    "operation": "View budget-versus-actual and client-profitability reports.",
+    "status": "not_run"
+  },
+  {
+    "id": "27.10",
+    "category": "Risks, portfolio and reports",
+    "operation": "Export supported reports.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.1",
+    "category": "Saved views and navigation",
+    "operation": "Create, rename, update and delete saved views/filters.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.2",
+    "category": "Saved views and navigation",
+    "operation": "Save queries, filters, sorting and supported columns.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.3",
+    "category": "Saved views and navigation",
+    "operation": "Set default views.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.4",
+    "category": "Saved views and navigation",
+    "operation": "Configure supported private/shared visibility.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.5",
+    "category": "Saved views and navigation",
+    "operation": "Use global search and the command palette.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.6",
+    "category": "Saved views and navigation",
+    "operation": "Switch modules.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.7",
+    "category": "Saved views and navigation",
+    "operation": "Use recent and favorite navigation.",
+    "status": "not_run"
+  },
+  {
+    "id": "28.8",
+    "category": "Saved views and navigation",
+    "operation": "Change supported theme and density preferences.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.1",
+    "category": "Recovery and backups",
+    "operation": "View recorded operation history.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.2",
+    "category": "Recovery and backups",
+    "operation": "Undo and redo supported recorded changes.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.3",
+    "category": "Recovery and backups",
+    "operation": "Create manual workspace savepoints.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.4",
+    "category": "Recovery and backups",
+    "operation": "Configure automatic savepoint policies.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.5",
+    "category": "Recovery and backups",
+    "operation": "List and download backups.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.6",
+    "category": "Recovery and backups",
+    "operation": "Preview a restore before applying it.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.7",
+    "category": "Recovery and backups",
+    "operation": "Restore authorized workspace data.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.8",
+    "category": "Recovery and backups",
+    "operation": "View trashed tasks and restore them.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.9",
+    "category": "Recovery and backups",
+    "operation": "Restore soft-deleted workspaces.",
+    "status": "not_run"
+  },
+  {
+    "id": "29.10",
+    "category": "Recovery and backups",
+    "operation": "Restore dashboard configurations and trashed notes.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.1",
+    "category": "AI assistant and integrations",
+    "operation": "Search authorized projects, tasks, users, documents and customers.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.2",
+    "category": "AI assistant and integrations",
+    "operation": "Find personal and overdue tasks.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.3",
+    "category": "AI assistant and integrations",
+    "operation": "Summarize projects, recorded time and assignments.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.4",
+    "category": "AI assistant and integrations",
+    "operation": "Read supported custom-field definitions.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.5",
+    "category": "AI assistant and integrations",
+    "operation": "Propose project/task creation and task assignment.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.6",
+    "category": "AI assistant and integrations",
+    "operation": "Propose supported invoice and payment operations.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.7",
+    "category": "AI assistant and integrations",
+    "operation": "Review and approve proposed mutations.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.8",
+    "category": "AI assistant and integrations",
+    "operation": "Inspect, cancel, revise and resume supported operator runs.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.9",
+    "category": "AI assistant and integrations",
+    "operation": "View run steps, events and usage analytics.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.10",
+    "category": "AI assistant and integrations",
+    "operation": "Configure and test permitted AI providers.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.11",
+    "category": "AI assistant and integrations",
+    "operation": "Preview supported project-setup proposals.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.12",
+    "category": "AI assistant and integrations",
+    "operation": "Create and manage supported monitors.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.13",
+    "category": "AI assistant and integrations",
+    "operation": "Configure GitHub/GitLab development integrations.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.14",
+    "category": "AI assistant and integrations",
+    "operation": "Receive supported development webhook events.",
+    "status": "not_run"
+  },
+  {
+    "id": "30.15",
+    "category": "AI assistant and integrations",
+    "operation": "View task development links and workflow-event feeds.",
+    "status": "not_run"
+  },
+  {
+    "id": "31.1",
+    "category": "Administration and diagnostics",
+    "operation": "Inspect admin-only audit logs.",
+    "status": "not_run"
+  },
+  {
+    "id": "31.2",
+    "category": "Administration and diagnostics",
+    "operation": "Filter logs by supported user, role, task, project, workspace, endpoint, status and time criteria.",
+    "status": "not_run"
+  },
+  {
+    "id": "31.3",
+    "category": "Administration and diagnostics",
+    "operation": "Inspect timestamps, IP information, client details and request duration.",
+    "status": "not_run"
+  },
+  {
+    "id": "31.4",
+    "category": "Administration and diagnostics",
+    "operation": "Inspect request correlation IDs, changed-field names and recorded error locations.",
+    "status": "not_run"
+  },
+  {
+    "id": "31.5",
+    "category": "Administration and diagnostics",
+    "operation": "Copy request IDs for investigation.",
+    "status": "not_run"
+  },
+  {
+    "id": "31.6",
+    "category": "Administration and diagnostics",
+    "operation": "Manage permitted workspace/project access.",
+    "status": "not_run"
+  },
+  {
+    "id": "31.7",
+    "category": "Administration and diagnostics",
+    "operation": "Preview and execute admin-only workspace soft-reset and restoration.",
+    "status": "not_run"
+  }
+]

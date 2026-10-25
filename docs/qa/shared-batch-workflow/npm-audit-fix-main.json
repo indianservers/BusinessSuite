@@ -1,0 +1,1140 @@
+{
+  "add": [
+    {
+      "name": "agent-base",
+      "version": "6.0.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\agent-base"
+    },
+    {
+      "name": "https-proxy-agent",
+      "version": "5.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\https-proxy-agent"
+    }
+  ],
+  "added": 2,
+  "audited": 352,
+  "change": [
+    {
+      "from": {
+        "name": "source-map-js",
+        "version": "1.2.1",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\source-map-js"
+      },
+      "to": {
+        "name": "source-map-js",
+        "version": "1.2.2",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\source-map-js"
+      }
+    },
+    {
+      "from": {
+        "name": "react-router-dom",
+        "version": "6.30.3",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\react-router-dom"
+      },
+      "to": {
+        "name": "react-router-dom",
+        "version": "6.30.6",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\react-router-dom"
+      }
+    },
+    {
+      "from": {
+        "name": "react-router",
+        "version": "6.30.3",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\react-router"
+      },
+      "to": {
+        "name": "react-router",
+        "version": "6.30.6",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\react-router"
+      }
+    },
+    {
+      "from": {
+        "name": "postcss-selector-parser",
+        "version": "6.1.2",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\postcss-selector-parser"
+      },
+      "to": {
+        "name": "postcss-selector-parser",
+        "version": "6.1.5",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\postcss-selector-parser"
+      }
+    },
+    {
+      "from": {
+        "name": "postcss",
+        "version": "8.5.12",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\postcss"
+      },
+      "to": {
+        "name": "postcss",
+        "version": "8.5.31",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\postcss"
+      }
+    },
+    {
+      "from": {
+        "name": "nanoid",
+        "version": "3.3.11",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\nanoid"
+      },
+      "to": {
+        "name": "nanoid",
+        "version": "3.3.20",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\nanoid"
+      }
+    },
+    {
+      "from": {
+        "name": "hasown",
+        "version": "2.0.3",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\hasown"
+      },
+      "to": {
+        "name": "hasown",
+        "version": "2.0.4",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\hasown"
+      }
+    },
+    {
+      "from": {
+        "name": "form-data",
+        "version": "4.0.5",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\form-data"
+      },
+      "to": {
+        "name": "form-data",
+        "version": "4.0.6",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\form-data"
+      }
+    },
+    {
+      "from": {
+        "name": "follow-redirects",
+        "version": "1.16.0",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\follow-redirects"
+      },
+      "to": {
+        "name": "follow-redirects",
+        "version": "1.16.1",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\follow-redirects"
+      }
+    },
+    {
+      "from": {
+        "name": "axios",
+        "version": "1.15.2",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\axios"
+      },
+      "to": {
+        "name": "axios",
+        "version": "1.20.0",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\axios"
+      }
+    },
+    {
+      "from": {
+        "name": "@remix-run/router",
+        "version": "1.23.2",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@remix-run\\router"
+      },
+      "to": {
+        "name": "@remix-run/router",
+        "version": "1.23.4",
+        "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@remix-run\\router"
+      }
+    }
+  ],
+  "changed": 11,
+  "funding": 73,
+  "remove": [
+    {
+      "name": "yocto-queue",
+      "version": "0.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\yocto-queue"
+    },
+    {
+      "name": "yallist",
+      "version": "3.1.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\yallist"
+    },
+    {
+      "name": "wrappy",
+      "version": "1.0.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\wrappy"
+    },
+    {
+      "name": "word-wrap",
+      "version": "1.2.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\word-wrap"
+    },
+    {
+      "name": "which",
+      "version": "2.0.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\which"
+    },
+    {
+      "name": "vite",
+      "version": "5.4.21",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\vite"
+    },
+    {
+      "name": "uri-js",
+      "version": "4.4.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\uri-js"
+    },
+    {
+      "name": "update-browserslist-db",
+      "version": "1.2.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\update-browserslist-db"
+    },
+    {
+      "name": "typescript",
+      "version": "5.9.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\typescript"
+    },
+    {
+      "name": "type-fest",
+      "version": "0.20.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\type-fest"
+    },
+    {
+      "name": "type-check",
+      "version": "0.4.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\type-check"
+    },
+    {
+      "name": "ts-api-utils",
+      "version": "1.4.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\ts-api-utils"
+    },
+    {
+      "name": "text-table",
+      "version": "0.2.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\text-table"
+    },
+    {
+      "name": "strip-json-comments",
+      "version": "3.1.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\strip-json-comments"
+    },
+    {
+      "name": "slash",
+      "version": "3.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\slash"
+    },
+    {
+      "name": "shebang-regex",
+      "version": "3.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\shebang-regex"
+    },
+    {
+      "name": "shebang-command",
+      "version": "2.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\shebang-command"
+    },
+    {
+      "name": "semver",
+      "version": "7.7.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\semver"
+    },
+    {
+      "name": "rollup",
+      "version": "4.60.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\rollup"
+    },
+    {
+      "name": "rimraf",
+      "version": "3.0.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\rimraf"
+    },
+    {
+      "name": "resolve-from",
+      "version": "4.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\resolve-from"
+    },
+    {
+      "name": "react-refresh",
+      "version": "0.17.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\react-refresh"
+    },
+    {
+      "name": "punycode",
+      "version": "2.3.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\punycode"
+    },
+    {
+      "name": "prelude-ls",
+      "version": "1.2.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\prelude-ls"
+    },
+    {
+      "name": "playwright-core",
+      "version": "1.60.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\playwright-core"
+    },
+    {
+      "name": "playwright",
+      "version": "1.60.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\playwright"
+    },
+    {
+      "name": "path-type",
+      "version": "4.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\path-type"
+    },
+    {
+      "name": "path-key",
+      "version": "3.1.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\path-key"
+    },
+    {
+      "name": "path-is-absolute",
+      "version": "1.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\path-is-absolute"
+    },
+    {
+      "name": "path-exists",
+      "version": "4.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\path-exists"
+    },
+    {
+      "name": "parent-module",
+      "version": "1.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\parent-module"
+    },
+    {
+      "name": "p-locate",
+      "version": "5.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\p-locate"
+    },
+    {
+      "name": "p-limit",
+      "version": "3.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\p-limit"
+    },
+    {
+      "name": "optionator",
+      "version": "0.9.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\optionator"
+    },
+    {
+      "name": "once",
+      "version": "1.4.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\once"
+    },
+    {
+      "name": "node-releases",
+      "version": "2.0.38",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\node-releases"
+    },
+    {
+      "name": "natural-compare",
+      "version": "1.4.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\natural-compare"
+    },
+    {
+      "name": "minimatch",
+      "version": "9.0.9",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\minimatch"
+    },
+    {
+      "name": "lru-cache",
+      "version": "5.1.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\lru-cache"
+    },
+    {
+      "name": "lodash.merge",
+      "version": "4.6.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\lodash.merge"
+    },
+    {
+      "name": "locate-path",
+      "version": "6.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\locate-path"
+    },
+    {
+      "name": "levn",
+      "version": "0.4.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\levn"
+    },
+    {
+      "name": "keyv",
+      "version": "4.5.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\keyv"
+    },
+    {
+      "name": "json5",
+      "version": "2.2.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\json5"
+    },
+    {
+      "name": "json-stable-stringify-without-jsonify",
+      "version": "1.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\json-stable-stringify-without-jsonify"
+    },
+    {
+      "name": "json-schema-traverse",
+      "version": "0.4.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\json-schema-traverse"
+    },
+    {
+      "name": "json-buffer",
+      "version": "3.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\json-buffer"
+    },
+    {
+      "name": "jsesc",
+      "version": "3.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\jsesc"
+    },
+    {
+      "name": "js-yaml",
+      "version": "4.1.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\js-yaml"
+    },
+    {
+      "name": "isexe",
+      "version": "2.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\isexe"
+    },
+    {
+      "name": "is-path-inside",
+      "version": "3.0.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\is-path-inside"
+    },
+    {
+      "name": "inherits",
+      "version": "2.0.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\inherits"
+    },
+    {
+      "name": "inflight",
+      "version": "1.0.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\inflight"
+    },
+    {
+      "name": "imurmurhash",
+      "version": "0.1.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\imurmurhash"
+    },
+    {
+      "name": "import-fresh",
+      "version": "3.3.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\import-fresh"
+    },
+    {
+      "name": "ignore",
+      "version": "5.3.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\ignore"
+    },
+    {
+      "name": "graphemer",
+      "version": "1.4.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\graphemer"
+    },
+    {
+      "name": "globby",
+      "version": "11.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\globby"
+    },
+    {
+      "name": "globals",
+      "version": "13.24.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\globals"
+    },
+    {
+      "name": "glob",
+      "version": "7.2.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\glob"
+    },
+    {
+      "name": "minimatch",
+      "version": "3.1.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\glob\\node_modules\\minimatch"
+    },
+    {
+      "name": "brace-expansion",
+      "version": "1.1.14",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\glob\\node_modules\\brace-expansion"
+    },
+    {
+      "name": "gensync",
+      "version": "1.0.0-beta.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\gensync"
+    },
+    {
+      "name": "fs.realpath",
+      "version": "1.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\fs.realpath"
+    },
+    {
+      "name": "fraction.js",
+      "version": "5.3.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\fraction.js"
+    },
+    {
+      "name": "flatted",
+      "version": "3.4.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\flatted"
+    },
+    {
+      "name": "flat-cache",
+      "version": "3.2.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\flat-cache"
+    },
+    {
+      "name": "find-up",
+      "version": "5.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\find-up"
+    },
+    {
+      "name": "file-entry-cache",
+      "version": "6.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\file-entry-cache"
+    },
+    {
+      "name": "fast-levenshtein",
+      "version": "2.0.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\fast-levenshtein"
+    },
+    {
+      "name": "fast-json-stable-stringify",
+      "version": "2.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\fast-json-stable-stringify"
+    },
+    {
+      "name": "fast-deep-equal",
+      "version": "3.1.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\fast-deep-equal"
+    },
+    {
+      "name": "esutils",
+      "version": "2.0.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\esutils"
+    },
+    {
+      "name": "estraverse",
+      "version": "5.3.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\estraverse"
+    },
+    {
+      "name": "esrecurse",
+      "version": "4.3.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\esrecurse"
+    },
+    {
+      "name": "esquery",
+      "version": "1.7.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\esquery"
+    },
+    {
+      "name": "espree",
+      "version": "9.6.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\espree"
+    },
+    {
+      "name": "eslint-visitor-keys",
+      "version": "3.4.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\eslint-visitor-keys"
+    },
+    {
+      "name": "eslint-scope",
+      "version": "7.2.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\eslint-scope"
+    },
+    {
+      "name": "eslint-plugin-react-refresh",
+      "version": "0.4.26",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\eslint-plugin-react-refresh"
+    },
+    {
+      "name": "eslint-plugin-react-hooks",
+      "version": "4.6.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\eslint-plugin-react-hooks"
+    },
+    {
+      "name": "eslint",
+      "version": "8.57.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\eslint"
+    },
+    {
+      "name": "minimatch",
+      "version": "3.1.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\eslint\\node_modules\\minimatch"
+    },
+    {
+      "name": "brace-expansion",
+      "version": "1.1.14",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\eslint\\node_modules\\brace-expansion"
+    },
+    {
+      "name": "escape-string-regexp",
+      "version": "4.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\escape-string-regexp"
+    },
+    {
+      "name": "esbuild",
+      "version": "0.21.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\esbuild"
+    },
+    {
+      "name": "electron-to-chromium",
+      "version": "1.5.345",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\electron-to-chromium"
+    },
+    {
+      "name": "doctrine",
+      "version": "3.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\doctrine"
+    },
+    {
+      "name": "dir-glob",
+      "version": "3.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\dir-glob"
+    },
+    {
+      "name": "deep-is",
+      "version": "0.1.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\deep-is"
+    },
+    {
+      "name": "cross-spawn",
+      "version": "7.0.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\cross-spawn"
+    },
+    {
+      "name": "convert-source-map",
+      "version": "2.0.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\convert-source-map"
+    },
+    {
+      "name": "concat-map",
+      "version": "0.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\concat-map"
+    },
+    {
+      "name": "caniuse-lite",
+      "version": "1.0.30001791",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\caniuse-lite"
+    },
+    {
+      "name": "callsites",
+      "version": "3.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\callsites"
+    },
+    {
+      "name": "browserslist",
+      "version": "4.28.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\browserslist"
+    },
+    {
+      "name": "brace-expansion",
+      "version": "2.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\brace-expansion"
+    },
+    {
+      "name": "baseline-browser-mapping",
+      "version": "2.10.24",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\baseline-browser-mapping"
+    },
+    {
+      "name": "balanced-match",
+      "version": "1.0.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\balanced-match"
+    },
+    {
+      "name": "autoprefixer",
+      "version": "10.5.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\autoprefixer"
+    },
+    {
+      "name": "array-union",
+      "version": "2.1.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\array-union"
+    },
+    {
+      "name": "argparse",
+      "version": "2.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\argparse"
+    },
+    {
+      "name": "ajv",
+      "version": "6.15.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\ajv"
+    },
+    {
+      "name": "acorn-jsx",
+      "version": "5.3.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\acorn-jsx"
+    },
+    {
+      "name": "acorn",
+      "version": "8.16.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\acorn"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "version": "4.7.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@vitejs\\plugin-react"
+    },
+    {
+      "name": "@ungap/structured-clone",
+      "version": "1.3.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@ungap\\structured-clone"
+    },
+    {
+      "name": "@typescript-eslint/visitor-keys",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\visitor-keys"
+    },
+    {
+      "name": "@typescript-eslint/utils",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\utils"
+    },
+    {
+      "name": "@typescript-eslint/typescript-estree",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\typescript-estree"
+    },
+    {
+      "name": "@typescript-eslint/types",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\types"
+    },
+    {
+      "name": "@typescript-eslint/type-utils",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\type-utils"
+    },
+    {
+      "name": "@typescript-eslint/scope-manager",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\scope-manager"
+    },
+    {
+      "name": "@typescript-eslint/parser",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\parser"
+    },
+    {
+      "name": "@typescript-eslint/eslint-plugin",
+      "version": "7.18.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@typescript-eslint\\eslint-plugin"
+    },
+    {
+      "name": "@types/react-grid-layout",
+      "version": "1.3.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@types\\react-grid-layout"
+    },
+    {
+      "name": "@types/estree",
+      "version": "1.0.8",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@types\\estree"
+    },
+    {
+      "name": "@types/babel__traverse",
+      "version": "7.28.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@types\\babel__traverse"
+    },
+    {
+      "name": "@types/babel__template",
+      "version": "7.4.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@types\\babel__template"
+    },
+    {
+      "name": "@types/babel__generator",
+      "version": "7.27.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@types\\babel__generator"
+    },
+    {
+      "name": "@types/babel__core",
+      "version": "7.20.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@types\\babel__core"
+    },
+    {
+      "name": "@rollup/rollup-win32-x64-msvc",
+      "version": "4.60.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@rollup\\rollup-win32-x64-msvc"
+    },
+    {
+      "name": "@rollup/rollup-win32-x64-gnu",
+      "version": "4.60.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@rollup\\rollup-win32-x64-gnu"
+    },
+    {
+      "name": "@rolldown/pluginutils",
+      "version": "1.0.0-beta.27",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@rolldown\\pluginutils"
+    },
+    {
+      "name": "@jridgewell/remapping",
+      "version": "2.3.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@jridgewell\\remapping"
+    },
+    {
+      "name": "@humanwhocodes/object-schema",
+      "version": "2.0.3",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@humanwhocodes\\object-schema"
+    },
+    {
+      "name": "@humanwhocodes/module-importer",
+      "version": "1.0.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@humanwhocodes\\module-importer"
+    },
+    {
+      "name": "@humanwhocodes/config-array",
+      "version": "0.13.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@humanwhocodes\\config-array"
+    },
+    {
+      "name": "minimatch",
+      "version": "3.1.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@humanwhocodes\\config-array\\node_modules\\minimatch"
+    },
+    {
+      "name": "brace-expansion",
+      "version": "1.1.14",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@humanwhocodes\\config-array\\node_modules\\brace-expansion"
+    },
+    {
+      "name": "@eslint/js",
+      "version": "8.57.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@eslint\\js"
+    },
+    {
+      "name": "@eslint/eslintrc",
+      "version": "2.1.4",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@eslint\\eslintrc"
+    },
+    {
+      "name": "minimatch",
+      "version": "3.1.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@eslint\\eslintrc\\node_modules\\minimatch"
+    },
+    {
+      "name": "brace-expansion",
+      "version": "1.1.14",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@eslint\\eslintrc\\node_modules\\brace-expansion"
+    },
+    {
+      "name": "@eslint-community/regexpp",
+      "version": "4.12.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@eslint-community\\regexpp"
+    },
+    {
+      "name": "@eslint-community/eslint-utils",
+      "version": "4.9.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@eslint-community\\eslint-utils"
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.21.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@esbuild\\win32-x64"
+    },
+    {
+      "name": "@babel/types",
+      "version": "7.29.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\types"
+    },
+    {
+      "name": "@babel/traverse",
+      "version": "7.29.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\traverse"
+    },
+    {
+      "name": "@babel/template",
+      "version": "7.28.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\template"
+    },
+    {
+      "name": "@babel/plugin-transform-react-jsx-source",
+      "version": "7.27.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\plugin-transform-react-jsx-source"
+    },
+    {
+      "name": "@babel/plugin-transform-react-jsx-self",
+      "version": "7.27.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\plugin-transform-react-jsx-self"
+    },
+    {
+      "name": "@babel/parser",
+      "version": "7.29.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\parser"
+    },
+    {
+      "name": "@babel/helpers",
+      "version": "7.29.2",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helpers"
+    },
+    {
+      "name": "@babel/helper-validator-option",
+      "version": "7.27.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-validator-option"
+    },
+    {
+      "name": "@babel/helper-validator-identifier",
+      "version": "7.28.5",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-validator-identifier"
+    },
+    {
+      "name": "@babel/helper-string-parser",
+      "version": "7.27.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-string-parser"
+    },
+    {
+      "name": "@babel/helper-plugin-utils",
+      "version": "7.28.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-plugin-utils"
+    },
+    {
+      "name": "@babel/helper-module-transforms",
+      "version": "7.28.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-module-transforms"
+    },
+    {
+      "name": "@babel/helper-module-imports",
+      "version": "7.28.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-module-imports"
+    },
+    {
+      "name": "@babel/helper-globals",
+      "version": "7.28.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-globals"
+    },
+    {
+      "name": "@babel/helper-compilation-targets",
+      "version": "7.28.6",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-compilation-targets"
+    },
+    {
+      "name": "semver",
+      "version": "6.3.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\helper-compilation-targets\\node_modules\\semver"
+    },
+    {
+      "name": "@babel/generator",
+      "version": "7.29.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\generator"
+    },
+    {
+      "name": "@babel/core",
+      "version": "7.29.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\core"
+    },
+    {
+      "name": "semver",
+      "version": "6.3.1",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\core\\node_modules\\semver"
+    },
+    {
+      "name": "@babel/compat-data",
+      "version": "7.29.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\compat-data"
+    },
+    {
+      "name": "@babel/code-frame",
+      "version": "7.29.0",
+      "path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\frontend\\node_modules\\@babel\\code-frame"
+    }
+  ],
+  "removed": 158,
+  "audit": {
+    "auditReportVersion": 2,
+    "vulnerabilities": {
+      "postcss-nested": {
+        "name": "postcss-nested",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          "postcss-selector-parser"
+        ],
+        "effects": [],
+        "range": "2.0.3 - 6.2.0",
+        "nodes": [
+          "node_modules/postcss-nested"
+        ],
+        "fixAvailable": true
+      },
+      "postcss-selector-parser": {
+        "name": "postcss-selector-parser",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          {
+            "source": 1241232,
+            "name": "postcss-selector-parser",
+            "dependency": "postcss-selector-parser",
+            "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion",
+            "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-400",
+              "CWE-407"
+            ],
+            "cvss": {
+              "score": 5.9,
+              "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H"
+            },
+            "range": "<7.1.6"
+          }
+        ],
+        "effects": [
+          "postcss-nested",
+          "tailwindcss"
+        ],
+        "range": "<7.1.6",
+        "nodes": [
+          "node_modules/postcss-selector-parser"
+        ],
+        "fixAvailable": {
+          "name": "tailwindcss",
+          "version": "4.3.3",
+          "isSemVerMajor": true
+        }
+      },
+      "react-router": {
+        "name": "react-router",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          {
+            "source": 1124268,
+            "name": "react-router",
+            "dependency": "react-router",
+            "title": "React Router: Open redirect via backslash in <Link> and useNavigate (CVE-2025-68470 bypass)",
+            "url": "https://github.com/advisories/GHSA-wrjc-x8rr-h8h6",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-601"
+            ],
+            "cvss": {
+              "score": 0,
+              "vectorString": null
+            },
+            "range": ">=6.0.0 <7.18.0"
+          },
+          {
+            "source": 1124272,
+            "name": "react-router",
+            "dependency": "react-router",
+            "title": "React Router: Arbitrary Constructor Injection via deserializeErrors() in React Router SSR Hydration",
+            "url": "https://github.com/advisories/GHSA-337j-9hxr-rhxg",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-470"
+            ],
+            "cvss": {
+              "score": 6.1,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+            },
+            "range": ">=6.4.0 <7.18.0"
+          }
+        ],
+        "effects": [
+          "react-router-dom"
+        ],
+        "range": "6.0.0 - 7.17.0",
+        "nodes": [
+          "node_modules/react-router"
+        ],
+        "fixAvailable": {
+          "name": "react-router-dom",
+          "version": "7.18.4",
+          "isSemVerMajor": true
+        }
+      },
+      "react-router-dom": {
+        "name": "react-router-dom",
+        "severity": "moderate",
+        "isDirect": true,
+        "via": [
+          "react-router"
+        ],
+        "effects": [],
+        "range": "6.0.0-alpha.0 - 7.17.0",
+        "nodes": [
+          "node_modules/react-router-dom"
+        ],
+        "fixAvailable": {
+          "name": "react-router-dom",
+          "version": "7.18.4",
+          "isSemVerMajor": true
+        }
+      },
+      "tailwindcss": {
+        "name": "tailwindcss",
+        "severity": "moderate",
+        "isDirect": true,
+        "via": [
+          "postcss-nested",
+          "postcss-selector-parser"
+        ],
+        "effects": [],
+        "range": "<=0.0.0-oxide-insiders.ff2c25f || 0.5.0 - 3.4.19",
+        "nodes": [
+          "node_modules/tailwindcss"
+        ],
+        "fixAvailable": {
+          "name": "tailwindcss",
+          "version": "4.3.3",
+          "isSemVerMajor": true
+        }
+      },
+      "zod": {
+        "name": "zod",
+        "severity": "high",
+        "isDirect": true,
+        "via": [
+          {
+            "source": 1243066,
+            "name": "zod",
+            "dependency": "zod",
+            "title": "Zod can exhaust memory while validating oversized constrained collections",
+            "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+            "severity": "high",
+            "cwe": [
+              "CWE-770"
+            ],
+            "cvss": {
+              "score": 7.5,
+              "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+            },
+            "range": "<4.6.6"
+          }
+        ],
+        "effects": [],
+        "range": "<4.6.6",
+        "nodes": [
+          "node_modules/zod"
+        ],
+        "fixAvailable": {
+          "name": "zod",
+          "version": "4.6.7",
+          "isSemVerMajor": true
+        }
+      }
+    },
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 5,
+        "high": 1,
+        "critical": 0,
+        "total": 6
+      },
+      "dependencies": {
+        "prod": 348,
+        "dev": 0,
+        "optional": 4,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 351
+      }
+    }
+  }
+}

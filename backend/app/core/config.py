@@ -8,11 +8,15 @@ from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, hide_input_in_errors=True)
 
     PROJECT_NAME: str = "Business Suite"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
+    FORMS_TURNSTILE_SITE_KEY: str = ""
+    FORMS_TURNSTILE_SECRET_KEY: str = ""
+    RECAPTCHA_SITE_KEY: str = ""
+    RECAPTCHA_SECRET_KEY: str = Field(default="", repr=False)
     ENVIRONMENT: str = "development"
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
@@ -100,6 +104,7 @@ class Settings(BaseSettings):
     CRM_WHATSAPP_BUSINESS_ACCOUNT_ID: str = ""
     CRM_GOOGLE_CALENDAR_CLIENT_ID: str = ""
     CRM_GOOGLE_CALENDAR_CLIENT_SECRET: str = ""
+    CRM_GOOGLE_CALENDAR_REDIRECT_URI: str = ""
     CRM_OUTLOOK_CALENDAR_CLIENT_ID: str = ""
     CRM_OUTLOOK_CALENDAR_CLIENT_SECRET: str = ""
     CRM_CALENDAR_WEBHOOK_SECRET: str = ""
@@ -133,7 +138,7 @@ class Settings(BaseSettings):
     ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
 
     # CORS
-    BACKEND_CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4573", "http://127.0.0.1:4573", "http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5178", "http://127.0.0.1:5178", "http://localhost:4573", "http://127.0.0.1:4573", "http://localhost:3000"]
     BACKEND_PUBLIC_URL: str = "http://localhost:1534"
     FRONTEND_PUBLIC_URL: str = "http://localhost:5173"
 
@@ -162,17 +167,31 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_cors(self):
         if self.ENVIRONMENT.lower() == "production":
+            if self.SEED_DEMO_DATA:
+                raise ValueError('Demo seeding must be disabled in production')
+            if self.DEBUG:
+                raise ValueError('DEBUG must be false in production')
+            if self.ALGORITHM != 'HS256':
+                raise ValueError('Application sessions require HS256')
             local_markers = ("localhost", "127.0.0.1", "0.0.0.0")
             origins = [str(origin) for origin in self.BACKEND_CORS_ORIGINS]
             if "*" in origins:
                 raise ValueError("BACKEND_CORS_ORIGINS must list explicit origins when ENVIRONMENT=production")
             if any(any(marker in origin for marker in local_markers) for origin in origins):
                 raise ValueError("BACKEND_CORS_ORIGINS cannot contain localhost/dev origins when ENVIRONMENT=production")
+            if any(not origin.startswith('https://') for origin in origins):
+                raise ValueError('Production CORS origins must use HTTPS')
+            for name in ('SECRET_KEY','REFRESH_SECRET_KEY'):
+                value=getattr(self,name)
+                if name not in self.model_fields_set or len(value)<32 or '-----BEGIN' in value:
+                    raise ValueError(f'{name} must be an explicitly configured random secret of at least 32 characters')
             public_urls = {
                 "BACKEND_PUBLIC_URL": self.BACKEND_PUBLIC_URL,
                 "FRONTEND_PUBLIC_URL": self.FRONTEND_PUBLIC_URL,
             }
             for name, value in public_urls.items():
+                if not str(value).startswith('https://'):
+                    raise ValueError(f'{name} must use HTTPS in production')
                 if any(marker in str(value) for marker in local_markers):
                     raise ValueError(f"{name} must be set to a production URL when ENVIRONMENT=production")
         if self.SERVERLESS:

@@ -937,21 +937,21 @@ function PurchasesHomeView() {
 
 function defaultPurchaseBill(): FAMRecord {
   return {
-    vendor_id: 2,
+    vendor_id: "",
     bill_number: `PB-${Date.now().toString().slice(-5)}`,
-    bill_date: "2026-06-06",
-    due_date: "2026-07-06",
-    gstin: "29ABCDE1234F1Z5",
-    place_of_supply: "29",
+    bill_date: new Date().toLocaleDateString("en-CA"),
+    due_date: "",
+    gstin: "",
+    place_of_supply: "",
     discount_total: 0,
-    lines: [{ expense_ledger_id: 1, description: "Professional services", hsn_sac: "998314", quantity: 1, rate: 1000, taxable_value: 1000, gst_amount: 180, tds_section_id: 1, tds_amount: 100, line_total: 1080 }],
+    lines: [{ expense_ledger_id: "", description: "", hsn_sac: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_section_id: "", tds_amount: 0, line_total: 0 }],
   };
 }
 
 function PurchaseBillFormView({ detail }: { detail?: boolean }) {
   const params = useParams();
   const queryClient = useQueryClient();
-  const billQuery = useQuery({ queryKey: ["fam", "purchaseBill", params.id], queryFn: () => famApi.purchaseBill(params.id || "1"), enabled: detail && Boolean(params.id) });
+  const billQuery = useQuery({ queryKey: ["fam", "purchaseBill", params.id], queryFn: () => famApi.purchaseBill(params.id || "1"), enabled: Boolean(detail && params.id) });
   const [draft, setDraft] = useState<FAMRecord>(defaultPurchaseBill());
   const effective = (detail && billQuery.data ? billQuery.data : draft) as FAMRecord;
   const lines = ((effective.lines as FAMRecord[] | undefined) || []) as FAMRecord[];
@@ -973,7 +973,7 @@ function PurchaseBillFormView({ detail }: { detail?: boolean }) {
         {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} /></Field>)}
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(effective.status || "draft")}>{text(effective.status || "draft")}</Badge></CardContent></Card>
       </div>
-      <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr key={index} className="border-t">{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></table></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: 1, description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr key={index} className="border-t">{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></table></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
       <div className="grid gap-3 md:grid-cols-4">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Subtotal</p><p className="text-lg font-semibold">{money(effective.subtotal || subtotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Input GST</p><p className="text-lg font-semibold">{money(effective.gst_total || gstTotal)}</p></CardContent></Card>

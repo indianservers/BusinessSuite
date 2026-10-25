@@ -13,6 +13,7 @@ class ProviderUpdate(BaseModel):
     api_key: SecretStr | None = None
     enabled: bool = False
     data_sharing_allowed: bool = False
+    allow_workspace_inheritance: bool = False
     max_tokens: int = Field(default=3000, ge=512, le=8192)
     input_price: float | None = Field(default=None, ge=0, le=10000, allow_inf_nan=False)
     output_price: float | None = Field(default=None, ge=0, le=10000, allow_inf_nan=False)

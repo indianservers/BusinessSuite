@@ -1,3 +1,4 @@
+from tests.security_file_fixtures import uploaded_reference
 from datetime import datetime, timezone
 
 from app.db.init_db import init_db
@@ -87,10 +88,11 @@ def test_whatsapp_biometric_and_geo_attendance_foundations(client, db):
     employee_headers = _login(client, "employee@aihrms.com", "Employee@123456")
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
     employee.phone_number = "9888888888"
+    employee.phone_number_country_code = "+91"
     db.commit()
 
     config = client.post("/api/v1/whatsapp-ess/configs", json={
-        "business_phone_number": "919000000000", "webhook_url": "https://example.com/wa",
+        "business_phone_number": "9000000000", "business_phone_number_country_code": "+91", "webhook_url": "https://example.com/wa",
         "app_secret_ref": "secret://wa/app", "verify_token_ref": "secret://wa/verify",
     }, headers=admin)
     assert config.status_code == 201
@@ -100,11 +102,11 @@ def test_whatsapp_biometric_and_geo_attendance_foundations(client, db):
     }, headers=admin)
     assert template.status_code == 201
     opt_in = client.post("/api/v1/whatsapp-ess/opt-ins", json={
-        "employee_id": employee.id, "phone_number": "9888888888", "consent_text": "Employee opted in",
+        "employee_id": employee.id, "phone_number": "9888888888", "phone_number_country_code": "+91", "consent_text": "Employee opted in",
     }, headers=admin)
     assert opt_in.status_code == 201
     outbound = client.post("/api/v1/whatsapp-ess/messages/outbound", json={
-        "employee_id": employee.id, "phone_number": "9888888888", "template_id": template.json()["id"], "intent": "payslip",
+        "employee_id": employee.id, "phone_number": "9888888888", "phone_number_country_code": "+91", "template_id": template.json()["id"], "intent": "payslip",
     }, headers=admin)
     assert outbound.status_code == 201
     callback = client.post("/api/v1/whatsapp-ess/delivery-callbacks", json={
@@ -131,7 +133,7 @@ def test_whatsapp_biometric_and_geo_attendance_foundations(client, db):
     assert policy.status_code == 201
     proof = client.post("/api/v1/attendance/geo/punch", json={
         "policy_id": policy.json()["id"], "punch_time": datetime(2026, 5, 2, 9, 5, tzinfo=timezone.utc).isoformat(),
-        "punch_type": "IN", "latitude": "17.3850440", "longitude": "78.4866710", "selfie_url": "/uploads/selfie.jpg",
+        "punch_type": "IN", "latitude": "17.3850440", "longitude": "78.4866710", "selfie_url": uploaded_reference('selfie.jpg'),
     }, headers=employee_headers)
     assert proof.status_code == 201
     assert proof.json()["validation_status"] == "Verified"

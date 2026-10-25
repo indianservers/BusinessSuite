@@ -115,7 +115,7 @@ def test_lms_scorm_xapi_completion_callback_and_certification_renewal(client, db
     callback = client.post(f"/api/v1/lms/assignments/{assignment.json()['id']}/completion-callback", json={
         "completion_status": "passed",
         "score": "92.5",
-    })
+    },headers=admin)
     assert callback.status_code == 200
     assert callback.json()["completion_status"] == "Completed"
 

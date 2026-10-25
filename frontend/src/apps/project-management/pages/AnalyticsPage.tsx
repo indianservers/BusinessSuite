@@ -11,7 +11,7 @@ type Person = Counts & { id: number; name: string; recently_active: boolean; act
 type Project = Counts & {id:number; name:string; status:string; estimated_hours:number; created_in_range:number; completed_in_range:number};
 type Data = { start_date:string; end_date:string; generated_at:string; summary: Counts & {people:number; projects:number; recently_active:number}; people:Person[]; projects:Project[]; trend:{date:string;minutes:number;created:number;completed:number}[]; hourly_activity:{hour:number;people:number}[]; status_distribution:{status:string;count:number}[]; filters:{projects:{id:number;name:string;workspace_id:number|null}[];teams:{id:number;name:string}[];people:{id:number;name:string}[]};definitions:{snapshot:string;activity:string;shared_tasks:string} };
 const hours = (minutes:number) => `${(minutes / 60).toFixed(1)}h`;
-function csvCell(value:unknown) { let text = String(value ?? ""); if (/^[\s]*[=+@\-]/.test(text)) text = "'" + text; return `"${text.replace(/"/g,'""')}"`; }
+function csvCell(value:unknown) { let text = String(value ?? ""); if (/^[\s]*[=+@-]/.test(text)) text = "'" + text; return `"${text.replace(/"/g,'""')}"`; }
 
 export default function AnalyticsPage({ mode }: {mode:"team"|"project"}) {
   const [params,setParams] = useSearchParams(); const {projectId} = useParams();

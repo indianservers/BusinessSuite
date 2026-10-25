@@ -1,0 +1,21 @@
+{
+  "legacy_note_version": 1,
+  "approved_task_description": "Prepare public launch checklist",
+  "task_due_date": null,
+  "legacy_source_preserved": true,
+  "source_access": {
+    "notes/1": 404,
+    "notes/1/attachments/1/download": 404,
+    "notes/1/attachments": 404,
+    "notes/1/tasks": 404
+  },
+  "task_priority": "High",
+  "approved_task_title": "Prepare public launch checklist",
+  "dated_task": {
+    "title": "Dated launch follow-up",
+    "priority": "High",
+    "due_date": "2026-11-02",
+    "id": 2,
+    "description": "Approved follow-up action only."
+  }
+}

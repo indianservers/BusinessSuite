@@ -103,7 +103,7 @@ def test_crm_readiness_acceptance_flow_with_pipeline_quote_reports_and_audit(cli
             "firstName": "Nisha",
             "fullName": "Nisha Rao",
             "email": "nisha@example.com",
-            "phone": "+919876543210",
+            "phone": "9876543210", "phone_country_code": "+91",
             "companyName": "Readiness College",
             "source": "Website",
             "status": "New",
@@ -456,7 +456,7 @@ def test_crm_contact_enrichment_preview_apply_and_history(client, db, superuser_
                 "company": "Enriched Co",
                 "companyWebsite": "https://enriched.example",
                 "industry": "Software",
-                "phone": "+91 90000 11111",
+                "phone": "9000011111", "phone_country_code": "+91",
                 "linkedInUrl": "https://linkedin.com/in/enrich",
                 "emailVerificationStatus": "verified",
             },
@@ -666,7 +666,7 @@ def test_crm_whatsapp_sms_templates_send_logs_and_timeline(client, db, superuser
     lead = client.post(
         "/api/v1/crm/leads",
         headers=superuser_headers,
-        json={"firstName": "Aarav", "fullName": "Aarav Shah", "phone": "+919876543210", "status": "New"},
+        json={"firstName": "Aarav", "fullName": "Aarav Shah", "phone": "9876543210", "phone_country_code": "+91", "status": "New"},
     )
     assert lead.status_code == 201
     lead_id = lead.json()["id"]
@@ -689,7 +689,7 @@ def test_crm_whatsapp_sms_templates_send_logs_and_timeline(client, db, superuser
             "entityType": "lead",
             "entityId": lead_id,
             "channel": "whatsapp",
-            "to": "+91 98765 43210",
+            "to": "9876543210", "country_code": "+91",
             "templateId": template.json()["id"],
             "body": "Hi Aarav, thanks for your interest.",
         },
@@ -884,7 +884,7 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     contact = client.post(
         "/api/v1/crm/contacts",
         headers=superuser_headers,
-        json={"firstName": "Priya", "fullName": "Priya Customer", "email": "priya@example.com", "phone": "9999999999"},
+        json={"firstName": "Priya", "fullName": "Priya Customer", "email": "priya@example.com", "phone": "9999999999", "phone_country_code": "+91"},
     )
     assert contact.status_code == 201
     quote = client.post(
@@ -926,7 +926,8 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     detail = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}", headers=superuser_headers)
     assert detail.status_code == 200
     assert detail.json()["pdfStatus"] == "generated"
-    assert detail.json()["pdfUrl"].endswith("PDF-001-" + str(quote.json()["id"]) + ".pdf")
+    from app.core.storage import normalize_upload_references
+    assert normalize_upload_references(detail.json()["pdfUrl"]).endswith("PDF-001-" + str(quote.json()["id"]) + ".pdf")
 
     timeline = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}/related", headers=superuser_headers)
     assert any(item["record"].get("activityType") == "quotation_pdf" and item["title"] == "Quotation PDF generated" for item in timeline.json()["timeline"])
@@ -938,7 +939,7 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     )
     assert emailed.status_code == 201
     assert emailed.json()["status"] == "draft"
-    assert emailed.json()["pdfUrl"] == detail.json()["pdfUrl"]
+    assert normalize_upload_references(emailed.json()["pdfUrl"]) == normalize_upload_references(detail.json()["pdfUrl"])
 
 
 def test_crm_multiple_pipelines_stage_management_and_remap(client, superuser_headers):
@@ -1093,7 +1094,7 @@ def test_crm_numeric_lead_scoring_rules_and_manual_override(client, superuser_he
             "firstName": "Score",
             "fullName": "Score Lead",
             "email": "score@example.com",
-            "phone": "9999999999",
+            "phone": "9999999999", "phone_country_code": "+91",
             "companyName": "Score Co",
             "source": "Website",
             "estimatedValue": 800000,
@@ -1204,13 +1205,13 @@ def test_crm_duplicate_detection_and_merge_relinks_related_records(client, super
     first = client.post(
         "/api/v1/crm/contacts",
         headers=superuser_headers,
-        json={"firstName": "Asha", "lastName": "Rao", "fullName": "Asha Rao", "email": "asha@example.com", "phone": "+91 90000 12345"},
+        json={"firstName": "Asha", "lastName": "Rao", "fullName": "Asha Rao", "email": "asha@example.com", "phone": "9000012345", "phone_country_code": "+91"},
     )
     assert first.status_code == 201
     second = client.post(
         "/api/v1/crm/contacts",
         headers=superuser_headers,
-        json={"firstName": "Asha", "lastName": "R", "fullName": "Asha R", "email": "asha@example.com", "phone": "9000012345"},
+        json={"firstName": "Asha", "lastName": "R", "fullName": "Asha R", "email": "asha@example.com", "phone": "9000012345", "phone_country_code": "+91"},
     )
     assert second.status_code == 201
     winner_id = first.json()["id"]
@@ -1245,7 +1246,7 @@ def test_crm_duplicate_detection_and_merge_relinks_related_records(client, super
     merged = client.post(
         "/api/v1/crm/duplicates/merge",
         headers=superuser_headers,
-        json={"entityType": "contact", "winnerId": winner_id, "loserIds": [loser_id], "fieldValues": {"phone": "+91 90000 12345"}},
+        json={"entityType": "contact", "winnerId": winner_id, "loserIds": [loser_id], "fieldValues": {"phone": "9000012345", "phone_country_code": "+91"}},
     )
     assert merged.status_code == 200
     assert merged.json()["mergedIds"] == [loser_id]
@@ -1311,7 +1312,7 @@ def test_crm_duplicate_detection_never_compares_across_organizations(client, db,
     contact = client.post(
         "/api/v1/crm/contacts",
         headers=superuser_headers,
-        json={"firstName": "Cross", "fullName": "Cross Org", "email": "cross@example.com", "phone": "9999999999"},
+        json={"firstName": "Cross", "fullName": "Cross Org", "email": "cross@example.com", "phone": "9999999999", "phone_country_code": "+91"},
     )
     assert contact.status_code == 201
 
@@ -1473,7 +1474,7 @@ def test_crm_contact_enrichment_preview_apply_and_history(client, db, superuser_
                 "industry": "Software",
                 "companySize": 250,
                 "linkedInUrl": "https://linkedin.example/in/enrich",
-                "phone": "+91 90000 44444",
+                "phone": "9000044444", "phone_country_code": "+91",
                 "emailVerificationStatus": "verified",
                 "socialProfiles": {"linkedin": "https://linkedin.example/in/enrich"},
             },

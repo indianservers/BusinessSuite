@@ -4,11 +4,13 @@ import type { FrontendRoute } from "@/appRegistry";
 
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
 const AIOperatorPage = React.lazy(() => import("./pages/AIOperatorPage"));
+const AssistantStudio = React.lazy(() => import("./pages/AssistantStudio"));
 const OperatorProviderSettings = React.lazy(() => import("@/pages/ai-agents/OperatorProviderSettings"));
 
 const DirectMessagesPage = React.lazy(() => import("./pages/DirectMessagesPage"));
 const CustomFieldManagerPage = React.lazy(() => import("./pages/CustomFieldManagerPage"));
 const DocsPage = React.lazy(() => import("./pages/DocsPage"));
+const NotesPage = React.lazy(() => import("./pages/NotesPage"));
 const TaskTypesPage = React.lazy(() => import("./pages/TaskTypesPage"));
 const TagManagerPage = React.lazy(() => import("./pages/TagManagerPage"));
 const PlansPage = React.lazy(() => import("./pages/PlansPage"));
@@ -61,7 +63,16 @@ const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
  * KaryaFlow Routes
  * Complete routing for Project Management module
  */
+const BatchWorkspacePage=React.lazy(()=>import("./pages/BatchWorkspacePage"));
+const MyAssignmentsPage=React.lazy(()=>import("./pages/MyAssignmentsPage"));
+const AssignmentControlsPage=React.lazy(()=>import("./pages/AssignmentControlsPage"));
+const WorkReviewsPage = React.lazy(() => import("./pages/WorkReviewsPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
+ {path:"pms/batches",element:<BatchWorkspacePage/>},
+ {path:"pms/batch-tasks",element:<BatchWorkspacePage mode="tasks"/>},
+ {path:"pms/my-assignments",element:<MyAssignmentsPage/>},
+ {path:"pms/assignment-controls",element:<AssignmentControlsPage/>},
+  { path: "pms/reviews", element: <WorkReviewsPage /> },
   { path: "pms/admin/workspaces", element: <WorkspaceAdminPage /> },
   { path: "pms/recovery", element: <RecoveryPage /> },
   { path: "pms/audit-logs", element: <AuditLogsPage /> },
@@ -69,6 +80,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/analytics/projects", element: <AnalyticsPage mode="project" /> },
   { path: "pms/projects/:projectId/analytics", element: <AnalyticsPage mode="project" /> },
   { path: "pms/operator", element: <AIOperatorPage /> },
+  { path: "pms/assistant", element: <AssistantStudio /> },
   { path: "pms/settings/ai/:provider", element: <OperatorProviderSettings /> },
   { path: "pms/workspaces", element: <WorkspacesPage /> },
   // Home / Dashboard
@@ -140,6 +152,8 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/apps", element: <CommandCenterPage /> },
   { path: "pms/dashboards", element: <DashboardsPage /> },
   { path: "pms/docs", element: <DocsPage /> },
+  { path: "pms/notes", element: <NotesPage /> },
+  { path: "pms/projects/:projectId/notes", element: <NotesPage /> },
   { path: "pms/task-types", element: <TaskTypesPage /> },
   { path: "pms/tags", element: <TagManagerPage /> },
   { path: "pms/plans", element: <PlansPage /> },

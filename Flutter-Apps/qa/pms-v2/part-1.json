@@ -1,0 +1,135 @@
+{
+  "backend": "https://businesssuite-rosy.vercel.app/api/v1",
+  "run_id": "1024214529",
+  "operations": [
+    {
+      "number": 1,
+      "operation": "Create epic",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:16:56.470945Z"
+    },
+    {
+      "number": 2,
+      "operation": "Read epic list",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:04.101717Z"
+    },
+    {
+      "number": 3,
+      "operation": "Update epic through record picker",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:18.233864Z"
+    },
+    {
+      "number": 4,
+      "operation": "Create project component",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:29.676032Z"
+    },
+    {
+      "number": 5,
+      "operation": "Read components",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:37.405623Z"
+    },
+    {
+      "number": 6,
+      "operation": "Create release",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:48.916194Z"
+    },
+    {
+      "number": 7,
+      "operation": "Read releases",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:17:56.659404Z"
+    },
+    {
+      "number": 8,
+      "operation": "Read release readiness",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:07.653205Z"
+    },
+    {
+      "number": 9,
+      "operation": "Create milestone",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:19.793372Z"
+    },
+    {
+      "number": 10,
+      "operation": "Read milestones",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:27.723438Z"
+    },
+    {
+      "number": 11,
+      "operation": "Create sprint with dates",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:44.532570Z"
+    },
+    {
+      "number": 12,
+      "operation": "Read sprints",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:18:52.323636Z"
+    },
+    {
+      "number": 13,
+      "operation": "Create project risk",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:04.683833Z"
+    },
+    {
+      "number": 14,
+      "operation": "Read risk register",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:12.377899Z"
+    },
+    {
+      "number": 15,
+      "operation": "Add task comment",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:26.472096Z"
+    },
+    {
+      "number": 16,
+      "operation": "Read task comments",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:36.728614Z"
+    },
+    {
+      "number": 17,
+      "operation": "Add checklist item",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:19:49.737306Z"
+    },
+    {
+      "number": 18,
+      "operation": "Read checklist",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:20:00.097754Z"
+    },
+    {
+      "number": 19,
+      "operation": "Create subtask",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:20:14.057459Z"
+    },
+    {
+      "number": 20,
+      "operation": "Read subtasks",
+      "status": "passed",
+      "completed_at": "2026-10-24T16:20:24.683507Z"
+    },
+    {
+      "number": 21,
+      "operation": "Add task tag",
+      "status": "failed",
+      "error": "Bad state: Too many elements"
+    }
+  ],
+  "workspace_id": 19,
+  "project_id": 16,
+  "task_id": 31
+}

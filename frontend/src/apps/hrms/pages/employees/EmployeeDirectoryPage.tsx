@@ -32,6 +32,7 @@ interface DirectoryEmployee {
   full_name: string;
   email: string | null;
   phone_number: string | null;
+  phone_number_country_code?: string | null;
   office_extension: string | null;
   department: string | null;
   designation: string | null;
@@ -284,7 +285,7 @@ export default function EmployeeDirectoryPage() {
                 <a href={`mailto:${employee.email}`}><Button variant="outline" size="sm" className="h-8"><Mail className="mr-2 h-3.5 w-3.5" />Email</Button></a>
               )}
               {employee.phone_number && employee.phone_number !== "Hidden by privacy setting" && (
-                <a href={`tel:${employee.phone_number}`}><Button variant="outline" size="sm" className="h-8"><Phone className="mr-2 h-3.5 w-3.5" />Call</Button></a>
+                <a href={`tel:${employee.phone_number_country_code || ""}${employee.phone_number}`}><Button variant="outline" size="sm" className="h-8"><Phone className="mr-2 h-3.5 w-3.5" />Call</Button></a>
               )}
               <Button variant="outline" size="sm" className="h-8" onClick={() => setSelectedId(employee.id)}><Eye className="mr-2 h-3.5 w-3.5" />Card</Button>
               <Button variant="ghost" size="sm" className="h-8" onClick={() => setReportEmployee(employee)}>Report</Button>
@@ -387,7 +388,7 @@ export default function EmployeeDirectoryPage() {
               {profileCard.reporting_manager && <p>Manager: {profileCard.reporting_manager}</p>}
               {profileCard.desk_code && <p>Desk: {profileCard.desk_code}</p>}
               {profileCard.email && <p>Email: {profileCard.email} <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyText(profileCard.email)}><Copy className="h-3 w-3" /></Button></p>}
-              {profileCard.phone_number && <p>Phone: {profileCard.phone_number} <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyText(profileCard.phone_number)}><Copy className="h-3 w-3" /></Button></p>}
+              {profileCard.phone_number && <p>Phone: {profileCard.phone_number_country_code || ""} {profileCard.phone_number} <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyText(profileCard.phone_number)}><Copy className="h-3 w-3" /></Button></p>}
               {!!profileCard.skills?.length && <div className="flex flex-wrap gap-2">{profileCard.skills.map((skill) => <Badge key={skill} variant="outline">{skill}</Badge>)}</div>}
             </CardContent>
           </Card>

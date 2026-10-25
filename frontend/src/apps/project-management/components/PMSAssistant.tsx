@@ -7,13 +7,14 @@ import {
   Expand,
   History,
   Loader2,
+  Mic,
   Plus,
   Settings,
   Sparkles,
   X,
 } from "lucide-react";
 import { assistantStream } from "@/services/pmsAssistantStream";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import "./PMSAssistant.css";
@@ -38,11 +39,9 @@ const textError = (e: any) =>
 export default function PMSAssistant() {
   const uid = useAuthStore((s) => s.user?.id);
   const location = useLocation();
-  return ["/pms", "/crm", "/srm"].some((prefix) =>
-    location.pathname.startsWith(prefix),
-  ) ? (
-    <Assistant key={uid} />
-  ) : null;
+  const standardModule = ["/pms", "/crm", "/srm"].some(prefix=>location.pathname.startsWith(prefix));
+  const access = useQuery({queryKey:["suite-assistant-access",uid],queryFn:()=>api.get(`${root}/tools`),enabled:!!uid&&!standardModule,retry:false,staleTime:300000});
+  return uid && (standardModule || access.isSuccess) ? <Assistant key={uid} /> : null;
 }
 
 function Assistant() {
@@ -55,7 +54,7 @@ function Assistant() {
       location.pathname.match(/\/crm\/(?:accounts|companies)\/(\d+)/)?.[1],
     ) || undefined;
   const workspaceId =
-    Number(new URLSearchParams(location.search).get("workspace_id")) ||
+    Number((new URLSearchParams(location.search).get("workspace_id") || new URLSearchParams(location.search).get("workspace"))) ||
     undefined;
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -72,6 +71,18 @@ function Assistant() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [details, setDetails] = useState(false);
+  const [listening,setListening]=useState(false);
+  const voice=useRef<any>();
+  useEffect(()=>()=>voice.current?.abort(),[]);
+  function dictate(){
+    const Recognition=(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if(!Recognition){setError('Voice capture is unavailable in this browser. Type your request instead.');return;}
+    if(listening){voice.current?.stop();return;}
+    const rec=new Recognition();voice.current=rec;rec.lang=navigator.language;rec.interimResults=false;
+    rec.onresult=(event:any)=>setText(old=>`${old} ${event.results[0][0].transcript}`.trim());
+    rec.onend=()=>setListening(false);rec.onerror=()=>{setListening(false);setError('Voice capture stopped. Review the transcript before sending.');};
+    rec.start();setListening(true);
+  }
   const [intent, setIntent] = useState<Row>({
     tool: "invoices.prepare",
     tax_amount: "",
@@ -392,11 +403,17 @@ function Assistant() {
               : "Guided mode · verified application tools"}
             <Link
               aria-label="Assistant provider settings"
-              to="/pms/settings/ai/openai"
+              to="/pms/settings/ai/gemini"
             >
               <Settings size={14} />
             </Link>
           </div>
+          <Link className="pms-ai-studio-link" to={`/pms/assistant${projectId?`?project=${projectId}`:''}`} onClick={close}>
+            <Sparkles size={15}/><span>Open your assistant workspace<small>Plans, memory, playbooks & delivery insights</small></span><ArrowUp size={15}/>
+          </Link>
+          <Link className="pms-ai-studio-link" to={`/ai-agents/operator${workspaceId?`?workspace=${workspaceId}`:''}`} onClick={close}>
+            <Sparkles size={15}/><span>Open suite AI operator<small>HR, CRM, sales, finance & projects · Gemini</small></span><ArrowUp size={15}/>
+          </Link>
           <div className="pms-ai-body" aria-live="polite" aria-busy={busy}>
             {history ? (
               <div className="pms-ai-history">
@@ -903,6 +920,7 @@ function Assistant() {
               </div>
             )}
             <div className="pms-ai-input-row">
+              <button className={listening?'pms-ai-mic active':'pms-ai-mic'} disabled={busy} aria-label={listening?'Stop assistant voice capture':'Dictate assistant message'} onClick={dictate}><Mic size={17}/></button>
               <textarea
                 ref={input}
                 aria-label="Message AI Assistant"

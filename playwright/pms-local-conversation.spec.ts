@@ -8,6 +8,7 @@ async function open(page: any) {
     if (path === '/api/v1/project-management/projects') return route.fulfill({ json: [{ id: 1, name: 'Delivery', project_key: 'WEB', workspace_id: null }] });
     if (path === '/api/v1/project-management/projects/1/tasks') return route.fulfill({ json: [{ id: 7, task_key: 'WEB-1', title: 'Build', status: 'To Do' }] });
     if (path === '/api/v1/ai-operator/providers' || path === '/api/v1/ai-operator/runs') return route.fulfill({ json: { items: [] } });
+    if (path === '/api/v1/ai-operator/brain/sessions') return route.fulfill({ json: { items: [] } });
     return route.fallback();
   });
   await page.goto('/pms/operator');

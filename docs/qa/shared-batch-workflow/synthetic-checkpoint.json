@@ -1,0 +1,7 @@
+{
+  "type": "Synthetic batch-workflow checkpoint",
+  "reference": "APP-88790B46DC084A4F",
+  "database": "C:\\Users\\SAISAT~1\\AppData\\Local\\Temp\\business-suite-batch-checkpoint-1tgs0i65\\qa.db",
+  "application_count": 6,
+  "note": "Preserves the earlier synthetic browser registrations for further acceptance testing. Contains test password hashes; keep private. This is not a production backup."
+}

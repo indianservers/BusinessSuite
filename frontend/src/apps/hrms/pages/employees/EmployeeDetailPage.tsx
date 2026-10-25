@@ -1,3 +1,5 @@
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneFields, emailError, textError } from "@/lib/validation";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import type React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
-import { employeeApi, payrollApi } from "@/services/api";
+import { employeeApi, payrollApi, companyApi } from "@/services/api";
 import { assetUrl, formatCurrency, formatDate, getInitials, statusColor } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -14,7 +16,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 
+import { loadManagerOptions } from "./employeeJobOptions";
+import SharedProfilePage from "@/features/profiles/ProfilePage";
+
 const TABS = [
+  { id: "profile", label: "Complete Profile", icon: User },
   { id: "360", label: "360 Timeline", icon: Activity },
   { id: "personal", label: "Personal", icon: User },
   { id: "job", label: "Job", icon: Briefcase },
@@ -46,6 +52,10 @@ const EDIT_FIELDS: Record<string, Array<[string, string, string?]>> = {
     ["research_work", "Research / Publications", "textarea"],
   ],
   job: [
+    ["branch_id", "Branch", "select"],
+    ["department_id", "Department", "select"],
+    ["designation_id", "Designation / Job Role", "select"],
+    ["reporting_manager_id", "Reporting Manager / Intern Supervisor", "select"],
     ["employment_type", "Employment Type"],
     ["status", "Status"],
     ["work_location", "Work Location"],
@@ -93,8 +103,19 @@ export default function EmployeeDetailPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
+  const { data: jobOptions } = useQuery({
+    queryKey: ["employee-job-options"],
+    queryFn: async () => {
+      const [branches, departments, designations, managers] = await Promise.all([
+        companyApi.listBranches(), companyApi.listDepartments(), companyApi.listDesignations(), loadManagerOptions(),
+      ]);
+      return { branch_id: branches.data, department_id: departments.data, designation_id: designations.data, reporting_manager_id: managers } as Record<string, Array<{ id: number; name: string; branch_id?: number; department_id?: number }>>;
+    },
+
+  });
   const [activeTab, setActiveTab] = useState("personal");
   const [editForm, setEditForm] = useState<Record<string, any>>({});
+  const [editErrors,setEditErrors]=useState<Record<string,string>>({});
   const [educationForm, setEducationForm] = useState<Record<string, any>>({});
   const [experienceForm, setExperienceForm] = useState<Record<string, any>>({});
   const [skillForm, setSkillForm] = useState<Record<string, any>>({});
@@ -106,7 +127,7 @@ export default function EmployeeDetailPage() {
     effective_from: "",
   });
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [accountForm, setAccountForm] = useState({ email: "", password: "Employee@123456" });
+  const [accountForm, setAccountForm] = useState({ email: "", password: "" });
   const editing = params.get("edit") === "true";
   usePageTitle("Employee Details");
 
@@ -136,6 +157,15 @@ export default function EmployeeDetailPage() {
     queryFn: () => payrollApi.structures().then((r) => r.data as SalaryStructureOption[]),
   });
 
+  const changeEdit = (key:string,value:string) => {
+    setEditForm(current=>({...current,[key]:value}));
+    setEditErrors(current=>{const next={...current};delete next[key.replace(/_country_code$/,'')];return next;});
+  };
+  const validateEdit = (key:string) => {
+    const message=key.endsWith('email')?emailError(editForm[key]):key==='first_name'||key==='last_name'?textError(editForm[key],160,key==='first_name'):'';
+    setEditErrors(current=>{const next={...current};if(message)next[key]=message;else delete next[key];return next;});
+  };
+
   const updateMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => employeeApi.update(Number(id), payload),
     onSuccess: () => {
@@ -143,7 +173,11 @@ export default function EmployeeDetailPage() {
       qc.invalidateQueries({ queryKey: ["employee", id] });
       setParams({});
     },
-    onError: () => toast({ title: "Could not update employee", variant: "destructive" }),
+    onError: (err:unknown) => {
+      const details=(err as {response?:{data?:{detail?:Array<{loc?:string[];msg?:string}>}}})?.response?.data?.detail;
+      if(Array.isArray(details))setEditErrors(Object.fromEntries(details.map(item=>[String(item.loc?.at(-1)||'').replace(/_country_code$/,''),item.msg||'Invalid value'])));
+      toast({ title: "Could not update employee", variant: "destructive" });
+    },
   });
 
   const photoMutation = useMutation({
@@ -219,7 +253,7 @@ export default function EmployeeDetailPage() {
     mutationFn: (payload: { email: string; password: string }) => employeeApi.createUserAccount(Number(id), payload),
     onSuccess: () => {
       toast({ title: "Employee login account created" });
-      setAccountForm({ email: "", password: "Employee@123456" });
+      setAccountForm({ email: "", password: "" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
       qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
     },
@@ -252,7 +286,13 @@ export default function EmployeeDetailPage() {
       last_name: emp.last_name || "",
       personal_email: emp.personal_email || "",
       phone_number: emp.phone_number || "",
+      phone_number_country_code: emp.phone_number_country_code || (emp.phone_number ? "" : "+91"),
       alternate_phone: emp.alternate_phone || "",
+      alternate_phone_country_code: emp.alternate_phone_country_code || (emp.alternate_phone ? "" : "+91"),
+      branch_id: emp.branch_id ?? "",
+      department_id: emp.department_id ?? "",
+      designation_id: emp.designation_id ?? "",
+      reporting_manager_id: emp.reporting_manager_id ?? "",
       employment_type: emp.employment_type || "Full-time",
       status: emp.status || "Active",
       work_location: emp.work_location || "Office",
@@ -260,6 +300,7 @@ export default function EmployeeDetailPage() {
       date_of_confirmation: emp.date_of_confirmation || "",
       emergency_contact_name: emp.emergency_contact_name || "",
       emergency_contact_number: emp.emergency_contact_number || "",
+      emergency_contact_number_country_code: emp.emergency_contact_number_country_code || (emp.emergency_contact_number ? "" : "+91"),
       emergency_contact_relation: emp.emergency_contact_relation || "",
       present_address: emp.present_address || "",
       present_city: emp.present_city || "",
@@ -391,7 +432,7 @@ export default function EmployeeDetailPage() {
               <p className="text-sm text-muted-foreground">{emp.employee_id}</p>
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                 {emp.personal_email && <span>✉ {emp.personal_email}</span>}
-                {emp.phone_number && <span>📞 {emp.phone_number}</span>}
+                {emp.phone_number && <span>📞 {emp.phone_number_country_code || ""} {emp.phone_number}</span>}
                 <span>Joined {formatDate(emp.date_of_joining)}</span>
               </div>
             </div>
@@ -403,9 +444,9 @@ export default function EmployeeDetailPage() {
                 defaultAgentCode="hrms_letter_drafting"
                 defaultPrompt="Help me prepare HR action or summary for this employee."
               />
-              <Button variant="outline" size="sm" onClick={() => setParams(editing ? {} : { edit: "true" })}>
+              {activeTab !== "profile" && <Button variant="outline" size="sm" onClick={() => setParams(editing ? {} : { edit: "true" })}>
                 {editing ? "Cancel Edit" : "Edit"}
-              </Button>
+              </Button>}
               <Badge variant="outline">{emp.employment_type}</Badge>
             </div>
           </div>
@@ -418,7 +459,7 @@ export default function EmployeeDetailPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            className={`flex shrink-0 items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -440,8 +481,16 @@ export default function EmployeeDetailPage() {
                 onSubmit={(event) => {
                   event.preventDefault();
                   const allowedFields = EDIT_FIELDS[activeTab].map(([key]) => key);
+                  const issues:Record<string,string>={};
+                  for(const key of allowedFields){
+                    const message=key.endsWith('email')?emailError(editForm[key]):key==='first_name'||key==='last_name'?textError(editForm[key],160,key==='first_name'):'';
+                    if(message)issues[key]=message;
+                  }
+                  setEditErrors(issues);
+                  if(Object.keys(issues).length){document.getElementById('edit-'+Object.keys(issues)[0])?.focus();return;}
                   const payload = allowedFields.reduce<Record<string, any>>((acc, key) => {
-                    acc[key] = editForm[key] === "" ? null : editForm[key];
+                    if(phoneFields.has(key)){const codeKey=key+'_country_code';if(editForm[key]===emp[key]&&editForm[codeKey]===(emp[codeKey]||''))return acc;acc[codeKey]=editForm[codeKey]||null;}
+                    acc[key] = editForm[key] === "" ? (key === "last_name" ? "" : null) : key.endsWith("_id") ? Number(editForm[key]) : editForm[key];
                     return acc;
                   }, {});
                   updateMutation.mutate(payload);
@@ -449,21 +498,27 @@ export default function EmployeeDetailPage() {
               >
                 {EDIT_FIELDS[activeTab].map(([key, label, type]) => (
                   <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
-                    <Label>{label}</Label>
-                    {type === "textarea" ? (
-                      <textarea
+                    <Label htmlFor={`edit-${key}`}>{label}</Label>
+                    {phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "select" ? (
+                      <select id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined} aria-label={label} value={editForm[key] ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value, ...(key === "branch_id" ? { department_id: "", designation_id: "" } : key === "department_id" ? { designation_id: "" } : {}) }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <option value="">Unassigned</option>
+                        {(jobOptions?.[key] || []).filter((option) => key === "reporting_manager_id" ? option.id !== Number(id) : key === "department_id" ? !editForm.branch_id || option.branch_id === Number(editForm.branch_id) : key === "designation_id" ? !editForm.department_id || option.department_id === Number(editForm.department_id) : true).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+                      </select>
+                    ) : type === "textarea" ? (
+                      <textarea id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined}
                         value={editForm[key] ?? ""}
-                        onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                        onBlur={()=>validateEdit(key)} onChange={(e)=>changeEdit(key,e.target.value)}
                         rows={3}
                         className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       />
                     ) : (
-                      <Input
+                      <Input id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined}
                         type={type === "date" ? "date" : "text"}
                         value={editForm[key] ?? ""}
-                        onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                        onBlur={()=>validateEdit(key)} onChange={(e)=>changeEdit(key,e.target.value)}
                       />
                     )}
+                    {editErrors[key]&&!phoneFields.has(key)&&<p id={`edit-${key}-error`} role="alert" className="text-sm text-destructive">{editErrors[key]}</p>}
                   </div>
                 ))}
                 <div className="sm:col-span-2 flex justify-end">
@@ -550,6 +605,7 @@ export default function EmployeeDetailPage() {
       )}
 
       {/* Tab content */}
+      {activeTab === "profile" && <SharedProfilePage employeeId={Number(id)} />}
       {activeTab === "360" && (
         <div className="space-y-5">
           <div className="grid gap-3 md:grid-cols-4">
@@ -665,6 +721,7 @@ export default function EmployeeDetailPage() {
               {[
                 ["Employee ID", emp.employee_id],
                 ["Employment Type", emp.employment_type],
+                ...([ ["branch_id", "Branch"], ["department_id", "Department"], ["designation_id", "Designation / Job Role"], ["reporting_manager_id", "Reporting Manager / Intern Supervisor"] ].map(([key, label]) => [label, jobOptions?.[key]?.find((option) => option.id === emp[key])?.name || (emp[key] ? `#${emp[key]}` : "Unassigned")])),
                 ["Status", emp.status],
                 ["Work Location", emp.work_location],
                 ["Date of Joining", formatDate(emp.date_of_joining)],
@@ -795,7 +852,7 @@ export default function EmployeeDetailPage() {
                 onSubmit={(event) => {
                   event.preventDefault();
                   createUserAccountMutation.mutate({
-                    email: accountForm.email.trim(),
+                    email: accountForm.email,
                     password: accountForm.password,
                   });
                 }}
@@ -818,12 +875,13 @@ export default function EmployeeDetailPage() {
                       value={accountForm.password}
                       onChange={(event) => setAccountForm((form) => ({ ...form, password: event.target.value }))}
                       minLength={8}
+                      maxLength={72}
                       required
                     />
                   </div>
                   <Button
                     type="submit"
-                    disabled={createUserAccountMutation.isPending || !accountForm.email || accountForm.password.length < 8}
+                    disabled={createUserAccountMutation.isPending || !accountForm.email || accountForm.password.length < 8 || new TextEncoder().encode(accountForm.password).length>72}
                   >
                     <User className="mr-2 h-4 w-4" />
                     {createUserAccountMutation.isPending ? "Creating..." : "Create Login"}

@@ -88,6 +88,9 @@ class PMSRealtimeManager:
             user = db.get(User, user_id)
             if not user or not user.is_active:
                 return False
+            employee=getattr(user,'employee',None)
+            if user.role and user.role.name.lower()=='intern' or employee and (employee.employment_type or '').lower()=='intern':
+                return False
             if project_id is None:
                 return True
             return accessible_project_query(db, user).filter(PMSProject.id == int(project_id)).first() is not None

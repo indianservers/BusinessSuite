@@ -108,6 +108,9 @@ export default function AIOperatorPage() {
     if (requestRef.current?.fingerprint !== fingerprint) requestRef.current = { fingerprint, key: crypto.randomUUID() };
     const requestKey = requestRef.current!.key;
     try {
+      if(!followUp && !localDialogue && routingMode!=='cloud' && brain.current?.hasPendingQuestion() && await brain.current.plan(command,mode)) {
+        setCommand(''); return;
+      }
       let decision: ConversationDecision;
       if (routingMode === "cloud" && !localDialogue) decision = { route: 'cloud', reason: 'Cloud planning selected.' };
       else {
@@ -142,7 +145,7 @@ export default function AIOperatorPage() {
         next = (await operatorApi.command({ ...data, command: decision.command, task_ids: followUp && run ? run.selection : decision.selection, request_key: requestKey, local_plan: decision.plan,
           ...(followUp && run ? { parent_run_id: run.id, parent_plan_hash: run.plan_hash } : {}) })).data;
       } else {
-        if(routingMode!=='cloud' && await brain.current?.plan(command))return;
+        if(routingMode!=='cloud' && await brain.current?.plan(command,mode,followUp && run?run:undefined)){setCommand('');return;}
         setRoutingStatus(`LLM required: ${decision.reason}`);
         if (routingMode === "local") throw new Error("LOCAL_ROUTING_REQUIRED");
         if (!available.includes(provider)) throw new Error("PROVIDER_REQUIRED");
@@ -166,9 +169,10 @@ export default function AIOperatorPage() {
     try { rec.start(); setRecording(true); setError(""); } catch { setError("Microphone could not start. Check browser permission."); }
   }
   return <div className="max-w-6xl space-y-5">
+    <Link className="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium text-primary" to={`/pms/assistant${projectId?`?project=${projectId}`:''}`}>Open the assistant workspace → Plans, memory, agents and insights</Link>
     <header><h1 className="page-title">AI task operator</h1><p className="page-description">Give a multi-step command by voice or text. Review the exact plan before applying it.</p><Link className="text-primary underline" to={`/pms/settings/ai/openai${project?.workspace_id ? `?workspace=${project.workspace_id}` : ""}`}>Provider settings and API usage</Link></header>
     <LocalBrainPanel key={uid} ref={brain} projectId={projectId} workspaceId={project?.workspace_id} provider={provider}
-      cloudEnabled={available.includes(provider)} allowCloud={routingMode!=='local'} selected={selection}
+      cloudEnabled={available.includes(provider)} allowCloud={routingMode!=='local'} executionMode={executionMode} selected={selection}
       onRun={next=>{setRun(next);setHistory(h=>[next,...h.filter(r=>r.id!==next.id)]);setFollowUp(false);setLocalDialogue(null);}}
       onSetup={next=>{setLocalSetup(next);setLocalDialogue(null);}} />
     {error && <p role="alert" className="text-destructive">{error}</p>}
@@ -182,7 +186,7 @@ export default function AIOperatorPage() {
     </section>
     <section className="space-y-3"><label className="block font-semibold" htmlFor="operator-command">Command</label><textarea id="operator-command" className="min-h-28 w-full rounded border bg-background p-3" disabled={busy || recording} value={command} onChange={e => { setCommand(e.target.value); if (!e.target.value) setMode("text"); }} placeholder="Set these tasks to High priority, assign them to a collaborator's email, add a QA checklist item, and move them to Sprint 4." />
       {followUp && <div role="status">Revising run #{run?.id}. The old pending approval will be invalidated. Review the new plan before execution. <Button variant="outline" onClick={() => { setFollowUp(false); requestRef.current = null; }}>Cancel reply</Button></div>}
-      <label>Command routing<select aria-label="Command routing" className="ml-2 rounded border bg-background p-2" disabled={busy || followUp || !!localDialogue} value={routingMode} onChange={e => setRoutingMode(e.target.value as typeof routingMode)}><option value="auto">Local first · LLM when needed</option><option value="local">Local only · no LLM calls</option><option value="cloud">Always use selected LLM</option></select></label>
+      <label>Command routing<select aria-label="Command routing" className="ml-2 rounded border bg-background p-2" disabled={busy || followUp || !!localDialogue} value={routingMode} onChange={e => setRoutingMode(e.target.value as typeof routingMode)}><option value="auto">Local first · cloud when needed</option><option value="local">Local only · no cloud calls</option><option value="cloud">Always use selected cloud LLM</option></select></label>
       {routingStatus && <p aria-live="polite" className="text-sm">{routingStatus}</p>}
       <p className="text-sm text-muted-foreground">Local commands: “set priority to high”, “mark tasks done”, “set due date to 2026-11-05”, or “add checklist item &quot;QA review&quot;”. Join up to three actions with “and then”. Sprint numbers are record IDs. Missing details and supported follow-up revisions stay local. Every plan requires review.</p>
       <div className="flex flex-wrap items-center gap-3"><Button disabled={busy || recording || !command.trim() || (routingMode === "cloud" && !available.includes(provider))} onClick={() => void preview()}>{busy ? "Working…" : followUp ? "Preview revised plan" : "Preview plan"}</Button>

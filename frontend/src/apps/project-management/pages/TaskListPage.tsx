@@ -1,3 +1,5 @@
+import { StatusSelect } from "@/design-system/components";
+import RecordActions from "../components/RecordActions";
 import { useCallback, useEffect, useMemo, useState, Fragment, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns3, RefreshCw, Save, Search, SlidersHorizontal, Star, Trash2 } from "lucide-react";
@@ -447,12 +449,14 @@ export default function TaskListPage() {
     } : current);
     try {
       await tasksAPI.updateStatus(task.id, status);
+      return true;
     } catch (err: any) {
       setData((current) => current ? {
         ...current,
         items: current.items.map((item) => item.id === task.id ? { ...item, status: previousStatus } : item),
       } : current);
       setError(err?.response?.data?.detail || "Unable to update task status.");
+      return false;
     } finally {
       setUpdatingTaskId(null);
     }
@@ -494,7 +498,7 @@ export default function TaskListPage() {
       case "task":
         return <span className="font-semibold text-primary">{task.task_key || task.id}</span>;
       case "title":
-        return <div className="flex min-w-56 items-center gap-2"><span className="line-clamp-2 font-medium">{task.title}</span><Button type="button" size="sm" variant="ghost" title="Add subtask" aria-label={`Add subtask to ${task.title}`} onClick={event => { event.stopPropagation(); setInlineParent(task.id); setInlineNotice(""); }}>+</Button></div>;
+        return <div className="flex min-w-56 items-center gap-2"><button type="button" className="line-clamp-2 text-left font-medium hover:text-primary" onClick={()=>openTask(task)}>{task.title}</button><Button type="button" size="sm" variant="ghost" title="Add subtask" aria-label={`Add subtask to ${task.title}`} onClick={event => { event.stopPropagation(); setInlineParent(task.id); setInlineNotice(""); }}>+</Button></div>;
       case "project":
         return <span>{task.project_name || task.project_key || "-"}</span>;
       case "epic":
@@ -502,18 +506,7 @@ export default function TaskListPage() {
       case "sprint":
         return <span>{task.sprint_name || "-"}</span>;
       case "status":
-        return (
-          <select
-            value={task.status}
-            disabled={updatingTaskId === task.id}
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => event.stopPropagation()}
-            onChange={(event) => updateStatus(task, event.target.value as TaskStatus)}
-            className="h-9 min-w-32 rounded-md border bg-background px-2 text-sm"
-          >
-            {taskStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-          </select>
-        );
+        return <StatusSelect label={`Status for ${task.title}`} value={task.status} options={taskStatuses} disabled={updatingTaskId===task.id || data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks!==true} onSave={status=>updateStatus(task,status as TaskStatus)} />;
       case "priority":
         return <Badge className={statusColor(task.priority)}>{task.priority}</Badge>;
       case "assignee":
@@ -753,9 +746,8 @@ export default function TaskListPage() {
                     {taskGroups.map(group => <Fragment key={group.status}>
                     {groupByStatus && <tr className="border-b bg-muted/25"><td colSpan={visibleColumnList.length + 1} className="px-4 py-2"><button type="button" className="flex w-full items-center gap-2 py-1 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4 transition-transform", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs font-normal text-muted-foreground">{group.items.length} on this page</span></button></td></tr>}
                     {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
-                      <Fragment key={task.id}><tr
+                      <Fragment key={task.id}><RecordActions record={{...task,key:task.task_key}} canEdit={data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><tr
                         tabIndex={0}
-                        onClick={() => openTask(task)}
                         onKeyDown={(event) => {
                           if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); }
                         }}
@@ -768,14 +760,14 @@ export default function TaskListPage() {
                             onClick={(event) => event.stopPropagation()}
                             onChange={(event) => toggleTaskSelection(task.id, event.target.checked)}
                             aria-label={`Select ${task.task_key || task.title}`}
-                          />
+                          />{menu}
                         </td>
                         {visibleColumnList.map((column) => (
                           <td key={column.key} className="max-w-72 px-4 py-3 align-middle">
                             {renderCell(task, column.key)}
                           </td>
                         ))}
-                      </tr>
+                      </tr>}</RecordActions>
                       {createdChildren[task.id]?.map(child => <tr key={`child-${child.id}`} className="border-b bg-muted/20"><td /><td colSpan={visibleColumnList.length} className="px-6 py-2"><Link className="text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link><Badge className="ml-2">{child.status}</Badge></td></tr>)}
                       {inlineParent === task.id && <tr><td /><td colSpan={visibleColumnList.length} className="p-3"><InlineSubtaskComposer key={task.id} parent={task} onCreated={child => subtaskCreated(task, child)} onCancel={() => setInlineParent(null)} /></td></tr>}
                       </Fragment>
@@ -788,7 +780,7 @@ export default function TaskListPage() {
                 {taskGroups.map(group => <Fragment key={group.status}>
                   {groupByStatus && <button type="button" className="col-span-full flex w-full items-center gap-2 py-2 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs text-muted-foreground">{group.items.length} on this page</span></button>}
                   {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
-                  <div role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); } }} key={task.id} onClick={() => openTask(task)} className="w-full rounded-lg border bg-background p-4 text-left shadow-sm">
+                  <RecordActions key={task.id} record={{...task,key:task.task_key}} canEdit={data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><div role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); } }} key={task.id} className="w-full rounded-lg border bg-background p-4 text-left shadow-sm">{menu}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 gap-3">
                         <input
@@ -800,7 +792,7 @@ export default function TaskListPage() {
                         />
                         <div className="min-w-0">
                         <p className="text-xs font-semibold text-primary">{task.task_key || task.id}</p>
-                        <h2 className="mt-1 line-clamp-2 font-semibold">{task.title}</h2>
+                        <h2 className="mt-1 line-clamp-2 font-semibold"><button type="button" className="text-left hover:text-primary" onClick={()=>openTask(task)}>{task.title}</button></h2>
                         </div>
                       </div>
                       <Badge className={statusColor(task.priority)}>{task.priority}</Badge>
@@ -809,7 +801,7 @@ export default function TaskListPage() {
                     <div className="mt-3"><TaskBadges task={task} /></div>
                     <Button className="mt-3" type="button" variant="outline" size="sm" aria-label={`Add subtask to ${task.title}`} onClick={event => { event.stopPropagation(); setInlineParent(task.id); setInlineNotice(""); }}>+ Add subtask</Button>
                     <div className="mt-3 space-y-2" onClick={event => event.stopPropagation()}>{createdChildren[task.id]?.map(child => <Link key={child.id} className="block text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link>)}{inlineParent === task.id && <InlineSubtaskComposer key={task.id} parent={task} onCreated={child => subtaskCreated(task, child)} onCancel={() => setInlineParent(null)} />}</div>
-                  </div>
+                  </div>}</RecordActions>
                 ))}</Fragment>)}
               </div>
             </>

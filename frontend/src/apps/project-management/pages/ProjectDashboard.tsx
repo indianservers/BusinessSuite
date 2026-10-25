@@ -19,17 +19,19 @@ export default function ProjectDashboard() {
   const { tasks, setTasks } = useTaskStore();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error,setError] = useState("");
+  const [retryVersion,setRetryVersion] = useState(0);
 
   useEffect(() => {
-    if (!id) return;
-    Promise.all([projectsAPI.get(id), projectsAPI.getDashboard(id), tasksAPI.list(id)])
-      .then(([project, dashboardData, taskData]) => {
-        setSelectedProject(project);
-        setDashboard(dashboardData);
-        setTasks(taskData);
-      })
-      .finally(() => setLoading(false));
-  }, [id, setSelectedProject, setTasks]);
+    let active=true;
+    setLoading(true);setError("");setSelectedProject(null);setDashboard(null);setTasks([]);
+    if(!id){setLoading(false);setError("Choose a valid project.");return;}
+    Promise.all([projectsAPI.get(id),projectsAPI.getDashboard(id),tasksAPI.list(id)])
+      .then(([project,dashboardData,taskData])=>{if(!active)return;setSelectedProject(project);setDashboard(dashboardData);setTasks(taskData);})
+      .catch(err=>{if(active)setError(typeof err?.response?.data?.detail==="string"?err.response.data.detail:"Unable to load this project. Check your access and try again.");})
+      .finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[id,setSelectedProject,setTasks,retryVersion]);
 
   const project = selectedProject || dashboard?.project;
   const taskChart = ["Backlog", "To Do", "In Progress", "In Review", "Done"].map((status) => ({
@@ -39,7 +41,7 @@ export default function ProjectDashboard() {
   const overdue = tasks.filter(isOverdue);
 
   if (loading) return <div className="skeleton h-72 rounded-lg" />;
-  if (!project) return <div className="rounded-lg border bg-card p-6">Project not found.</div>;
+  if (error || !project) return <div role="alert" className="rounded-xl border bg-card p-6 space-y-3"><h1 className="text-xl font-semibold">Project unavailable</h1><p className="text-sm text-muted-foreground">{error || "Project not found."}</p><div className="flex gap-3"><Button variant="outline" onClick={()=>setRetryVersion(version=>version+1)}>Retry</Button><Button asChild><Link to="/pms/projects">Back to projects</Link></Button></div></div>;
 
   return (
     <div className="space-y-6">
@@ -62,6 +64,7 @@ export default function ProjectDashboard() {
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/billing`}>Billing & invoices</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/milestones`}><Milestone className="h-4 w-4" />Milestones</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/risks`}><ShieldAlert className="h-4 w-4" />Risks</Link></Button>
+          <Button asChild variant="outline"><Link to={`/pms/projects/${id}/notes`}>My Notes</Link></Button>
           <Button asChild><Link to={`/pms/projects/${id}/board`}><Kanban className="h-4 w-4" />Open board</Link></Button>
         </div>
       </div>

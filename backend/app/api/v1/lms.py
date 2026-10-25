@@ -1,3 +1,8 @@
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from app.core.input_validation import clean_text
+from app.core.employee_scope import employee_tenant_scope
+from app.models.employee import Employee
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -53,19 +58,32 @@ def update_assignment(assignment_id: int, data: LearningAssignmentUpdate, db: Se
     return assignment
 
 
+class CompletionCallbackInput(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    status: str | None=Field(None,max_length=30)
+    completion_status: str | None=Field(None,max_length=30)
+    score: Decimal | None=Field(None,allow_inf_nan=False,max_digits=5,decimal_places=2)
+
+    @field_validator('status','completion_status')
+    @classmethod
+    def valid_status(cls,value):return clean_text(value,30) if value is not None else value
+
+
 @router.post("/assignments/{assignment_id}/completion-callback")
 def completion_callback_placeholder(
     assignment_id: int,
-    payload: dict,
+    payload: CompletionCallbackInput,
     db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("performance_manage")),
+    scope=Depends(employee_tenant_scope),
 ):
     assignment = db.query(LearningAssignment).filter(LearningAssignment.id == assignment_id).first()
-    if not assignment:
+    if not assignment or not db.query(Employee.id).filter(Employee.id==assignment.employee_id).first():
         raise HTTPException(status_code=404, detail="Assignment not found")
-    status = payload.get("status") or payload.get("completion_status") or "Completed"
+    status = payload.status or payload.completion_status or "Completed"
     assignment.status = "Completed" if str(status).lower() in {"completed", "passed"} else str(status)
-    if payload.get("score") is not None:
-        assignment.score = payload.get("score")
+    if payload.score is not None:
+        assignment.score = payload.score
     if assignment.status == "Completed":
         assignment.completed_at = datetime.now(timezone.utc)
     db.commit()

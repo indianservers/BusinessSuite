@@ -31,11 +31,12 @@ def test_payroll_pdf_exports_and_formula_preview(client, db):
 
     pdf = client.post(f"/api/v1/payroll/payslip/{record.id}/pdf", headers=headers)
     assert pdf.status_code == 200
-    assert pdf.json()["payslip_pdf_url"].endswith(".pdf")
+    from app.core.storage import normalize_upload_references
+    assert normalize_upload_references(pdf.json()["payslip_pdf_url"]).endswith(".pdf")
 
     export = client.post(f"/api/v1/payroll/runs/{run.id}/exports/pay_register", headers=headers)
     assert export.status_code == 201
-    assert export.json()["output_file_url"].endswith("pay_register.csv")
+    assert normalize_upload_references(export.json()["output_file_url"]).endswith("pay_register.csv")
 
     preview = client.post(f"/api/v1/payroll/structures/{structure.id}/preview", json={"ctc": "1200000"}, headers=headers)
     assert preview.status_code == 200

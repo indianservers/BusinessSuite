@@ -8,6 +8,7 @@ class DocumentTemplate(Base):
     __tablename__ = "document_templates"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=False, default=1, server_default='1', index=True)
     name = Column(String(200), nullable=False)
     template_type = Column(String(50))  # Offer Letter, Appointment, Experience, Relieving, Payslip, etc.
     description = Column(Text)
@@ -39,6 +40,7 @@ class CompanyPolicy(Base):
     __tablename__ = "company_policies"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=False, default=1, server_default='1', index=True)
     title = Column(String(300), nullable=False)
     category = Column(String(100))  # HR, IT, Finance, Legal
     content = Column(Text)

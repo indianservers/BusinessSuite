@@ -1,0 +1,11 @@
+{
+  "loaded": {
+    "backend": "wasm"
+  },
+  "output": {
+    "content": "{\"kind\": \"ask\",\"message\":\"I need a date.\",\"question\":\"When is the deadline?\"}",
+    "stopped": true
+  },
+  "status": "passed",
+  "elapsed_ms": 95749
+}

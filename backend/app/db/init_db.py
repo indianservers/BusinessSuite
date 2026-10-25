@@ -239,6 +239,7 @@ SYSTEM_PERMISSIONS = [
 ]
 
 SYSTEM_ROLES = [
+    {"name": "intern", "description": "Interns Hub access only; requires an active intern employee", "permissions": []},
     {
         "name": "super_admin",
         "description": "Full system access",

@@ -1,0 +1,16 @@
+{
+  "check": "Default database audit test-client traffic",
+  "operation": "Read-only aggregate; no records exported",
+  "window": "Last 6 hours",
+  "status": "Checked",
+  "matching_request_count": 23319,
+  "configured_environment": "development",
+  "database_location": "loopback",
+  "attribution": "Aggregate includes all test-client activity in the window; not solely attributed to this assessment.",
+  "containment": "Test conftest now sets a disposable DATABASE_URL before importing the application and overrides the audit session factory. Live QA also overrides the global DATABASE_URL.",
+  "cleanup": "No audit history deleted. A reviewed backup and precise attribution are required before any cleanup.",
+  "containment_check_since": "2026-10-25T15:49:36.966691+00:00",
+  "post_containment_matching_request_count": 0,
+  "post_containment_test_result": "901 passed, 7 PostgreSQL integration skips in the full isolated run; subsequent focused security retests passed.",
+  "verification_time": "2026-10-25T16:59:58.998762+00:00"
+}

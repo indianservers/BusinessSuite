@@ -556,8 +556,8 @@ function CollectionHealthCard({ collectionPercent, outstanding, overdue, overdue
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={[{ name: "Collected", value: percent }, { name: "Remaining", value: Math.max(0, 100 - percent) }]} innerRadius={42} outerRadius={54} dataKey="value" startAngle={90} endAngle={-270}>
-                <Cell fill="#16a34a" />
-                <Cell fill="#e2e8f0" />
+                <Cell fill="#16a34a" aria-label={`Collected ${percent}%`} />
+                <Cell fill="#e2e8f0" aria-label={`Remaining ${Math.max(0,100-percent)}%`} />
               </Pie>
             </PieChart>
           </ResponsiveContainer>

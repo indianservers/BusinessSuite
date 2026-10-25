@@ -6,6 +6,7 @@ async function stubOperator(page: Page) {
   const provider = { provider: "openai", model: "configured-model", enabled: true, data_sharing_allowed: true, has_key: true, max_tokens: 3000, input_price: null, output_price: null };
   let approvals = 0;
   let commandBody: any;
+  const memory={id:1,project_id:1,revision:0,turns:[] as any[]};
   const run = { id: 10, project_id: 1, command: "Raise priority and add QA", input_mode: "text", provider: "openai", status: "awaiting_approval", selection: [7], plan_hash: "a".repeat(64), error_code: null, result: null,
     plan: { summary: "Raise priority and add QA", clarification: null, steps: [{ tool: "update_task", task_id: 7, changes: { priority: "High" } }, { tool: "add_checklist", task_id: 7, title: "QA review" }] } };
   await page.route("**/api/v1/**", async route => {
@@ -18,6 +19,10 @@ async function stubOperator(page: Page) {
     else if (path === "/api/v1/ai-operator/providers/openai" && route.request().method() === "PUT") body = provider;
     else if (path === "/api/v1/ai-operator/analytics") body = { groups: [{ provider: "openai", model: "configured-model", status: "success", requests: 2, input_tokens: 200, output_tokens: 80, estimated_cost: null, priced_requests: 0, average_latency_ms: 500 }], logs: [], cost_note: "Costs are unknown until rates are configured." };
     else if (path === "/api/v1/ai-operator/runs") body = { items: [] };
+    else if (path === "/api/v1/ai-operator/brain/sessions") body = route.request().method()==='GET'?{ items: [] }:memory;
+    else if (path === "/api/v1/ai-operator/brain/sessions/1/context") body = {session:memory,context:{tasks:[]},instructions:'Return PMS JSON',schema:{}};
+    else if (path === "/api/v1/ai-operator/brain/sessions/1/cloud") body = {kind:'task_plan',message:'Review this plan.',task_ids:[7],task_plan:run.plan};
+    else if (path === "/api/v1/ai-operator/brain/sessions/1/turns") { const data=route.request().postDataJSON(); memory.turns.push({text:data.text,reply:data.reply,runtime:data.runtime});memory.revision++;body=memory; }
     else if (path === "/api/v1/ai-operator/commands") { commandBody = route.request().postDataJSON(); body = run; }
     else if (path === "/api/v1/ai-operator/runs/10/approve") { approvals++; body = { ...run, status: "succeeded", result: { success: true, receipts: [{ step: 1, tool: "update_task", task_id: 7, record_id: 7 }, { step: 2, tool: "add_checklist", task_id: 7, record_id: 11 }] } }; }
     else return route.fallback();
@@ -144,6 +149,7 @@ test("background progress is restored and follow-up creates a new reviewed plan"
   await page.goto("/pms/operator");
   await page.getByLabel("Select DEL-7", { exact: true }).check();
   await page.getByLabel("Execution mode").selectOption("checkpointed");
+  await page.getByLabel("Command routing").selectOption("cloud");
   await page.getByLabel("Command", { exact: true }).fill("Schedule and review");
   await page.getByRole("button", { name: "Preview plan", exact: true }).click();
   await expect(page.getByLabel("Operator plan")).toContainText("2026-10-27");

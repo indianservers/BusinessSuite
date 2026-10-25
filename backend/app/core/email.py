@@ -4,4 +4,5 @@ logger = logging.getLogger(__name__)
 
 
 def send_email(to: str, subject: str, body: str) -> None:
-    logger.info("Email queued to=%s subject=%s body=%s", to, subject, body)
+    # Authentication emails can contain reset links and one-time codes.
+    logger.info("email_dispatch_requested provider=unconfigured")

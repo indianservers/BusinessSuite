@@ -38,6 +38,7 @@ interface Employee {
   last_name: string;
   personal_email: string | null;
   phone_number: string | null;
+  phone_number_country_code?: string | null;
   designation_id: number | null;
   department_id: number | null;
   employment_type: string;
@@ -161,7 +162,7 @@ export default function EmployeesPage() {
     columnHelper.accessor("phone_number", {
       header: "Phone",
       cell: (info) => (
-        <span className="text-sm">{info.getValue() || "-"}</span>
+        <span className="text-sm">{info.getValue() ? `${info.row.original.phone_number_country_code || ""} ${info.getValue()}` : "-"}</span>
       ),
     }),
     columnHelper.accessor("employment_type", {

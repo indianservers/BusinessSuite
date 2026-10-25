@@ -12,6 +12,7 @@ class PMSClientBase(BaseModel):
     company_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     website: Optional[str] = None
     notes: Optional[str] = None
 
@@ -25,6 +26,7 @@ class PMSClientUpdate(BaseModel):
     company_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     website: Optional[str] = None
     notes: Optional[str] = None
 

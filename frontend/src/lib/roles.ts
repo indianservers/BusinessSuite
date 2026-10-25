@@ -479,8 +479,9 @@ const pmsDeliveryOnlyPaths = [
 ];
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname.replace(/\/$/, "") === "/pms/notes" || /^\/pms\/projects\/\d+\/notes\/?$/.test(pathname)) return true;
   // Workspace membership is enforced by the API, independently of company roles.
-  if (["/pms/recovery", "/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart", "/pms/dashboards", "/pms/messages"].includes(pathname.replace(/\/$/, ""))) return true;
+  if (["/pms/batches", "/pms/batch-tasks", "/pms/my-assignments", "/pms/assignment-controls", "/pms/reviews", "/pms/recovery", "/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart", "/pms/dashboards", "/pms/messages"].includes(pathname.replace(/\/$/, ""))) return true;
   if (/^\/pms\/projects\/\d+\/(gantt|reports)\/?$/.test(pathname)) return true;
   if (!isProjectManagementRole(role, isSuperuser)) return false;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/pms";
@@ -548,6 +549,7 @@ const srmSalesOnlyPaths = ["/srm/gantt", "/srm/sales-orders", "/srm/contracts", 
 
 function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isSrmRole(role, isSuperuser)) return false;
+  if (/^\/srm\/forms(?:\/|$)/.test(pathname)) return true;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/srm";
   const normalizedRole = normalizeRole(role);
   if (normalizedPath === "/srm" || normalizedPath === "/srm/dashboard" || normalizedPath === "/srm/profile") return true;
@@ -606,6 +608,7 @@ function isFamReadOnlyRole(role?: string | null, isSuperuser = false) {
 
 function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isFamRole(role, isSuperuser)) return false;
+  if (/^\/fam\/forms(?:\/|$)/.test(pathname)) return true;
   const normalizedPath = pathname.replace(/\/+$/, "") || "/fam";
   if (normalizedPath === "/fam" || normalizedPath === "/fam/dashboard" || normalizedPath === "/fam/profile") return true;
   if (normalizedPath === "/fam/settings") return isFamAdminRole(role, isSuperuser);
@@ -637,9 +640,11 @@ function getFamNavForRole(role?: string | null, isSuperuser = false) {
 }
 
 const hrNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
   { label: "HR Home", icon: LayoutDashboard, to: "/hr-home", group: "Core HR", exact: true },
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
+  { label: "Intern Management", icon: GraduationCap, to: "/interns", group: "Core HR" },
   { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
   { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
   { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
@@ -674,6 +679,7 @@ const hrNav: RoleNavItem[] = [
 ];
 
 const adminNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
   { label: "Admin Home", icon: ShieldCheck, to: "/admin-home", group: "Core HR", exact: true },
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
@@ -681,6 +687,7 @@ const adminNav: RoleNavItem[] = [
   { label: "Workflow Designer", icon: GitBranch, to: "/workflow-designer", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
   { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
+  { label: "Intern Management", icon: GraduationCap, to: "/interns", group: "Core HR" },
   { label: "Probation", icon: Timer, to: "/probation", group: "Core HR" },
   { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
   { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
@@ -720,6 +727,7 @@ const adminNav: RoleNavItem[] = [
 ];
 
 const ceoNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
   { label: "Executive Home", icon: LayoutDashboard, to: "/executive-home", group: "Core HR", exact: true },
   { label: "Executive Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
@@ -744,12 +752,14 @@ const ceoNav: RoleNavItem[] = [
 ];
 
 const managerNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
   { label: "Team Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
   { label: "Manager Hub", icon: Users, to: "/manager-dashboard", group: "Core HR", exact: true },
   { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
   { label: "Employees", icon: Users, to: "/employees", group: "Core HR" },
+  { label: "Intern Management", icon: GraduationCap, to: "/interns", group: "Core HR" },
   { label: "Employee Directory", icon: UserRound, to: "/employee-directory", group: "Core HR" },
   { label: "Attendance", icon: Clock, to: "/attendance", group: "Core HR" },
   { label: "Shift Roster", icon: CalendarDays, to: "/attendance/shift-roster", group: "Core HR" },
@@ -770,6 +780,8 @@ const managerNav: RoleNavItem[] = [
 ];
 
 const employeeNav: RoleNavItem[] = [
+ {label:"My PMS Assignments",icon:ListChecks,to:"/my-assignments",group:"Work"},
+  { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
   { label: "ESS Dashboard", icon: LayoutDashboard, to: "/ess", group: "Self Service", exact: true },
   { label: "My Profile", icon: UserRound, to: "/profile", group: "Self Service" },
   { label: "My Attendance", icon: Clock, to: "/my-attendance", group: "Self Service" },
@@ -783,6 +795,7 @@ const employeeNav: RoleNavItem[] = [
 
 const crmNav: RoleNavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
+  { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },
   { label: "AI Agents", icon: Sparkles, to: "/ai-agents/config", group: "Core" },
   { label: "Leads", icon: Users, to: "/crm/leads", group: "Core" },
   { label: "Contacts", icon: UserRound, to: "/crm/contacts", group: "Core" },
@@ -847,6 +860,7 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Backlog Grooming", icon: ClipboardCheck, to: "/pms/backlog-grooming", group: "Project Management" },
   { label: "Issues", icon: AlertTriangle, to: "/pms/issues", group: "Project Management" },
   { label: "Tasks", icon: ListChecks, to: "/pms/tasks", group: "Project Management" },
+  { label: "My Notes", icon: FileText, to: "/pms/notes", group: "Project Management" },
   { label: "Issue Navigator", icon: Search, to: "/pms/navigator", group: "Project Management" },
   { label: "Issue Navigator Pro", icon: FileSearch, to: "/pms/issue-navigator-pro", group: "Project Management" },
   { label: "Dashboards", icon: BarChart3, to: "/pms/dashboards", group: "Project Management" },
@@ -886,6 +900,7 @@ const projectManagementNav: RoleNavItem[] = [
 ];
 
 const srmNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/srm/forms", group: "Workspace" },
   { label: "Dashboard", icon: LayoutDashboard, to: "/srm/dashboard", group: "Sales & Inventory", exact: true },
   { label: "Sales Orders", icon: Receipt, to: "/srm/sales-orders", group: "Sales & Inventory" },
   { label: "Source Sales Docs", icon: FileText, to: "/srm/sales-inventory/source", group: "Sales & Inventory" },
@@ -926,6 +941,7 @@ const srmNav: RoleNavItem[] = [
 ];
 
 const famNav: RoleNavItem[] = [
+  { label: "Forms", icon: FileText, to: "/fam/forms", group: "Workspace" },
   { label: "Dashboard", icon: LayoutDashboard, to: "/fam/dashboard", group: "Finance & Accounting", exact: true },
   { label: "Company Settings", icon: Settings, to: "/fam/settings", group: "Foundation" },
   { label: "Financial Years", icon: CalendarDays, to: "/fam/financial-years", group: "Foundation" },
@@ -1098,7 +1114,7 @@ function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
   return items;
 }
 
-export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname) {
+export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
   const installedApps = getInstalledAppKeys();
   const key = getRoleKey(role, isSuperuser);
   const activeModule = getActiveModule(pathname);
@@ -1177,12 +1193,15 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
     return suiteNav;
   }
 
+  if (installedApps.includes("hrms") && ["pms_project_manager","pms_org_admin"].includes(normalizeRole(role))) return [{label:"Intern Management",icon:GraduationCap,to:"/hrms/interns",group:"Core HR"}];
   if (!installedApps.includes("hrms") || !isHrmsRole(role, isSuperuser)) return [];
   const nav = key === "hr" ? [...getHrmsNavForRole(key), ...getDelegatedHrNav(role)] : getHrmsNavForRole(key);
   return withPrefix(nav, "/hrms");
 }
 
 const routeAccess: Record<string, RoleKey[]> = {
+ "/my-assignments":["admin","hr","manager","employee"],
+  "/interns": ["admin", "hr", "manager"],
   "/role-home": ["admin", "ceo", "hr", "manager"],
   "/admin-home": ["admin"],
   "/hr-home": ["admin", "hr"],
@@ -1191,6 +1210,7 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/manager-dashboard": ["admin", "hr", "manager"],
   "/ess": ["admin", "ceo", "hr", "manager", "employee"],
   "/profile": ["admin", "ceo", "hr", "manager", "employee"],
+  "/profile-management": ["admin", "hr", "manager"],
   "/workflow/admin": ["admin", "hr", "manager"],
   "/approval-os": ["admin", "ceo", "hr", "manager", "employee"],
   "/workflow": ["admin", "ceo", "hr", "manager", "employee"],
@@ -1250,6 +1270,10 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
   if (pathname.startsWith("/fam") && !isFrontendModuleEnabled("fam")) return false;
   if (pathname.startsWith("/hrms") && !isFrontendModuleEnabled("hrms")) return false;
   if ((pathname === "/ai" || pathname.startsWith("/ai/") || pathname.startsWith("/ai-agents")) && !isFrontendModuleEnabled("ai")) return false;
+  if (/^\/(pms|crm|srm|hrms|fam)\/forms(?:\/|$)/.test(pathname)) {
+    const key=pathname.split("/")[1];
+    return key==="pms" ? true : key==="crm" ? isCrmRole(role,isSuperuser) : key==="srm" ? isSrmRole(role,isSuperuser) : key==="fam" ? isFamRole(role,isSuperuser) : isHrmsRole(role,isSuperuser);
+  }
   if (isAdminSecurityPath(pathname)) return canAccessAdminSecurityPath(pathname, role, isSuperuser);
   if (pathname === "/business-os" || pathname.startsWith("/business-os/")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname === "/admin/automation" || pathname.startsWith("/admin/automation/")) return isAutomationAdminRole(role, isSuperuser);
@@ -1264,12 +1288,16 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
     return isCustomizationAdminRole(role, isSuperuser);
   }
   if (pathname === "/analytics" || pathname.startsWith("/analytics/")) return canAccessAnalyticsPath(pathname, role, isSuperuser);
+  // Self-service entry; every suite API still enforces ai_assistant and domain
+  // permissions. Keep administrative AI pages under their existing role gate.
+  if (pathname === "/ai-agents/operator") return true;
   if (pathname.startsWith("/ai-agents")) return getRoleKey(role, isSuperuser) !== "employee";
   if (pathname === "/hrms") return isHrmsRole(role, isSuperuser);
   if (pathname.startsWith("/crm")) return canAccessCrmPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/pms")) return canAccessPmsPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/srm")) return canAccessSrmPath(pathname, role, isSuperuser);
   if (pathname.startsWith("/fam")) return canAccessFamPath(pathname, role, isSuperuser);
+  if (/^\/hrms\/interns(?:\/|$)/.test(pathname) && ["pms_project_manager","pms_org_admin"].includes(normalizeRole(role))) return true;
   if (pathname.startsWith("/hrms/") && !isHrmsRole(role, isSuperuser)) return false;
   const normalizedPathname = pathname.startsWith("/hrms/")
     ? pathname.replace(/^\/hrms/, "")

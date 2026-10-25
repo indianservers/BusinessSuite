@@ -19,6 +19,8 @@ import { adminSecurityRoutes } from "@/apps/admin-security/routes";
 import { PortalPage, saasRoutes } from "@/apps/saas/routes";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 
+const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
+const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
 const WorkspaceInvitationPage = React.lazy(() => import("@/pages/auth/WorkspaceInvitationPage"));
 const ModuleIndexPage = React.lazy(() => import("@/pages/ModuleIndexPage"));
@@ -104,6 +106,9 @@ export default function App() {
   }, [isHydrated, isAuthenticated]);
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
+    ...["pms","crm","srm","hrms","fam"].flatMap(module=>["published","responses","custom-fields","new",":formId/edit",":formId/responses"].map(path=>({path:`${module}/forms/${path}`,element:<SharedFormsPage/>}))),
+    ...["pms","crm","srm","hrms","fam"].map(module=>({path:`${module}/forms/:formId/view`,element:<PublicFormPage internal/>})),
+    ...["crm","srm","hrms","fam"].map(module=>({path:`${module}/forms`,element:<SharedFormsPage/>})),
     { path: "admin/automation", element: <AutomationStudioPage /> },
     { path: "admin/automation/workflows", element: <AutomationStudioPage /> },
     { path: "admin/automation/workflows/:id", element: <AutomationStudioPage /> },
@@ -156,6 +161,7 @@ export default function App() {
     <>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
+          <Route path="/f/:slug" element={<PublicFormPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/reset-password" element={<LoginPage />} />
           <Route path="/hrms/login" element={<LoginPage />} />

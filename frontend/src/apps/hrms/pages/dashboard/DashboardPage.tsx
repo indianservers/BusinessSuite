@@ -601,10 +601,10 @@ export default function DashboardPage() {
       {/* Quick actions */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Add Employee", icon: Users, href: "/hrms/employees/new", color: "bg-blue-600 hover:bg-blue-700" },
-          { label: "Run Payroll", icon: DollarSign, href: "/hrms/payroll", color: "bg-green-600 hover:bg-green-700" },
-          { label: "Leave Approvals", icon: CalendarDays, href: "/hrms/leave", color: "bg-yellow-600 hover:bg-yellow-700" },
-          { label: "View Reports", icon: TrendingUp, href: "/hrms/reports", color: "bg-purple-600 hover:bg-purple-700" },
+          { label: "Add Employee", icon: Users, href: "/hrms/employees/new", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
+          { label: "Run Payroll", icon: DollarSign, href: "/hrms/payroll", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
+          { label: "Leave Approvals", icon: CalendarDays, href: "/hrms/leave", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
+          { label: "View Reports", icon: TrendingUp, href: "/hrms/reports", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
         ].map((action) => (
           <a
             key={action.label}

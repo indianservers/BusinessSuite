@@ -1,7 +1,7 @@
 import { api } from "@/services/api";
 
 export type OperatorProviderName = "openai" | "gemini" | "claude";
-export type OperatorProvider = { provider: OperatorProviderName; model: string; enabled: boolean; data_sharing_allowed: boolean; has_key: boolean; max_tokens: number; input_price: number | null; output_price: number | null };
+export type OperatorProvider = { provider: OperatorProviderName; model: string; enabled: boolean; data_sharing_allowed: boolean; has_key: boolean; max_tokens: number; input_price: number | null; output_price: number | null; allow_workspace_inheritance?: boolean; inherited?: boolean; configuration_scope?: string };
 export type OperatorStep = { tool: string; task_id: number; changes?: Record<string, unknown> | null; title?: string | null; sprint_id?: number | null; start_date?: string; due_date?: string; source_task_id?: number; dependency_id?: number; item_id?: number; is_completed?: boolean; body?: string; depends_on?: number[] };
 export type OperatorRun = { id: number; project_id: number; command: string; input_mode: string; provider: string; status: string; selection: number[]; plan_hash: string | null; plan: { summary: string; clarification: string | null; steps: OperatorStep[] } | null; error_code: string | null; background?: boolean; execution_mode?: "atomic" | "checkpointed"; parent_run_id?: number | null; revision?: number; timezone?: string; result: { success: boolean; partial?: boolean; receipts?: { step: number; tool: string; task_id: number; record_id: number }[]; message?: string } | null };
 export type OperatorEvent = { id: number; type: string; payload: { status: string; step?: number; error_code?: string }; created_at: string };

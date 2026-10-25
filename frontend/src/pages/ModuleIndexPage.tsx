@@ -95,7 +95,7 @@ export default function ModuleIndexPage() {
               <Sparkles className="h-3.5 w-3.5" />
               {BUSINESS_SUITE_NAME} {BUSINESS_SUITE_VERSION}
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight">Choose a module</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Your business, connected.</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Open CRM, HRMS, PMS, Sales & Inventory, or FAM from one index page. Sign in to the module you want to use.
             </p>
@@ -115,12 +115,12 @@ export default function ModuleIndexPage() {
           return (
             <Card key={module.key} className="overflow-hidden transition duration-200 hover:-translate-y-1 hover:shadow-lg">
               <CardContent className="flex h-full flex-col p-0">
-                <div className={`${module.tone} p-5 text-white`}>
+                <div className="kf-module-banner p-5">
                   <Icon className="h-8 w-8" />
                   <h2 className="mt-4 text-xl font-semibold">{module.name}</h2>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/80">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <span>{module.label}</span>
-                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-semibold text-white">{product.shortName} {product.version}</span>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">{product.shortName} {product.version}</span>
                   </div>
                 </div>
                 <div className="flex flex-1 flex-col p-5">

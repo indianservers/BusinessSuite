@@ -4,7 +4,7 @@ import base64
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-from jose import jwt
+import jwt
 from app.models.sso import SSOProvider, SSOSession
 from app.services.sso_service import validate_google_identity
 from tests.test_pms_workspaces import account, middleware_database
@@ -30,7 +30,7 @@ def test_google_signature_and_workspace_claims(signing_key, changed):
     if not changed:
         assert validate_google_identity(token, jwks, provider, "our-nonce")["sub"] == "google-user"
     else:
-        with pytest.raises((ValueError, jwt.JWTError)):
+        with pytest.raises((ValueError, jwt.PyJWTError)):
             validate_google_identity(token, jwks, provider, "our-nonce")
 
 

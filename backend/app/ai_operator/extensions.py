@@ -21,6 +21,7 @@ from app.ai_agents.services.audit import AiAuditService
 from app.ai_operator.models import OperatorProposal, OperatorProvider, OperatorMonitor, OperatorApiLog
 from app.ai_operator.planner import planning_agent
 from app.ai_operator.providers import generate_json
+from app.ai_operator.provider_scope import resolve_provider
 from app.ai_operator.schemas import Provider, ApproveInput
 from app.ai_operator.service import digest, scope_key, require_enabled
 from app.apps.project_management.access import get_project_for_action, can_access_project, organization_id_for, has_any_permission, PMS_GLOBAL_MANAGE_PROJECTS
@@ -121,7 +122,9 @@ def setup_preview(payload: SetupInput, request: Request, db: Session = Depends(g
             raise HTTPException(409, "Idempotency key already used")
         return proposal_public(old)
     _require_ai_rate_limit(db, request, user, bucket="operator_setup")
-    config = db.query(OperatorProvider).filter_by(scope_key=scope, provider=payload.provider, enabled=True, data_sharing_allowed=True).first()
+    config = resolve_provider(db, user, payload.provider, payload.workspace_id)
+    if config and (not config.enabled or not config.data_sharing_allowed):
+        config = None
     if not config and not payload.local_plan:
         raise HTTPException(409, "Provider unavailable for this scope")
     template = None
@@ -140,7 +143,7 @@ def setup_preview(payload: SetupInput, request: Request, db: Session = Depends(g
                 raise HTTPException(422, "Local setup cannot apply a template implicitly")
             plan = payload.local_plan
         else:
-            output = generate_json(db, user, config, prompt=json.dumps(outbound), schema=SetupPlan.model_json_schema(), purpose="setup", output_type=SetupPlan)
+            output = generate_json(db, user, config, prompt=json.dumps(outbound), schema=SetupPlan.model_json_schema(), purpose="setup", output_type=SetupPlan, usage_scope=scope)
             plan = SetupPlan.model_validate(output)
     except HTTPException:
         db.commit()  # Retain sanitized API usage even on failure.

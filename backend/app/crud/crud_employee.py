@@ -11,9 +11,10 @@ from app.models.employee import (
     EmployeeLifecycleEvent,
     EmployeeSkill,
 )
-from app.models.user import User
+from app.models.user import User, Role
 from app.schemas.employee import EmployeeCreate, EmployeeUpdate
 from app.core.security import get_password_hash
+from fastapi import HTTPException
 
 
 class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
@@ -89,9 +90,19 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
 
         user = None
         if obj_in.create_user_account and obj_in.user_email:
+            if not obj_in.user_password or len(obj_in.user_password)<12:
+                raise HTTPException(422,'Provide an explicit login password of at least 12 characters')
+            from app.api.v1.auth import _validate_password_policy
+            _validate_password_policy(db,obj_in.user_password)
+            role_name='intern' if obj_in.employment_type.strip().lower()=='intern' else 'employee'
+            intern_role=db.query(Role).filter(Role.name==role_name).first()
+            if not intern_role:
+                intern_role=Role(name=role_name,description='Employee login' if role_name=='employee' else 'Interns Hub only',is_system=True)
+                db.add(intern_role);db.flush()
             user = User(
+                role_id=intern_role.id,
                 email=obj_in.user_email,
-                hashed_password=get_password_hash(obj_in.user_password or "Welcome@123"),
+                hashed_password=get_password_hash(obj_in.user_password),
                 is_active=True,
             )
             db.add(user)

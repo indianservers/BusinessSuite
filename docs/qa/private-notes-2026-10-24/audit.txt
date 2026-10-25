@@ -1,0 +1,67 @@
+Private Notes implementation and browser audit — 24 October 2026
+
+Implemented:
+- /pms/notes and /pms/projects/:projectId/notes.
+- Owner-only notes independent of project/workspace membership.
+- Markdown editor/preview, autosave, manual save, search in title/body, tags,
+  pinning, archive, soft-delete/restore, immutable revisions and Markdown export.
+- Optional project/task links, validated against current project access.
+- Sidebar, workspace navigation, Quick Add and project dashboard entry points.
+- Version checks prevent stale tabs overwriting newer saves.
+- Failed saves retain the in-memory draft; links and browser unload warn before loss.
+
+Privacy audit:
+- Every read/write/history/restore operation scopes the note to current_user.id.
+- Another administrator cannot access a user's notes through the notes API.
+- Client-supplied owner_id is rejected.
+- Linking a project/task never grants collaborators note access.
+- Revoked/deleted project context does not expose project/task names.
+- Private notes and revisions are explicitly excluded from workspace savepoint exports.
+- No note content is emitted to project activity, notifications, or AI tools.
+- Existing Markdown renderer escapes content and restricts links to HTTP(S).
+
+Automated validation:
+- 16 passing tests: test_pms_private_notes.py + test_pms_recovery.py.
+- TypeScript noEmit: passed.
+- ESLint for NotesPage.tsx: passed.
+- Vite production build: passed; existing Browserslist freshness warning.
+- PostgreSQL migration graph: pg_20261024_011 is the single head.
+
+Live browser validation (real APIs, isolated synthetic SQLite QA database):
+- Created standalone note; autosave persisted content and normalized tags.
+- Preview rendered heading, checklist, emphasis and code.
+- Pinned note; title/body search; project and task association.
+- Project-specific route applied its project filter.
+- Read an earlier revision.
+- Simulated a stale tab via an independent API update: HTTP 409; draft retained.
+- Cancelled navigation after conflict: draft remained; Reload latest recovered server version.
+- Archived, unarchived, trashed and restored note; trashed note became read-only.
+- A second viewer account saw an empty private library and created its own personal note.
+- Markdown export downloaded successfully; downloaded text matched title and body.
+- Desktop light/dark rendering checked; selected-text contrast improved during audit.
+- 390px and 320px responsive frames: no horizontal document overflow (width=scrollWidth).
+- Narrow layout uses separate list/editor screens and a back-to-notes control.
+- Final desktop browser error log: empty.
+
+Evidence: desktop.png, desktop-dark.png, mobile-390-editor.png,
+mobile-320-editor.png, save-conflict.png, second-user-empty.png.
+
+Limits:
+- SQLite exercised live; PostgreSQL migration added and graph checked, but no live
+  PostgreSQL integration run for this change.
+- Privacy is enforced by application authorization, not end-to-end encryption.
+- Offline persistence, attachments, sharing/copy-to-Docs and AI access are not implemented.
+- Production deployment and production database migration were not performed.
+Private API responses additionally set Cache-Control: private, no-store (covered by test).
+
+Project-default update:
+- Every note now exposes a named project context and immutable private visibility.
+- Personal is each owner's built-in notes project, with a user-specific project key.
+  It is represented by a null PMS project link; it creates no shared PMS project row.
+- Existing personal notes inherit this context without migration or copying content.
+- Work-project creation defaults to the current project; global creation defaults to Personal.
+- Required project selector, visible project/privacy label, Personal-only filter and export metadata added.
+- 17 notes/recovery tests pass, including distinct owner-specific Personal keys and filtering.
+- TypeScript and NotesPage lint pass; production build succeeds.
+- Browser checked default Personal selection, save, Personal filtering and current work-project default.
+- Browser console errors: none. Evidence: personal-project-default.png, work-project-default.png.

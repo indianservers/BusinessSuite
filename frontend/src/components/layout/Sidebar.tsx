@@ -1,3 +1,5 @@
+import NavigationShortcuts from "./NavigationShortcuts";
+import ModuleSwitcher from "./ModuleSwitcher";
 import MessagingNavLink from "./MessagingNavLink";
 import PMSMoreMenu from "./PMSMoreMenu";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -22,15 +24,16 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
   const { user } = useAuthStore();
   const roleNav = getRoleNav(user?.role, user?.is_superuser, location.pathname);
   const primaryPaths: Record<string, string[]> = {
-    hrms: ["/hrms", "/hrms/employees", "/hrms/attendance", "/hrms/leave", "/hrms/payroll", "/hrms/recruitment"],
+    hrms: ["/hrms", "/hrms/employees", "/hrms/interns", "/hrms/attendance", "/hrms/leave", "/hrms/payroll", "/hrms/recruitment"],
     crm: ["/crm", "/crm/leads", "/crm/contacts", "/crm/deals", "/crm/pipeline", "/crm/tasks"],
-    pms: ["/pms", "/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/calendar", "/pms/timesheets"],
+    pms: ["/pms", "/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/notes", "/pms/calendar", "/pms/timesheets"],
     srm: ["/srm", "/srm/sales-orders", "/srm/invoices", "/srm/collections", "/srm/inventory", "/srm/pos"],
     fam: ["/fam", "/fam/vouchers", "/fam/ar", "/fam/ap", "/fam/bank-reconciliation", "/fam/ledgers"],
   };
   const priorities = primaryPaths[location.pathname.split("/")[1]] || [];
   const rank = (path: string) => priorities.includes(path) ? priorities.indexOf(path) : priorities.length;
   const allNavItems = [...roleNav].sort((a, b) => rank(a.to) - rank(b.to));
+  const [internsOpen, setInternsOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [query, setQuery] = useState("");
   const moduleKey = location.pathname.split("/")[1];
@@ -103,6 +106,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
           </div>
         </div>
 
+        {!collapsed && <ModuleSwitcher />}
         {/* Collapse toggle when collapsed */}
         {collapsed && (
           <Button
@@ -132,7 +136,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
                     </li>
                   )}
                   <li>
-                    <NavLink
+                    {item.to === "/hrms/interns" ? <><button className="nav-link nav-link-inactive w-full" aria-expanded={internsOpen} onClick={()=>setInternsOpen(!internsOpen)}><item.icon className="h-4 w-4"/>{!collapsed && <span>Intern Management {internsOpen ? '-' : '+'}</span>}</button>{internsOpen && <ul className={collapsed ? '' : 'ml-4 border-l pl-2'}>{[['dashboard','Dashboard'],['batches','Batches & Interns'],['tasks','Task Assignment'],['reviews','Daily Reports & Reviews'],['performance','Performance & Completion']].map(([path,label])=><li key={path}><NavLink to={'/hrms/interns/'+path} onClick={onClose} title={label} className={({isActive})=>'nav-link text-xs '+(isActive?'nav-link-active':'nav-link-inactive')}>{collapsed ? label[0] : label}</NavLink></li>)}</ul>}</> : <NavLink
                       to={item.to}
                       end={item.exact}
                       className={({ isActive }) =>
@@ -154,14 +158,15 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
                           {item.badge}
                         </span>
                       )}
-                    </NavLink>
+                    </NavLink>}
                   </li>
                 </Fragment>
               );
             })}
           </ul>
           {!navItems.length && <p className="px-5 py-3 text-xs text-sidebar-foreground/60">No matching pages.</p>}
-          {moduleKey === "pms" && <MessagingNavLink collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
+          {moduleKey === "pms" && !navItems.some(item=>item.to==="/pms/messages") && <MessagingNavLink collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
+          {!query && !showAll && <NavigationShortcuts excludedPaths={navItems.map(item => item.to)} collapsed={collapsed} onNavigate={onClose} />}
           {moduleKey === "pms" && <PMSMoreMenu collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
           {moduleKey !== "pms" && allNavItems.length > 6 && !query && <button type="button" aria-label={showAll ? "Show fewer pages" : "Show all pages"} aria-expanded={showAll} onClick={() => setShowAll(value => !value)} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs"><MoreHorizontal className="h-4 w-4" />{!collapsed && (showAll ? "Show fewer" : `More pages (${allNavItems.length - navItems.length})`)}</button>}
         </nav>

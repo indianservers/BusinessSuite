@@ -25,7 +25,7 @@ export default function AppLayout() {
   }, [sidebarCollapsed]);
 
   if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="h-dvh overflow-hidden" style={{"--pms-assistant-left":"318px"} as import("react").CSSProperties}><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><PMSAssistant /></div>;
+    return <div className="h-dvh overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><PMSAssistant /></div>;
   }
 
   return (
@@ -34,7 +34,7 @@ export default function AppLayout() {
       {/* Sidebar */}
       <Sidebar
         open={sidebarOpen}
-        collapsed={sidebarCollapsed}
+        collapsed={sidebarCollapsed && !sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       />
@@ -46,7 +46,7 @@ export default function AppLayout() {
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+        <main className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
           {isPosTerminal ? null : <Breadcrumbs />}
           <WorkspaceEnhancements terminal={isPosTerminal} />
           <ErrorBoundary>

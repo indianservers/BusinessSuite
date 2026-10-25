@@ -1,3 +1,6 @@
+import { leadsApi } from "./leads/api";
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneFields, phoneError, emailError } from "@/lib/validation";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
@@ -71,6 +74,7 @@ type CRMLead = {
   company: string;
   email?: string;
   phone?: string;
+  phone_country_code?: string;
   source: string;
   status: string;
   rating: string;
@@ -95,6 +99,7 @@ type CRMContact = {
   companyName?: string;
   email?: string;
   phone?: string;
+  phone_country_code?: string;
   title?: string;
   stage: string;
   source?: string;
@@ -122,6 +127,7 @@ type CRMAccount = {
   city?: string;
   email?: string;
   phone?: string;
+  phone_country_code?: string;
   website?: string;
   notes?: string;
   createdAt?: string;
@@ -1098,24 +1104,24 @@ function CRMDashboard() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] max-w-full overflow-hidden bg-[#07111f] text-slate-100">
-      <div className="border-b border-white/10 bg-[#081522] px-4 py-3 sm:px-5 lg:px-8">
+    <div className="min-h-[calc(100vh-5rem)] max-w-full overflow-hidden bg-background text-foreground">
+      <div className="border-b border-border bg-muted/40 px-4 py-3 sm:px-5 lg:px-8">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight text-white">CRM Overview</h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-300">
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">CRM Overview</h1>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden="true" />Live
               </span>
-              <span className="text-xs text-slate-400">{label}</span>
+              <span className="text-xs text-muted-foreground">{label}</span>
             </div>
-            <p className="mt-1 text-xs text-slate-400">Compact sales workspace powered by CRM records, pipeline stages, forecast, tasks, activities, and calendar data.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Compact sales workspace powered by CRM records, pipeline stages, forecast, tasks, activities, and calendar data.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="sr-only" htmlFor="crm-dashboard-range">Dashboard range</label>
             <select
               id="crm-dashboard-range"
-              className="h-8 rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-xs font-medium text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              className="h-8 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
               value={dateRange}
               onChange={(event) => setDateRange(event.target.value as "month" | "quarter" | "all")}
             >
@@ -1123,16 +1129,16 @@ function CRMDashboard() {
               <option value="quarter">This quarter</option>
               <option value="all">All open data</option>
             </select>
-            <Button size="sm" variant="outline" className="h-8 border-white/10 bg-[#0b1a2a] px-3 text-xs text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-3.5 w-3.5" />Reports</Button>
-            <Button size="sm" variant="outline" className="h-8 border-white/10 bg-[#0b1a2a] px-3 text-xs text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/forecasting")}><Target className="h-3.5 w-3.5" />Forecast</Button>
-            <Button size="sm" className="h-8 bg-emerald-500 px-3 text-xs text-white hover:bg-emerald-400" onClick={() => setShowQuickCreate(true)}><Plus className="h-3.5 w-3.5" />Create</Button>
+            <Button size="sm" variant="outline" className="h-8 border-border bg-card px-3 text-xs text-foreground hover:bg-accent" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-3.5 w-3.5" />Reports</Button>
+            <Button size="sm" variant="outline" className="h-8 border-border bg-card px-3 text-xs text-foreground hover:bg-accent" onClick={() => navigate("/crm/forecasting")}><Target className="h-3.5 w-3.5" />Forecast</Button>
+            <Button size="sm" className="h-8 bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90" onClick={() => setShowQuickCreate(true)}><Plus className="h-3.5 w-3.5" />Create</Button>
           </div>
         </div>
       </div>
       <main className="space-y-3 px-4 py-3 sm:px-5 lg:px-8">
-      {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{error}</div> : null}
+      {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-200">{error}</div> : null}
       {loading ? <DashboardSkeleton /> : null}
-<ModuleWorkflows module="crm" dark />
+<ModuleWorkflows module="crm" />
       <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="CRM metrics">
         <CompactMetricCard title="New leads" value={filteredLeads.length} detail={`${crmLeads.length} total visible`} tone="emerald" onClick={() => navigate("/crm/leads")} />
         <CompactMetricCard title="Open deals" value={openDeals} detail={formatCurrency(pipelineValue)} tone="sky" onClick={() => navigate("/crm/deals")} />
@@ -1152,13 +1158,13 @@ function CRMDashboard() {
                   const value = stageDeals.reduce((sum, deal) => sum + deal.amount, 0);
                   const risk = pipelineStageRisk(stageDeals);
                   return (
-                    <button key={`${stage.id}-${stage.name}`} type="button" className="rounded-md border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate("/crm/pipeline")}>
+                    <button key={`${stage.id}-${stage.name}`} type="button" className="rounded-md border border-border bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate("/crm/pipeline")}>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold text-slate-100">{stage.name}</span>
+                        <span className="truncate text-sm font-semibold text-foreground">{stage.name}</span>
                         <span className={`h-2 w-2 rounded-full ${risk.dot}`} aria-label={risk.label} />
                       </div>
-                      <div className="mt-3 text-xl font-semibold text-white">{stageDeals.length}</div>
-                      <div className="text-xs text-slate-400">{formatCurrency(value)}</div>
+                      <div className="mt-3 text-xl font-semibold text-foreground">{stageDeals.length}</div>
+                      <div className="text-xs text-muted-foreground">{formatCurrency(value)}</div>
                       <div className={`mt-2 text-[11px] font-medium ${risk.text}`}>{risk.label}</div>
                     </button>
                   );
@@ -1171,7 +1177,7 @@ function CRMDashboard() {
             {priorityDeals.length ? <PriorityDealsTable rows={priorityDeals} onOpen={(id) => navigate(`/crm/deals/${id}`)} /> : <DarkEmptyState label="No open deals currently match overdue, near-close, stale, or high-value priority rules." action="Open deals" onAction={() => navigate("/crm/deals")} />}
           </DashboardPanel>
 
-<SecondaryDetails dark title="Forecast and sales analysis">
+<SecondaryDetails title="Forecast and sales analysis">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
             <DashboardPanel title="Forecast by owner" actionLabel="Forecasting" onAction={() => navigate("/crm/forecasting")}>
               {forecastState.data.items.length ? (
@@ -1207,13 +1213,13 @@ function CRMDashboard() {
             {briefingRows.length ? (
               <div className="space-y-2">
                 {briefingRows.map((row) => (
-                  <button key={row.title} type="button" className="w-full rounded-md border border-white/10 bg-white/[0.035] p-3 text-left transition hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate(row.path)}>
+                  <button key={row.title} type="button" className="w-full rounded-md border border-border bg-white/[0.035] p-3 text-left transition hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate(row.path)}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-100">{row.title}</p>
-                        <p className="mt-1 text-xs text-slate-400">{row.reason}</p>
+                        <p className="text-sm font-semibold text-foreground">{row.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{row.reason}</p>
                       </div>
-                      <span className="text-xs font-semibold text-emerald-300">{row.action}</span>
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{row.action}</span>
                     </div>
                   </button>
                 ))}
@@ -1225,7 +1231,7 @@ function CRMDashboard() {
             {todayItems.length ? <TodayWorkList rows={todayItems} onOpen={(path) => navigate(path)} /> : <DarkEmptyState label="No CRM tasks, activities, or calendar items are due today." action="Open calendar" onAction={() => navigate("/crm/calendar")} />}
           </DashboardPanel>
 
-<SecondaryDetails dark title="Lead source analysis">
+<SecondaryDetails title="Lead source analysis">
           <DashboardPanel title="Lead sources">
             {sourceData.length ? (
               <div className="grid gap-3 sm:grid-cols-[9rem_1fr] xl:grid-cols-1 2xl:grid-cols-[8.5rem_1fr]">
@@ -1242,8 +1248,8 @@ function CRMDashboard() {
                 <div className="space-y-2">
                   {sourceData.slice(0, 5).map((row, index) => (
                     <div key={row.name} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="flex min-w-0 items-center gap-2 text-slate-300"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: ["#22c55e", "#38bdf8", "#f59e0b", "#94a3b8", "#e879f9"][index % 5] }} /> <span className="truncate">{row.name}</span></span>
-                      <span className="font-semibold text-slate-100">{row.value}</span>
+                      <span className="flex min-w-0 items-center gap-2 text-muted-foreground"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: ["#22c55e", "#38bdf8", "#f59e0b", "#94a3b8", "#e879f9"][index % 5] }} /> <span className="truncate">{row.name}</span></span>
+                      <span className="font-semibold text-foreground">{row.value}</span>
                     </div>
                   ))}
                 </div>
@@ -1288,33 +1294,33 @@ function dashboardDateWindow(range: "month" | "quarter" | "all"): DashboardRange
 function DashboardSkeleton() {
   return (
     <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="Loading CRM dashboard">
-      {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-md border border-white/10 bg-white/[0.04]" />)}
+      {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-md border border-border bg-white/[0.04]" />)}
     </div>
   );
 }
 
 function CompactMetricCard({ title, value, detail, tone, onClick }: { title: string; value: string | number; detail: string; tone: "emerald" | "sky" | "amber" | "red"; onClick: () => void }) {
   const toneClass = {
-    emerald: "text-emerald-300",
-    sky: "text-sky-300",
-    amber: "text-amber-300",
-    red: "text-red-300",
+    emerald: "text-emerald-700 dark:text-emerald-300",
+    sky: "text-sky-700 dark:text-sky-300",
+    amber: "text-amber-700 dark:text-amber-300",
+    red: "text-red-700 dark:text-red-300",
   }[tone];
   return (
-    <button type="button" className="rounded-md border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={onClick}>
-      <p className="text-xs font-medium text-slate-400">{title}</p>
+    <button type="button" className="rounded-md border border-border bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={onClick}>
+      <p className="text-xs font-medium text-muted-foreground">{title}</p>
       <p className={`mt-2 truncate text-2xl font-semibold tracking-tight ${toneClass}`}>{value}</p>
-      <p className="mt-1 truncate text-[11px] text-slate-500">{detail}</p>
+      <p className="mt-1 truncate text-[11px] text-muted-foreground">{detail}</p>
     </button>
   );
 }
 
 function DashboardPanel({ title, children, actionLabel, onAction }: { title: string; children: React.ReactNode; actionLabel?: string; onAction?: () => void }) {
   return (
-    <section className="rounded-md border border-white/10 bg-[#0a1726] shadow-sm shadow-black/10">
-      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-white/10 px-3 py-2">
-        <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
-        {actionLabel && onAction ? <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-sky-300 hover:bg-white/10 hover:text-sky-200" onClick={onAction}>{actionLabel}<ChevronRight className="h-3.5 w-3.5" /></Button> : null}
+    <section className="rounded-md border border-border bg-card shadow-sm shadow-primary/5">
+      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        {actionLabel && onAction ? <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-sky-700 dark:text-sky-300 hover:bg-accent hover:text-primary" onClick={onAction}>{actionLabel}<ChevronRight className="h-3.5 w-3.5" /></Button> : null}
       </div>
       <div className="p-3">{children}</div>
     </section>
@@ -1323,9 +1329,9 @@ function DashboardPanel({ title, children, actionLabel, onAction }: { title: str
 
 function DarkEmptyState({ label, action, onAction }: { label: string; action?: string; onAction?: () => void }) {
   return (
-    <div className="rounded-md border border-dashed border-white/10 bg-white/[0.025] px-3 py-8 text-center text-xs text-slate-400">
+    <div className="rounded-md border border-dashed border-border bg-white/[0.025] px-3 py-8 text-center text-xs text-muted-foreground">
       <p>{label}</p>
-      {action && onAction ? <Button size="sm" variant="ghost" className="mt-3 h-8 text-xs text-emerald-300 hover:bg-white/10" onClick={onAction}>{action}</Button> : null}
+      {action && onAction ? <Button size="sm" variant="ghost" className="mt-3 h-8 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-accent" onClick={onAction}>{action}</Button> : null}
     </div>
   );
 }
@@ -1334,8 +1340,8 @@ function PriorityDealsTable({ rows, onOpen }: { rows: ReturnType<typeof priority
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-left text-xs">
-        <thead className="text-[11px] uppercase tracking-wide text-slate-500">
-          <tr className="border-b border-white/10">
+        <thead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <tr className="border-b border-border">
             <th className="px-2 py-2 font-semibold">Deal</th>
             <th className="px-2 py-2 font-semibold">Company</th>
             <th className="px-2 py-2 font-semibold">Stage</th>
@@ -1346,13 +1352,13 @@ function PriorityDealsTable({ rows, onOpen }: { rows: ReturnType<typeof priority
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-white/10 last:border-0">
-              <td className="px-2 py-2"><button type="button" className="font-semibold text-slate-100 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => onOpen(row.id)}>{row.name}</button></td>
-              <td className="px-2 py-2 text-slate-300">{row.company || "-"}</td>
-              <td className="px-2 py-2"><span className="rounded bg-sky-400/10 px-2 py-1 text-sky-200">{row.stage}</span></td>
-              <td className="px-2 py-2 text-right font-semibold text-slate-100">{formatCurrency(row.amount)}</td>
-              <td className="px-2 py-2 text-slate-300">{row.closeDate ? formatDate(row.closeDate) : "-"}</td>
-              <td className="px-2 py-2 text-amber-200">{row.reason}</td>
+            <tr key={row.id} className="border-b border-border last:border-0">
+              <td className="px-2 py-2"><button type="button" className="font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => onOpen(row.id)}>{row.name}</button></td>
+              <td className="px-2 py-2 text-muted-foreground">{row.company || "-"}</td>
+              <td className="px-2 py-2"><span className="rounded bg-sky-400/10 px-2 py-1 text-sky-700 dark:text-sky-200">{row.stage}</span></td>
+              <td className="px-2 py-2 text-right font-semibold text-foreground">{formatCurrency(row.amount)}</td>
+              <td className="px-2 py-2 text-muted-foreground">{row.closeDate ? formatDate(row.closeDate) : "-"}</td>
+              <td className="px-2 py-2 text-amber-700 dark:text-amber-200">{row.reason}</td>
             </tr>
           ))}
         </tbody>
@@ -1366,12 +1372,12 @@ function TodayWorkList({ rows, onOpen }: { rows: Array<{ id: string; title: stri
     <div className="space-y-1">
       {rows.map((row) => (
         <button key={row.id} type="button" className="grid w-full grid-cols-[4.5rem_1fr_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-xs hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => onOpen(row.path)}>
-          <span className={row.overdue ? "font-semibold text-red-300" : "text-slate-400"}>{row.time}</span>
+          <span className={row.overdue ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground"}>{row.time}</span>
           <span className="min-w-0">
-            <span className="block truncate font-semibold text-slate-100">{row.title}</span>
-            <span className="block truncate text-[11px] text-slate-500">{row.type}{row.owner ? ` - ${row.owner}` : ""}</span>
+            <span className="block truncate font-semibold text-foreground">{row.title}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">{row.type}{row.owner ? ` - ${row.owner}` : ""}</span>
           </span>
-          <span className="text-emerald-300">Open</span>
+          <span className="text-emerald-700 dark:text-emerald-300">Open</span>
         </button>
       ))}
     </div>
@@ -1380,9 +1386,9 @@ function TodayWorkList({ rows, onOpen }: { rows: Array<{ id: string; title: stri
 
 function MetricLine({ label, value, danger }: { label: string; value: string | number; danger?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.035] px-3 py-2">
-      <span className="text-xs text-slate-400">{label}</span>
-      <span className={`text-sm font-semibold ${danger ? "text-red-300" : "text-slate-100"}`}>{value}</span>
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-white/[0.035] px-3 py-2">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={`text-sm font-semibold ${danger ? "text-red-700 dark:text-red-300" : "text-foreground"}`}>{value}</span>
     </div>
   );
 }
@@ -1428,9 +1434,9 @@ function orderedPipelineStages(stages: CRMRecord[], deals: CRMDeal[]) {
 function pipelineStageRisk(deals: CRMDeal[]) {
   const overdue = deals.filter((deal) => deal.closeDate && isPastDue(deal.closeDate)).length;
   const closingSoon = deals.filter((deal) => isWithinNextDays(deal.closeDate, 7)).length;
-  if (overdue) return { label: `${overdue} past close date`, dot: "bg-red-400", text: "text-red-300" };
-  if (closingSoon) return { label: `${closingSoon} closing this week`, dot: "bg-amber-400", text: "text-amber-300" };
-  return { label: "No close-date risk", dot: "bg-emerald-400", text: "text-emerald-300" };
+  if (overdue) return { label: `${overdue} past close date`, dot: "bg-red-400", text: "text-red-700 dark:text-red-300" };
+  if (closingSoon) return { label: `${closingSoon} closing this week`, dot: "bg-amber-400", text: "text-amber-700 dark:text-amber-300" };
+  return { label: "No close-date risk", dot: "bg-emerald-400", text: "text-emerald-700 dark:text-emerald-300" };
 }
 
 function priorityDealRows(deals: CRMDeal[]) {
@@ -1717,7 +1723,7 @@ function SimpleDashboardCard({ title, value, detail, tone }: { title: string; va
       <CardContent className="p-5">
         <p className="font-semibold text-slate-950">{title}</p>
         <p className={`mt-5 text-4xl font-semibold tracking-tight ${toneClass}`}>{value}</p>
-        <p className="mt-2 text-sm text-slate-500">{detail}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
       </CardContent>
     </Card>
   );
@@ -1749,7 +1755,7 @@ function DashboardKpiCard({ title, value, previous, delta, tone = "emerald" }: {
           <p className="text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
           <span className={`mb-1 rounded-full px-2 py-0.5 text-xs font-semibold ${toneClasses[tone]}`}>{deltaLabel}</span>
         </div>
-        <p className="mt-2 text-sm text-slate-500">{previous}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{previous}</p>
       </CardContent>
     </Card>
   );
@@ -1774,7 +1780,7 @@ function DashboardTopCompanies({ deals }: { deals: CRMDeal[] }) {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">{index + 1}</span>
               <div>
                 <p className="font-medium text-slate-950">{company.company}</p>
-                <p className="text-xs text-slate-500">{company.count} deal(s)</p>
+                <p className="text-xs text-muted-foreground">{company.count} deal(s)</p>
               </div>
             </div>
             <p className="font-semibold text-slate-950">{formatCurrency(company.amount)}</p>
@@ -1799,7 +1805,7 @@ function DashboardActionPanel({ onQuickCreate, onPipeline, onReports }: { onQuic
 }
 
 function DashboardNoData({ label }: { label: string }) {
-  return <div className="rounded-md border border-dashed bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{label}</div>;
+  return <div className="rounded-md border border-dashed bg-slate-50 px-4 py-10 text-center text-sm text-muted-foreground">{label}</div>;
 }
 
 function RefreshIcon() {
@@ -2024,7 +2030,7 @@ function PipelinePage() {
                 ))}
               </div>
               <div className="relative mt-3">
-                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input className="pl-9" value={templateSearch} onChange={(event) => setTemplateSearch(event.target.value)} placeholder="Search templates" />
               </div>
             </div>
@@ -2040,7 +2046,7 @@ function PipelinePage() {
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white" style={{ backgroundColor: template.accent }}>{template.name.slice(0, 2).toUpperCase()}</span>
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-slate-950">{template.name}</span>
-                      <span className="block truncate text-xs text-slate-500">{template.category}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{template.category}</span>
                     </span>
                   </div>
                 </button>
@@ -2052,7 +2058,7 @@ function PipelinePage() {
           {dealState.error || stageState.error || pipelineState.error ? <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">{dealState.error || stageState.error || pipelineState.error}</div> : null}
           {templateMessage ? <div className="rounded-md border bg-white px-4 py-2 text-sm text-slate-700">{templateMessage}</div> : null}
           {transitionMessage ? <div className="rounded-md border bg-white px-4 py-2 text-sm text-slate-700">{transitionMessage}</div> : null}
-          {dealState.loading || stageState.loading || pipelineState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM pipeline...</div> : null}
+          {dealState.loading || stageState.loading || pipelineState.loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-muted-foreground">Loading CRM pipeline...</div> : null}
           <div className="grid gap-3 md:grid-cols-4">
             <PipelineMetric label={isTemplateLibrary ? "Templates" : "Open pipeline"} value={isTemplateLibrary ? allCrmBusinessTemplates.length : formatCurrency(pipelineValue)} detail={isTemplateLibrary ? "Ready to clone" : `${openDeals.length} active deals`} />
             <PipelineMetric label={isTemplateLibrary ? "Industries" : "Weighted forecast"} value={isTemplateLibrary ? allCrmBusinessTemplates.filter((template) => template.group === "Industries").length : formatCurrency(weightedValue)} detail={isTemplateLibrary ? "Vertical pipelines" : "Probability adjusted"} />
@@ -2065,7 +2071,7 @@ function PipelinePage() {
                 {isTemplateLibrary ? (
                   <div>
                     <p className="text-sm font-semibold text-slate-950">Previewing {selectedTemplate.name}</p>
-                    <p className="text-xs text-slate-500">{selectedTemplate.category} / {selectedTemplate.group} template</p>
+                    <p className="text-xs text-muted-foreground">{selectedTemplate.category} / {selectedTemplate.group} template</p>
                   </div>
                 ) : (
                   <label className="min-w-64 space-y-1 text-sm">
@@ -2112,9 +2118,9 @@ function PipelinePage() {
 function PipelineMetric({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
     <div className="rounded-md border bg-white p-4">
-      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
       <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
     </div>
   );
 }
@@ -2126,7 +2132,7 @@ function TemplateDetailPanel({ template, applying, onApply }: { template: CRMBus
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-white" style={{ backgroundColor: template.accent }}>{template.name.slice(0, 2).toUpperCase()}</span>
         <div>
           <p className="text-sm font-semibold text-slate-950">{template.name}</p>
-          <p className="text-xs text-slate-500">{template.group} / {template.category}</p>
+          <p className="text-xs text-muted-foreground">{template.group} / {template.category}</p>
         </div>
       </div>
       <p className="mt-4 text-sm leading-6 text-slate-600">{template.description || defaultTemplateDescription(template)}</p>
@@ -2147,7 +2153,7 @@ function TemplateDetailPanel({ template, applying, onApply }: { template: CRMBus
 function TemplateList({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase text-slate-500">{title}</p>
+      <p className="text-xs font-semibold uppercase text-muted-foreground">{title}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {items.map((item) => <Badge key={item} variant="outline" className="bg-slate-50">{item}</Badge>)}
       </div>
@@ -2170,7 +2176,7 @@ function TemplatePreviewBoard({ template, applying, onApply }: { template: CRMBu
                   <h2 className="truncate text-sm font-semibold text-slate-950">{stage.name}</h2>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{stageDeals.length || (stage.isWon || stage.isLost ? "1" : "0")}</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">{stage.probability}% probability</p>
+                <p className="mt-1 text-xs text-muted-foreground">{stage.probability}% probability</p>
               </header>
               <div className="space-y-2 p-3">
                 {stageDeals.map((deal) => <TemplateSampleCard key={deal.name} template={template} sampleDeal={deal} />)}
@@ -2183,7 +2189,7 @@ function TemplatePreviewBoard({ template, applying, onApply }: { template: CRMBu
       </div>
       <div className="absolute inset-x-0 bottom-0 border-t bg-white/95 px-4 py-8 text-center backdrop-blur">
         <div className="mx-auto max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{template.group} / {template.category}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{template.group} / {template.category}</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">{template.name}</h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">{template.description || defaultTemplateDescription(template)}</p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
@@ -2201,8 +2207,8 @@ function TemplateSampleCard({ template, sampleDeal }: { template: CRMBusinessTem
   return (
     <div className="rounded-md border bg-white p-3 shadow-sm">
       <p className="text-sm font-semibold text-slate-950">{sampleDeal.name}</p>
-      <p className="mt-1 text-xs text-slate-500">{sampleDeal.company} / {template.category}</p>
-      <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-muted-foreground">{sampleDeal.company} / {template.category}</p>
+      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
         <span className="font-semibold text-slate-900">{formatCurrency(sampleDeal.amount)}</span>
         <span className="h-1 w-1 rounded-full bg-slate-300" />
         <span>{formatDate(sampleDeal.closeDate)}</span>
@@ -2311,11 +2317,11 @@ function PipelineColumn({
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
           <div className="rounded bg-slate-50 p-2">
-            <p className="text-slate-500">Value</p>
+            <p className="text-muted-foreground">Value</p>
             <p className="font-semibold text-slate-950">{formatCurrency(value)}</p>
           </div>
           <div className="rounded bg-slate-50 p-2">
-            <p className="text-slate-500">Weighted</p>
+            <p className="text-muted-foreground">Weighted</p>
             <p className="font-semibold text-slate-950">{formatCurrency(weighted)}</p>
           </div>
         </div>
@@ -2323,7 +2329,7 @@ function PipelineColumn({
       <SortableContext items={deals.map((deal) => deal.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 space-y-3 overflow-y-auto p-3">
           {deals.map((deal) => <DealCard key={deal.id} deal={deal} stages={stages} transitioning={transitioningDealId === deal.id} onTransition={onTransition} />)}
-          {!deals.length ? <div className="flex h-28 items-center justify-center rounded-md border border-dashed bg-slate-50 text-sm text-slate-500">Drop deal here</div> : null}
+          {!deals.length ? <div className="flex h-28 items-center justify-center rounded-md border border-dashed bg-slate-50 text-sm text-muted-foreground">Drop deal here</div> : null}
         </div>
       </SortableContext>
     </section>
@@ -2363,12 +2369,12 @@ function DealCard({
       className={`rounded-md border bg-white p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md ${isDragging ? "opacity-50" : ""} ${overlay ? "w-72 shadow-xl" : ""}`}
     >
       <div className="flex items-start gap-2">
-        <button type="button" className="rounded p-1 text-slate-400 hover:bg-slate-100" {...attributes} {...listeners} aria-label="Drag deal">
+        <button type="button" className="rounded p-1 text-muted-foreground hover:bg-slate-100" {...attributes} {...listeners} aria-label="Drag deal">
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 text-sm font-semibold text-slate-950">{deal.name}</h3>
-          <p className="mt-1 truncate text-xs text-slate-500">{deal.company || "No company"} / {deal.contact || "No contact"}</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{deal.company || "No company"} / {deal.contact || "No contact"}</p>
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between text-xs">
@@ -2379,7 +2385,7 @@ function DealCard({
         <span>Close {formatDate(deal.closeDate)}</span>
         <span>{deal.owner || "Unassigned"}</span>
       </div>
-      <p className="mt-2 line-clamp-2 text-xs text-slate-500">Next: {deal.nextStep || "No next step captured"}</p>
+      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">Next: {deal.nextStep || "No next step captured"}</p>
       {!overlay && onTransition && sortedStages.length ? (
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs" disabled={!previousStage || transitioning} onClick={() => move(previousStage)}>
@@ -2396,7 +2402,7 @@ function DealCard({
           </Button>
         </div>
       ) : null}
-      {transitioning ? <p className="mt-2 text-xs text-slate-500">Saving stage...</p> : null}
+      {transitioning ? <p className="mt-2 text-xs text-muted-foreground">Saving stage...</p> : null}
     </article>
   );
 }
@@ -2981,7 +2987,7 @@ function CRMCalendarPage() {
             </div>
           </div>
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-          {loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading CRM calendar...</div> : null}
+          {loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-muted-foreground">Loading CRM calendar...</div> : null}
           <DndContext onDragEnd={onDragEnd}>
             {view === "agenda" ? (
               <CalendarAgenda events={visibleEvents} onOpen={setSelected} />
@@ -3019,7 +3025,7 @@ function CalendarStat({ label, value, tone = "emerald" }: { label: string; value
   };
   return (
     <div className="rounded-md border bg-slate-50/70 p-3">
-      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
       <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-lg font-semibold ${tones[tone]}`}>{value}</p>
     </div>
   );
@@ -3029,7 +3035,7 @@ function CalendarMonth({ cursor, events, onCreate, onOpen }: { cursor: Date; eve
   const days = monthDays(cursor);
   return (
     <div className="overflow-hidden rounded-md border bg-white shadow-sm">
-      <div className="grid grid-cols-7 border-b bg-slate-50 text-center text-xs font-semibold uppercase text-slate-500">
+      <div className="grid grid-cols-7 border-b bg-slate-50 text-center text-xs font-semibold uppercase text-muted-foreground">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <div key={day} className="px-3 py-3">{day}</div>)}
       </div>
       <div className="grid grid-cols-7">
@@ -3057,10 +3063,10 @@ function CalendarDayCell({ date, events, muted = false, tall = false, onCreate, 
   const today = dateKey(date) === dateKey(new Date());
   const weekend = [0, 6].includes(date.getDay());
   return (
-    <section ref={setNodeRef} className={`min-h-36 border-r border-b p-2 last:border-r-0 ${tall ? "min-h-[28rem] rounded-md border bg-white" : ""} ${muted ? "bg-slate-50/70 text-slate-400" : weekend ? "bg-slate-50/60" : "bg-white"} ${isOver ? "ring-2 ring-emerald-500/50" : ""}`}>
+    <section ref={setNodeRef} className={`min-h-36 border-r border-b p-2 last:border-r-0 ${tall ? "min-h-[28rem] rounded-md border bg-white" : ""} ${muted ? "bg-slate-50/70 text-muted-foreground" : weekend ? "bg-slate-50/60" : "bg-white"} ${isOver ? "ring-2 ring-emerald-500/50" : ""}`}>
       <button type="button" className="mb-2 flex w-full items-center justify-between rounded px-1 py-0.5 text-left text-xs hover:bg-slate-100" onClick={() => onCreate(date)}>
         <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 font-semibold ${today ? "bg-emerald-600 text-white" : "text-slate-700"}`}>{date.toLocaleDateString(undefined, { weekday: tall ? "short" : undefined, month: tall ? "short" : undefined, day: "numeric" })}</span>
-        <Plus className="h-3.5 w-3.5 text-slate-400" />
+        <Plus className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
       <div className="space-y-1">
         {events.map((event) => <CalendarEventPill key={event.id} event={event} onOpen={onOpen} />)}
@@ -3140,7 +3146,7 @@ function MiniCalendar({ cursor, events, onSelect }: { cursor: Date; events: CRMC
           <Button variant="ghost" size="icon" onClick={() => { const next = new Date(cursor); next.setMonth(next.getMonth() + 1); onSelect(next); }}><ChevronRight className="h-4 w-4" /></Button>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <span key={day}>{day}</span>)}
       </div>
       <div className="mt-2 grid grid-cols-7 gap-1 text-center text-sm">
@@ -3163,7 +3169,7 @@ function MiniCalendar({ cursor, events, onSelect }: { cursor: Date; events: CRMC
 
 function CalendarTypeToggle({ label, color, active, onClick }: { label: string; color: string; active: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition ${active ? "bg-slate-50 text-slate-950" : "text-slate-400"}`}>
+    <button type="button" onClick={onClick} className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition ${active ? "bg-slate-50 text-slate-950" : "text-muted-foreground"}`}>
       <span className={`h-4 w-4 rounded ${color} ${active ? "opacity-100" : "opacity-30"}`} />
       <span>{label}</span>
     </button>
@@ -3392,7 +3398,7 @@ function CRMLeadsPage() {
   }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey]);
 
   useEffect(() => {
-    crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
+    leadsApi.bootstrap().then(({ data }) => setOwners(data.owners.map(owner => ({ id: owner.id, userId: owner.id, full_name: owner.name, email: owner.email || "" })))).catch(() => setOwners([]));
     crmApi.territories().then((response) => setTerritories(response.data.items || [])).catch(() => setTerritories([]));
   }, []);
 
@@ -3463,22 +3469,22 @@ function CRMLeadsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+    <div className="min-h-[calc(100vh-5rem)] bg-background text-foreground">
       <div className="grid xl:grid-cols-[minmax(0,1fr)_24rem]">
         <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Leads</span></div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-foreground">Leads</span></div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <h1 className="text-3xl font-semibold tracking-tight text-white">Leads</h1>
-                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{leadCountLabel}</Badge>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Leads</h1>
+                <Badge variant="outline" className="border-border bg-white/[0.04] text-foreground">{leadCountLabel}</Badge>
               </div>
-              <p className="mt-3 text-sm text-slate-400">Capture, qualify, assign, import, export, and convert leads.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Capture, qualify, assign, import, export, and convert leads.</p>
             </div>
             <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create lead</Button>
           </div>
 
-          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+          <section className="rounded-md border border-border bg-card">
             <LeadsToolbar
               search={search}
               view={view}
@@ -3525,12 +3531,12 @@ function CRMLeadsPage() {
           </section>
 
           {selectedRows.length ? (
-            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} lead{selectedRows.length === 1 ? "" : "s"} selected</div>
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} lead{selectedRows.length === 1 ? "" : "s"} selected</div>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-leads.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
-                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Deleting..." : "Delete"}</Button>
-                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear lead selection"><X className="h-4 w-4" /></Button>
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-leads.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Deleting..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear lead selection"><X className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : null}
@@ -3573,24 +3579,24 @@ function LeadsToolbar({ search, view, activeFilters, onSearch, onView, onFilters
     { key: "no_follow_up", label: "No follow-up" },
   ];
   return (
-    <div className="flex flex-col gap-2 border-b border-white/10 p-3 xl:flex-row xl:items-center">
-      <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
-        <Search className="h-4 w-4 text-slate-500" />
+    <div className="flex flex-col gap-2 border-b border-border p-3 xl:flex-row xl:items-center">
+      <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
+        <Search className="h-4 w-4 text-muted-foreground" />
         <span className="sr-only">Search leads</span>
-        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search leads..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search leads..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
         {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear lead search"><X className="h-3.5 w-3.5" /></button> : null}
       </label>
       <div className="flex flex-wrap gap-1">
         {views.map((item) => (
-          <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>
+          <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>
             {item.label}
           </button>
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
-        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
-        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
       </div>
     </div>
   );
@@ -3599,19 +3605,19 @@ function LeadsToolbar({ search, view, activeFilters, onSearch, onView, onFilters
 function LeadFilterPanel({ filters, owners, territories, statuses, ratings, sources, onChange, onClear }: { filters: LeadFilters; owners: CRMRecord[]; territories: CRMRecord[]; statuses: string[]; ratings: string[]; sources: string[]; onChange: (filters: LeadFilters) => void; onClear: () => void }) {
   const patch = (update: Partial<LeadFilters>) => onChange({ ...filters, ...update });
   return (
-    <div className="grid gap-3 border-b border-white/10 bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid gap-3 border-b border-border bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
       <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
       <LeadSelect label="Rating" value={filters.rating} values={ratings} onChange={(rating) => patch({ rating })} />
       <LeadSelect label="Source" value={filters.source} values={sources} onChange={(source) => patch({ source })} />
-      <label className="space-y-1 text-xs text-slate-400">Owner<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-      <label className="space-y-1 text-xs text-slate-400">Territory<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
-      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-slate-300 hover:bg-white/10" onClick={onClear}>Clear all</Button></div>
+      <label className="space-y-1 text-xs text-muted-foreground">Owner<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Territory<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
+      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-muted-foreground hover:bg-accent" onClick={onClear}>Clear all</Button></div>
     </div>
   );
 }
 
 function LeadSelect({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (value: string) => void }) {
-  return <label className="space-y-1 text-xs text-slate-400">{label}<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>;
+  return <label className="space-y-1 text-xs text-muted-foreground">{label}<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>;
 }
 
 function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, ownerNames, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMLead[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; ownerNames: Map<number, string>; onSort: (sort: SortState) => void; onSelect: (lead: CRMLead) => void; onEdit: (lead: CRMLead) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (lead: CRMLead, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
@@ -3620,10 +3626,10 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
   };
   return (
     <div>
-      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-[#0f2033] text-xs uppercase tracking-wide text-slate-400">
+          <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all leads" /></th>
               {[
@@ -3643,33 +3649,33 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan={11} className="px-3 py-12 text-center text-slate-400">Loading leads...</td></tr> : null}
+            {loading ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">Loading leads...</td></tr> : null}
             {!loading && rows.map((lead) => (
-              <tr key={lead.id} className={`border-t border-white/10 transition hover:bg-white/[0.04] ${selectedId === lead.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(lead)}>
+              <tr key={lead.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === lead.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(lead)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(lead.id)])} onChange={(event) => onToggleRow(lead, event.target.checked)} aria-label={`Select ${lead.name}`} /></td>
-                <td className="px-3 py-3"><div className="flex items-center gap-3"><LeadAvatar lead={lead} /><button type="button" className="font-semibold text-slate-100 hover:text-emerald-300" onClick={(event) => { event.stopPropagation(); onSelect(lead); }}>{lead.name}</button></div></td>
-                <td className="px-3 py-3 text-slate-300">{lead.company || "-"}</td>
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><LeadAvatar lead={lead} /><button type="button" className="font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" onClick={(event) => { event.stopPropagation(); onSelect(lead); }}>{lead.name}</button></div></td>
+                <td className="px-3 py-3 text-muted-foreground">{lead.company || "-"}</td>
                 <td className="px-3 py-3"><LeadBadge value={lead.status} tone="blue" /></td>
                 <td className="px-3 py-3"><LeadBadge value={lead.rating || "-"} tone={lead.rating === "Hot" ? "red" : lead.rating === "Warm" ? "amber" : "slate"} /></td>
                 <td className="px-3 py-3"><LeadScore value={lead.leadScore} /></td>
-                <td className="px-3 py-3 text-slate-300">{lead.ownerId ? ownerNames.get(lead.ownerId) || `Owner #${lead.ownerId}` : lead.owner || "-"}</td>
+                <td className="px-3 py-3 text-muted-foreground">{lead.ownerId ? ownerNames.get(lead.ownerId) || `Owner #${lead.ownerId}` : lead.owner || "-"}</td>
                 <td className="px-3 py-3"><FollowUpCell value={lead.nextFollowUp} /></td>
-                <td className="px-3 py-3 font-semibold text-slate-100">{formatCurrency(lead.value || 0)}</td>
-                <td className="px-3 py-3 text-slate-300">{lead.updatedAt ? formatDate(lead.updatedAt) : "-"}</td>
-                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-slate-200 hover:bg-white/10" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+                <td className="px-3 py-3 font-semibold text-foreground">{formatCurrency(lead.value || 0)}</td>
+                <td className="px-3 py-3 text-muted-foreground">{lead.updatedAt ? formatDate(lead.updatedAt) : "-"}</td>
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
               </tr>
             ))}
-            {!loading && !rows.length ? <tr><td colSpan={11} className="px-3 py-12 text-center text-slate-400">No leads match the current search or filters.</td></tr> : null}
+            {!loading && !rows.length ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">No leads match the current search or filters.</td></tr> : null}
           </tbody>
         </table>
       </div>
-      <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} leads</span>
         <div className="flex flex-wrap items-center gap-2">
-          <select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
-          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
-          <Badge variant="outline" className="h-9 border-white/10 px-3 text-slate-200">{page || 1} / {Math.max(1, pages || 1)}</Badge>
-          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
+          <select className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Badge variant="outline" className="h-9 border-border px-3 text-foreground">{page || 1} / {Math.max(1, pages || 1)}</Badge>
+          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
       </div>
     </div>
@@ -3693,17 +3699,17 @@ function LeadDetailDrawer({ lead, ownerNames, territoryNames, onClose, onEdit, o
       .catch((err) => setError(err?.response?.data?.detail || "Activity could not be loaded."))
       .finally(() => setLoading(false));
   }, [lead?.id]);
-  if (!lead) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select a lead to inspect details.</aside>;
+  if (!lead) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select a lead to inspect details.</aside>;
   return (
-    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+    <aside className="border-l border-border bg-card p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3"><LeadAvatar lead={lead} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{lead.name}</h2><p className="truncate text-sm text-slate-400">{lead.company || "No company"}</p></div></div>
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close lead details"><X className="h-4 w-4" /></Button>
+        <div className="flex min-w-0 items-center gap-3"><LeadAvatar lead={lead} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{lead.name}</h2><p className="truncate text-sm text-muted-foreground">{lead.company || "No company"}</p></div></div>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close lead details"><X className="h-4 w-4" /></Button>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        {lead.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${lead.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
-        {lead.email ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${lead.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
-        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+        {lead.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${lead.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
+        {lead.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${lead.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
       </div>
       <LeadDrawerSection title="Contact">
@@ -3722,11 +3728,11 @@ function LeadDetailDrawer({ lead, ownerNames, territoryNames, onClose, onEdit, o
         <LeadInfo label="Value" value={formatCurrency(lead.value || 0)} />
       </LeadDrawerSection>
       <LeadDrawerSection title="Activity">
-        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {loading ? <p className="text-sm text-muted-foreground">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
         {!loading && !error && timeline.slice(0, 4).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
-        {!loading && !error && !timeline.length ? <p className="text-sm text-slate-400">No activity found for this lead.</p> : null}
-        <Button size="sm" variant="outline" className="mt-3 w-full border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onOpenActivities}>View all activity</Button>
+        {!loading && !error && !timeline.length ? <p className="text-sm text-muted-foreground">No activity found for this lead.</p> : null}
+        <Button size="sm" variant="outline" className="mt-3 w-full border-border bg-transparent text-foreground hover:bg-accent" onClick={onOpenActivities}>View all activity</Button>
       </LeadDrawerSection>
     </aside>
   );
@@ -3753,34 +3759,34 @@ function LeadFormModal({ mode, lead, saving, error, owners, territories, statuse
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
-        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
-          <div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit lead" : "Create lead"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update contact and qualification details" : "Add contact and qualification details"}</p>{mode === "edit" && lead?.updatedAt ? <p className="mt-1 text-xs text-slate-500">Last updated {formatDate(lead.updatedAt)}</p> : null}</div>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close lead form"><X className="h-4 w-4" /></Button>
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div><h2 className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit lead" : "Create lead"}</h2><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update contact and qualification details" : "Add contact and qualification details"}</p>{mode === "edit" && lead?.updatedAt ? <p className="mt-1 text-xs text-muted-foreground">Last updated {formatDate(lead.updatedAt)}</p> : null}</div>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close lead form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="max-h-[calc(92vh-8rem)] space-y-5 overflow-y-auto px-5 py-4">
-          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
           <LeadFormSection title="Contact details">
-            <LeadFormField label="Lead name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter lead name" /></LeadFormField>
-            <LeadFormField label="Company"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.company)} onChange={(event) => patch("company", event.target.value)} placeholder="Enter company name" /></LeadFormField>
-            <LeadFormField label="Email" error={fieldErrors.email}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
-            <LeadFormField label="Phone" error={fieldErrors.phone}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.phone)} onChange={(event) => patch("phone", event.target.value)} placeholder="+919876543210" /></LeadFormField>
+            <LeadFormField label="Lead name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter lead name" /></LeadFormField>
+            <LeadFormField label="Company"><Input className="border-border bg-card text-foreground" value={valueText(draft.company)} onChange={(event) => patch("company", event.target.value)} placeholder="Enter company name" /></LeadFormField>
+            <LeadFormField label="Email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
+            <LeadFormField label="Phone" error={fieldErrors.phone}><PhoneInput label="Phone" value={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch("phone",value)} onCountryCodeChange={value=>patch("phone_country_code",value)} error={fieldErrors.phone} /></LeadFormField>
           </LeadFormSection>
           <LeadFormSection title="Qualification">
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
             <LeadFormField label="Status" required><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
             <LeadFormField label="Rating"><LeadFormSelect value={valueText(draft.rating)} values={ratings} onChange={(value) => patch("rating", value)} /></LeadFormField>
-            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
-            <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
-            <LeadFormField label="Estimated value" error={fieldErrors.value}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={valueText(draft.value)} onChange={(event) => patch("value", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Estimated value" error={fieldErrors.value}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.value)} onChange={(event) => patch("value", event.target.value)} /></LeadFormField>
           </LeadFormSection>
           <LeadFormSection title="Follow-up">
-            <LeadFormField label="Next follow-up date"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
-            <LeadFormField label="Next follow-up time"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
-            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this lead" maxLength={1000} /></LeadFormField>
+            <LeadFormField label="Next follow-up date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Next follow-up time"><Input className="border-border bg-card text-foreground" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this lead" maxLength={1000} /></LeadFormField>
           </LeadFormSection>
         </div>
-        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3"><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create lead"}</Button></div>
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create lead"}</Button></div>
       </div>
     </div>
   );
@@ -3793,10 +3799,10 @@ function LeadAvatar({ lead, large }: { lead: CRMLead; large?: boolean }) {
 
 function LeadBadge({ value, tone }: { value: string; tone: "blue" | "amber" | "red" | "slate" }) {
   const tones = {
-    blue: "bg-sky-500/15 text-sky-200",
-    amber: "bg-amber-500/15 text-amber-200",
-    red: "bg-red-500/15 text-red-200",
-    slate: "bg-slate-500/20 text-slate-200",
+    blue: "bg-sky-500/15 text-sky-700 dark:text-sky-200",
+    amber: "bg-amber-500/15 text-amber-700 dark:text-amber-200",
+    red: "bg-red-500/15 text-red-700 dark:text-red-200",
+    slate: "bg-slate-500/20 text-foreground",
   };
   return <span className={`inline-flex rounded px-2 py-1 text-xs font-medium ${tones[tone]}`}>{value || "-"}</span>;
 }
@@ -3804,30 +3810,30 @@ function LeadBadge({ value, tone }: { value: string; tone: "blue" | "amber" | "r
 function LeadScore({ value }: { value: number }) {
   const score = Math.max(0, Math.min(100, Number(value || 0)));
   return (
-    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-amber-400/80 text-xs font-semibold text-slate-100" aria-label={`Lead score ${score}`}>
+    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-amber-400/80 text-xs font-semibold text-foreground" aria-label={`Lead score ${score}`}>
       {score}
     </span>
   );
 }
 
 function FollowUpCell({ value }: { value?: string }) {
-  if (!value) return <span className="text-slate-500">No follow-up</span>;
+  if (!value) return <span className="text-muted-foreground">No follow-up</span>;
   const overdue = isPastDue(value);
   const dueToday = new Date(value).toDateString() === new Date().toDateString();
   return (
     <span className="block">
-      <span className="block text-slate-200">{formatDate(value)}</span>
-      <span className={`text-xs ${overdue ? "text-red-300" : dueToday ? "text-amber-300" : "text-slate-500"}`}>{overdue ? "Overdue" : dueToday ? "Due today" : "Upcoming"}</span>
+      <span className="block text-foreground">{formatDate(value)}</span>
+      <span className={`text-xs ${overdue ? "text-red-700 dark:text-red-300" : dueToday ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>{overdue ? "Overdue" : dueToday ? "Due today" : "Upcoming"}</span>
     </span>
   );
 }
 
 function LeadDrawerSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="mt-5 border-t border-white/10 pt-4"><h3 className="mb-3 text-base font-semibold text-slate-100">{title}</h3><div className="space-y-3">{children}</div></section>;
+  return <section className="mt-5 border-t border-border pt-4"><h3 className="mb-3 text-base font-semibold text-foreground">{title}</h3><div className="space-y-3">{children}</div></section>;
 }
 
 function LeadInfo({ label, value }: { label: string; value?: string | number | null }) {
-  return <div className="flex items-center justify-between gap-3 text-sm"><span className="text-slate-400">{label}</span><span className="text-right font-medium text-slate-100">{value || "Not provided"}</span></div>;
+  return <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">{label}</span><span className="text-right font-medium text-foreground">{value || "Not provided"}</span></div>;
 }
 
 function LeadActivityItem({ item }: { item: CRMApiRecord }) {
@@ -3835,30 +3841,30 @@ function LeadActivityItem({ item }: { item: CRMApiRecord }) {
   const body = String(item.body || item.description || item.outcome || "");
   const date = String(item.occurredAt || item.occurred_at || item.createdAt || item.created_at || item.activityDate || "");
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm">
-      <p className="font-semibold text-slate-100">{title}</p>
-      {body ? <p className="mt-1 text-xs text-slate-400">{body}</p> : null}
-      <p className="mt-2 text-xs text-slate-500">{date ? formatDate(date) : "No timestamp"}</p>
+    <div className="rounded-md border border-border bg-white/[0.03] p-3 text-sm">
+      <p className="font-semibold text-foreground">{title}</p>
+      {body ? <p className="mt-1 text-xs text-muted-foreground">{body}</p> : null}
+      <p className="mt-2 text-xs text-muted-foreground">{date ? formatDate(date) : "No timestamp"}</p>
     </div>
   );
 }
 
 function LeadFormSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section><h3 className="mb-3 text-sm font-semibold text-slate-100">{title}</h3><div className="grid gap-4 md:grid-cols-2">{children}</div></section>;
+  return <section><h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3><div className="grid gap-4 md:grid-cols-2">{children}</div></section>;
 }
 
 function LeadFormField({ label, required, error, wide, children }: { label: string; required?: boolean; error?: string; wide?: boolean; children: React.ReactNode }) {
   return (
     <label className={`space-y-1 text-sm ${wide ? "md:col-span-2" : ""}`}>
-      <span className="font-medium text-slate-200">{label}{required ? <span className="text-red-300"> *</span> : null}</span>
+      <span className="font-medium text-foreground">{label}{required ? <span className="text-red-700 dark:text-red-300"> *</span> : null}</span>
       {children}
-      {error ? <span className="block text-xs text-red-300">{error}</span> : null}
+      {error ? <span className="block text-xs text-red-700 dark:text-red-300">{error}</span> : null}
     </label>
   );
 }
 
 function LeadFormSelect({ value, values, onChange }: { value: string; values: string[]; onChange: (value: string) => void }) {
-  return <select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select>;
+  return <select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select>;
 }
 
 function leadFormInitial(lead: CRMLead | null): CRMApiRecord {
@@ -3868,6 +3874,7 @@ function leadFormInitial(lead: CRMLead | null): CRMApiRecord {
     company: lead?.company || "",
     email: lead?.email || "",
     phone: lead?.phone || "",
+    phone_country_code: lead?.phone_country_code || (lead ? "" : "+91"),
     source: lead?.source || "Other",
     status: lead?.status || "New",
     rating: lead?.rating || "Warm",
@@ -3883,8 +3890,8 @@ function leadFormInitial(lead: CRMLead | null): CRMApiRecord {
 function validateLeadDraft(draft: CRMApiRecord) {
   const errors: Record<string, string> = {};
   if (!String(draft.name || "").trim()) errors.name = "Lead name is required.";
-  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.email))) errors.email = "Enter a valid email address.";
-  if (draft.phone && !/^\+?[0-9\s-]{7,20}$/.test(String(draft.phone))) errors.phone = "Enter a valid phone number.";
+  const emailMessage=emailError(draft.email);if(emailMessage)errors.email=emailMessage;
+  const phoneMessage=phoneError(draft.phone,draft.phone_country_code);if(phoneMessage)errors.phone=phoneMessage;
   if (draft.value !== "" && Number.isNaN(Number(draft.value))) errors.value = "Estimated value must be numeric.";
   return errors;
 }
@@ -3900,6 +3907,7 @@ function buildLeadPayload(draft: CRMApiRecord): CRMApiRecord {
     company_name: emptyToUndefined(draft.company),
     email: emptyToUndefined(draft.email),
     phone: emptyToUndefined(draft.phone),
+    phone_country_code: emptyToUndefined(draft.phone_country_code),
     source: emptyToUndefined(draft.source) || "Other",
     status: emptyToUndefined(draft.status) || "New",
     rating: emptyToUndefined(draft.rating) || "Warm",
@@ -4192,22 +4200,22 @@ function CRMContactsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+    <div className="min-h-[calc(100vh-5rem)] bg-background text-foreground">
       <div className="grid xl:grid-cols-[minmax(0,1fr)_24rem]">
         <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Contacts</span></div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-foreground">Contacts</span></div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <h1 className="text-3xl font-semibold tracking-tight text-white">Contacts</h1>
-                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{contactCountLabel}</Badge>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Contacts</h1>
+                <Badge variant="outline" className="border-border bg-white/[0.04] text-foreground">{contactCountLabel}</Badge>
               </div>
-              <p className="mt-3 text-sm text-slate-400">Manage people, lifecycle stages, follow-up dates, and account links.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Manage people, lifecycle stages, follow-up dates, and account links.</p>
             </div>
             <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button>
           </div>
 
-          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+          <section className="rounded-md border border-border bg-card">
             <ContactsToolbar
               search={search}
               view={view}
@@ -4258,15 +4266,15 @@ function CRMContactsPage() {
           </section>
 
           {selectedRows.length ? (
-            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} contact{selectedRows.length === 1 ? "" : "s"} selected</div>
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} contact{selectedRows.length === 1 ? "" : "s"} selected</div>
               <div className="flex flex-wrap gap-2">
-                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-[#0b1a2a]">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-[#0b1a2a]">{stage}</option>)}</select></label>
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-contacts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
-                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
-                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear contact selection"><X className="h-4 w-4" /></Button>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-card">{stage}</option>)}</select></label>
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-contacts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear contact selection"><X className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : null}
@@ -4317,30 +4325,30 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
     ["updatedAt", "Updated"],
   ];
   return (
-    <div className="relative flex flex-col gap-2 border-b border-white/10 p-3 xl:flex-row xl:items-center">
-      <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
-        <Search className="h-4 w-4 text-slate-500" />
+    <div className="relative flex flex-col gap-2 border-b border-border p-3 xl:flex-row xl:items-center">
+      <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
+        <Search className="h-4 w-4 text-muted-foreground" />
         <span className="sr-only">Search contacts</span>
-        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search contacts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search contacts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
         {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear contact search"><X className="h-3.5 w-3.5" /></button> : null}
       </label>
       <div className="flex flex-wrap gap-1">
         {views.map((item) => (
-          <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>
+          <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>
             {item.label}
           </button>
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
-        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
-        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
-        <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
       </div>
       {showColumns ? (
-        <div className="absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-white/10 bg-[#0b1a2a] p-2 shadow-xl">
+        <div className="absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-border bg-card p-2 shadow-xl">
           {columns.map(([key, label]) => (
-            <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-white/5">
+            <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground hover:bg-muted/40">
               <input type="checkbox" checked={visibleColumns[key]} onChange={() => onColumnToggle(key)} />
               {label}
             </label>
@@ -4354,13 +4362,13 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
 function ContactFilterPanel({ filters, owners, companies, statuses, stages, sources, onChange, onClear }: { filters: ContactFilters; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onChange: (filters: ContactFilters) => void; onClear: () => void }) {
   const patch = (update: Partial<ContactFilters>) => onChange({ ...filters, ...update });
   return (
-    <div className="grid gap-3 border-b border-white/10 bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
-      <label className="space-y-1 text-xs text-slate-400">Company<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.companyId} onChange={(event) => patch({ companyId: event.target.value })}><option value="all">All companies</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></label>
+    <div className="grid gap-3 border-b border-border bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
+      <label className="space-y-1 text-xs text-muted-foreground">Company<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.companyId} onChange={(event) => patch({ companyId: event.target.value })}><option value="all">All companies</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></label>
       <LeadSelect label="Lifecycle stage" value={filters.stage} values={stages} onChange={(stage) => patch({ stage })} />
       <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
       <LeadSelect label="Source" value={filters.source} values={sources} onChange={(source) => patch({ source })} />
-      <label className="space-y-1 text-xs text-slate-400">Owner<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-slate-300 hover:bg-white/10" onClick={onClear}>Clear all</Button></div>
+      <label className="space-y-1 text-xs text-muted-foreground">Owner<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-muted-foreground hover:bg-accent" onClick={onClear}>Clear all</Button></div>
     </div>
   );
 }
@@ -4372,10 +4380,10 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
   const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
   return (
     <div>
-      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1040px] text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-[#0f2033] text-xs uppercase tracking-wide text-slate-400">
+          <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all contacts" /></th>
               <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}>Contact<ArrowUpDown className="h-3 w-3" /></button></th>
@@ -4391,33 +4399,33 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">Loading contacts...</td></tr> : null}
+            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading contacts...</td></tr> : null}
             {!loading && rows.map((contact) => (
-              <tr key={contact.id} className={`border-t border-white/10 transition hover:bg-white/[0.04] ${selectedId === contact.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(contact)}>
+              <tr key={contact.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === contact.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(contact)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(contact.id)])} onChange={(event) => onToggleRow(contact, event.target.checked)} aria-label={`Select ${contact.name}`} /></td>
-                <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-slate-100 hover:text-emerald-300" title={contact.name} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
-                {visibleColumns.company ? <td className="px-3 py-3 text-slate-300"><span title={contact.companyName || "No company linked"}>{contact.companyName || "No company linked"}</span></td> : null}
-                {visibleColumns.email ? <td className="px-3 py-3 text-slate-300"><span title={contact.email || "No email"}>{contact.email || "No email"}</span></td> : null}
-                {visibleColumns.phone ? <td className="px-3 py-3 text-slate-300">{formatContactPhone(contact.phone)}</td> : null}
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={contact.name} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
+                {visibleColumns.company ? <td className="px-3 py-3 text-muted-foreground"><span title={contact.companyName || "No company linked"}>{contact.companyName || "No company linked"}</span></td> : null}
+                {visibleColumns.email ? <td className="px-3 py-3 text-muted-foreground"><span title={contact.email || "No email"}>{contact.email || "No email"}</span></td> : null}
+                {visibleColumns.phone ? <td className="px-3 py-3 text-muted-foreground">{formatContactPhone(contact.phone)}</td> : null}
                 {visibleColumns.stage ? <td className="px-3 py-3"><LeadBadge value={contact.stage || "Lead"} tone="blue" /></td> : null}
                 {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /></td> : null}
-                {visibleColumns.owner ? <td className="px-3 py-3 text-slate-300"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(contact.owner || "U")}</span>{contact.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(contact.owner || "U")}</span>{contact.owner || "Unassigned"}</span></td> : null}
                 {visibleColumns.nextFollowUp ? <td className="px-3 py-3"><FollowUpCell value={contact.nextFollowUp} /></td> : null}
-                {visibleColumns.updatedAt ? <td className="px-3 py-3 text-slate-300">{contact.updatedAt ? formatDate(contact.updatedAt) : "-"}</td> : null}
-                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-slate-200 hover:bg-white/10" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+                {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{contact.updatedAt ? formatDate(contact.updatedAt) : "-"}</td> : null}
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
               </tr>
             ))}
-            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">No contacts match the current search or filters.</td></tr> : null}
+            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
           </tbody>
         </table>
       </div>
-      <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} contacts</span>
         <div className="flex flex-wrap items-center gap-2">
-          <select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
-          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
-          <Badge variant="outline" className="h-9 border-white/10 px-3 text-slate-200">{page || 1} / {Math.max(1, pages || 1)}</Badge>
-          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
+          <select className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Badge variant="outline" className="h-9 border-border px-3 text-foreground">{page || 1} / {Math.max(1, pages || 1)}</Badge>
+          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
       </div>
     </div>
@@ -4441,17 +4449,17 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAdd
       .catch((err) => setError(err?.response?.data?.detail || "Activity could not be loaded."))
       .finally(() => setLoading(false));
   }, [contact?.id]);
-  if (!contact) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select a contact to inspect details.</aside>;
+  if (!contact) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select a contact to inspect details.</aside>;
   return (
-    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+    <aside className="border-l border-border bg-card p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3"><ContactAvatar contact={contact} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{contact.name}</h2><p className="truncate text-sm text-slate-400">{contact.companyName || "No company linked"}</p></div></div>
-        <div className="flex items-center gap-1"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close contact details"><X className="h-4 w-4" /></Button></div>
+        <div className="flex min-w-0 items-center gap-3"><ContactAvatar contact={contact} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{contact.name}</h2><p className="truncate text-sm text-muted-foreground">{contact.companyName || "No company linked"}</p></div></div>
+        <div className="flex items-center gap-1"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close contact details"><X className="h-4 w-4" /></Button></div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        {contact.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${contact.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
-        {contact.email ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${contact.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
-        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+        {contact.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${contact.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
+        {contact.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${contact.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
       </div>
       <LeadDrawerSection title="Contact">
@@ -4472,11 +4480,11 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAdd
         <LeadInfo label="Status" value={contact.nextFollowUp ? followUpStatus(contact.nextFollowUp) : "No follow-up"} />
       </LeadDrawerSection>
       <LeadDrawerSection title="Activity">
-        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {loading ? <p className="text-sm text-muted-foreground">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
         {!loading && !error && timeline.slice(0, 5).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
-        {!loading && !error && !timeline.length ? <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-8 text-center text-sm text-slate-400">No activity yet</p> : null}
-        <Button size="sm" variant="outline" className="mt-3 w-full border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onOpenActivities}>View all activity</Button>
+        {!loading && !error && !timeline.length ? <p className="rounded-md border border-border bg-white/[0.03] px-3 py-8 text-center text-sm text-muted-foreground">No activity yet</p> : null}
+        <Button size="sm" variant="outline" className="mt-3 w-full border-border bg-transparent text-foreground hover:bg-accent" onClick={onOpenActivities}>View all activity</Button>
       </LeadDrawerSection>
     </aside>
   );
@@ -4503,33 +4511,33 @@ function ContactFormModal({ mode, contact, saving, error, owners, companies, sta
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
-        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
-          <div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit contact" : "Create contact"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update contact and relationship details" : "Add contact and relationship details"}</p>{mode === "edit" && contact?.updatedAt ? <p className="mt-1 text-xs text-slate-500">Last updated {formatDate(contact.updatedAt)}</p> : null}</div>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close contact form"><X className="h-4 w-4" /></Button>
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div><h2 className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit contact" : "Create contact"}</h2><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update contact and relationship details" : "Add contact and relationship details"}</p>{mode === "edit" && contact?.updatedAt ? <p className="mt-1 text-xs text-muted-foreground">Last updated {formatDate(contact.updatedAt)}</p> : null}</div>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close contact form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="max-h-[calc(92vh-8rem)] space-y-4 overflow-y-auto px-5 py-4">
-          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
           <LeadFormSection title="Contact details">
-            <LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField>
-            <LeadFormField label="Email" error={fieldErrors.email}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email" /></LeadFormField>
-            <LeadFormField label="Phone" error={fieldErrors.phone}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.phone)} onChange={(event) => patch("phone", event.target.value)} placeholder="+919876543210" /></LeadFormField>
-            <LeadFormField label="Job title"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField>
+            <LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField>
+            <LeadFormField label="Email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email" /></LeadFormField>
+            <LeadFormField label="Phone" error={fieldErrors.phone}><PhoneInput label="Phone" value={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch("phone",value)} onCountryCodeChange={value=>patch("phone_country_code",value)} error={fieldErrors.phone} /></LeadFormField>
+            <LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField>
           </LeadFormSection>
           <LeadFormSection title="Relationship">
-            <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company linked</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company linked</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></LeadFormField>
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
             <LeadFormField label="Lifecycle stage"><LeadFormSelect value={valueText(draft.stage)} values={stages} onChange={(value) => patch("stage", value)} /></LeadFormField>
             <LeadFormField label="Status"><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
-            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
           </LeadFormSection>
           <LeadFormSection title="Follow-up">
-            <LeadFormField label="Next follow-up date"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
-            <LeadFormField label="Next follow-up time"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
-            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes" maxLength={1000} /></LeadFormField>
+            <LeadFormField label="Next follow-up date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Next follow-up time"><Input className="border-border bg-card text-foreground" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
+            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes" maxLength={1000} /></LeadFormField>
           </LeadFormSection>
         </div>
-        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3"><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create contact"}</Button></div>
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create contact"}</Button></div>
       </div>
     </div>
   );
@@ -4541,6 +4549,7 @@ function contactFormInitial(contact: CRMContact | null): CRMApiRecord {
     name: contact?.name || "",
     email: contact?.email || "",
     phone: contact?.phone || "",
+    phone_country_code: contact?.phone_country_code || (contact ? "" : "+91"),
     title: contact?.title || "",
     companyId: contact?.companyId || "",
     source: contact?.source || "Other",
@@ -4556,8 +4565,8 @@ function contactFormInitial(contact: CRMContact | null): CRMApiRecord {
 function validateContactDraft(draft: CRMApiRecord) {
   const errors: Record<string, string> = {};
   if (!String(draft.name || "").trim()) errors.name = "Contact name is required.";
-  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.email))) errors.email = "Enter a valid email address.";
-  if (draft.phone && !/^\+?[0-9\s-]{7,24}$/.test(String(draft.phone))) errors.phone = "Enter a valid phone number.";
+  const emailMessage=emailError(draft.email);if(emailMessage)errors.email=emailMessage;
+  const phoneMessage=phoneError(draft.phone,draft.phone_country_code);if(phoneMessage)errors.phone=phoneMessage;
   return errors;
 }
 
@@ -4571,6 +4580,7 @@ function buildContactPayload(draft: CRMApiRecord): CRMApiRecord {
     full_name: name,
     email: emptyToUndefined(draft.email),
     phone: emptyToUndefined(draft.phone),
+    phone_country_code: emptyToUndefined(draft.phone_country_code),
     job_title: emptyToUndefined(draft.title),
     source: emptyToUndefined(draft.source) || "Other",
     lifecycle_stage: emptyToUndefined(draft.stage) || "Lead",
@@ -4604,7 +4614,7 @@ function recordToContact(record: CRMRecord, companyNames = new Map<number, strin
     companyId,
     companyName: String(record.companyName || record.company_name || (companyId ? companyNames.get(companyId) || "" : "")),
     email: String(record.email || ""),
-    phone: String(record.phone || ""),
+    phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""),
     title: String(record.title || record.job_title || ""),
     stage: String(record.stage || record.lifecycle_stage || "Lead"),
     source: String(record.source || ""),
@@ -4867,22 +4877,22 @@ function CRMAccountsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+    <div className="min-h-[calc(100vh-5rem)] bg-background text-foreground">
       <div className="grid xl:grid-cols-[minmax(0,1fr)_24rem]">
         <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Companies</span></div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-foreground">Companies</span></div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <h1 className="text-3xl font-semibold tracking-tight text-white">Accounts</h1>
-                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{accountCountLabel}</Badge>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Accounts</h1>
+                <Badge variant="outline" className="border-border bg-white/[0.04] text-foreground">{accountCountLabel}</Badge>
               </div>
-              <p className="mt-3 text-sm text-slate-400">Manage account master data with owners, industries, revenue, and status.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Manage account master data with owners, industries, revenue, and status.</p>
             </div>
             <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create account</Button>
           </div>
 
-          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+          <section className="rounded-md border border-border bg-card">
             <AccountsToolbar
               search={search}
               view={view}
@@ -4934,16 +4944,16 @@ function CRMAccountsPage() {
           </section>
 
           {selectedRows.length ? (
-            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} account{selectedRows.length === 1 ? "" : "s"} selected</div>
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} account{selectedRows.length === 1 ? "" : "s"} selected</div>
               <div className="flex flex-wrap gap-2">
-                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-[#0b1a2a]">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><TagIcon /><span className="sr-only">Change account type</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ account_type: event.target.value }, "Account type changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change type</option>{typeOptions.map((type) => <option key={type} value={type} className="bg-[#0b1a2a]">{type}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Activity className="h-3.5 w-3.5" /><span className="sr-only">Change status</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ status: event.target.value }, "Account status changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change status</option>{statusOptions.map((status) => <option key={status} value={status} className="bg-[#0b1a2a]">{status}</option>)}</select></label>
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-accounts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
-                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
-                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear account selection"><X className="h-4 w-4" /></Button>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><TagIcon /><span className="sr-only">Change account type</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ account_type: event.target.value }, "Account type changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change type</option>{typeOptions.map((type) => <option key={type} value={type} className="bg-card">{type}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Activity className="h-3.5 w-3.5" /><span className="sr-only">Change status</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ status: event.target.value }, "Account status changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change status</option>{statusOptions.map((status) => <option key={status} value={status} className="bg-card">{status}</option>)}</select></label>
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-accounts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear account selection"><X className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : null}
@@ -4978,27 +4988,27 @@ function AccountsToolbar({ search, view, activeFilters, showColumns, visibleColu
   ];
   const columns = [["industry", "Industry"], ["type", "Type"], ["status", "Status"], ["revenue", "Revenue"], ["owner", "Owner"], ["city", "City"], ["updatedAt", "Updated"]];
   return (
-    <div className="relative flex flex-col gap-2 border-b border-white/10 p-3">
+    <div className="relative flex flex-col gap-2 border-b border-border p-3">
       <div className="grid gap-2 xl:grid-cols-[minmax(15rem,24rem)_1fr] xl:items-center">
-        <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
-          <Search className="h-4 w-4 text-slate-500" />
+        <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
+          <Search className="h-4 w-4 text-muted-foreground" />
           <span className="sr-only">Search accounts</span>
-          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search accounts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search accounts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
           {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear account search"><X className="h-3.5 w-3.5" /></button> : null}
         </label>
         <div className="flex flex-wrap justify-between gap-2">
           <div className="flex flex-wrap gap-1">
-            {views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>{item.label}</button>)}
+            {views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>{item.label}</button>)}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
           </div>
         </div>
       </div>
-      {showColumns ? <div className="absolute right-3 top-full z-30 mt-2 w-52 rounded-md border border-white/10 bg-[#0b1a2a] p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-white/5"><input type="checkbox" checked={visibleColumns[key]} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
+      {showColumns ? <div className="absolute right-3 top-full z-30 mt-2 w-52 rounded-md border border-border bg-card p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground hover:bg-muted/40"><input type="checkbox" checked={visibleColumns[key]} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
     </div>
   );
 }
@@ -5006,16 +5016,16 @@ function AccountsToolbar({ search, view, activeFilters, showColumns, visibleColu
 function AccountFilterPanel({ filters, owners, territories, industries, types, statuses, cities, onChange, onClear }: { filters: AccountFilters; owners: CRMRecord[]; territories: CRMRecord[]; industries: string[]; types: string[]; statuses: string[]; cities: string[]; onChange: (filters: AccountFilters) => void; onClear: () => void }) {
   const patch = (update: Partial<AccountFilters>) => onChange({ ...filters, ...update });
   return (
-    <div className="grid gap-3 border-b border-white/10 bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid gap-3 border-b border-border bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
       <LeadSelect label="Industry" value={filters.industry} values={industries} onChange={(industry) => patch({ industry })} />
       <LeadSelect label="Type" value={filters.type} values={types} onChange={(type) => patch({ type })} />
       <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
-      <label className="space-y-1 text-xs text-slate-400">Owner<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-      <label className="space-y-1 text-xs text-slate-400">Territory<select className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Owner<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Territory<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
       <LeadSelect label="City" value={filters.city} values={cities} onChange={(city) => patch({ city })} />
-      <label className="space-y-1 text-xs text-slate-400">Min revenue<input className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" type="number" value={filters.minRevenue} onChange={(event) => patch({ minRevenue: event.target.value })} /></label>
-      <label className="space-y-1 text-xs text-slate-400">Max revenue<input className="h-9 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-sm text-slate-100" type="number" value={filters.maxRevenue} onChange={(event) => patch({ maxRevenue: event.target.value })} /></label>
-      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-slate-300 hover:bg-white/10" onClick={onClear}>Clear all</Button></div>
+      <label className="space-y-1 text-xs text-muted-foreground">Min revenue<input className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" type="number" value={filters.minRevenue} onChange={(event) => patch({ minRevenue: event.target.value })} /></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Max revenue<input className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" type="number" value={filters.maxRevenue} onChange={(event) => patch({ maxRevenue: event.target.value })} /></label>
+      <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-muted-foreground hover:bg-accent" onClick={onClear}>Clear all</Button></div>
     </div>
   );
 }
@@ -5025,10 +5035,10 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
   const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
   return (
     <div>
-      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+      {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-[#0f2033] text-xs uppercase tracking-wide text-slate-400">
+          <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all accounts" /></th>
               <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}><Building2 className="h-3.5 w-3.5" />Account<ArrowUpDown className="h-3 w-3" /></button></th>
@@ -5043,32 +5053,32 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">Loading accounts...</td></tr> : null}
+            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading accounts...</td></tr> : null}
             {!loading && rows.map((account) => (
-              <tr key={account.id} className={`border-t border-white/10 transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
+              <tr key={account.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(account.id)])} onChange={(event) => onToggleRow(account, event.target.checked)} aria-label={`Select ${account.name}`} /></td>
-                <td className="px-3 py-3"><div className="flex items-center gap-3"><AccountAvatar account={account} /><button type="button" className="max-w-52 truncate font-semibold text-slate-100 hover:text-emerald-300" title={account.name} onClick={(event) => { event.stopPropagation(); onSelect(account); }}>{account.name}</button></div></td>
-                {visibleColumns.industry ? <td className="px-3 py-3 text-slate-300">{account.industry || "Not provided"}</td> : null}
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><AccountAvatar account={account} /><button type="button" className="max-w-52 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={account.name} onClick={(event) => { event.stopPropagation(); onSelect(account); }}>{account.name}</button></div></td>
+                {visibleColumns.industry ? <td className="px-3 py-3 text-muted-foreground">{account.industry || "Not provided"}</td> : null}
                 {visibleColumns.type ? <td className="px-3 py-3"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /></td> : null}
                 {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></td> : null}
-                {visibleColumns.revenue ? <td className="px-3 py-3 font-semibold text-slate-100">{formatCurrency(account.revenue || 0)}</td> : null}
-                {visibleColumns.owner ? <td className="px-3 py-3 text-slate-300"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(account.owner || "U")}</span>{account.owner || "Unassigned"}</span></td> : null}
-                {visibleColumns.city ? <td className="px-3 py-3 text-slate-300">{account.city || "Not provided"}</td> : null}
-                {visibleColumns.updatedAt ? <td className="px-3 py-3 text-slate-300">{account.updatedAt ? formatDate(account.updatedAt) : "-"}</td> : null}
-                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-slate-200 hover:bg-white/10" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+                {visibleColumns.revenue ? <td className="px-3 py-3 font-semibold text-foreground">{formatCurrency(account.revenue || 0)}</td> : null}
+                {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(account.owner || "U")}</span>{account.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.city ? <td className="px-3 py-3 text-muted-foreground">{account.city || "Not provided"}</td> : null}
+                {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{account.updatedAt ? formatDate(account.updatedAt) : "-"}</td> : null}
+                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
               </tr>
             ))}
-            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-slate-400">No accounts match the current search or filters.</td></tr> : null}
+            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No accounts match the current search or filters.</td></tr> : null}
           </tbody>
         </table>
       </div>
-      <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} accounts</span>
         <div className="flex flex-wrap items-center gap-2">
-          <select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
-          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
-          <Badge variant="outline" className="h-9 border-white/10 px-3 text-slate-200">{page || 1} / {Math.max(1, pages || 1)}</Badge>
-          <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
+          <select className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <Badge variant="outline" className="h-9 border-border px-3 text-foreground">{page || 1} / {Math.max(1, pages || 1)}</Badge>
+          <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
       </div>
     </div>
@@ -5097,7 +5107,7 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
       .catch((err) => setError(err?.response?.data?.detail || "Account activity could not be loaded."))
       .finally(() => setLoading(false));
   }, [account?.id]);
-  if (!account) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select an account to inspect details.</aside>;
+  if (!account) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select an account to inspect details.</aside>;
   const relatedContacts = Array.isArray(related.contacts) ? related.contacts as CRMApiRecord[] : null;
   const relatedDeals = Array.isArray(related.deals) ? related.deals as CRMApiRecord[] : null;
   const relatedNotes = Array.isArray(related.notes) ? related.notes as CRMApiRecord[] : null;
@@ -5106,16 +5116,16 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
   const notes = relatedNotes ? relatedNotes.length : null;
   const pipeline = relatedDeals ? relatedDeals.filter((deal) => !["won", "lost"].includes(String(deal.status || "").toLowerCase())).length : null;
   return (
-    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+    <aside className="border-l border-border bg-card p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3"><AccountAvatar account={account} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{account.name}</h2><div className="mt-1 flex gap-1"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></div></div></div>
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close account details"><X className="h-4 w-4" /></Button>
+        <div className="flex min-w-0 items-center gap-3"><AccountAvatar account={account} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{account.name}</h2><div className="mt-1 flex gap-1"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></div></div></div>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close account details"><X className="h-4 w-4" /></Button>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        {account.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${account.phone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
-        {account.email ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${account.email}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
-        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
-        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
+        {account.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${account.phone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
+        {account.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${account.email}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
+        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
       </div>
       <LeadDrawerSection title="Account details">
@@ -5139,17 +5149,17 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
         </div>
       </LeadDrawerSection>
       <LeadDrawerSection title="Timeline">
-        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {loading ? <p className="text-sm text-muted-foreground">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
         {!loading && !error && timeline.slice(0, 5).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
-        {!loading && !error && !timeline.length ? <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-8 text-center text-sm text-slate-400">No activity yet</p> : null}
+        {!loading && !error && !timeline.length ? <p className="rounded-md border border-border bg-white/[0.03] px-3 py-8 text-center text-sm text-muted-foreground">No activity yet</p> : null}
       </LeadDrawerSection>
     </aside>
   );
 }
 
 function AccountRelatedTile({ icon, label, value, onClick }: { icon: React.ReactNode; label: string; value: number | null; onClick: () => void }) {
-  return <button type="button" className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/[0.06]" onClick={onClick}><span className="inline-flex items-center gap-2">{icon}{label}</span><span className="font-semibold">{value ?? "—"}</span></button>;
+  return <button type="button" className="flex items-center justify-between rounded-md border border-border bg-white/[0.03] px-3 py-3 text-left text-sm text-foreground hover:bg-white/[0.06]" onClick={onClick}><span className="inline-flex items-center gap-2">{icon}{label}</span><span className="font-semibold">{value ?? "—"}</span></button>;
 }
 
 function AccountFormModal({ mode, account, saving, error, owners, territories, industries, types, statuses, onClose, onSave }: { mode: AccountFormMode; account: CRMAccount | null; saving: boolean; error: string | null; owners: CRMRecord[]; territories: CRMRecord[]; industries: string[]; types: string[]; statuses: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
@@ -5173,35 +5183,35 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
-        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
-          <div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit account" : "Create account"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update company and ownership details" : "Add company and ownership details"}</p>{mode === "edit" && account?.updatedAt ? <p className="mt-1 text-xs text-slate-500">Last updated {formatDate(account.updatedAt)}</p> : null}</div>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close account form"><X className="h-4 w-4" /></Button>
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div><h2 className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit account" : "Create account"}</h2><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update company and ownership details" : "Add company and ownership details"}</p>{mode === "edit" && account?.updatedAt ? <p className="mt-1 text-xs text-muted-foreground">Last updated {formatDate(account.updatedAt)}</p> : null}</div>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close account form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="max-h-[calc(92vh-8rem)] space-y-4 overflow-y-auto px-5 py-4">
-          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+          {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
           <div className="grid gap-4 lg:grid-cols-2">
             <LeadFormSection title="Company details">
-              <LeadFormField label="Company name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter company name" /></LeadFormField>
+              <LeadFormField label="Company name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter company name" /></LeadFormField>
               <LeadFormField label="Industry" required><LeadFormSelect value={valueText(draft.industry)} values={industries} onChange={(value) => patch("industry", value)} /></LeadFormField>
               <LeadFormField label="Account type" required><LeadFormSelect value={valueText(draft.type)} values={types} onChange={(value) => patch("type", value)} /></LeadFormField>
               <LeadFormField label="Status" required><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
             </LeadFormSection>
             <LeadFormSection title="Financial & ownership">
-              <LeadFormField label="Annual revenue" error={fieldErrors.revenue}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={valueText(draft.revenue)} onChange={(event) => patch("revenue", event.target.value)} placeholder="Enter annual revenue" /></LeadFormField>
-              <LeadFormField label="Owner" required><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
-              <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
-              <LeadFormField label="City"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.city)} onChange={(event) => patch("city", event.target.value)} placeholder="Search city" /></LeadFormField>
+              <LeadFormField label="Annual revenue" error={fieldErrors.revenue}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.revenue)} onChange={(event) => patch("revenue", event.target.value)} placeholder="Enter annual revenue" /></LeadFormField>
+              <LeadFormField label="Owner" required><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="City"><Input className="border-border bg-card text-foreground" value={valueText(draft.city)} onChange={(event) => patch("city", event.target.value)} placeholder="Search city" /></LeadFormField>
             </LeadFormSection>
           </div>
           <LeadFormSection title="Contact">
-            <LeadFormField label="Company email" error={fieldErrors.email}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
-            <LeadFormField label="Phone" error={fieldErrors.phone}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.phone)} onChange={(event) => patch("phone", event.target.value)} placeholder="+919876543210" /></LeadFormField>
-            <LeadFormField label="Website"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.website)} onChange={(event) => patch("website", event.target.value)} placeholder="https://example.com" /></LeadFormField>
-            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this account" maxLength={1000} /></LeadFormField>
+            <LeadFormField label="Company email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
+            <LeadFormField label="Phone" error={fieldErrors.phone}><PhoneInput label="Phone" value={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch("phone",value)} onCountryCodeChange={value=>patch("phone_country_code",value)} error={fieldErrors.phone} /></LeadFormField>
+            <LeadFormField label="Website"><Input className="border-border bg-card text-foreground" value={valueText(draft.website)} onChange={(event) => patch("website", event.target.value)} placeholder="https://example.com" /></LeadFormField>
+            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this account" maxLength={1000} /></LeadFormField>
           </LeadFormSection>
         </div>
-        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3"><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create account"}</Button></div>
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create account"}</Button></div>
       </div>
     </div>
   );
@@ -5219,6 +5229,7 @@ function accountFormInitial(account: CRMAccount | null): CRMApiRecord {
     city: account?.city || "",
     email: account?.email || "",
     phone: account?.phone || "",
+    phone_country_code: account?.phone_country_code || (account ? "" : "+91"),
     website: account?.website || "",
     notes: account?.notes || "",
   };
@@ -5227,8 +5238,8 @@ function accountFormInitial(account: CRMAccount | null): CRMApiRecord {
 function validateAccountDraft(draft: CRMApiRecord) {
   const errors: Record<string, string> = {};
   if (!String(draft.name || "").trim()) errors.name = "Company name is required.";
-  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.email))) errors.email = "Enter a valid email address.";
-  if (draft.phone && !/^\+?[0-9\s-]{7,24}$/.test(String(draft.phone))) errors.phone = "Enter a valid phone number.";
+  const emailMessage=emailError(draft.email);if(emailMessage)errors.email=emailMessage;
+  const phoneMessage=phoneError(draft.phone,draft.phone_country_code);if(phoneMessage)errors.phone=phoneMessage;
   if (draft.revenue !== "" && Number.isNaN(Number(draft.revenue))) errors.revenue = "Annual revenue must be numeric.";
   return errors;
 }
@@ -5243,6 +5254,7 @@ function buildAccountPayload(draft: CRMApiRecord): CRMApiRecord {
     city: emptyToUndefined(draft.city),
     email: emptyToUndefined(draft.email),
     phone: emptyToUndefined(draft.phone),
+    phone_country_code: emptyToUndefined(draft.phone_country_code),
     website: emptyToUndefined(draft.website),
     notes: emptyToUndefined(draft.notes),
   };
@@ -5279,7 +5291,7 @@ function recordToAccount(record: CRMRecord, ownerNames = new Map<number, string>
     territory: String(record.territory || (territoryId ? territoryNames.get(territoryId) || "" : "")),
     city: String(record.city || ""),
     email: String(record.email || ""),
-    phone: String(record.phone || ""),
+    phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""),
     website: String(record.website || ""),
     notes: String(record.notes || ""),
     createdAt: String(record.createdAt || record.created_at || ""),
@@ -5493,37 +5505,37 @@ function CRMDealsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-[#07111f] text-slate-100">
+    <div className="min-h-[calc(100vh-5rem)] bg-background text-foreground">
       <div className="grid xl:grid-cols-[minmax(0,1fr)_28rem]">
         <main className="min-w-0 space-y-3 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-400"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-slate-200">Deals</span></div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-foreground">Deals</span></div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <h1 className="text-3xl font-semibold tracking-tight text-white">Deals</h1>
-                <Badge variant="outline" className="border-white/10 bg-white/[0.04] text-slate-200">{dealCountLabel}</Badge>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Deals</h1>
+                <Badge variant="outline" className="border-border bg-white/[0.04] text-foreground">{dealCountLabel}</Badge>
               </div>
-              <p className="mt-3 text-sm text-slate-400">Opportunities with amount, probability, products, quotations, and owners.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Opportunities with amount, probability, products, quotations, and owners.</p>
             </div>
             <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create deal</Button>
           </div>
 
-          <section className="rounded-md border border-white/10 bg-[#0a1726]">
+          <section className="rounded-md border border-border bg-card">
             <DealsToolbar search={search} view={view} activeFilters={activeFilters} showColumns={showColumns} visibleColumns={visibleColumns} onSearch={setSearch} onView={setView} onFilters={() => setShowFilters((value) => !value)} onColumns={() => setShowColumns((value) => !value)} onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))} onExport={exportServerRows} onImport={() => navigate("/crm/import-export")} />
             {showFilters ? <DealFilterPanel filters={filters} owners={owners} companies={companies} contacts={contacts} territories={territories} stages={stages} statuses={statusOptions} sources={sourceOptions} onChange={setFilters} onClear={() => setFilters(emptyDealFilters)} /> : null}
             <DealTable rows={rows} loading={state.loading} error={state.error} selectedId={selected?.id} selectedIds={selectedIds} allSelected={allSelected} sort={sort} page={state.page} pages={state.pages} pageSize={pageSize} total={state.total} visibleColumns={visibleColumns} onSort={setSort} onSelect={setSelected} onEdit={openEdit} onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})} onToggleRow={(deal, checked) => setSelectedIds((current) => ({ ...current, [String(deal.id)]: checked }))} onPage={setPage} onPageSize={setPageSize} />
           </section>
 
           {selectedRows.length ? (
-            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#102033]/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{selectedRows.length} deal{selectedRows.length === 1 ? "" : "s"} selected</div>
+            <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} deal{selectedRows.length === 1 ? "" : "s"} selected</div>
               <div className="flex flex-wrap gap-2">
-                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-[#0b1a2a]">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-white/10 px-2 text-slate-100"><GitMerge className="h-3.5 w-3.5" /><span className="sr-only">Change stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { const stage = stages.find((item) => String(item.id) === event.target.value); if (stage) bulkPatch({ pipeline_id: Number(stage.pipelineId || stage.pipeline_id || 0), stage_id: Number(stage.id), probability: Number(stage.probability || 0), status: inferDealStatusFromStage(stage) }, "Deal stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-[#0b1a2a]">Change stage</option>{stages.map((stage) => <option key={String(stage.id)} value={String(stage.id)} className="bg-[#0b1a2a]">{String(stage.name || stage.stageName || stage.id)}</option>)}</select></label>
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => navigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => exportRows("selected-deals.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export</Button>
-                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
-                <Button size="sm" variant="ghost" className="h-8 text-slate-300 hover:bg-white/10" onClick={() => setSelectedIds({})} aria-label="Clear deal selection"><X className="h-4 w-4" /></Button>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><GitMerge className="h-3.5 w-3.5" /><span className="sr-only">Change stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { const stage = stages.find((item) => String(item.id) === event.target.value); if (stage) bulkPatch({ pipeline_id: Number(stage.pipelineId || stage.pipeline_id || 0), stage_id: Number(stage.id), probability: Number(stage.probability || 0), status: inferDealStatusFromStage(stage) }, "Deal stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stages.map((stage) => <option key={String(stage.id)} value={String(stage.id)} className="bg-card">{String(stage.name || stage.stageName || stage.id)}</option>)}</select></label>
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-deals.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear deal selection"><X className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : null}
@@ -5539,25 +5551,25 @@ function DealsToolbar({ search, view, activeFilters, showColumns, visibleColumns
   const views: Array<{ key: DealViewKey; label: string }> = [{ key: "all", label: "All deals" }, { key: "mine", label: "My deals" }, { key: "closing", label: "Closing this week" }, { key: "no_follow_up", label: "No follow-up" }];
   const columns = [["company", "Company"], ["contact", "Contact"], ["stage", "Stage"], ["amount", "Amount"], ["probability", "Probability"], ["weighted", "Weighted value"], ["owner", "Owner"], ["closeDate", "Close date"], ["nextActivity", "Next activity"], ["updatedAt", "Updated"]];
   return (
-    <div className="relative flex flex-col gap-2 border-b border-white/10 p-3">
+    <div className="relative flex flex-col gap-2 border-b border-border p-3">
       <div className="grid gap-2 xl:grid-cols-[minmax(15rem,24rem)_1fr] xl:items-center">
-        <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-3 text-sm text-slate-300">
-          <Search className="h-4 w-4 text-slate-500" />
+        <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
+          <Search className="h-4 w-4 text-muted-foreground" />
           <span className="sr-only">Search deals</span>
-          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search deals..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" />
+          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search deals..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
           {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear deal search"><X className="h-3.5 w-3.5" /></button> : null}
         </label>
         <div className="flex flex-wrap justify-between gap-2">
-          <div className="flex flex-wrap gap-1">{views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-300" : "border-white/10 bg-white/[0.025] text-slate-300 hover:bg-white/[0.06]"}`}>{item.label}</button>)}</div>
+          <div className="flex flex-wrap gap-1">{views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>{item.label}</button>)}</div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onFilters}><Filter className="h-4 w-4" />Filter{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
-            <Button size="sm" variant="outline" className="h-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filter{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+            <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
           </div>
         </div>
       </div>
-      {showColumns ? <div className="absolute right-3 top-full z-30 mt-1 w-56 rounded-md border border-white/10 bg-[#0b1a2a] p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-white/5"><input type="checkbox" checked={Boolean(visibleColumns[key])} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
+      {showColumns ? <div className="absolute right-3 top-full z-30 mt-1 w-56 rounded-md border border-border bg-card p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground hover:bg-muted/40"><input type="checkbox" checked={Boolean(visibleColumns[key])} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
     </div>
   );
 }
@@ -5565,7 +5577,7 @@ function DealsToolbar({ search, view, activeFilters, showColumns, visibleColumns
 function DealFilterPanel({ filters, owners, companies, contacts, territories, stages, statuses, sources, onChange, onClear }: { filters: DealFilters; owners: CRMRecord[]; companies: CRMRecord[]; contacts: CRMRecord[]; territories: CRMRecord[]; stages: CRMRecord[]; statuses: string[]; sources: string[]; onChange: (filters: DealFilters) => void; onClear: () => void }) {
   const patch = (key: keyof DealFilters, value: string) => onChange({ ...filters, [key]: value });
   return (
-    <div className="grid gap-3 border-b border-white/10 bg-white/[0.02] p-3 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 border-b border-border bg-white/[0.02] p-3 md:grid-cols-2 xl:grid-cols-4">
       <DealFilterSelect label="Stage" value={filters.stageId} onChange={(value) => patch("stageId", value)} options={stages.map((stage) => ({ value: String(stage.id), label: String(stage.name || stage.stageName || stage.id) }))} />
       <DealFilterSelect label="Owner" value={filters.ownerId} onChange={(value) => patch("ownerId", value)} options={owners.map((owner) => ({ value: String(owner.userId || owner.user_id || owner.id), label: String(owner.adminArea || owner.full_name || owner.email || owner.id) }))} />
       <DealFilterSelect label="Company" value={filters.companyId} onChange={(value) => patch("companyId", value)} options={companies.map((company) => ({ value: String(company.id), label: String(company.name || company.companyName || company.id) }))} />
@@ -5574,29 +5586,29 @@ function DealFilterPanel({ filters, owners, companies, contacts, territories, st
       <DealFilterSelect label="Status" value={filters.status} onChange={(value) => patch("status", value)} options={statuses.map((status) => ({ value: status, label: status }))} />
       <DealFilterSelect label="Source" value={filters.source} onChange={(value) => patch("source", value)} options={sources.map((source) => ({ value: source, label: source }))} />
       <div className="grid grid-cols-2 gap-2">
-        <LeadFormField label="Min amount"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.minAmount} type="number" onChange={(event) => patch("minAmount", event.target.value)} /></LeadFormField>
-        <LeadFormField label="Max amount"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.maxAmount} type="number" onChange={(event) => patch("maxAmount", event.target.value)} /></LeadFormField>
+        <LeadFormField label="Min amount"><Input className="border-border bg-card text-foreground" value={filters.minAmount} type="number" onChange={(event) => patch("minAmount", event.target.value)} /></LeadFormField>
+        <LeadFormField label="Max amount"><Input className="border-border bg-card text-foreground" value={filters.maxAmount} type="number" onChange={(event) => patch("maxAmount", event.target.value)} /></LeadFormField>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <LeadFormField label="Min prob."><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.minProbability} type="number" onChange={(event) => patch("minProbability", event.target.value)} /></LeadFormField>
-        <LeadFormField label="Max prob."><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={filters.maxProbability} type="number" onChange={(event) => patch("maxProbability", event.target.value)} /></LeadFormField>
+        <LeadFormField label="Min prob."><Input className="border-border bg-card text-foreground" value={filters.minProbability} type="number" onChange={(event) => patch("minProbability", event.target.value)} /></LeadFormField>
+        <LeadFormField label="Max prob."><Input className="border-border bg-card text-foreground" value={filters.maxProbability} type="number" onChange={(event) => patch("maxProbability", event.target.value)} /></LeadFormField>
       </div>
-      <div className="flex items-end"><Button variant="outline" className="h-10 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={onClear}>Clear filters</Button></div>
+      <div className="flex items-end"><Button variant="outline" className="h-10 border-border bg-transparent text-foreground hover:bg-accent" onClick={onClear}>Clear filters</Button></div>
     </div>
   );
 }
 
 function DealFilterSelect({ label, value, options, onChange }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
-  return <LeadFormField label={label}><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></LeadFormField>;
+  return <LeadFormField label={label}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></LeadFormField>;
 }
 
 function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMDealRow[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (deal: CRMDealRow) => void; onEdit: (deal: CRMDealRow) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (deal: CRMDealRow, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
-  const sortButton = (key: string, label: string) => <button type="button" className="inline-flex items-center gap-1 text-left" onClick={() => onSort(sort?.key === key ? { key, direction: sort.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" })}>{label}<ArrowUpDown className="h-3 w-3 text-slate-500" /></button>;
+  const sortButton = (key: string, label: string) => <button type="button" className="inline-flex items-center gap-1 text-left" onClick={() => onSort(sort?.key === key ? { key, direction: sort.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" })}>{label}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></button>;
   return (
     <div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-white/[0.035] text-xs uppercase tracking-wide text-slate-400">
+          <thead className="bg-white/[0.035] text-xs uppercase tracking-wide text-muted-foreground">
             <tr className="[&>th]:whitespace-nowrap [&>th]:px-3 [&>th]:py-3">
               <th><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all deals" /></th>
               <th>{sortButton("name", "Deal")}</th>
@@ -5614,32 +5626,32 @@ function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected,
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
-            {loading ? <tr><td colSpan={13} className="px-3 py-10 text-center text-slate-400">Loading deals...</td></tr> : null}
-            {error ? <tr><td colSpan={13} className="px-3 py-10 text-center text-red-300">{error}</td></tr> : null}
-            {!loading && !error && !rows.length ? <tr><td colSpan={13} className="px-3 py-10 text-center text-slate-400">No deals found.</td></tr> : null}
+            {loading ? <tr><td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">Loading deals...</td></tr> : null}
+            {error ? <tr><td colSpan={13} className="px-3 py-10 text-center text-red-700 dark:text-red-300">{error}</td></tr> : null}
+            {!loading && !error && !rows.length ? <tr><td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">No deals found.</td></tr> : null}
             {!loading && !error && rows.map((deal) => (
               <tr key={deal.id} className={`group cursor-pointer transition hover:bg-white/[0.04] ${selectedId === deal.id ? "bg-emerald-400/[0.06]" : ""}`} onClick={() => onSelect(deal)}>
                 <td className="px-3 py-3"><input type="checkbox" checked={Boolean(selectedIds[String(deal.id)])} onChange={(event) => onToggleRow(deal, event.target.checked)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${deal.name}`} /></td>
-                <td className="min-w-56 px-3 py-3"><div className="flex items-center gap-3"><DealAvatar deal={deal} /><div><p className="font-semibold text-white">{deal.name}</p><p className="text-xs text-slate-400">{deal.pipelineName || "Pipeline not set"}</p></div></div></td>
-                {visibleColumns.company ? <td className="min-w-40 px-3 py-3 text-slate-200">{deal.companyName || "-"}</td> : null}
-                {visibleColumns.contact ? <td className="min-w-40 px-3 py-3 text-slate-200">{deal.contactName || "-"}</td> : null}
+                <td className="min-w-56 px-3 py-3"><div className="flex items-center gap-3"><DealAvatar deal={deal} /><div><p className="font-semibold text-foreground">{deal.name}</p><p className="text-xs text-muted-foreground">{deal.pipelineName || "Pipeline not set"}</p></div></div></td>
+                {visibleColumns.company ? <td className="min-w-40 px-3 py-3 text-foreground">{deal.companyName || "-"}</td> : null}
+                {visibleColumns.contact ? <td className="min-w-40 px-3 py-3 text-foreground">{deal.contactName || "-"}</td> : null}
                 {visibleColumns.stage ? <td className="px-3 py-3"><LeadBadge value={deal.stageName || deal.status || "Open"} tone={deal.status === "Won" ? "blue" : deal.status === "Lost" ? "red" : "slate"} /></td> : null}
-                {visibleColumns.amount ? <td className="whitespace-nowrap px-3 py-3 font-semibold text-slate-100">{formatCurrency(deal.amount)}</td> : null}
+                {visibleColumns.amount ? <td className="whitespace-nowrap px-3 py-3 font-semibold text-foreground">{formatCurrency(deal.amount)}</td> : null}
                 {visibleColumns.probability ? <td className="min-w-36 px-3 py-3"><DealProbability value={deal.probability} /></td> : null}
-                {visibleColumns.weighted ? <td className="whitespace-nowrap px-3 py-3 text-slate-200">{formatCurrency(weightedDealValue(deal))}</td> : null}
-                {visibleColumns.owner ? <td className="whitespace-nowrap px-3 py-3 text-slate-200"><span className="inline-flex items-center gap-2"><OwnerDot label={deal.owner || "Unassigned"} />{deal.owner || "Unassigned"}</span></td> : null}
-                {visibleColumns.closeDate ? <td className={`whitespace-nowrap px-3 py-3 ${isPastDate(deal.expectedCloseDate) && deal.status === "Open" ? "text-red-300" : "text-slate-200"}`}>{deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "-"}</td> : null}
-                {visibleColumns.nextActivity ? <td className={`whitespace-nowrap px-3 py-3 ${isPastDate(deal.nextFollowUp) ? "text-red-300" : "text-slate-200"}`}>{deal.nextFollowUp ? formatDate(deal.nextFollowUp) : "No follow-up"}</td> : null}
-                {visibleColumns.updatedAt ? <td className="whitespace-nowrap px-3 py-3 text-slate-300">{deal.updatedAt ? formatDate(deal.updatedAt) : "-"}</td> : null}
-                <td className="px-3 py-3"><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={(event) => { event.stopPropagation(); onEdit(deal); }} aria-label={`Edit ${deal.name}`}><Edit3 className="h-4 w-4" /></Button></td>
+                {visibleColumns.weighted ? <td className="whitespace-nowrap px-3 py-3 text-foreground">{formatCurrency(weightedDealValue(deal))}</td> : null}
+                {visibleColumns.owner ? <td className="whitespace-nowrap px-3 py-3 text-foreground"><span className="inline-flex items-center gap-2"><OwnerDot label={deal.owner || "Unassigned"} />{deal.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.closeDate ? <td className={`whitespace-nowrap px-3 py-3 ${isPastDate(deal.expectedCloseDate) && deal.status === "Open" ? "text-red-700 dark:text-red-300" : "text-foreground"}`}>{deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "-"}</td> : null}
+                {visibleColumns.nextActivity ? <td className={`whitespace-nowrap px-3 py-3 ${isPastDate(deal.nextFollowUp) ? "text-red-700 dark:text-red-300" : "text-foreground"}`}>{deal.nextFollowUp ? formatDate(deal.nextFollowUp) : "No follow-up"}</td> : null}
+                {visibleColumns.updatedAt ? <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">{deal.updatedAt ? formatDate(deal.updatedAt) : "-"}</td> : null}
+                <td className="px-3 py-3"><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={(event) => { event.stopPropagation(); onEdit(deal); }} aria-label={`Edit ${deal.name}`}><Edit3 className="h-4 w-4" /></Button></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-3 py-3 text-sm text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} deals</span>
-        <div className="flex items-center gap-2"><select className="h-9 rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-slate-100" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))}><option value={10}>10 rows</option><option value={25}>25 rows</option><option value={50}>50 rows</option></select><Button size="icon" variant="outline" className="h-9 w-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button><span className="rounded-md bg-emerald-500 px-3 py-2 font-semibold text-white">{page}</span><Button size="icon" variant="outline" className="h-9 w-9 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button></div>
+        <div className="flex items-center gap-2"><select className="h-9 rounded-md border border-border bg-card px-3 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))}><option value={10}>10 rows</option><option value={25}>25 rows</option><option value={50}>50 rows</option></select><Button size="icon" variant="outline" className="h-9 w-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button><span className="rounded-md bg-emerald-500 px-3 py-2 font-semibold text-white">{page}</span><Button size="icon" variant="outline" className="h-9 w-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button></div>
       </div>
     </div>
   );
@@ -5663,21 +5675,21 @@ function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDeal
       .catch((err) => setError(err?.response?.data?.detail || "Deal activity could not be loaded."))
       .finally(() => setLoading(false));
   }, [deal?.id]);
-  if (!deal) return <aside className="hidden border-l border-white/10 bg-[#0a1726] p-4 text-sm text-slate-400 xl:block">Select a deal to inspect details.</aside>;
+  if (!deal) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select a deal to inspect details.</aside>;
   const relatedProducts = Array.isArray(related.products) ? related.products as CRMApiRecord[] : null;
   const relatedQuotes = Array.isArray(related.quotations) ? related.quotations as CRMApiRecord[] : null;
   const relatedNotes = Array.isArray(related.notes) ? related.notes as CRMApiRecord[] : null;
   return (
-    <aside className="border-l border-white/10 bg-[#0a1726] p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
+    <aside className="border-l border-border bg-card p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3"><DealAvatar deal={deal} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-white">{deal.name}</h2><p className="mt-1 truncate text-sm text-slate-400">{deal.companyName || "No company linked"}{deal.contactName ? ` / ${deal.contactName}` : ""}</p><div className="mt-2 flex gap-1"><LeadBadge value={deal.stageName || "Open"} tone="blue" /><LeadBadge value={deal.status || "Open"} tone={deal.status === "Lost" ? "red" : deal.status === "Won" ? "blue" : "slate"} /></div></div></div>
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onClose} aria-label="Close deal details"><X className="h-4 w-4" /></Button>
+        <div className="flex min-w-0 items-center gap-3"><DealAvatar deal={deal} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{deal.name}</h2><p className="mt-1 truncate text-sm text-muted-foreground">{deal.companyName || "No company linked"}{deal.contactName ? ` / ${deal.contactName}` : ""}</p><div className="mt-2 flex gap-1"><LeadBadge value={deal.stageName || "Open"} tone="blue" /><LeadBadge value={deal.status || "Open"} tone={deal.status === "Lost" ? "red" : deal.status === "Won" ? "blue" : "slate"} /></div></div></div>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close deal details"><X className="h-4 w-4" /></Button>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        {deal.contactPhone ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`tel:${deal.contactPhone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
-        {deal.contactEmail ? <Button asChild size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10"><a href={`mailto:${deal.contactEmail}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
-        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
-        <Button size="sm" variant="outline" className="h-8 border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
+        {deal.contactPhone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${deal.contactPhone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
+        {deal.contactEmail ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${deal.contactEmail}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
+        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
+        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(deal)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
       </div>
       <LeadDrawerSection title="Deal overview">
@@ -5702,10 +5714,10 @@ function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDeal
         </div>
       </LeadDrawerSection>
       <LeadDrawerSection title="Timeline">
-        {loading ? <p className="text-sm text-slate-400">Loading activity...</p> : null}
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {loading ? <p className="text-sm text-muted-foreground">Loading activity...</p> : null}
+        {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
         {!loading && !error && timeline.slice(0, 5).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
-        {!loading && !error && !timeline.length ? <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-8 text-center text-sm text-slate-400">No activity yet</p> : null}
+        {!loading && !error && !timeline.length ? <p className="rounded-md border border-border bg-white/[0.03] px-3 py-8 text-center text-sm text-muted-foreground">No activity yet</p> : null}
       </LeadDrawerSection>
     </aside>
   );
@@ -5750,31 +5762,31 @@ function DealFormModal({ mode, deal, saving, error, companies, contacts, owners,
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-md border border-white/10 bg-[#091625] text-slate-100 shadow-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
-          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white"><GitMerge className="h-5 w-5" /></span><div><h2 className="text-xl font-semibold text-white">{mode === "edit" ? "Edit deal" : "Create deal"}</h2><p className="text-sm text-slate-400">{mode === "edit" ? "Update opportunity value, products, and sales commitment." : "Capture the opportunity, products, value, and next sales commitment in one place."}</p></div></div>
-          <div className="flex items-center gap-3"><div className="rounded-md border border-white/10 bg-white/[0.04] p-1"><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "simple" ? "bg-slate-700 text-white" : "text-slate-400"}`} onClick={() => setFormTab("simple")}>Simple</button><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "advanced" ? "bg-slate-700 text-white" : "text-slate-400"}`} onClick={() => setFormTab("advanced")}>Advanced</button></div><span className="text-xs text-slate-400"><span className="text-emerald-300">*</span> Required fields</span><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={requestClose} disabled={saving} aria-label="Close deal form"><X className="h-4 w-4" /></Button></div>
+      <div className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white"><GitMerge className="h-5 w-5" /></span><div><h2 className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit deal" : "Create deal"}</h2><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update opportunity value, products, and sales commitment." : "Capture the opportunity, products, value, and next sales commitment in one place."}</p></div></div>
+          <div className="flex items-center gap-3"><div className="rounded-md border border-border bg-white/[0.04] p-1"><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "simple" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("simple")}>Simple</button><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "advanced" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("advanced")}>Advanced</button></div><span className="text-xs text-muted-foreground"><span className="text-emerald-700 dark:text-emerald-300">*</span> Required fields</span><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close deal form"><X className="h-4 w-4" /></Button></div>
         </div>
         <div className="grid max-h-[calc(92vh-8rem)] overflow-y-auto lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <div className="space-y-4 border-r border-white/10 px-5 py-4">
-            {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div> : null}
+          <div className="space-y-4 border-r border-border px-5 py-4">
+            {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
             <LeadFormSection title="Opportunity">
-              <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.companyName || company.id)}</option>)}</select></LeadFormField>
-              <LeadFormField label="Contact"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.contactId)} onChange={(event) => patch("contactId", event.target.value)}><option value="">No contact</option>{visibleContacts.map((contact) => <option key={String(contact.id)} value={String(contact.id)}>{String(contact.name || contact.full_name || contact.email || contact.id)}</option>)}</select></LeadFormField>
-              <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
-              <LeadFormField label="Stage" required error={fieldErrors.stageId}><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</select></LeadFormField>
-              <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
-              <LeadFormField label="Closing date"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} /></LeadFormField>
-              <LeadFormField label="Description" wide><textarea className="min-h-16 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 py-2 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." /></LeadFormField>
+              <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.companyName || company.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Contact"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.contactId)} onChange={(event) => patch("contactId", event.target.value)}><option value="">No contact</option>{visibleContacts.map((contact) => <option key={String(contact.id)} value={String(contact.id)}>{String(contact.name || contact.full_name || contact.email || contact.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
+              <LeadFormField label="Stage" required error={fieldErrors.stageId}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
+              <LeadFormField label="Closing date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} /></LeadFormField>
+              <LeadFormField label="Description" wide><textarea className="min-h-16 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." /></LeadFormField>
             </LeadFormSection>
             {formTab === "advanced" ? (
               <LeadFormSection title="Advanced deal controls">
-                <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.pipelineId)} onChange={(event) => patch("pipelineId", event.target.value)}><option value="">Select pipeline</option>{pipelines.map((pipeline) => <option key={String(pipeline.id)} value={String(pipeline.id)}>{String(pipeline.name || pipeline.id)}</option>)}</select></LeadFormField>
-                <LeadFormField label="Probability" error={fieldErrors.probability}><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="number" min={0} max={100} value={valueText(draft.probability)} onChange={(event) => patch("probability", event.target.value)} /></LeadFormField>
-                <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
-                <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+                <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.pipelineId)} onChange={(event) => patch("pipelineId", event.target.value)}><option value="">Select pipeline</option>{pipelines.map((pipeline) => <option key={String(pipeline.id)} value={String(pipeline.id)}>{String(pipeline.name || pipeline.id)}</option>)}</select></LeadFormField>
+                <LeadFormField label="Probability" error={fieldErrors.probability}><Input className="border-border bg-card text-foreground" type="number" min={0} max={100} value={valueText(draft.probability)} onChange={(event) => patch("probability", event.target.value)} /></LeadFormField>
+                <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+                <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
                 <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={["Website", "Referral", "Event", "Partner", "Phone Call", "Email Campaign", "Other"]} onChange={(value) => patch("source", value)} /></LeadFormField>
-                <LeadFormField label="Next follow-up"><Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>
+                <LeadFormField label="Next follow-up"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>
               </LeadFormSection>
             ) : null}
             {visibleCustomFields.length ? (
@@ -5787,21 +5799,21 @@ function DealFormModal({ mode, deal, saving, error, companies, contacts, owners,
             ) : null}
             <LeadFormSection title="Associated products">
               <div className="md:col-span-2">
-                <div className="mb-2 flex items-center justify-between gap-2"><p className="text-sm text-slate-400">Add products or services to auto-calculate deal value.</p><Button size="sm" variant="outline" className="h-8 border-emerald-400/40 bg-transparent text-emerald-200 hover:bg-emerald-500/10" onClick={() => setLines((current) => [...current, { key: String(Date.now()), productId: "", unitPrice: "0", quantity: "1", discount: "0" }])}><Plus className="h-3.5 w-3.5" />Add product</Button></div>
-                <div className="overflow-x-auto rounded-md border border-white/10">
-                  <table className="min-w-full text-sm"><thead className="bg-white/[0.035] text-xs uppercase text-slate-400"><tr className="[&>th]:px-3 [&>th]:py-2"><th>Product</th><th>List price</th><th>Qty</th><th>Discount %</th><th>Line total</th><th></th></tr></thead><tbody className="divide-y divide-white/10">{lines.length ? lines.map((line) => <DealProductLine key={line.key} line={line} products={products} onChange={(next) => setLines((current) => current.map((item) => item.key === line.key ? next : item))} onRemove={() => setLines((current) => current.filter((item) => item.key !== line.key))} />) : <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">No products added yet.</td></tr>}</tbody></table>
+                <div className="mb-2 flex items-center justify-between gap-2"><p className="text-sm text-muted-foreground">Add products or services to auto-calculate deal value.</p><Button size="sm" variant="outline" className="h-8 border-emerald-400/40 bg-transparent text-emerald-200 hover:bg-emerald-500/10" onClick={() => setLines((current) => [...current, { key: String(Date.now()), productId: "", unitPrice: "0", quantity: "1", discount: "0" }])}><Plus className="h-3.5 w-3.5" />Add product</Button></div>
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="min-w-full text-sm"><thead className="bg-white/[0.035] text-xs uppercase text-muted-foreground"><tr className="[&>th]:px-3 [&>th]:py-2"><th>Product</th><th>List price</th><th>Qty</th><th>Discount %</th><th>Line total</th><th></th></tr></thead><tbody className="divide-y divide-white/10">{lines.length ? lines.map((line) => <DealProductLine key={line.key} line={line} products={products} onChange={(next) => setLines((current) => current.map((item) => item.key === line.key ? next : item))} onRemove={() => setLines((current) => current.filter((item) => item.key !== line.key))} />) : <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">No products added yet.</td></tr>}</tbody></table>
                 </div>
               </div>
             </LeadFormSection>
           </div>
           <aside className="space-y-3 bg-white/[0.018] px-4 py-4">
-            <div className="rounded-md border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-slate-200">Selected stage</p><p className="mt-2 text-lg font-semibold text-white">{selectedStageName(stages, draft.stageId) || "No stage selected"}</p><p className="mt-1 text-sm text-slate-400">{draft.stageId ? `${Number(draft.probability || 0)}% probability` : "Select a stage to see probability."}</p></div>
-            <div className="rounded-md border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-slate-200">Deal value</p><p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(effectiveAmount)}</p><div className="mt-3 space-y-2 text-sm text-slate-400"><div className="flex justify-between"><span>Manual amount</span><span>{formatCurrency(Number(draft.amount || 0))}</span></div><div className="flex justify-between"><span>Product lines</span><span>{formatCurrency(productTotal)}</span></div><div className="flex justify-between border-t border-white/10 pt-2 font-semibold text-white"><span>Total</span><span>{formatCurrency(effectiveAmount)}</span></div><p className="text-xs text-amber-300">Source: {amountSource}</p></div></div>
-            <div className="rounded-md border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-slate-200">Readiness</p><div className="mt-3 space-y-2 text-sm text-slate-400"><DealReadiness done={Boolean(draft.name)} label="Add deal name" /><DealReadiness done={Boolean(draft.pipelineId && draft.stageId)} label="Choose pipeline and stage" /><DealReadiness done={Boolean(draft.expectedCloseDate)} label="Choose a closing date" /><DealReadiness done={effectiveAmount > 0} label="Add products or set amount" /></div></div>
+            <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Selected stage</p><p className="mt-2 text-lg font-semibold text-foreground">{selectedStageName(stages, draft.stageId) || "No stage selected"}</p><p className="mt-1 text-sm text-muted-foreground">{draft.stageId ? `${Number(draft.probability || 0)}% probability` : "Select a stage to see probability."}</p></div>
+            <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Deal value</p><p className="mt-3 text-3xl font-semibold text-foreground">{formatCurrency(effectiveAmount)}</p><div className="mt-3 space-y-2 text-sm text-muted-foreground"><div className="flex justify-between"><span>Manual amount</span><span>{formatCurrency(Number(draft.amount || 0))}</span></div><div className="flex justify-between"><span>Product lines</span><span>{formatCurrency(productTotal)}</span></div><div className="flex justify-between border-t border-border pt-2 font-semibold text-foreground"><span>Total</span><span>{formatCurrency(effectiveAmount)}</span></div><p className="text-xs text-amber-700 dark:text-amber-300">Source: {amountSource}</p></div></div>
+            <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Readiness</p><div className="mt-3 space-y-2 text-sm text-muted-foreground"><DealReadiness done={Boolean(draft.name)} label="Add deal name" /><DealReadiness done={Boolean(draft.pipelineId && draft.stageId)} label="Choose pipeline and stage" /><DealReadiness done={Boolean(draft.expectedCloseDate)} label="Choose a closing date" /><DealReadiness done={effectiveAmount > 0} label="Add products or set amount" /></div></div>
             <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
           </aside>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-3"><Button variant="ghost" className="text-emerald-300 hover:bg-white/10 hover:text-emerald-200"><ListFilter className="h-4 w-4" />Customize fields</Button><div className="flex items-center gap-3"><span className="text-xs text-amber-300">{dirty ? "Unsaved changes" : ""}</span><Button variant="outline" className="border-white/10 bg-transparent text-slate-100 hover:bg-white/10" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Save"}</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3"><Button variant="ghost" className="text-emerald-700 dark:text-emerald-300 hover:bg-accent hover:text-emerald-200"><ListFilter className="h-4 w-4" />Customize fields</Button><div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{dirty ? "Unsaved changes" : ""}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Save"}</Button></div></div>
       </div>
     </div>
   );
@@ -5813,28 +5825,32 @@ function DealProductLine({ line, products, onChange, onRemove }: { line: DealLin
     const product = products.find((item) => String(item.id) === productId);
     onChange({ ...line, productId, unitPrice: String(product?.price || product?.listPrice || product?.unit_price || line.unitPrice || 0) });
   };
-  return <tr className="[&>td]:px-3 [&>td]:py-2"><td><select className="h-9 w-full min-w-52 rounded-md border border-white/10 bg-[#0b1a2a] px-2 text-slate-100" value={line.productId} onChange={(event) => selectProduct(event.target.value)}><option value="">Search product...</option>{products.map((product) => <option key={String(product.id)} value={String(product.id)}>{String(product.name || product.sku || product.id)}</option>)}</select></td><td><Input className="h-9 min-w-28 border-white/10 bg-[#0b1a2a] text-slate-100" type="number" value={line.unitPrice} onChange={(event) => patch("unitPrice", event.target.value)} /></td><td><Input className="h-9 min-w-20 border-white/10 bg-[#0b1a2a] text-slate-100" type="number" min={0} value={line.quantity} onChange={(event) => patch("quantity", event.target.value)} /></td><td><Input className="h-9 min-w-24 border-white/10 bg-[#0b1a2a] text-slate-100" type="number" min={0} max={100} value={line.discount} onChange={(event) => patch("discount", event.target.value)} /></td><td className="font-semibold text-white">{formatCurrency(dealLineTotal(line))}</td><td><Button size="icon" variant="ghost" className="h-8 w-8 text-slate-300 hover:bg-white/10" onClick={onRemove} aria-label="Remove product line"><X className="h-4 w-4" /></Button></td></tr>;
+  return <tr className="[&>td]:px-3 [&>td]:py-2"><td><select className="h-9 w-full min-w-52 rounded-md border border-border bg-card px-2 text-foreground" value={line.productId} onChange={(event) => selectProduct(event.target.value)}><option value="">Search product...</option>{products.map((product) => <option key={String(product.id)} value={String(product.id)}>{String(product.name || product.sku || product.id)}</option>)}</select></td><td><Input className="h-9 min-w-28 border-border bg-card text-foreground" type="number" value={line.unitPrice} onChange={(event) => patch("unitPrice", event.target.value)} /></td><td><Input className="h-9 min-w-20 border-border bg-card text-foreground" type="number" min={0} value={line.quantity} onChange={(event) => patch("quantity", event.target.value)} /></td><td><Input className="h-9 min-w-24 border-border bg-card text-foreground" type="number" min={0} max={100} value={line.discount} onChange={(event) => patch("discount", event.target.value)} /></td><td className="font-semibold text-foreground">{formatCurrency(dealLineTotal(line))}</td><td><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onRemove} aria-label="Remove product line"><X className="h-4 w-4" /></Button></td></tr>;
 }
 
 function DealCustomFieldInput({ field, value, onChange }: { field: CRMRecord; value: CRMApiRecord[string]; onChange: (value: CRMApiRecord[string]) => void }) {
   const type = String(field.fieldType || field.field_type || "text");
   const options = parseOptions(field.options ?? field.options_json);
-  const inputClass = "h-10 w-full rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400";
+  if(type==='phone'){
+    const pair=value&&typeof value==='object'&&!Array.isArray(value)?value as CRMApiRecord:null;
+    return <PhoneInput label={String(field.label || field.name || 'Phone')} value={String(pair?.national_number ?? value ?? '')} countryCode={String(pair?.country_code ?? (value ? '' : '+91'))} onChange={number=>onChange({national_number:number,country_code:pair?.country_code ?? (value ? '' : '+91')})} onCountryCodeChange={code=>onChange({national_number:pair?.national_number ?? value ?? '',country_code:code})} />;
+  }
+  const inputClass = "h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400";
   if (type === "dropdown") return <select className={inputClass} value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
-  if (type === "multi_select") return <Input className="border-white/10 bg-[#0b1a2a] text-slate-100" value={Array.isArray(value) ? value.join(", ") : String(value || "")} onChange={(event) => onChange(parseOptions(event.target.value))} placeholder={options.length ? options.join(", ") : "Comma separated values"} />;
-  if (type === "checkbox") return <label className="flex h-10 items-center gap-2 rounded-md border border-white/10 bg-[#0b1a2a] px-3 text-sm text-slate-100"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />Yes</label>;
+  if (type === "multi_select") return <Input className="border-border bg-card text-foreground" value={Array.isArray(value) ? value.join(", ") : String(value || "")} onChange={(event) => onChange(parseOptions(event.target.value))} placeholder={options.length ? options.join(", ") : "Comma separated values"} />;
+  if (type === "checkbox") return <label className="flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-foreground"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />Yes</label>;
   const inputType = type === "number" || type === "currency" || type === "user" || type === "owner" ? "number" : type === "date" ? "date" : type === "datetime" ? "datetime-local" : type === "email" ? "email" : type === "url" ? "url" : "text";
-  return <Input className="border-white/10 bg-[#0b1a2a] text-slate-100" type={inputType} value={String(value || "")} onChange={(event) => onChange(event.target.value)} />;
+  return <Input className="border-border bg-card text-foreground" type={inputType} value={String(value || "")} onChange={(event) => onChange(event.target.value)} />;
 }
 
 function DealAvatar({ deal, large }: { deal: Pick<CRMDealRow, "name" | "status">; large?: boolean }) {
   const won = String(deal.status || "").toLowerCase() === "won";
-  return <span className={`flex shrink-0 items-center justify-center rounded-md ${won ? "bg-emerald-500/20 text-emerald-200" : "bg-sky-500/15 text-sky-200"} ring-1 ring-white/10 ${large ? "h-14 w-14" : "h-9 w-9"}`}><GitMerge className={large ? "h-7 w-7" : "h-4 w-4"} /></span>;
+  return <span className={`flex shrink-0 items-center justify-center rounded-md ${won ? "bg-emerald-500/20 text-emerald-200" : "bg-sky-500/15 text-sky-700 dark:text-sky-200"} ring-1 ring-white/10 ${large ? "h-14 w-14" : "h-9 w-9"}`}><GitMerge className={large ? "h-7 w-7" : "h-4 w-4"} /></span>;
 }
 
 function DealProbability({ value }: { value: number }) {
   const clamped = Math.max(0, Math.min(100, Number(value || 0)));
-  return <div className="flex items-center gap-2"><span className="font-semibold text-emerald-300">{Math.round(clamped)}%</span><span className="h-1.5 w-20 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-emerald-400" style={{ width: `${clamped}%` }} /></span></div>;
+  return <div className="flex items-center gap-2"><span className="font-semibold text-emerald-700 dark:text-emerald-300">{Math.round(clamped)}%</span><span className="h-1.5 w-20 overflow-hidden rounded-full bg-accent"><span className="block h-full rounded-full bg-emerald-400" style={{ width: `${clamped}%` }} /></span></div>;
 }
 
 function OwnerDot({ label }: { label: string }) {
@@ -5843,11 +5859,11 @@ function OwnerDot({ label }: { label: string }) {
 }
 
 function DealRelatedRow({ icon, label, value, count, onClick }: { icon: React.ReactNode; label: string; value: string; count: number | null; onClick: () => void }) {
-  return <button type="button" className="flex w-full items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/[0.06]" onClick={onClick}><span className="inline-flex min-w-0 items-center gap-2">{icon}<span>{label}</span>{value ? <span className="truncate text-xs text-sky-300">{value}</span> : null}</span><span className="font-semibold">{count ?? "-"}</span></button>;
+  return <button type="button" className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-white/[0.03] px-3 py-2 text-left text-sm text-foreground hover:bg-white/[0.06]" onClick={onClick}><span className="inline-flex min-w-0 items-center gap-2">{icon}<span>{label}</span>{value ? <span className="truncate text-xs text-sky-700 dark:text-sky-300">{value}</span> : null}</span><span className="font-semibold">{count ?? "-"}</span></button>;
 }
 
 function DealReadiness({ done, label }: { done: boolean; label: string }) {
-  return <div className="flex items-center gap-2"><CheckCircle2 className={`h-4 w-4 ${done ? "text-emerald-300" : "text-slate-600"}`} />{label}</div>;
+  return <div className="flex items-center gap-2"><CheckCircle2 className={`h-4 w-4 ${done ? "text-emerald-700 dark:text-emerald-300" : "text-slate-600"}`} />{label}</div>;
 }
 
 function recordToDealRow(record: CRMRecord, lookups: { companyNames: Map<number, string>; contactNames: Map<number, { name: string; email?: string; phone?: string; companyId?: number }>; ownerNames: Map<number, string>; territoryNames: Map<number, string>; stageNames: Map<number, string>; pipelineNames: Map<number, string>; stages: CRMRecord[] }): CRMDealRow {
@@ -6314,7 +6330,7 @@ function ProductCatalogPage() {
           />
         ) : null}
         {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-        {loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-slate-500">Loading product catalog...</div> : null}
+        {loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-muted-foreground">Loading product catalog...</div> : null}
         <div className="grid gap-3 md:grid-cols-4">
           <ProductCatalogMetric label="Products" value={rows.length} detail={`${metrics.active} active`} />
           <ProductCatalogMetric label="Catalog value" value={formatCurrency(metrics.catalogValue)} detail="List price total" />
@@ -6343,9 +6359,9 @@ function ProductCatalogPage() {
 function ProductCatalogMetric({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
     <div className="rounded-md border bg-white p-4">
-      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
       <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
     </div>
   );
 }
@@ -6376,18 +6392,18 @@ function ProductCatalogCard({ product, onOpen, onSelect }: { product: CRMRecord;
         <Badge className={statusColor(String(product.status || "Active"))}>{String(product.status || "Active")}</Badge>
       </div>
       <h3 className="mt-4 line-clamp-2 text-base font-semibold text-slate-950">{String(product.name || "Untitled product")}</h3>
-      <p className="mt-1 text-sm text-slate-500">{String(product.productCode || product.product_code || product.sku || "No SKU")}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{String(product.productCode || product.product_code || product.sku || "No SKU")}</p>
       <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
         <div className="rounded bg-slate-50 p-2">
-          <p className="text-xs text-slate-500">List price</p>
+          <p className="text-xs text-muted-foreground">List price</p>
           <p className="font-semibold text-slate-950">{formatCurrency(price)}</p>
         </div>
         <div className="rounded bg-slate-50 p-2">
-          <p className="text-xs text-slate-500">Margin</p>
+          <p className="text-xs text-muted-foreground">Margin</p>
           <p className="font-semibold text-slate-950">{margin}%</p>
         </div>
       </div>
-      <p className="mt-3 truncate text-xs text-slate-500">{String(product.category || "Uncategorized")} / Quote and SRM ready</p>
+      <p className="mt-3 truncate text-xs text-muted-foreground">{String(product.category || "Uncategorized")} / Quote and SRM ready</p>
     </button>
   );
 }
@@ -6408,7 +6424,7 @@ function ProductCatalogSidePanel({ record }: { record: CRMRecord }) {
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700"><PackageIcon /></span>
         <div className="min-w-0">
           <p className="truncate font-semibold text-slate-950">{String(record.name || "Product")}</p>
-          <p className="text-sm text-slate-500">{String(record.category || "Catalog item")}</p>
+          <p className="text-sm text-muted-foreground">{String(record.category || "Catalog item")}</p>
         </div>
       </div>
       <div className="mt-4 grid gap-3">
@@ -6417,7 +6433,7 @@ function ProductCatalogSidePanel({ record }: { record: CRMRecord }) {
         <InfoTile label="Margin" value={`${margin}%`} />
       </div>
       <div className="mt-5">
-        <p className="text-xs font-semibold uppercase text-slate-500">Quote readiness</p>
+        <p className="text-xs font-semibold uppercase text-muted-foreground">Quote readiness</p>
         <div className="mt-3 space-y-2">
           {readiness.map((item) => (
             <div key={item.label} className="flex items-center justify-between rounded bg-slate-50 px-3 py-2 text-sm">
@@ -6776,6 +6792,8 @@ function DuplicateManagementPage() {
 }
 
 function CalendarIntegrationsPage() {
+  const callbackHandled = useRef(false);
+  const [connecting, setConnecting] = useState(false);
   const [items, setItems] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -6786,13 +6804,46 @@ function CalendarIntegrationsPage() {
     crmApi.calendarIntegrations().then((response) => setItems(response.data.items || [])).catch((err) => setError(err?.response?.data?.detail || "Calendar integrations could not be loaded.")).finally(() => setLoading(false));
   };
   useEffect(load, []);
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (callbackHandled.current || !(query.has("code") || query.has("error"))) return;
+    callbackHandled.current = true;
+    const state = query.get("state");
+    const expected = sessionStorage.getItem("google-calendar-state");
+    sessionStorage.removeItem("google-calendar-state");
+    window.history.replaceState(null, "", window.location.pathname);
+    if (!state || state !== expected) {
+      setError("Calendar authorization could not be verified. Start again.");
+      return;
+    }
+    if (query.has("error")) {
+      setError("Google Calendar access was not granted. You can connect again.");
+      return;
+    }
+    setConnecting(true);
+    crmApi.completeGoogleCalendar({ code: query.get("code") || "", state })
+      .then(() => { load(); setMessage("Google Calendar connected. CRM meetings can now sync to your primary calendar."); })
+      .catch((err) => setError(err?.response?.data?.detail || "Google Calendar could not be connected."))
+      .finally(() => setConnecting(false));
+  }, []);
   const connect = (provider: "google" | "outlook" | "mock") => {
     setMessage(null);
     setError(null);
+    if (provider === "google") {
+      setConnecting(true);
+      crmApi.authorizeGoogleCalendar().then(({ data }) => {
+        sessionStorage.setItem("google-calendar-state", data.state);
+        window.location.assign(data.url);
+      }).catch((err) => {
+        setError(err?.response?.data?.detail || "Google Calendar authorization could not start.");
+        setConnecting(false);
+      });
+      return;
+    }
     crmApi
       .connectCalendarIntegration({ provider, mock: true })
       .then(() => {
-        setMessage(`${provider === "mock" ? "Development" : labelFor(provider)} calendar connected with placeholder OAuth settings.`);
+        setMessage("Development calendar connected for testing.");
         load();
       })
       .catch((err) => setError(err?.response?.data?.detail || "Calendar could not be connected."));
@@ -6802,22 +6853,22 @@ function CalendarIntegrationsPage() {
   };
   return (
     <div className="space-y-6">
-      <PageHeader title="Calendar Integrations" description="Connect CRM meetings to external calendars. OAuth adapters are isolated behind provider settings and tokens are never returned to the browser." action="Connect Mock" onAction={() => connect("mock")} />
+      <PageHeader title="Calendar Integrations" description="Connect Google Calendar to export CRM meetings. Google credentials stay on the server." action="Connect Mock" onAction={() => connect("mock")} />
       {message ? <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
       {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader><CardTitle>Google Calendar</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">Uses minimal calendar event scopes once OAuth client settings are configured.</p>
-            <Button className="w-full" onClick={() => connect("google")}><CalendarDays className="h-4 w-4" />Connect Google Calendar</Button>
+            <p className="text-sm text-muted-foreground">Authorize Google to sync CRM meetings to your primary calendar. Changes made in Google are not imported yet.</p>
+            <Button className="w-full" disabled={connecting} onClick={() => connect("google")}><CalendarDays className="h-4 w-4" />{connecting ? "Connecting…" : "Connect Google Calendar"}</Button>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Outlook Calendar</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">Ready for Microsoft OAuth token exchange and Graph Calendar events.</p>
-            <Button className="w-full" onClick={() => connect("outlook")}><CalendarDays className="h-4 w-4" />Connect Outlook</Button>
+            <p className="text-sm text-muted-foreground">Microsoft Calendar integration is planned.</p>
+            <Button className="w-full" disabled><CalendarDays className="h-4 w-4" />Coming soon</Button>
           </CardContent>
         </Card>
         <Card>
@@ -6963,7 +7014,7 @@ const crmFeatureChecklist = [
   { feature: "Territories", status: "Ready", api: "Territory CRUD and auto-assign", frontend: "Territory settings", notes: "Lead, account, and deal assignment follows territory rules with manual override support." },
   { feature: "Enrichment", status: "Ready", api: "Preview, apply, history", frontend: "Lead/contact detail modal", notes: "Provider abstraction supports manual, CSV/import, and future third-party providers." },
   { feature: "WhatsApp/SMS", status: "Ready", api: "Messages and templates", frontend: "Lead/contact/deal detail compose", notes: "Provider credentials remain server-side; mock provider supports local testing." },
-  { feature: "Calendar integrations", status: "Ready", api: "Integration connect, disconnect, sync", frontend: "Calendar integrations page", notes: "Mock provider is available; Google/Outlook adapters have isolated TODO configuration points." },
+  { feature: "Calendar integrations", status: "Ready", api: "Integration connect, disconnect, sync", frontend: "Calendar integrations page", notes: "Google OAuth and primary-calendar meeting export are implemented; Outlook and inbound sync are planned." },
   { feature: "Outbound webhooks", status: "Ready", api: "Webhook CRUD, test, deliveries", frontend: "Webhook settings", notes: "Signed deliveries are logged and retried with backoff." },
   { feature: "Organization isolation", status: "Ready", api: "Organization-scoped queries", frontend: "Route-level API usage", notes: "Direct record URLs use the same backend organization filter as list pages." },
 ];
@@ -8559,7 +8610,7 @@ function IconInput({ icon, value, onChange, placeholder, required }: { icon: Rea
   return (
     <div className="relative">
       <Input className={`pr-10 ${required ? "border-l-4 border-l-red-400" : ""}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">{icon}</span>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
     </div>
   );
 }
@@ -8617,6 +8668,10 @@ function DealStagePicker({ selectedStage, open, onToggle, onSelect }: { selected
 function CustomFieldInput({ field, value, onChange }: { field: CRMApiRecord; value: CRMApiRecord[string]; onChange: (value: CRMApiRecord[string]) => void }) {
   const type = String(field.fieldType || field.field_type || "text");
   const options = parseOptions(field.options ?? field.options_json);
+  if(type==='phone'){
+    const pair=value&&typeof value==='object'&&!Array.isArray(value)?value as CRMApiRecord:null;
+    return <PhoneInput label={String(field.label || field.name || 'Phone')} value={String(pair?.national_number ?? value ?? '')} countryCode={String(pair?.country_code ?? (value ? '' : '+91'))} onChange={number=>onChange({national_number:number,country_code:pair?.country_code ?? (value ? '' : '+91')})} onCountryCodeChange={code=>onChange({national_number:pair?.national_number ?? value ?? '',country_code:code})} />;
+  }
   if (type === "dropdown") {
     return <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
   }
@@ -8650,6 +8705,7 @@ function QuickFormInput({
     }
   };
 
+  if(phoneFields.has(field.key))return <PhoneInput label={field.label} value={value} countryCode={String(draft[field.key+'_country_code'] ?? (draft.id ? '' : '+91'))} onChange={next=>{updateValue(next);if(draft[field.key+'_country_code']==null&&!draft.id)patchDraft(field.key+'_country_code','+91');}} onCountryCodeChange={code=>patchDraft(field.key+'_country_code',code)} />;
   if (field.type === "select") {
     return (
       <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => updateValue(event.target.value)}>
@@ -8978,13 +9034,13 @@ function detailPathFor(kind: CRMPageKind) {
 function normalizeApiRecord(kind: string, record: CRMApiRecord): CRMRecord {
   const id = Number(record.id || 0);
   if (kind === "leads") {
-    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Lead"), company: String(record.company_name || ""), email: String(record.email || ""), phone: String(record.phone || ""), source: String(record.source || "Other"), status: String(record.status || "New"), rating: String(record.scoreLabel || record.lead_score_label || record.rating || "Warm"), leadScore: Number(record.leadScore || record.lead_score || 0), scoreLabel: String(record.scoreLabel || record.lead_score_label || record.rating || "Cold"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), value: Number(record.estimated_value || record.value || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), industry: String(record.industry || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
+    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Lead"), company: String(record.company_name || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), source: String(record.source || "Other"), status: String(record.status || "New"), rating: String(record.scoreLabel || record.lead_score_label || record.rating || "Warm"), leadScore: Number(record.leadScore || record.lead_score || 0), scoreLabel: String(record.scoreLabel || record.lead_score_label || record.rating || "Cold"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), value: Number(record.estimated_value || record.value || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), industry: String(record.industry || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
   }
   if (kind === "contacts") {
-    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Contact"), email: String(record.email || ""), phone: String(record.phone || ""), companyId: Number(record.companyId || record.company_id || 0), companyName: String(record.companyName || record.company_name || ""), title: String(record.job_title || ""), stage: String(record.lifecycle_stage || "Lead"), source: String(record.source || ""), status: String(record.status || "Active"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
+    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Contact"), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), companyId: Number(record.companyId || record.company_id || 0), companyName: String(record.companyName || record.company_name || ""), title: String(record.job_title || ""), stage: String(record.lifecycle_stage || "Lead"), source: String(record.source || ""), status: String(record.status || "Active"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
   }
   if (kind === "companies") {
-    return { id, name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || record.type || "Prospect"), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || record.revenue || 0), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || ""), phone: String(record.phone || ""), website: String(record.website || ""), notes: String(record.notes || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || "") };
+    return { id, name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || record.type || "Prospect"), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || record.revenue || 0), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), website: String(record.website || ""), notes: String(record.notes || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || "") };
   }
   if (kind === "deals") {
     return { id, name: String(record.name || "Deal"), companyId: Number(record.company_id || 0), contactId: Number(record.contact_id || 0), owner: String(record.ownerId || record.owner_user_id || ""), territoryId: Number(record.territoryId || record.territory_id || 0), stageId: Number(record.stage_id || 0), pipelineId: Number(record.pipeline_id || 0), stage: String(record.stage || record.status || "Open"), amount: Number(record.amount || 0), probability: Number(record.probability || 0), closeDate: String(record.expected_close_date || ""), nextStep: String(record.description || record.status || ""), status: String(record.status || "Open") };
@@ -9046,7 +9102,7 @@ function recordToLead(record: CRMRecord): CRMLead {
     name: String(record.name || record.full_name || "Lead"),
     company: String(record.company || record.company_name || ""),
     email: String(record.email || ""),
-    phone: String(record.phone || ""),
+    phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""),
     source: String(record.source || "Other"),
     status: String(record.status || "New"),
     rating: String(record.rating || "Warm"),
@@ -9091,12 +9147,12 @@ function createPayloadForKind(kind: CRMPageKind, record: CRMRecord): CRMApiRecor
   if (kind === "leads") {
     const name = String(record.name || "New Lead");
     const [firstName, ...rest] = name.split(" ");
-    return { first_name: firstName || name, last_name: rest.join(" "), full_name: name, email: record.email, phone: record.phone, company_name: record.company, source: record.source, status: record.status, rating: record.rating, lead_score: record.leadScore, estimated_value: record.value, industry: record.industry, next_follow_up_at: record.nextFollowUp, ownerId };
+    return { first_name: firstName || name, last_name: rest.join(" "), full_name: name, email: record.email, phone: record.phone, phone_country_code: record.phone_country_code, company_name: record.company, source: record.source, status: record.status, rating: record.rating, lead_score: record.leadScore, estimated_value: record.value, industry: record.industry, next_follow_up_at: record.nextFollowUp, ownerId };
   }
   if (kind === "contacts") {
     const name = String(record.name || "New Contact");
     const [firstName, ...rest] = name.split(" ");
-    return { first_name: firstName || name, last_name: rest.join(" "), full_name: name, email: record.email, phone: record.phone, lifecycle_stage: record.stage || "Lead", source: record.source, status: record.status, next_follow_up_at: record.nextFollowUp, ownerId };
+    return { first_name: firstName || name, last_name: rest.join(" "), full_name: name, email: record.email, phone: record.phone, phone_country_code: record.phone_country_code, lifecycle_stage: record.stage || "Lead", source: record.source, status: record.status, next_follow_up_at: record.nextFollowUp, ownerId };
   }
   if (kind === "companies") return { name: record.name, industry: record.industry, account_type: record.type, status: record.status, annual_revenue: record.revenue, ownerId };
   if (kind === "deals") return { name: record.name, pipeline_id: record.pipelineId || 1, stage_id: record.stageId || 1, amount: record.amount, probability: record.probability, status: record.status || "Open", expected_close_date: record.nextFollowUp, description: record.description || record.nextStep, lead_source: record.source, source: record.source, ownerId };
@@ -9211,6 +9267,7 @@ function toLeadRecord(lead: CRMLead): CRMRecord {
     designation: designations[index] || "Decision Maker",
     email: lead.email,
     phone: lead.phone,
+    phone_country_code: lead.phone_country_code,
     mobile: String(lead.phone || "").replace("110", "220"),
     city: cities[index] || "Bengaluru",
     state: states[index] || "Karnataka",
@@ -9253,6 +9310,7 @@ function toContactRecord(lead: CRMLead): CRMRecord {
     email: lead.email,
     alternateEmail: String(lead.email || "").replace("@", ".alt@"),
     phone: lead.phone,
+    phone_country_code: lead.phone_country_code,
     mobile: String(leadRecord.mobile),
     city: String(leadRecord.city),
     state: String(leadRecord.state),

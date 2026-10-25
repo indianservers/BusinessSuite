@@ -1,6 +1,7 @@
 import pytest
 import os
 import sys
+import secrets
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,6 +16,13 @@ if os.environ.get("TEST_DATABASE_URL"):
     if test_url.get_backend_name() != "postgresql" or not (test_url.database or "").endswith("_test"):
         raise RuntimeError("TEST_DATABASE_URL must target a disposable PostgreSQL *_test database")
     os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
+else:
+    # Guard secondary session factories as well as dependency-overridden routes.
+    # Never let a unit test inherit the developer/production connection from .env.
+    from tempfile import TemporaryDirectory
+    from pathlib import Path
+    _secondary_db_directory=TemporaryDirectory(prefix='business-suite-test-factories-')
+    os.environ['DATABASE_URL'] = 'sqlite:///'+str(Path(_secondary_db_directory.name)/'secondary.db')
 
 def _make_unraisablehook(default_hook):
     def _suppress_python314_gzip_teardown_warning(unraisable):
@@ -28,6 +36,13 @@ def _make_unraisablehook(default_hook):
 sys.unraisablehook = _make_unraisablehook(sys.unraisablehook)
 
 os.environ.setdefault("ENVIRONMENT", "test")
+os.environ['SECRET_KEY']=secrets.token_urlsafe(48)
+os.environ['REFRESH_SECRET_KEY']=secrets.token_urlsafe(48)
+os.environ['SECRET_KEY_PREVIOUS']=''
+os.environ['REFRESH_SECRET_KEY_PREVIOUS']=''
+os.environ['STORAGE_BACKEND']='local'
+for _credential in ('OPENAI_API_KEY','ANTHROPIC_API_KEY','GEMINI_API_KEY','S3_ACCESS_KEY_ID','S3_SECRET_ACCESS_KEY','BLOB_READ_WRITE_TOKEN','RECAPTCHA_SECRET_KEY','FORMS_TURNSTILE_SECRET_KEY'):
+    os.environ[_credential]=''
 os.environ.setdefault("INSTALLED_APPS", "hrms,crm,project_management,srm,fam")
 
 from app.main import app
@@ -105,6 +120,10 @@ def client(db):
     app.dependency_overrides[get_db] = override_get_db
     previous_factory = getattr(app.state, "business_os_session_factory", None)
     previous_close = getattr(app.state, "business_os_close_session", None)
+    audit_settings={name:getattr(app.state,name,None) for name in ('audit_session_factory','audit_close_session','audit_commit')}
+    app.state.audit_session_factory=lambda:db
+    app.state.audit_close_session=False
+    app.state.audit_commit=False
     # Keep middleware and handlers on the same isolated database for every dialect.
     app.state.business_os_session_factory = lambda: db
     app.state.business_os_close_session = False
@@ -113,6 +132,10 @@ def client(db):
             yield c
     finally:
         app.dependency_overrides.clear()
+        for name,value in audit_settings.items():
+            if value is None:
+                if hasattr(app.state,name):delattr(app.state,name)
+            else:setattr(app.state,name,value)
         if previous_factory is None:
             if hasattr(app.state, "business_os_session_factory"):
                 del app.state.business_os_session_factory
@@ -149,3 +172,14 @@ def superuser_token(client, db):
 @pytest.fixture(scope="function")
 def superuser_headers(superuser_token):
     return {"Authorization": f"Bearer {superuser_token}"}
+
+
+def pytest_sessionfinish(session, exitstatus):
+    # Release Windows file handles before TemporaryDirectory performs cleanup.
+    from sqlalchemy.orm import close_all_sessions
+    from app.db.session import engine as secondary_engine
+    close_all_sessions()
+    secondary_engine.dispose()
+    temporary=globals().get('_secondary_db_directory')
+    if temporary is not None:
+        temporary.cleanup()

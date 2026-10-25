@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
+import "./design-system/premium.css";
 import { applyTheme, useThemeStore } from "./store/themeStore.ts";
 
 const { theme } = useThemeStore.getState();

@@ -1,0 +1,11 @@
+{
+  "proposal_only": true,
+  "backend_files_changed": false,
+  "tests": [
+    "pms_org_admin rejected",
+    "member rejected",
+    "viewer rejected",
+    "superuser accepted"
+  ],
+  "database_access": false
+}

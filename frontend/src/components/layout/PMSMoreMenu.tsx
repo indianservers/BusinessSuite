@@ -18,6 +18,7 @@ const additionalPages = [
   ["Teams", "/pms/teams", "People & collaboration"],
   ["Messages", "/pms/messages", "People & collaboration"],
   ["Docs", "/pms/docs", "People & collaboration"],
+  ["My Notes", "/pms/notes", "Work & delivery"],
   ["Workload", "/pms/workload", "Planning"],
   ["Custom fields", "/pms/custom-fields", "Manage & customize"],
   ["Task types", "/pms/task-types", "Manage & customize"],

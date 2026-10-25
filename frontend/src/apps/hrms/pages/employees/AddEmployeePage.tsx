@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneError, textError } from "@/lib/validation";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,23 +13,28 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { employeeApi, companyApi, attendanceApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
+import { loadManagerOptions } from "./employeeJobOptions";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 const schema = z.object({
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
+  first_name: z.string().trim().min(1, "First name is required").max(160).refine(value=>!textError(value,160),"Enter a valid name without control characters"),
+  last_name: z.string().trim().max(160).refine(value=>!textError(value,160,false),"Enter a valid name without control characters"),
   gender: z.string().optional(),
   date_of_birth: z.preprocess((v) => v === "" ? undefined : v, z.string().optional()),
   date_of_joining: z.string().min(1, "Joining date is required"),
   employment_type: z.string().default("Full-time"),
   branch_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
   department_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
+  reporting_manager_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
   designation_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
   personal_email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone_number: z.string().optional(),
+  phone_number_country_code: z.string().optional(),
   alternate_phone: z.string().optional(),
+  alternate_phone_country_code: z.string().optional(),
   emergency_contact_name: z.string().optional(),
   emergency_contact_number: z.string().optional(),
+  emergency_contact_number_country_code: z.string().optional(),
   emergency_contact_relation: z.string().optional(),
   present_address: z.string().optional(),
   permanent_address: z.string().optional(),
@@ -51,6 +58,14 @@ const schema = z.object({
   shift_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
   create_user_account: z.boolean().default(false),
   user_email: z.string().email().optional().or(z.literal("")),
+  user_password: z.string().optional(),
+}).superRefine((data,context)=>{
+  for(const field of ['phone_number','alternate_phone','emergency_contact_number'] as const){const message=phoneError(data[field],data[`${field}_country_code`]);if(message)context.addIssue({code:'custom',path:[field],message});}
+  if(data.date_of_birth&&data.date_of_birth>=new Date().toLocaleDateString("en-CA"))context.addIssue({code:"custom",path:["date_of_birth"],message:"Date of birth must be in the past"});
+  if(!data.create_user_account)return;
+  if(!data.user_email)context.addIssue({code:'custom',path:['user_email'],message:'Login email is required'});
+  if(!data.user_password||data.user_password.length<12||new TextEncoder().encode(data.user_password).length>72)
+    context.addIssue({code:'custom',path:['user_password'],message:'Use at least 12 characters and no more than 72 UTF-8 bytes'});
 });
 
 type FormData = z.infer<typeof schema>;
@@ -60,7 +75,7 @@ type QuickType = "company" | "branch" | "department" | "designation" | "shift";
 
 const stepFields: Array<Array<keyof FormData>> = [
   ["first_name", "last_name", "gender", "date_of_birth"],
-  ["date_of_joining", "employment_type", "branch_id", "department_id", "designation_id", "shift_id"],
+  ["date_of_joining", "employment_type", "branch_id", "department_id", "designation_id", "reporting_manager_id", "shift_id"],
   [
     "personal_email",
     "phone_number",
@@ -89,10 +104,11 @@ const stepFields: Array<Array<keyof FormData>> = [
     "pf_number",
     "esic_number",
   ],
-  ["create_user_account", "user_email"],
+  ["create_user_account", "user_email", "user_password"],
 ];
 
 export default function AddEmployeePage() {
+  const submitting=useRef(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
@@ -106,6 +122,8 @@ export default function AddEmployeePage() {
   const [quickType, setQuickType] = useState<QuickType | null>(null);
   const [quickForm, setQuickForm] = useState<Record<string, any>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const { data: managers = [] } = useQuery({ queryKey: ["employee-manager-options"], queryFn: loadManagerOptions });
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -134,12 +152,17 @@ export default function AddEmployeePage() {
 
   const {
     register,
+    trigger,
+    setError: setFieldError,
+    getFieldState,
     handleSubmit,
+    setValue,
     watch,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm<z.input<typeof schema>, unknown, FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { employment_type: "Full-time", create_user_account: false },
+    defaultValues: { employment_type: "Full-time", create_user_account: false, last_name: "", phone_number_country_code: "+91", alternate_phone_country_code: "+91", emergency_contact_number_country_code: "+91" },
+    mode: "onBlur",
   });
 
   const selectedBranch = watch("branch_id");
@@ -155,7 +178,14 @@ export default function AddEmployeePage() {
       toast({ title: "Employee created successfully!", variant: "default" });
       navigate(`/hrms/employees/${res.data.id}`);
     },
+    onSettled: ()=>{submitting.current=false;},
     onError: (err: unknown) => {
+      const details=(err as {response?:{data?:{detail?:Array<{loc?:string[];msg?:string}>}}})?.response?.data?.detail;
+      if(Array.isArray(details)){
+        const fields=details.map(item=>String(item.loc?.at(-1)||''));
+        for(const item of details){const key=String(item.loc?.at(-1)||'') as keyof FormData;if(key)setFieldError(key,{type:'server',message:item.msg||'Invalid value'});}
+        const index=stepFields.findIndex(step=>step.some(field=>fields.includes(field)));if(index>=0)setCurrentStep(index);
+      }
       const message = getEmployeeErrorMessage(err);
       setSubmitError(message);
       toast({ title: "Failed to create employee", description: message, variant: "destructive" });
@@ -183,7 +213,26 @@ export default function AddEmployeePage() {
     onError: (err: any) => toast({ title: "Could not add setting", description: err?.response?.data?.detail || "Check required fields", variant: "destructive" }),
   });
 
+  const goToStep = async (target: number) => {
+    if(target>currentStep){
+      for(let index=0;index<target;index++){
+        if(!await trigger(stepFields[index],{shouldFocus:true})){
+          setCurrentStep(index);
+          const messages=stepFields[index].map(field=>getFieldState(field).error?.message).filter(Boolean);
+          setSubmitError(messages.join('; ') || 'Complete the highlighted fields before continuing.');
+          const first=stepFields[index].find(field=>getFieldState(field).invalid);
+          if(first)requestAnimationFrame(()=>document.querySelector<HTMLInputElement>(`[name="${first}"]`)?.focus());
+          return;
+        }
+      }
+    }
+    setSubmitError(null);
+    setCurrentStep(target);
+  };
+
   const onSubmit = (data: FormData) => {
+    if(submitting.current)return;
+    submitting.current=true;
     setSubmitError(null);
     mutation.mutate(data);
   };
@@ -198,8 +247,8 @@ export default function AddEmployeePage() {
     const defaults: Record<QuickType, Record<string, any>> = {
       company: { country: "India" },
       branch: { company_id: companies?.[0]?.id || "", country: "India" },
-      department: { branch_id: branches?.[0]?.id || "" },
-      designation: { department_id: departments?.[0]?.id || "", level: 1 },
+      department: { branch_id: selectedBranch || branches?.[0]?.id || "" },
+      designation: { department_id: selectedDepartment || departments?.[0]?.id || "", level: 1 },
       shift: { start_time: "09:30", end_time: "18:30", grace_minutes: 10, working_hours: "8.0" },
     };
     setQuickForm(defaults[type]);
@@ -231,7 +280,7 @@ export default function AddEmployeePage() {
           <div key={step} className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setCurrentStep(i)}
+              onClick={() => void goToStep(i)}
               className={`flex min-h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${
                 i === currentStep
                   ? "border-primary bg-primary text-primary-foreground"
@@ -265,10 +314,10 @@ export default function AddEmployeePage() {
         })}
       >
         {submitError && (
-          <div className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          <div role="alert" className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
-              <p className="font-medium">Employee was not created</p>
+              <p className="font-medium">Check employee details</p>
               <p className="mt-1">{submitError}</p>
             </div>
           </div>
@@ -279,14 +328,14 @@ export default function AddEmployeePage() {
             <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>First Name *</Label>
-                <Input {...register("first_name")} placeholder="John" />
-                {errors.first_name && <p className="text-xs text-destructive">{errors.first_name.message}</p>}
+                <Label htmlFor="employee-first_name">First Name *</Label>
+                <Input id="employee-first_name" aria-invalid={!!errors.first_name} aria-describedby={errors.first_name ? "employee-first_name-error" : undefined} {...register("first_name")} placeholder="John" />
+                {errors.first_name && <p id="employee-first_name-error" role="alert" className="text-xs text-destructive">{errors.first_name.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Last Name *</Label>
-                <Input {...register("last_name")} placeholder="Doe" />
-                {errors.last_name && <p className="text-xs text-destructive">{errors.last_name.message}</p>}
+                <Label htmlFor="employee-last_name">Last Name (optional)</Label>
+                <Input id="employee-last_name" aria-invalid={!!errors.last_name} aria-describedby={errors.last_name ? "employee-last_name-error" : undefined} {...register("last_name")} placeholder="Doe" />
+                {errors.last_name && <p id="employee-last_name-error" role="alert" className="text-xs text-destructive">{errors.last_name.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Gender</Label>
@@ -294,13 +343,13 @@ export default function AddEmployeePage() {
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
+                  <option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Date of Birth</Label>
-                <Input type="date" {...register("date_of_birth")} />
-                {errors.date_of_birth && <p className="text-xs text-destructive">{errors.date_of_birth.message}</p>}
+                <Label htmlFor="employee-date_of_birth">Date of Birth</Label>
+                <Input id="employee-date_of_birth" aria-invalid={!!errors.date_of_birth} aria-describedby={errors.date_of_birth ? "employee-date_of_birth-error" : undefined} type="date" {...register("date_of_birth")} />
+                {errors.date_of_birth && <p id="employee-date_of_birth-error" role="alert" className="text-xs text-destructive">{errors.date_of_birth.message}</p>}
               </div>
             </CardContent>
           </Card>
@@ -312,9 +361,9 @@ export default function AddEmployeePage() {
             <CardHeader><CardTitle>Job Details</CardTitle></CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Date of Joining *</Label>
-                <Input type="date" {...register("date_of_joining")} />
-                {errors.date_of_joining && <p className="text-xs text-destructive">{errors.date_of_joining.message}</p>}
+                <Label htmlFor="employee-date_of_joining">Date of Joining *</Label>
+                <Input id="employee-date_of_joining" aria-invalid={!!errors.date_of_joining} aria-describedby={errors.date_of_joining ? "employee-date_of_joining-error" : undefined} type="date" {...register("date_of_joining")} />
+                {errors.date_of_joining && <p id="employee-date_of_joining-error" role="alert" className="text-xs text-destructive">{errors.date_of_joining.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Employment Type</Label>
@@ -333,7 +382,7 @@ export default function AddEmployeePage() {
                   </Button>
                 </div>
                 <select
-                  {...register("branch_id", { setValueAs: (v) => v === "" ? null : Number(v) })}
+                  {...register("branch_id", { onChange: () => { setValue("department_id", null); setValue("designation_id", null); }, setValueAs: (v) => v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">Select Branch</option>
@@ -352,7 +401,7 @@ export default function AddEmployeePage() {
                   </Button>
                 </div>
                 <select
-                  {...register("department_id", { setValueAs: (v) => v === "" ? null : Number(v) })}
+                  {...register("department_id", { onChange: () => setValue("designation_id", null), setValueAs: (v) => v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">Select Department</option>
@@ -381,6 +430,13 @@ export default function AddEmployeePage() {
                 {errors.designation_id && <p className="text-xs text-destructive">{errors.designation_id.message}</p>}
               </div>
               <div className="space-y-2">
+                <Label htmlFor="reporting-manager">Reporting Manager / Intern Supervisor</Label>
+                <select id="reporting-manager" {...register("reporting_manager_id", { setValueAs: (v) => v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">Unassigned</option>
+                  {managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label>Shift</Label>
                   <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => openQuick("shift")}>
@@ -405,29 +461,29 @@ export default function AddEmployeePage() {
             <CardHeader><CardTitle>Contact Information</CardTitle></CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Personal Email</Label>
-                <Input type="email" {...register("personal_email")} placeholder="john@example.com" />
-                {errors.personal_email && <p className="text-xs text-destructive">{errors.personal_email.message}</p>}
+                <Label htmlFor="employee-personal_email">Personal Email</Label>
+                <Input id="employee-personal_email" aria-invalid={!!errors.personal_email} aria-describedby={errors.personal_email ? "employee-personal_email-error" : undefined} type="email" {...register("personal_email")} placeholder="john@example.com" />
+                {errors.personal_email && <p id="employee-personal_email-error" role="alert" className="text-xs text-destructive">{errors.personal_email.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Phone Number</Label>
-                <Input {...register("phone_number")} placeholder="+91-XXXXXXXXXX" />
+                <PhoneInput label="Phone Number" name="phone_number" value={watch("phone_number") || ""} countryCode={watch("phone_number_country_code") || ""} onChange={value=>setValue("phone_number",value,{shouldValidate:true})} onCountryCodeChange={value=>setValue("phone_number_country_code",value,{shouldValidate:true})} error={errors.phone_number?.message} />
               </div>
               <div className="space-y-2">
                 <Label>Alternate Phone</Label>
-                <Input {...register("alternate_phone")} />
+                <PhoneInput label="Alternate Phone" name="alternate_phone" value={watch("alternate_phone") || ""} countryCode={watch("alternate_phone_country_code") || ""} onChange={value=>setValue("alternate_phone",value,{shouldValidate:true})} onCountryCodeChange={value=>setValue("alternate_phone_country_code",value,{shouldValidate:true})} error={errors.alternate_phone?.message} />
               </div>
               <div className="space-y-2">
-                <Label>Emergency Contact</Label>
-                <Input {...register("emergency_contact_name")} placeholder="Contact name" />
+                <Label htmlFor="employee-emergency_contact_name">Emergency Contact</Label>
+                <Input id="employee-emergency_contact_name" aria-invalid={!!errors.emergency_contact_name} aria-describedby={errors.emergency_contact_name ? "employee-emergency_contact_name-error" : undefined} {...register("emergency_contact_name")} placeholder="Contact name" />
               </div>
               <div className="space-y-2">
                 <Label>Emergency Phone</Label>
-                <Input {...register("emergency_contact_number")} />
+                <PhoneInput label="Emergency Phone" name="emergency_contact_number" value={watch("emergency_contact_number") || ""} countryCode={watch("emergency_contact_number_country_code") || ""} onChange={value=>setValue("emergency_contact_number",value,{shouldValidate:true})} onCountryCodeChange={value=>setValue("emergency_contact_number_country_code",value,{shouldValidate:true})} error={errors.emergency_contact_number?.message} />
               </div>
               <div className="space-y-2">
-                <Label>Relation</Label>
-                <Input {...register("emergency_contact_relation")} placeholder="Spouse, parent, friend" />
+                <Label htmlFor="employee-emergency_contact_relation">Relation</Label>
+                <Input id="employee-emergency_contact_relation" aria-invalid={!!errors.emergency_contact_relation} aria-describedby={errors.emergency_contact_relation ? "employee-emergency_contact_relation-error" : undefined} {...register("emergency_contact_relation")} placeholder="Spouse, parent, friend" />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Present Address</Label>
@@ -496,9 +552,13 @@ export default function AddEmployeePage() {
               </div>
               {watch("create_user_account") && (
                 <div className="space-y-2">
-                  <Label>Login Email *</Label>
-                  <Input type="email" {...register("user_email")} placeholder="employee@company.com" />
-                  <p className="text-xs text-muted-foreground">Default password: Welcome@123 (employee must change on first login)</p>
+                  <Label htmlFor="employee-login-email">Login Email *</Label>
+                  <Input id="employee-login-email" type="email" {...register("user_email")} placeholder="employee@company.com" />
+                  {errors.user_email&&<p className="text-xs text-destructive">{errors.user_email.message}</p>}
+                  <Label htmlFor="employee-login-password">Login Password *</Label>
+                  <Input id="employee-login-password" type="password" autoComplete="new-password" maxLength={72} {...register("user_password")} />
+                  {errors.user_password&&<p className="text-xs text-destructive">{errors.user_password.message}</p>}
+                  <p className="text-xs text-muted-foreground">Set a unique password of at least 12 characters that meets your organization’s password policy.</p>
                 </div>
               )}
             </CardContent>
@@ -521,7 +581,7 @@ export default function AddEmployeePage() {
             <Button
               type="button"
               key="next-step"
-              onClick={event => { event.preventDefault(); setCurrentStep((s) => Math.min(steps.length - 1, s + 1)); }}
+              onClick={event => { event.preventDefault(); void goToStep(Math.min(steps.length - 1,currentStep+1)); }}
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -563,7 +623,7 @@ function cleanEmployeePayload(data: FormData) {
   ["date_of_birth", "date_of_confirmation"].forEach((key) => {
     if (payload[key] === "") payload[key] = null;
   });
-  ["branch_id", "department_id", "designation_id", "shift_id"].forEach((key) => {
+  ["branch_id", "department_id", "designation_id", "reporting_manager_id", "shift_id"].forEach((key) => {
     if (payload[key] === "" || Number.isNaN(payload[key])) payload[key] = null;
   });
   Object.keys(payload).forEach((key) => {
@@ -647,7 +707,8 @@ function QuickCreateModal({
           <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
         <div className="grid gap-4 p-5 sm:grid-cols-2">
-          <Field label="Name *"><Input value={form.name || ""} onChange={(e) => update("name", e.target.value)} /></Field>
+          <Field label="Name *"><Input list={type === "designation" ? "designation-suggestions" : undefined} value={form.name || ""} onChange={(e) => update("name", e.target.value)} /></Field>
+          <datalist id="designation-suggestions">{["Intern", "Software Architect", "Marketing"].map((name) => <option key={name} value={name} />)}</datalist>
           {type !== "company" && type !== "shift" && <Field label="Code"><Input value={form.code || ""} onChange={(e) => update("code", e.target.value)} /></Field>}
           {type === "branch" && <Field label="Company *">{select("company_id", companies)}</Field>}
           {type === "department" && <Field label="Branch *">{select("branch_id", branches)}</Field>}

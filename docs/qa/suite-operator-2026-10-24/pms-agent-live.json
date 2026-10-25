@@ -1,0 +1,144 @@
+{
+  "checks": [
+    {
+      "name": "Real LLM prepares selected-task actions and impact",
+      "status": "passed",
+      "evidence": {
+        "run_id": 7,
+        "status": "awaiting_approval",
+        "tools": [
+          "pms.task_plan"
+        ],
+        "has_impact": true
+      }
+    },
+    {
+      "name": "Approved background PMS actions return receipts",
+      "status": "passed",
+      "evidence": {
+        "run_id": 7,
+        "receipts": [
+          {
+            "step": 1,
+            "tool": "pms.task_plan",
+            "record_id": null,
+            "status": "succeeded",
+            "pms_run_id": 14,
+            "task_receipts": [
+              {
+                "step": 1,
+                "tool": "update_task",
+                "task_id": 9,
+                "record_id": 9,
+                "status": "succeeded"
+              },
+              {
+                "step": 2,
+                "tool": "add_checklist",
+                "task_id": 9,
+                "record_id": 4,
+                "status": "succeeded"
+              }
+            ],
+            "manual": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "Real LLM relative-date scheduling delegates to calendar",
+      "status": "passed",
+      "evidence": {
+        "run_id": 8,
+        "receipts": [
+          {
+            "step": 1,
+            "tool": "pms.task_plan",
+            "record_id": null,
+            "status": "succeeded",
+            "pms_run_id": 15,
+            "task_receipts": [
+              {
+                "step": 1,
+                "tool": "schedule_task",
+                "task_id": 9,
+                "record_id": 9,
+                "status": "succeeded"
+              }
+            ],
+            "manual": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "Both real Gemini calls have scoped usage analytics and sanitized logs",
+      "status": "passed",
+      "evidence": [
+        {
+          "id": 17,
+          "user_id": 1,
+          "run_id": null,
+          "suite_run_id": 8,
+          "module": "PMS",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash-lite",
+          "purpose": "suite_plan",
+          "status": "success",
+          "error_code": null,
+          "http_status": 200,
+          "provider_request_id": "L_XcaonzJpSm694PraCE0A8",
+          "input_tokens": 13223,
+          "output_tokens": 100,
+          "estimated_cost": 0.0042169,
+          "duration_ms": 1812,
+          "created_at": "2026-10-24T18:13:02.095203+00:00"
+        },
+        {
+          "id": 16,
+          "user_id": 1,
+          "run_id": null,
+          "suite_run_id": 7,
+          "module": "PMS",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash-lite",
+          "purpose": "suite_plan",
+          "status": "success",
+          "error_code": null,
+          "http_status": 200,
+          "provider_request_id": "KfXcasa3Hbfe694PgtGE8AY",
+          "input_tokens": 12941,
+          "output_tokens": 253,
+          "estimated_cost": 0.0045148,
+          "duration_ms": 9859,
+          "created_at": "2026-10-24T18:12:48.521779+00:00"
+        }
+      ]
+    },
+    {
+      "name": "Canonical task read confirms persisted changes and Monday schedule",
+      "status": "passed",
+      "evidence": {
+        "id": 9,
+        "priority": "High",
+        "estimated_hours": 8.0,
+        "story_points": 5,
+        "start_date": "2026-10-26",
+        "due_date": "2026-10-26",
+        "checklist": [
+          {
+            "id": 4,
+            "title": "Agent QA review",
+            "is_completed": false,
+            "position": 0
+          }
+        ]
+      }
+    }
+  ],
+  "provider": "gemini",
+  "microphone": "Physical microphone testing remains deferred by the user.",
+  "project_id": 5,
+  "task_id": 9,
+  "workspace_id": 1
+}

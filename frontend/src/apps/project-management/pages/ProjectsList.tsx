@@ -1,3 +1,4 @@
+import RecordActions from "../components/RecordActions";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CalendarDays, Kanban, Plus, Search } from "lucide-react";
@@ -55,16 +56,16 @@ export default function ProjectsList() {
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       {loading ? <div className="skeleton h-40 rounded-lg" /> : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((project) => (
-          <Card key={project.id} className="cursor-pointer transition hover:border-primary/40 hover:shadow-md" onClick={() => openProject(project)}>
+          <RecordActions key={project.id} kind="project" record={{...project,title:project.name,key:project.project_key}} onOpen={()=>openProject(project)}>{menu=><Card data-testid={`project-card-${project.id}`} tabIndex={0} className="min-w-0 cursor-pointer transition hover:border-primary/40 hover:shadow-md">
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{project.project_key}</p>
-                  <h2 className="mt-1 truncate text-lg font-semibold">{project.name}</h2>
+                  <h2 className="mt-1 truncate text-lg font-semibold"><button type="button" className="text-left hover:text-primary" onClick={()=>openProject(project)}>{project.name}</button></h2>
                 </div>
-                <Badge className={statusColor(project.status)}>{project.status}</Badge>
+                <div className="flex items-center gap-1"><Badge className={statusColor(project.status)}>{project.status}</Badge>{menu}</div>
               </div>
               <p className="mt-3 line-clamp-2 min-h-10 text-sm text-muted-foreground">{project.description || "No description added yet."}</p>
               <div className="mt-5">
@@ -93,7 +94,7 @@ export default function ProjectsList() {
                 </Link>
               </div>
             </CardContent>
-          </Card>
+          </Card>}</RecordActions>
         ))}
       </div>
     </div>

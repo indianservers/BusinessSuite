@@ -65,7 +65,8 @@ def test_bank_advice_preview_generate_and_download(client, db):
     export_body = export_response.json()
     assert export_body["export_type"] == "txt"
     assert export_body["total_amount"] != "0.00"
-    assert export_body["file_path"].endswith(".txt")
+    from app.core.storage import normalize_upload_references
+    assert normalize_upload_references(export_body["file_path"]).endswith(".txt")
 
     export = db.query(PayrollBankExport).filter(PayrollBankExport.id == export_body["id"]).first()
     assert export

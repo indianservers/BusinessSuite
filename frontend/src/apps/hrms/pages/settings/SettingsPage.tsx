@@ -1,3 +1,5 @@
+import { PhoneInput } from "@/lib/validation/PhoneInput";
+import { phoneFields } from "@/lib/validation";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
@@ -441,7 +443,7 @@ function detailText(type: SettingKey, row: Entity) {
 function renderFields(type: SettingKey, form: Entity, setForm: (v: Entity) => void, data: Record<SettingKey, Entity[]>, permissions: Entity[]) {
   const update = (key: string, value: any) => setForm({ ...form, [key]: value });
   const text = (key: string, label: string, extra?: any) => (
-    <Field key={key} label={label}><Input value={form[key] || ""} onChange={(e) => update(key, e.target.value)} {...extra} /></Field>
+    <Field key={key} label={label}>{phoneFields.has(key) ? <PhoneInput label={label} value={form[key] || ""} countryCode={form[key+"_country_code"] ?? (form.id ? "" : "+91")} onChange={value=>setForm({...form,[key]:value,[key+"_country_code"]:form[key+"_country_code"] ?? (form.id ? "" : "+91")})} onCountryCodeChange={value=>update(key+"_country_code",value)} /> : <Input value={form[key] || ""} onChange={(e) => update(key, e.target.value)} {...extra} />}</Field>
   );
   const select = (key: string, label: string, options: Entity[]) => (
     <Field key={key} label={label}>

@@ -14,6 +14,7 @@ from app.ai_agents.api import _require_ai_access, _require_ai_rate_limit
 from app.ai_agents.services.audit import AiAuditService
 from app.ai_operator.service import digest, scope_key, require_enabled
 from app.ai_operator.models import OperatorProvider
+from app.ai_operator.provider_scope import resolve_provider
 from app.ai_operator.assistant_models import AssistantConversation, AssistantMessage
 from app.ai_operator.assistant_tools import (
     Intent,
@@ -486,16 +487,8 @@ def message(
     if not intent and data.provider:
         from app.ai_operator.providers import generate_json
 
-        config = (
-            db.query(OperatorProvider)
-            .filter_by(
-                scope_key=scope_key(db, user, conv.workspace_id),
-                provider=data.provider,
-                enabled=True,
-            )
-            .first()
-        )
-        if not config:
+        config = resolve_provider(db, user, data.provider, conv.workspace_id)
+        if not config or not config.enabled or not config.data_sharing_allowed:
             raise HTTPException(
                 409,
                 "Provider is not configured. Use guided mode or ask an administrator.",
@@ -525,6 +518,7 @@ def message(
                     schema=Intent.model_json_schema(),
                     output_type=Intent,
                     purpose="assistant",
+                    usage_scope=scope_key(db, user, conv.workspace_id),
                 )
             )
         except HTTPException:

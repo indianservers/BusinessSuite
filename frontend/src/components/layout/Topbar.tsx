@@ -1,3 +1,4 @@
+import DensityControl from "./DensityControl";
 import PMSProfileMenu from "./PMSProfileMenu";
 import { usePersonalStore } from "@/store/personalStore";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -89,13 +90,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const passwordStrength = getPasswordStrength(newPassword);
 
   return (
-    <header className="z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 md:px-6 lg:px-8">
+    <header className="kf-topbar z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 md:px-6 lg:px-8">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
         size="icon"
         className="lg:hidden"
-        onClick={onMenuClick}
+        aria-label="Open navigation" onClick={onMenuClick}
       >
         <Menu className="h-5 w-5" />
       </Button>
@@ -104,6 +105,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <div className="ml-auto flex items-center gap-2">
         <ModuleNewMenu />
+        <Button variant="outline" size="sm" onClick={()=>navigate(`/ai-agents/operator${location.search}`)} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span className="hidden sm:inline">AI operator</span></Button>
         <div className="hidden rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
           {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
         </div>
@@ -114,7 +116,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications" title="Notifications">
                 <Bell className="h-5 w-5" />
                 {!!unreadCount.data && unreadCount.data > 0 && !(location.pathname.startsWith("/pms") && mutedUntil > Date.now()) && (
-              <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+              <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-none text-white">
                 {unreadCount.data > 99 ? "99+" : unreadCount.data}
               </span>
                 )}
@@ -144,7 +146,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
         ) : null}
-        <KeyboardShortcuts />
+        <span className="hidden sm:contents"><KeyboardShortcuts /></span><DensityControl />
 
         {/* Theme toggle */}
         <Button
@@ -162,7 +164,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </Button>
 
         <Dialog.Root open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        {!location.pathname.startsWith("/pms") && <Button variant="ghost" size="sm" onClick={() => void handleLogout()}><LogOut className="h-4 w-4" /><span>Logout</span></Button>}
+        {!location.pathname.startsWith("/pms") && <Button className="hidden sm:inline-flex" variant="ghost" size="sm" onClick={() => void handleLogout()}><LogOut className="h-4 w-4" /><span>Logout</span></Button>}
         {location.pathname.startsWith("/pms") ? <PMSProfileMenu onChangePassword={() => setPasswordDialogOpen(true)} /> : <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button aria-label="Account menu" className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">

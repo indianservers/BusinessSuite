@@ -3,6 +3,7 @@ const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleG
 import { Navigate, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
 
+const InternApplicationsPage = React.lazy(() => import("@/apps/hrms/pages/interns/InternApplicationsPage"));
 const DashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/DashboardPage"));
 const RoleWorkspacePage = React.lazy(() => import("@/apps/hrms/pages/dashboard/RoleWorkspacePage"));
 const ManagerDashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/ManagerDashboardPage"));
@@ -35,6 +36,8 @@ const CompanyPage = React.lazy(() => import("@/apps/hrms/pages/company/CompanyPa
 const OrgChartPage = React.lazy(() => import("@/apps/hrms/pages/company/OrgChartPage"));
 const AIAssistantPage = React.lazy(() => import("@/apps/hrms/pages/ai/AIAssistantPage"));
 const ProfilePage = React.lazy(() => import("@/apps/hrms/pages/profile/ProfilePage"));
+const SharedProfilePage = React.lazy(() => import("@/features/profiles/ProfilePage"));
+const SharedProfileManagementPage = React.lazy(() => import("@/features/profiles/ProfilePage").then(module => ({ default: module.SharedProfileManagementPage })));
 const ESSPortalPage = React.lazy(() => import("@/apps/hrms/pages/profile/ESSPortalPage"));
 const AssetsPage = React.lazy(() => import("@/apps/hrms/pages/assets/AssetsPage"));
 const OnboardingPage = React.lazy(() => import("@/apps/hrms/pages/onboarding/OnboardingPage"));
@@ -50,7 +53,11 @@ const WhatsAppESSPage = React.lazy(() => import("@/apps/hrms/pages/platform/What
 const CustomFieldsPage = React.lazy(() => import("@/apps/hrms/pages/platform/CustomFieldsPage"));
 const EnterprisePage = React.lazy(() => import("@/apps/hrms/pages/platform/EnterprisePage"));
 
+const InternManagementPage = React.lazy(() => import("./pages/interns/InternManagementPage"));
+
+const MyAssignmentsPage=React.lazy(()=>import("@/apps/project-management/pages/MyAssignmentsPage"));
 const moduleRoutes: FrontendRoute[] = [
+  {path:"my-assignments",element:<React.Suspense><MyAssignmentsPage/></React.Suspense>},
   { path: "dashboard", element: <DashboardPage /> },
   { path: "role-home", element: <RoleWorkspacePage /> },
   { path: "admin-home", element: <RoleWorkspacePage /> },
@@ -59,6 +66,15 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "manager-dashboard", element: <ManagerDashboardPage /> },
   { path: "ess", element: <ESSPortalPage /> },
   { path: "employee-directory", element: <EmployeeDirectoryPage /> },
+  { path: "interns-hub/applications", element: <InternApplicationsPage /> },
+  { path: "interns-hub", element: <InternManagementPage page="dashboard" /> },
+  { path: "interns", element: <InternManagementPage page="dashboard" /> },
+  { path: "interns/dashboard", element: <InternManagementPage page="dashboard" /> },
+  { path: "interns/batches", element: <InternManagementPage page="batches" /> },
+  { path: "interns/tasks", element: <InternManagementPage page="tasks" /> },
+  { path: "interns/reviews", element: <InternManagementPage page="reviews" /> },
+  { path: "interns/performance", element: <InternManagementPage page="performance" /> },
+
   { path: "employees", element: <EmployeesPage /> },
   { path: "employees/new", element: <AddEmployeePage /> },
   { path: "employees/:id", element: <EmployeeDetailPage /> },
@@ -99,7 +115,10 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "documents", element: <DocumentsPage /> },
   { path: "exit", element: <ExitPage /> },
   { path: "ai-assistant", element: <AIAssistantPage /> },
-  { path: "profile", element: <ProfilePage /> },
+  { path: "profile", element: <SharedProfilePage /> },
+  { path: "profile/security", element: <ProfilePage /> },
+  { path: "profile-management", element: <SharedProfileManagementPage /> },
+  { path: "interns/profiles", element: <SharedProfileManagementPage /> },
 ];
 
 function LegacyHrmsRedirect() {

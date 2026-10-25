@@ -1,3 +1,4 @@
+import RecordActions from "./RecordActions";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -33,8 +34,8 @@ const priorityIcon = {
   Urgent: CircleAlert,
 } as const;
 
-export default function TaskCard({ task, onOpen }: { task: PMSTask; onOpen?: (task: PMSTask) => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+export default function TaskCard({ task, onOpen, canEdit=false, onChanged }: { task: PMSTask; onOpen?: (task: PMSTask) => void; canEdit?: boolean; onChanged?: () => Promise<void> }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: !canEdit });
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done";
   const PriorityIcon = priorityIcon[task.priority] || Equal;
   const issueType = task.is_blocking || /bug|error|fix|blocked/i.test(task.title) ? "Bug" : task.parent_task_id ? "Sub-task" : task.story_points && task.story_points > 5 ? "Story" : "Task";
@@ -54,7 +55,7 @@ export default function TaskCard({ task, onOpen }: { task: PMSTask; onOpen?: (ta
   const tagNames = (task.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name).filter(Boolean);
 
   return (
-    <article
+    <RecordActions record={{...task,key:task.task_key}} canEdit={canEdit} preview={!isDragging} onOpen={onOpen ? ()=>onOpen(task) : undefined} onChanged={onChanged}>{menu=><article tabIndex={0}
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
@@ -66,6 +67,7 @@ export default function TaskCard({ task, onOpen }: { task: PMSTask; onOpen?: (ta
         <button
           type="button"
           aria-label="Drag task"
+          disabled={!canEdit}
           className="mt-0.5 rounded p-1 text-muted-foreground hover:bg-muted"
           {...attributes}
           {...listeners}
@@ -94,7 +96,7 @@ export default function TaskCard({ task, onOpen }: { task: PMSTask; onOpen?: (ta
               {tagNames.length > 3 ? <span className="text-[11px] text-muted-foreground">+{tagNames.length - 3}</span> : null}
             </div>
           ) : null}
-        </button>
+        </button>{menu}
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3 text-xs text-muted-foreground">
@@ -122,7 +124,7 @@ export default function TaskCard({ task, onOpen }: { task: PMSTask; onOpen?: (ta
           {task.assignee_user_id ? `U${task.assignee_user_id}` : "?"}
         </div>
       </div>
-    </article>
+    </article>}</RecordActions>
   );
 }
 

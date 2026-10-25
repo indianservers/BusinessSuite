@@ -43,12 +43,27 @@ export async function authenticateCrm(page: Page) {
 
 export async function expectCrmListPage(page: Page, route: string, heading: string, text: string) {
   await page.goto(route, { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", route === "/crm/leads" ? { name: /Lead workbench/ } : { name: heading, exact: true })).toBeVisible();
   await expect(page.getByPlaceholder("Search records, owners, companies...").or(page.getByRole("textbox", { name: /^Search (contacts|leads|deals|companies|accounts)$/i }))).toHaveCount(1);
   await expect(page.getByText(text).first()).toBeVisible();
 }
 
 function crmResponse(path: string, method: Method) {
+  if (path === "/crm/lead-management/settings") return {
+    settings: { stages: [
+      { name: "New", required: [], allowedNext: ["Contacted", "Qualified", "Lost"] },
+      { name: "Contacted", required: [], allowedNext: ["Qualified", "Lost"] },
+      { name: "Qualified", required: [], allowedNext: ["Lost"] },
+      { name: "Converted", required: [], allowedNext: [] },
+      { name: "Lost", required: ["lossReason"], allowedNext: ["New"] },
+    ], slaHours: 24, staleDays: 7, preventDuplicates: true, assignment: { mode: "manual", ownerIds: [], rules: [] }, sequences: [], workflows: [] },
+    owners: [{ id: 100, name: "admin@example.com" }], canManage: true, canAdmin: true, userId: 100,
+  };
+  if (path === "/crm/lead-management/leads") return {
+    items: [{ ...lead(), owner_user_id: 100, lead_score: 82, lead_score_mode: "automatic", details: {}, version: 0,
+      signals: { overdue: false, slaBreached: false, stale: false, active: true, ageDays: 0, priority: 0, nextAction: "Review qualification and convert", followUpLabel: "Not scheduled" } }],
+    total: 1, page: 1, perPage: 40, truncated: false, summary: { total: 1, active: 1, overdue: 0, slaBreached: 0, stale: 0 }, byStage: { Qualified: 1 }, bySource: { Website: 1 }, convertedBySource: {}, lostReasons: {},
+  };
   if (method !== "GET") {
     if (path.includes("/pipeline-stages/reorder")) return { items: [pipelineStage(1), pipelineStage(2)], total: 2 };
     if (path.includes("/forecast/snapshot")) return { id: 10, snapshotName: "Manual CRM forecast snapshot", weightedAmount: 200000 };

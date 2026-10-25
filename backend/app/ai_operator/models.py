@@ -13,6 +13,7 @@ class OperatorProvider(Base):
     encrypted_key = Column(Text, nullable=False)
     enabled = Column(Boolean, nullable=False, default=False)
     data_sharing_allowed = Column(Boolean, nullable=False, default=False)
+    allow_workspace_inheritance = Column(Boolean, nullable=False, default=False, server_default='false')
     max_tokens = Column(Integer, nullable=False, default=3000)
     input_price = Column(Numeric(14, 6), nullable=True)
     output_price = Column(Numeric(14, 6), nullable=True)
@@ -53,6 +54,8 @@ class OperatorApiLog(Base):
     __tablename__ = "ai_operator_api_logs"
     id = Column(Integer, primary_key=True)
     scope_key = Column(String(100), nullable=False, index=True)
+    module = Column(String(40), nullable=False, default='PMS', server_default='PMS')
+    suite_run_id = Column(Integer, ForeignKey('ai_suite_runs.id'), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     run_id = Column(Integer, ForeignKey("ai_operator_runs.id"), nullable=True, index=True)
     provider = Column(String(20), nullable=False)
@@ -140,3 +143,5 @@ class OperatorMonitor(Base):
     error_code = Column(String(60), nullable=True)
 
 from app.ai_operator.assistant_models import AssistantConversation, AssistantMessage  # noqa: F401
+from app.ai_operator.workbench_models import AssistantArtifact, AssistantSignal  # noqa: F401
+from app.ai_operator.suite_models import SuiteRun  # noqa: F401

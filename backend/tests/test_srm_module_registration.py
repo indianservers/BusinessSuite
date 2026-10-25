@@ -13,7 +13,10 @@ def test_srm_module_is_registered_and_enabled():
 
 def test_srm_api_router_prefix_is_available():
     api_router = build_api_router()
-    paths = {route.path for route in api_router.routes}
+    from fastapi import FastAPI
+    app=FastAPI()
+    app.include_router(api_router)
+    paths=set(app.openapi()['paths'])
     assert "/srm/module-info" in paths
     assert "/srm/sales-orders" in paths
     assert "/srm/invoices/draft-from-sales-order/{sales_order_id}" in paths

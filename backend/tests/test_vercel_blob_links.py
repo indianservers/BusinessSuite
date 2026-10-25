@@ -2,7 +2,7 @@ from urllib.parse import urlsplit, parse_qs
 
 import pytest
 from fastapi import HTTPException
-from jose import jwt
+import jwt
 
 from app.core.config import settings
 from app.core.storage import signed_file_url, blob_token_path, normalize_upload_references

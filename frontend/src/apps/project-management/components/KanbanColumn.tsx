@@ -19,12 +19,14 @@ export default function KanbanColumn({
   onAddTask,
   onOpenTask,
   readOnly = false,
+  onChanged,
 }: {
   column: PMSBoardColumn;
   tasks: PMSTask[];
   onAddTask: () => void;
   onOpenTask?: (task: PMSTask) => void;
   readOnly?: boolean;
+  onChanged?: () => Promise<void>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column-${column.id}` });
   const isAtLimit = Boolean(column.wip_limit && tasks.length >= column.wip_limit);
@@ -78,7 +80,7 @@ export default function KanbanColumn({
       </header>
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
         {tasks.length ? (
-          tasks.map((task) => <TaskCard key={task.id} task={task} onOpen={onOpenTask} />)
+          tasks.map((task) => <TaskCard key={task.id} task={task} onOpen={onOpenTask} canEdit={!readOnly} onChanged={onChanged} />)
         ) : (
           <button
             type="button"

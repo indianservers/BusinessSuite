@@ -1,6 +1,7 @@
 from uuid import uuid4
 from datetime import datetime, timedelta
 import pytest
+from tests.test_ai_operator import isolate_generic_http_audit
 from app.apps.srm.models import SRMInvoice, SRMSalesOrder, SRMSalesOrderLine
 from app.apps.srm.commercial_models import ProjectCommercial
 from app.ai_operator.assistant_models import AssistantMessage

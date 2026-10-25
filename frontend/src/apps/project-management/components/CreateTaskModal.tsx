@@ -9,6 +9,7 @@ import { beginProgress } from "@/components/app/AsyncProgress";
 import { api } from "@/services/api";
 import AssigneePicker from "./AssigneePicker";
 import "./CreateTaskModal.css";
+import SmartTagsInput, { splitTags, uniqueTags } from "./SmartTagsInput";
 
 const statuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done"];
 const priorities: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
@@ -39,7 +40,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
   const [people, setPeople] = useState<PMSMentionUser[]>([]);
   const [storyPoints, setStoryPoints] = useState("");
   const [availableTags, setAvailableTags] = useState<PMSTag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
   const [sprints, setSprints] = useState<PMSSprint[]>([]);
   const [sprintId, setSprintId] = useState("");
@@ -89,7 +90,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
     requestAnimationFrame(() => { editor.focus(); editor.setSelectionRange(start + before.length, end + before.length); });
   }
   function reset() {
-    setTitle(""); setDescription(""); setDueDate(""); setStartDate(""); setAssignees([]); setStoryPoints(""); setSelectedTagIds([]); setNewTagName(""); setFiles([]); setDependencyId(""); setRecurrence(""); setRecurrenceUntil(""); setPreview(false); created.current = null; completed.current.clear();
+    setTitle(""); setDescription(""); setDueDate(""); setStartDate(""); setAssignees([]); setStoryPoints(""); setSelectedTags([]); setNewTagName(""); setFiles([]); setDependencyId(""); setRecurrence(""); setRecurrenceUntil(""); setPreview(false); created.current = null; completed.current.clear();
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -109,11 +110,18 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
         recurrence_rule: recurrence || undefined, recurrence_interval: 1, recurrence_until: recurrenceUntil || undefined,
       });
       const task = created.current;
-      for (const tagId of selectedTagIds) if (!completed.current.has(`tag-${tagId}`)) { await tasksAPI.addTagById(task.id, tagId); completed.current.add(`tag-${tagId}`); }
-      if (newTagName.trim() && !completed.current.has("new-tag")) {
-        const tag = availableTags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase()) || await tagsAPI.create({ name: newTagName.trim() });
-        setAvailableTags(current => current.some(t => t.id === tag.id) ? current : [...current, tag]);
-        await tasksAPI.addTagById(task.id, tag.id); completed.current.add("new-tag");
+      const tagCache = [...availableTags];
+      for (const name of uniqueTags([...selectedTags, ...splitTags(newTagName)])) {
+        let tag = tagCache.find(t => t.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+        if (!tag) {
+          tag = await tagsAPI.create({ name });
+          tagCache.push(tag);
+          setAvailableTags(current => current.some(t => t.id === tag!.id) ? current : [...current, tag!]);
+        }
+        if (!completed.current.has(`tag-${tag.id}`)) {
+          await tasksAPI.addTagById(task.id, tag.id);
+          completed.current.add(`tag-${tag.id}`);
+        }
       }
       if (dependencyId && !completed.current.has("dependency")) { await tasksAPI.addDependency(task.id, Number(dependencyId)); completed.current.add("dependency"); }
       for (let i = 0; i < files.length; i++) if (!completed.current.has(`file-${i}`)) { await filesAPI.uploadToTask(task.id, files[i]); completed.current.add(`file-${i}`); }
@@ -149,7 +157,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
                 <div className="compose-field"><Users /><div><label>Assignees</label><AssigneePicker people={people} value={assignees} onChange={setAssignees} /></div></div>
                 <div className="compose-field"><Flag /><div><label>Priority</label><div className="compose-priorities" role="group" aria-label="Priority">{priorities.map(p => <button key={p} type="button" className={`priority-${p.toLowerCase()} ${priority === p ? "selected" : ""}`} aria-pressed={priority === p} onClick={() => setPriority(p)}><span />{p}</button>)}</div></div></div>
                 <div className="compose-field"><Circle /><div><label htmlFor="task-status">Status</label><select id="task-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>{statuses.map(s => <option key={s}>{s}</option>)}</select></div></div>
-                <div className="compose-field"><Tag /><div><label htmlFor="task-tags">Tags</label><select id="task-tags" value="" onChange={e => { const id = Number(e.target.value); if (id) setSelectedTagIds(ids => [...ids, id]); }}><option value="">Select existing tag or create new</option>{availableTags.filter(t => !selectedTagIds.includes(t.id)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select><div className="compose-tags">{availableTags.filter(t => selectedTagIds.includes(t.id)).map(t => <button type="button" key={t.id} onClick={() => setSelectedTagIds(ids => ids.filter(id => id !== t.id))}>{t.name}<X /></button>)}</div><Input aria-label="New tag name" placeholder="New tag name (optional)" value={newTagName} onChange={e => setNewTagName(e.target.value)} /></div></div>
+                <div className="compose-field"><Tag /><div><label htmlFor="task-tags">Tags</label><SmartTagsInput value={selectedTags} draft={newTagName} onChange={setSelectedTags} onDraftChange={setNewTagName} suggestions={availableTags.map(tag => tag.name)} disabled={locked} /></div></div>
               </div>
               <details className="compose-advanced"><summary>More options</summary><label htmlFor="task-story-points">Story points</label><Input id="task-story-points" type="number" min="0" step="1" value={storyPoints} onChange={e => setStoryPoints(e.target.value)} /></details>
             </div>

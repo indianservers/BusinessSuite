@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.input_validation import contact_change_errors, clean_text
 
 from datetime import datetime, timezone
 from typing import Any
@@ -338,21 +339,33 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
         raise HTTPException(status_code=404, detail="Webform not found")
     values = data.values
     mapping = webform.mapping_json or {}
+    errors=contact_change_errors({'email':values.get(mapping.get('email','email')),'phone':values.get(mapping.get('phone','phone')),'phone_country_code':values.get(mapping.get('phone_country_code','phone_country_code'))})
+    for field in webform.fields_json or []:
+        if not isinstance(field,dict):continue
+        key=field.get('key') or field.get('name')
+        if field.get('required') and values.get(key) in (None,'',[],False):errors.append({'loc':['body',key],'msg':'This field is required','type':'value_error'})
+    if errors:raise HTTPException(422,detail=errors)
+    for field in ('first_name','last_name'):
+        key=mapping.get(field,field)
+        if key in values:
+            try:clean_text(values[key],160,required=field=='first_name')
+            except ValueError as exc:raise HTTPException(422,detail=[{'loc':['body',key],'msg':str(exc),'type':'value_error'}]) from None
     email = normalize_email(str(values.get(mapping.get("email", "email"), "") or ""))
-    phone = str(values.get(mapping.get("phone", "phone"), "") or "")
+    phone = values.get(mapping.get("phone", "phone"), "") or ""
+    phone_country_code=values.get(mapping.get("phone_country_code","phone_country_code"))
     first_name = str(values.get(mapping.get("first_name", "first_name"), "") or values.get("name", "Website")).strip() or "Website"
     last_name = str(values.get(mapping.get("last_name", "last_name"), "") or "Lead").strip()
     duplicate = bool(email and db.query(CRMLead).filter(CRMLead.email == email, CRMLead.deleted_at.is_(None)).first())
     created_type = None
     created_id = None
     if webform.target_module == "contact":
-        contact = CRMContact(first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, source="Webform", created_by_user_id=None)
+        contact = CRMContact(first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", created_by_user_id=None)
         db.add(contact)
         db.flush()
         created_type = "contact"
         created_id = contact.id
     else:
-        lead = CRMLead(first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, source="Webform", status="New", created_by_user_id=None)
+        lead = CRMLead(first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", status="New", created_by_user_id=None)
         db.add(lead)
         db.flush()
         created_type = "lead"
@@ -374,7 +387,7 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
         if whatsapp_template_id and phone:
             whatsapp_template = db.query(CommunicationWhatsAppTemplate).filter(CommunicationWhatsAppTemplate.id == int(whatsapp_template_id), CommunicationWhatsAppTemplate.active == True).first()
             if whatsapp_template:
-                _log_whatsapp_placeholder(db, created_type, created_id, phone, merge_template(whatsapp_template.body_text, values), whatsapp_template)
+                _log_whatsapp_placeholder(db, created_type, created_id, str(phone_country_code)+phone, merge_template(whatsapp_template.body_text, values), whatsapp_template)
                 auto_responses.append({"channel": "whatsapp", "status": "queued", "template_id": whatsapp_template.id})
     db.commit()
     return {"status": "accepted", "created_record_type": created_type, "created_record_id": created_id, "duplicate_detected": duplicate, "auto_responses": auto_responses}

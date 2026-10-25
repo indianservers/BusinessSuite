@@ -23,6 +23,7 @@ def test_employee_sensitive_field_update_creates_masked_hash_audit(client, db, s
         account_number="123456789012",
         pan_number="ABCDE1234F",
         department_id=before_id,
+        branch_id=branch.id,
         status="Active",
     )
     db.add(employee)

@@ -1,0 +1,284 @@
+{
+  "checks": [
+    {
+      "name": "New workspace inherits Gemini without copying its credential",
+      "status": "passed",
+      "evidence": {
+        "workspace_id": 1,
+        "model": "gemini-3.5-flash-lite"
+      }
+    },
+    {
+      "name": "Real Gemini four-module plan executes through canonical APIs after approval",
+      "status": "passed",
+      "evidence": {
+        "run_id": 1,
+        "receipts": [
+          {
+            "step": 1,
+            "tool": "crm.create_task",
+            "record_id": 1,
+            "status": "succeeded"
+          },
+          {
+            "step": 2,
+            "tool": "fam.create_cost_center",
+            "record_id": 1,
+            "status": "succeeded"
+          },
+          {
+            "step": 3,
+            "tool": "srm.draft_invoice",
+            "record_id": 1,
+            "status": "succeeded"
+          },
+          {
+            "step": 4,
+            "tool": "pms.create_project",
+            "record_id": 4,
+            "status": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Real Gemini summary spans all five modules with minimized API context",
+      "status": "passed",
+      "evidence": {
+        "run_id": 2,
+        "summary": "Summary of authorized sources: HRMS directory is empty with zero records; CRM tasks show 1 active medium-priority task ('Suite QA CF8A812'); SRM dashboard has no summary items listed (empty source); FAM accounting dashboard reports zero balances across assets, liabilities, income, expenses, and cash with books status open; PMS projects show 4 items including active project 'test1' and draft projects ('AI Operator live QA 84F1FE', 'QA kickoff 84F1FE', and 'Suite QA CF8A812')."
+      }
+    },
+    {
+      "name": "Real Gemini HRMS self-service action uses employee-linked member permissions",
+      "status": "passed",
+      "evidence": {
+        "run_id": 3,
+        "employee_id": 1,
+        "receipts": [
+          {
+            "step": 1,
+            "tool": "hrms.create_ticket",
+            "record_id": 1,
+            "status": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Workspace usage logs correlate module context, suite run, tokens, cost and latency",
+      "status": "passed",
+      "evidence": {
+        "log_ids": [
+          12,
+          11,
+          10
+        ]
+      }
+    }
+  ],
+  "label": "CF8A812",
+  "workspace_id": 1,
+  "logs": [
+    {
+      "id": 12,
+      "user_id": 25,
+      "run_id": null,
+      "suite_run_id": 3,
+      "module": "CROSS",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_plan",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "8OPcapDFLLSE694PtMji8QY",
+      "input_tokens": 7124,
+      "output_tokens": 133,
+      "estimated_cost": 0.0024697,
+      "duration_ms": 35250,
+      "created_at": "2026-10-24T16:59:15.856109+00:00"
+    },
+    {
+      "id": 11,
+      "user_id": 1,
+      "run_id": null,
+      "suite_run_id": 2,
+      "module": "CRM+FAM+HRMS+PMS+SRM",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_plan",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "2-PcarjAOaSB694PstTuSQ",
+      "input_tokens": 7789,
+      "output_tokens": 126,
+      "estimated_cost": 0.0026517,
+      "duration_ms": 8375,
+      "created_at": "2026-10-24T16:59:05.834368+00:00"
+    },
+    {
+      "id": 10,
+      "user_id": 1,
+      "run_id": null,
+      "suite_run_id": 1,
+      "module": "CROSS",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_plan",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "0uPcau6CBIGq694Pk5PqyAY",
+      "input_tokens": 7243,
+      "output_tokens": 355,
+      "estimated_cost": 0.0030604,
+      "duration_ms": 18938,
+      "created_at": "2026-10-24T16:58:45.259610+00:00"
+    }
+  ],
+  "status": "passed",
+  "qa_member_disabled_after_verification": true,
+  "final_summary": {
+    "id": 6,
+    "status": "answered",
+    "plan": {
+      "summary": "HRMS directory returned 1 item (limit 50). CRM tasks returned 1 task with total 1 (limit 50). SRM dashboard returned 1 invoice draft pending and total invoiced value 1.0 with limit 50. FAM dashboard returned empty samples with all financial totals at 0.0 and limit 50. PMS projects returned 1 project with total 1 (limit 50).",
+      "steps": []
+    },
+    "error_code": null
+  },
+  "final_summary_recovered_after_client_timeout": true,
+  "usage_logs": [
+    {
+      "id": 15,
+      "user_id": 1,
+      "run_id": null,
+      "suite_run_id": 6,
+      "module": "CRM+FAM+HRMS+PMS+SRM",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_summary",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "jOjcauzOEYTH694P47CdsAc",
+      "input_tokens": 1008,
+      "output_tokens": 93,
+      "estimated_cost": 0.0005349,
+      "duration_ms": 89875,
+      "created_at": "2026-10-24T17:17:46.144832+00:00"
+    },
+    {
+      "id": 14,
+      "user_id": 1,
+      "run_id": null,
+      "suite_run_id": 5,
+      "module": "CRM+FAM",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_summary",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "yubcaq7FFfOj694PyL2X6Aw",
+      "input_tokens": 466,
+      "output_tokens": 83,
+      "estimated_cost": 0.0003473,
+      "duration_ms": 6593,
+      "created_at": "2026-10-24T17:11:34.321915+00:00"
+    },
+    {
+      "id": 13,
+      "user_id": 1,
+      "run_id": null,
+      "suite_run_id": 4,
+      "module": "CRM+FAM",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_plan",
+      "status": "failed",
+      "error_code": "PROVIDER_TIMEOUT",
+      "http_status": null,
+      "provider_request_id": null,
+      "input_tokens": null,
+      "output_tokens": null,
+      "estimated_cost": null,
+      "duration_ms": 21780,
+      "created_at": "2026-10-24T17:06:49.621970+00:00"
+    },
+    {
+      "id": 12,
+      "user_id": 25,
+      "run_id": null,
+      "suite_run_id": 3,
+      "module": "CROSS",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_plan",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "8OPcapDFLLSE694PtMji8QY",
+      "input_tokens": 7124,
+      "output_tokens": 133,
+      "estimated_cost": 0.0024697,
+      "duration_ms": 35250,
+      "created_at": "2026-10-24T16:59:15.856109+00:00"
+    },
+    {
+      "id": 11,
+      "user_id": 1,
+      "run_id": null,
+      "suite_run_id": 2,
+      "module": "CRM+FAM+HRMS+PMS+SRM",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_plan",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "2-PcarjAOaSB694PstTuSQ",
+      "input_tokens": 7789,
+      "output_tokens": 126,
+      "estimated_cost": 0.0026517,
+      "duration_ms": 8375,
+      "created_at": "2026-10-24T16:59:05.834368+00:00"
+    },
+    {
+      "id": 10,
+      "user_id": 1,
+      "run_id": null,
+      "suite_run_id": 1,
+      "module": "CROSS",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "purpose": "suite_plan",
+      "status": "success",
+      "error_code": null,
+      "http_status": 200,
+      "provider_request_id": "0uPcau6CBIGq694Pk5PqyAY",
+      "input_tokens": 7243,
+      "output_tokens": 355,
+      "estimated_cost": 0.0030604,
+      "duration_ms": 18938,
+      "created_at": "2026-10-24T16:58:45.259610+00:00"
+    }
+  ],
+  "provider_configs": [
+    {
+      "provider": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "enabled": true,
+      "data_sharing_allowed": true,
+      "has_key": true,
+      "max_tokens": 2048,
+      "input_price": 0.3,
+      "output_price": 2.5,
+      "allow_workspace_inheritance": true,
+      "inherited": true,
+      "configuration_scope": "user:1"
+    }
+  ]
+}

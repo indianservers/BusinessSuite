@@ -1,0 +1,40 @@
+{
+  "engine": "SQLite disposable local file",
+  "interns": 10000,
+  "batches": 100,
+  "shared_tasks": 20,
+  "assignees": 10000,
+  "page_size": 50,
+  "measurements": {
+    "directory_first": {
+      "elapsed_ms": 62.36,
+      "sql_statements": 14,
+      "returned": 50
+    },
+    "directory_last": {
+      "elapsed_ms": 69.37,
+      "sql_statements": 13,
+      "returned": 50
+    },
+    "dashboard": {
+      "elapsed_ms": 488.78,
+      "sql_statements": 19,
+      "returned": 1
+    },
+    "batch_analytics": {
+      "elapsed_ms": 473.23,
+      "sql_statements": 4,
+      "returned": 100
+    },
+    "bulk_distribution": {
+      "elapsed_ms": 6250.59,
+      "sql_statements": 417,
+      "recipients": 10000,
+      "chunks": 20,
+      "chunk_size": 500,
+      "new_shared_tasks": 1,
+      "idempotent_replay": true
+    }
+  },
+  "scope": "Single-process read benchmark, not production PostgreSQL concurrency certification"
+}

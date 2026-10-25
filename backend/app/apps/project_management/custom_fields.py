@@ -12,6 +12,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.input_validation import national_phone,calling_code,email_address
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
 from .access import accessible_project_query, can_access_project, get_project_for_action, get_task_project_for_action
@@ -31,6 +32,7 @@ class FieldInput(BaseModel):
 class ValueInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     value: str | float | bool | None
+    country_code: str | None = None
 
 
 def field_data(field):
@@ -78,7 +80,7 @@ def task_fields(task_id: int, db: Session = Depends(get_db), user: User = Depend
     task, project = get_task_project_for_action(db, task_id, user)
     fields = db.query(PMSCustomField).filter_by(project_id=task.project_id).filter(or_(PMSCustomField.task_type == "", PMSCustomField.task_type == task.work_type)).order_by(PMSCustomField.id).all()
     values = {row.field_id: json.loads(row.value_json) for row in db.query(PMSCustomFieldValue).filter_by(task_id=task_id)}
-    return {"fields": [{**field_data(field), "value": values.get(field.id)} for field in fields],
+    return {"fields": [{**field_data(field), "value": values.get(field.id).get('national_number') if field.field_type=='phone' and isinstance(values.get(field.id),dict) else values.get(field.id), "country_code": values.get(field.id).get('country_code') if field.field_type=='phone' and isinstance(values.get(field.id),dict) else None} for field in fields],
             "can_edit": can_access_project(db, project, user, "manage_tasks"),
             "can_manage": can_access_project(db, project, user, "edit_project")}
 
@@ -96,8 +98,12 @@ def save_value(task_id: int, field_id: int, data: ValueInput, db: Session = Depe
         elif field.field_type in {"number", "money"}: valid = type(value) in (int, float) and math.isfinite(value)
         elif field.field_type == "rating": valid = type(value) in (int, float) and math.isfinite(value) and float(value).is_integer() and 0 <= value <= 5
         elif field.field_type == "progress": valid = type(value) in (int, float) and math.isfinite(value) and 0 <= value <= 100
-        elif field.field_type == "email": valid = isinstance(value, str) and len(value) <= 254 and bool(re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value))
-        elif field.field_type == "phone": valid = isinstance(value, str) and len(value) <= 40 and bool(re.fullmatch(r"[+0-9() .-]{3,40}", value))
+        elif field.field_type in {'email','phone'}:
+            try:
+                if field.field_type=='email':email_address(value)
+                else:national_phone(value);calling_code(data.country_code)
+                valid=True
+            except ValueError as exc:raise HTTPException(422,detail=str(exc)) from None
         elif field.field_type == "website":
             try:
                 valid = isinstance(value, str) and len(value) <= 2048 and not any(character.isspace() for character in value) and urlparse(value).scheme in {"http", "https"} and bool(urlparse(value).hostname)
@@ -111,6 +117,7 @@ def save_value(task_id: int, field_id: int, data: ValueInput, db: Session = Depe
             except (ValueError, TypeError): valid = False
     if not valid:
         raise HTTPException(422, "Value does not match this field's type or options")
+    if field.field_type=='phone' and value is not None:value={'national_number':value,'country_code':data.country_code}
     row = db.query(PMSCustomFieldValue).filter_by(task_id=task_id, field_id=field_id).first()
     if row: row.value_json = json.dumps(value)
     else: db.add(PMSCustomFieldValue(task_id=task_id, field_id=field_id, value_json=json.dumps(value)))

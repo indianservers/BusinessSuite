@@ -88,6 +88,7 @@ from app.apps.crm.models import (
     CRMWebhookDelivery,
 )
 from app.core.config import settings
+from app.core.input_validation import national_phone,calling_code,full_phone,email_address
 from app.core.deps import RequirePermission, get_db
 from app.models.company import Branch, Company
 from app.models.employee import Employee
@@ -96,6 +97,8 @@ from app.models.notification import Notification
 from app.models.user import User
 
 router = APIRouter(prefix="/crm", tags=["CRM"])
+from app.apps.crm.lead_management import router as lead_management_router
+router.include_router(lead_management_router)
 
 
 class CRMRecordPayload(BaseModel):
@@ -170,6 +173,7 @@ class CRMMessageSendPayload(BaseModel):
 
     channel: str
     to: str
+    country_code: str | None = None
     templateId: int | None = None
     body: str
     entityType: str
@@ -194,6 +198,11 @@ class CRMCalendarIntegrationConnectPayload(BaseModel):
     refreshToken: str | None = None
     expiresAt: datetime | None = None
     mock: bool | None = None
+
+
+class GoogleCalendarCallbackPayload(BaseModel):
+    code: str
+    state: str
 
 
 class CRMMeetingSyncPayload(BaseModel):
@@ -862,14 +871,24 @@ class PlaceholderCRMCalendarProvider(CRMCalendarProvider):
         token = _decrypt_calendar_token(integration.access_token_encrypted)
         if not token:
             raise RuntimeError(f"{self.name.title()} Calendar access token is not configured.")
-        raise RuntimeError(f"{self.name.title()} Calendar OAuth adapter is not configured. TODO: exchange/refresh tokens and call the provider event API with minimal calendar event scopes.")
+        raise RuntimeError(f"{self.name.title()} Calendar OAuth adapter is not configured. This provider is planned and cannot sync events yet.")
 
 
 def _calendar_provider(provider: str) -> CRMCalendarProvider:
     provider = _normalize_calendar_provider(provider)
     if provider == "mock":
         return MockCRMCalendarProvider()
+    if provider == "google":
+        return GoogleCRMCalendarProvider()
     return PlaceholderCRMCalendarProvider(provider)
+
+
+class GoogleCRMCalendarProvider(CRMCalendarProvider):
+    name = "google"
+
+    def sync_meeting(self, *, integration: CRMCalendarIntegration, meeting: CRMMeeting) -> str:
+        from app.apps.crm.google_calendar import sync_meeting
+        return sync_meeting(integration, meeting)
 
 
 def _serialize_calendar_integration(row: CRMCalendarIntegration) -> dict[str, Any]:
@@ -1509,7 +1528,7 @@ def _crm_has_full_visibility(user: User) -> bool:
 
 
 def _crm_can_assign_beyond_self(user: User) -> bool:
-    return bool(user.is_superuser or _crm_role_key(user) in {"admin", "manager", "super_admin"})
+    return bool(user.is_superuser or _crm_role_key(user) in {"admin", "manager", "super_admin"} or "crm_admin" in _crm_permission_names(user))
 
 
 def _crm_permission_names(user: User) -> set[str]:
@@ -1933,7 +1952,8 @@ def _serialize_territory(territory: CRMTerritory, db: Session | None = None, org
 
 
 def _serialize(record: Any) -> dict[str, Any]:
-    item: dict[str, Any] = {}
+    from app.core.orm_validation import contact_issues
+    item: dict[str, Any] = {'phone_validation_issues':contact_issues(record)}
     for column in sa_inspect(record.__class__).columns:
         value = getattr(record, column.key)
         if isinstance(value, datetime):
@@ -2504,6 +2524,8 @@ ENRICHMENT_FIELD_ALIASES = {
     "location": "location",
     "city": "location",
     "phone": "phone",
+    "phone_country_code": "phoneCountryCode",
+    "phoneCountryCode": "phoneCountryCode",
     "email_status": "emailVerificationStatus",
     "email_verification_status": "emailVerificationStatus",
     "emailVerificationStatus": "emailVerificationStatus",
@@ -2520,6 +2542,7 @@ ENRICHMENT_FIELD_LABELS = {
     "linkedInUrl": "LinkedIn URL",
     "location": "Location",
     "phone": "Phone",
+    "phoneCountryCode": "Phone country calling code",
     "emailVerificationStatus": "Email verification status",
     "socialProfiles": "Social profiles",
 }
@@ -2533,6 +2556,7 @@ ENRICHMENT_MODEL_FIELDS = {
         "companySize": "employee_count",
         "linkedInUrl": "linkedin_url",
         "phone": "phone",
+        "phoneCountryCode": "phone_country_code",
         "emailVerificationStatus": "email_verification_status",
         "socialProfiles": "social_profiles_json",
         "location": "city",
@@ -2545,6 +2569,7 @@ ENRICHMENT_MODEL_FIELDS = {
         "companySize": "employee_count",
         "linkedInUrl": "linkedin_url",
         "phone": "phone",
+        "phoneCountryCode": "phone_country_code",
         "emailVerificationStatus": "email_verification_status",
         "socialProfiles": "social_profiles_json",
         "location": "city",
@@ -2762,11 +2787,12 @@ def _custom_field_storage(field: CRMCustomField, value: Any) -> dict[str, Any]:
     if field_type in {"number", "currency", "decimal", "integer", "user", "owner"}:
         try:
             data["value_number"] = Decimal(str(value))
+            if isinstance(value,bool) or not data["value_number"].is_finite():raise ValueError()
         except (ArithmeticError, ValueError) as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} must be a number") from exc
     elif field_type == "date":
         try:
-            data["value_date"] = date.fromisoformat(str(value)[:10])
+            data["value_date"] = date.fromisoformat(str(value))
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} must be a date") from exc
     elif field_type in {"datetime", "date_time"}:
@@ -2791,20 +2817,19 @@ def _custom_field_storage(field: CRMCustomField, value: Any) -> dict[str, Any]:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} has invalid option(s): {', '.join(map(str, invalid))}")
         data["value_json"] = selected
     elif field_type == "email":
-        text = str(value).strip()
-        if not EMAIL_PATTERN.match(text):
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} must be a valid email")
-        data["value_text"] = text
+        try:data['value_text']=email_address(value)
+        except ValueError as exc:raise HTTPException(422,detail=f'{field.label}: {exc}') from None
     elif field_type == "url":
         text = str(value).strip()
         if not re.match(r"^https?://", text):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} must be a valid URL")
         data["value_text"] = text
     elif field_type == "phone":
-        text = str(value).strip()
-        if len(re.sub(r"\D+", "", text)) < 7:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} must be a valid phone number")
-        data["value_text"] = text
+        try:
+            if not isinstance(value,dict) or set(value)!={'national_number','country_code'}:raise ValueError('Enter the national number and select its country code separately')
+            national_phone(value.get('national_number'));calling_code(value.get('country_code'))
+        except ValueError as exc:raise HTTPException(422,detail=f'{field.label}: {exc}') from None
+        data['value_json']=value
     elif field_type == "json":
         data["value_json"] = value
     else:
@@ -3762,6 +3787,9 @@ RELATED_RESOURCE_BY_FIELD = {
 
 
 def _validate_related_records(db: Session, data: dict[str, Any], organization_id: int) -> None:
+    if data.get("owner_user_id"):
+        from app.apps.crm.lead_assignment import validate_assignee
+        validate_assignee(db, db.get(User, int(data["owner_user_id"])), organization_id)
     for field, resource_name in RELATED_RESOURCE_BY_FIELD.items():
         record_id = data.get(field)
         if not record_id:
@@ -4187,9 +4215,9 @@ def _duplicate_pair_reasons(left: Any, right: Any, resource_name: str, custom_va
             score = max(score, 100)
             reasons.append("Same email")
             fields.append("email")
-        left_phone = _digits(getattr(left, "phone", None))
-        right_phone = _digits(getattr(right, "phone", None))
-        if left_phone and right_phone and left_phone[-10:] == right_phone[-10:]:
+        left_phone = full_phone(left,"phone")
+        right_phone = full_phone(right,"phone")
+        if left_phone and right_phone and left_phone == right_phone:
             score = max(score, 90)
             reasons.append("Same phone")
             fields.append("phone")
@@ -4209,9 +4237,9 @@ def _duplicate_pair_reasons(left: Any, right: Any, resource_name: str, custom_va
             score = max(score, 82)
             reasons.append("Similar company name")
             fields.append("name")
-        left_phone = _digits(getattr(left, "phone", None))
-        right_phone = _digits(getattr(right, "phone", None))
-        if left_phone and right_phone and left_phone[-10:] == right_phone[-10:]:
+        left_phone = full_phone(left,"phone")
+        right_phone = full_phone(right,"phone")
+        if left_phone and right_phone and left_phone == right_phone:
             score = max(score, 85)
             reasons.append("Same phone")
             fields.append("phone")
@@ -4914,7 +4942,8 @@ def send_crm_message(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Messages can be sent only from lead, contact, or deal records")
     resource_name = {"lead": "leads", "contact": "contacts", "deal": "deals"}[entity_type]
     _get_record(db, _get_resource(resource_name), payload.entityId, organization_id)
-    to_number = _normalize_phone_number(payload.to)
+    try:to_number=calling_code(payload.country_code)+national_phone(payload.to)
+    except ValueError as exc:raise HTTPException(422,detail=[{'loc':['body','to'],'msg':str(exc),'type':'value_error'}]) from None
     body = str(payload.body or "").strip()
     template = None
     if payload.templateId:
@@ -5488,6 +5517,39 @@ def list_calendar_integrations(
     return {"items": [_serialize_calendar_integration(row) for row in rows], "total": len(rows)}
 
 
+@router.post("/calendar-integrations/google/authorize")
+def authorize_google_calendar(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    from app.apps.crm.google_calendar import authorize
+    return authorize(current_user.id, _organization_id(db, current_user))
+
+
+@router.post("/calendar-integrations/google/callback")
+def complete_google_calendar(
+    payload: GoogleCalendarCallbackPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    from app.apps.crm.google_calendar import exchange, store_tokens
+    organization_id = _organization_id(db, current_user)
+    tokens = exchange(payload.code, payload.state, current_user.id, organization_id)
+    if not tokens.get("refresh_token"):
+        raise HTTPException(400, "Google did not grant offline access. Reconnect and allow calendar access.")
+    row = _active_calendar_integration(db, organization_id, current_user.id, "google")
+    if row is None:
+        row = CRMCalendarIntegration(organization_id=organization_id, user_id=current_user.id,
+                                     provider="google", created_by_user_id=current_user.id)
+        db.add(row)
+    store_tokens(row, tokens)
+    row.is_active = True
+    row.updated_by_user_id = current_user.id
+    db.commit()
+    db.refresh(row)
+    return _serialize_calendar_integration(row)
+
+
 @router.post("/calendar-integrations/connect", status_code=status.HTTP_201_CREATED)
 def connect_calendar_integration(
     payload: CRMCalendarIntegrationConnectPayload,
@@ -5496,19 +5558,13 @@ def connect_calendar_integration(
 ):
     organization_id = _organization_id(db, current_user)
     provider = _normalize_calendar_provider(payload.provider)
+    if provider != "mock":
+        raise HTTPException(422, "Use Google OAuth to connect Google Calendar. Other providers are not available yet; mock is for development only.")
     access_token = payload.accessToken
     refresh_token = payload.refreshToken
     if payload.mock or provider == "mock":
         access_token = access_token or f"mock-access-token-{current_user.id}"
         refresh_token = refresh_token or f"mock-refresh-token-{current_user.id}"
-    elif provider == "google" and not (settings.CRM_GOOGLE_CALENDAR_CLIENT_ID and settings.CRM_GOOGLE_CALENDAR_CLIENT_SECRET):
-        access_token = access_token or f"placeholder-google-access-token-{current_user.id}"
-        refresh_token = refresh_token or f"placeholder-google-refresh-token-{current_user.id}"
-    elif provider == "outlook" and not (settings.CRM_OUTLOOK_CALENDAR_CLIENT_ID and settings.CRM_OUTLOOK_CALENDAR_CLIENT_SECRET):
-        access_token = access_token or f"placeholder-outlook-access-token-{current_user.id}"
-        refresh_token = refresh_token or f"placeholder-outlook-refresh-token-{current_user.id}"
-    if not access_token:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="OAuth access token is required unless using the mock provider")
     existing = _active_calendar_integration(db, organization_id, current_user.id, provider)
     row = existing or CRMCalendarIntegration(organization_id=organization_id, user_id=current_user.id, provider=provider, created_by_user_id=current_user.id)
     row.access_token_encrypted = _encrypt_calendar_token(access_token)
@@ -5539,6 +5595,9 @@ def delete_calendar_integration(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar integration not found")
     row.is_active = False
+    row.access_token_encrypted = None
+    row.refresh_token_encrypted = None
+    row.expires_at = None
     row.deleted_at = datetime.now(timezone.utc)
     row.updated_by_user_id = current_user.id
     db.commit()
@@ -7165,7 +7224,8 @@ def enrichment_apply(
     provider = _normalize_enrichment_provider(payload.provider)
     record = _get_record(db, _get_resource(resource_name), payload.entityId, organization_id)
     values = _normalize_enrichment_values(_payload_enrichment_data(payload))
-    selected = payload.appliedFields or payload.selectedFields or list(values)
+    selected = list(payload.appliedFields or payload.selectedFields or list(values))
+    if "phone" in selected and "phoneCountryCode" in values and "phoneCountryCode" not in selected:selected.append("phoneCountryCode")
     preview = _enrichment_preview_payload(record, entity_type, provider, values)
     allowed = {field["key"]: field for field in preview["fields"] if field["supported"]}
     old_values: dict[str, Any] = {}
@@ -7435,16 +7495,30 @@ def convert_lead(
     organization_id = _organization_id(db, current_user)
     lead = _get_record(db, _get_resource("leads"), lead_id, organization_id)
     _assert_record_visible(db, _get_resource("leads"), lead_id, organization_id, current_user)
+    db.refresh(lead, with_for_update=True)
     if lead.is_converted:
         raise HTTPException(status_code=400, detail="Lead is already converted")
+    previous_status = lead.status
+    from app.apps.crm.lead_models import CRMLeadManagementConfig
+    if db.get(CRMLeadManagementConfig, organization_id):
+        from app.apps.crm.lead_management import config, state, validate_transition
+        if lead.status != "Qualified":
+            raise HTTPException(422, "Qualify the lead before converting it")
+        lead_state = state(db, lead, False)
+        validate_transition(config(db, organization_id), lead, {"status": "Converted"}, lead_state.data_json if lead_state else {}, converting=True)
 
     company = None
-    if payload.createCompany and lead.company_name:
+    if payload.existingCompanyId:
+        company = _get_record(db, _get_resource("companies"), payload.existingCompanyId, organization_id)
+        _assert_record_visible(db, _get_resource("companies"), company.id, organization_id, current_user)
+    if not company and payload.createCompany and lead.company_name:
         company = db.query(CRMCompany).filter(
             CRMCompany.organization_id == organization_id,
             CRMCompany.deleted_at.is_(None),
             CRMCompany.name == lead.company_name,
         ).first()
+        if company:
+            _assert_record_visible(db, _get_resource("companies"), company.id, organization_id, current_user)
         if not company:
             company = CRMCompany(
                 organization_id=organization_id,
@@ -7456,6 +7530,7 @@ def convert_lead(
                 industry=lead.industry,
                 website=lead.company_website or lead.website,
                 phone=lead.phone,
+                phone_country_code=lead.phone_country_code,
                 email=lead.email,
                 city=lead.city,
                 state=lead.state,
@@ -7470,7 +7545,10 @@ def convert_lead(
             db.flush()
 
     contact = None
-    if payload.createContact:
+    if payload.existingContactId:
+        contact = _get_record(db, _get_resource("contacts"), payload.existingContactId, organization_id)
+        _assert_record_visible(db, _get_resource("contacts"), contact.id, organization_id, current_user)
+    if payload.createContact and not contact:
         contact = CRMContact(
             organization_id=organization_id,
             owner_user_id=lead.owner_user_id or current_user.id,
@@ -7483,7 +7561,9 @@ def convert_lead(
             full_name=lead.full_name,
             email=lead.email,
             phone=lead.phone,
+            phone_country_code=lead.phone_country_code,
             alternate_phone=lead.alternate_phone,
+            alternate_phone_country_code=lead.alternate_phone_country_code,
             job_title=lead.job_title,
             lifecycle_stage="Lead",
             source=lead.source,
@@ -7598,7 +7678,7 @@ def convert_lead(
         entity_type="leads",
         entity_id=lead.id,
         action="CONVERT",
-        old_values={"status": "Open"},
+        old_values={"status": previous_status},
         new_values={
             "status": "Converted",
             "converted_contact_id": contact.id if contact else None,
@@ -7607,6 +7687,8 @@ def convert_lead(
         },
         description="Lead converted into account, contact and deal",
     )
+    from app.apps.crm.lead_management import after_existing_api
+    after_existing_api(db, current_user, lead, {"status": previous_status})
     db.commit()
     db.refresh(lead)
     return {
@@ -7631,6 +7713,9 @@ def import_records(
     for index, row in enumerate(payload.rows, start=1):
         try:
             data = _validate_and_build(resource, dict(row), partial=False)
+            if resource.model is CRMLead:
+                from app.apps.crm.lead_management import guard_existing_api
+                guard_existing_api(db, current_user, None, data)
             columns = _columns(resource.model)
             if "organization_id" in columns:
                 data["organization_id"] = organization_id
@@ -7647,6 +7732,9 @@ def import_records(
             record = resource.model(**data)
             db.add(record)
             db.flush()
+            if resource.model is CRMLead:
+                from app.apps.crm.lead_management import after_existing_api
+                after_existing_api(db, current_user, record, owner_was_provided=any(key in row for key in ("ownerId", "owner_id", "owner_user_id")))
             created.append(_serialize(record))
         except Exception as exc:
             errors.append({"row": index, "error": str(getattr(exc, "detail", exc))})
@@ -7667,7 +7755,10 @@ def qualify_lead(
     lead = _get_record(db, _get_resource("leads"), lead_id, organization_id)
     _assert_record_visible(db, _get_resource("leads"), lead_id, organization_id, current_user)
     previous_status = lead.status
+    from app.apps.crm.lead_management import guard_existing_api, after_existing_api
+    guard_existing_api(db, current_user, lead, {"status": "Qualified"})
     lead.status = "Qualified"
+    after_existing_api(db, current_user, lead, {"status": previous_status})
     lead.updated_by_user_id = current_user.id
     lead.updated_at = datetime.now(timezone.utc)
     _create_timeline_activity(
@@ -7932,11 +8023,12 @@ def delete_deal_contact(
 def export_records(
     entity: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "view")
     organization_id = _organization_id(db, current_user)
-    rows = _base_query(db, resource, organization_id).limit(5000).all()
+    rows = _apply_record_visibility(_base_query(db, resource, organization_id), resource, current_user, db).limit(5000).all()
     columns = [column.key for column in resource.model.__table__.columns if column.key not in {"deleted_at"}]
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=columns)
@@ -8074,6 +8166,9 @@ def create_record(
         for transient_key in ("syncToCalendar", "sync_to_calendar", "provider"):
             validation_payload.pop(transient_key, None)
     data = _validate_and_build(resource, validation_payload, partial=False)
+    if resource.model is CRMLead:
+        from app.apps.crm.lead_management import guard_existing_api
+        guard_existing_api(db, current_user, None, data)
     owner_was_provided = any(key in raw_payload for key in {"ownerId", "owner_id", "owner_user_id"})
     organization_id = _organization_id(db, current_user)
     columns = _columns(resource.model)
@@ -8134,6 +8229,9 @@ def create_record(
     create_event = _event_type_for_create(canonical, _serialize(record))
     if create_event:
         _enqueue_webhook_event(db, organization_id, create_event, _serialize(record), current_user.id)
+    if resource.model is CRMLead:
+        from app.apps.crm.lead_management import after_existing_api
+        after_existing_api(db, current_user, record, owner_was_provided=owner_was_provided)
     db.commit()
     db.refresh(record)
     _create_related_timeline_event(db, entity, _serialize(record), organization_id, current_user.id)
@@ -8173,6 +8271,9 @@ def update_record(
         for transient_key in ("syncToCalendar", "sync_to_calendar", "provider"):
             validation_payload.pop(transient_key, None)
     data = _validate_and_build(resource, validation_payload, partial=True)
+    if resource.model is CRMLead:
+        from app.apps.crm.lead_management import guard_existing_api
+        guard_existing_api(db, current_user, record, data)
     owner_was_provided = any(key in raw_payload for key in {"ownerId", "owner_id", "owner_user_id"})
     columns = _columns(resource.model)
     canonical = _canonical_entity(entity)
@@ -8234,6 +8335,9 @@ def update_record(
         _sync_deal_primary_contact(db, record)
     if resource.model in {CRMLead, CRMCompany, CRMDeal} and "territory_id" not in data:
         _apply_territory_assignment(db, organization_id, record, override_manual=False, override_owner=not owner_was_provided)
+    if resource.model is CRMLead:
+        from app.apps.crm.lead_management import after_existing_api
+        after_existing_api(db, current_user, record, before)
     db.commit()
     db.refresh(record)
     _create_update_timeline_events(db, entity, record, before, data, organization_id, current_user.id)

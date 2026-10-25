@@ -18,6 +18,7 @@ class Company(Base):
     website = Column(String(200))
     email = Column(String(100))
     phone = Column(String(20))
+    phone_country_code = Column(String(5), nullable=True)
     address = Column(Text)
     city = Column(String(100))
     state = Column(String(100))
@@ -51,6 +52,7 @@ class Branch(Base):
     country = Column(String(100), default="India")
     pincode = Column(String(20))
     phone = Column(String(20))
+    phone_country_code = Column(String(5), nullable=True)
     email = Column(String(100))
     is_active = Column(Boolean, default=True)
 

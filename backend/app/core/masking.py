@@ -106,6 +106,8 @@ def mask_employee_detail(employee: Any, user: User) -> dict[str, Any]:
     data = EmployeeSchema.model_validate(employee).model_dump()
     if can_view_sensitive_employee(user, employee.id):
         return data
+    # Document URLs and metadata reveal restricted identity and HR records.
+    data['documents'] = []
     for field in SENSITIVE_EMPLOYEE_FIELDS:
         if field in data:
             data[field] = _mask_value(field, data[field])

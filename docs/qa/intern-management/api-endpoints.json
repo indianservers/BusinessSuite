@@ -1,0 +1,254 @@
+[
+  {
+    "path": "/api/v1/interns-hub/management/access",
+    "methods": [
+      "GET"
+    ],
+    "operation": "access"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/options",
+    "methods": [
+      "GET"
+    ],
+    "operation": "options"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/interns",
+    "methods": [
+      "GET"
+    ],
+    "operation": "interns"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batches",
+    "methods": [
+      "GET"
+    ],
+    "operation": "batches"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batches",
+    "methods": [
+      "POST"
+    ],
+    "operation": "create_batch"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batches/{batch_id}",
+    "methods": [
+      "PUT"
+    ],
+    "operation": "edit_batch"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batches/{batch_id}/transition",
+    "methods": [
+      "POST"
+    ],
+    "operation": "transition"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batches/{batch_id}/members",
+    "methods": [
+      "POST"
+    ],
+    "operation": "membership"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/memberships/{employee_id}",
+    "methods": [
+      "GET"
+    ],
+    "operation": "membership_history"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/projects/{project_id}/tasks",
+    "methods": [
+      "GET"
+    ],
+    "operation": "project_tasks"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/distributions/preview",
+    "methods": [
+      "POST"
+    ],
+    "operation": "preview"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/distributions",
+    "methods": [
+      "POST"
+    ],
+    "operation": "distribute"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/distributions",
+    "methods": [
+      "GET"
+    ],
+    "operation": "distributions"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/distributions/{job_id}/retry",
+    "methods": [
+      "POST"
+    ],
+    "operation": "retry"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/reviews",
+    "methods": [
+      "GET"
+    ],
+    "operation": "reviews"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/reports",
+    "methods": [
+      "GET"
+    ],
+    "operation": "reports"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/reports/{report_id}/review",
+    "methods": [
+      "POST"
+    ],
+    "operation": "review_report"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/announcements",
+    "methods": [
+      "POST"
+    ],
+    "operation": "announce"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/dashboard",
+    "methods": [
+      "GET"
+    ],
+    "operation": "dashboard"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/completions",
+    "methods": [
+      "POST"
+    ],
+    "operation": "complete"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/completions",
+    "methods": [
+      "GET"
+    ],
+    "operation": "completions"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/completions/{review_id}/certificate",
+    "methods": [
+      "POST"
+    ],
+    "operation": "certificate"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/export",
+    "methods": [
+      "GET"
+    ],
+    "operation": "export"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/legacy",
+    "methods": [
+      "GET"
+    ],
+    "operation": "legacy"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/legacy/import",
+    "methods": [
+      "POST"
+    ],
+    "operation": "legacy_import"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batch-analytics",
+    "methods": [
+      "GET"
+    ],
+    "operation": "batch_analytics"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/schedules",
+    "methods": [
+      "GET"
+    ],
+    "operation": "schedules"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/schedules/{schedule_id}/state",
+    "methods": [
+      "POST"
+    ],
+    "operation": "schedule_state"
+  },
+  {
+    "path": "/api/v1/interns-hub/management/interns/{employee_id}/performance",
+    "methods": [
+      "GET"
+    ],
+    "operation": "individual_performance"
+  },
+  {
+    "path": "/api/v1/project-management/work/submissions",
+    "methods": [
+      "GET"
+    ],
+    "operation": "submissions"
+  },
+  {
+    "path": "/api/v1/project-management/work/tasks/{task_id}/start",
+    "methods": [
+      "POST"
+    ],
+    "operation": "start"
+  },
+  {
+    "path": "/api/v1/project-management/work/tasks/{task_id}/submissions",
+    "methods": [
+      "POST"
+    ],
+    "operation": "submit"
+  },
+  {
+    "path": "/api/v1/project-management/work/tasks/{task_id}/files",
+    "methods": [
+      "POST"
+    ],
+    "operation": "upload"
+  },
+  {
+    "path": "/api/v1/project-management/work/files/{file_id}",
+    "methods": [
+      "GET"
+    ],
+    "operation": "file"
+  },
+  {
+    "path": "/api/v1/project-management/work/submissions/{submission_id}/review",
+    "methods": [
+      "POST"
+    ],
+    "operation": "review"
+  },
+  {
+    "path": "/api/v1/project-management/work/tasks/{task_id}/assignees/{user_id}/reviewer",
+    "methods": [
+      "POST"
+    ],
+    "operation": "reviewer"
+  }
+]

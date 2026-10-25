@@ -1,8 +1,60 @@
-from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import deferred, relationship
 
 from app.db.base_class import Base
+
+
+class PMSNote(Base):
+    __tablename__ = "pms_private_notes"
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(180), nullable=False, default="Untitled note")
+    content = Column(Text, nullable=False, default="")
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="SET NULL"), nullable=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
+    tags = Column(JSON, nullable=False, default=list)
+    pinned = Column(Boolean, nullable=False, default=False)
+    archived = Column(Boolean, nullable=False, default=False)
+    version = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class PMSNoteRevision(Base):
+    __tablename__ = "pms_private_note_revisions"
+    __table_args__ = (UniqueConstraint("note_id", "version", name="uq_private_note_revision"),)
+    id = Column(Integer, primary_key=True)
+    note_id = Column(Integer, ForeignKey("pms_private_notes.id", ondelete="CASCADE"), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    title = Column(String(180), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PMSNoteAttachment(Base):
+    __tablename__ = "pms_private_note_attachments"
+    id = Column(Integer, primary_key=True)
+    note_id = Column(Integer, ForeignKey("pms_private_notes.id", ondelete="CASCADE"), nullable=False, index=True)
+    filename = Column(String(255), nullable=False)
+    media_type = Column(String(100), nullable=False)
+    size = Column(Integer, nullable=False)
+    # Bytes never enter public /uploads or bearer-link storage. Listing metadata doesn't load them.
+    body = deferred(Column(LargeBinary, nullable=False))
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class PMSNoteTaskLink(Base):
+    __tablename__ = "pms_private_note_task_links"
+    __table_args__ = (UniqueConstraint("note_id", "request_key", name="uq_private_note_task_request"),)
+    id = Column(Integer, primary_key=True)
+    note_id = Column(Integer, ForeignKey("pms_private_notes.id", ondelete="CASCADE"), nullable=False, index=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), nullable=False)
+    request_key = Column(String(36), nullable=False)
+    request_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class PMSClient(Base):
@@ -14,6 +66,7 @@ class PMSClient(Base):
     company_name = Column(String(180))
     email = Column(String(150), index=True)
     phone = Column(String(40))
+    phone_country_code = Column(String(5), nullable=True)
     website = Column(String(200))
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -292,7 +345,9 @@ class PMSTask(Base):
 
     @assignee_user_ids.setter
     def assignee_user_ids(self, ids):
-        self.assignments = [PMSTaskAssignee(user_id=user_id) for user_id in sorted(set(ids or []))]
+        existing = {a.user_id: a for a in self.assignments}
+        retained = set(ids or []) | {a.user_id for a in self.assignments if a.source_key}
+        self.assignments = [existing.get(user_id) or PMSTaskAssignee(user_id=user_id) for user_id in sorted(retained)]
     reporter_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     title = Column(String(220), nullable=False)
     description = Column(Text)
@@ -338,6 +393,49 @@ class PMSTaskAssignee(Base):
     __tablename__ = "pms_task_assignees"
     task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    execution_status = Column(String(30), nullable=False, default="To Do", server_default="To Do", index=True)
+    due_date = Column(Date, index=True)
+    reviewer_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    maximum_score = Column(Integer, nullable=False, default=100, server_default="100")
+    progress_percent = Column(Integer, nullable=False, default=0, server_default="0")
+    work_notes = Column(Text)
+    cancelled_at = Column(DateTime(timezone=True))
+    source_key = Column(String(80), index=True)
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PMSWorkSubmission(Base):
+    __tablename__ = "pms_work_submissions"
+    __table_args__ = (UniqueConstraint("task_id", "user_id", "version", name="uq_pms_work_version"),)
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    version = Column(Integer, nullable=False)
+    notes = Column(Text, nullable=False)
+    links = Column(JSON, nullable=False, default=list)
+    files = Column(JSON, nullable=False, default=list)
+    revision_note = Column(Text)
+    status = Column(String(30), nullable=False, default="Pending Review", index=True)
+    legacy_submission_id = Column(Integer, unique=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class PMSWorkReview(Base):
+    __tablename__ = "pms_work_reviews"
+    id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("pms_work_submissions.id", ondelete="CASCADE"), nullable=False, unique=True)
+    reviewer_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    decision = Column(String(30), nullable=False)
+    score = Column(Integer, nullable=False)
+    maximum_score = Column(Integer, nullable=False)
+    communication_score = Column(Integer)
+    rubric = Column(JSON, default=dict)
+    feedback = Column(Text, nullable=False)
+    strengths = Column(Text)
+    improvements = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class PMSTaskDependency(Base):

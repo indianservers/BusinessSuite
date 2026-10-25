@@ -203,6 +203,8 @@ class OperatorExecutor:
                 or digest(proposal.get("preview")) != run.plan_hash):
             raise HTTPException(409, "Plan is cancelled, changed or no longer executable")
         require_enabled(db, user)
+        from app.ai_operator.workbench import check_standing_consent
+        check_standing_consent(db,user,run)
         approval = db.get(AiActionApproval, run.approval_id)
         agent = db.get(AiAgent, approval.agent_id) if approval else None
         if not agent or not agent.is_active or not AiAgentPermissionService(db).can_use_agent(user, agent.id):
@@ -232,6 +234,8 @@ class OperatorExecutor:
                 run.result = {"success": True, "run_id": run.id, "receipts": receipts}
                 AiUsageService(db).record_event(user=user, agent_id=None, module="PMS", event_type="operator_executed")
                 db.flush()
+                from app.ai_operator.workbench import remember_run_after
+                remember_run_after(db, run)
             return run.result
         except Exception as exc:
             run.status = "failed"

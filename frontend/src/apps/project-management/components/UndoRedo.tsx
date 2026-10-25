@@ -53,7 +53,7 @@ export default function UndoRedo({
       const target = event.target as HTMLElement;
       if (
         target.closest(
-          "input, textarea, select, [contenteditable=true], [role=dialog]",
+          "input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]",
         ) ||
         (!event.ctrlKey && !event.metaKey) ||
         event.altKey

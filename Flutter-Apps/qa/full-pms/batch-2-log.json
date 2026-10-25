@@ -1,0 +1,324 @@
+{
+  "interrupted": true,
+  "reason": "App left foreground and VM service disconnected; Flutter drive removed the test package during cleanup",
+  "operations": [
+    {
+      "number": 1,
+      "status": "passed",
+      "operation": "Create isolated QA workspace",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 2,
+      "status": "passed",
+      "operation": "Create QA project",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 3,
+      "status": "passed",
+      "operation": "Create task",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 4,
+      "status": "passed",
+      "operation": "Create other",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 5,
+      "status": "passed",
+      "operation": "Create child",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 6,
+      "status": "passed",
+      "operation": "Clone QA project",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 7,
+      "status": "passed",
+      "operation": "Archive QA clone",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 8,
+      "status": "passed",
+      "operation": "Unarchive QA clone",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 9,
+      "status": "passed",
+      "operation": "Create epic",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 10,
+      "status": "failed",
+      "operation": "Create component",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 11,
+      "status": "passed",
+      "operation": "Create release",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 12,
+      "status": "passed",
+      "operation": "Create milestone",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 13,
+      "status": "passed",
+      "operation": "Create sprint",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 14,
+      "status": "passed",
+      "operation": "Set task parent",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 15,
+      "status": "passed",
+      "operation": "Clear task parent",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 16,
+      "status": "passed",
+      "operation": "Bulk task status priority and assignee",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 17,
+      "status": "blocked",
+      "operation": "Bulk task planning assignments",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 18,
+      "status": "passed",
+      "operation": "Remove task from sprint",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 19,
+      "status": "passed",
+      "operation": "Reorder backlog",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 20,
+      "status": "failed",
+      "operation": "Reorder sprint tasks",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 21,
+      "status": "passed",
+      "operation": "Create custom field",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 22,
+      "status": "passed",
+      "operation": "Set custom-field value",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 23,
+      "status": "passed",
+      "operation": "Clear nullable custom-field value",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 24,
+      "status": "passed",
+      "operation": "Create numeric custom field",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 25,
+      "status": "passed",
+      "operation": "Set numeric custom-field value",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 26,
+      "status": "passed",
+      "operation": "Create boolean custom field",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 27,
+      "status": "passed",
+      "operation": "Set boolean custom-field value",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 28,
+      "status": "passed",
+      "operation": "Create custom task type",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 29,
+      "status": "passed",
+      "operation": "Update custom task type",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 30,
+      "status": "passed",
+      "operation": "Configure daily recurrence",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 31,
+      "status": "passed",
+      "operation": "Mark task complete",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 32,
+      "status": "failed",
+      "operation": "Verify next daily occurrence",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 33,
+      "status": "passed",
+      "operation": "Reopen task",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 34,
+      "status": "passed",
+      "operation": "Configure weekly recurrence",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 35,
+      "status": "passed",
+      "operation": "Mark task complete",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 36,
+      "status": "failed",
+      "operation": "Verify next weekly occurrence",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 37,
+      "status": "passed",
+      "operation": "Reopen task",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 38,
+      "status": "passed",
+      "operation": "Configure monthly recurrence",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 39,
+      "status": "passed",
+      "operation": "Mark task complete",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 40,
+      "status": "failed",
+      "operation": "Verify next monthly occurrence",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 41,
+      "status": "passed",
+      "operation": "Reopen task",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 42,
+      "status": "passed",
+      "operation": "Clear recurrence",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 43,
+      "status": "failed",
+      "operation": "Read Get Backlog",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 44,
+      "status": "failed",
+      "operation": "Read Report Velocity",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 45,
+      "status": "passed",
+      "operation": "Create deletable QA time log",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 46,
+      "status": "passed",
+      "operation": "Delete unsubmitted QA time log",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 47,
+      "status": "passed",
+      "operation": "Switch native board/list layouts",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 48,
+      "status": "passed",
+      "operation": "Drag native task into In Progress",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 49,
+      "status": "passed",
+      "operation": "Copy task ID from native menu",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 50,
+      "status": "passed",
+      "operation": "Bulk-edit selected native board task",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 51,
+      "status": "passed",
+      "operation": "Duplicate task through native menu",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 52,
+      "status": "passed",
+      "operation": "Navigate native calendar month/week/day/agenda",
+      "evidence": "Flutter integration-test console log"
+    },
+    {
+      "number": 53,
+      "status": "failed",
+      "operation": "Create event from native calendar",
+      "evidence": "Flutter integration-test console log"
+    }
+  ]
+}

@@ -27,7 +27,7 @@ def setup_business(db):
     buyer = CRMCompany(
         organization_id=1,
         name="Shared buyer",
-        email="billing@example.invalid",
+        email="billing@example.com",
         address="Original address",
         owner_user_id=owner.id,
     )
@@ -39,7 +39,7 @@ def setup_business(db):
         company_id=buyer.id,
         first_name="Test",
         full_name="Test billing",
-        email="billing@example.invalid",
+        email="billing@example.com",
     )
     p = PMSProject(
         organization_id=1,
@@ -543,7 +543,7 @@ def test_configured_smtp_path_uses_shared_delivery_and_does_not_send_twice(
         "COMMUNICATION_EMAIL_PROVIDER": "smtp",
         "MAIL_USERNAME": "synthetic",
         "MAIL_PASSWORD": "synthetic-test-value",
-        "MAIL_FROM": "sender@example.invalid",
+        "MAIL_FROM": "sender@example.com",
         "MAIL_SSL_TLS": False,
     }.items():
         monkeypatch.setattr(settings, key, value)

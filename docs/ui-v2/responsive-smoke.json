@@ -1,0 +1,596 @@
+[
+  {
+    "route": "/",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "suite-light-desktop.png"
+  },
+  {
+    "route": "/pms",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-light-desktop.png"
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-profile-light-desktop.png"
+  },
+  {
+    "route": "/pms/projects",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-projects-light-desktop.png"
+  },
+  {
+    "route": "/crm",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "crm-light-desktop.png"
+  },
+  {
+    "route": "/srm",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "srm-light-desktop.png"
+  },
+  {
+    "route": "/fam",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "fam-light-desktop.png"
+  },
+  {
+    "route": "/hrms",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "hrms-light-desktop.png"
+  },
+  {
+    "route": "/analytics",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "analytics-light-desktop.png"
+  },
+  {
+    "route": "/admin/security",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "admin-security-light-desktop.png"
+  },
+  {
+    "route": "/ai/copilot",
+    "theme": "light",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "ai-copilot-light-desktop.png"
+  },
+  {
+    "route": "/",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "suite-light-tablet.png"
+  },
+  {
+    "route": "/pms",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-light-tablet.png"
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-profile-light-tablet.png"
+  },
+  {
+    "route": "/pms/projects",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-projects-light-tablet.png"
+  },
+  {
+    "route": "/crm",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "crm-light-tablet.png"
+  },
+  {
+    "route": "/srm",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "srm-light-tablet.png"
+  },
+  {
+    "route": "/fam",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "fam-light-tablet.png"
+  },
+  {
+    "route": "/hrms",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "hrms-light-tablet.png"
+  },
+  {
+    "route": "/analytics",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "analytics-light-tablet.png"
+  },
+  {
+    "route": "/admin/security",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "admin-security-light-tablet.png"
+  },
+  {
+    "route": "/ai/copilot",
+    "theme": "light",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "ai-copilot-light-tablet.png"
+  },
+  {
+    "route": "/",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "suite-light-mobile.png"
+  },
+  {
+    "route": "/pms",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-light-mobile.png"
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-profile-light-mobile.png"
+  },
+  {
+    "route": "/pms/projects",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-projects-light-mobile.png"
+  },
+  {
+    "route": "/crm",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "crm-light-mobile.png"
+  },
+  {
+    "route": "/srm",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "srm-light-mobile.png"
+  },
+  {
+    "route": "/fam",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "fam-light-mobile.png"
+  },
+  {
+    "route": "/hrms",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "hrms-light-mobile.png"
+  },
+  {
+    "route": "/analytics",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "analytics-light-mobile.png"
+  },
+  {
+    "route": "/admin/security",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "admin-security-light-mobile.png"
+  },
+  {
+    "route": "/ai/copilot",
+    "theme": "light",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "ai-copilot-light-mobile.png"
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "suite-dark-desktop.png"
+  },
+  {
+    "route": "/pms",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-dark-desktop.png"
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-profile-dark-desktop.png"
+  },
+  {
+    "route": "/pms/projects",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-projects-dark-desktop.png"
+  },
+  {
+    "route": "/crm",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "crm-dark-desktop.png"
+  },
+  {
+    "route": "/srm",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "srm-dark-desktop.png"
+  },
+  {
+    "route": "/fam",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "fam-dark-desktop.png"
+  },
+  {
+    "route": "/hrms",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "hrms-dark-desktop.png"
+  },
+  {
+    "route": "/analytics",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "analytics-dark-desktop.png"
+  },
+  {
+    "route": "/admin/security",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "admin-security-dark-desktop.png"
+  },
+  {
+    "route": "/ai/copilot",
+    "theme": "dark",
+    "size": "desktop",
+    "width": 1440,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "ai-copilot-dark-desktop.png"
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "suite-dark-tablet.png"
+  },
+  {
+    "route": "/pms",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-dark-tablet.png"
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-profile-dark-tablet.png"
+  },
+  {
+    "route": "/pms/projects",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-projects-dark-tablet.png"
+  },
+  {
+    "route": "/crm",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "crm-dark-tablet.png"
+  },
+  {
+    "route": "/srm",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "srm-dark-tablet.png"
+  },
+  {
+    "route": "/fam",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "fam-dark-tablet.png"
+  },
+  {
+    "route": "/hrms",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "hrms-dark-tablet.png"
+  },
+  {
+    "route": "/analytics",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "analytics-dark-tablet.png"
+  },
+  {
+    "route": "/admin/security",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "admin-security-dark-tablet.png"
+  },
+  {
+    "route": "/ai/copilot",
+    "theme": "dark",
+    "size": "tablet",
+    "width": 820,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "ai-copilot-dark-tablet.png"
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "suite-dark-mobile.png"
+  },
+  {
+    "route": "/pms",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-dark-mobile.png"
+  },
+  {
+    "route": "/pms/profile",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-profile-dark-mobile.png"
+  },
+  {
+    "route": "/pms/projects",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "pms-projects-dark-mobile.png"
+  },
+  {
+    "route": "/crm",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "crm-dark-mobile.png"
+  },
+  {
+    "route": "/srm",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "srm-dark-mobile.png"
+  },
+  {
+    "route": "/fam",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "fam-dark-mobile.png"
+  },
+  {
+    "route": "/hrms",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "hrms-dark-mobile.png"
+  },
+  {
+    "route": "/analytics",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "analytics-dark-mobile.png"
+  },
+  {
+    "route": "/admin/security",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "admin-security-dark-mobile.png"
+  },
+  {
+    "route": "/ai/copilot",
+    "theme": "dark",
+    "size": "mobile",
+    "width": 375,
+    "overflow": false,
+    "errors": [],
+    "screenshot": "ai-copilot-dark-mobile.png"
+  }
+]

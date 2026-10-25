@@ -11,6 +11,10 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 
 from app.core.config import settings
+from app.core.orm_validation import install as install_input_validation
+install_input_validation()
+from app.core.log_filters import install_security_log_filters
+install_security_log_filters(settings.ENVIRONMENT.lower()=='production' or not settings.DEBUG)
 from app.api.v1.router import api_router
 from app.core.middleware.audit import AuditLogMiddleware
 from app.core.middleware.business_os import BusinessOSModuleAccessMiddleware
@@ -141,14 +145,27 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(BusinessOSModuleAccessMiddleware)
 app.add_middleware(AuditLogMiddleware)
 app.add_middleware(RequestIDMiddleware)
+from app.core.middleware.security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Global exception handler
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import IntegrityError
+
+@app.exception_handler(RequestValidationError)
+async def invalid_input_handler(request:Request,exc:RequestValidationError):
+    return JSONResponse(status_code=422,content={'detail':[{'loc':list(error['loc']),'msg':error['msg'],'type':error['type']} for error in exc.errors()]})
+
+@app.exception_handler(IntegrityError)
+async def conflicting_record_handler(request:Request,exc:IntegrityError):
+    return JSONResponse(status_code=409,content={'detail':'This record conflicts with an existing record or referenced value. Refresh the form and check its identifiers.'})
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import logging
     logging.getLogger("businesssuite.errors").error("request_failed request_id=%s error_type=%s", getattr(request.state, "request_id", None), type(exc).__name__)
-    if settings.DEBUG:
+    if settings.DEBUG and settings.ENVIRONMENT.lower() in {"development", "test"}:
         import traceback
         detail = traceback.format_exc()
     else:
@@ -162,7 +179,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Mount static files for uploaded content
 if settings.STORAGE_BACKEND == "local" and os.path.exists(settings.UPLOAD_DIR):
-    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+    from app.core.private_uploads import ProtectedUploads
+    app.mount("/uploads", ProtectedUploads(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
@@ -173,10 +191,12 @@ def private_blob_file(token: str):
     from app.core.storage import blob_token_path, materialize_file
     from fastapi import HTTPException
     from fastapi.responses import FileResponse
-    if settings.STORAGE_BACKEND != "vercel_blob":
+    if settings.STORAGE_BACKEND not in {"local", "vercel_blob", "s3"}:
         raise HTTPException(404, "Not found")
     path = blob_token_path(token)
     materialize_file(path)
+    if not os.path.isfile(path):
+        raise HTTPException(404,'File not found')
     return FileResponse(path, filename=os.path.basename(path), headers={
         "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
         "Referrer-Policy": "no-referrer",

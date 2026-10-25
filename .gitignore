@@ -53,3 +53,9 @@ frontend/__commercial-browser-qa.html
 # Sensitive full-system backup archives
 /recovery_backups/
 /backend/recovery_backups/
+
+# Generated pretrained local LLM assets (prepare:operator-llm)
+frontend/public/models/operator-llm/
+
+# Interns Hub protected uploads (served only after ownership checks)
+backend/intern-hub-private/

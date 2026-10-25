@@ -15,6 +15,7 @@ class CompanyBase(BaseModel):
     website: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -53,6 +54,7 @@ class BranchBase(BaseModel):
     country: Optional[str] = "India"
     pincode: Optional[str] = None
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     email: Optional[str] = None
 
 

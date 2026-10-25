@@ -140,6 +140,7 @@ class PartyContactPayload(FAMBaseSchema):
     name: str
     email: str | None = None
     phone: str | None = None
+    phone_country_code: str | None = None
     designation: str | None = None
     is_primary: bool = False
 
@@ -160,7 +161,9 @@ class PartyPayload(FAMBaseSchema):
     shipping_address: str | None = None
     email: str | None = None
     phone: str | None = None
+    phone_country_code: str | None = None
     mobile: str | None = None
+    mobile_country_code: str | None = None
     payment_terms_days: int = Field(default=30, ge=0)
     credit_limit: Decimal = Decimal("0")
     opening_balance_dr: Decimal = Decimal("0")
@@ -461,6 +464,7 @@ class InventoryWarehousePayload(FAMBaseSchema):
     address: str | None = None
     contact_person: str | None = None
     phone: str | None = None
+    phone_country_code: str | None = None
     email: str | None = None
     active: bool = True
 

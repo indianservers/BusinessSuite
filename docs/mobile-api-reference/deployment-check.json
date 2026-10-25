@@ -1,0 +1,156 @@
+{
+  "checked_at_utc": "2026-10-24T14:50:44.726388+00:00",
+  "origin": "https://businesssuite-rosy.vercel.app",
+  "scope": "Unauthenticated documentation reads only; no business handlers or mutations tested",
+  "docs_status": 200,
+  "openapi_status": 200,
+  "deployed_http_operations": 1986,
+  "local_only_operations": [
+    {
+      "method": "DELETE",
+      "path": "/api/v1/ai-operator/workbench/items/{ident}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/project-management/dashboards/{did}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/project-management/notes/{note_id}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-operator/workbench/insights"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-operator/workbench/items"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-operator/workbench/metrics"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-operator/workbench/search"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-operator/workbench/teaching/export"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-operator/workbench/teaching/review"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/project-management/dashboards/catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/project-management/dashboards/{did}/history"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/project-management/dashboards/{did}/scope"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/project-management/notes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/project-management/notes/{note_id}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/project-management/notes/{note_id}/revisions"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/project-management/notes/{note_id}/revisions/{version}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/feedback"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/impact"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/items"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/items/{ident}/approve-teaching"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/items/{ident}/evaluate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/items/{ident}/run"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/plans/preview"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/runs/{run_id}/undo-preview"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-operator/workbench/schedule"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/dashboards/suggest"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/dashboards/{did}/duplicate"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/dashboards/{did}/favorite"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/dashboards/{did}/history/{rid}/restore"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/dashboards/{did}/query"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/dashboards/{did}/transfer"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/dashboards/{did}/visit"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/notes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/project-management/notes/{note_id}/restore"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/ai-operator/workbench/items/{ident}"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/project-management/notes/{note_id}"
+    }
+  ],
+  "deployed_only_operations": [],
+  "shared_operations": 1986
+}

@@ -259,6 +259,10 @@ def workspace_export(db, workspace_id):
     known = {"pms_workspaces": [{"id": workspace_id}]}
     result = {}
     private = {
+        "pms_private_notes",
+        "pms_private_note_revisions",
+        "pms_private_note_attachments",
+        "pms_private_note_task_links",
         "pms_direct_conversations",
         "pms_direct_messages",
         "pms_saved_filters",

@@ -1,0 +1,806 @@
+{
+  "supported": 82,
+  "unavailable": 18,
+  "widgets": [
+    {
+      "id": "total_projects",
+      "title": "Total Projects",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "active_projects",
+      "title": "Active Projects",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "completed_projects",
+      "title": "Completed Projects",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "total_tasks",
+      "title": "Total Tasks",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "open_tasks",
+      "title": "Open Tasks",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "completed_tasks",
+      "title": "Completed Tasks",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "overdue_tasks",
+      "title": "Overdue Tasks",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "due_today",
+      "title": "Tasks Due Today",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "due_this_week",
+      "title": "Tasks Due This Week",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "in_progress",
+      "title": "Tasks In Progress",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "blocked_tasks",
+      "title": "Blocked Tasks",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "average_completion",
+      "title": "Average Completion Time",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "completion_rate",
+      "title": "Task Completion Rate",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "on_time_rate",
+      "title": "On-Time Delivery Rate",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "estimated_hours",
+      "title": "Estimated Hours",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "actual_hours",
+      "title": "Actual Hours",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "time",
+      "requirement": ""
+    },
+    {
+      "id": "remaining_hours",
+      "title": "Remaining Hours",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "budget_utilization",
+      "title": "Budget Utilization",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "team_utilization",
+      "title": "Team Utilization",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Configure per-person capacity and working schedules before utilization can be measured."
+    },
+    {
+      "id": "project_health_score",
+      "title": "Project Health Score",
+      "category": "Metrics",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Define an approved numeric health scoring model. Project Health shows the existing categorical values."
+    },
+    {
+      "id": "line",
+      "title": "Line Chart",
+      "category": "Charts",
+      "view": "line",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "area",
+      "title": "Area Chart",
+      "category": "Charts",
+      "view": "area",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "smooth_area",
+      "title": "Smooth Area Chart",
+      "category": "Charts",
+      "view": "smooth_area",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "bar",
+      "title": "Bar Chart",
+      "category": "Charts",
+      "view": "bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "horizontal_bar",
+      "title": "Horizontal Bar Chart",
+      "category": "Charts",
+      "view": "horizontal_bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "stacked_bar",
+      "title": "Stacked Bar Chart",
+      "category": "Charts",
+      "view": "stacked_bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "grouped_bar",
+      "title": "Grouped Bar Chart",
+      "category": "Charts",
+      "view": "grouped_bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "percent_bar",
+      "title": "100% Stacked Bar Chart",
+      "category": "Charts",
+      "view": "percent_bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "pie",
+      "title": "Pie Chart",
+      "category": "Charts",
+      "view": "pie",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "donut",
+      "title": "Donut Chart",
+      "category": "Charts",
+      "view": "donut",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "radial",
+      "title": "Radial Progress Chart",
+      "category": "Charts",
+      "view": "radial",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "gauge",
+      "title": "Gauge Chart",
+      "category": "Charts",
+      "view": "gauge",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "scatter",
+      "title": "Scatter Plot",
+      "category": "Charts",
+      "view": "scatter",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "bubble",
+      "title": "Bubble Chart",
+      "category": "Charts",
+      "view": "bubble",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "heatmap",
+      "title": "Heatmap",
+      "category": "Charts",
+      "view": "heatmap",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "treemap",
+      "title": "Treemap",
+      "category": "Charts",
+      "view": "treemap",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "funnel",
+      "title": "Funnel Chart",
+      "category": "Charts",
+      "view": "funnel",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "waterfall",
+      "title": "Waterfall Chart",
+      "category": "Charts",
+      "view": "waterfall",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "radar",
+      "title": "Radar Chart",
+      "category": "Charts",
+      "view": "radar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "combo",
+      "title": "Combo Chart",
+      "category": "Charts",
+      "view": "combo",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "histogram",
+      "title": "Histogram",
+      "category": "Charts",
+      "view": "histogram",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "pareto",
+      "title": "Pareto Chart",
+      "category": "Charts",
+      "view": "pareto",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "project_progress",
+      "title": "Project Progress",
+      "category": "Projects",
+      "view": "progress",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "portfolio",
+      "title": "Portfolio Overview",
+      "category": "Projects",
+      "view": "table",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "project_health",
+      "title": "Project Health",
+      "category": "Projects",
+      "view": "health",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "project_timeline",
+      "title": "Project Timeline",
+      "category": "Projects",
+      "view": "timeline",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "milestones",
+      "title": "Milestone Tracker",
+      "category": "Projects",
+      "view": "table",
+      "source": "milestones",
+      "requirement": ""
+    },
+    {
+      "id": "deadlines",
+      "title": "Upcoming Deadlines",
+      "category": "Projects",
+      "view": "deadlines",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "delayed_projects",
+      "title": "Delayed Projects",
+      "category": "Projects",
+      "view": "table",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "risks",
+      "title": "Risk Register",
+      "category": "Projects",
+      "view": "table",
+      "source": "risks",
+      "requirement": ""
+    },
+    {
+      "id": "project_status",
+      "title": "Project Status Breakdown",
+      "category": "Projects",
+      "view": "donut",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "project_budget",
+      "title": "Project Budget Overview",
+      "category": "Projects",
+      "view": "bar",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "planned_actual",
+      "title": "Planned vs Actual Progress",
+      "category": "Projects",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires dated baseline snapshots and an approved forecast model; no historical progress is inferred from current state."
+    },
+    {
+      "id": "completion_forecast",
+      "title": "Project Completion Forecast",
+      "category": "Projects",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires dated baseline snapshots and an approved forecast model; no historical progress is inferred from current state."
+    },
+    {
+      "id": "task_status",
+      "title": "Task Status Distribution",
+      "category": "Tasks",
+      "view": "donut",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "task_priority",
+      "title": "Task Priority Distribution",
+      "category": "Tasks",
+      "view": "donut",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "task_trend",
+      "title": "Task Activity Trend",
+      "category": "Tasks",
+      "view": "trend",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "task_list",
+      "title": "Open Task List",
+      "category": "Tasks",
+      "view": "table",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "my_tasks",
+      "title": "My Tasks",
+      "category": "Tasks",
+      "view": "table",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "unassigned",
+      "title": "Unassigned Tasks",
+      "category": "Tasks",
+      "view": "table",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "recent_completed",
+      "title": "Recently Completed Tasks",
+      "category": "Tasks",
+      "view": "table",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "overdue_list",
+      "title": "Overdue Task List",
+      "category": "Tasks",
+      "view": "table",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "aging",
+      "title": "Task Aging Analysis",
+      "category": "Tasks",
+      "view": "histogram",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "completion_trend",
+      "title": "Task Completion Trend",
+      "category": "Tasks",
+      "view": "trend",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "creation_completion",
+      "title": "Task Creation vs Completion",
+      "category": "Tasks",
+      "view": "trend",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "bottlenecks",
+      "title": "Bottleneck Analysis",
+      "category": "Tasks",
+      "view": "bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "assignee_workload",
+      "title": "Task Workload by Assignee",
+      "category": "Tasks",
+      "view": "bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "burndown",
+      "title": "Sprint Burndown",
+      "category": "Agile",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires persisted daily scope/status transition snapshots or configured WIP limits. Current task counts are not historical measurements."
+    },
+    {
+      "id": "burnup",
+      "title": "Sprint Burnup",
+      "category": "Agile",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires persisted daily scope/status transition snapshots or configured WIP limits. Current task counts are not historical measurements."
+    },
+    {
+      "id": "cumulative_flow",
+      "title": "Cumulative Flow Diagram",
+      "category": "Agile",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires persisted daily scope/status transition snapshots or configured WIP limits. Current task counts are not historical measurements."
+    },
+    {
+      "id": "lead_time",
+      "title": "Lead Time Analysis",
+      "category": "Agile",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires persisted daily scope/status transition snapshots or configured WIP limits. Current task counts are not historical measurements."
+    },
+    {
+      "id": "cycle_time",
+      "title": "Cycle Time Analysis",
+      "category": "Agile",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires persisted daily scope/status transition snapshots or configured WIP limits. Current task counts are not historical measurements."
+    },
+    {
+      "id": "wip_limits",
+      "title": "Work in Progress Limits",
+      "category": "Agile",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires persisted daily scope/status transition snapshots or configured WIP limits. Current task counts are not historical measurements."
+    },
+    {
+      "id": "velocity",
+      "title": "Velocity Chart",
+      "category": "Agile",
+      "view": "velocity",
+      "source": "sprints",
+      "requirement": ""
+    },
+    {
+      "id": "sprint_health",
+      "title": "Sprint Health",
+      "category": "Agile",
+      "view": "sprints",
+      "source": "sprints",
+      "requirement": ""
+    },
+    {
+      "id": "throughput",
+      "title": "Throughput Trend",
+      "category": "Agile",
+      "view": "trend",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "commitment",
+      "title": "Sprint Commitment vs Completion",
+      "category": "Agile",
+      "view": "commitment",
+      "source": "sprints",
+      "requirement": ""
+    },
+    {
+      "id": "team_workload",
+      "title": "Team Workload",
+      "category": "Team",
+      "view": "bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "assignee_performance",
+      "title": "Assignee Performance",
+      "category": "Team",
+      "view": "bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "workload_heatmap",
+      "title": "Workload Heatmap",
+      "category": "Team",
+      "view": "heatmap",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "hours_by_employee",
+      "title": "Hours by Employee",
+      "category": "Team",
+      "view": "bar",
+      "source": "time",
+      "requirement": ""
+    },
+    {
+      "id": "productivity_trend",
+      "title": "Team Productivity Trend",
+      "category": "Team",
+      "view": "trend",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "resource_utilization",
+      "title": "Resource Utilization",
+      "category": "Team",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires authorized per-member availability and capacity schedules. Assignment counts do not establish capacity."
+    },
+    {
+      "id": "team_capacity",
+      "title": "Team Capacity",
+      "category": "Team",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires authorized per-member availability and capacity schedules. Assignment counts do not establish capacity."
+    },
+    {
+      "id": "team_availability",
+      "title": "Team Availability",
+      "category": "Team",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires authorized per-member availability and capacity schedules. Assignment counts do not establish capacity."
+    },
+    {
+      "id": "overloaded",
+      "title": "Overloaded Members",
+      "category": "Team",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Requires authorized per-member availability and capacity schedules. Assignment counts do not establish capacity."
+    },
+    {
+      "id": "activity",
+      "title": "Recent Activity Timeline",
+      "category": "More",
+      "view": "activity",
+      "source": "activity",
+      "requirement": ""
+    },
+    {
+      "id": "calendar",
+      "title": "Calendar Widget",
+      "category": "More",
+      "view": "calendar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "gantt",
+      "title": "Gantt Preview",
+      "category": "More",
+      "view": "timeline",
+      "source": "projects",
+      "requirement": ""
+    },
+    {
+      "id": "custom_table",
+      "title": "Custom Data Table",
+      "category": "More",
+      "view": "table",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "notes",
+      "title": "Rich Text / Notes",
+      "category": "More",
+      "view": "notes",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "image",
+      "title": "Image Widget",
+      "category": "More",
+      "view": "image",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "bookmark",
+      "title": "Link / Bookmark Widget",
+      "category": "More",
+      "view": "bookmark",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "formula",
+      "title": "Custom Formula KPI",
+      "category": "More",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "pivot",
+      "title": "Pivot Summary",
+      "category": "More",
+      "view": "table",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "dataset",
+      "title": "Custom Query / Dataset Widget",
+      "category": "More",
+      "view": "bar",
+      "source": "tasks",
+      "requirement": ""
+    },
+    {
+      "id": "checklist",
+      "title": "Progress Checklist",
+      "category": "More",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Use task checklists; dashboard checklist editing is not yet connected."
+    },
+    {
+      "id": "okr",
+      "title": "Goal / OKR Tracker",
+      "category": "More",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Select an authorized goals dataset before enabling this widget."
+    },
+    {
+      "id": "custom_fields",
+      "title": "Custom Field Visualization",
+      "category": "More",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Custom fields are supported as task filters; grouping heterogeneous field types needs a selected field schema."
+    },
+    {
+      "id": "ai_insights",
+      "title": "AI Insights Widget",
+      "category": "More",
+      "view": "metric",
+      "source": "tasks",
+      "requirement": "Use the suite assistant for authorized analysis; generated insights are not calculated metrics."
+    }
+  ]
+}

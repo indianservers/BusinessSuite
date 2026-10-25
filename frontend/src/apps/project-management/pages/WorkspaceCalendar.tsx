@@ -1,3 +1,4 @@
+import CalendarTaskChip from "../components/CalendarTaskChip";
 import { useState } from "react";
 import {
   taskAssignees,
@@ -26,6 +27,7 @@ type Props = {
   onOpen: (id: number) => void;
   onCreate: (day: string, project: string) => void;
   onUpdate: (task: WorkTask, changes: Partial<WorkTask>) => Promise<boolean>;
+  onRefresh?: () => Promise<void>;
 };
 export default function WorkspaceCalendar({
   tasks,
@@ -35,6 +37,7 @@ export default function WorkspaceCalendar({
   onOpen,
   onCreate,
   onUpdate,
+  onRefresh,
 }: Props) {
   const [anchor, setAnchor] = useState(dateKey(new Date()));
   const [mode, setMode] = useState("month");
@@ -265,31 +268,7 @@ export default function WorkspaceCalendar({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function chip(t: WorkTask, sourceDay?: string) {
-    return (
-      <button
-        key={t.id}
-        className={`wc-task ${taskBucket(t.status) === "Done" ? "done" : ""}`}
-        style={{ borderLeftColor: color(t) }}
-        draggable={canEdit && !busy}
-        onDragStart={(e) => {
-          e.dataTransfer.setData("text/plain", String(t.id));
-          if (sourceDay)
-            e.dataTransfer.setData("application/x-karyaflow-day", sourceDay);
-          e.dataTransfer.effectAllowed = "move";
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onOpen(t.id);
-        }}
-        onDoubleClick={(e) => e.stopPropagation()}
-        title={`${t.task_key}: ${t.title} · ${t.status} · ${t.priority}`}
-      >
-        <span>
-          {taskBucket(t.status) === "Done" ? "✓ " : ""}
-          {t.title}
-        </span>
-      </button>
-    );
+    return <CalendarTaskChip key={t.id} task={t} sourceDay={sourceDay} color={color(t)} canEdit={canEdit} busy={busy} members={members} projectName={projects.find(project=>project.id===t.project_id)?.name} onOpen={onOpen} onChanged={onRefresh} />;
   }
   return (
     <section

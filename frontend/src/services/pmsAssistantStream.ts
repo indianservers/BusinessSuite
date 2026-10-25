@@ -29,7 +29,7 @@ export async function assistantStream(
   let buffer = "";
   let result: any;
   try {
-    while (true) {
+    for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });

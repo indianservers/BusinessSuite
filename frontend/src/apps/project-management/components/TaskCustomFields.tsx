@@ -1,3 +1,4 @@
+import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { customFieldTypes, numericFieldTypes } from "./customFieldTypes";
 import { workspaceError } from "../pages/workspaceTypes";
 
-type Field = { id: number; name: string; field_type: string; options: string[]; value: string | number | boolean | null };
+type Field = { id: number; name: string; field_type: string; options: string[]; country_code?: string | null; value: string | number | boolean | null };
 type Library = { fields: Field[]; can_edit: boolean; can_manage: boolean };
 export default function TaskCustomFields({ taskId, projectId }: { taskId: number; projectId: number }) {
   const [data, setData] = useState<Library | null>(null);
   const [values, setValues] = useState<Record<number, string | boolean>>({});
+  const [codes,setCodes]=useState<Record<number,string>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,13 +35,15 @@ export default function TaskCustomFields({ taskId, projectId }: { taskId: number
   }
   async function load() {
     const { data } = await api.get<Library>(`/project-management/tasks/${taskId}/custom-fields`);
+    setCodes(Object.fromEntries(data.fields.map(field=>[field.id,field.country_code || (field.value ? '' : '+91')])));
     setData(data); setValues(Object.fromEntries(data.fields.map(field => [field.id, field.field_type === "checkbox" ? field.value === true : String(field.value ?? "")])));
   }
   useEffect(() => {
     let active = true; setData(null); setError(""); setNotice("");
     api.get<Library>(`/project-management/tasks/${taskId}/custom-fields`).then(({ data }) => {
       if (!active) return;
-      setData(data); setValues(Object.fromEntries(data.fields.map(field => [field.id, field.field_type === "checkbox" ? field.value === true : String(field.value ?? "")])));
+      setCodes(Object.fromEntries(data.fields.map(field=>[field.id,field.country_code || (field.value ? '' : '+91')])));
+    setData(data); setValues(Object.fromEntries(data.fields.map(field => [field.id, field.field_type === "checkbox" ? field.value === true : String(field.value ?? "")])));
     }).catch(error => { if (active) setError(workspaceError(error)); });
     return () => { active = false; };
   }, [taskId]);
@@ -47,7 +51,7 @@ export default function TaskCustomFields({ taskId, projectId }: { taskId: number
     setBusy(true); setError(""); setNotice("");
     const draft = values[field.id];
     const value = field.field_type === "checkbox" ? draft : draft === "" ? null : numericFieldTypes.includes(field.field_type) ? Number(draft) : draft;
-    try { await api.put(`/project-management/tasks/${taskId}/custom-fields/${field.id}`, { value }); setNotice(`${field.name} saved`); }
+    try { await api.put(`/project-management/tasks/${taskId}/custom-fields/${field.id}`, { value, ...(field.field_type==='phone'?{country_code:codes[field.id]}:{}) }); setNotice(`${field.name} saved`); }
     catch (error) { setError(workspaceError(error)); } finally { setBusy(false); }
   }
   return <section className="space-y-4 rounded-lg border bg-card p-5" aria-label="Task custom fields">
@@ -58,7 +62,7 @@ export default function TaskCustomFields({ taskId, projectId }: { taskId: number
       <label className="min-w-0 flex-1 text-sm font-medium">{field.name}
         {field.field_type === "dropdown" ? <select aria-label={field.name} disabled={!data.can_edit || busy} className="mt-1 h-10 w-full rounded-md border bg-background px-3" value={String(values[field.id] ?? "")} onChange={event => setValues(current => ({ ...current, [field.id]: event.target.value }))}><option value="">Not set</option>{field.options.map(option => <option key={option}>{option}</option>)}</select>
           : field.field_type === "checkbox" ? <input aria-label={field.name} className="ml-3" type="checkbox" disabled={!data.can_edit || busy} checked={values[field.id] === true} onChange={event => setValues(current => ({ ...current, [field.id]: event.target.checked }))} />
-            : field.field_type === "long_text" ? <textarea aria-label={field.name} disabled={!data.can_edit || busy} maxLength={20000} className="mt-1 min-h-24 w-full rounded-md border bg-background p-2" value={String(values[field.id] ?? "")} onChange={event => setValues(current => ({ ...current, [field.id]: event.target.value }))} /> : <Input aria-label={field.name} className="mt-1" disabled={!data.can_edit || busy} type={numericFieldTypes.includes(field.field_type) ? "number" : field.field_type === "date" ? "date" : field.field_type === "email" ? "email" : field.field_type === "website" ? "url" : field.field_type === "phone" ? "tel" : "text"} min={field.field_type === "rating" || field.field_type === "progress" ? 0 : undefined} max={field.field_type === "rating" ? 5 : field.field_type === "progress" ? 100 : undefined} step={field.field_type === "rating" ? "1" : "any"} maxLength={4000} value={String(values[field.id] ?? "")} onChange={event => setValues(current => ({ ...current, [field.id]: event.target.value }))} />}
+            : field.field_type === "phone" ? <PhoneInput label={field.name} disabled={!data.can_edit || busy} value={String(values[field.id] ?? "")} countryCode={codes[field.id] ?? ""} onChange={value=>setValues(current=>({...current,[field.id]:value}))} onCountryCodeChange={code=>setCodes(current=>({...current,[field.id]:code}))} /> : field.field_type === "long_text" ? <textarea aria-label={field.name} disabled={!data.can_edit || busy} maxLength={20000} className="mt-1 min-h-24 w-full rounded-md border bg-background p-2" value={String(values[field.id] ?? "")} onChange={event => setValues(current => ({ ...current, [field.id]: event.target.value }))} /> : <Input aria-label={field.name} className="mt-1" disabled={!data.can_edit || busy} type={numericFieldTypes.includes(field.field_type) ? "number" : field.field_type === "date" ? "date" : field.field_type === "email" ? "email" : field.field_type === "website" ? "url" : field.field_type === "phone" ? "tel" : "text"} min={field.field_type === "rating" || field.field_type === "progress" ? 0 : undefined} max={field.field_type === "rating" ? 5 : field.field_type === "progress" ? 100 : undefined} step={field.field_type === "rating" ? "1" : "any"} maxLength={4000} value={String(values[field.id] ?? "")} onChange={event => setValues(current => ({ ...current, [field.id]: event.target.value }))} />}
       </label>{data.can_manage && <Button type="button" size="sm" variant="ghost" disabled={busy} aria-label={`Edit ${field.name} definition`} onClick={() => { setEditing(field); setEditName(field.name); setEditOptions(field.options.join("\n")); setError(""); }}>Edit field</Button>}{data.can_edit && <Button size="sm" variant="outline" disabled={busy}>Save {field.name}</Button>}
     </form>)}
     {editing && <form aria-label="Edit custom field definition" className="space-y-3 rounded-lg border bg-muted/20 p-4" onSubmit={event => { event.preventDefault(); void editDefinition(); }}>

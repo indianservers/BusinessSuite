@@ -1,0 +1,1452 @@
+{
+  "models": [
+    {
+      "file": "backend/app/common/models.py",
+      "class": "CommonPerson",
+      "table": "common_people",
+      "phones": [
+        "phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/models/company.py",
+      "class": "Company",
+      "table": "companies",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/models/company.py",
+      "class": "Branch",
+      "table": "branches",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/models/employee.py",
+      "class": "Employee",
+      "table": "employees",
+      "phones": [
+        "phone_number",
+        "alternate_phone",
+        "whatsapp_number",
+        "emergency_contact_number"
+      ]
+    },
+    {
+      "file": "backend/app/models/employee.py",
+      "class": "EmployeeFamilyMember",
+      "table": "employee_family_members",
+      "phones": [
+        "phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/models/recruitment.py",
+      "class": "Candidate",
+      "table": "candidates",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/models/user.py",
+      "class": "MFAMethod",
+      "table": "mfa_methods",
+      "phones": [
+        "phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/models/whatsapp_ess.py",
+      "class": "WhatsAppESSConfig",
+      "table": "whatsapp_ess_configs",
+      "phones": [
+        "business_phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/models/whatsapp_ess.py",
+      "class": "WhatsAppESSSession",
+      "table": "whatsapp_ess_sessions",
+      "phones": [
+        "phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/models/whatsapp_ess.py",
+      "class": "WhatsAppESSMessage",
+      "table": "whatsapp_ess_messages",
+      "phones": [
+        "phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/models/whatsapp_ess.py",
+      "class": "WhatsAppESSOptIn",
+      "table": "whatsapp_ess_opt_ins",
+      "phones": [
+        "phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/apps/communication/models.py",
+      "class": "CommunicationConsent",
+      "table": "communication_consents",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/crm/models.py",
+      "class": "CRMCompany",
+      "table": "crm_companies",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/crm/models.py",
+      "class": "CRMAccount",
+      "table": "crm_accounts",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/crm/models.py",
+      "class": "CRMContact",
+      "table": "crm_contacts",
+      "phones": [
+        "phone",
+        "alternate_phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/crm/models.py",
+      "class": "CRMLead",
+      "table": "crm_leads",
+      "phones": [
+        "phone",
+        "alternate_phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/crm/models.py",
+      "class": "CRMCallLog",
+      "table": "crm_call_logs",
+      "phones": [
+        "phone_number"
+      ]
+    },
+    {
+      "file": "backend/app/apps/crm/models.py",
+      "class": "CRMOwner",
+      "table": "crm_owners",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/fam/models.py",
+      "class": "FAMParty",
+      "table": "fam_parties",
+      "phones": [
+        "phone",
+        "mobile"
+      ]
+    },
+    {
+      "file": "backend/app/apps/fam/models.py",
+      "class": "FAMPartyContact",
+      "table": "fam_party_contacts",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/fam/models.py",
+      "class": "FAMWarehouse",
+      "table": "fam_warehouses",
+      "phones": [
+        "phone"
+      ]
+    },
+    {
+      "file": "backend/app/apps/project_management/models.py",
+      "class": "PMSClient",
+      "table": "pms_clients",
+      "phones": [
+        "phone"
+      ]
+    }
+  ],
+  "schemas": [
+    {
+      "file": "backend/app/schemas/auth.py",
+      "class": "MFAMethodCreate",
+      "field": "phone_number",
+      "line": 142
+    },
+    {
+      "file": "backend/app/schemas/company.py",
+      "class": "CompanyBase",
+      "field": "phone",
+      "line": 17
+    },
+    {
+      "file": "backend/app/schemas/company.py",
+      "class": "BranchBase",
+      "field": "phone",
+      "line": 56
+    },
+    {
+      "file": "backend/app/schemas/employee.py",
+      "class": "EmployeeBase",
+      "field": "phone_number",
+      "line": 163
+    },
+    {
+      "file": "backend/app/schemas/employee.py",
+      "class": "EmployeeBase",
+      "field": "alternate_phone",
+      "line": 165
+    },
+    {
+      "file": "backend/app/schemas/employee.py",
+      "class": "EmployeeBase",
+      "field": "emergency_contact_number",
+      "line": 169
+    },
+    {
+      "file": "backend/app/schemas/employee.py",
+      "class": "EmployeeUpdate",
+      "field": "phone_number",
+      "line": 291
+    },
+    {
+      "file": "backend/app/schemas/employee.py",
+      "class": "EmployeeUpdate",
+      "field": "alternate_phone",
+      "line": 293
+    },
+    {
+      "file": "backend/app/schemas/employee.py",
+      "class": "EmployeeUpdate",
+      "field": "emergency_contact_number",
+      "line": 297
+    },
+    {
+      "file": "backend/app/schemas/employee.py",
+      "class": "EmployeeListSchema",
+      "field": "phone_number",
+      "line": 353
+    },
+    {
+      "file": "backend/app/schemas/org_structure.py",
+      "class": "BranchCreate",
+      "field": "phone",
+      "line": 66
+    },
+    {
+      "file": "backend/app/schemas/org_structure.py",
+      "class": "BranchUpdate",
+      "field": "phone",
+      "line": 77
+    },
+    {
+      "file": "backend/app/schemas/org_structure.py",
+      "class": "BranchResponse",
+      "field": "phone",
+      "line": 88
+    },
+    {
+      "file": "backend/app/schemas/recruitment.py",
+      "class": "CandidateCreate",
+      "field": "phone",
+      "line": 77
+    },
+    {
+      "file": "backend/app/schemas/recruitment.py",
+      "class": "CandidateSchema",
+      "field": "phone",
+      "line": 103
+    },
+    {
+      "file": "backend/app/schemas/whatsapp_ess.py",
+      "class": "WhatsAppESSConfigCreate",
+      "field": "business_phone_number",
+      "line": 9
+    },
+    {
+      "file": "backend/app/schemas/whatsapp_ess.py",
+      "class": "WhatsAppInboundMessage",
+      "field": "phone_number",
+      "line": 30
+    },
+    {
+      "file": "backend/app/schemas/whatsapp_ess.py",
+      "class": "WhatsAppESSMessageSchema",
+      "field": "phone_number",
+      "line": 41
+    },
+    {
+      "file": "backend/app/schemas/whatsapp_ess.py",
+      "class": "WhatsAppOptInCreate",
+      "field": "phone_number",
+      "line": 73
+    },
+    {
+      "file": "backend/app/schemas/whatsapp_ess.py",
+      "class": "WhatsAppOutboundMessage",
+      "field": "phone_number",
+      "line": 90
+    },
+    {
+      "file": "backend/app/api/v1/employees.py",
+      "class": "EmployeeDirectoryItem",
+      "field": "phone_number",
+      "line": 68
+    },
+    {
+      "file": "backend/app/api/v1/employees.py",
+      "class": "EmployeeProfileCard",
+      "field": "phone_number",
+      "line": 90
+    },
+    {
+      "file": "backend/app/apps/communication/schemas.py",
+      "class": "ConsentPayload",
+      "field": "phone",
+      "line": 72
+    },
+    {
+      "file": "backend/app/apps/fam/schemas.py",
+      "class": "PartyContactPayload",
+      "field": "phone",
+      "line": 142
+    },
+    {
+      "file": "backend/app/apps/fam/schemas.py",
+      "class": "PartyPayload",
+      "field": "phone",
+      "line": 163
+    },
+    {
+      "file": "backend/app/apps/fam/schemas.py",
+      "class": "PartyPayload",
+      "field": "mobile",
+      "line": 165
+    },
+    {
+      "file": "backend/app/apps/fam/schemas.py",
+      "class": "InventoryWarehousePayload",
+      "field": "phone",
+      "line": 466
+    },
+    {
+      "file": "backend/app/apps/interns_hub/applications.py",
+      "class": "ApplicationInput",
+      "field": "mobile",
+      "line": 48
+    },
+    {
+      "file": "backend/app/apps/interns_hub/router.py",
+      "class": "ProfileUpdate",
+      "field": "phone_number",
+      "line": 84
+    },
+    {
+      "file": "backend/app/apps/project_management/schemas.py",
+      "class": "PMSClientBase",
+      "field": "phone",
+      "line": 14
+    },
+    {
+      "file": "backend/app/apps/project_management/schemas.py",
+      "class": "PMSClientUpdate",
+      "field": "phone",
+      "line": 28
+    },
+    {
+      "file": "backend/app/common/services/identity.py",
+      "class": "IdentitySummary",
+      "field": "phone_number",
+      "line": 22
+    }
+  ],
+  "forms": [
+    {
+      "file": "frontend/src/apps/ai-copilot/AICopilotPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/analytics/AnalyticsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/automation/AutomationStudioPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/business-os/BusinessOSWorkspacePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/crm/CRMHomePage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/ProjectManagementHomePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/saas/PortalPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/saas/SaaSWorkspacePage.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/crm/leads/LeadEmployeeAssignment.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/ai/AIAssistantPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/analytics/AdvancedAnalyticsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/assets/AssetsPage.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/attendance/AttendancePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/attendance/MyAttendancePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/attendance/MyRosterPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/attendance/ShiftRosterPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/benefits/BenefitsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/company/CompanyPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/company/OrgChartPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/compliance/StatutoryCompliancePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/documents/DocumentsPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/employees/AddEmployeePage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/employees/EmployeeDirectoryPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/employees/EmployeesPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/employees/ProbationPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/engagement/EngagementPage.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/exit/ExitPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/interns/InternApplicationsPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/leave/LeavePage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/lms/LMSPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/logs/AdminLogsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/onboarding/OnboardingPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/payroll/FnFSettlementPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/payroll/InvestmentDeclarationPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/platform/EnterprisePage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/profile/MyPayslipsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/recruitment/RecruitmentPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/settings/SettingsPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/timesheets/TimesheetsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/workflow/ApprovalOsPage.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/workflow/WorkflowDesignerPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/hrms/pages/workflow/WorkflowInboxPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/AssigneePicker.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/CalendarEventEditor.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/CalendarSettings.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/CreateTaskModal.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/DocumentPreview.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/InlineSubtaskComposer.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/LocalBrainPanel.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/NoteAttachments.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/NoteRichEditor.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/NoteTaskActions.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/OperatorWorkspaceTools.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/PMSAssistant.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/PriorityPicker.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/RecordActions.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/RunningTimer.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/SmartTagsInput.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/TaskCustomFields.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/TaskViewPicker.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/TemplateLibrary.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/WorkflowFeedPanel.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/components/WorkReviewPanel.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/dashboard/DashboardWizard.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/dashboard/Panels.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/AIOperatorPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/AnalyticsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/AssignmentControlsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/AssistantStudio.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/AuditLogsPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/AutomationAIPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/BacklogPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/CreateProjectPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/CustomFieldManagerPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/DashboardsPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/DirectMessagesPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/DocsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/FilesPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/GanttPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/ImpactWorkHubPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/KanbanBoard.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/LiveWorkManagementPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/MilestonesPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/MyAssignmentsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/NotesPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/OrgChartPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/PlannerPage.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/PlansPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/PortfolioPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/ProductLaunchPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/ProjectBillingPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/ProjectsList.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/RecoveryPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/ReportsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/RisksPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/RoadmapPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/SettingsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/SoftwarePlanningPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/SprintsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TagManagerPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TaskDetail.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TaskListPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TaskTypesPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TeamsPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TimesheetsPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TimeTrackingPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/TrashPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkloadPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspaceActivity.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspaceAdminPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspaceCalendar.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspaceCollaboration.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspacePlanning.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspacesPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspaceToolsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/project-management/pages/WorkspaceWork.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/srm/pages/ConnectedCollectionsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/srm/pages/SharedInvoicePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/srm/pages/SRMCommercialDetailPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/ai-agents/AgentConfigForm.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/ai-agents/ProposedActionCard.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/app/GlobalSearch.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/app/KeyboardShortcuts.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/app/WorkspaceEnhancements.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/layout/ModuleSwitcher.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/layout/PMSMoreMenu.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/layout/PMSProfileMenu.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/layout/Sidebar.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/layout/Topbar.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/product/ProductWorkflowCenter.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/scheduling/ModuleGanttPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/components/ui/input.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/features/forms/FormBuilder.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/features/forms/FormResponse.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/features/forms/FormsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/features/forms/PublicFormPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/features/profiles/UnifiedProfile.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/lib/validation/PhoneInput.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/ai-agents/AiAgentChatPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/ai-agents/AiAgentPermissionsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/ai-agents/AiAgentSecurityPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/ai-agents/AiAgentUsagePage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/ai-agents/AiAuditLogsPage.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/ai-agents/OperatorProviderSettings.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/ai-agents/SuiteOperatorPage.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/auth/LoginPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/src/pages/auth/WorkspaceInvitationPage.tsx",
+      "phone_related": false,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/interns-hub/src/AccountPages.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/interns-hub/src/ApplicationPage.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/interns-hub/src/GrowthPages.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/interns-hub/src/main.tsx",
+      "phone_related": true,
+      "email_related": true,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/interns-hub/src/WorkPages.tsx",
+      "phone_related": false,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    },
+    {
+      "file": "frontend/interns-hub/src/validation/PhoneInput.tsx",
+      "phone_related": true,
+      "email_related": false,
+      "verification": "Inventoried; runtime verification tracked separately"
+    }
+  ],
+  "contact_consumers": [
+    "backend/app/common/models.py",
+    "backend/app/core/hr_audit.py",
+    "backend/app/core/input_validation.py",
+    "backend/app/core/masking.py",
+    "backend/app/core/orm_validation.py",
+    "backend/app/crud/crud_employee.py",
+    "backend/app/crud/crud_org_structure.py",
+    "backend/app/db/base_class.py",
+    "backend/app/forms/router.py",
+    "backend/app/forms/schema.py",
+    "backend/app/models/approval_os.py",
+    "backend/app/models/company.py",
+    "backend/app/models/employee.py",
+    "backend/app/models/recruitment.py",
+    "backend/app/models/user.py",
+    "backend/app/models/whatsapp_ess.py",
+    "backend/app/schemas/approval_os.py",
+    "backend/app/schemas/attendance.py",
+    "backend/app/schemas/auth.py",
+    "backend/app/schemas/company.py",
+    "backend/app/schemas/employee.py",
+    "backend/app/schemas/org_structure.py",
+    "backend/app/schemas/recruitment.py",
+    "backend/app/schemas/whatsapp_ess.py",
+    "backend/app/services/notifications.py",
+    "backend/app/ai_agents/adapters/crm_ai_adapter.py",
+    "backend/app/ai_agents/tools/definitions.py",
+    "backend/app/api/v1/approval_os.py",
+    "backend/app/api/v1/employees.py",
+    "backend/app/api/v1/payroll_extensions.py",
+    "backend/app/api/v1/profile_change_requests.py",
+    "backend/app/api/v1/recruitment.py",
+    "backend/app/api/v1/whatsapp_ess.py",
+    "backend/app/apps/communication/models.py",
+    "backend/app/apps/communication/schemas.py",
+    "backend/app/apps/crm/lead_management.py",
+    "backend/app/apps/crm/models.py",
+    "backend/app/apps/fam/models.py",
+    "backend/app/apps/fam/schemas.py",
+    "backend/app/apps/interns_hub/applications.py",
+    "backend/app/apps/interns_hub/router.py",
+    "backend/app/apps/project_management/custom_fields.py",
+    "backend/app/apps/project_management/models.py",
+    "backend/app/apps/project_management/schemas.py",
+    "backend/app/apps/saas/models.py",
+    "backend/app/apps/srm/commercial_api.py",
+    "backend/app/apps/analytics/services/engine.py",
+    "backend/app/apps/communication/api/router.py",
+    "backend/app/apps/crm/api/router.py",
+    "backend/app/apps/customization/services/validation.py",
+    "backend/app/apps/hrms/services/identity.py",
+    "backend/app/apps/inventory/vyapara_erp/seed.py",
+    "backend/app/apps/inventory/vyapara_erp/app/models/party.py",
+    "backend/app/apps/inventory/vyapara_erp/app/models/product.py",
+    "backend/app/apps/inventory/vyapara_erp/app/models/settings.py",
+    "backend/app/apps/inventory/vyapara_erp/app/models/user.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/auth_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/master_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/party_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/purchase_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/sales_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/search_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/settings_routes.py",
+    "backend/app/apps/inventory/vyapara_erp/migrations/versions/2e57f7f58e07_business_setup_foundation.py",
+    "backend/app/apps/saas/api/router.py",
+    "backend/app/apps/srm/services/commercial.py",
+    "backend/app/apps/srm/services/customer_identity.py",
+    "backend/app/common/services/identity.py",
+    "backend/app/common/services/profiles.py",
+    "backend/app/core/middleware/security_headers.py",
+    "backend/app/services/ai/resume_parser.py"
+  ]
+}

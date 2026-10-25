@@ -64,6 +64,7 @@ class BranchCreate(OrgMasterBase):
     country: str = "India"
     pincode: Optional[str] = None
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     email: Optional[str] = None
 
 
@@ -74,6 +75,7 @@ class BranchUpdate(OrgMasterUpdate):
     country: Optional[str] = None
     pincode: Optional[str] = None
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     email: Optional[str] = None
 
 
@@ -84,6 +86,7 @@ class BranchResponse(OrgMasterResponse):
     country: Optional[str] = None
     pincode: Optional[str] = None
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     email: Optional[str] = None
 
 

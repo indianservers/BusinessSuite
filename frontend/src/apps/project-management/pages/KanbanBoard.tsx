@@ -358,6 +358,7 @@ const KanbanBoard: React.FC = () => {
                 strategy={verticalListSortingStrategy}
               >
                 <KanbanColumn
+                  onChanged={()=>loadBoard(true)}
                   column={column}
                   tasks={filteredTasks.filter((t) => t.column_id === column.id)}
                   onAddTask={() => setShowCreateModal(true)}

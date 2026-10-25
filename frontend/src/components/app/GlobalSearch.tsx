@@ -3,6 +3,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import * as Dialog from "@radix-ui/react-dialog";
+import { getRoleNav } from "@/lib/roles";
+import { products } from "@/lib/products";
+import { api } from "@/services/api";
 import { reportsApi } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
@@ -108,9 +112,22 @@ export default function GlobalSearch() {
       ...wowResults,
     ];
   }, [product.key]);
-  const results: Result[] = (enabled ? (data?.results || []) : staticResults).filter((item: Result) =>
-    canAccessRoute(item.url, user?.role, user?.is_superuser)
-  );
+  const recordSearch = useQuery({
+    queryKey:["command-pms",user?.id,debouncedQuery],enabled:open && product.key==="project_management" && debouncedQuery.length>=2,retry:false,
+    queryFn:async()=>{const responses=await Promise.allSettled([
+      api.get("/project-management/tasks",{params:{search:debouncedQuery,pageSize:8}}),
+      api.get("/project-management/projects"),
+      api.get("/project-management/users/search",{params:{q:debouncedQuery,limit:5}}),
+    ]);const found:Result[]=[];
+    const tasks=responses[0];if(tasks.status==="fulfilled")for(const task of tasks.value.data.items||[])found.push({type:"Task",title:task.title,subtitle:task.task_key,url:`/pms/tasks/${task.id}`});
+    const projects=responses[1];if(projects.status==="fulfilled")for(const project of projects.value.data.filter((p:{name:string;project_key:string})=>`${p.name} ${p.project_key}`.toLowerCase().includes(debouncedQuery.toLowerCase())).slice(0,5))found.push({type:"Project",title:project.name,subtitle:project.project_key,url:`/pms/projects/${project.id}`});
+    const people=responses[2];if(people.status==="fulfilled")for(const person of people.value.data)found.push({type:"Person",title:person.email,url:"/pms/teams"});return found;
+    }
+  });
+  const pageSources:Result[]=[...Object.values(products).map(p=>({type:"Module",title:p.name,url:p.homePath})),...getRoleNav(user?.role,user?.is_superuser,location.pathname).map(p=>({type:"Page",title:p.label,url:p.to})),...staticResults];
+  const filteredPages=pageSources.filter(item=>!query.trim()||`${item.title} ${item.subtitle||""}`.toLowerCase().includes(query.toLowerCase()));
+  const results:Result[]=Array.from(new Map([...filteredPages,...(enabled ? data?.results||[] : []),...(recordSearch.data||[])].filter(item=>canAccessRoute(item.url,user?.role,user?.is_superuser)).map(item=>[item.url+item.title,item])).values()).slice(0,35);
+
 
   useEffect(() => {
     setFocusedIndex(-1);
@@ -158,11 +175,11 @@ export default function GlobalSearch() {
     <>
       <button
         type="button"
-        className="relative hidden max-w-md flex-1 sm:flex"
+        aria-label="Open command palette" className="relative hidden max-w-md flex-1 sm:flex"
         onClick={() => setOpen(true)}
       >
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input readOnly value="" placeholder={product.searchPlaceholder} className="cursor-pointer border-0 bg-secondary/50 pl-9 focus-visible:ring-1" />
+        <span className="flex h-10 w-full items-center rounded-lg border border-input bg-muted/40 pl-9 pr-16 text-left text-sm text-muted-foreground"><span className="truncate">Search tasks, projects, people…</span></span><kbd aria-hidden="true" className="absolute right-3 top-3 text-xs text-muted-foreground">Ctrl K</kbd>
       </button>
       <button
         type="button"
@@ -173,15 +190,16 @@ export default function GlobalSearch() {
       >
         <Search className="h-4 w-4" />
       </button>
-      {open && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-3 pt-4 sm:p-4 sm:pt-[12vh]" onClick={() => setOpen(false)}>
-          <div className="mx-auto max-h-[calc(100dvh-2rem)] max-w-2xl overflow-hidden rounded-lg border bg-background shadow-2xl sm:max-h-[78vh]" onClick={(e) => e.stopPropagation()}>
+      <Dialog.Root open={open} onOpenChange={setOpen}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/40"/><Dialog.Content className="kf-command-dialog">
+          <Dialog.Title className="sr-only">Search Business Suite</Dialog.Title><Dialog.Description className="sr-only">Search authorized pages and records. Use arrow keys to choose and Enter to open.</Dialog.Description>
+          <div>
             <form onSubmit={submit} className="border-b p-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleSearchKeyDown} placeholder="Search anything..." className="border-0 pl-9 text-base focus-visible:ring-0" />
               </div>
             </form>
+            {recordSearch.isFetching && <p className="px-4 py-2 text-xs text-muted-foreground" role="status">Searching records…</p>}
             <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto p-2 sm:max-h-[420px]">
               {results.length ? results.map((item, index) => (
                 <button
@@ -203,8 +221,7 @@ export default function GlobalSearch() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        </Dialog.Content></Dialog.Portal></Dialog.Root>
     </>
   );
 }

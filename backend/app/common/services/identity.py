@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.common.models import CommonPerson, CommonProfile
 from app.models.user import User
+from app.core.input_validation import national_phone, calling_code
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,7 @@ class IdentitySummary:
     organization_id: int | None = None
     person_id: int | None = None
     phone_number: str | None = None
+    phone_number_country_code: str | None = None
     profile_photo_url: str | None = None
 
 
@@ -67,11 +69,20 @@ class SharedIdentityService:
         display_name: str | None = None,
         organization_id: int | None = None,
         phone_number: str | None = None,
+        phone_number_country_code: str | None = None,
+        synchronize_phone: bool = False,
         source_module: str | None = None,
         source_record_type: str | None = None,
         source_record_id: int | None = None,
         profile_defaults: dict[str, Any] | None = None,
     ) -> CommonPerson:
+        # Keep ambiguous legacy values on their original employee record. Do not
+        # copy them into a new shared contact or guess a missing calling code.
+        copy_phone=False
+        if phone_number:
+            try:national_phone(phone_number);calling_code(phone_number_country_code);copy_phone=True
+            except ValueError:pass
+        elif synchronize_phone:copy_phone=True
         person = (
             db.query(CommonPerson)
             .options(joinedload(CommonPerson.profile))
@@ -84,7 +95,8 @@ class SharedIdentityService:
                 primary_email=user.email,
                 display_name=display_name or cls.display_name_for_user(user),
                 organization_id=organization_id,
-                phone_number=phone_number,
+                phone_number=phone_number if copy_phone else None,
+                phone_number_country_code=phone_number_country_code if copy_phone and phone_number else None,
                 source_module=source_module,
                 source_record_type=source_record_type,
                 source_record_id=source_record_id,
@@ -95,7 +107,9 @@ class SharedIdentityService:
             person.primary_email = user.email or person.primary_email
             person.display_name = display_name or person.display_name or cls.display_name_for_user(user)
             person.organization_id = organization_id if organization_id is not None else person.organization_id
-            person.phone_number = phone_number or person.phone_number
+            if copy_phone:
+                person.phone_number=phone_number or None
+                person.phone_number_country_code=phone_number_country_code if phone_number else None
             person.source_module = source_module or person.source_module
             person.source_record_type = source_record_type or person.source_record_type
             person.source_record_id = source_record_id if source_record_id is not None else person.source_record_id
@@ -127,6 +141,8 @@ class SharedIdentityService:
             display_name=display_name or None,
             organization_id=organization_id,
             phone_number=getattr(employee, "phone_number", None),
+            phone_number_country_code=getattr(employee,'phone_number_country_code',None),
+            synchronize_phone=True,
             source_module="hrms",
             source_record_type="employee",
             source_record_id=getattr(employee, "id", None),
@@ -151,6 +167,7 @@ class SharedIdentityService:
             organization_id=cls.organization_id_for_user(user),
             person_id=person.id if person else None,
             phone_number=getattr(person, "phone_number", None) if person else None,
+            phone_number_country_code=getattr(person,"phone_number_country_code",None) if person else None,
             profile_photo_url=getattr(profile, "profile_photo_url", None) if profile else None,
         )
 

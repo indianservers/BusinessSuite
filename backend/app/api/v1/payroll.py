@@ -455,6 +455,8 @@ ALLOWED_FORMULA_NODES = (
 
 
 def _safe_formula_value(expression: str, variables: dict[str, Decimal], component_code: str) -> Decimal:
+    from app.core.formula_limits import bounded_formula_tree
+    bounded_formula_tree(expression)
     try:
         tree = ast.parse(expression, mode="eval")
     except SyntaxError as exc:

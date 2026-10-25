@@ -148,11 +148,12 @@ class CommunicationCampaignSend(Base):
 
 class CommunicationConsent(Base):
     __tablename__ = "communication_consents"
-    __table_args__ = (UniqueConstraint("email", "phone", "record_type", "record_id", "consent_type", name="uq_communication_consent_subject"),)
+    __table_args__ = (UniqueConstraint("email", "phone", "phone_country_code", "record_type", "record_id", "consent_type", name="uq_communication_consent_subject"),)
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(180), index=True)
     phone = Column(String(60), index=True)
+    phone_country_code = Column(String(5), nullable=True)
     record_type = Column(String(60), index=True)
     record_id = Column(Integer, index=True)
     consent_type = Column(String(60), default="email", index=True)

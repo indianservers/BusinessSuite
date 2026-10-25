@@ -17,6 +17,7 @@ class CommonPerson(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), unique=True, nullable=True, index=True)
     primary_email = Column(String(150), unique=True, nullable=True, index=True)
     phone_number = Column(String(30), nullable=True)
+    phone_number_country_code = Column(String(5), nullable=True)
     first_name = Column(String(80), nullable=True)
     middle_name = Column(String(80), nullable=True)
     last_name = Column(String(80), nullable=True)

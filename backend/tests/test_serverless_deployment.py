@@ -38,7 +38,7 @@ def test_private_files_survive_local_loss_and_reject_traversal(private_storage):
     assert upload_exists(str(target))
     response = FileResponse(str(target))
     assert response.status_code == 307
-    assert "X-Amz-Signature=" in response.headers["location"]
+    assert "/api/v1/files/blob?token=" in response.headers["location"]
     materialize_file(str(target))
     assert target.read_bytes() == b"private PDF content"
     from app.core.storage import normalize_upload_references, sign_upload_references
@@ -56,7 +56,7 @@ def test_employee_upload_is_durable_and_links_are_private(client, db, superuser_
         data={"document_type": "Identity", "document_name": "Identity PDF"},
         files={"file": ("identity.pdf", b"private content", "application/pdf")})
     assert response.status_code in {200, 201}, response.text
-    assert "X-Amz-Signature=" in response.json()["file_url"]
+    assert "/api/v1/files/blob?token=" in response.json()["file_url"]
     from app.core.storage import s3_client
     objects = s3_client().list_objects_v2(Bucket=settings.S3_BUCKET)["Contents"]
     assert s3_client().get_object(Bucket=settings.S3_BUCKET, Key=objects[0]["Key"])["Body"].read() == b"private content"

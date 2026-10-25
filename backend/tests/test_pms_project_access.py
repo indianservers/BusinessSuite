@@ -1495,9 +1495,9 @@ def test_field_manager_edits_and_extended_types(db):
     assert used.value.status_code == 409
     renamed = edit_field(project.id, field["id"], EditFieldInput(name="Review", options=["Pending", "Done", "Blocked"]), db=db, user=manager)
     assert renamed["name"] == "Review"
-    for kind, valid, invalid in [("email", "a@example.com", "bad"), ("website", "https://example.com", "javascript:alert(1)"), ("phone", "+971 50 123 4567", "abc"), ("rating", 5, 6), ("progress", 90, 101), ("money", 100.25, "bad"), ("long_text", "Long note", 4)]:
+    for kind, valid, invalid in [("email", "a@example.com", "bad"), ("website", "https://example.com", "javascript:alert(1)"), ("phone", "2025550100", "abc"), ("rating", 5, 6), ("progress", 90, 101), ("money", 100.25, "bad"), ("long_text", "Long note", 4)]:
         entry = create_field(project.id, FieldInput(name=kind, field_type=kind), db=db, user=manager)
-        save_value(task.id, entry["id"], ValueInput(value=valid), db=db, user=manager)
+        save_value(task.id, entry["id"], ValueInput(value=valid,country_code="+971" if kind=="phone" else None), db=db, user=manager)
         with pytest.raises(HTTPException) as bad:
             save_value(task.id, entry["id"], ValueInput(value=invalid), db=db, user=manager)
         assert bad.value.status_code == 422

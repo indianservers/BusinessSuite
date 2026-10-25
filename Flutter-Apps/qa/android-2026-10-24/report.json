@@ -1,0 +1,158 @@
+{
+  "backend": "https://businesssuite-rosy.vercel.app/api/v1",
+  "run_id": "1024145646",
+  "operations": [
+    {
+      "number": 1,
+      "operation": "Sign in to deployed backend as PMS admin",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:57:27.943683Z"
+    },
+    {
+      "number": 2,
+      "operation": "Create first workspace",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:57:36.891507Z"
+    },
+    {
+      "number": 3,
+      "operation": "Create second workspace",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:57:45.944932Z"
+    },
+    {
+      "number": 4,
+      "operation": "Switch workspace and load owner permissions",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:57:48.719474Z"
+    },
+    {
+      "number": 5,
+      "operation": "Create first project",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:57:58.327195Z"
+    },
+    {
+      "number": 6,
+      "operation": "Create second project",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:07.488724Z"
+    },
+    {
+      "number": 7,
+      "operation": "Create task with description",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:18.984645Z"
+    },
+    {
+      "number": 8,
+      "operation": "Create high priority task in another project",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:31.527081Z"
+    },
+    {
+      "number": 9,
+      "operation": "Filter tasks by project",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:32.934603Z"
+    },
+    {
+      "number": 10,
+      "operation": "Search task by title across projects",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:35.134744Z"
+    },
+    {
+      "number": 11,
+      "operation": "Change task to In Progress",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:43.431043Z"
+    },
+    {
+      "number": 12,
+      "operation": "Complete task",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:51.625193Z"
+    },
+    {
+      "number": 13,
+      "operation": "Refresh and confirm persisted task status",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:58:56.058043Z"
+    },
+    {
+      "number": 14,
+      "operation": "Invite existing user to workspace",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:59:09.127807Z"
+    },
+    {
+      "number": 15,
+      "operation": "Create second user invitation",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:59:17.050275Z"
+    },
+    {
+      "number": 16,
+      "operation": "Revoke pending invitation",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:59:23.082179Z"
+    },
+    {
+      "number": 17,
+      "operation": "Accept invitation as member and add workspace user",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:59:38.858891Z"
+    },
+    {
+      "number": 18,
+      "operation": "Create a task with member permissions",
+      "status": "passed",
+      "completed_at": "2026-10-24T14:59:47.908662Z"
+    },
+    {
+      "number": 19,
+      "operation": "Change member to Guest as workspace owner",
+      "status": "passed",
+      "completed_at": "2026-10-24T15:00:10.075343Z"
+    },
+    {
+      "number": 20,
+      "operation": "Guest can read but cannot mutate workspace tasks",
+      "status": "passed",
+      "completed_at": "2026-10-24T15:00:24.791527Z"
+    }
+  ],
+  "workspace_ids": [
+    8,
+    9
+  ],
+  "device": {
+    "model": "OPPO CPH2717",
+    "android_version": "16",
+    "physical": true
+  },
+  "test_method": "Flutter integration test running native app on USB-connected phone against deployed API",
+  "unit_tests_passed": 14,
+  "catalog_operations_checked": 19,
+  "catalog_missing_operations": 0,
+  "catalog_local_only_operations_used": 0,
+  "apk": "build\\releases\\KaryaFlow-PMS-0.1.0-arm64.apk",
+  "apk_sha256": "606c9ac94871f6c01aacd1ee8e64154b7f9f0d4efd10659af96d79dcec8a0c05",
+  "apk_contains_qa_credentials": false,
+  "backend_implementation_changed": false,
+  "database_schema_changed": false,
+  "backend_readback": {
+    "workspace_id": 8,
+    "projects": 2,
+    "tasks": 3,
+    "completed_tasks": 1,
+    "members_after_cleanup": 1,
+    "invitation_statuses": [
+      "accepted",
+      "revoked"
+    ]
+  },
+  "normal_apk_ui_login_verified": true,
+  "normal_apk_cold_start_session_restoration_verified": true
+}

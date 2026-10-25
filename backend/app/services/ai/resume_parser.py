@@ -133,9 +133,9 @@ async def extract_text_from_file(file_path: str) -> str:
 
     try:
         if ext == "pdf":
-            import PyPDF2
+            import pypdf
             with open(file_path, "rb") as f:
-                reader = PyPDF2.PdfReader(f)
+                reader = pypdf.PdfReader(f)
                 return " ".join(page.extract_text() or "" for page in reader.pages)
         elif ext in ["doc", "docx"]:
             from docx import Document

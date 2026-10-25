@@ -1,0 +1,30 @@
+Collecting python-jose==3.5.0 (from python-jose[cryptography]==3.5.0)
+  Downloading python_jose-3.5.0-py2.py3-none-any.whl.metadata (5.5 kB)
+Collecting python-multipart==0.0.31
+  Downloading python_multipart-0.0.31-py3-none-any.whl.metadata (2.1 kB)
+Collecting jinja2==3.1.6
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting authlib==1.6.12
+  Downloading authlib-1.6.12-py2.py3-none-any.whl.metadata (9.8 kB)
+Collecting cryptography==49.0.0
+  Downloading cryptography-49.0.0-cp311-abi3-win_amd64.whl.metadata (4.3 kB)
+Collecting Pillow==13.0.0
+  Using cached pillow-13.0.0-cp312-cp312-win_amd64.whl.metadata (9.3 kB)
+Collecting python-dotenv==1.2.2
+  Downloading python_dotenv-1.2.2-py3-none-any.whl.metadata (27 kB)
+Requirement already satisfied: ecdsa!=0.15 in c:\users\sai satish\documents\github\businesssuite\backend\venv\lib\site-packages (from python-jose==3.5.0->python-jose[cryptography]==3.5.0) (0.19.2)
+Requirement already satisfied: rsa!=4.1.1,!=4.4,<5.0,>=4.0 in c:\users\sai satish\documents\github\businesssuite\backend\venv\lib\site-packages (from python-jose==3.5.0->python-jose[cryptography]==3.5.0) (4.9.1)
+Requirement already satisfied: pyasn1>=0.5.0 in c:\users\sai satish\documents\github\businesssuite\backend\venv\lib\site-packages (from python-jose==3.5.0->python-jose[cryptography]==3.5.0) (0.6.4)
+Requirement already satisfied: MarkupSafe>=2.0 in c:\users\sai satish\documents\github\businesssuite\backend\venv\lib\site-packages (from jinja2==3.1.6) (3.0.4)
+Requirement already satisfied: cffi>=2.0.0 in c:\users\sai satish\documents\github\businesssuite\backend\venv\lib\site-packages (from cryptography==49.0.0) (2.1.1)
+Requirement already satisfied: pycparser in c:\users\sai satish\documents\github\businesssuite\backend\venv\lib\site-packages (from cffi>=2.0.0->cryptography==49.0.0) (3.11)
+Requirement already satisfied: six>=1.9.0 in c:\users\sai satish\documents\github\businesssuite\backend\venv\lib\site-packages (from ecdsa!=0.15->python-jose==3.5.0->python-jose[cryptography]==3.5.0) (1.17.0)
+Downloading python_jose-3.5.0-py2.py3-none-any.whl (34 kB)
+Downloading python_multipart-0.0.31-py3-none-any.whl (29 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading authlib-1.6.12-py2.py3-none-any.whl (244 kB)
+Downloading cryptography-49.0.0-cp311-abi3-win_amd64.whl (3.8 MB)
+   ---------------------------------------- 3.8/3.8 MB 822.6 kB/s eta 0:00:00
+Using cached pillow-13.0.0-cp312-cp312-win_amd64.whl (7.3 MB)
+Downloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)
+Would install Authlib-1.6.12 Jinja2-3.1.6 cryptography-49.0.0 pillow-13.0.0 python-dotenv-1.2.2 python-jose-3.5.0 python-multipart-0.0.31

@@ -1,0 +1,13 @@
+{
+  "environment": "Loopback API, isolated SQLite QA database; not a production load test",
+  "widgets": 50,
+  "source": "tasks",
+  "sourceRecords": 8,
+  "requests": 3,
+  "durationMs": [
+    13.3,
+    12.6,
+    10.9
+  ],
+  "allValuesCorrect": true
+}

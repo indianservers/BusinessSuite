@@ -7,6 +7,8 @@ declare module "axios" {
   interface AxiosRequestConfig {
     /** Disable foreground feedback for non-interactive mutations. */
     progress?: false;
+    /** Server-reported limit for a permission-checked upload endpoint. */
+    uploadLimitBytes?: number;
     _finishProgress?: (success?: boolean, error?: string) => void;
   }
 }
@@ -26,7 +28,7 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {
-    const maxBytes = Number(import.meta.env.VITE_MAX_UPLOAD_MB || 3) * 1024 * 1024;
+    const maxBytes = config.uploadLimitBytes ?? Number(import.meta.env.VITE_MAX_UPLOAD_MB || 3) * 1024 * 1024;
     let total = 0;
     config.data.forEach(value => { if (value instanceof Blob) total += value.size; });
     if (total > maxBytes) {

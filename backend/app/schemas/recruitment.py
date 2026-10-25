@@ -75,6 +75,7 @@ class CandidateCreate(BaseModel):
     last_name: str
     email: EmailStr
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     current_company: Optional[str] = None
     current_designation: Optional[str] = None
     total_experience: Optional[Decimal] = None
@@ -100,6 +101,7 @@ class CandidateSchema(BaseModel):
     last_name: str
     email: str
     phone: Optional[str] = None
+    phone_country_code: str | None = None
     current_company: Optional[str] = None
     total_experience: Optional[Decimal] = None
     expected_ctc: Optional[Decimal] = None

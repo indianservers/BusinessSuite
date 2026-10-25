@@ -70,6 +70,7 @@ class CampaignSchedulePayload(BaseModel):
 class ConsentPayload(BaseModel):
     email: EmailStr | None = None
     phone: str | None = None
+    phone_country_code: str | None = None
     record_type: str | None = None
     record_id: int | None = None
     consent_type: str = "email"

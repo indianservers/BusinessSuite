@@ -20,9 +20,9 @@ class Employee(Base):
 
     # Personal Info
     salutation = Column(String(20))  # Mr, Mrs, Ms, Dr, Prof, Er, Adv, Rev, CA, CS, Mx
-    first_name = Column(String(80), nullable=False)
+    first_name = Column(String(160), nullable=False)
     middle_name = Column(Text)
-    last_name = Column(String(80), nullable=False)
+    last_name = Column(String(160), nullable=False)
     gender = Column(Text)
     date_of_birth = Column(Date)
     place_of_birth = Column(Text)
@@ -51,11 +51,15 @@ class Employee(Base):
     work_email = Column(String(150), index=True)
     personal_email = Column(String(150))
     phone_number = Column(String(20))
+    phone_number_country_code = Column(String(5), nullable=True)
     alternate_phone = Column(Text)
+    alternate_phone_country_code = Column(String(5), nullable=True)
     whatsapp_number = Column(Text)  # May differ from phone
+    whatsapp_number_country_code = Column(String(5), nullable=True)
     office_extension = Column(Text)
     emergency_contact_name = Column(Text)
     emergency_contact_number = Column(String(20))
+    emergency_contact_number_country_code = Column(String(5), nullable=True)
     emergency_contact_relation = Column(Text)
 
     # Address
@@ -340,6 +344,7 @@ class EmployeeFamilyMember(Base):
     date_of_birth = Column(Date)
     occupation = Column(String(100))
     phone_number = Column(String(20))
+    phone_number_country_code = Column(String(5), nullable=True)
     is_dependent = Column(Boolean, default=True)
     is_emergency_contact = Column(Boolean, default=False)
     is_pf_nominee = Column(Boolean, default=False)

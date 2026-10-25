@@ -66,6 +66,39 @@ def mock_provider(monkeypatch, plan, *, status=200):
     return calls
 
 
+@pytest.mark.parametrize('valid', [True, False])
+def test_gemini_json_mode_validates_actions_and_counts_thinking_tokens(client, db, monkeypatch, valid):
+    headers, user, project, task = setup_operator(client, db, provider='gemini')
+    from app.ai_operator import providers
+    original = httpx.Client
+    output = plan_for(task) if valid else {'summary': 'Invalid tool', 'steps': [{'tool': 'delete_project', 'task_id': task}]}
+
+    def handle(request):
+        body = json.loads(request.content)
+        # Mirror the live rejection of the compound constrained-decoding schema.
+        if 'responseJsonSchema' in body['generationConfig']:
+            return httpx.Response(400, json={'error': {'status': 'INVALID_ARGUMENT'}})
+        assert body['generationConfig']['responseMimeType'] == 'application/json'
+        return httpx.Response(200, json={
+            'responseId': 'gemini-response-42',
+            'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': json.dumps(output)}]}}],
+            'usageMetadata': {'promptTokenCount': 100, 'candidatesTokenCount': 50, 'thoughtsTokenCount': 20},
+        })
+
+    monkeypatch.setattr(providers.httpx, 'Client', lambda **kwargs: original(transport=httpx.MockTransport(handle), **kwargs))
+    response = preview(client, headers, project, task, provider='gemini')
+    assert response.status_code == 200, response.text
+    assert response.json()['status'] == ('awaiting_approval' if valid else 'failed')
+    if not valid:
+        assert response.json()['error_code'] == 'PROVIDER_INVALID_OUTPUT'
+    log = db.query(OperatorApiLog).filter_by(user_id=user.id, provider='gemini').one()
+    assert log.input_tokens == 100 and log.output_tokens == 70
+    assert log.provider_request_id == 'gemini-response-42'
+    assert log.status == ('success' if valid else 'failed')
+    assert log.estimated_cost == Decimal('0.00024000')
+    assert db.get(PMSTask, task).priority != 'High'  # Provider output never executes itself.
+
+
 def preview(client, headers, project, task, provider="openai", **extra):
     return client.post("/api/v1/ai-operator/commands", headers=headers, json={"project_id": project, "task_ids": [task],
         "command": "Set priority High and add a QA checklist item", "provider": provider, "request_key": str(uuid4()), **extra})

@@ -1,3 +1,4 @@
+from tests.security_file_fixtures import uploaded_reference
 from decimal import Decimal
 from app.db.init_db import init_db
 from app.models.employee import Employee
@@ -16,6 +17,7 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
     admin = _login(client, "admin@aihrms.com", "Admin@123456")
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
     employee.phone_number = "9999999999"
+    employee.phone_number_country_code = "+91"
     leave_type = db.query(LeaveType).filter(LeaveType.code == "CL").first()
     db.add(LeaveBalance(employee_id=employee.id, leave_type_id=leave_type.id, year=2026, allocated=12, used=2, pending=0, carried_forward=0))
     run = PayrollRun(month=4, year=2026, status="Approved")
@@ -26,13 +28,13 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
 
     wa_config = client.post(
         "/api/v1/whatsapp-ess/configs",
-        json={"business_phone_number": "919000000000", "webhook_url": "https://example.com/whatsapp"},
+        json={"business_phone_number": "9000000000", "business_phone_number_country_code": "+91", "webhook_url": "https://example.com/whatsapp"},
         headers=admin,
     )
     assert wa_config.status_code == 201
     inbound = client.post(
         "/api/v1/whatsapp-ess/messages/inbound",
-        json={"phone_number": "9999999999", "message_text": "show my leave balance"},
+        json={"phone_number": "9999999999", "phone_number_country_code": "+91", "message_text": "show my leave balance"},
         headers=admin,
     )
     assert inbound.status_code == 201
@@ -62,7 +64,7 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
     assert form16.status_code == 201
     published = client.put(
         f"/api/v1/statutory-compliance/form16/{form16.json()['id']}/publish",
-        json={"combined_pdf_url": "/uploads/form16/demo.pdf"},
+        json={"combined_pdf_url": uploaded_reference('form16/demo.pdf')},
         headers=admin,
     )
     assert published.status_code == 200
@@ -76,7 +78,7 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
     assert tds.status_code == 201
     filed = client.put(
         f"/api/v1/statutory-compliance/tds-filings/{tds.json()['id']}/submit",
-        json={"return_file_url": "/uploads/tds/24q.csv", "acknowledgement_number": "TDS-ACK-1"},
+        json={"return_file_url": uploaded_reference('tds/24q.csv'), "acknowledgement_number": "TDS-ACK-1"},
         headers=admin,
     )
     assert filed.status_code == 200
@@ -167,7 +169,7 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
     assert bgv.status_code == 201
     consent = client.put(
         f"/api/v1/background-verification/requests/{bgv.json()['id']}/consent",
-        json={"consent_status": "Captured", "consent_url": "/uploads/bgv/consent.pdf"},
+        json={"consent_status": "Captured", "consent_url": uploaded_reference('bgv/consent.pdf')},
         headers=admin,
     )
     assert consent.status_code == 200
