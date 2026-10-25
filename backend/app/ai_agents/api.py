@@ -96,6 +96,8 @@ def _require_ai_access(user: User) -> None:
 def _is_ai_tool_tester(user: User) -> bool:
     if user.is_superuser:
         return True
+    if getattr(user, "_suite_grants", None) is not None:
+        return "configure" in user._suite_grants.get("ai", {}).get("actions", [])
     role_name = (user.role.name if user.role else "").lower().replace(" ", "_")
     if role_name in {"admin", "super_admin", "developer"}:
         return True
@@ -106,6 +108,9 @@ def _is_ai_tool_tester(user: User) -> bool:
 def _is_ai_admin(user: User) -> bool:
     if user.is_superuser:
         return True
+    if getattr(user, "_suite_grants", None) is not None:
+        grant = user._suite_grants.get("ai", {})
+        return "configure" in grant.get("actions", []) and "settings_manage" in {p.name for p in permission_objects(user)}
     role_name = (user.role.name if user.role else "").lower().replace(" ", "_")
     if role_name in {"admin", "super_admin", "developer"}:
         return True

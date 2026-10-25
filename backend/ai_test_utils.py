@@ -20,7 +20,7 @@ AI_PERMISSIONS = [
 
 
 def auth_headers(client, db, email: str = "ai-admin@example.com", permissions: list[str] | None = None, role_name: str | None = None):
-    role = Role(name=role_name or f"role-{email}", description="AI test role", is_system=False)
+    role = Role(name=role_name or f"role-{email}"[:50], description="AI test role", is_system=False)
     db.add(role)
     db.flush()
     for name in (AI_PERMISSIONS if permissions is None else permissions):

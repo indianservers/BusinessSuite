@@ -107,7 +107,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
         </div>
 
         {!collapsed && <ModuleSwitcher />}
-        {(user?.is_superuser || user?.access?.isAccessAdmin) && <Link to="/admin/access" onClick={onClose} className="mx-3 my-2 rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium hover:bg-sidebar-accent">Users & Access</Link>}
+        {!location.pathname.startsWith("/admin/access") && (user?.is_superuser || user?.access?.isAccessAdmin) && <Link to="/admin/access" onClick={onClose} className="mx-3 my-2 rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium hover:bg-sidebar-accent">Users & Access</Link>}
         {/* Collapse toggle when collapsed */}
         {collapsed && (
           <Button

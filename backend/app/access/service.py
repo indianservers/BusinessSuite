@@ -2,7 +2,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime, timezone
 from fastapi import HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, inspect
 from app.access.catalog import (
     MODULES,
     ACTIONS,
@@ -26,6 +26,8 @@ def primary_company(user):
 
 
 def companies_for(db, user):
+    if not schema_ready(db):
+        return {primary_company(user)}
     return {primary_company(user)} | {
         row.company_id
         for row in db.query(AccessMembership).filter_by(user_id=user.id, active=True)
@@ -33,7 +35,20 @@ def companies_for(db, user):
 
 
 def policy_for(db, user, company):
+    if not schema_ready(db):
+        return None
+    cached = db.info.get("suite_access_policies", {})
+    if company in cached:
+        return cached[company].get(user.id)
     return db.query(AccessPolicy).filter_by(user_id=user.id, company_id=company).first()
+
+
+def schema_ready(db):
+    if "suite_access_schema_ready" not in db.info:
+        db.info["suite_access_schema_ready"] = inspect(db.connection()).has_table(
+            "suite_access_policies"
+        )
+    return db.info["suite_access_schema_ready"]
 
 
 def legacy_grants(db, user):
@@ -55,6 +70,17 @@ def legacy_grants(db, user):
             ),
             "scope": "organization" if user.is_superuser else "own",
         }
+    employee = getattr(user, "employee", None)
+    is_intern = (user.role and user.role.name.lower() == "intern") or (
+        employee and (employee.employment_type or "").lower() == "intern"
+    )
+    if is_intern:
+        for key, grant in by_module.items():
+            grant["enabled"] = key == "interns_hub"
+        if "interns_hub" in by_module:
+            by_module["interns_hub"].update(
+                role="Intern", actions=["view", "create", "edit"], scope="own"
+            )
     return by_module
 
 
@@ -73,6 +99,7 @@ def resolved_grants(db, policy):
             else:
                 grant.update(
                     role=role.name,
+                    roleVersion=role.version,
                     permissions=role.permissions,
                     actions=role.actions,
                     scope=grant.get("scope") or role.scope,
@@ -95,6 +122,7 @@ def validate_grants(db, grants, company):
             "permissions",
             "actions",
             "scope",
+            "roleVersion",
         }:
             raise HTTPException(422, "Unsupported grant fields")
         grant = copy.deepcopy(original)
@@ -106,13 +134,33 @@ def validate_grants(db, grants, company):
         grant.setdefault("actions", ["view"])
         grant.setdefault("permissions", [])
         grant.setdefault("role", "Custom")
+        if not isinstance(grant["role"], str) or not 1 <= len(grant["role"]) <= 100:
+            raise HTTPException(422, "Invalid role name")
+        if (
+            not isinstance(grant["permissions"], list)
+            or len(grant["permissions"]) > 500
+            or any(not isinstance(n, str) for n in grant["permissions"])
+        ):
+            raise HTTPException(422, "Permissions must be a list of registered names")
+        if not isinstance(grant["actions"], list) or any(
+            not isinstance(n, str) for n in grant["actions"]
+        ):
+            raise HTTPException(422, "Actions must be a list")
         if grant["scope"] not in SCOPES or not set(grant["actions"]) <= set(ACTIONS):
             raise HTTPException(422, "Invalid action or scope")
         names = {p["name"] for p in modules[key]["permissions"]}
         if not set(grant["permissions"]) <= names:
             raise HTTPException(422, f"Permission does not belong to {key}")
         if grant.get("roleId"):
-            role = db.get(AccessRole, grant["roleId"])
+            if type(grant["roleId"]) is not int:
+                raise HTTPException(422, "Invalid module role identifier")
+            role = (
+                db.query(AccessRole)
+                .filter_by(id=grant["roleId"])
+                .with_for_update()
+                .populate_existing()
+                .first()
+            )
             if (
                 not role
                 or role.company_id != company
@@ -120,6 +168,10 @@ def validate_grants(db, grants, company):
                 or not role.active
             ):
                 raise HTTPException(422, "Invalid module role")
+            if grant.get("roleVersion") != role.version:
+                raise HTTPException(
+                    409, "Module role changed; reload and review the assignment"
+                )
             grant.update(
                 role=role.name,
                 permissions=list(role.permissions),
@@ -166,7 +218,9 @@ def snapshot(db, user, company):
         "role": user.role.name if user.role else None,
         "isSuperuser": user.is_superuser,
         "status": (
-            policy.status if policy else "active" if user.is_active else "deactivated"
+            policy.status
+            if policy and (user.is_active or policy.status == "invited")
+            else "active" if user.is_active else "deactivated"
         ),
         "lastLogin": user.last_login.isoformat() if user.last_login else None,
         "version": policy.version if policy else 0,
@@ -217,6 +271,7 @@ def lock_admins(db):
         .filter(User.is_superuser.is_(True))
         .order_by(User.id)
         .with_for_update()
+        .populate_existing()
         .all()
     )
 
@@ -227,7 +282,7 @@ def apply_user(db, actor, target, company, patch, reason, request):
     if target.is_superuser:
         raise HTTPException(
             409,
-            "Super Admin access is protected; use the dedicated administrator lifecycle",
+            "Global Super Admin accounts are read-only in this console",
         )
     policy = policy_for(db, target, company)
     if patch["version"] != (policy.version if policy else 0):
@@ -239,6 +294,18 @@ def apply_user(db, actor, target, company, patch, reason, request):
     status = patch.get("status", before["status"])
     if status not in {"active", "invited", "suspended", "deactivated"}:
         raise HTTPException(422, "Invalid account status")
+    if status == "active" and not target.is_active:
+        if target.password_reset_token:
+            raise HTTPException(
+                409,
+                "Complete the outstanding invitation before activating this account",
+            )
+        if not actor.is_superuser:
+            raise HTTPException(
+                403,
+                "A global administrator must reactivate a globally inactive account",
+            )
+        target.is_active = True
     if not policy:
         policy = AccessPolicy(
             user_id=target.id,
@@ -270,6 +337,9 @@ def apply_user(db, actor, target, company, patch, reason, request):
 
 
 def bind_authorization(db, user, request):
+    db.info.pop("suite_access_schema_ready", None)
+    db.info.pop("suite_access_catalog", None)
+    db.info.pop("suite_access_policies", None)
     company = primary_company(user)
     requested = request.headers.get("X-Suite-Organization")
     if requested:
@@ -280,40 +350,85 @@ def bind_authorization(db, user, request):
         if not user.is_superuser and requested not in companies_for(db, user):
             raise HTTPException(403, "Organization membership required")
         company = requested
+    user._suite_original_organization = getattr(user, "organization_id", None)
     user.organization_id = company
     user._suite_permission_objects = None
     policy = policy_for(db, user, company)
+    user._suite_policy_version = (
+        policy.version if policy and not user.is_superuser else None
+    )
     user._suite_grants = (
         resolved_grants(db, policy) if policy and not user.is_superuser else None
     )
     if policy and policy.status != "active":
+        reset_authorization(user)
         raise HTTPException(403, "Access to this organization is " + policy.status)
     module = request_module(request)
+    user._suite_current_module = module
     if user._suite_grants is None:
-        return lambda: None
+        user._suite_permission_objects = list(
+            user.role.permissions if user.role else []
+        )
+        return lambda: reset_authorization(user)
     grants = user._suite_grants
-    objects = db.query(Permission).all()
-    selected = set()
-    for grant in grants.values():
-        if grant.get("enabled"):
-            selected.update(grant.get("permissions", []))
-    user._suite_permission_objects = [p for p in objects if p.name in selected]
+    user._suite_permission_objects = effective_objects(db, grants, module)
     if module:
         grant = grants.get(module, {})
         if not grant.get("enabled"):
+            reset_authorization(user)
             raise HTTPException(403, f"Module access revoked: {module}")
         action = action_for(request)
         if action not in grant.get("actions", []):
+            reset_authorization(user)
             raise HTTPException(403, f"Module action denied: {module}/{action}")
     if request.url.path.startswith("/api/v1/access/"):
-        return lambda: setattr(user, "_suite_permission_objects", None)
+        return lambda: reset_authorization(user)
     from app.access.scope import install_scope
 
     return install_scope(db, user, company, grants)
 
 
+def reset_authorization(user):
+    user._suite_grants = None
+    user._suite_permission_objects = None
+    user._suite_current_module = None
+    user._suite_policy_version = None
+    user._suite_scope_active = False
+    if hasattr(user, "_suite_original_organization"):
+        previous = user._suite_original_organization
+        if previous is None:
+            user.__dict__.pop("organization_id", None)
+        else:
+            user.organization_id = previous
+        user.__dict__.pop("_suite_original_organization", None)
+
+
+def effective_objects(db, grants, module=None):
+    selected = {
+        name
+        for grant in grants.values()
+        if grant.get("enabled")
+        for name in grant.get("permissions", [])
+    }
+    prefixes = tuple(key + "_" for key in MODULES) + ("pms_", "intern_", "interns_")
+    result = []
+    for permission in db.query(Permission).filter(Permission.name.in_(selected)).all():
+        if permission.name.startswith(prefixes):
+            own = grants.get(permission_module(permission), {})
+            if not own.get("enabled") or permission.name not in own.get(
+                "permissions", []
+            ):
+                continue
+        elif module and permission.name not in grants.get(module, {}).get(
+            "permissions", []
+        ):
+            continue
+        result.append(permission)
+    return result
+
+
 def check_background_access(db, user, module, action="view"):
-    company = getattr(user, "organization_id", primary_company(user))
+    company = getattr(user, "organization_id", None) or primary_company(user)
     policy = policy_for(db, user, company)
     if user.is_superuser or not policy:
         return None
@@ -337,11 +452,12 @@ from contextlib import contextmanager
 def background_scope(db, user, module, action="view"):
     policy = check_background_access(db, user, module, action)
     cleanup = None
-    if policy and getattr(user, "_suite_grants", None) is None:
+    if policy and not getattr(user, "_suite_scope_active", False):
         from app.access.scope import install_scope
 
         grants = resolved_grants(db, policy)
         user._suite_grants = grants
+        user._suite_current_module = module
         user._suite_permission_objects = None
         cleanup = install_scope(db, user, policy.company_id, grants)
     try:
@@ -349,3 +465,57 @@ def background_scope(db, user, module, action="view"):
     finally:
         if cleanup:
             cleanup()
+
+
+def activate_run_context(db, user, run):
+    scope = str(run.scope_key or "")
+    if scope.startswith("company:"):
+        try:
+            company = int(scope.split(":", 1)[1])
+        except ValueError:
+            raise HTTPException(403, "Invalid stored run organization")
+    elif scope.startswith("workspace:"):
+        from app.apps.project_management.models import PMSWorkspace
+
+        workspace = db.get(PMSWorkspace, int(scope.split(":", 1)[1]))
+        if not workspace:
+            raise HTTPException(403, "Run workspace is no longer available")
+        company = workspace.organization_id or 1
+    elif scope == f"user:{user.id}":
+        company = primary_company(user)
+    else:
+        raise HTTPException(403, "Unsupported stored run scope")
+    if not user.is_superuser and company not in companies_for(db, user):
+        raise HTTPException(403, "Run organization membership was revoked")
+    if getattr(user, "_suite_scope_active", False) or hasattr(
+        user, "_suite_original_organization"
+    ):
+        if (getattr(user, "organization_id", None) or primary_company(user)) != company:
+            raise HTTPException(403, "Switch to the run's authorized organization")
+        return
+    if "suite_run_context" not in db.info:
+        db.info["suite_run_context"] = (user, getattr(user, "organization_id", None))
+    user.organization_id = None if scope.startswith("user:") else company
+
+
+def release_run_context(db):
+    previous = db.info.pop("suite_run_context", None)
+    if previous:
+        user, company = previous
+        if company is None:
+            user.__dict__.pop("organization_id", None)
+        else:
+            user.organization_id = company
+
+
+def isolated_run_context(function):
+    from functools import wraps
+
+    @wraps(function)
+    def wrapped(db, *args, **kwargs):
+        try:
+            return function(db, *args, **kwargs)
+        finally:
+            release_run_context(db)
+
+    return wrapped

@@ -97,6 +97,7 @@ export function getProductKeyForRole(role?: string | null, isSuperuser = false):
 }
 
 export function getProductForContext(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname.startsWith("/admin/access")) return { ...products.hrms, name: "Master Suite", shortName: "Master Suite", homePath: "/admin/access", searchPlaceholder: "Search users, modules and permissions..." };
   return products[getProductKeyFromPath(pathname) || getProductKeyForRole(role, isSuperuser)];
 }
 

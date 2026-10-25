@@ -8,6 +8,8 @@ def set_audit_actor(user):
     value = context.get()
     if value is not None:
         value['actor'] = {'user_id': user.id, 'email': user.email, 'role': user.role.name if user.role else 'superuser' if user.is_superuser else 'unassigned', 'authenticated': True}
+        if getattr(user, '_suite_policy_version', None) is not None:
+            value['actor'].update(access_policy_version=user._suite_policy_version, access_company=getattr(user, 'organization_id', None), access_session=getattr(user, '_suite_session_id', None))
 
 
 def set_audit_entity(project_id=None, task_id=None, changed_fields=None):

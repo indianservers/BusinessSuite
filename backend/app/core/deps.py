@@ -86,6 +86,7 @@ def get_current_user(
             session.last_seen_at = now
             db.commit()
     from app.access.service import bind_authorization
+    user._suite_session_id = token_record_id(session_id) if session_id else None
     cleanup = bind_authorization(db, user, request)
     from app.core.audit_context import set_audit_actor
     set_audit_actor(user)

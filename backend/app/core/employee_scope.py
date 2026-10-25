@@ -51,6 +51,10 @@ def employee_tenant_scope(request: Request, db=Depends(get_db), user=Depends(get
     event.listen(db, 'do_orm_execute', restrict)
     try:
         employee_id = request.path_params.get('employee_id')
+        if employee_id is not None:
+            try: employee_id = int(employee_id)
+            except (ValueError, TypeError): raise HTTPException(404, 'Employee not found')
+            if not 0 < employee_id <= 2147483647: raise HTTPException(404, 'Employee not found')
         if employee_id is not None and not db.query(Employee.id).filter(Employee.id == employee_id).first():
             raise HTTPException(404, 'Employee not found')
         yield

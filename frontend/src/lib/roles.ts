@@ -63,6 +63,28 @@ import {
 import { getInstalledAppKeys, isFrontendModuleEnabled } from "@/appRegistry";
 
 export type RoleKey = "admin" | "ceo" | "hr" | "manager" | "employee";
+function centralModuleForPath(access: { modules: { key: string; route: string; navigationPaths?: string[] }[] }, pathname: string) {
+  return access.modules.flatMap(module => (module.navigationPaths || [module.route]).map(path => ({ path, module }))).sort((a,b) => b.path.length-a.path.length).find(item => pathname === item.path || pathname.startsWith(item.path + "/"))?.module;
+}
+export function effectiveModuleDisplayRole(pathname: string, user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>) {
+  const primary = user.primary_role === undefined ? user.role : user.primary_role;
+  if (!user.access?.managed || user.is_superuser) return primary;
+  const module = centralModuleForPath(user.access, pathname);
+  const grant = module ? user.access.grants[module.key] : undefined;
+  if (!module || !grant?.enabled) return primary;
+  const role = grant.role.toLowerCase();
+  const level = ["viewer","contributor","editor","manager","admin"].includes(role) ? role : grant.actions.includes("configure") ? "admin" : grant.actions.includes("assign") ? "manager" : grant.actions.includes("edit") ? "editor" : "viewer";
+  const aliases: Record<string,Record<string,string>> = {
+    crm:{admin:"crm_org_admin",manager:"crm_sales_manager",editor:"crm_sales_executive",contributor:"crm_sales_executive",viewer:"crm_viewer"},
+    project_management:{admin:"pms_org_admin",manager:"pms_project_manager",editor:"pms_team_member",contributor:"pms_team_member",viewer:"pms_viewer"},
+    fam:{admin:"fam_admin",manager:"finance_manager",editor:"accountant",contributor:"accountant",viewer:"fam_viewer"},
+    srm:{admin:"srm_admin",manager:"srm_sales_manager",editor:"srm_sales_executive",contributor:"srm_sales_executive",viewer:"srm_viewer"},
+    hrms:{admin:"hr_admin",manager:"hr_manager",editor:"hr",contributor:"employee",viewer:"employee"},
+  };
+  const native = module.key === "crm" ? isCrmRole(grant.role,false) : module.key === "project_management" ? isProjectManagementRole(grant.role,false) : module.key === "fam" ? isFamRole(grant.role,false) : module.key === "srm" ? isSrmRole(grant.role,false) : module.key === "hrms" ? isHrmsRole(grant.role,false) : false;
+  if (native && !["viewer","manager","editor","contributor","admin","super_admin"].includes(role)) return grant.role;
+  return aliases[module.key]?.[level] || primary;
+}
 
 export type RoleNavItem = {
   label: string;
@@ -1116,12 +1138,17 @@ function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
 }
 
 export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
+  if (pathname.startsWith("/admin/access")) return [
+    {label:"Users & Access",to:"/admin/access",icon:Users},
+    {label:"Suite modules",to:"/admin/business-os/modules",icon:Building2},
+    {label:"Security settings",to:"/admin/security",icon:ShieldCheck},
+  ].filter(item => canAccessRoute(item.to,role,isSuperuser));
   const access = useAuthStore.getState().user?.access;
   if (access?.managed && !isSuperuser) {
-    const module = [...access.modules].sort((a,b) => b.route.length-a.route.length).find(m => pathname === m.route || pathname.startsWith(m.route + "/"));
+    const module = centralModuleForPath(access, pathname);
     if (module) {
       if (!access.grants[module.key]?.enabled) return [];
-      const nav = module.key === "crm" ? crmNav : module.key === "project_management" ? projectManagementNav : module.key === "srm" ? srmNav : module.key === "fam" ? famNav : module.key === "hrms" ? adminNav : [];
+      const nav = module.key === "crm" ? crmNav : module.key === "project_management" ? projectManagementNav : module.key === "srm" ? srmNav : module.key === "fam" ? famNav : module.key === "hrms" ? adminNav : module.key === "ai" ? [...aiCopilotNav,...aiAgentsNav] : module.key === "security" ? adminSecurityNav : module.key === "saas" ? saasNav : [];
       return nav.filter(item => canAccessRoute(item.to, role, isSuperuser));
     }
   }
@@ -1273,8 +1300,8 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
   const access = useAuthStore.getState().user?.access;
   if (pathname.startsWith("/admin/access")) return isSuperuser || Boolean(access?.isAccessAdmin);
   if (access?.managed && !isSuperuser) {
-    const module = [...access.modules].sort((a,b) => b.route.length-a.route.length).find(m => pathname === m.route || pathname.startsWith(m.route + "/"));
-    if (module) return Boolean(access.grants[module.key]?.enabled);
+    const module = centralModuleForPath(access, pathname);
+    if (module) return Boolean(access.grants[module.key]?.enabled) && (!["hrms","crm","project_management","srm","fam","ai"].includes(module.key) || isFrontendModuleEnabled(module.key));
   }
   // Linked-record entry is authenticated by App; financial/project permissions stay server-authoritative.
   if (/^\/srm\/invoices\/\d+\/?$/.test(pathname) || /^\/pms\/projects\/\d+\/billing\/?$/.test(pathname)) return true;

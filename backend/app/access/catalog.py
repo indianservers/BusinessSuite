@@ -7,6 +7,7 @@ ROUTES = {}
 ENDPOINT_MODULES = {}
 MODULES = {}
 MODULE_PERMISSIONS = defaultdict(set)
+MODULE_PERMISSIONS["ai"].update({"ai_assistant", "settings_view", "settings_manage"})
 ALIASES = {
     "pms": "project_management",
     "ai_agents": "ai",
@@ -47,6 +48,37 @@ LABELS = {
     "saas": "System Settings",
     "security": "Security & Administration",
 }
+NAVIGATION_PATHS = {
+    "security": [
+        "/admin/security",
+        "/admin/profiles",
+        "/admin/roles",
+        "/admin/field-security",
+        "/admin/record-sharing",
+        "/admin/data-sharing",
+        "/admin/ip-restrictions",
+        "/admin/audit-logs",
+        "/admin/import",
+        "/admin/duplicates",
+        "/admin/export-control",
+        "/admin/backups",
+        "/admin/compliance",
+        "/admin/data-retention",
+    ],
+    "saas": [
+        "/mobile",
+        "/developer",
+        "/marketplace",
+        "/admin/sandbox",
+        "/admin/company-settings",
+        "/admin/feature-flags",
+        "/admin/subscription",
+        "/admin/usage",
+    ],
+    "business_os": ["/business-os", "/admin/business-os"],
+    "ai": ["/ai", "/ai-agents"],
+    "forms": ["/pms/forms", "/crm/forms", "/hrms/forms", "/srm/forms", "/fam/forms"],
+}
 ACTIONS = [
     "view",
     "create",
@@ -69,6 +101,7 @@ def key_for_source(source, default=None):
         "app.common.profile_api",
         "app.api.v1.auth",
         "app.api.v1.users",
+        "app.api.v1.notifications",
         "app.api.v1.scheduled_jobs",
     }:
         return None
@@ -173,18 +206,20 @@ def permission_objects(user):
             from app.access.service import policy_for, primary_company, resolved_grants
 
             policy = policy_for(
-                db, user, getattr(user, "organization_id", primary_company(user))
+                db,
+                user,
+                getattr(user, "organization_id", None) or primary_company(user),
             )
             if policy:
                 if policy.status != "active":
                     return []
-                names = {
-                    name
-                    for grant in resolved_grants(db, policy).values()
-                    if grant.get("enabled")
-                    for name in grant.get("permissions", [])
-                }
-                return db.query(Permission).filter(Permission.name.in_(names)).all()
+                from app.access.service import effective_objects
+
+                return effective_objects(
+                    db,
+                    resolved_grants(db, policy),
+                    getattr(user, "_suite_current_module", None),
+                )
     return user.role.permissions if user and user.role else []
 
 
@@ -202,9 +237,26 @@ def action_for(request):
         return "export"
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return "view"
+    segments = set(path.split("/"))
+    if segments.intersection({"roles", "permissions", "users", "user-access"}):
+        return "manage_users"
+    if segments.intersection(
+        {
+            "settings",
+            "config",
+            "configuration",
+            "password-policies",
+            "company",
+            "branches",
+            "departments",
+            "designations",
+            "security-settings",
+        }
+    ):
+        return "configure"
     if any(
         word in path
-        for word in ("/approve", "/reject", "/post-accounting", "/pay", "/run")
+        for word in ("/approve", "/reject", "/post", "/reconcile", "/pay", "/run")
     ):
         return "approve"
     if any(word in path for word in ("/assign", "/members", "/invite")):
@@ -231,14 +283,44 @@ def action_permissions(names, tier):
         "roles_manage",
         "security_manage",
     )
-    if tier in {"viewer", "contributor"}:
+    if tier == "viewer":
         return [
-            n for n in names if any(word in n for word in ("view", "read", "search"))
+            n
+            for n in names
+            if n == "ai_assistant"
+            or any(word in n for word in ("view", "read", "search"))
+        ]
+    if tier == "contributor":
+        return [
+            n
+            for n in names
+            if not any(word in n for word in forbidden)
+            and (
+                any(
+                    word in n
+                    for word in (
+                        "view",
+                        "read",
+                        "create",
+                        "edit",
+                        "update",
+                        "submit",
+                        "comment",
+                        "upload",
+                        "log_time",
+                    )
+                )
+                or n
+                in {"pms_manage_tasks", "crm_leads_manage", "crm_activities_manage"}
+            )
         ]
     return [n for n in names if not any(word in n for word in forbidden)]
 
 
 def catalog(db):
+    cached = db.info.get("suite_access_catalog")
+    if cached is not None:
+        return cached
     from app.module_registry import APP_MODULES, get_installed_app_keys
     from app.access.models import AccessRole
 
@@ -276,6 +358,7 @@ def catalog(db):
         modules.append(
             {
                 **meta,
+                "navigationPaths": NAVIGATION_PATHS.get(key, [meta["route"]]),
                 "installed": installed,
                 "permissions": grouped[key],
                 "actions": ACTIONS,
@@ -283,6 +366,7 @@ def catalog(db):
                 "routeCount": sum(1 for value in ROUTES.values() if value == key),
             }
         )
+    db.info["suite_access_catalog"] = modules
     return modules
 
 

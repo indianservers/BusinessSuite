@@ -520,6 +520,8 @@ async def process_suite_batch(db, app, limit=10):
             user = db.get(User, run.user_id)
             if not user or not user.is_active:
                 raise HTTPException(403, 'Initiator unavailable')
+            from app.access.service import activate_run_context
+            activate_run_context(db,user,run)
             authorize(db, user, run.workspace_id)
             approval = db.get(AiActionApproval, run.approval_id)
             if not approval or approval.status != 'approved' or approval.approved_by != user.id or digest(run.plan) != run.plan_hash:
@@ -600,5 +602,8 @@ async def process_suite_batch(db, app, limit=10):
                 approval.execution_status = run.status
                 approval.execution_error = run.error_code
             db.commit()
+        finally:
+            from app.access.service import release_run_context
+            release_run_context(db)
         processed += 1
     return processed

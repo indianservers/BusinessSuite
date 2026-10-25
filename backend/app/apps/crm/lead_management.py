@@ -1407,8 +1407,10 @@ def available_teammates(db, actor, lead):
     for owner in owners:
         candidate = db.get(User, owner["id"])
         try:
-            if visible_query(db, candidate).filter(CRMLead.id == lead.id).first():
-                permitted.append(owner)
+            from app.access.service import background_scope
+            with background_scope(db, candidate, "crm", "view"):
+                if visible_query(db, candidate).filter(CRMLead.id == lead.id).first():
+                    permitted.append(owner)
         except HTTPException:
             continue
     return permitted

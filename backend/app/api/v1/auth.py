@@ -531,7 +531,8 @@ def reset_password(data: PasswordResetConfirm, db: Session = Depends(get_db)):
     user.password_reset_token = None
     user.password_reset_expires = None
     from app.access.models import AccessPolicy
-    invitations = db.query(AccessPolicy).filter_by(user_id=user.id, status="invited").all()
+    from app.access.service import schema_ready
+    invitations = db.query(AccessPolicy).filter_by(user_id=user.id, status="invited").all() if schema_ready(db) else []
     if invitations:
         user.is_active = True
         from app.access.service import audit

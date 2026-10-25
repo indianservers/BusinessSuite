@@ -20,6 +20,7 @@ type Grant = {
   enabled: boolean;
   role: string;
   roleId?: number | null;
+  roleVersion?: number;
   permissions: string[];
   actions: string[];
   scope: string;
@@ -110,6 +111,7 @@ function ModuleEditor({
           enabled: true,
           role: role.name,
           roleId: role.id,
+          roleVersion: role.version,
           permissions: role.permissions,
           actions: role.actions,
           scope: role.scope,
@@ -442,6 +444,44 @@ export default function UsersAccessPage() {
       setBusy(false);
     }
   };
+  const refreshVersions = async () => {
+    if (
+      !window.confirm(
+        "Load the latest access versions and keep your staged proposals? Review every change again before applying.",
+      )
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      const responses = await Promise.all(
+        Object.keys(drafts).map((id) =>
+          api.get<Person>(`/access/users/${id}`, {
+            params: { companyId: company },
+          }),
+        ),
+      );
+      const current = new Map(responses.map((r) => [r.data.id, r.data]));
+      setDrafts((old) =>
+        Object.fromEntries(
+          Object.entries(old).map(([id, change]) => [
+            id,
+            {
+              ...change,
+              version: current.get(Number(id))?.version ?? change.version,
+            },
+          ]),
+        ),
+      );
+      setReview(undefined);
+      setOpened((old) => (old ? current.get(old.id) || old : old));
+      refresh();
+    } catch (e) {
+      report(e);
+    } finally {
+      setBusy(false);
+    }
+  };
   const secure = (action: (token: string) => Promise<void>) => {
     setPassword("");
     setError("");
@@ -510,6 +550,7 @@ export default function UsersAccessPage() {
                   enabled: true,
                   role: custom.name,
                   roleId: custom.id,
+                  roleVersion: custom.version,
                   permissions: custom.permissions,
                   actions: custom.actions,
                   scope: bulkScope,
@@ -672,6 +713,9 @@ export default function UsersAccessPage() {
               onChange={(e) => changeFilter("role", e.target.value)}
             >
               <option value="">All roles</option>
+              {catalog?.roles.map((r) => (
+                <option key={`custom-${r.id}`}>{r.name}</option>
+              ))}
               {catalog?.legacyRoles.map((r) => (
                 <option key={r.id}>{r.name}</option>
               ))}
@@ -1182,8 +1226,8 @@ export default function UsersAccessPage() {
               }}
             />
             <input
-              aria-label="Search audit operation"
-              placeholder="Operation"
+              aria-label="Search audit history"
+              placeholder="Name, email, operation or reason"
               value={auditSearch}
               onChange={(e) => {
                 setAuditSearch(e.target.value);
@@ -1215,8 +1259,9 @@ export default function UsersAccessPage() {
           {audit?.items.map((a: any) => (
             <details className="ua-resource" key={a.id}>
               <summary>
-                {stamp(a.created_at)} · {a.operation} · Admin {a.actor_id} →
-                User {a.target_id || "—"} · {a.outcome}
+                {stamp(a.created_at)} · {a.operation} ·{" "}
+                {a.actorName || `Admin ${a.actor_id}`} →
+                {a.targetName || `User ${a.target_id || "—"}`} · {a.outcome}
               </summary>
               <p>
                 {a.reason} · IP {a.source_ip || "—"}
@@ -1296,6 +1341,9 @@ export default function UsersAccessPage() {
             }}
           >
             Discard
+          </Button>
+          <Button variant="outline" disabled={busy} onClick={refreshVersions}>
+            Refresh versions, keep proposals
           </Button>
           <Button disabled={busy || reason.trim().length < 3} onClick={preview}>
             Review changes
@@ -1408,12 +1456,23 @@ export default function UsersAccessPage() {
                 onClick={() => {
                   Object.entries(grantsFor(opened)).forEach(([key, g]) => {
                     const defaults = catalog.presets[key]?.[g.role];
-                    if (defaults && g.enabled)
+                    const role = catalog.roles.find((r) => r.id === g.roleId);
+                    if (role && g.enabled)
+                      patch(opened, key, {
+                        enabled: true,
+                        role: role.name,
+                        roleId: role.id,
+                        roleVersion: role.version,
+                        permissions: role.permissions,
+                        actions: role.actions,
+                        scope: role.scope,
+                      });
+                    else if (defaults && g.enabled)
                       patch(opened, key, structuredClone(defaults));
                   });
                 }}
               >
-                Reset preset roles
+                Reset assigned roles
               </Button>
             </div>
             <ModuleEditor
@@ -1423,7 +1482,28 @@ export default function UsersAccessPage() {
               disabled={opened.isSuperuser}
               patch={(key, g) => patch(opened, key, g)}
             />
+            {!opened.isSuperuser && (
+              <label>
+                Reason for this user's changes
+                <input
+                  aria-label="Reason for this user's changes"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </label>
+            )}
             <div className="ua-toolbar">
+              <Button
+                disabled={
+                  !drafts[opened.id] || reason.trim().length < 3 || busy
+                }
+                onClick={async () => {
+                  await preview();
+                  setOpened(undefined);
+                }}
+              >
+                Review & save
+              </Button>
               <Button onClick={() => setOpened(undefined)}>
                 Keep staged changes
               </Button>

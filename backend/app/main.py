@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
+from app.core.deps import get_db
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -187,13 +188,13 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/api/v1/files/blob", include_in_schema=False)
-def private_blob_file(token: str):
+def private_blob_file(token: str, db=Depends(get_db)):
     from app.core.storage import blob_token_path, materialize_file
     from fastapi import HTTPException
     from fastapi.responses import FileResponse
     if settings.STORAGE_BACKEND not in {"local", "vercel_blob", "s3"}:
         raise HTTPException(404, "Not found")
-    path = blob_token_path(token)
+    path = blob_token_path(token, db=db)
     materialize_file(path)
     if not os.path.isfile(path):
         raise HTTPException(404,'File not found')

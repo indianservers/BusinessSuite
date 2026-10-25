@@ -34,7 +34,7 @@ def list_notifications(
         .options(joinedload(Notification.delivery_logs))
         .filter(Notification.user_id == current_user.id)
     )
-    current_company_id = current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None
+    current_company_id = getattr(current_user, "organization_id", None) or (current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None)
     if current_company_id:
         query = query.filter(or_(Notification.company_id == current_company_id, Notification.company_id.is_(None)))
     if unread_only:
@@ -70,7 +70,7 @@ def unread_count(
         Notification.user_id == current_user.id,
         Notification.is_read == False,
     )
-    current_company_id = current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None
+    current_company_id = getattr(current_user, "organization_id", None) or (current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None)
     if current_company_id:
         query = query.filter(or_(Notification.company_id == current_company_id, Notification.company_id.is_(None)))
     count = query.scalar()
@@ -121,7 +121,7 @@ def mark_all_notifications_read(
         Notification.user_id == current_user.id,
         Notification.is_read == False,
     )
-    current_company_id = current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None
+    current_company_id = getattr(current_user, "organization_id", None) or (current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None)
     if current_company_id:
         query = query.filter(or_(Notification.company_id == current_company_id, Notification.company_id.is_(None)))
     query.update({"is_read": True, "read_at": datetime.now(timezone.utc)}, synchronize_session=False)

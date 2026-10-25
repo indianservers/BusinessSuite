@@ -48,13 +48,27 @@ def blob_session():
         yield
 
 
-def blob_token_path(token: str, *, verify_exp: bool = True) -> str:
+def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
                              options={"verify_exp": verify_exp,"require":["exp","path","purpose","aud"]}, audience="private-file")
         relative = payload["path"]
         if payload.get("purpose") != "blob-download" or not isinstance(relative, str):
             raise ValueError("Invalid file token")
+        if verify_exp and payload.get("access_user"):
+            if db is None:
+                raise HTTPException(403, "Use the authorized file download endpoint")
+            from app.models.user import User, UserSession
+            from app.access.service import policy_for, companies_for
+            user = db.get(User, int(payload["access_user"]))
+            company = int(payload.get("access_company", 0))
+            policy = policy_for(db, user, company) if user else None
+            if not user or not user.is_active or company not in companies_for(db, user) or not policy or policy.status != "active" or policy.version != payload.get("access_policy_version"):
+                raise HTTPException(403, "File access changed; open the record again")
+            if payload.get("access_session"):
+                session = db.get(UserSession, int(payload["access_session"]))
+                if not session or session.user_id != user.id or session.status.lower() == "revoked":
+                    raise HTTPException(403, "File session has been revoked")
         path = str(Path(settings.UPLOAD_DIR) / relative)
         storage_key(path)
         return path
@@ -123,7 +137,12 @@ def signed_file_url(path: str) -> str:
     if settings.STORAGE_BACKEND in {"local", "vercel_blob", "s3"}:
         storage_key(path)
         relative = Path(path).resolve().relative_to(Path(settings.UPLOAD_DIR).resolve()).as_posix()
-        token = jwt.encode({"path": relative, "purpose": "blob-download", "aud": "private-file",
+        claims = {}
+        from app.core.audit_context import context
+        actor = (context.get() or {}).get("actor", {})
+        if actor.get("access_policy_version") is not None:
+            claims = {"access_user": actor["user_id"], "access_company": actor["access_company"], "access_session": actor.get("access_session"), "access_policy_version": actor["access_policy_version"]}
+        token = jwt.encode({"path": relative, "purpose": "blob-download", "aud": "private-file", **claims,
                             "exp": datetime.now(timezone.utc) + timedelta(seconds=settings.S3_SIGNED_URL_SECONDS)},
                            settings.SECRET_KEY, algorithm=settings.ALGORITHM)
         return f"{settings.BACKEND_PUBLIC_URL}/api/v1/files/blob?{urlencode({'token': token})}"

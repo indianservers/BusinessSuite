@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuthStore } from "@/store/authStore";
 import AppLayout from "@/components/layout/AppLayout";
-import { canAccessRoute } from "@/lib/roles";
+import { canAccessRoute, effectiveModuleDisplayRole } from "@/lib/roles";
 import { getInstalledAppKeys, setBusinessOsEnabledModules, type FrontendRoute } from "@/appRegistry";
 import { api } from "@/services/api";
 import { BUSINESS_SUITE_DISPLAY_NAME, getLoginPathForContext } from "@/lib/products";
@@ -93,8 +93,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const location = useLocation();
+  const currentUser = useAuthStore(s => s.user);
   const { isAuthenticated, isHydrated } = useAuthStore();
   const [moduleVersion, setModuleVersion] = useState(0);
+  useEffect(() => {
+    if (!currentUser?.access) return;
+    const role = effectiveModuleDisplayRole(location.pathname, currentUser);
+    if (currentUser.primary_role === undefined || currentUser.role !== role) {
+      useAuthStore.getState().setUser({ ...currentUser, primary_role: currentUser.primary_role === undefined ? currentUser.role : currentUser.primary_role, role });
+    }
+  }, [location.pathname, currentUser]);
   useEffect(() => {
     const onChange = () => setModuleVersion((value) => value + 1);
     window.addEventListener("business-os-modules-changed", onChange as EventListener);

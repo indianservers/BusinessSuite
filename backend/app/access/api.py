@@ -50,6 +50,10 @@ def company_access(db, actor, company):
 
 
 def admin(actor: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not service.schema_ready(db):
+        raise HTTPException(
+            503, "Apply the suite access database migration before managing access"
+        )
     if not actor.is_superuser:
         company_access(
             db, actor, getattr(actor, "organization_id", service.primary_company(actor))
@@ -72,8 +76,16 @@ def authority(actor, grants):
             ceiling.get("actions", [])
         ):
             raise HTTPException(403, "Cannot grant module actions above your authority")
-        if SCOPES.index(grant.get("scope", "own")) > SCOPES.index(
-            ceiling.get("scope", "own")
+        scopes = {
+            "own": {"own", "assigned"},
+            "assigned": {"assigned"},
+            "team": {"own", "assigned", "team"},
+            "department": {"own", "assigned", "department"},
+            "branch": {"own", "assigned", "department", "branch"},
+            "organization": set(SCOPES),
+        }
+        if grant.get("scope", "own") not in scopes.get(
+            ceiling.get("scope", "own"), set()
         ):
             raise HTTPException(403, "Cannot widen scope above your authority")
 
@@ -179,10 +191,15 @@ def my_access(
         "permissions": sorted(permission_names(actor)),
         "isGlobalAdmin": actor.is_superuser,
         "isAccessAdmin": actor.is_superuser
-        or bool(
-            db.query(AccessMembership)
-            .filter_by(user_id=actor.id, company_id=company, active=True, is_admin=True)
-            .first()
+        or (
+            service.schema_ready(db)
+            and bool(
+                db.query(AccessMembership)
+                .filter_by(
+                    user_id=actor.id, company_id=company, active=True, is_admin=True
+                )
+                .first()
+            )
         ),
         "modules": catalog(db),
         "memberships": sorted(service.companies_for(db, actor)),
@@ -231,10 +248,29 @@ def serialize(item):
 
 def users_in_company(db, company):
     # Legacy users remain in their existing primary company; memberships extend it explicitly.
+    from sqlalchemy.orm import joinedload, selectinload
+    from app.models.employee import Employee
+
+    options = [
+        joinedload(User.person),
+        joinedload(User.role).selectinload(Role.permissions),
+    ]
+    if hasattr(User, "employee"):
+        options += [
+            joinedload(User.employee).joinedload(Employee.branch),
+            joinedload(User.employee).joinedload(Employee.department),
+        ]
+    members = {
+        m.user_id
+        for m in db.query(AccessMembership).filter_by(company_id=company, active=True)
+    }
+    db.info.setdefault("suite_access_policies", {})[company] = {
+        p.user_id: p for p in db.query(AccessPolicy).filter_by(company_id=company)
+    }
     return [
         u
-        for u in db.query(User).order_by(User.email).all()
-        if company in service.companies_for(db, u)
+        for u in db.query(User).options(*options).order_by(User.email).all()
+        if u.id in members or service.primary_company(u) == company
     ]
 
 
@@ -306,7 +342,13 @@ def list_users(
         )
         and (not branch or u["branchId"] == branch)
         and (not department or u["departmentId"] == department)
-        and (not role or u["role"] == role)
+        and (
+            not role
+            or u["role"] == role
+            or any(
+                g.get("enabled") and g.get("role") == role for g in u["grants"].values()
+            )
+        )
         and (not status or u["status"] == status)
         and (not module or u["grants"].get(module, {}).get("enabled"))
     ]
@@ -318,6 +360,20 @@ def list_users(
         "summary": summary,
         "analytics": stats,
     }
+
+
+@router.get("/users/{user_id}")
+def get_user_access(
+    user_id: int,
+    companyId: int = 1,
+    db: Session = Depends(get_db),
+    actor: User = Depends(admin),
+):
+    company_access(db, actor, companyId)
+    user = db.get(User, user_id)
+    if not user or companyId not in service.companies_for(db, user):
+        raise HTTPException(404, "User not found in this organization")
+    return service.snapshot(db, user, companyId)
 
 
 class UserChange(Strict):
@@ -427,7 +483,7 @@ def apply_changes(
     service.lock_admins(db)
     db.query(User).filter(User.id.in_([c.userId for c in data.changes])).order_by(
         User.id
-    ).with_for_update().all()
+    ).with_for_update().populate_existing().all()
     results = []
     transaction = db.begin_nested()
     try:
@@ -521,6 +577,7 @@ def save_role(
         db.query(AccessRole)
         .filter_by(id=role_id, company_id=data.companyId)
         .with_for_update()
+        .populate_existing()
         .first()
         if role_id
         else None
@@ -535,6 +592,7 @@ def save_role(
             for p in db.query(AccessPolicy)
             .filter_by(company_id=data.companyId)
             .with_for_update()
+            .populate_existing()
             .all()
             if any(g.get("roleId") == role_id for g in p.grants.values())
         ]
@@ -633,6 +691,7 @@ def save_template(
         db.query(AccessTemplate)
         .filter_by(id=template_id, company_id=data.companyId)
         .with_for_update()
+        .populate_existing()
         .first()
         if template_id
         else None
@@ -832,7 +891,23 @@ def audit_log(
     if target:
         query = query.filter_by(target_id=target)
     if search:
-        query = query.filter(AccessAudit.operation.ilike("%" + search[:100] + "%"))
+        from sqlalchemy import or_, select
+        from app.common.models import CommonPerson
+
+        term = "%" + search[:100] + "%"
+        matching = (
+            select(User.id)
+            .outerjoin(CommonPerson, CommonPerson.user_id == User.id)
+            .where(or_(User.email.ilike(term), CommonPerson.display_name.ilike(term)))
+        )
+        query = query.filter(
+            or_(
+                AccessAudit.operation.ilike(term),
+                AccessAudit.reason.ilike(term),
+                AccessAudit.actor_id.in_(matching),
+                AccessAudit.target_id.in_(matching),
+            )
+        )
     total = query.count()
     rows = (
         query.order_by(AccessAudit.id.desc())
@@ -841,6 +916,21 @@ def audit_log(
         .all()
     )
     items = [serialize(r) for r in rows]
+    ids = {ident for row in rows for ident in (row.actor_id, row.target_id) if ident}
+    people = {user.id: user for user in db.query(User).filter(User.id.in_(ids)).all()}
+
+    def label(ident):
+        user = people.get(ident)
+        if not user or (
+            not user.is_superuser and companyId not in service.companies_for(db, user)
+        ):
+            return f"User {ident}" if ident else "—"
+        return user.person.display_name if user.person else user.email
+
+    for item in items:
+        item["actorName"], item["targetName"] = label(item["actor_id"]), label(
+            item["target_id"]
+        )
     if export:
         return csv_response(items, "access-audit.csv")
     return {"items": items, "total": total}

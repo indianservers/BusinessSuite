@@ -32,8 +32,9 @@ def enqueue(db, run, kind):
 
 
 def authorize(db, user, run):
-    from app.access.service import check_background_access
+    from app.access.service import check_background_access, activate_run_context
     if user:
+        activate_run_context(db,user,run)
         check_background_access(db, user, "project_management", "edit")
         check_background_access(db, user, "ai", "create")
     from app.ai_agents.api import _require_ai_access
@@ -182,6 +183,8 @@ def execute_checkpoint(db, job, run, approval, user):
         finish(db, job, run, approval)
 
 
+from app.access.service import isolated_run_context
+@isolated_run_context
 def process_claim(db, job_id, token):
     savepoint = None
     try:
