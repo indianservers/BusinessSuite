@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 import csv
 import io
@@ -83,7 +84,7 @@ def _can_access_ai_agents(user: User) -> bool:
         return False
     if user.is_superuser:
         return True
-    permissions = {permission.name for permission in (user.role.permissions if user.role else [])}
+    permissions = {permission.name for permission in (permission_objects(user))}
     return bool(permissions.intersection({"ai_assistant", "settings_manage"}))
 
 
@@ -98,7 +99,7 @@ def _is_ai_tool_tester(user: User) -> bool:
     role_name = (user.role.name if user.role else "").lower().replace(" ", "_")
     if role_name in {"admin", "super_admin", "developer"}:
         return True
-    permissions = {permission.name for permission in (user.role.permissions if user.role else [])}
+    permissions = {permission.name for permission in (permission_objects(user))}
     return bool(permissions.intersection({"settings_view", "settings_manage"}))
 
 
@@ -108,7 +109,7 @@ def _is_ai_admin(user: User) -> bool:
     role_name = (user.role.name if user.role else "").lower().replace(" ", "_")
     if role_name in {"admin", "super_admin", "developer"}:
         return True
-    permissions = {permission.name for permission in (user.role.permissions if user.role else [])}
+    permissions = {permission.name for permission in (permission_objects(user))}
     return bool(permissions.intersection({"settings_manage"}))
 
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -299,7 +300,7 @@ class AiApprovalExecutorService:
     def _has_permission(self, user: User, permission: str) -> bool:
         if not permission or user.is_superuser:
             return True
-        permissions = {item.name for item in (user.role.permissions if user.role else [])}
+        permissions = {item.name for item in (permission_objects(user))}
         if "*" in permissions or permission in permissions:
             return True
         aliases = {

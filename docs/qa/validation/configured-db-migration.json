@@ -1,0 +1,10 @@
+{
+  "scope": "contact_schema_only",
+  "migration": "pg_20261025_021_contact_codes",
+  "other_feature_revisions_applied": false,
+  "applied": true,
+  "existing_contact_values_unchanged": true,
+  "verified_country_columns": 28,
+  "schema_backup": "C:\\Users\\Sai Satish\\.codex\\backups\\BusinessSuite\\contact-schema-20261025T192133Z-c731976b.json",
+  "alembic_revision_marker_changed": false
+}

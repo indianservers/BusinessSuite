@@ -113,6 +113,14 @@ def _ensure_module_login_allowed(user: User, module: str | None) -> None:
         from app.apps.interns_hub.router import ensure_intern
         ensure_intern(user)
         return
+    from sqlalchemy.orm import object_session
+    from app.access.service import policy_for, primary_company, resolved_grants
+    session = object_session(user)
+    policy = policy_for(session, user, primary_company(user)) if session else None
+    if policy and not user.is_superuser:
+        if policy.status != "active" or not resolved_grants(session, policy).get(module_key, {}).get("enabled"):
+            raise HTTPException(403, "Module access is not enabled for this account")
+        return
     if module_key == "hrms" and getattr(user, "employee", None) and (user.employee.employment_type or "").lower() == "intern":
         raise HTTPException(status_code=403, detail="Please use the dedicated Interns Hub login")
     role_name = user.role.name if user.role else None
@@ -522,6 +530,15 @@ def reset_password(data: PasswordResetConfirm, db: Session = Depends(get_db)):
     user.hashed_password = get_password_hash(data.new_password)
     user.password_reset_token = None
     user.password_reset_expires = None
+    from app.access.models import AccessPolicy
+    invitations = db.query(AccessPolicy).filter_by(user_id=user.id, status="invited").all()
+    if invitations:
+        user.is_active = True
+        from app.access.service import audit
+        for invitation in invitations:
+            invitation.status = "active"
+            invitation.version += 1
+            audit(db, user, invitation.company_id, "invitation.accepted", "Invitation accepted through existing password reset", target=user.id)
     _revoke_user_sessions(db, user.id)
     db.commit()
     return {"message": "Password reset successful. Please log in."}

@@ -32,6 +32,10 @@ def enqueue(db, run, kind):
 
 
 def authorize(db, user, run):
+    from app.access.service import check_background_access
+    if user:
+        check_background_access(db, user, "project_management", "edit")
+        check_background_access(db, user, "ai", "create")
     from app.ai_agents.api import _require_ai_access
     from app.ai_operator.planner import planning_agent
     if not user or not user.is_active or run.user_id != user.id:

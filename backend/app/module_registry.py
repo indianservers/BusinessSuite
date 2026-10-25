@@ -19,6 +19,7 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.access.api",
     "app.common.profile_api",
     "app.forms.router",
     "app.apps.scheduling.router",
@@ -40,6 +41,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.access.models",
     "app.forms.models",
     "app.apps.scheduling.models",
     "app.models.deployment",
@@ -191,12 +193,15 @@ def import_model_modules() -> None:
 
 
 def build_api_router() -> APIRouter:
+    from app.access.catalog import register_routes
     api_router = APIRouter()
     for module_name in COMMON_ROUTER_MODULES:
         module = import_module(module_name)
+        register_routes(module.router, module_name)
         api_router.include_router(module.router)
     for app_module in iter_enabled_modules():
         for module_name in app_module.router_modules:
             module = import_module(module_name)
+            register_routes(module.router, module_name, app_module.key)
             api_router.include_router(module.router)
     return api_router

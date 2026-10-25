@@ -3,10 +3,11 @@ import ast,json,re
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 phones={'phone','phone_number','mobile','mobile_number','alternate_phone','whatsapp_number','contact_phone','contact_number','emergency_contact_number','business_phone_number','primary_phone','secondary_phone'}
-models=[];schemas=[];forms=[];consumers=[]
+models=[];schemas=[];forms=[];consumers=[];skipped=[]
 for path in (ROOT/'backend/app').rglob('*.py'):
     try:tree=ast.parse(path.read_text(encoding='utf-8-sig'))
-    except (SyntaxError,UnicodeError):continue
+    except (SyntaxError,UnicodeError) as exc:
+        skipped.append({'file':path.relative_to(ROOT).as_posix(),'reason':type(exc).__name__});continue
     for node in ast.walk(tree):
         if isinstance(node,ast.ClassDef):
             fields=[];table=None
@@ -26,5 +27,5 @@ for root in ('frontend/src','frontend/interns-hub/src'):
         if re.search(r'<form\b|useForm[<(]|<Dialog|<FormModal|<Input\b|<input\b|<textarea\b|<select\b',text):
             forms.append({'file':path.relative_to(ROOT).as_posix(),'phone_related':bool(re.search(r'phone|mobile|emergency_contact',text,re.I)),'email_related':bool(re.search('email',text,re.I)),'verification':'Inventoried; runtime verification tracked separately'})
 target=ROOT/'docs/qa/validation';target.mkdir(parents=True,exist_ok=True)
-(target/'inventory.json').write_text(json.dumps({'models':models,'schemas':schemas,'forms':forms,'contact_consumers':consumers},indent=2)+'\n',encoding='utf-8')
+(target/'inventory.json').write_text(json.dumps({'models':models,'schemas':schemas,'forms':forms,'contact_consumers':consumers,'unparsed_backend_files':skipped},indent=2)+'\n',encoding='utf-8')
 print(json.dumps({'phone_models':len(models),'phone_columns':sum(len(row['phones']) for row in models),'schema_phone_fields':len(schemas),'form_files':len(forms),'phone_form_files':sum(row['phone_related'] for row in forms),'contact_consumer_files':len(consumers)}))

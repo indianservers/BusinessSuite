@@ -1,4 +1,5 @@
 """Strict admin-only access to request audit evidence."""
+from app.access.catalog import permission_objects
 from datetime import datetime, timezone
 import json
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -23,7 +24,7 @@ def scoped_query(db, user):
     from app.apps.project_management.models import PMSWorkspaceMember, PMSProject
     from app.apps.project_management.access import accessible_project_query
     workspace_ids = [m.workspace_id for m in db.query(PMSWorkspaceMember).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspaceMember.role.in_(['Owner', 'Admin'])).all()]
-    names = {p.name for p in user.role.permissions} if user.role else set()
+    names = {p.name for p in permission_objects(user)}
     legacy_ids = [p.id for p in accessible_project_query(db, user).filter(PMSProject.workspace_id.is_(None)).all()] if 'pms_admin' in names or (user.role and user.role.name == 'pms_admin') else []
     if not workspace_ids and not legacy_ids:
         raise HTTPException(403, 'Workspace administrator access required')

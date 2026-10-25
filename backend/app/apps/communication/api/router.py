@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 from app.core.input_validation import contact_change_errors, clean_text
 
 from datetime import datetime, timezone
@@ -553,7 +554,7 @@ def list_delivery_logs(db: Session = Depends(get_db), current_user: User = Depen
     from sqlalchemy import or_, and_
     from app.apps.srm.services.commercial import invoice_query
     from app.apps.srm.models import SRMInvoice
-    names = {p.name for p in (current_user.role.permissions if current_user.role else [])}
+    names = {p.name for p in (permission_objects(current_user))}
     ids = invoice_query(db, current_user).with_entities(SRMInvoice.id) if current_user.is_superuser or names.intersection({"srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"}) else []
     query = db.query(CommunicationDeliveryLog).outerjoin(CommunicationEmailMessage, and_(CommunicationDeliveryLog.channel == "email", CommunicationEmailMessage.id == CommunicationDeliveryLog.related_message_id)).filter(or_(CommunicationEmailMessage.id.is_(None), CommunicationEmailMessage.related_record_type != "srm_invoice", CommunicationEmailMessage.related_record_id.in_(ids)))
     return _list_payload(query.order_by(CommunicationDeliveryLog.created_at.desc()).limit(250).all())

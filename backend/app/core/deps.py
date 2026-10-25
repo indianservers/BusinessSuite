@@ -60,7 +60,14 @@ def get_current_user(
     employee=getattr(user,'employee',None)
     is_intern=(user.role and user.role.name.lower()=='intern') or (employee and (employee.employment_type or '').lower()=='intern')
     if is_intern and not request.url.path.startswith('/api/v1/interns-hub/'):
-        raise HTTPException(403,'Intern accounts are restricted to Interns Hub')
+        from app.access.service import policy_for, primary_company, resolved_grants
+        from app.access.catalog import request_module
+        intern_policy = policy_for(db, user, primary_company(user))
+        grants = resolved_grants(db, intern_policy) if intern_policy else {}
+        pms = grants.get("project_management", {})
+        allowed = intern_policy and intern_policy.status == "active" and pms.get("enabled") and pms.get("scope") in {"own", "assigned"} and (request_module(request) == "project_management" or request.url.path in {"/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/access/me"})
+        if not allowed:
+            raise HTTPException(403,'Intern accounts are restricted to Interns Hub unless explicitly assigned restricted PMS access')
     session_id = payload.get("sid")
     if session_id:
         session = db.query(UserSession).filter(UserSession.id == token_record_id(session_id), UserSession.user_id == user.id).first()
@@ -78,9 +85,14 @@ def get_current_user(
         if last_seen is None or last_seen <= now-timedelta(minutes=5):
             session.last_seen_at = now
             db.commit()
+    from app.access.service import bind_authorization
+    cleanup = bind_authorization(db, user, request)
     from app.core.audit_context import set_audit_actor
     set_audit_actor(user)
-    return user
+    try:
+        yield user
+    finally:
+        cleanup()
 
 
 def get_current_active_superuser(current_user: User = Depends(get_current_user)) -> User:
@@ -98,7 +110,8 @@ class RequirePermission:
     def __call__(self, current_user: User = Depends(get_current_user)) -> User:
         if current_user.is_superuser:
             return current_user
-        user_permissions = {p.name for p in (current_user.role.permissions if current_user.role else [])}
+        from app.access.catalog import permission_names
+        user_permissions = permission_names(current_user)
         if not self.permissions.intersection(user_permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

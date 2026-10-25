@@ -41,6 +41,7 @@ class Question(Strict):
     help: str = Field(default="", max_length=500)
     placeholder: str = Field(default="", max_length=160)
     required: bool = False
+    width: Literal["auto", "full"] = "auto"
     options: list[str] = Field(default_factory=list, max_length=50)
     min: float | None = None
     max: float | None = None

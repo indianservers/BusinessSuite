@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 from app.core.storage import upload_exists, FileResponse
 
 import os
@@ -50,7 +51,7 @@ def _list(items: list[Any]) -> dict[str, Any]:
 def _permissions(user: User) -> set[str]:
     if user.is_superuser:
         return {"*"}
-    return {p.name for p in (user.role.permissions if user.role else [])}
+    return {p.name for p in (permission_objects(user))}
 
 
 def _financial_allowed(user: User) -> bool:

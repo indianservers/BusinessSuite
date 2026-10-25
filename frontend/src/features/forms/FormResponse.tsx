@@ -9,22 +9,24 @@ export default function FormResponse({
   footer,
   onFiles,
   publicForm = false,
+  editor,
 }: {
   definition: Definition;
   disabled: boolean;
   submit: (a: Record<string, Answer>) => Promise<void>;
   mobile?: boolean;
   publicForm?: boolean;
+  editor?: { selected: string; select: (id: string) => void; label: (id: string, label: string) => void };
   footer?: ReactNode;
   onFiles?: (files: Record<string, File>) => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
   const [page, setPage] = useState(0);
-  const allFields = displayed(definition.fields, answers);
+  const allFields = editor ? definition.fields : displayed(definition.fields, answers);
   const pages: (typeof allFields)[] = [[]];
   allFields.forEach((f) => {
-    if (f.type === "page" && definition.settings?.layout === "pages")
+    if (!editor && f.type === "page" && definition.settings?.layout === "pages")
       pages.push([]);
     else pages[pages.length - 1].push(f);
   });
@@ -33,6 +35,14 @@ export default function FormResponse({
   const set = (id: string, value: Answer) =>
     setAnswers((a) => ({ ...a, [id]: value }));
   return (
+    <div className={`form-experience surface-${definition.settings?.surface || "soft"} ${definition.settings?.intro_enabled ? "with-intro" : ""} ${mobile ? "experience-mobile" : ""}`} style={{ "--form-accent": definition.accent } as CSSProperties}>
+      {definition.settings?.intro_enabled && <aside className="form-introduction">
+        <span className="form-intro-badge">✦ {definition.settings.intro_badge || "Build your future"}</span>
+        <h2>{definition.settings.intro_title || "Your next chapter starts here."}</h2>
+        <p>{definition.settings.intro_text || "Share your details and take the first step."}</p>
+        <div className="form-intro-art" aria-hidden="true"><span>✦</span><span>↗</span><span>◎</span></div>
+        <small>One step closer to something great.</small>
+      </aside>}
     <form
       className={"form-live " + (mobile ? "form-device-mobile" : "")}
       style={
@@ -49,6 +59,7 @@ export default function FormResponse({
       }
       onSubmit={(e) => {
         e.preventDefault();
+        if (editor) return;
         if (currentPage < pages.length - 1) {
           setPage(currentPage + 1);
           return;
@@ -70,15 +81,16 @@ export default function FormResponse({
           <progress value={currentPage + 1} max={pages.length} />
         </p>
       )}
-      <fieldset disabled={disabled}>
+      <fieldset disabled={disabled} className="form-response-grid" style={{ "--form-columns": definition.settings?.columns || 1 } as CSSProperties}>
         {fields.map((f) => (
-          <div className="form-live-field" key={f.id}>
+          <div className={`form-live-field ${["section", "page"].includes(f.type) || f.width === "full" ? "field-full" : ""} ${editor ? "editable-field" : ""} ${editor?.selected === f.id ? "editing-field" : ""}`} key={f.id}>
+            {editor && <button type="button" className="form-field-edit-target" aria-label={`Edit ${f.label}`} aria-pressed={editor.selected === f.id} onClick={() => editor.select(f.id)} />}
             {["section", "page"].includes(f.type) ? (
               <h3>{f.label}</h3>
             ) : (
               <>
                 <label htmlFor={f.id}>
-                  {f.label}
+                  {editor?.selected === f.id ? <input className="form-inline-label" aria-label="Edit field label on canvas" maxLength={160} value={f.label} onChange={e => editor.label(f.id, e.target.value)} /> : f.label}
                   {f.required && <em> *</em>}
                 </label>
                 {f.type === "file" ? (
@@ -225,13 +237,13 @@ export default function FormResponse({
             {f.help && <small>{f.help}</small>}
           </div>
         ))}
-        {currentPage === pages.length - 1 && footer}
+        {currentPage === pages.length - 1 && footer && <div className="field-full">{footer}</div>}
         {currentPage > 0 && (
           <button type="button" onClick={() => setPage(currentPage - 1)}>
             Back
           </button>
         )}
-        <button className="form-primary" type="submit">
+        <button className="form-primary field-full" type={editor ? "button" : "submit"}>
           {currentPage < pages.length - 1
             ? "Continue"
             : definition.submit_label}{" "}
@@ -244,5 +256,6 @@ export default function FormResponse({
           : "Preview · No response is stored"}
       </small>
     </form>
+    </div>
   );
 }

@@ -20,7 +20,8 @@ export function textError(value:unknown,max:number,required=true,multiline=false
   if(!required&&(value===''||value==null))return '';
   if(typeof value!=='string'||!value.trim()||!/[^\p{C}\p{Z}]/u.test(value.trim()))return 'This field is required.';
   if(value.trim().length>max)return `Use ${max} characters or fewer.`;
-  if((multiline?/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/:/[\u0000-\u001f\u007f-\u009f]/).test(value))return 'Remove control characters from this field.';
+  const checked=multiline?value.replace(/[\n\r\t]/g,''):value;
+  if(/[\p{Cc}\p{Cs}]/u.test(checked))return 'Remove control characters from this field.';
   return '';
 }
 export function identityError(kind:string,value:string) {

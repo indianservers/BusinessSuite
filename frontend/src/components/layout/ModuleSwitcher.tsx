@@ -11,6 +11,7 @@ export default function ModuleSwitcher() {
     canAccessRoute(p.homePath, user?.role, user?.is_superuser),
   );
   return (
+    <>
     <label className="kf-module-switch">
       <Layers3 size={16} />
       <select
@@ -34,5 +35,7 @@ export default function ModuleSwitcher() {
         <option value="/">All applications</option>
       </select>
     </label>
+    {!!user?.access && user.access.memberships.length > 1 && <label className="kf-module-switch"><span>Company</span><select aria-label="Current organization context" value={user.access.companyId} onChange={e => { sessionStorage.setItem("suite-organization", e.target.value); window.location.reload(); }}>{user.access.memberships.map(id => <option value={id} key={id}>Company {id}</option>)}</select></label>}
+    </>
   );
 }

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 import html
 import base64
@@ -1524,15 +1525,22 @@ def _crm_user_scope(db: Session, user: User) -> dict[str, Any]:
 
 
 def _crm_has_full_visibility(user: User) -> bool:
+    grant = (getattr(user, "_suite_grants", None) or {}).get("crm")
+    if grant is not None:
+        # The central query scope is authoritative; retain only narrower module checks.
+        return bool(grant.get("enabled"))
     return bool(user.is_superuser or _crm_role_key(user) in {"admin", "viewer", "super_admin"})
 
 
 def _crm_can_assign_beyond_self(user: User) -> bool:
+    grant = (getattr(user, "_suite_grants", None) or {}).get("crm")
+    if grant is not None:
+        return bool(grant.get("enabled") and "assign" in grant.get("actions", []))
     return bool(user.is_superuser or _crm_role_key(user) in {"admin", "manager", "super_admin"} or "crm_admin" in _crm_permission_names(user))
 
 
 def _crm_permission_names(user: User) -> set[str]:
-    return {permission.name for permission in (user.role.permissions if user.role else [])}
+    return {permission.name for permission in (permission_objects(user))}
 
 
 def _assert_entity_permission(entity: str, current_user: User, action: str) -> None:
@@ -3134,7 +3142,7 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int, us
             if project and (user is None or not can_access_project(db, project, user)):
                 project = None
             from app.apps.srm.access import sales_order_query, engagement_query
-            permission_names = {p.name for p in (user.role.permissions if user and user.role else [])}
+            permission_names = {p.name for p in (permission_objects(user))}
             allowed = bool(user and (user.is_superuser or permission_names.intersection({"srm_sales_order_view", "srm_engagement_view", "srm_admin"})))
             if not allowed:
                 sales_order = engagement = contract = billing_plan = None

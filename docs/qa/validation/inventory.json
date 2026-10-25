@@ -1448,5 +1448,6 @@
     "backend/app/common/services/profiles.py",
     "backend/app/core/middleware/security_headers.py",
     "backend/app/services/ai/resume_parser.py"
-  ]
+  ],
+  "unparsed_backend_files": []
 }

@@ -1,0 +1,9 @@
+{
+  "scope": "configured_database_schema_only",
+  "migration_applied_by_this_task": false,
+  "existing_phone_tables": 22,
+  "missing_country_columns": 28,
+  "migration_revisions": [
+    "pg_20261024_014_suite"
+  ]
+}

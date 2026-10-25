@@ -1,4 +1,5 @@
 """Shared identities, invoice policy, document and delivery orchestration."""
+from app.access.catalog import permission_objects
 
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP, DecimalException
@@ -37,7 +38,7 @@ def scoped(column, user):
 
 
 def require(user, *permissions):
-    names = {p.name for p in (user.role.permissions if user.role else [])}
+    names = {p.name for p in (permission_objects(user))}
     if not user.is_superuser and not names.intersection(permissions):
         raise HTTPException(403, "Required permissions: " + ", ".join(permissions))
 
@@ -58,7 +59,7 @@ def customer(db, ident, user):
     value = record(db, CRMCompany, ident, user)
     # Reuse CRM's record visibility for CRM-only users; financial staff use the
     # SRM customer directory scope, never a project role as a financial grant.
-    names = {p.name for p in (user.role.permissions if user.role else [])}
+    names = {p.name for p in (permission_objects(user))}
     if not user.is_superuser and not names.intersection(
         {
             "srm_admin",
@@ -259,7 +260,7 @@ def invoice_query(db, user):
         ~InvoiceContext.seller_id.in_(allowed_sellers)
     )
     query = query.filter(~SRMInvoice.id.in_(inaccessible))
-    permissions = {p.name for p in (user.role.permissions if user.role else [])}
+    permissions = {p.name for p in (permission_objects(user))}
     if user.is_superuser or can_view_all_srm(user) or permissions.intersection({"fam_admin", "fam_srm_posting_manage", "fam_srm_integration_view", "fam_accounting_status_view", "srm_collection_view", "srm_collection_create"}):
         return query
     orders = db.query(SRMSalesOrder.id).filter(

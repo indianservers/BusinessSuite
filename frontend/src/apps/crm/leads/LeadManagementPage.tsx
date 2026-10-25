@@ -39,6 +39,11 @@ import {
 } from "./api";
 import "./leads.css";
 import { LeadAnalyticsPanel } from "./LeadAnalyticsPanel";
+import {
+  FollowUpDialog,
+  LeadTeamPanel,
+  LeadWorkflowBoard,
+} from "./LeadWorkflow";
 
 const formatDate = (date?: string) =>
   date
@@ -144,6 +149,7 @@ export default function LeadManagementPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [insights, setInsights] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [followUp, setFollowUp] = useState<{ lead: Lead; date?: string }>();
   const [bulk, setBulk] = useState<{
     patch: LeadPatch;
     items: { id: number; name: string; stage: string }[];
@@ -338,6 +344,18 @@ export default function LeadManagementPage() {
 
   return (
     <div className="lm-root" aria-label="Lead workbench">
+      {followUp && bootstrap && (
+        <FollowUpDialog
+          lead={followUp.lead}
+          bootstrap={bootstrap}
+          initialDate={followUp.date}
+          close={() => setFollowUp(undefined)}
+          saved={() => {
+            refresh();
+            toast({ title: "Follow-up saved" });
+          }}
+        />
+      )}
       <header className="lm-header">
         <div>
           <div className="lm-eyebrow">CUSTOMER RELATIONSHIPS</div>
@@ -701,40 +719,18 @@ export default function LeadManagementPage() {
             </Button>
           </div>
         ) : view === "board" ? (
-          <div className="lm-board">
-            {bootstrap?.settings.stages.map((s) => (
-              <section className="lm-lane" key={s.name}>
-                <h2>
-                  <StageBadge stage={s.name} />
-                  <span>
-                    {result.items.filter((l) => l.status === s.name).length}
-                  </span>
-                </h2>
-                {result.items
-                  .filter((l) => l.status === s.name)
-                  .map((lead) => (
-                    <button
-                      className="lm-lead-card"
-                      key={lead.id}
-                      onClick={() => openLead(lead.id)}
-                    >
-                      <strong>{lead.full_name}</strong>
-                      <span>
-                        {lead.company_name ||
-                          lead.email ||
-                          "Contact details needed"}
-                      </span>
-                      <span
-                        className={lead.signals.overdue ? "lm-danger-text" : ""}
-                      >
-                        {lead.signals.followUpLabel}
-                      </span>
-                      <small>{lead.signals.nextAction}</small>
-                    </button>
-                  ))}
-              </section>
-            ))}
-          </div>
+          bootstrap && (
+            <LeadWorkflowBoard
+              group={params.get("group") || "stage"}
+              groupChanged={(group) => updateParams({ group })}
+              leads={result.items}
+              bootstrap={bootstrap}
+              busy={busy}
+              open={openLead}
+              move={(lead, values) => void mutate(lead, { values })}
+              schedule={(lead, date) => setFollowUp({ lead, date })}
+            />
+          )
         ) : view === "compact" ? (
           <div className="lm-compact">
             {result.items.map((lead) => (
@@ -916,6 +912,16 @@ export default function LeadManagementPage() {
                           <span className="lm-alert-dot" />
                         )}
                         {lead.signals.nextAction}
+                        {bootstrap?.canManage && lead.signals.active && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => setFollowUp({ lead })}
+                          >
+                            Follow up
+                          </Button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -1254,6 +1260,7 @@ function LeadDrawer({
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [details, setDetails] = useState<LeadDetails>({});
   const [dirty, setDirty] = useState(false);
+  const [teamDirty, setTeamDirty] = useState(false);
   const [activity, setActivity] = useState({
     type: "call",
     outcome: "",
@@ -1270,6 +1277,7 @@ function LeadDrawer({
     existingCompanyId: "",
   });
   const [booking, setBooking] = useState("");
+  const [scheduling, setScheduling] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -1291,7 +1299,8 @@ function LeadDrawer({
   const dismiss = () => {
     if (
       !busy &&
-      (!dirty || window.confirm("Discard unsaved changes to this lead?"))
+      (!(dirty || teamDirty) ||
+        window.confirm("Discard unsaved changes to this lead?"))
     )
       close();
   };
@@ -1356,6 +1365,17 @@ function LeadDrawer({
       }}
     >
       <DialogContent className="lm-drawer">
+        {scheduling && lead && (
+          <FollowUpDialog
+            lead={lead}
+            bootstrap={bootstrap}
+            close={() => setScheduling(false)}
+            saved={() => {
+              changed();
+              setReload((v) => v + 1);
+            }}
+          />
+        )}
         <DialogTitle className="lm-drawer-title">
           {lead?.full_name || "Lead details"}
         </DialogTitle>
@@ -1401,6 +1421,7 @@ function LeadDrawer({
                 "overview",
                 "qualification",
                 "activities",
+                "team",
                 "score",
                 "history",
               ].map((name) => (
@@ -1408,7 +1429,16 @@ function LeadDrawer({
                   key={name}
                   className={tab === name ? "active" : ""}
                   aria-pressed={tab === name}
-                  onClick={() => setTab(name)}
+                  onClick={() => {
+                    if (
+                      name !== tab &&
+                      teamDirty &&
+                      !window.confirm("Discard your unsaved team update?")
+                    )
+                      return;
+                    if (name !== tab) setTeamDirty(false);
+                    setTab(name);
+                  }}
                 >
                   {name}
                 </button>
@@ -1776,9 +1806,30 @@ function LeadDrawer({
                   </section>
                 </>
               )}
+              {tab === "team" && (
+                <LeadTeamPanel
+                  draftChanged={setTeamDirty}
+                  lead={lead}
+                  canManage={bootstrap.canManage}
+                  disabled={busy || dirty}
+                  changed={() => {
+                    changed();
+                    setReload((v) => v + 1);
+                  }}
+                />
+              )}
               {tab === "activities" && (
                 <>
                   <h3>Log an outcome & next step</h3>
+                  {bootstrap.canManage && lead.signals.active && (
+                    <Button
+                      variant="outline"
+                      disabled={busy || dirty}
+                      onClick={() => setScheduling(true)}
+                    >
+                      Schedule or reschedule follow-up
+                    </Button>
+                  )}
                   <p className="lm-help">
                     Record completed interactions here. Use Communications to
                     send through connected providers.

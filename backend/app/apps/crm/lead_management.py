@@ -848,6 +848,7 @@ def get_settings(
         "unavailableEmployees": unavailable,
         "canManage": can_manage,
         "canAdmin": can_admin,
+        "canAssign": bool(core()._crm_can_assign_beyond_self(user)),
         "userId": user.id,
     }
 
@@ -1387,6 +1388,204 @@ def update_lead(
     apply_patch(db, user, lead, payload, settings)
     db.commit()
     return serialize(db, lead, settings)
+
+
+class FollowUpPayload(Strict):
+    title: str = Field(min_length=1, max_length=180)
+    dueAt: datetime
+    type: Literal["call", "email", "meeting", "task"] = "task"
+    ownerId: int | None = Field(None, gt=0)
+    activityId: int | None = Field(None, gt=0)
+    version: int = Field(ge=0)
+
+
+def available_teammates(db, actor, lead):
+    from app.apps.crm.lead_assignment import directory
+
+    owners, _ = directory(db, actor, True)
+    permitted = []
+    for owner in owners:
+        candidate = db.get(User, owner["id"])
+        try:
+            if visible_query(db, candidate).filter(CRMLead.id == lead.id).first():
+                permitted.append(owner)
+        except HTTPException:
+            continue
+    return permitted
+
+
+@router.get("/leads/{ident}/team")
+def lead_team(
+    ident: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(RequirePermission(*ACCESS)),
+):
+    lead = lead_record(db, user, ident)
+    return {"members": available_teammates(db, user, lead)}
+
+
+def check_version(row, version):
+    if version != (row.version if row else 0):
+        raise HTTPException(
+            409,
+            "This lead changed. Refresh before saving; your draft is still available",
+        )
+
+
+def refresh_next_follow_up(db, lead):
+    db.flush()
+    next_task = (
+        db.query(CRMActivity)
+        .filter(
+            CRMActivity.organization_id == lead.organization_id,
+            CRMActivity.lead_id == lead.id,
+            CRMActivity.status == "Pending",
+            CRMActivity.due_date.is_not(None),
+        )
+        .order_by(CRMActivity.due_date, CRMActivity.id)
+        .first()
+    )
+    lead.next_follow_up_at = next_task.due_date if next_task else None
+
+
+@router.post("/leads/{ident}/follow-up")
+def schedule_follow_up(
+    ident: int,
+    payload: FollowUpPayload,
+    db: Session = Depends(get_db),
+    user: User = Depends(RequirePermission(*WRITE)),
+):
+    lead = lead_record(db, user, ident, True, True)
+    check_version(state(db, lead, False), payload.version)
+    if (
+        lead.is_converted
+        or lead.status == "Lost"
+        or (state(db, lead, False) and state(db, lead, False).data_json.get("archived"))
+    ):
+        raise HTTPException(409, "Reopen the lead before scheduling follow-ups")
+    if not payload.title.strip():
+        raise HTTPException(422, "Enter a follow-up title")
+    due = dt(payload.dueAt)
+    if due <= now():
+        raise HTTPException(422, "Choose a future follow-up time")
+    owner_id = payload.ownerId or lead.owner_user_id or user.id
+    check_owner(db, user, owner_id)
+    if owner_id not in {member["id"] for member in available_teammates(db, user, lead)}:
+        raise HTTPException(422, "This teammate does not have access to this lead")
+    if payload.activityId:
+        item = (
+            db.query(CRMActivity)
+            .filter_by(
+                id=payload.activityId,
+                organization_id=lead.organization_id,
+                lead_id=lead.id,
+            )
+            .with_for_update()
+            .first()
+        )
+        if not item or item.status != "Pending":
+            raise HTTPException(409, "This follow-up is no longer pending")
+        item.subject = item.title = payload.title.strip()
+        item.due_date = item.activity_date = due
+        item.activity_type = payload.type
+        item.owner_user_id = owner_id
+        metadata = copy.deepcopy(item.metadata_json or {})
+        metadata.pop("followUpReminderAt", None)
+        item.metadata_json = metadata
+    else:
+        item = task(
+            db,
+            lead,
+            user,
+            payload.title.strip(),
+            due,
+            payload.type,
+            {"manualFollowUp": True},
+        )
+        item.owner_user_id = owner_id
+    row = state(db, lead)
+    row.version += 1
+    lead.updated_at = now()
+    refresh_next_follow_up(db, lead)
+    event(
+        db,
+        lead,
+        user,
+        "follow_up_scheduled",
+        "Follow-up rescheduled" if payload.activityId else "Follow-up scheduled",
+        {"activityId": item.id, "ownerId": owner_id, "dueAt": due.isoformat()},
+        payload.title.strip(),
+    )
+    if owner_id != user.id:
+        db.add(
+            Notification(
+                company_id=lead.organization_id,
+                user_id=owner_id,
+                module="crm",
+                event_type="lead_follow_up",
+                title="Lead follow-up assigned",
+                message=f"{lead.full_name}: {payload.title.strip()}",
+                related_entity_type="lead",
+                related_entity_id=lead.id,
+                action_url=f"/crm/leads?lead={lead.id}",
+            )
+        )
+    db.commit()
+    return serialize(db, lead, config(db, lead.organization_id))
+
+
+class TeamNotePayload(Strict):
+    body: str = Field(min_length=1, max_length=4000)
+    mentionIds: list[int] = Field(default_factory=list, max_length=20)
+    version: int = Field(ge=0)
+
+
+@router.post("/leads/{ident}/team-notes")
+def add_team_note(
+    ident: int,
+    payload: TeamNotePayload,
+    db: Session = Depends(get_db),
+    user: User = Depends(RequirePermission(*WRITE)),
+):
+    lead = lead_record(db, user, ident, True, True)
+    check_version(state(db, lead, False), payload.version)
+    if not payload.body.strip():
+        raise HTTPException(422, "Write a team update")
+    members = {member["id"]: member for member in available_teammates(db, user, lead)}
+    ids = list(dict.fromkeys(payload.mentionIds))
+    if any(ident not in members for ident in ids):
+        raise HTTPException(422, "Mention only teammates who have access to this lead")
+    event(
+        db,
+        lead,
+        user,
+        "team_note",
+        "Team update",
+        {
+            "mentionIds": ids,
+            "authorName": members.get(user.id, {}).get("name", user.email),
+        },
+        payload.body.strip(),
+    )
+    for recipient in ids:
+        if recipient != user.id:
+            db.add(
+                Notification(
+                    company_id=lead.organization_id,
+                    user_id=recipient,
+                    module="crm",
+                    event_type="lead_team_mention",
+                    title="You were mentioned on a lead",
+                    message=f"Team update on {lead.full_name}",
+                    related_entity_type="lead",
+                    related_entity_id=lead.id,
+                    action_url=f"/crm/leads?lead={lead.id}",
+                )
+            )
+    state(db, lead).version += 1
+    lead.updated_at = now()
+    db.commit()
+    return {"saved": True}
 
 
 class ActivityPayload(Strict):
@@ -1933,6 +2132,62 @@ def evaluate_alerts(
     return {"notificationsCreated": count}
 
 
+def due_follow_up_reminders(db, org, limit):
+    """Use the existing protected scheduler; one in-app reminder per pending due task."""
+    rows = (
+        db.query(CRMActivity, CRMLead)
+        .join(CRMLead, CRMLead.id == CRMActivity.lead_id)
+        .filter(
+            CRMActivity.organization_id == org,
+            CRMLead.organization_id == org,
+            CRMLead.deleted_at.is_(None),
+            CRMLead.is_converted.is_not(True),
+            CRMLead.status.notin_(["Lost", "Converted"]),
+            CRMActivity.status == "Pending",
+            CRMActivity.due_date <= now(),
+            CRMActivity.metadata_json["followUpReminderAt"].as_string().is_(None),
+        )
+        .order_by(CRMActivity.due_date, CRMActivity.id)
+        .limit(limit)
+        .with_for_update(of=CRMActivity, skip_locked=True)
+        .all()
+    )
+    sent = 0
+    from app.apps.crm.lead_assignment import validate_assignee
+
+    for item, lead in rows:
+        data = state(db, lead, False)
+        if data and data.data_json.get("archived"):
+            continue
+        recipient = db.get(User, item.owner_user_id) if item.owner_user_id else None
+        try:
+            validate_assignee(db, recipient, org)
+            if not visible_query(db, recipient).filter(CRMLead.id == lead.id).first():
+                continue
+        except HTTPException:
+            continue
+        db.add(
+            Notification(
+                company_id=org,
+                user_id=recipient.id,
+                module="crm",
+                event_type="lead_follow_up_due",
+                title="Lead follow-up is due",
+                message=f"{lead.full_name}: {item.subject}",
+                related_entity_type="lead",
+                related_entity_id=lead.id,
+                action_url=f"/crm/leads?lead={lead.id}",
+                priority="high",
+            )
+        )
+        item.metadata_json = {
+            **(item.metadata_json or {}),
+            "followUpReminderAt": now().isoformat(),
+        }
+        sent += 1
+    return sent
+
+
 def scheduled_lead_alerts(db, per_tenant=200):
     """Bounded, tenant-owned SLA escalation for the existing protected cron entry point."""
     organizations = [
@@ -1944,7 +2199,9 @@ def scheduled_lead_alerts(db, per_tenant=200):
     ]
     notifications = 0
     leads_escalated = 0
+    follow_up_reminders = 0
     for org in organizations:
+        follow_up_reminders += due_follow_up_reminders(db, org, per_tenant)
         settings = config(db, org)
         due = now() - timedelta(hours=settings["slaHours"])
         rows = (
@@ -2016,7 +2273,11 @@ def scheduled_lead_alerts(db, per_tenant=200):
             )
             leads_escalated += 1
     db.commit()
-    return {"leadsEscalated": leads_escalated, "notificationsCreated": notifications}
+    return {
+        "leadsEscalated": leads_escalated,
+        "notificationsCreated": notifications + follow_up_reminders,
+        "followUpReminders": follow_up_reminders,
+    }
 
 
 @router.get("/analytics")

@@ -65,6 +65,29 @@ def create(c, d=None, module="pms"):
     return r.json()
 
 
+def test_visual_design_persists_in_public_snapshot(setup):
+    c, *_ = setup
+    design = definition(columns=3, intro_enabled=True, intro_badge="Interns Hub",
+                        intro_title="Build your future", intro_text="Apply today",
+                        surface="gradient")
+    design["fields"][0]["width"] = "full"
+    form = publish(c, design)
+    public = c.get(f'/forms/public/{form["slug"]}')
+    assert public.status_code == 200
+    saved = public.json()["definition"]
+    assert saved["settings"]["columns"] == 3
+    assert saved["settings"]["intro_title"] == "Build your future"
+    assert saved["settings"]["surface"] == "gradient"
+    assert saved["fields"][0]["width"] == "full"
+
+
+@pytest.mark.parametrize("updates", [{"columns":4}, {"surface":"url(javascript:bad)"},
+                                      {"intro_title":"x" * 201}])
+def test_visual_design_rejects_invalid_settings(setup, updates):
+    c, *_ = setup
+    assert c.post("/forms", json={"module_key":"hrms", "definition":definition(**updates)}).status_code == 422
+
+
 def save(c, f, **kw):
     return c.put(
         f'/forms/{f["id"]}',

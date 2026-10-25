@@ -50,7 +50,19 @@ class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
         session_factory = session_factory or SessionLocal
         db = session_factory()
         try:
-            if not is_module_enabled(db, module_key, company_id=1):
+            company_id = 1
+            from app.core.security import verify_access_token
+            from app.models.user import User
+            from app.access.service import primary_company, companies_for
+            payload = verify_access_token(request.headers.get("authorization", "").partition(" ")[2]) or {}
+            subject = str(payload.get("sub", ""))
+            actor = db.get(User, int(subject)) if subject.isdecimal() else None
+            if actor:
+                company_id = primary_company(actor)
+                requested = request.headers.get("X-Suite-Organization", "")
+                if requested.isdecimal() and (actor.is_superuser or int(requested) in companies_for(db, actor)):
+                    company_id = int(requested)
+            if not is_module_enabled(db, module_key, company_id=company_id):
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
                     content={

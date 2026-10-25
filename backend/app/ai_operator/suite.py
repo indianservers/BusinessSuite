@@ -3,6 +3,7 @@
 Execution is checkpointed, not a cross-module transaction. An in-flight write
 whose outcome is unknown requires reconciliation and is never automatically retried.
 """
+from app.access.catalog import permission_objects
 import json
 from typing import Literal
 from datetime import datetime, timedelta, timezone
@@ -89,6 +90,8 @@ class Approval(Strict):
 
 
 def authorize(db, user, workspace_id, module=None):
+    from app.access.service import check_background_access
+    check_background_access(db, user, "ai", "view")
     _require_ai_access(user)
     assert_module_enabled(db, 'ai', company_id_for(user) or 1)
     AiUsageService(db).check_limits(user=user, agent=None, module='CROSS')
@@ -107,11 +110,13 @@ def check_tool(db, user, workspace_id, step, write=None):
     if not tool:
         raise HTTPException(422, 'Unsupported suite tool')
     authorize(db, user, workspace_id, tool.module)
+    from app.access.service import check_background_access
+    check_background_access(db, user, MODULES[tool.module], "view" if tool.method == "GET" else "create" if tool.method == "POST" else "edit")
     if write is not None and (tool.method != 'GET') != write:
         raise HTTPException(422, 'Select read tools for context and action tools for plans')
     if step.tool in ('hrms.my_leave', 'hrms.leave_balance', 'hrms.request_leave', 'hrms.create_ticket') and not getattr(user, 'employee', None):
         raise HTTPException(422, 'An employee profile is required for personal HR actions and records')
-    permissions = {p.name for p in user.role.permissions} if user.role else set()
+    permissions = {p.name for p in permission_objects(user)}
     if tool.permissions and not user.is_superuser and not permissions.intersection(tool.permissions):
         raise HTTPException(403, 'Action permission required')
     if ('{record_id}' in tool.path or (tool.project_target and not tool.optional_project)) and step.record_id is None:

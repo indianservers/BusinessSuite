@@ -1,3 +1,4 @@
+from app.access.catalog import permission_objects
 from typing import List, Optional
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -50,7 +51,7 @@ def _role_name(user: User) -> str:
 
 
 def _user_permissions(user: User) -> set[str]:
-    return {permission.name for permission in (user.role.permissions if user.role else [])}
+    return {permission.name for permission in (permission_objects(user))}
 
 
 def _is_hr_admin(user: User) -> bool:

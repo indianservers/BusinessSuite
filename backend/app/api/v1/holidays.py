@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 import json
 from datetime import date
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/holidays", tags=["Holidays"])
 
 
 def _user_permissions(user: User) -> set[str]:
-    return {permission.name for permission in (user.role.permissions if user.role else [])}
+    return {permission.name for permission in (permission_objects(user))}
 
 
 def _ensure_hr_admin(user: User) -> None:

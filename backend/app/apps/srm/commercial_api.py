@@ -1,4 +1,5 @@
 """Module entry points for the same commercial records and services."""
+from app.access.catalog import permission_objects
 
 from datetime import date
 from decimal import Decimal
@@ -97,7 +98,7 @@ def customers(
         CRMCompany.id > after,
     )
     # Respect existing CRM record visibility for CRM-only callers.
-    names = {p.name for p in (user.role.permissions if user.role else [])}
+    names = {p.name for p in (permission_objects(user))}
     if not user.is_superuser and not names.intersection(set(DIRECTORY[3:])):
         from app.apps.crm.api.router import _apply_record_visibility, _get_resource
 
@@ -330,7 +331,7 @@ def billing(
         .limit(200)
         .all()
     )
-    names = {p.name for p in (user.role.permissions if user.role else [])}
+    names = {p.name for p in (permission_objects(user))}
     return {
         "commercial": output(ctx) if ctx else None,
         "customer": (
@@ -733,7 +734,7 @@ def invoice_detail(
     require(user, *FINANCE)
     invoice = invoice_for(db, invoice_id, user)
     ctx = db.get(InvoiceContext, invoice_id)
-    names = {p.name for p in (user.role.permissions if user.role else [])}
+    names = {p.name for p in (permission_objects(user))}
     return _invoice_payload(invoice, db) | {
         "context": output(ctx) if ctx else None,
         "history": [

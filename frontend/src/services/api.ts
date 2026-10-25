@@ -26,6 +26,8 @@ export const api = axios.create({
 
 // Request interceptor: attach access token
 api.interceptors.request.use((config) => {
+  const organization = sessionStorage.getItem("suite-organization");
+  if (organization) config.headers["X-Suite-Organization"] = organization;
   if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {
     const maxBytes = config.uploadLimitBytes ?? Number(import.meta.env.VITE_MAX_UPLOAD_MB || 3) * 1024 * 1024;

@@ -1,3 +1,4 @@
+from app.access.catalog import permission_objects
 from app.core.input_validation import national_phone, calling_code, email_address, clean_text, EmailAddress
 from app.core.storage import persist_file
 from datetime import date, datetime, timedelta, timezone
@@ -147,7 +148,7 @@ def _org_id(user: User) -> int | None:
 def _has_permission(user: User, permission: str) -> bool:
     if user.is_superuser:
         return True
-    return permission in {p.name for p in (user.role.permissions if user.role else [])}
+    return permission in {p.name for p in (permission_objects(user))}
 
 
 def _can_manage_directory(user: User) -> bool:
@@ -1102,7 +1103,7 @@ def create_employee_change_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not current_user.is_superuser and not any(p.name == "employee_update" for p in (current_user.role.permissions if current_user.role else [])):
+    if not current_user.is_superuser and not any(p.name == "employee_update" for p in (permission_objects(current_user))):
         if not current_user.employee or current_user.employee.id != data.employee_id:
             raise HTTPException(status_code=403, detail="Not authorized to request changes for this employee")
     employee = db.query(Employee).filter(
@@ -1149,8 +1150,8 @@ def list_employee_change_requests(
 ):
     query = db.query(EmployeeChangeRequest)
     role_name = (current_user.role.name if current_user.role else "").lower().replace(" ", "_")
-    has_employee_view = current_user.is_superuser or any(p.name == "employee_view" for p in (current_user.role.permissions if current_user.role else []))
-    has_employee_update = current_user.is_superuser or any(p.name == "employee_update" for p in (current_user.role.permissions if current_user.role else []))
+    has_employee_view = current_user.is_superuser or any(p.name == "employee_view" for p in (permission_objects(current_user)))
+    has_employee_update = current_user.is_superuser or any(p.name == "employee_update" for p in (permission_objects(current_user)))
     if not has_employee_view and not current_user.employee:
         raise HTTPException(status_code=403, detail="Not authorized to view change requests")
     if not has_employee_update:
@@ -1246,7 +1247,7 @@ def review_employee_change_request(
     ).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
-    has_employee_update = any(p.name == "employee_update" for p in (current_user.role.permissions if current_user.role else []))
+    has_employee_update = any(p.name == "employee_update" for p in (permission_objects(current_user)))
     is_direct_manager = bool(current_user.employee and employee.reporting_manager_id == current_user.employee.id)
     if not (current_user.is_superuser or has_employee_update or is_direct_manager):
         raise HTTPException(status_code=403, detail="Not authorized to review this change request")
@@ -1518,7 +1519,7 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    can_update = current_user.is_superuser or any(p.name == "employee_update" for p in (current_user.role.permissions if current_user.role else []))
+    can_update = current_user.is_superuser or any(p.name == "employee_update" for p in (permission_objects(current_user)))
     is_self = bool(current_user.employee and current_user.employee.id == employee_id)
     if not (can_update or is_self):
         raise HTTPException(status_code=403, detail="Not authorized to upload documents for this employee")
@@ -1589,7 +1590,7 @@ async def upload_photo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    can_update = current_user.is_superuser or any(p.name == "employee_update" for p in (current_user.role.permissions if current_user.role else []))
+    can_update = current_user.is_superuser or any(p.name == "employee_update" for p in (permission_objects(current_user)))
     is_self = bool(current_user.employee and current_user.employee.id == employee_id)
     if not (can_update or is_self):
         raise HTTPException(status_code=403, detail="Not authorized to upload photo for this employee")

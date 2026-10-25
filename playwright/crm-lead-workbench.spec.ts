@@ -33,6 +33,9 @@ async function setup(page: Page, canManage = true) {
     else if (path === "/leads/1" && method === "PATCH") { const data = request.postDataJSON(); lead = { ...lead, ...data.values, details: { ...lead.details, ...data.details }, version: lead.version + 1 }; body = lead; }
     else if (path === "/leads/1") body = lead;
     else if (path === "/leads/2") body = captured;
+    else if (path === "/leads/1/team") body = { members: [{ id: 100, name: "Admin" }, { id: 101, name: "Priya Shah (EMP-101)" }] };
+    else if (path === "/leads/1/team-notes") { const data = request.postDataJSON(); lead.timeline.unshift({ id: 2, title: "Team update", event_type: "team_note", actor_user_id: 100, occurred_at: new Date().toISOString(), description: data.body, metadata_json: { authorName: "Admin", mentionIds: data.mentionIds } } as any); lead.version++; body = { saved: true }; }
+    else if (path === "/leads/1/follow-up") { lead.next_follow_up_at = request.postDataJSON().dueAt; lead.version++; body = lead; }
     else if (path === "/leads/1/activity") body = { saved: true };
     else if (path === "/leads/1/sequence") body = { sequence: { name: "Standard follow-up", active: true } };
     else if (path === "/capture-settings") { if (method === "PUT") capture = { ...request.postDataJSON(), path: "/api/v1/crm/lead-management/capture/1/public-token" }; body = capture; }
@@ -196,4 +199,94 @@ test("analytics, website capture and booking link controls are wired", async ({ 
   await page.getByRole("button", { name: "activities", exact: true }).click();
   await page.getByRole("button", { name: "Create booking link", exact: true }).click();
   await expect(page.getByLabel("Share this booking link", { exact: true })).toHaveValue(/booking-token/);
+});
+
+
+test("drag a lead between status lanes persists the stage", async ({ page }) => {
+  await page.setViewportSize({ width: 1500, height: 1100 });
+  const mutations = await setup(page);
+  await page.getByRole("button", { name: "board view", exact: true }).click();
+  const handle = page.getByRole("button", { name: "Drag Nisha Rao", exact: true });
+  await handle.scrollIntoViewIfNeeded();
+  const source = await handle.boundingBox();
+  const target = await page.locator('[data-lane="Contacted"]').boundingBox();
+  expect(source).toBeTruthy(); expect(target).toBeTruthy();
+  await page.mouse.move(source!.x + source!.width / 2, source!.y + source!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(source!.x + 20, source!.y + 20, { steps: 4 });
+  await page.mouse.move(target!.x + target!.width / 2, target!.y + 100, { steps: 18 });
+  await page.mouse.up();
+  await expect.poll(() => mutations.some(m => m.path === "/leads/1" && (m.data as any).values.status === "Contacted")).toBe(true);
+  await expect(page.locator('[data-lane="Contacted"]').getByRole("button", { name: "Nisha Rao", exact: true })).toBeVisible();
+  await page.screenshot({ path: "../docs/qa/crm-workflow/status-board.png", fullPage: true });
+});
+
+test("accessible board menu assigns a lead to a team member", async ({ page }) => {
+  const mutations = await setup(page);
+  await page.getByRole("button", { name: "board view", exact: true }).click();
+  await page.getByLabel("Group board by").selectOption("owner");
+  await page.getByLabel("Move Nisha Rao").selectOption("101");
+  await expect.poll(() => mutations.some(m => m.path === "/leads/1" && (m.data as any).values.owner_user_id === 101)).toBe(true);
+  await expect(page.locator('[data-lane="101"]').getByRole("button", { name: "Nisha Rao", exact: true })).toBeVisible();
+});
+
+test("follow-up board opens scheduler and saves a future task", async ({ page }) => {
+  const mutations = await setup(page);
+  await page.getByRole("button", { name: "board view", exact: true }).click();
+  await page.getByLabel("Group board by").selectOption("follow");
+  await page.getByLabel("Move Nisha Rao").selectOption("tomorrow");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByLabel("Follow-up title").fill("Confirm budget with procurement");
+  await page.getByLabel("Follow-up assignee").selectOption("101");
+  await page.getByRole("button", { name: "Save follow-up", exact: true }).click();
+  await expect.poll(() => mutations.some(m => m.path === "/leads/1/follow-up" && (m.data as any).ownerId === 101)).toBe(true);
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+});
+
+test("team updates retain context and selected mention recipients", async ({ page }) => {
+  const mutations = await setup(page);
+  await page.getByRole("button", { name: "Nisha Rao", exact: true }).click();
+  await page.getByRole("button", { name: "team", exact: true }).click();
+  await page.getByLabel("Team update", { exact: true }).fill("Priya: budget approved, please arrange the demo.");
+  await page.getByText("Notify teammates (0)", { exact: true }).click();
+  await page.getByLabel("Priya Shah (EMP-101)", { exact: true }).check();
+  await page.getByRole("button", { name: "Post team update", exact: true }).click();
+  await expect.poll(() => mutations.find(m => m.path === "/leads/1/team-notes")).toBeTruthy();
+  await expect(page.locator(".lm-team-thread")).toContainText("budget approved");
+  expect((mutations.find(m => m.path === "/leads/1/team-notes")!.data as any).mentionIds).toEqual([101]);
+});
+
+test("read-only team board does not expose drag or schedule controls", async ({ page }) => {
+  await setup(page, false);
+  await page.getByRole("button", { name: "board view", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Drag Nisha Rao" })).toHaveCount(0);
+  await expect(page.getByLabel("Move Nisha Rao")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Follow up", exact: true })).toHaveCount(0);
+});
+
+
+test("failed follow-up saves keep the draft and mobile board fits viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.getByRole("button", { name: "board view", exact: true }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await page.getByRole("button", { name: "Follow up", exact: true }).click();
+  await page.route("**/api/v1/crm/lead-management/leads/1/follow-up", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ detail: "This lead changed. Refresh before saving" }) }));
+  await page.getByLabel("Follow-up title").fill("Preserve this call plan");
+  await page.getByRole("button", { name: "Save follow-up", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("This lead changed");
+  await expect(page.getByLabel("Follow-up title")).toHaveValue("Preserve this call plan");
+  await page.getByRole("button", { name: "Refresh lead, keep draft", exact: true }).click();
+  await expect(page.getByLabel("Follow-up title")).toHaveValue("Preserve this call plan");
+  await page.screenshot({ path: "../docs/qa/crm-workflow/follow-up-mobile.png", fullPage: true });
+});
+
+test("unsaved team updates request confirmation before leaving", async ({ page }) => {
+  await setup(page);
+  await page.getByRole("button", { name: "Nisha Rao", exact: true }).click();
+  await page.getByRole("button", { name: "team", exact: true }).click();
+  await page.getByLabel("Team update", { exact: true }).fill("Keep this handoff draft");
+  page.once("dialog", dialog => dialog.dismiss());
+  await page.getByRole("button", { name: "overview", exact: true }).click();
+  await expect(page.getByLabel("Team update", { exact: true })).toHaveValue("Keep this handoff draft");
 });

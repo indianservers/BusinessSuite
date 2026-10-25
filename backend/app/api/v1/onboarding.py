@@ -1,3 +1,4 @@
+from app.access.catalog import permission_objects
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -31,7 +32,7 @@ router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 
 
 def _permissions(user: User) -> set[str]:
-    return {permission.name for permission in (user.role.permissions if user.role else [])}
+    return {permission.name for permission in (permission_objects(user))}
 
 
 def _role_name(user: User) -> str:

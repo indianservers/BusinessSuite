@@ -192,6 +192,11 @@ class OperatorExecutor:
         return execute_setup(self.db, user, proposal)
 
     def execute_run(self, user, proposal):
+        from app.access.service import background_scope
+        with background_scope(self.db, user, "project_management", "edit"):
+            return self._execute_scoped_run(user, proposal)
+
+    def _execute_scoped_run(self, user, proposal):
         db = self.db
         data = proposal.get("input", proposal)
         run = db.query(OperatorRun).filter_by(id=data["run_id"], user_id=user.id).with_for_update().first()

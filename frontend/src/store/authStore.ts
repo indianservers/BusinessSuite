@@ -28,6 +28,7 @@ export interface AuthUser {
   role: string | null;
   is_superuser: boolean;
   employee_id?: number | null;
+  access?: { managed: boolean; companyId: number; grants: Record<string, { enabled: boolean; role: string; scope: string; permissions: string[]; actions: string[] }>; modules: { key: string; route: string; label: string }[]; isAccessAdmin: boolean; isGlobalAdmin: boolean; memberships: number[] };
 }
 
 interface AuthState {
@@ -57,13 +58,15 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
       setHydrated: (isHydrated) => set({ isHydrated }),
 
-      logout: () =>
+      logout: () => {
+        sessionStorage.removeItem("suite-organization");
         set({
           accessToken: null,
           refreshToken: null,
           user: null,
           isAuthenticated: false,
-        }),
+        });
+      },
       }),
     {
       name: "hrms-auth",

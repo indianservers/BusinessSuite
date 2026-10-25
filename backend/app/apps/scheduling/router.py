@@ -1,4 +1,5 @@
 """Persisted scheduling adapters. Native records remain the source of truth."""
+from app.access.catalog import permission_objects
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import uuid4
@@ -20,7 +21,7 @@ def fail(detail, code=422):
 
 
 def permission(user, names):
-    return user.is_superuser or bool(set(names) & {p.name for p in (user.role.permissions if user.role else [])})
+    return user.is_superuser or bool(set(names) & {p.name for p in (permission_objects(user))})
 
 
 def context(db, user, module, source):

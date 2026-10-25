@@ -1,3 +1,4 @@
+from app.access.catalog import permission_objects
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 import csv
@@ -52,7 +53,7 @@ def _locked_month(db: Session, value: date) -> bool:
 
 
 def _user_permissions(user: User) -> set[str]:
-    return {permission.name for permission in (user.role.permissions if user.role else [])}
+    return {permission.name for permission in (permission_objects(user))}
 
 
 def _can_view_all_attendance(user: User) -> bool:

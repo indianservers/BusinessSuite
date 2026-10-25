@@ -1,4 +1,5 @@
 """Employee-aware lead ownership; stored identifiers always remain users.id."""
+from app.access.catalog import permission_objects
 
 from datetime import datetime, timezone
 
@@ -65,7 +66,7 @@ def ineligible_reason(candidate, organization_id, employee=None):
     ):
         return "Employee identity is inactive"
     permissions = {
-        p.name for p in (candidate.role.permissions if candidate.role else [])
+        p.name for p in (permission_objects(candidate))
     }
     if not candidate.is_superuser and not permissions.intersection(LEAD_ACCESS):
         return "Needs CRM lead access on the linked account"

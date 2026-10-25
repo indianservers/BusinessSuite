@@ -30,6 +30,8 @@ const CustomizationStudioPage = React.lazy(() => import("@/apps/customization/Cu
 const AnalyticsPage = React.lazy(() => import("@/apps/analytics/AnalyticsPage"));
 const BusinessOSAdminPage = React.lazy(() => import("@/apps/business-os/BusinessOSAdminPage"));
 const BusinessOSWorkspacePage = React.lazy(() => import("@/apps/business-os/BusinessOSWorkspacePage"));
+const UsersAccessPage = React.lazy(() => import("@/features/access/UsersAccessPage"));
+const AccessInvitationPage = React.lazy(() => import("@/features/access/UsersAccessPage").then(m => ({ default: m.AccessInvitationPage })));
 
 const appRoutes: Record<string, FrontendRoute[]> = {
   hrms: hrmsRoutes,
@@ -104,8 +106,21 @@ export default function App() {
       setBusinessOsEnabledModules(response.data.enabled_modules || []);
     }).catch(() => undefined);
   }, [isHydrated, isAuthenticated]);
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) return;
+    const load = () => api.get("/access/me").then(({data}) => {
+      if (typeof data.managed !== "boolean") return;
+      const state = useAuthStore.getState();
+      if (state.user) state.setUser({ ...state.user, access: data });
+    }).catch(() => undefined);
+    load();
+    const timer = window.setInterval(load, 45000);
+    window.addEventListener("focus", load);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", load); };
+  }, [isHydrated, isAuthenticated]);
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
+    { path: "admin/access", element: <UsersAccessPage /> },
     ...["pms","crm","srm","hrms","fam"].flatMap(module=>["published","responses","custom-fields","new",":formId/edit",":formId/responses"].map(path=>({path:`${module}/forms/${path}`,element:<SharedFormsPage/>}))),
     ...["pms","crm","srm","hrms","fam"].map(module=>({path:`${module}/forms/:formId/view`,element:<PublicFormPage internal/>})),
     ...["crm","srm","hrms","fam"].map(module=>({path:`${module}/forms`,element:<SharedFormsPage/>})),
@@ -164,6 +179,7 @@ export default function App() {
           <Route path="/f/:slug" element={<PublicFormPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/reset-password" element={<LoginPage />} />
+          <Route path="/invite-access" element={<AccessInvitationPage />} />
           <Route path="/hrms/login" element={<LoginPage />} />
           <Route path="/crm/login" element={<LoginPage />} />
           <Route path="/pms/login" element={<LoginPage />} />

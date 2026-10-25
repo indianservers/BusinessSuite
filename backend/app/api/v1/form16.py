@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 from app.core.storage import persist_file, upload_exists, materialize_file, FileResponse
 
 import os
@@ -36,7 +37,7 @@ def _money(value: Any) -> Decimal:
 def _has_permission(user: User, permission: str) -> bool:
     if user.is_superuser:
         return True
-    return permission in {p.name for p in (user.role.permissions if user.role else [])}
+    return permission in {p.name for p in (permission_objects(user))}
 
 
 def _can_manage(user: User) -> bool:

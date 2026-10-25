@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/store/authStore";
 import {
   AlertTriangle,
   BarChart3,
@@ -1115,6 +1116,15 @@ function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
 }
 
 export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
+  const access = useAuthStore.getState().user?.access;
+  if (access?.managed && !isSuperuser) {
+    const module = [...access.modules].sort((a,b) => b.route.length-a.route.length).find(m => pathname === m.route || pathname.startsWith(m.route + "/"));
+    if (module) {
+      if (!access.grants[module.key]?.enabled) return [];
+      const nav = module.key === "crm" ? crmNav : module.key === "project_management" ? projectManagementNav : module.key === "srm" ? srmNav : module.key === "fam" ? famNav : module.key === "hrms" ? adminNav : [];
+      return nav.filter(item => canAccessRoute(item.to, role, isSuperuser));
+    }
+  }
   const installedApps = getInstalledAppKeys();
   const key = getRoleKey(role, isSuperuser);
   const activeModule = getActiveModule(pathname);
@@ -1260,6 +1270,12 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  const access = useAuthStore.getState().user?.access;
+  if (pathname.startsWith("/admin/access")) return isSuperuser || Boolean(access?.isAccessAdmin);
+  if (access?.managed && !isSuperuser) {
+    const module = [...access.modules].sort((a,b) => b.route.length-a.route.length).find(m => pathname === m.route || pathname.startsWith(m.route + "/"));
+    if (module) return Boolean(access.grants[module.key]?.enabled);
+  }
   // Linked-record entry is authenticated by App; financial/project permissions stay server-authoritative.
   if (/^\/srm\/invoices\/\d+\/?$/.test(pathname) || /^\/pms\/projects\/\d+\/billing\/?$/.test(pathname)) return true;
   const lowercasePathname = pathname.toLowerCase();

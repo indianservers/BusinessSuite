@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -35,7 +36,7 @@ def organization_id_for(user: User) -> int | None:
 def user_permission_names(user: User) -> set[str]:
     if user.is_superuser:
         return {"*"}
-    return {permission.name for permission in (user.role.permissions if user.role else [])}
+    return {permission.name for permission in (permission_objects(user))}
 
 
 def has_any_permission(user: User, permissions: set[str]) -> bool:

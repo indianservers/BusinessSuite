@@ -1,3 +1,4 @@
+from app.access.catalog import permission_objects
 from typing import Any
 
 from app.models.user import User
@@ -44,7 +45,7 @@ LIST_SENSITIVE_EMPLOYEE_FIELDS = {"personal_email", "phone_number"}
 def user_has_permission(user: User, permission: str) -> bool:
     if user.is_superuser:
         return True
-    return permission in {p.name for p in (user.role.permissions if user.role else [])}
+    return permission in {p.name for p in (permission_objects(user))}
 
 
 def can_view_sensitive_employee(user: User, employee_id: int | None = None) -> bool:

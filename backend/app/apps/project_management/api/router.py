@@ -1,4 +1,5 @@
 """Project Management (KaryaFlow) API routes."""
+from app.access.catalog import permission_objects
 import base64
 import hashlib
 import hmac
@@ -2101,7 +2102,7 @@ def get_project(
 
         from app.apps.srm.access import engagement_query
         from app.apps.srm.services.commercial import scoped
-        names = {p.name for p in (current_user.role.permissions if current_user.role else [])}
+        names = {p.name for p in (permission_objects(current_user))}
         can_view_commercial = current_user.is_superuser or bool(names.intersection({"srm_engagement_view", "srm_admin"}))
         engagement = engagement_query(db, current_user).filter(SRMEngagement.pms_project_id == project.id).first() if can_view_commercial else None
         sales_order = db.query(SRMSalesOrder).filter(scoped(SRMSalesOrder.organization_id, current_user), SRMSalesOrder.id == engagement.sales_order_id, SRMSalesOrder.deleted_at == None).first() if engagement and engagement.sales_order_id else None

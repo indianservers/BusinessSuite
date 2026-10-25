@@ -17,6 +17,8 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import FormResponse from "./FormResponse";
+import FormAppearance from "./FormAppearance";
 import {
   download,
   fresh,
@@ -146,6 +148,9 @@ export default function FormBuilder({
   open: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const [canvas, setCanvas] = useState(true);
+  const [mobile, setMobile] = useState(false);
+  const [pendingTemplate, setPendingTemplate] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const field = draft.fields.find((f) => f.id === selected);
   const sensors = useSensors(
@@ -236,20 +241,26 @@ export default function FormBuilder({
                 ))}
             </div>
             <h3>Start with a template</h3>
-            {["Support request", "Project brief", "Feedback survey"].map(
+            {pendingTemplate && <p role="status">Click {pendingTemplate} again to replace the current questions. <button type="button" onClick={() => setPendingTemplate("")}>Cancel</button></p>}
+            {["Internship application", "Support request", "Project brief", "Feedback survey"].map(
               (name) => (
                 <button
                   className="form-template"
                   key={name}
                   onClick={() => {
-                    if (
-                      !window.confirm(
-                        "Replace the current questions with this template?",
-                      )
-                    )
-                      return;
+                    if (pendingTemplate !== name) { setPendingTemplate(name); return; }
+                    setPendingTemplate("");
                     const d = fresh();
                     d.name = name;
+                    if (name === "Internship application") {
+                      d.name = "Join our internship program";
+                      d.description = "Register your details to apply for internship opportunities.";
+                      d.accent = "#4255ff";
+                      d.submit_label = "Submit application";
+                      d.settings = {...d.settings!, columns: 3, intro_enabled: true, intro_badge: "Build your future", intro_title: "Kickstart your career with real-world experience", intro_text: "Join our internship program and gain hands-on experience, learn from industry experts, and turn your skills into opportunities.", surface: "soft"};
+                      d.fields = ([['text','Full name'], ['text','Parent / guardian name'], ['phone','Mobile number'], ['email','Email address'], ['select','Current degree'], ['date','Date of birth'], ['text','College / university'], ['text','Branch / specialization'], ['select','Internship mode'], ['textarea','Current address'], ['checkbox','I confirm that my details are correct']] as [Kind,string][]).map(([type,label]) => ({...question(type,label), required:true, width: type === 'textarea' || type === 'checkbox' ? 'full' as const : 'auto' as const, options: label === 'Current degree' ? ['B.Tech / B.E.', 'B.Sc', 'B.Com', 'Other'] : ['On-site', 'Remote', 'Hybrid']}));
+                      d.workflow.title_field = d.fields[0].id;
+                    }
                     if (name === "Feedback survey")
                       d.fields.push(
                         question("rating", "How was your experience?"),
@@ -289,6 +300,11 @@ export default function FormBuilder({
           </details>
         </aside>
         <main className="forms-canvas">
+          <div className="form-visual-toolbar" role="group" aria-label="Canvas view">
+            <button aria-pressed={canvas} onClick={() => setCanvas(true)}>✦ Visual editor</button>
+            <button aria-pressed={!canvas} onClick={() => setCanvas(false)}>☷ Arrange fields</button>
+            <button aria-pressed={mobile} onClick={() => setMobile(!mobile)}>{mobile ? "Desktop view" : "Mobile view"}</button>
+          </div>
           <div className="form-canvas-heading">
             <input
               aria-label="Form name"
@@ -303,7 +319,7 @@ export default function FormBuilder({
               onChange={(e) => edit({ ...draft, description: e.target.value })}
             />
           </div>
-          <SortableContext
+          {canvas ? <FormResponse definition={draft} mobile={mobile} disabled={false} submit={async () => {}} editor={{ selected, select: setSelected, label: (id, label) => patch(id, {label}) }} /> : <SortableContext
             items={draft.fields.map((f) => f.id)}
             strategy={verticalListSortingStrategy}
           >
@@ -342,7 +358,7 @@ export default function FormBuilder({
                 }}
               />
             ))}
-          </SortableContext>
+          </SortableContext>}
           <button className="form-add-question" onClick={() => add("text")}>
             ＋ Add question
           </button>
@@ -354,8 +370,15 @@ export default function FormBuilder({
               : "Question settings"}
           </h2>
           <p>Configure this field · General & rules</p>
+          <details className="form-appearance-details"><summary>Layout & appearance</summary><FormAppearance draft={draft} edit={edit} /></details>
           {field ? (
             <>
+              <label>
+                Field width
+                <select value={field.width || "auto"} onChange={e => patch(field.id, {width: e.target.value as "auto" | "full"})}>
+                  <option value="auto">Fit grid column</option><option value="full">Full row</option>
+                </select>
+              </label>
               <label>
                 Label
                 <input

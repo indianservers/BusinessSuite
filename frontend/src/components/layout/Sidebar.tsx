@@ -4,7 +4,7 @@ import MessagingNavLink from "./MessagingNavLink";
 import PMSMoreMenu from "./PMSMoreMenu";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { Fragment, useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Sparkles, UserCircle, X, LogOut, Search, MoreHorizontal } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -107,6 +107,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
         </div>
 
         {!collapsed && <ModuleSwitcher />}
+        {(user?.is_superuser || user?.access?.isAccessAdmin) && <Link to="/admin/access" onClick={onClose} className="mx-3 my-2 rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium hover:bg-sidebar-accent">Users & Access</Link>}
         {/* Collapse toggle when collapsed */}
         {collapsed && (
           <Button

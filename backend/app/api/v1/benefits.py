@@ -1,3 +1,4 @@
+from app.access.catalog import permission_objects
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
@@ -48,7 +49,7 @@ router = APIRouter(prefix="/benefits", tags=["Benefits Administration"])
 
 
 def _has_permission(user: User, permission: str) -> bool:
-    return user.is_superuser or permission in {item.name for item in (user.role.permissions if user.role else [])}
+    return user.is_superuser or permission in {item.name for item in (permission_objects(user))}
 
 
 @router.post("/plans", response_model=BenefitPlanSchema, status_code=201)

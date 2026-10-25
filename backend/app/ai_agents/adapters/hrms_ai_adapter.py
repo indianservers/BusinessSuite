@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 from datetime import date
 from typing import Any
@@ -22,7 +23,7 @@ class HrmsAiAdapter(AiAdapterBase):
     def _permission_names(self, user: User) -> set[str]:
         if user.is_superuser:
             return {"*"}
-        return {permission.name for permission in (user.role.permissions if user.role else [])}
+        return {permission.name for permission in (permission_objects(user))}
 
     def _can_view_employee(self, user: User, employee: Employee) -> bool:
         if user.is_superuser or "*" in self._permission_names(user) or "employee_view" in self._permission_names(user):

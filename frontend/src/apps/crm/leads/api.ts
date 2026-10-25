@@ -85,7 +85,11 @@ export type Lead = {
     event_type: string;
     actor_user_id?: number;
     occurred_at: string;
-    metadata_json?: { durationHours?: number };
+    metadata_json?: {
+      durationHours?: number;
+      mentionIds?: number[];
+      authorName?: string;
+    };
   }[];
   activities?: {
     id: number;
@@ -93,6 +97,7 @@ export type Lead = {
     status: string;
     due_date?: string;
     activity_type: string;
+    owner_user_id?: number;
   }[];
   scoreReasons?: { name: string; matched: boolean; points: number }[];
 };
@@ -132,6 +137,7 @@ export type Bootstrap = {
   }[];
   canManage: boolean;
   canAdmin: boolean;
+  canAssign?: boolean;
   userId: number;
 };
 export type ImportPreview = {
@@ -175,6 +181,21 @@ export type LeadAnalytics = {
 };
 const root = "/crm/lead-management";
 export const leadsApi = {
+  team: (id: number) =>
+    api.get<{ members: Bootstrap["owners"] }>(`${root}/leads/${id}/team`),
+  teamNote: (id: number, body: string, mentionIds: number[], version: number) =>
+    api.post(`${root}/leads/${id}/team-notes`, { body, mentionIds, version }),
+  followUp: (
+    id: number,
+    data: {
+      title: string;
+      dueAt: string;
+      type: string;
+      ownerId?: number;
+      activityId?: number;
+      version: number;
+    },
+  ) => api.post<Lead>(`${root}/leads/${id}/follow-up`, data),
   analytics: () => api.get<LeadAnalytics>(`${root}/analytics`),
   bootstrap: () => api.get<Bootstrap>(`${root}/settings`),
   settings: (settings: Settings) => api.put(`${root}/settings`, settings),

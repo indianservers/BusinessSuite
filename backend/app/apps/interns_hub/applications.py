@@ -1,4 +1,5 @@
 """Public applications do not create employee accounts until HRMS approves them."""
+from app.access.catalog import permission_objects
 import base64
 import hashlib
 from datetime import date, datetime, timezone, timedelta
@@ -33,7 +34,7 @@ def today():
 
 def application_admin(user=Depends(get_current_user)):
     role = user.role.name.lower() if user.role else ""
-    permissions = {p.name for p in user.role.permissions} if user.role else set()
+    permissions = {p.name for p in permission_objects(user)}
     if not user.is_superuser and not permissions.intersection({'employee_create','intern_management_manage'}):
         raise HTTPException(403, "HRMS recruitment approval permission required")
     if user.employee and (user.employee.employment_type or "").lower() == "intern":

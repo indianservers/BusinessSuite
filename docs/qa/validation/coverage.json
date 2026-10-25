@@ -1,0 +1,54 @@
+{
+  "generated_at_utc": "2026-10-25T19:24:54.341311+00:00",
+  "scope": "Web Business Suite and standalone Interns Hub; server guards cover changed persisted fields across mapped modules",
+  "counts": {
+    "web_form_control_files": 166,
+    "phone_related_source_files": 34,
+    "phone_models": 22,
+    "phone_columns": 28,
+    "contact_consumer_files": 72
+  },
+  "verification_by_file": {
+    "frontend/interns-hub/src/ApplicationPage.tsx": [
+      "Browser: invalid phone/email, full-number paste rejection, searchable codes, draft restore, Unicode mononym, review/masked ID, optional 12th marks, password/consent blocking",
+      "390px: promotional panel hidden, no horizontal overflow"
+    ],
+    "frontend/src/apps/hrms/pages/employees/AddEmployeePage.tsx": [
+      "Browser: blank-name rejection, optional last name, step advancement, invalid contact blocking, valid synthetic employee creation"
+    ],
+    "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx": [
+      "Browser: reopen +1 with leading zeros, change to +44, save and reopen; 390px editor and invalid phone blocking",
+      "API regression: null/empty last name for mononyms, missing/unsupported country code, email/name validation"
+    ],
+    "frontend/interns-hub/src/AccountPages.tsx": [
+      "Production build/type check; profile API contracts; individual browser edit not run"
+    ],
+    "frontend/src/features/forms/FormResponse.tsx": [
+      "Shared phone control; API tests for required fields, separate code, malformed input, and payload limits"
+    ],
+    "frontend/src/apps/project-management/components/TaskCustomFields.tsx": [
+      "API/service create/edit/reopen tests; production build; individual browser edit not run"
+    ],
+    "frontend/src/apps/crm/CRMWorkspacePage.tsx": [
+      "Lead/contact/company controls and payload mapping reviewed; CRM API regression group; production build"
+    ],
+    "frontend/src/apps/crm/CRMRecordDetailPage.tsx": [
+      "Phone inline/modal/custom/enrichment/call/message editors reviewed; API regressions and production build"
+    ],
+    "frontend/src/apps/hrms/pages/company/CompanyPage.tsx": [
+      "Calling-code controls reviewed; backend company constraints; production build"
+    ],
+    "frontend/src/apps/hrms/pages/settings/SettingsPage.tsx": [
+      "Calling-code controls reviewed; production build"
+    ],
+    "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx": [
+      "Calling-code controls and approval requests reviewed; profile API regression tests; production build"
+    ]
+  },
+  "limitations": [
+    "Inventory entries are source files, not a count of unique forms. Phone/mobile token matches include display-only and responsive-layout code.",
+    "Individual browser create/edit coverage is not complete for every inventoried form.",
+    "Native Flutter client UI was not modified or device-tested in this change.",
+    "Seven disposable-PostgreSQL integration tests were skipped in the full-suite run; the real configured PostgreSQL contact migration was separately applied and preservation-checked."
+  ]
+}

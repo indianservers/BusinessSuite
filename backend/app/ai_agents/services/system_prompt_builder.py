@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 from datetime import datetime
 
@@ -45,7 +46,7 @@ Safety and approval rules:
     def _permission_names(self, user: User) -> list[str]:
         if user.is_superuser:
             return ["*"]
-        return sorted({permission.name for permission in (user.role.permissions if user.role else [])})
+        return sorted({permission.name for permission in (permission_objects(user))})
 
     def _fallback_agent_prompt(self, code: str) -> str:
         return AGENT_PURPOSE_PROMPTS.get(code, "You are an AI Agent. Use tools for facts and request approval for risky actions.")

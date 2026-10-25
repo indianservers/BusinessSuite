@@ -1,3 +1,4 @@
+from app.access.catalog import permission_objects
 from typing import Any
 
 from fastapi import HTTPException
@@ -10,7 +11,7 @@ from app.models.user import User
 def permissions_for(user: User) -> set[str]:
     if user.is_superuser:
         return {"*"}
-    return {p.name for p in (user.role.permissions if user.role else [])}
+    return {p.name for p in (permission_objects(user))}
 
 
 def audit(db: Session, user: User, event_type: str, module_name: str | None = None, resource_type: str | None = None, resource_id: int | None = None, detail: dict[str, Any] | None = None, status: str = "completed") -> None:

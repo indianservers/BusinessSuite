@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 from decimal import Decimal
 from typing import Any
@@ -76,7 +77,7 @@ MODEL_BY_RECORD_TYPE = {
 def user_permissions(user: User) -> set[str]:
     if user.is_superuser:
         return {"*"}
-    return {permission.name for permission in (user.role.permissions if user.role else [])}
+    return {permission.name for permission in (permission_objects(user))}
 
 
 def has_any(user: User, *permissions: str) -> bool:

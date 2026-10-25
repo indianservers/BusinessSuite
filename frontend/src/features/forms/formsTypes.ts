@@ -22,6 +22,7 @@ export type Question = {
   help: string;
   placeholder: string;
   required: boolean;
+  width?: "auto" | "full";
   options: string[];
   min: number | null;
   max: number | null;
@@ -39,6 +40,12 @@ export type FormSettings = {
   layout: "stacked" | "pages";
   font: "system" | "serif" | "monospace";
   button_radius: number;
+  columns?: 1 | 2 | 3;
+  intro_enabled?: boolean;
+  intro_badge?: string;
+  intro_title?: string;
+  intro_text?: string;
+  surface?: "minimal" | "soft" | "gradient";
 };
 export const defaultSettings: FormSettings = {
   public: false,

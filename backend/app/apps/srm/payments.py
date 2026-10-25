@@ -1,4 +1,5 @@
 """Atomic, idempotent collection actions against the existing SRM receipt ledger."""
+from app.access.catalog import permission_objects
 from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID
@@ -27,7 +28,7 @@ def summary(db, invoice):
 @router.get("/business/collection-invoices")
 def collection_invoices(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     require(user, "srm_collection_view", "srm_collection_create", "srm_admin")
-    names = {p.name for p in (user.role.permissions if user.role else [])}
+    names = {p.name for p in (permission_objects(user))}
     rows = invoice_query(db, user).order_by(SRMInvoice.id.desc()).limit(200).all()
     return {"items": [summary(db, r) for r in rows], "can_record": user.is_superuser or bool(names.intersection({"srm_collection_create", "srm_admin"}))}
 

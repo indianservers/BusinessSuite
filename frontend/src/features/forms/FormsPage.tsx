@@ -16,6 +16,7 @@ import {
 import { api } from "@/services/api";
 import FormBuilder from "./FormBuilder";
 import FormResponse from "./FormResponse";
+import FormAppearance from "./FormAppearance";
 import {
   defaultSettings,
   fresh,
@@ -64,6 +65,7 @@ export default function FormsPage() {
   const [draft, setDraft] = useState<Definition>(fresh);
   const [selected, setSelected] = useState("");
   const [tab, setTab] = useState("Build");
+  const [previewMobile, setPreviewMobile] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -521,6 +523,7 @@ export default function FormsPage() {
                 <div className="forms-design-layout">
                   <section className="forms-panel">
                     <h2>Appearance</h2>
+                    <FormAppearance draft={draft} edit={edit} />
                     <label>
                       Accent color
                       <input
@@ -721,8 +724,13 @@ export default function FormsPage() {
                   <p className="forms-notice">
                     Draft preview · submissions are not stored
                   </p>
+                  <div className="form-visual-toolbar" role="group" aria-label="Preview device">
+                    <button aria-pressed={!previewMobile} onClick={() => setPreviewMobile(false)}>Desktop preview</button>
+                    <button aria-pressed={previewMobile} onClick={() => setPreviewMobile(true)}>Mobile preview</button>
+                  </div>
                   <FormResponse
                     definition={draft}
+                    mobile={previewMobile}
                     disabled={false}
                     submit={async () =>
                       setNotice("Preview complete · no response stored")

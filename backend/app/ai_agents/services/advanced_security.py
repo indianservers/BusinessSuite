@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 import json
 import re
@@ -33,7 +34,7 @@ def company_id_for(user: User) -> int | None:
 def permission_names(user: User) -> set[str]:
     if user.is_superuser:
         return {"*"}
-    return {item.name for item in (user.role.permissions if user.role else [])}
+    return {item.name for item in (permission_objects(user))}
 
 
 class AiPromptSecurityService:

@@ -1,6 +1,7 @@
 """One private profile for a login, its employee record and approved onboarding form."""
 
 from __future__ import annotations
+from app.access.catalog import permission_objects
 
 import copy
 import hashlib
@@ -145,7 +146,7 @@ def tenant(user):
 
 
 def permissions(user):
-    return {p.name for p in user.role.permissions} if user.role else set()
+    return {p.name for p in permission_objects(user)}
 
 
 def can_manage(user):
