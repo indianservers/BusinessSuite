@@ -72,3 +72,7 @@ python-dotenv==1.2.2
 boto3==1.43.117
 vercel-blob==0.5.0
 tzdata>=2024.1
+
+# Shared rich-content sanitization
+bleach==6.3.0
+tinycss2==1.4.0

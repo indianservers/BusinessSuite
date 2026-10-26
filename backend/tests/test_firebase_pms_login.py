@@ -92,3 +92,37 @@ def test_incorrect_firebase_project_is_disabled(client,monkeypatch):
 def test_firebase_login_requires_google_and_expected_module(client,firebase_identity):
     assert login(client,firebase_identity(firebase={'sign_in_provider':'microsoft.com'})).status_code==401
     assert login(client,firebase_identity(),module='interns_hub').status_code==422
+
+
+MODULE_ROLES = [("hrms", "employee"), ("crm", "crm_viewer"), ("project_management", "pms_viewer"), ("srm", "srm_viewer"), ("fam", "fam_viewer")]
+
+@pytest.mark.parametrize("module,role_name", MODULE_ROLES)
+def test_google_login_for_every_module_preserves_module_access(client, db, firebase_identity, module, role_name):
+    role = Role(name=role_name, is_system=True)
+    db.add(role); db.flush()
+    user = User(email=f"google-{module}@example.com", hashed_password="", is_active=True, role_id=role.id)
+    db.add(user); db.commit()
+    token = firebase_identity(email=user.email)
+    result = login(client, token, module=module)
+    assert result.status_code == 200, result.text
+    assert result.json()["email"] == user.email and result.json()["access_token"]
+    other = "crm" if module != "crm" else "hrms"
+    assert login(client, token, module=other).status_code == 403
+    user.is_active = False; db.commit()
+    assert login(client, token, module=module).status_code == 403
+
+@pytest.mark.parametrize("module,_", MODULE_ROLES)
+def test_super_admin_google_login_and_mfa_for_every_module(client, db, superuser_headers, firebase_identity, module, _):
+    user = db.query(User).filter_by(email="testadmin@test.com").one()
+    token = firebase_identity(email=user.email)
+    assert login(client, token, module=module).status_code == 200
+    user.mfa_enabled = True; db.commit()
+    response = login(client, token, module=module)
+    assert response.status_code == 200 and response.json()["mfa_required"]
+    assert auth._decode_mfa_token(response.json()["mfa_token"])["module"] == module
+    assert "access_token" not in response.json()
+
+def test_google_config_and_login_respect_installed_modules(client, firebase_identity, monkeypatch):
+    monkeypatch.setattr(settings,"INSTALLED_APPS",["hrms"])
+    assert client.get("/api/v1/auth/firebase/config").json()["modules"] == ["hrms"]
+    assert login(client,firebase_identity(),module="crm").status_code == 403

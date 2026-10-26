@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useState } from "react";
 import {
   DndContext,
@@ -692,7 +693,7 @@ export function LeadTeamPanel({
         >
           <label className="lm-work-field">
             Team update
-            <textarea
+            <RichTextField
               aria-label="Team update"
               rows={4}
               required
@@ -736,7 +737,7 @@ export function LeadTeamPanel({
                   "Team member"}
               </strong>
               <time>{new Date(e.occurred_at).toLocaleString()}</time>
-              <p>{e.description}</p>
+              <div><RichTextContent legacyFormat="plain" value={e.description}/></div>
               {!!e.metadata_json?.mentionIds?.length && (
                 <small>
                   Notified:{" "}

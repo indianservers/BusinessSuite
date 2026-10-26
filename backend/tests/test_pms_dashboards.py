@@ -26,14 +26,16 @@ def test_private_dashboard_owner_cas_trash_restore_and_feed(client, db):
     assert client.post(url + "/restore", headers=mh, json={"revision": 3}).status_code == 404
     assert client.post(url + "/restore", headers=oh, json={"revision": 3}).status_code == 200
     assert client.get(url, headers=oh).json()["name"] == "Renamed"
-    assert client.post(path, headers=oh, json={**payload, "visibility": "organization"}).status_code == 422
+    assert client.post(path, headers=oh, json={**payload, "visibility": "organization"}).status_code == 201
 
 
 def test_org_shared_visibility_cross_org_and_owner_only(client, db):
     wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
     outsider, xh = account(db, "other-org@example.invalid", True)
-    owner.organization_id = member.organization_id = 77
-    outsider.organization_id = 88
+    from tests.tenant_test_utils import assign_company
+    assign_company(db, owner, 77)
+    assign_company(db, member, 77)
+    assign_company(db, outsider, 88)
     db.get(PMSWorkspace, wid).organization_id = 77
     db.commit()
     payload = {"workspace_id": wid, "name": "Shared", "visibility": "organization"}

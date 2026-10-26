@@ -42,6 +42,7 @@ export interface CreateClientInput {
 
 // ============= PROJECT TYPES =============
 export interface PMSProject {
+  can_edit_project?: boolean;
   can_manage_tasks?: boolean;
   workspace_id?: number;
   id: number;

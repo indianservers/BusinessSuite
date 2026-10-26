@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import ConnectedCollectionsPage from "./ConnectedCollectionsPage";
 import { InvoiceList, SharedCustomerSelect } from "@/apps/project-management/pages/ProjectBillingPage";
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
@@ -285,7 +286,7 @@ function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetchin
         </div>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
-          <p className="text-sm text-muted-foreground">{meta.description}</p>
+          <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={meta.description}/></div>
         </div>
       </div>
       {onRefresh ? (
@@ -630,7 +631,7 @@ function SalesInventoryLaunchpad() {
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="mt-3 block text-sm font-semibold">{item.title}</span>
-                <span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.description}</span>
+                <div className="mt-1 block text-xs leading-5 text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.description}/></div>
                 <span className="mt-3 block text-xs font-semibold text-primary">{item.action}</span>
               </Link>
             );
@@ -650,7 +651,7 @@ function SalesInventoryLaunchpad() {
                   <Icon className="h-4 w-4" />
                   <span>
                     <span className="block text-sm font-medium">{entry.label}</span>
-                    <span className="block text-xs font-normal text-muted-foreground">{entry.description}</span>
+                    <div className="block text-xs font-normal text-muted-foreground"><RichTextContent legacyFormat="plain" value={entry.description}/></div>
                   </span>
                 </Link>
               </Button>
@@ -1065,7 +1066,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
           </div>
           <label className="space-y-2 text-sm">
             <span className="font-medium">Notes</span>
-            <textarea className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.notes} onChange={(event) => update("notes", event.target.value)} />
+            <RichTextField className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.notes} onChange={(event) => update("notes", event.target.value)} />
           </label>
           <div className="rounded-lg border bg-muted/30 p-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -1102,7 +1103,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
               <div className="flex justify-between"><span>Tax</span><span>{money(tax)}</span></div>
               <div className="flex justify-between font-semibold"><span>Total</span><span>{money(total)}</span></div>
               <p className="pt-2 text-xs text-muted-foreground">{form.terms}</p>
-              {form.notes ? <p className="text-xs text-muted-foreground">{form.notes}</p> : null}
+              {form.notes ? <div className="text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={form.notes}/></div> : null}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -1397,7 +1398,7 @@ function ReportsView() {
                 <CardTitle className="text-base">{report.title}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">{report.description}</p>
+                <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={report.description}/></div>
                 <div className="rounded-lg border bg-muted/30 p-3 text-xs">
                   <span className="font-medium">Filters:</span> {report.filters}
                 </div>

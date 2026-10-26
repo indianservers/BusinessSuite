@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Check, Layers3 } from "lucide-react";
@@ -134,7 +135,7 @@ export default function DashboardWizard({
           </label>
           <label className="db-field">
             <span>Description</span>
-            <textarea
+            <RichTextField data-legacy-format="markdown"
               maxLength={2000}
               value={description}
               onChange={(e) => setDescription(e.target.value)}

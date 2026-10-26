@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Link, useLocation } from "react-router-dom";
 import { Package, ShieldCheck, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,7 @@ export default function InventoryBridgePage() {
                     </span>
                     <span>
                       <span className="block font-medium text-foreground">{entry.label}</span>
-                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">{entry.description}</span>
+                      <div className="mt-1 block text-xs leading-5 text-muted-foreground"><RichTextContent value={entry.description}/></div>
                     </span>
                   </div>
                 </Link>

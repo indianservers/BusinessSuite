@@ -1,0 +1,3 @@
+"""Retired fixture identities; never authorize or bootstrap these in production."""
+
+DEMO_ACCOUNT_EMAILS = frozenset(('admin@aihrms.com', 'hr@aihrms.com', 'manager@aihrms.com', 'employee@aihrms.com', 'admin@vyaparacrm.com', 'manager@vyaparacrm.com', 'executive@vyaparacrm.com', 'support@vyaparacrm.com', 'marketing@vyaparacrm.com', 'admin@karyaflow.com', 'manager@karyaflow.com', 'member@karyaflow.com', 'client@karyaflow.com', 'admin@srmflow.com', 'sales.manager@srmflow.com', 'sales.executive@srmflow.com', 'finance@srmflow.com', 'collections@srmflow.com', 'owner@srmflow.com', 'admin@financeflow.com', 'accountant@financeflow.com', 'finance.manager@financeflow.com', 'auditor@financeflow.com', 'viewer@financeflow.com'))

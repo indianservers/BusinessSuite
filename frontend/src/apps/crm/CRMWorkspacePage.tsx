@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { leadsApi } from "./leads/api";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields, phoneError, emailError } from "@/lib/validation";
@@ -2135,7 +2136,7 @@ function TemplateDetailPanel({ template, applying, onApply }: { template: CRMBus
           <p className="text-xs text-muted-foreground">{template.group} / {template.category}</p>
         </div>
       </div>
-      <p className="mt-4 text-sm leading-6 text-slate-600">{template.description || defaultTemplateDescription(template)}</p>
+      <div className="mt-4 text-sm leading-6 text-slate-600"><RichTextContent legacyFormat="plain" value={template.description || defaultTemplateDescription(template)}/></div>
       <Button className="mt-4 w-full" onClick={onApply} disabled={applying}>{applying ? "Creating pipeline..." : "Use this template"}</Button>
       <div className="mt-5 space-y-4">
         <TemplateList title="Stages" items={template.stages.map((stage) => `${stage.name} (${stage.probability}%)`)} />
@@ -2191,7 +2192,7 @@ function TemplatePreviewBoard({ template, applying, onApply }: { template: CRMBu
         <div className="mx-auto max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{template.group} / {template.category}</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">{template.name}</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-600">{template.description || defaultTemplateDescription(template)}</p>
+          <div className="mt-3 text-sm leading-6 text-slate-600"><RichTextContent legacyFormat="plain" value={template.description || defaultTemplateDescription(template)}/></div>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Button onClick={onApply} disabled={applying}>{applying ? "Creating pipeline..." : "Use this template"}</Button>
             <Button variant="outline" type="button"><FileCheck2 className="h-4 w-4" />View {fieldEntity} fields</Button>
@@ -3783,7 +3784,7 @@ function LeadFormModal({ mode, lead, saving, error, owners, territories, statuse
           <LeadFormSection title="Follow-up">
             <LeadFormField label="Next follow-up date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
             <LeadFormField label="Next follow-up time"><Input className="border-border bg-card text-foreground" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
-            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this lead" maxLength={1000} /></LeadFormField>
+            <LeadFormField label="Notes" wide><RichTextField className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this lead" maxLength={1000} /></LeadFormField>
           </LeadFormSection>
         </div>
         <div className="flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create lead"}</Button></div>
@@ -4534,7 +4535,7 @@ function ContactFormModal({ mode, contact, saving, error, owners, companies, sta
           <LeadFormSection title="Follow-up">
             <LeadFormField label="Next follow-up date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
             <LeadFormField label="Next follow-up time"><Input className="border-border bg-card text-foreground" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
-            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes" maxLength={1000} /></LeadFormField>
+            <LeadFormField label="Notes" wide><RichTextField className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes" maxLength={1000} /></LeadFormField>
           </LeadFormSection>
         </div>
         <div className="flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create contact"}</Button></div>
@@ -5208,7 +5209,7 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
             <LeadFormField label="Company email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
             <LeadFormField label="Phone" error={fieldErrors.phone}><PhoneInput label="Phone" value={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch("phone",value)} onCountryCodeChange={value=>patch("phone_country_code",value)} error={fieldErrors.phone} /></LeadFormField>
             <LeadFormField label="Website"><Input className="border-border bg-card text-foreground" value={valueText(draft.website)} onChange={(event) => patch("website", event.target.value)} placeholder="https://example.com" /></LeadFormField>
-            <LeadFormField label="Notes" wide><textarea className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this account" maxLength={1000} /></LeadFormField>
+            <LeadFormField label="Notes" wide><RichTextField className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes about this account" maxLength={1000} /></LeadFormField>
           </LeadFormSection>
         </div>
         <div className="flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create account"}</Button></div>
@@ -5777,7 +5778,7 @@ function DealFormModal({ mode, deal, saving, error, companies, contacts, owners,
               <LeadFormField label="Stage" required error={fieldErrors.stageId}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</select></LeadFormField>
               <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
               <LeadFormField label="Closing date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} /></LeadFormField>
-              <LeadFormField label="Description" wide><textarea className="min-h-16 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." /></LeadFormField>
+              <LeadFormField label="Description" wide><RichTextField className="min-h-16 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." /></LeadFormField>
             </LeadFormSection>
             {formTab === "advanced" ? (
               <LeadFormSection title="Advanced deal controls">
@@ -8144,8 +8145,7 @@ function InlineTableCell({ row, fieldKey, kind, value, onSelect, onOpen, onSave 
     onSave(row, fieldKey, draft)
       .then(() => setEditing(false))
       .catch((err) => {
-        setDraft(valueText(value));
-        setError(err?.message || "Could not save.");
+        setError(err?.message || "Could not save. Your draft is retained.");
       })
       .finally(() => setSaving(false));
   };
@@ -8157,7 +8157,7 @@ function InlineTableCell({ row, fieldKey, kind, value, onSelect, onOpen, onSave 
   if (editing && config) {
     return (
       <div className="space-y-1" onClick={(event) => event.stopPropagation()}>
-        <InlineEditor config={config} value={draft} autoFocus onChange={setDraft} onCommit={commit} onCancel={cancel} />
+        {["notes","description","body","message","requirements"].includes(fieldKey) ? <RichTextField value={draft} onChange={event => setDraft(event.target.value)} onBlur={commit} aria-label={fieldKey} disabled={saving} rows={3}/> : <InlineEditor config={config} value={draft} autoFocus onChange={setDraft} onCommit={commit} onCancel={cancel} />}
         <div className="flex items-center gap-2 text-xs">
           {saving ? <span className="text-muted-foreground">Saving...</span> : null}
           {error ? <span className="text-destructive">{error}</span> : null}
@@ -8500,7 +8500,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
                   <Input className="border-l-4 border-l-red-400" type="date" value={String(draft.nextFollowUp || "")} onChange={(event) => patchDraft("nextFollowUp", event.target.value)} />
                 </DealField>
                 <DealField label="Description" className="lg:col-span-2">
-                  <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.description || "")} onChange={(event) => patchDraft("description", event.target.value)} placeholder="Commercial context, competitors, risks, buyer priorities..." />
+                  <RichTextField className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.description || "")} onChange={(event) => patchDraft("description", event.target.value)} placeholder="Commercial context, competitors, risks, buyer priorities..." />
                 </DealField>
               </section>
               {mode === "advanced" ? (
@@ -8715,9 +8715,10 @@ function QuickFormInput({
     );
   }
 
+  if (["body_html","content_html"].includes(field.key)) return <RichTextField data-legacy-format="html" value={value} onChange={event => updateValue(event.target.value)} rows={8} aria-label={field.key}/>;
   if (field.type === "textarea") {
     return (
-      <textarea
+      <RichTextField
         className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
         value={value}
         placeholder={field.placeholder}
@@ -8822,6 +8823,7 @@ function compareValues(a: unknown, b: unknown, direction: "asc" | "desc") {
 }
 
 function renderCell(key: string, value: CRMApiRecord[string]) {
+  if (["notes","description","body","message","requirements"].includes(key)) return <RichTextContent legacyFormat="plain" value={String(value || "")}/>;
   if (key === "leadScore") return <Badge className={statusColor(scoreLabel(Number(value || 0)))}>{Number(value || 0)} / {scoreLabel(Number(value || 0))}</Badge>;
   if (isBadgeField(key)) return <Badge className={statusColor(String(value))}>{String(value)}</Badge>;
   if (key.toLowerCase().includes("date") || key.toLowerCase().includes("due") || key.toLowerCase().includes("followup")) return formatDate(String(value));

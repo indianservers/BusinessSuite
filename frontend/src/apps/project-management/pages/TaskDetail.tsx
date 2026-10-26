@@ -1,3 +1,5 @@
+import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
+import { insertRichMention } from "@/components/rich-text/content";
 import WorkReviewPanel from "../components/WorkReviewPanel";
 import RecordActions from "../components/RecordActions";
 import { FormEvent, useCallback, useEffect, useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
@@ -110,7 +112,6 @@ export default function TaskDetail() {
   const [activitySort, setActivitySort] = useState<ActivitySort>("desc");
   const [comment, setComment] = useState("");
   const [commentMentions, setCommentMentions] = useState<PMSMentionUser[]>([]);
-  const [descriptionPreview, setDescriptionPreview] = useState(false);
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [editingChecklistId, setEditingChecklistId] = useState<number | null>(null);
   const [editingChecklistText, setEditingChecklistText] = useState("");
@@ -758,23 +759,7 @@ export default function TaskDetail() {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Description</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <MarkdownToolbar
-                value={task.description || ""}
-                onChange={(value) => setTask({ ...task, description: value })}
-                preview={descriptionPreview}
-                setPreview={setDescriptionPreview}
-              />
-              {descriptionPreview ? (
-                <MarkdownView value={task.description || ""} className="min-h-52 rounded-md border bg-muted/20 p-3 text-sm" />
-              ) : (
-                <textarea
-                value={task.description || ""}
-                onChange={(event) => setTask({ ...task, description: event.target.value })}
-                onBlur={() => updateTask({ description: task.description })}
-                placeholder="Add requirements, acceptance criteria, context, links, or implementation notes. Markdown is supported."
-                className="min-h-52 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                />
-              )}
+              <RichTextEditor value={task.description || ""} onChange={value => setTask({ ...task, description: value })} onBlur={() => updateTask({ description: task.description })} label="Task description" placeholder="Add requirements, acceptance criteria, context, or implementation notes."/>
               {!task.description ? <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">No description yet.</div> : null}
             </CardContent>
           </Card>
@@ -932,7 +917,7 @@ export default function TaskDetail() {
                   <Label>Subtask assignees</Label>
                   <AssigneePicker people={subtaskPeople} value={newSubtaskAssignees} onChange={setNewSubtaskAssignees} label="New subtask assignees" />
                   <Button type="button" size="sm" variant="ghost" onClick={() => setNewSubtaskAssignees(taskAssignees(task))}>Inherit parent assignees</Button>
-                  <textarea aria-label="Subtask description" placeholder="Description or acceptance criteria" value={newSubtaskDescription} onChange={e => setNewSubtaskDescription(e.target.value)} className="w-full rounded-md border bg-background p-2" />
+                  <RichTextField data-legacy-format="markdown" aria-label="Subtask description" placeholder="Description or acceptance criteria" value={newSubtaskDescription} onChange={e => setNewSubtaskDescription(e.target.value)} className="w-full rounded-md border bg-background p-2" />
                 </div>
               </form>
             </CardContent>
@@ -1174,7 +1159,7 @@ function SubtaskRow({
           <Input type="number" min="0" step="1" value={draft.story_points ?? ""} onChange={(event) => setDraft({ ...draft, story_points: event.target.value === "" ? undefined : Number(event.target.value) })} />
         </div>
         <AssigneePicker people={people} value={draft.assignee_user_ids || []} onChange={ids => setDraft({ ...draft, assignee_user_ids: ids })} label="Edit subtask assignees" />
-        <textarea
+        <RichTextField data-legacy-format="markdown"
           value={draft.description || ""}
           onChange={(event) => setDraft({ ...draft, description: event.target.value })}
           placeholder="Sub-task description"
@@ -1241,23 +1226,10 @@ function CommentsTab({
   setMentions: (users: PMSMentionUser[]) => void;
   addComment: (event: FormEvent) => void;
 }) {
-  const [preview, setPreview] = useState(false);
   return (
     <>
       <form onSubmit={addComment} className="space-y-3 rounded-md border p-3">
-        <MarkdownToolbar value={comment} onChange={setComment} preview={preview} setPreview={setPreview} />
-        {preview ? (
-          <MarkdownView value={comment} className="min-h-32 rounded-md border bg-muted/20 p-3 text-sm" />
-        ) : (
-          <MentionMarkdownTextarea
-            taskId={taskId}
-            projectId={projectId}
-            value={comment}
-            onChange={setComment}
-            mentions={mentions}
-            onMentionsChange={setMentions}
-          />
-        )}
+        <MentionMarkdownTextarea taskId={taskId} projectId={projectId} value={comment} onChange={setComment} mentions={mentions} onMentionsChange={setMentions}/>
         {mentions.length ? (
           <div className="flex flex-wrap gap-2">
             {mentions.map((user) => <Badge key={user.id} variant="outline">@{user.name || user.email}</Badge>)}
@@ -1282,23 +1254,6 @@ function CommentsTab({
   );
 }
 
-function MarkdownToolbar({ value, onChange, preview, setPreview }: { value: string; onChange: (value: string) => void; preview: boolean; setPreview: (value: boolean) => void }) {
-  const wrap = (before: string, after = before, placeholder = "text") => onChange(`${value}${value ? "\n" : ""}${before}${placeholder}${after}`);
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" size="sm" variant="outline" onClick={() => wrap("## ", "", "Heading")}><Heading className="h-4 w-4" />Heading</Button>
-      <Button type="button" size="sm" variant="outline" onClick={() => wrap("**", "**", "bold")}><Bold className="h-4 w-4" />Bold</Button>
-      <Button type="button" size="sm" variant="outline" onClick={() => wrap("_", "_", "italic")}><Italic className="h-4 w-4" />Italic</Button>
-      <Button type="button" size="sm" variant="outline" onClick={() => wrap("- ", "", "List item")}><List className="h-4 w-4" />List</Button>
-      <Button type="button" size="sm" variant="outline" onClick={() => wrap("```\n", "\n```", "code")}><Code2 className="h-4 w-4" />Code</Button>
-      <Button type="button" size="sm" variant="outline" onClick={() => wrap("[", "](https://)", "link")}><Link2 className="h-4 w-4" />Link</Button>
-      <Button type="button" size="sm" variant={preview ? "default" : "outline"} onClick={() => setPreview(!preview)}>
-        {preview ? <Edit3 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{preview ? "Edit" : "Preview"}
-      </Button>
-    </div>
-  );
-}
-
 function MentionMarkdownTextarea({
   taskId,
   projectId,
@@ -1320,7 +1275,7 @@ function MentionMarkdownTextarea({
 
   const updateValue = (next: string) => {
     onChange(next);
-    const match = next.slice(0).match(/@([\w.\-+]*)$/);
+    const match = richTextPlainText(next).match(/@([\w.\-+]*)$/);
     if (match) {
       const query = match[1] || "";
       setToken(query);
@@ -1332,7 +1287,7 @@ function MentionMarkdownTextarea({
   };
 
   const insertMention = (user: PMSMentionUser) => {
-    const next = value.replace(/@([\w.\-+]*)$/, `@[${user.name || user.email}](user:${user.id}) `);
+    const next = insertRichMention(value, user.name || user.email);
     onChange(next);
     if (!mentions.some((item) => item.id === user.id)) onMentionsChange([...mentions, user]);
     setShowSuggestions(false);
@@ -1340,12 +1295,7 @@ function MentionMarkdownTextarea({
 
   return (
     <div className="relative">
-      <textarea
-        value={value}
-        onChange={(event) => updateValue(event.target.value)}
-        placeholder="Write a markdown comment. Use @ to mention a teammate."
-        className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm"
-      />
+      <RichTextEditor value={value} onChange={updateValue} label="Comment" variant="compact" placeholder="Write a comment. Use @ to mention a teammate."/>
       {showSuggestions ? (
         <div className="absolute left-2 top-12 z-20 w-72 rounded-md border bg-background p-1 shadow-lg">
           {suggestions.length ? suggestions.map((user) => (
@@ -1361,102 +1311,7 @@ function MentionMarkdownTextarea({
 }
 
 function MarkdownView({ value, className }: { value: string; className?: string }) {
-  return <div className={cn("prose prose-sm max-w-none whitespace-normal", className)} dangerouslySetInnerHTML={{ __html: markdownToSafeHtml(value) }} />;
-}
-
-function markdownToSafeHtml(markdown: string) {
-  const lines = escapeHtml(markdown || "").replace(/@\[([^\]]+)\]\(user:(\d+)\)/g, "<strong>@$1</strong>").split("\n");
-  const html: string[] = [];
-  let inCode = false;
-  let inList = false;
-  for (const line of lines) {
-    if (line.trim().startsWith("```")) {
-      if (inCode) {
-        html.push("</code></pre>");
-      } else {
-        if (inList) {
-          html.push("</ul>");
-          inList = false;
-        }
-        html.push("<pre><code>");
-      }
-      inCode = !inCode;
-      continue;
-    }
-    if (inCode) {
-      html.push(`${line}\n`);
-      continue;
-    }
-    const formatted = formatInlineMarkdown(line);
-    if (line.startsWith("### ")) {
-      if (inList) {
-        html.push("</ul>");
-        inList = false;
-      }
-      html.push(`<h3>${formatted.slice(4)}</h3>`);
-    } else if (line.startsWith("## ")) {
-      if (inList) {
-        html.push("</ul>");
-        inList = false;
-      }
-      html.push(`<h2>${formatted.slice(3)}</h2>`);
-    } else if (line.startsWith("# ")) {
-      if (inList) {
-        html.push("</ul>");
-        inList = false;
-      }
-      html.push(`<h1>${formatted.slice(2)}</h1>`);
-    } else if (line.startsWith("- ")) {
-      if (!inList) {
-        html.push("<ul>");
-        inList = true;
-      }
-      html.push(`<li>${formatted.slice(2)}</li>`);
-    } else if (!line.trim()) {
-      if (inList) {
-        html.push("</ul>");
-        inList = false;
-      }
-    } else {
-      if (inList) {
-        html.push("</ul>");
-        inList = false;
-      }
-      html.push(`<p>${formatted}</p>`);
-    }
-  }
-  if (inList) html.push("</ul>");
-  if (inCode) html.push("</code></pre>");
-  return html.join("");
-}
-
-function formatInlineMarkdown(value: string) {
-  return value
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/_([^_]+)_/g, "<em>$1</em>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_match, label: string, href: string) => {
-      const safeHref = sanitizeMarkdownUrl(href);
-      return safeHref ? `<a href="${escapeHtmlAttribute(safeHref)}" target="_blank" rel="noreferrer noopener">${label}</a>` : label;
-    });
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-}
-
-function escapeHtmlAttribute(value: string) {
-  return escapeHtml(value).replace(/`/g, "&#096;");
-}
-
-function sanitizeMarkdownUrl(value: string) {
-  const decoded = value.replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#039;/g, "'");
-  try {
-    const url = new URL(decoded);
-    return ["http:", "https:"].includes(url.protocol) ? url.toString() : "";
-  } catch {
-    return "";
-  }
+  return <RichTextContent value={value} className={className}/>;
 }
 
 const activityFilters: Array<{ key: ActivityFilter; label: string }> = [
@@ -1676,7 +1531,7 @@ function TimeTab({
                   <Badge variant={item.is_billable ? "default" : "outline"}>{item.is_billable ? "Billable" : "Non-billable"}</Badge>
                   <Badge variant="outline">{item.approval_status}</Badge>
                 </div>
-                <p className="mt-2 text-muted-foreground">{item.description || "No description"}</p>
+                <div className="mt-2 text-muted-foreground"><RichTextContent value={item.description || "No description"}/></div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {formatDate(item.log_date)}
                   {item.start_time ? ` / ${formatTime(item.start_time)}` : ""}

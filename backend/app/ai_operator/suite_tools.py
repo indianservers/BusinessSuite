@@ -30,6 +30,15 @@ class CRMTaskUpdate(Strict):
     due_date: str | None = None
 
 
+class CRMInternalNote(Strict):
+    body: str = Field(min_length=1,max_length=8000)
+    lead_id: int | None = Field(default=None,gt=0)
+    contact_id: int | None = Field(default=None,gt=0)
+    company_id: int | None = Field(default=None,gt=0)
+    deal_id: int | None = Field(default=None,gt=0)
+    is_internal: bool = True
+
+
 @dataclass(frozen=True)
 class Tool:
     module: str
@@ -84,6 +93,28 @@ TOOLS = {
 
 TOOLS["hrms.approve_leave"] = Tool("HRMS", "PUT", "/leave/requests/{record_id}/approve", "Apply an independently approved leave decision through HRMS.", ("leave_approve",), ("status", "review_remarks"), "app.schemas.leave:LeaveApprovalRequest", "/leave/requests/{record_id}")
 
+# These reads preserve each canonical module's tenant, role and record filters.
+TOOLS.update({
+    'hrms.ticket_categories':Tool('HRMS','GET','/helpdesk/categories','Read HR ticket category IDs.'),
+    'hrms.my_tickets':Tool('HRMS','GET','/helpdesk/tickets','Read tickets visible under current HR permissions.',fields=('page','per_page')),
+    'crm.companies':Tool('CRM','GET','/crm/companies','Find visible customer companies.',fields=('search','page','per_page')),
+    'crm.contacts':Tool('CRM','GET','/crm/contacts','Find visible CRM contacts.',fields=('search','page','per_page')),
+    'crm.task':Tool('CRM','GET','/crm/tasks/{record_id}','Read one selected CRM task.'),
+    'crm.deal':Tool('CRM','GET','/crm/deals/{record_id}','Read one selected CRM deal.'),
+    'crm.lead':Tool('CRM','GET','/crm/leads/{record_id}','Read one selected CRM lead.'),
+    'crm.add_note':Tool('CRM','POST','/crm/notes','Add an internal note to a visible CRM record.',
+        ('crm_activities_manage','crm_manage','crm_admin'),tuple(CRMInternalNote.model_fields),'app.ai_operator.suite_tools:CRMInternalNote'),
+    'srm.invoice':Tool('SRM','GET','/srm/invoices/{record_id}','Read one authorized invoice.'),
+    'srm.sales_orders':Tool('SRM','GET','/srm/sales-orders','Read authorized sales orders.',fields=('page','per_page')),
+    'fam.financial_years':Tool('FAM','GET','/fam/financial-years','Read available financial year IDs.'),
+    'fam.branches':Tool('FAM','GET','/fam/branches','Read available accounting branch IDs.'),
+    'fam.voucher':Tool('FAM','GET','/fam/vouchers/{record_id}','Read one authorized voucher.'),
+})
+for _module in ('HRMS','CRM','SRM','FAM'):
+    TOOLS[f'{_module.lower()}.remember']=Tool(_module,'POST','/ai-operator/suite/memories',
+        'Save an explicitly requested private module preference or decision after approval. Never store credentials or payroll data.',
+        fields=('text','category'),model='app.ai_operator.suite_memory:MemoryText')
+
 # These adapters use the existing PMS planner/approval/worker rather than
 # reimplementing task mutations in the cross-module executor.
 PMS_PERMISSIONS=('pms_manage_tasks','pms_manage_projects','pms_admin')
@@ -129,6 +160,8 @@ def validate_payload(tool, payload):
             raise HTTPException(422, 'Tool payload is incomplete or invalid') from None
     if tool.method != 'GET' and not payload:
         raise HTTPException(422, 'Action payload is empty')
+    if tool.model=='app.ai_operator.suite_tools:CRMInternalNote' and (payload.get('is_internal',True) is not True or not any(payload.get(k) for k in ('lead_id','contact_id','company_id','deal_id'))):
+        raise HTTPException(422,'Choose a CRM record for an internal note')
 
 
 def catalog():
@@ -146,7 +179,7 @@ SAFE_FIELDS = {'id', 'employee_id', 'employee_code', 'first_name', 'last_name', 
     'totalIncome', 'totalExpenses', 'cashAndBankBalance', 'receivablesOutstanding', 'payablesOutstanding',
     'overdueReceivables', 'overduePayables', 'booksStatus', 'totalInvoices', 'totalRevenue', 'totalClients', 'totalSalesOrders',
     'items', 'data', 'stats', 'summary', 'total_sales', 'total_invoices', 'outstanding_amount', 'total_receipts', 'sales_orders'}
-SAFE_FIELDS.update({'total_sales_orders', 'pending_approvals', 'confirmed_sales_orders', 'active_contracts', 'active_engagements',
+SAFE_FIELDS.update({'ledger_name','ledger_code','voucher_type_name','voucher_type_code','financial_year_id','accounting_period_id','branch_id','ledger_id','category_id','subject','start_date','end_date','debit_amount','credit_amount','lines','total_sales_orders', 'pending_approvals', 'confirmed_sales_orders', 'active_contracts', 'active_engagements',
     'active_billing_plans', 'invoice_drafts_pending', 'approved_invoices', 'sent_invoices', 'total_invoiced_value',
     'total_collected_value', 'outstanding_value', 'overdue_value', 'collection_risk', 'gross_margin', 'cash_margin',
     'profitability_summary', 'margin_status', 'recent_invoices', 'total_count'})

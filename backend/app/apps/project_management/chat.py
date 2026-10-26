@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Permission-scoped workspace messaging. Database state is authoritative."""
 
 from datetime import datetime, timedelta, timezone
@@ -86,26 +87,26 @@ class Strict(BaseModel):
 class RoomInput(Strict):
     kind: Literal["channel", "group", "dm"]
     name: str = Field(default="", max_length=120)
-    description: str = Field(default="", max_length=1000)
+    description: rich_text_type(1000, 0) = Field(default="")
     visibility: Literal["public", "private"] = "private"
     participants: list[int] = Field(default_factory=list, max_length=50)
 
 
 class RoomEdit(Strict):
     name: str = Field(min_length=1, max_length=120)
-    description: str = Field(default="", max_length=1000)
+    description: rich_text_type(1000, 0) = Field(default="")
     archived: bool = False
 
 
 class Send(Strict):
-    body: str = Field(default="", max_length=20000)
+    body: rich_text_type(20000, 0) = Field(default="")
     client_id: UUID
     parent_id: int | None = Field(default=None, gt=0)
     attachment_ids: list[int] = Field(default_factory=list, max_length=10)
 
 
 class Edit(Strict):
-    body: str = Field(min_length=1, max_length=20000)
+    body: rich_text_type(20000, 1) = Field()
 
 
 class MemberChange(Strict):

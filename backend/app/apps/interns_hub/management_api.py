@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 from datetime import date, datetime, timezone
 from typing import Literal
 from uuid import uuid4
@@ -93,7 +94,7 @@ class BatchInput(BaseModel):
     task_templates:list[int]=Field(default_factory=list,max_length=100)
     program:str=Field("Internship",max_length=100)
     specialization:str=Field("",max_length=160)
-    description:str=Field("",max_length=10000)
+    description:rich_text_type(10000, 0) = Field("")
     start_date:date
     end_date:date
     capacity:int=Field(ge=1,le=20000)
@@ -211,7 +212,7 @@ class DistributionInput(BaseModel):
     project_id:int
     task_id:int|None=None
     title:str=Field("",max_length=220)
-    description:str=Field("",max_length=20000)
+    description:rich_text_type(20000, 0) = Field("")
     category:str=Field("Project",max_length=80)
     instructions:str=Field("",max_length=10000)
     deliverables:str=Field("",max_length=10000)
@@ -336,7 +337,7 @@ def review_report(report_id:int,data:ReportDecision,user=Depends(require_admin),
 class NoticeInput(BaseModel):
     employee_ids:list[int]=Field(min_length=1,max_length=20000)
     title:str=Field(min_length=1,max_length=200)
-    message:str=Field(min_length=1,max_length=3000)
+    message:rich_text_type(3000, 1) = Field()
 
 
 @router.post("/announcements")

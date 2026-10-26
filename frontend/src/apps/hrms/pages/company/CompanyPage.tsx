@@ -524,5 +524,5 @@ function apiError(err: any) {
       .join("; ");
   }
   if (detail && typeof detail === "object") return detail.msg || detail.message || JSON.stringify(detail);
-  return "Please check fields";
+  return err?.message || "Unable to save. Check your connection and try again.";
 }

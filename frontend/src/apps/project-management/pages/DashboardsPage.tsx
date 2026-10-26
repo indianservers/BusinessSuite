@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -642,11 +643,9 @@ export default function DashboardsPage() {
         <div>
           <small>PMS / Dashboards</small>
           <h1>{library ? "Dashboards" : active?.name || "Dashboard"}</h1>
-          <p>
-            {library
+          <div><RichTextContent value={library
               ? "A complete view of your projects, teams, and progress."
-              : active?.description || "Track what matters and drive results."}
-          </p>
+              : active?.description || "Track what matters and drive results."}/></div>
         </div>
         <div className="db-header-actions">
           {!library && (
@@ -767,7 +766,7 @@ export default function DashboardsPage() {
                     onClick={() => void openDashboard(d)}
                   >
                     <h2>{d.name}</h2>
-                    <p>{d.description || "Workspace dashboard"}</p>
+                    <div><RichTextContent value={d.description || "Workspace dashboard"}/></div>
                   </button>
                   <small>
                     {d.visibility} · {d.configuration.widgets.length} widgets ·

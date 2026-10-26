@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ClipboardList, Kanban, Plus, Send } from "lucide-react";
@@ -136,7 +137,7 @@ const ProjectManagementHomePage: React.FC = () => {
                 <Link key={workflow.path} to={workflow.path} className="group flex items-center justify-between gap-4 py-4 text-sm">
                   <div>
                     <p className="font-semibold text-foreground group-hover:text-primary">{workflow.title}</p>
-                    <p className="mt-1 text-muted-foreground">{workflow.description}</p>
+                    <div className="mt-1 text-muted-foreground"><RichTextContent value={workflow.description}/></div>
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
                 </Link>
@@ -179,7 +180,7 @@ const ProjectManagementHomePage: React.FC = () => {
                 <option>Critical</option>
               </select>
             </div>
-            <textarea
+            <RichTextField data-legacy-format="markdown"
               aria-label="Project request description"
               value={intakeDescription}
               onChange={(event) => setIntakeDescription(event.target.value)}
@@ -266,9 +267,7 @@ const ProjectManagementHomePage: React.FC = () => {
                 </div>
 
                 {project.description && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {project.description}
-                  </p>
+                  <div className="text-sm text-muted-foreground mb-4 line-clamp-2"><RichTextContent value={project.description}/></div>
                 )}
 
                 <div className="flex items-center justify-between mb-4">

@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 from typing import Literal
 from datetime import date
 from fastapi import APIRouter, Depends, Query, File, UploadFile
@@ -14,7 +15,7 @@ router=APIRouter(prefix="/work",tags=["PMS Work Submissions"])
 
 class SubmissionInput(BaseModel):
     model_config=ConfigDict(extra="forbid")
-    notes:str=Field(min_length=1,max_length=5000)
+    notes:rich_text_type(5000, 1) = Field()
     links:list[HttpUrl]=Field(default_factory=list,max_length=5)
     files:list[int]=Field(default_factory=list,max_length=10)
     revision_note:str|None=Field(None,max_length=2000)
@@ -28,7 +29,7 @@ class ReviewInput(BaseModel):
     score:int=Field(ge=0,le=1000)
     communication_score:int|None=Field(None,ge=0,le=100)
     rubric:dict=Field(default_factory=dict)
-    feedback:str=Field(min_length=1,max_length=5000)
+    feedback:rich_text_type(5000, 1) = Field()
     strengths:str=Field("",max_length=2000)
     improvements:str=Field("",max_length=2000)
     inspected:bool=False
@@ -98,7 +99,7 @@ def my_assignments(page:int=Query(1,ge=1),per_page:int=Query(50,ge=1,le=200),use
 
 class ProgressInput(BaseModel):
     progress_percent:int=Field(ge=0,le=99)
-    notes:str=Field('',max_length=5000)
+    notes:rich_text_type(5000, 0) = Field('')
 
 @router.post('/tasks/{task_id}/progress')
 def progress(task_id:int,data:ProgressInput,user=Depends(get_current_user),db:Session=Depends(get_db)):

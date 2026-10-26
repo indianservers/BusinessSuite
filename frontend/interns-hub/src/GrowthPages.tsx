@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent } from "../../src/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -201,7 +202,7 @@ export function Analytics() {
           {submissions.length ? (
             <>
               <h2>{data.me.manager || "Your HRMS team"}</h2>
-              <p>{submissions.at(-1)?.feedback}</p>
+              <div><RichTextContent legacyFormat="plain" value={submissions.at(-1)?.feedback}/></div>
             </>
           ) : (
             <Empty title="Your first review is ahead" />
@@ -266,7 +267,7 @@ export function Learning() {
                 max={Math.max(c.lessons?.length || 0, 1)}
                 value={c.completed_lessons.length}
               />
-              <p>{c.description}</p>
+              <div><RichTextContent legacyFormat="plain" value={c.description}/></div>
               <div className="actions">
                 <Link to={`/learning/${c.id}`} className="button small">
                   Continue Learning

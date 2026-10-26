@@ -85,7 +85,10 @@ def deliver_email(db: Session, message: CommunicationEmailMessage, current_user:
         mail = EmailMessage()
         mail["From"], mail["To"], mail["Subject"] = settings.MAIL_FROM, message.to_email, message.subject
         mail["Message-ID"] = f"<businesssuite-{message.id}@{settings.MAIL_FROM.split('@')[-1]}>"
-        mail.set_content(message.body)
+        from app.core.rich_text import email_body_parts
+        plain, formatted = email_body_parts(message.body)
+        mail.set_content(plain)
+        mail.add_alternative(formatted, subtype="html")
         for name, content, mime in attachments or []:
             main, sub = mime.split("/", 1)
             mail.add_attachment(content, maintype=main, subtype=sub, filename=name)

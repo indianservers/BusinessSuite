@@ -1,0 +1,3050 @@
+[
+  {
+    "module": "project-management",
+    "path": "/pms/batches",
+    "final_path": "/pms/batches",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/batch-tasks",
+    "final_path": "/pms/batch-tasks",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/my-assignments",
+    "final_path": "/pms/my-assignments",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/assignment-controls",
+    "final_path": "/pms/assignment-controls",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/reviews",
+    "final_path": "/pms/reviews",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/admin/workspaces",
+    "final_path": "/pms/admin/workspaces",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/recovery",
+    "final_path": "/pms/recovery",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/audit-logs",
+    "final_path": "/pms/audit-logs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/analytics/team",
+    "final_path": "/pms/analytics/team",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/analytics/projects",
+    "final_path": "/pms/analytics/projects",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/operator",
+    "final_path": "/pms/operator",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/assistant",
+    "final_path": "/pms/assistant",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/workspaces",
+    "final_path": "/pms/workspaces",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms",
+    "final_path": "/pms",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/overview",
+    "final_path": "/pms/overview",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/profile",
+    "final_path": "/pms/profile",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/command-center",
+    "final_path": "/pms/command-center",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/workspace-tools",
+    "final_path": "/pms/workspace-tools",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/enterprise-engine",
+    "final_path": "/pms/enterprise-engine",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/product-launch",
+    "final_path": "/pms/product-launch",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/portfolio",
+    "final_path": "/pms/portfolio",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/dependency-management",
+    "final_path": "/pms/dependency-management",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/resource-planning",
+    "final_path": "/pms/resource-planning",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/agile-execution",
+    "final_path": "/pms/agile-execution",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/project-financials",
+    "final_path": "/pms/project-financials",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/risk-register",
+    "final_path": "/pms/risk-register",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/risks",
+    "final_path": "/pms/risks",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/projects",
+    "final_path": "/pms/projects",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/projects/new",
+    "final_path": "/pms/projects/new",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/tasks",
+    "final_path": "/pms/tasks",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/work-hub",
+    "final_path": "/pms/work-hub",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/impact",
+    "final_path": "/pms/impact",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/ai-planner",
+    "final_path": "/pms/ai-planner",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/timeline-plus",
+    "final_path": "/pms/timeline-plus",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/dependency-timeline",
+    "final_path": "/pms/dependency-timeline",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/automation-ai",
+    "final_path": "/pms/automation-ai",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/software",
+    "final_path": "/pms/software",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/live",
+    "final_path": "/pms/live",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/teams-live",
+    "final_path": "/pms/teams-live",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/backlog",
+    "final_path": "/pms/backlog",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/issues",
+    "final_path": "/pms/issues",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/roadmap",
+    "final_path": "/pms/roadmap",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/workload",
+    "final_path": "/pms/workload",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/capacity",
+    "final_path": "/pms/capacity",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/releases",
+    "final_path": "/pms/releases",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/automation",
+    "final_path": "/pms/automation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/goals",
+    "final_path": "/pms/goals",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/forms",
+    "final_path": "/pms/forms",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/messages",
+    "final_path": "/pms/messages",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/custom-fields",
+    "final_path": "/pms/custom-fields",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/teams",
+    "final_path": "/pms/teams",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/org-chart",
+    "final_path": "/pms/org-chart",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/trash",
+    "final_path": "/pms/trash",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/templates",
+    "final_path": "/pms/templates",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/components",
+    "final_path": "/pms/components",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/workflows",
+    "final_path": "/pms/workflows",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/security",
+    "final_path": "/pms/security",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/dependencies",
+    "final_path": "/pms/dependencies",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/navigator",
+    "final_path": "/pms/navigator",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/apps",
+    "final_path": "/pms/apps",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/dashboards",
+    "final_path": "/pms/dashboards",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/docs",
+    "final_path": "/pms/docs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/notes",
+    "final_path": "/pms/notes",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/task-types",
+    "final_path": "/pms/task-types",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/tags",
+    "final_path": "/pms/tags",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/plans",
+    "final_path": "/pms/plans",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/issue-navigator-pro",
+    "final_path": "/pms/issue-navigator-pro",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/backlog-grooming",
+    "final_path": "/pms/backlog-grooming",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/sprint-lifecycle",
+    "final_path": "/pms/sprint-lifecycle",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/blueprints",
+    "final_path": "/pms/blueprints",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/resource-utilization",
+    "final_path": "/pms/resource-utilization",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/calendar",
+    "final_path": "/pms/calendar",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/planner",
+    "final_path": "/pms/planner",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/gantt",
+    "final_path": "/pms/gantt",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/sprints",
+    "final_path": "/pms/sprints",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/files",
+    "final_path": "/pms/files",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/time-tracking",
+    "final_path": "/pms/time-tracking",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/timesheets",
+    "final_path": "/pms/timesheets",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/reports",
+    "final_path": "/pms/reports",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/client-portal",
+    "final_path": "/pms/client-portal",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/settings",
+    "final_path": "/pms/settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "project-management",
+    "path": "/pms/admin",
+    "final_path": "/pms/admin",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/my-assignments",
+    "final_path": "/hrms/my-assignments",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/dashboard",
+    "final_path": "/hrms/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/role-home",
+    "final_path": "/hrms/role-home",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/admin-home",
+    "final_path": "/hrms/admin-home",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/hr-home",
+    "final_path": "/hrms/hr-home",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/executive-home",
+    "final_path": "/hrms/executive-home",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/manager-dashboard",
+    "final_path": "/hrms/manager-dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/ess",
+    "final_path": "/hrms/ess",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/employee-directory",
+    "final_path": "/hrms/employee-directory",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns-hub/applications",
+    "final_path": "/hrms/interns-hub/applications",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns-hub",
+    "final_path": "/hrms/interns-hub",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns",
+    "final_path": "/hrms/interns",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns/dashboard",
+    "final_path": "/hrms/interns/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns/batches",
+    "final_path": "/hrms/interns/batches",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns/tasks",
+    "final_path": "/hrms/interns/tasks",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns/reviews",
+    "final_path": "/hrms/interns/reviews",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns/performance",
+    "final_path": "/hrms/interns/performance",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/employees",
+    "final_path": "/hrms/employees",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/employees/new",
+    "final_path": "/hrms/employees/new",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/probation",
+    "final_path": "/hrms/probation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/attendance",
+    "final_path": "/hrms/attendance",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/my-attendance",
+    "final_path": "/hrms/my-attendance",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/attendance/shift-roster",
+    "final_path": "/hrms/attendance/shift-roster",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/my-roster",
+    "final_path": "/hrms/my-roster",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/timesheets",
+    "final_path": "/hrms/timesheets",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/approval-os",
+    "final_path": "/hrms/approval-os",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/workflow",
+    "final_path": "/hrms/workflow",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/workflow-designer",
+    "final_path": "/hrms/workflow-designer",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/notifications",
+    "final_path": "/hrms/notifications",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/leave",
+    "final_path": "/hrms/leave",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/payroll",
+    "final_path": "/hrms/payroll",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/my-payslips",
+    "final_path": "/hrms/my-payslips",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/fnf-settlements",
+    "final_path": "/hrms/fnf-settlements",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/investment-declaration",
+    "final_path": "/hrms/investment-declaration",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/recruitment",
+    "final_path": "/hrms/recruitment",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/performance",
+    "final_path": "/hrms/performance",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/benefits",
+    "final_path": "/hrms/benefits",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/lms",
+    "final_path": "/hrms/lms",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/statutory-compliance",
+    "final_path": "/hrms/statutory-compliance",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/background-verification",
+    "final_path": "/hrms/background-verification",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/whatsapp-ess",
+    "final_path": "/hrms/whatsapp-ess",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/custom-fields",
+    "final_path": "/hrms/custom-fields",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/enterprise",
+    "final_path": "/hrms/enterprise",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/engagement",
+    "final_path": "/hrms/engagement",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/helpdesk",
+    "final_path": "/hrms/helpdesk",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/reports",
+    "final_path": "/hrms/reports",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/advanced-analytics",
+    "final_path": "/hrms/advanced-analytics",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/logs",
+    "final_path": "/hrms/logs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/company",
+    "final_path": "/hrms/company",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/org-chart",
+    "final_path": "/hrms/org-chart",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/settings",
+    "final_path": "/hrms/settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/assets",
+    "final_path": "/hrms/assets",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/onboarding",
+    "final_path": "/hrms/onboarding",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/documents",
+    "final_path": "/hrms/documents",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/exit",
+    "final_path": "/hrms/exit",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/ai-assistant",
+    "final_path": "/hrms/ai-assistant",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/profile",
+    "final_path": "/hrms/profile",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/profile/security",
+    "final_path": "/hrms/profile/security",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/profile-management",
+    "final_path": "/hrms/profile-management",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/interns/profiles",
+    "final_path": "/hrms/interns/profiles",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms/leave/gantt",
+    "final_path": "/hrms/leave/gantt",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "hrms",
+    "path": "/hrms",
+    "final_path": "/hrms",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/gantt",
+    "final_path": "/crm/gantt",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm",
+    "final_path": "/crm",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/dashboard",
+    "final_path": "/crm/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/profile",
+    "final_path": "/crm/profile",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/leads",
+    "final_path": "/crm/leads",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/leads/classic",
+    "final_path": "/crm/leads/classic",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/leads/workbench",
+    "final_path": "/crm/leads/workbench",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/contacts",
+    "final_path": "/crm/contacts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/accounts",
+    "final_path": "/crm/accounts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/companies",
+    "final_path": "/crm/companies",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/deals",
+    "final_path": "/crm/deals",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/pipeline",
+    "final_path": "/crm/pipeline",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/templates",
+    "final_path": "/crm/templates",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/pipeline-settings",
+    "final_path": "/crm/pipeline-settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/pipelines",
+    "final_path": "/crm/pipelines",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/activities",
+    "final_path": "/crm/activities",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/tasks",
+    "final_path": "/crm/tasks",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "crm",
+    "path": "/crm/calendar",
+    "final_path": "/crm/calendar",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/calendar-integrations",
+    "final_path": "/crm/calendar-integrations",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/webhooks",
+    "final_path": "/crm/webhooks",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/communication-hub",
+    "final_path": "/crm/communication-hub",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/email-templates",
+    "final_path": "/crm/email-templates",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "crm",
+    "path": "/crm/emails",
+    "final_path": "/crm/emails",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/webforms",
+    "final_path": "/crm/webforms",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/campaigns",
+    "final_path": "/crm/campaigns",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/consents",
+    "final_path": "/crm/consents",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/whatsapp",
+    "final_path": "/crm/whatsapp",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/auto-responses",
+    "final_path": "/crm/auto-responses",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/delivery-logs",
+    "final_path": "/crm/delivery-logs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/communication-timeline",
+    "final_path": "/crm/communication-timeline",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/products",
+    "final_path": "/crm/products",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/services",
+    "final_path": "/crm/services",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/price-books",
+    "final_path": "/crm/price-books",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/quotes",
+    "final_path": "/crm/quotes",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/quote-approvals",
+    "final_path": "/crm/quote-approvals",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/cpq",
+    "final_path": "/crm/cpq",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/guided-selling",
+    "final_path": "/crm/guided-selling",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/quotations",
+    "final_path": "/crm/quotations",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/approval-settings",
+    "final_path": "/crm/approval-settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/my-approvals",
+    "final_path": "/crm/my-approvals",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/duplicates",
+    "final_path": "/crm/duplicates",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/territories",
+    "final_path": "/crm/territories",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/tickets",
+    "final_path": "/crm/tickets",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/files",
+    "final_path": "/crm/files",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/reports",
+    "final_path": "/crm/reports",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/automation",
+    "final_path": "/crm/automation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/lead-to-cash",
+    "final_path": "/crm/lead-to-cash",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/forecasting",
+    "final_path": "/crm/forecasting",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/forecasts",
+    "final_path": "/crm/forecasts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/targets",
+    "final_path": "/crm/targets",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/sales-performance",
+    "final_path": "/crm/sales-performance",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/funnel",
+    "final_path": "/crm/funnel",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/lost-analysis",
+    "final_path": "/crm/lost-analysis",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/customer-360",
+    "final_path": "/crm/customer-360",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/import-export",
+    "final_path": "/crm/import-export",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/settings",
+    "final_path": "/crm/settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/lead-scoring",
+    "final_path": "/crm/lead-scoring",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/feature-checklist",
+    "final_path": "/crm/feature-checklist",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "crm",
+    "path": "/crm/admin",
+    "final_path": "/crm/admin",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/gantt",
+    "final_path": "/srm/gantt",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/gantt",
+    "final_path": "/srm/inventory/gantt",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm",
+    "final_path": "/srm",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/dashboard",
+    "final_path": "/srm/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/profile",
+    "final_path": "/srm/profile",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/sales-orders",
+    "final_path": "/srm/sales-orders",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/contracts",
+    "final_path": "/srm/contracts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/engagements",
+    "final_path": "/srm/engagements",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/billing-plans",
+    "final_path": "/srm/billing-plans",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/invoice-drafts",
+    "final_path": "/srm/invoice-drafts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/invoices",
+    "final_path": "/srm/invoices",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/collections",
+    "final_path": "/srm/collections",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/revenue-recognition",
+    "final_path": "/srm/revenue-recognition",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/profitability",
+    "final_path": "/srm/profitability",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/customer-360",
+    "final_path": "/srm/customer-360",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/pos",
+    "final_path": "/srm/pos",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/pos/terminal",
+    "final_path": "/srm/pos/terminal",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/pos/sessions",
+    "final_path": "/srm/pos/sessions",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/pos/cashier-closing",
+    "final_path": "/srm/pos/cashier-closing",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/pos/returns",
+    "final_path": "/srm/pos/returns",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory",
+    "final_path": "/srm/inventory",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/dashboard",
+    "final_path": "/srm/inventory/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/items",
+    "final_path": "/srm/inventory/items",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/products",
+    "final_path": "/srm/inventory/products",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/products/create",
+    "final_path": "/srm/inventory/products/create",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/products/import",
+    "final_path": "/srm/inventory/products/import",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/products/export",
+    "final_path": "/srm/inventory/products/export",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/products/barcodes",
+    "final_path": "/srm/inventory/products/barcodes",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/price-lists",
+    "final_path": "/srm/inventory/price-lists",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/stock-groups",
+    "final_path": "/srm/inventory/stock-groups",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/units",
+    "final_path": "/srm/inventory/units",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/warehouses",
+    "final_path": "/srm/inventory/warehouses",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/opening-stock",
+    "final_path": "/srm/inventory/opening-stock",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/stock-in",
+    "final_path": "/srm/inventory/stock-in",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/stock-out",
+    "final_path": "/srm/inventory/stock-out",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/stock-transfers",
+    "final_path": "/srm/inventory/stock-transfers",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/stock-adjustments",
+    "final_path": "/srm/inventory/stock-adjustments",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/purchase-receipts",
+    "final_path": "/srm/inventory/purchase-receipts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/delivery-notes",
+    "final_path": "/srm/inventory/delivery-notes",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/stock-summary",
+    "final_path": "/srm/inventory/stock-summary",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/warehouse-stock",
+    "final_path": "/srm/inventory/warehouse-stock",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/stock-aging",
+    "final_path": "/srm/inventory/stock-aging",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reorder-report",
+    "final_path": "/srm/inventory/reorder-report",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/dead-stock",
+    "final_path": "/srm/inventory/dead-stock",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/fast-slow-moving",
+    "final_path": "/srm/inventory/fast-slow-moving",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/valuation",
+    "final_path": "/srm/inventory/valuation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/gross-margin",
+    "final_path": "/srm/inventory/gross-margin",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/cogs",
+    "final_path": "/srm/inventory/cogs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reconciliation",
+    "final_path": "/srm/inventory/reconciliation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reconciliation/gl",
+    "final_path": "/srm/inventory/reconciliation/gl",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reconciliation/grni",
+    "final_path": "/srm/inventory/reconciliation/grni",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reconciliation/cogs",
+    "final_path": "/srm/inventory/reconciliation/cogs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reconciliation/gst",
+    "final_path": "/srm/inventory/reconciliation/gst",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reports/cogs",
+    "final_path": "/srm/inventory/reports/cogs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reports/gross-margin",
+    "final_path": "/srm/inventory/reports/gross-margin",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reports/hsn-summary",
+    "final_path": "/srm/inventory/reports/hsn-summary",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reports/complete",
+    "final_path": "/srm/inventory/reports/complete",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/batches",
+    "final_path": "/srm/inventory/batches",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/serial-numbers",
+    "final_path": "/srm/inventory/serial-numbers",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/purchase-orders",
+    "final_path": "/srm/inventory/purchase-orders",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/purchase-orders/create",
+    "final_path": "/srm/inventory/purchase-orders/create",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/grn",
+    "final_path": "/srm/inventory/grn",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/manufacturing",
+    "final_path": "/srm/inventory/manufacturing",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/manufacturing/bom",
+    "final_path": "/srm/inventory/manufacturing/bom",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/manufacturing/bom/create",
+    "final_path": "/srm/inventory/manufacturing/bom/create",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/manufacturing/orders",
+    "final_path": "/srm/inventory/manufacturing/orders",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/manufacturing/orders/create",
+    "final_path": "/srm/inventory/manufacturing/orders/create",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/audit",
+    "final_path": "/srm/inventory/audit",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reorder-alerts",
+    "final_path": "/srm/inventory/reorder-alerts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/reports",
+    "final_path": "/srm/inventory/reports",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/inventory/ai",
+    "final_path": "/srm/inventory/ai",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/reports",
+    "final_path": "/srm/reports",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "srm",
+    "path": "/srm/settings",
+    "final_path": "/srm/settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gantt",
+    "final_path": "/fam/gantt",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam",
+    "final_path": "/fam",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/dashboard",
+    "final_path": "/fam/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/profile",
+    "final_path": "/fam/profile",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/settings",
+    "final_path": "/fam/settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/financial-years",
+    "final_path": "/fam/financial-years",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/chart-of-accounts",
+    "final_path": "/fam/chart-of-accounts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ledger-groups",
+    "final_path": "/fam/ledger-groups",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ledgers",
+    "final_path": "/fam/ledgers",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/opening-balances",
+    "final_path": "/fam/opening-balances",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/voucher-types",
+    "final_path": "/fam/voucher-types",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/vouchers",
+    "final_path": "/fam/vouchers",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/vouchers/new",
+    "final_path": "/fam/vouchers/new",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/journal",
+    "final_path": "/fam/journal",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/day-book",
+    "final_path": "/fam/day-book",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ledger-entries",
+    "final_path": "/fam/ledger-entries",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/parties",
+    "final_path": "/fam/parties",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/customers",
+    "final_path": "/fam/customers",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/vendors",
+    "final_path": "/fam/vendors",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ar",
+    "final_path": "/fam/ar",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ar/aging",
+    "final_path": "/fam/ar/aging",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ar/outstanding",
+    "final_path": "/fam/ar/outstanding",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ap",
+    "final_path": "/fam/ap",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ap/aging",
+    "final_path": "/fam/ap/aging",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/ap/outstanding",
+    "final_path": "/fam/ap/outstanding",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/bill-references",
+    "final_path": "/fam/bill-references",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/bill-allocations",
+    "final_path": "/fam/bill-allocations",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/integrations/srm",
+    "final_path": "/fam/integrations/srm",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/posting-jobs",
+    "final_path": "/fam/posting-jobs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/posting-rules",
+    "final_path": "/fam/posting-rules",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/banking",
+    "final_path": "/fam/banking",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/bank-accounts",
+    "final_path": "/fam/bank-accounts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/payment-modes",
+    "final_path": "/fam/payment-modes",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/bank-statements",
+    "final_path": "/fam/bank-statements",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/bank-reconciliation",
+    "final_path": "/fam/bank-reconciliation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/bank-book",
+    "final_path": "/fam/bank-book",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/cash-book",
+    "final_path": "/fam/cash-book",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/contra",
+    "final_path": "/fam/contra",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/bank-charges",
+    "final_path": "/fam/bank-charges",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst",
+    "final_path": "/fam/gst",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/settings",
+    "final_path": "/fam/gst/settings",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/registrations",
+    "final_path": "/fam/gst/registrations",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/rates",
+    "final_path": "/fam/gst/rates",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/hsn-sac",
+    "final_path": "/fam/gst/hsn-sac",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/sales-register",
+    "final_path": "/fam/gst/sales-register",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/purchase-register",
+    "final_path": "/fam/gst/purchase-register",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/gstr1",
+    "final_path": "/fam/gst/gstr1",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/gstr3b",
+    "final_path": "/fam/gst/gstr3b",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/reconciliation",
+    "final_path": "/fam/gst/reconciliation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/einvoice",
+    "final_path": "/fam/gst/einvoice",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/gst/ewaybill",
+    "final_path": "/fam/gst/ewaybill",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/purchases",
+    "final_path": "/fam/purchases",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/purchase-bills",
+    "final_path": "/fam/purchase-bills",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/purchase-bills/new",
+    "final_path": "/fam/purchase-bills/new",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/expenses",
+    "final_path": "/fam/expenses",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/expenses/new",
+    "final_path": "/fam/expenses/new",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/tds",
+    "final_path": "/fam/tds",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/tds/sections",
+    "final_path": "/fam/tds/sections",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/tds/transactions",
+    "final_path": "/fam/tds/transactions",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/tds/payable",
+    "final_path": "/fam/tds/payable",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/purchase-register",
+    "final_path": "/fam/purchase-register",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/expense-register",
+    "final_path": "/fam/expense-register",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/vendor-payments",
+    "final_path": "/fam/vendor-payments",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/payables/dashboard",
+    "final_path": "/fam/payables/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory",
+    "final_path": "/fam/inventory",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/accounting",
+    "final_path": "/fam/inventory/accounting",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/dashboard",
+    "final_path": "/fam/inventory/dashboard",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/items",
+    "final_path": "/fam/inventory/items",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/categories",
+    "final_path": "/fam/inventory/categories",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/stock-groups",
+    "final_path": "/fam/inventory/stock-groups",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/units",
+    "final_path": "/fam/inventory/units",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/warehouses",
+    "final_path": "/fam/inventory/warehouses",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/stock-in",
+    "final_path": "/fam/inventory/stock-in",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/stock-out",
+    "final_path": "/fam/inventory/stock-out",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/stock-transfers",
+    "final_path": "/fam/inventory/stock-transfers",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/stock-adjustments",
+    "final_path": "/fam/inventory/stock-adjustments",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/purchase-receipts",
+    "final_path": "/fam/inventory/purchase-receipts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/delivery-notes",
+    "final_path": "/fam/inventory/delivery-notes",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": true
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/stock-summary",
+    "final_path": "/fam/inventory/stock-summary",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/warehouse-stock",
+    "final_path": "/fam/inventory/warehouse-stock",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/stock-aging",
+    "final_path": "/fam/inventory/stock-aging",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reorder-report",
+    "final_path": "/fam/inventory/reorder-report",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/dead-stock",
+    "final_path": "/fam/inventory/dead-stock",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/fast-slow-moving",
+    "final_path": "/fam/inventory/fast-slow-moving",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/valuation",
+    "final_path": "/fam/inventory/valuation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/gross-margin",
+    "final_path": "/fam/inventory/gross-margin",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/cogs",
+    "final_path": "/fam/inventory/cogs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/grni",
+    "final_path": "/fam/inventory/grni",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reconciliation",
+    "final_path": "/fam/inventory/reconciliation",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reconciliation/gl",
+    "final_path": "/fam/inventory/reconciliation/gl",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reconciliation/grni",
+    "final_path": "/fam/inventory/reconciliation/grni",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reconciliation/cogs",
+    "final_path": "/fam/inventory/reconciliation/cogs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reconciliation/gst",
+    "final_path": "/fam/inventory/reconciliation/gst",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reports/cogs",
+    "final_path": "/fam/inventory/reports/cogs",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reports/gross-margin",
+    "final_path": "/fam/inventory/reports/gross-margin",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reports/hsn-summary",
+    "final_path": "/fam/inventory/reports/hsn-summary",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/audit",
+    "final_path": "/fam/inventory/audit",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/crm-link",
+    "final_path": "/fam/inventory/crm-link",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/srm-link",
+    "final_path": "/fam/inventory/srm-link",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reorder-alerts",
+    "final_path": "/fam/inventory/reorder-alerts",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/reports",
+    "final_path": "/fam/inventory/reports",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/inventory/ai",
+    "final_path": "/fam/inventory/ai",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/cost-centers",
+    "final_path": "/fam/cost-centers",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/branches",
+    "final_path": "/fam/branches",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  },
+  {
+    "module": "fam",
+    "path": "/fam/audit",
+    "final_path": "/fam/audit",
+    "render_error": false,
+    "alert_count": 0,
+    "retested_after_editor_fix": false
+  }
+]

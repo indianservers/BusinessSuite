@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Persisted workspace goals, task templates and authenticated intake forms."""
 import json
 import secrets
@@ -24,7 +25,7 @@ class ToolInput(BaseModel):
     kind: Literal["goal", "template", "intake"]
     name: str = Field(min_length=1, max_length=120)
     project_id: int = Field(gt=0)
-    description: str = Field(default="", max_length=4000)
+    description: rich_text_type(4000, 0) = Field(default="")
     task_ids: list[int] = Field(default_factory=list, max_length=100)
     task_titles: list[str] = Field(default_factory=list, max_length=20)
     enabled: bool = True
@@ -41,7 +42,7 @@ class ApplyInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     request_id: UUID
     title: str = Field(default="", max_length=220)
-    description: str = Field(default="", max_length=10000)
+    description: rich_text_type(10000, 0) = Field(default="")
 
 
 class ToolToggle(BaseModel):

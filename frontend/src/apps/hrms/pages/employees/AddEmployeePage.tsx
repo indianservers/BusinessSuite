@@ -1,8 +1,9 @@
+import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneError, textError } from "@/lib/validation";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -151,6 +152,7 @@ export default function AddEmployeePage() {
   });
 
   const {
+    control: editorControl,
     register,
     trigger,
     setError: setFieldError,
@@ -330,12 +332,12 @@ export default function AddEmployeePage() {
               <div className="space-y-2">
                 <Label htmlFor="employee-first_name">First Name *</Label>
                 <Input id="employee-first_name" aria-invalid={!!errors.first_name} aria-describedby={errors.first_name ? "employee-first_name-error" : undefined} {...register("first_name")} placeholder="John" />
-                {errors.first_name && <p id="employee-first_name-error" role="alert" className="text-xs text-destructive">{errors.first_name.message}</p>}
+                {errors.first_name && <div id="employee-first_name-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.first_name.message}/></div>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="employee-last_name">Last Name (optional)</Label>
                 <Input id="employee-last_name" aria-invalid={!!errors.last_name} aria-describedby={errors.last_name ? "employee-last_name-error" : undefined} {...register("last_name")} placeholder="Doe" />
-                {errors.last_name && <p id="employee-last_name-error" role="alert" className="text-xs text-destructive">{errors.last_name.message}</p>}
+                {errors.last_name && <div id="employee-last_name-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.last_name.message}/></div>}
               </div>
               <div className="space-y-2">
                 <Label>Gender</Label>
@@ -349,7 +351,7 @@ export default function AddEmployeePage() {
               <div className="space-y-2">
                 <Label htmlFor="employee-date_of_birth">Date of Birth</Label>
                 <Input id="employee-date_of_birth" aria-invalid={!!errors.date_of_birth} aria-describedby={errors.date_of_birth ? "employee-date_of_birth-error" : undefined} type="date" {...register("date_of_birth")} />
-                {errors.date_of_birth && <p id="employee-date_of_birth-error" role="alert" className="text-xs text-destructive">{errors.date_of_birth.message}</p>}
+                {errors.date_of_birth && <div id="employee-date_of_birth-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.date_of_birth.message}/></div>}
               </div>
             </CardContent>
           </Card>
@@ -363,7 +365,7 @@ export default function AddEmployeePage() {
               <div className="space-y-2">
                 <Label htmlFor="employee-date_of_joining">Date of Joining *</Label>
                 <Input id="employee-date_of_joining" aria-invalid={!!errors.date_of_joining} aria-describedby={errors.date_of_joining ? "employee-date_of_joining-error" : undefined} type="date" {...register("date_of_joining")} />
-                {errors.date_of_joining && <p id="employee-date_of_joining-error" role="alert" className="text-xs text-destructive">{errors.date_of_joining.message}</p>}
+                {errors.date_of_joining && <div id="employee-date_of_joining-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.date_of_joining.message}/></div>}
               </div>
               <div className="space-y-2">
                 <Label>Employment Type</Label>
@@ -390,7 +392,7 @@ export default function AddEmployeePage() {
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
-                {errors.branch_id && <p className="text-xs text-destructive">{errors.branch_id.message}</p>}
+                {errors.branch_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.branch_id.message}/></div>}
                 {!branches?.length && <p className="text-xs text-muted-foreground">No branches yet. Add one here or in Settings.</p>}
               </div>
               <div className="space-y-2">
@@ -409,7 +411,7 @@ export default function AddEmployeePage() {
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
-                {errors.department_id && <p className="text-xs text-destructive">{errors.department_id.message}</p>}
+                {errors.department_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.department_id.message}/></div>}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -427,7 +429,7 @@ export default function AddEmployeePage() {
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
-                {errors.designation_id && <p className="text-xs text-destructive">{errors.designation_id.message}</p>}
+                {errors.designation_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.designation_id.message}/></div>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reporting-manager">Reporting Manager / Intern Supervisor</Label>
@@ -449,7 +451,7 @@ export default function AddEmployeePage() {
                     <option key={s.id} value={s.id}>{s.name} ({s.start_time}-{s.end_time})</option>
                   ))}
                 </select>
-                {errors.shift_id && <p className="text-xs text-destructive">{errors.shift_id.message}</p>}
+                {errors.shift_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.shift_id.message}/></div>}
               </div>
             </CardContent>
           </Card>
@@ -463,7 +465,7 @@ export default function AddEmployeePage() {
               <div className="space-y-2">
                 <Label htmlFor="employee-personal_email">Personal Email</Label>
                 <Input id="employee-personal_email" aria-invalid={!!errors.personal_email} aria-describedby={errors.personal_email ? "employee-personal_email-error" : undefined} type="email" {...register("personal_email")} placeholder="john@example.com" />
-                {errors.personal_email && <p id="employee-personal_email-error" role="alert" className="text-xs text-destructive">{errors.personal_email.message}</p>}
+                {errors.personal_email && <div id="employee-personal_email-error" role="alert" className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.personal_email.message}/></div>}
               </div>
               <div className="space-y-2">
                 <Label>Phone Number</Label>
@@ -507,9 +509,9 @@ export default function AddEmployeePage() {
               onToggle={() => toggleSection("profile")}
             >
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Bio"><textarea {...register("bio")} rows={4} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></Field>
+                <Field label="Bio"><Controller name="bio" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Bio" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/></Field>
                 <Field label="Interests"><textarea {...register("interests")} rows={4} placeholder="AI, analytics, community work..." className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></Field>
-                <Field label="Research / Publications"><textarea {...register("research_work")} rows={4} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm sm:col-span-2" /></Field>
+                <Field label="Research / Publications"><Controller name="research_work" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Research Work" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/></Field>
               </div>
             </OptionalSection>
             <OptionalSection icon={Users} title="Family Information" open={openSections.family} onToggle={() => toggleSection("family")}>
@@ -554,10 +556,10 @@ export default function AddEmployeePage() {
                 <div className="space-y-2">
                   <Label htmlFor="employee-login-email">Login Email *</Label>
                   <Input id="employee-login-email" type="email" {...register("user_email")} placeholder="employee@company.com" />
-                  {errors.user_email&&<p className="text-xs text-destructive">{errors.user_email.message}</p>}
+                  {errors.user_email&&<div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.user_email.message}/></div>}
                   <Label htmlFor="employee-login-password">Login Password *</Label>
                   <Input id="employee-login-password" type="password" autoComplete="new-password" maxLength={72} {...register("user_password")} />
-                  {errors.user_password&&<p className="text-xs text-destructive">{errors.user_password.message}</p>}
+                  {errors.user_password&&<div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.user_password.message}/></div>}
                   <p className="text-xs text-muted-foreground">Set a unique password of at least 12 characters that meets your organization’s password policy.</p>
                 </div>
               )}

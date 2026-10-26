@@ -986,7 +986,12 @@ FEATURE_PLANS = [
 ]
 
 
-def init_db(db: Session, *, seed_demo: bool = True) -> None:
+def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
+    from app.core.config import settings
+    if seed_demo is None:
+        seed_demo = settings.ENVIRONMENT.lower() == "test" or settings.SEED_DEMO_DATA
+    if seed_demo and (settings.SERVERLESS or settings.ENVIRONMENT.lower() not in {"development", "test"}):
+        raise RuntimeError("Demo accounts cannot be seeded outside development/test")
     # Create permissions
     perm_map = {}
     for name, description, module in SYSTEM_PERMISSIONS:

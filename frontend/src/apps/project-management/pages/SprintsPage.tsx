@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import type React from "react";
 import { FormEvent, useEffect, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, CheckCircle2, Flame, Gauge, Play, RotateCcw, TrendingUp } from "lucide-react";
@@ -291,7 +292,7 @@ export default function SprintsPage() {
               {(sprint.outcome || sprint.review_notes || sprint.retrospective_notes) ? (
                 <div className="mt-4 rounded-md border bg-muted/30 p-3 text-sm">
                   <p className="font-medium">Review outcome</p>
-                  <p className="mt-1 line-clamp-2 text-muted-foreground">{sprint.outcome || sprint.review_notes || sprint.retrospective_notes}</p>
+                  <div className="mt-1 line-clamp-2 text-muted-foreground"><RichTextContent value={sprint.outcome || sprint.review_notes || sprint.retrospective_notes}/></div>
                 </div>
               ) : null}
             </CardContent>
@@ -396,7 +397,7 @@ function TextareaField({ label, value, onChange }: { label: string; value: strin
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <textarea value={value} onChange={(event) => onChange(event.target.value)} className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+      <RichTextField data-legacy-format="markdown" value={value} onChange={(event) => onChange(event.target.value)} className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
     </div>
   );
 }

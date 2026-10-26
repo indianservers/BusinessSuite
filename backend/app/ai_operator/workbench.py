@@ -407,12 +407,12 @@ def undo_preview(run_id:int,request:Request,db:Session=Depends(get_db),user:User
         elif tool=='move_to_sprint' and old.get('sprint_id'):
             steps.append({**inverse,'tool':tool,'sprint_id':old['sprint_id']})
         elif tool=='add_checklist' and receipts.get(position):
-            steps.append({**inverse,'tool':'remove_checklist','item_id':receipts[position]['record_id']})
+            manual.append('Removing a created checklist item requires manual recovery; AI deletion is prohibited.')
         elif tool=='update_checklist':
             item=next((i for i in old['checklist'] if i['id']==step['item_id']),None)
             if item:steps.append({**inverse,'tool':tool,'item_id':item['id'],'is_completed':item['is_completed']})
         elif tool=='add_dependency' and receipts.get(position):
-            steps.append({**inverse,'tool':'remove_dependency','dependency_id':receipts[position]['record_id']})
+            manual.append('Removing a created dependency requires manual recovery; AI deletion is prohibited.')
         else:manual.append(f'{tool} on task {step["task_id"]} requires manual recovery.')
     if not steps:raise HTTPException(409,'No supported inverse actions. '+ ' '.join(manual))
     plan=TaskPlan.model_validate({'summary':f'Recover supported changes from run #{run.id}','steps':steps})

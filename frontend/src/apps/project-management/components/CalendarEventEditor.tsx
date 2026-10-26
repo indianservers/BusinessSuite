@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -290,7 +291,7 @@ export default function CalendarEventEditor({
               </label>
               <label>
                 Description
-                <textarea
+                <RichTextField data-legacy-format="markdown"
                   maxLength={10000}
                   rows={3}
                   value={draft.description}

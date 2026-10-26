@@ -33,6 +33,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const { theme, setTheme } = useThemeStore();
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
+  function openOperator(){
+    const params=new URLSearchParams(location.search);
+    const prefix=location.pathname.split('/')[1];
+    const focus:Record<string,string>={hrms:'HRMS',crm:'CRM',srm:'SRM',fam:'FAM',pms:'PMS'};
+    if(focus[prefix])params.set('module',focus[prefix]);
+    navigate(`/ai-agents/operator?${params.toString()}`);
+  }
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -105,7 +112,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <div className="ml-auto flex items-center gap-2">
         <ModuleNewMenu />
-        <Button variant="outline" size="sm" onClick={()=>navigate(`/ai-agents/operator${location.search}`)} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span className="hidden sm:inline">AI operator</span></Button>
+        <Button variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span className="hidden sm:inline">AI operator</span></Button>
         <div className="hidden rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
           {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
         </div>

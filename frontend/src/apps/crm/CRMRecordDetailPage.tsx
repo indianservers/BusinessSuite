@@ -1,3 +1,5 @@
+import { insertRichMention } from "@/components/rich-text/content";
+import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields } from "@/lib/validation";
 import CustomerCommercialHistory from "./CustomerCommercialHistory";
@@ -501,8 +503,7 @@ function InlineField({ fieldKey, value, countryCode, config, onSave, saving }: {
     onSave(fieldKey, draft, phoneFields.has(fieldKey) ? {[fieldKey+"_country_code"]:code} : {})
       .then(() => setEditing(false))
       .catch((err) => {
-        setDraft(valueText(value));
-        setError(err?.message || "Could not save.");
+        setError(err?.message || "Could not save. Your draft is retained.");
       });
   };
   return (
@@ -511,7 +512,7 @@ function InlineField({ fieldKey, value, countryCode, config, onSave, saving }: {
       {editing ? (
         <div className="mt-2 space-y-1">
           <div className="flex gap-2">
-            {phoneFields.has(fieldKey) ? <PhoneInput label={labelFor(fieldKey)} value={draft} countryCode={code} onChange={setDraft} onCountryCodeChange={setCode} /> : <DetailInlineEditor config={config || { type: "text" }} value={draft} onChange={setDraft} onCommit={commit} onCancel={() => { setDraft(valueText(value)); setEditing(false); setError(null); }} />}
+            {["notes","description","body","message","requirements"].includes(fieldKey) ? <RichTextEditor legacyFormat="plain" value={draft} onChange={setDraft} onBlur={commit} label={labelFor(fieldKey)} variant="compact" disabled={saving}/> : phoneFields.has(fieldKey) ? <PhoneInput label={labelFor(fieldKey)} value={draft} countryCode={code} onChange={setDraft} onCountryCodeChange={setCode} /> : <DetailInlineEditor config={config || { type: "text" }} value={draft} onChange={setDraft} onCommit={commit} onCancel={() => { setDraft(valueText(value)); setEditing(false); setError(null); }} />}
             <Button size="sm" onClick={commit} disabled={saving}><Save className="h-4 w-4" /></Button>
           </div>
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -732,7 +733,7 @@ function TimelineEventItem({ event }: { event: TimelineEvent }) {
         </div>
         {description ? (
           <div className="mt-2 text-sm text-muted-foreground">
-            <p className={expanded || !long ? "" : "line-clamp-3"}>{description}</p>
+            <RichTextContent legacyFormat="plain" className={expanded || !long ? "" : "line-clamp-3"} value={description}/>
             {long ? <Button variant="link" className="h-auto p-0 text-xs" onClick={() => setExpanded((value) => !value)}>{expanded ? "Collapse" : "Expand"}</Button> : null}
           </div>
         ) : null}
@@ -982,7 +983,7 @@ function MentionTextarea({ value, onChange, mentions, onMentionsChange }: { valu
 
   const updateValue = (nextValue: string) => {
     onChange(nextValue);
-    const match = nextValue.match(/(?:^|\s)@([A-Za-z0-9._ -]{0,60})$/);
+    const match = richTextPlainText(nextValue).match(/(?:^|\s)@([A-Za-z0-9._ -]{0,60})$/);
     setQuery(match ? match[1].trim() : "");
     setOpen(Boolean(match));
   };
@@ -990,8 +991,7 @@ function MentionTextarea({ value, onChange, mentions, onMentionsChange }: { valu
   const selectUser = (user: MentionUser) => {
     const label = valueText(user.displayName || user.email || `User ${user.id}`);
     const token = `@[${label}](user:${user.id})`;
-    const nextValue = value.replace(/(?:^|\s)@([A-Za-z0-9._ -]{0,60})$/, (match) => `${match.startsWith(" ") ? " " : ""}${token} `);
-    onChange(nextValue || `${value} ${token} `);
+    onChange(insertRichMention(value, label));
     if (!mentions.some((item) => Number(item.id) === Number(user.id))) {
       onMentionsChange([...mentions, user]);
     }
@@ -1002,7 +1002,7 @@ function MentionTextarea({ value, onChange, mentions, onMentionsChange }: { valu
 
   return (
     <div className="relative md:col-span-2">
-      <textarea value={value} onChange={(event) => updateValue(event.target.value)} rows={5} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+      <RichTextField value={value} onChange={(event) => updateValue(event.target.value)} rows={5} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
       {open && options.length ? (
         <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-lg">
           {options.map((user) => (
@@ -1113,7 +1113,7 @@ function EmailComposeModal({ kind, record, disabled = false, approvalStatus = ""
             <Field label="Subject"><Input value={valueText(draft.subject)} onChange={(event) => patch("subject", event.target.value)} /></Field>
           </div>
           <Field label="Rich text body">
-            <textarea
+            <RichTextField
               value={valueText(draft.body)}
               onChange={(event) => patch("body", event.target.value)}
               rows={10}
@@ -1226,7 +1226,7 @@ function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKi
               <div className="mt-2 space-y-2">
                 {history.slice(0, 3).map((item) => (
                   <div key={String(item.id)} className="flex items-start justify-between gap-3 text-sm">
-                    <span className="line-clamp-1">{valueText(item.body)}</span>
+                    <div className="line-clamp-1"><RichTextContent legacyFormat="plain" value={valueText(item.body)}/></div>
                     <Badge variant="outline">{valueText(item.status)}</Badge>
                   </div>
                 ))}
@@ -1411,6 +1411,7 @@ function valueText(value: unknown) {
 }
 
 function renderValue(key: string, value: unknown) {
+  if (["notes","description","body","message","requirements"].includes(key)) return <RichTextContent legacyFormat="plain" value={String(value || "")}/>;
   if (value === null || value === undefined || value === "") return "-";
   if (key === "lead_score") return `${Number(value)} / ${leadScoreLabel(Number(value))}`;
   if (key.toLowerCase().includes("amount") || key.toLowerCase().includes("revenue") || key === "total") return formatCurrency(Number(value));

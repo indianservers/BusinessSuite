@@ -190,30 +190,28 @@ def init_common_db(db: Session) -> None:
             db.flush()
         role.permissions = [perm_map[name] for name in role_data["permissions"] if name in perm_map]
 
-    admin_email = settings.BOOTSTRAP_ADMIN_EMAIL
+    from app.db.demo_account_registry import DEMO_ACCOUNT_EMAILS
+    admin_email = settings.BOOTSTRAP_ADMIN_EMAIL.strip().lower()
     role = db.query(Role).filter(Role.name == "super_admin").first()
-    user = db.query(User).filter(User.email == admin_email).first()
-    legacy_user = db.query(User).filter(User.email == "admin@platform.local").first()
-    if legacy_user and not user:
-        legacy_user.email = admin_email
-        user = legacy_user
+    # Never reactivate a fixture administrator or a retired account during startup.
+    # Existing real administrators need no bootstrap password or account rewrite.
+    fixture_bootstrap = not admin_email or admin_email in DEMO_ACCOUNT_EMAILS or admin_email == "admin@platform.local"
+    user = None if fixture_bootstrap else db.query(User).filter(User.email == admin_email).first()
     if not user and role:
-        if not settings.BOOTSTRAP_ADMIN_PASSWORD:
-            raise RuntimeError("Set BOOTSTRAP_ADMIN_PASSWORD to initialize the first administrator")
-        user = User(
-            email=admin_email,
-            hashed_password=get_password_hash(settings.BOOTSTRAP_ADMIN_PASSWORD),
-            is_active=True,
-            is_superuser=True,
-            role_id=role.id,
-        )
-        db.add(user)
-        db.flush()
-    elif user and role:
-        user.is_active = True
-        user.is_superuser = True
-        user.role_id = role.id
-
+        existing_admin = db.query(User).filter(User.is_active.is_(True), User.is_superuser.is_(True), ~User.email.in_(DEMO_ACCOUNT_EMAILS)).first()
+        if existing_admin:
+            user = existing_admin
+        elif fixture_bootstrap:
+            raise RuntimeError("Configure BOOTSTRAP_ADMIN_EMAIL with a real administrator address; default accounts are retired")
+        else:
+            if not settings.BOOTSTRAP_ADMIN_PASSWORD:
+                raise RuntimeError("Set BOOTSTRAP_ADMIN_PASSWORD to initialize the first administrator")
+            user = User(email=admin_email, hashed_password=get_password_hash(settings.BOOTSTRAP_ADMIN_PASSWORD),
+                        is_active=True, is_superuser=True, role_id=role.id)
+            db.add(user)
+            db.flush()
+    # An existing disabled administrator stays disabled. Access changes belong to
+    # the administrator workflow, never an application restart.
     if user:
         SharedIdentityService.ensure_person_for_user(
             db,

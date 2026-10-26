@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     POSTGRES_SSLROOTCERT: Optional[str] = None
     DATABASE_AUTO_MIGRATE: bool = not bool(os.environ.get("VERCEL"))
     SEED_DEMO_DATA: bool = False
-    BOOTSTRAP_ADMIN_EMAIL: str = "admin@aihrms.com"
+    BOOTSTRAP_ADMIN_EMAIL: str = ""
     BOOTSTRAP_ADMIN_PASSWORD: str = ""
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20

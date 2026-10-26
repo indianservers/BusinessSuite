@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import RecordActions from "./RecordActions";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -77,7 +78,7 @@ export default function TaskCard({ task, onOpen, canEdit=false, onChanged }: { t
         <button type="button" onClick={() => onOpen?.(task)} className="min-w-0 flex-1 text-left">
           <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-foreground">{task.title}</h3>
           {task.description ? (
-            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{task.description}</p>
+            <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground"><RichTextContent value={task.description}/></div>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className={cn("inline-flex h-4 w-4 items-center justify-center rounded-sm text-white", typeClass)} title={issueType}>

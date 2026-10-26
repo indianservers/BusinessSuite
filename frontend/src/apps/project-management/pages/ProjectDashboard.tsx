@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -51,9 +52,10 @@ export default function ProjectDashboard() {
             <h1 className="page-title">{project.name}</h1>
             <Badge className={statusColor(project.status)}>{project.status}</Badge>
           </div>
-          <p className="page-description">{project.description || "Project workspace overview"}</p>
+          <div className="page-description"><RichTextContent value={project.description || "Project workspace overview"}/></div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {project.can_edit_project && <Button asChild variant="outline"><Link to={`/pms/projects/${id}/edit`}>Edit project</Link></Button>}
           <AskAiButton
             module="PMS"
             relatedEntityType="project"

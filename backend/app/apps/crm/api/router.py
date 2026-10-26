@@ -411,7 +411,7 @@ RESOURCES: dict[str, Resource] = {
     "quotations": Resource(CRMQuotation, required=("quote_number", "issue_date", "expiry_date"), search=("quote_number", "status", "currency", "terms", "notes"), aliases=("quotes",)),
     "quotation-items": Resource(CRMQuotationItem, required=("quotation_id", "name"), search=("name", "description", "item_type", "billing_type"), aliases=("quote-lines",), owner_field=None),
     "quote-versions": Resource(CRMQuoteVersion, required=("quote_id", "version_number"), search=("status",), owner_field=None),
-    "quote-approvals": Resource(CRMQuoteApproval, required=("quote_id",), search=("status", "comments"), owner_field=None),
+    "quote-approvals": Resource(CRMQuoteApproval, required=("quote_id",), search=("status", "comments"), default_sort="submitted_at", owner_field=None),
     "quote-srm-conversion-logs": Resource(CRMQuoteSRMConversionLog, required=("quote_id",), search=("status", "message"), owner_field=None),
     "products": Resource(CRMProduct, required=("name",), search=("name", "sku", "product_code", "category", "description", "status"), aliases=("products-services",)),
     "services": Resource(CRMService, required=("service_code", "name"), search=("service_code", "name", "category", "billing_type", "description"), owner_field=None),
@@ -741,8 +741,10 @@ def _send_smtp_email(*, to: list[str], cc: list[str], bcc: list[str], subject: s
     if cc:
         message["Cc"] = ", ".join(cc)
     message["Subject"] = subject
-    message.set_content(body)
-    message.add_alternative(body, subtype="html")
+    from app.core.rich_text import email_body_parts
+    plain, formatted = email_body_parts(body)
+    message.set_content(plain)
+    message.add_alternative(formatted, subtype="html")
     recipients = to + cc + bcc
     smtp_cls = smtplib.SMTP_SSL if settings.MAIL_SSL_TLS else smtplib.SMTP
     with smtp_cls(settings.MAIL_SERVER, settings.MAIL_PORT, timeout=15) as smtp:
@@ -762,8 +764,10 @@ def _send_smtp_email_with_attachment(*, to: list[str], cc: list[str], bcc: list[
     if cc:
         message["Cc"] = ", ".join(cc)
     message["Subject"] = subject
-    message.set_content(body)
-    message.add_alternative(body, subtype="html")
+    from app.core.rich_text import email_body_parts
+    plain, formatted = email_body_parts(body)
+    message.set_content(plain)
+    message.add_alternative(formatted, subtype="html")
     with open(attachment_path, "rb") as handle:
         message.add_attachment(handle.read(), maintype="application", subtype="pdf", filename=attachment_name)
     recipients = to + cc + bcc
@@ -1566,6 +1570,13 @@ def _assert_entity_permission(entity: str, current_user: User, action: str) -> N
 def _apply_record_visibility(query, resource: Resource, current_user: User, db: Session):
     if _crm_has_full_visibility(current_user):
         return query
+    if resource.model is CRMQuoteApproval:
+        quotes = _get_resource("quotations")
+        visible_quotes = _apply_record_visibility(
+            _base_query(db, quotes, _organization_id(db, current_user)),
+            quotes, current_user, db,
+        ).with_entities(CRMQuotation.id)
+        return query.filter(CRMQuoteApproval.quote_id.in_(visible_quotes))
     columns = _columns(resource.model)
     clauses = []
     scope = _crm_user_scope(db, current_user)
@@ -3331,6 +3342,9 @@ def _pdf_text(value: Any, fallback: str = "-") -> str:
 
 
 def _pdf_markup(value: Any, fallback: str = "-") -> str:
+    from app.core.rich_text import PREFIX, rich_text_pdf_markup
+    if isinstance(value, str) and value.startswith(PREFIX):
+        return rich_text_pdf_markup(value)
     return html.escape(_pdf_text(value, fallback)).replace("\n", "<br/>")
 
 

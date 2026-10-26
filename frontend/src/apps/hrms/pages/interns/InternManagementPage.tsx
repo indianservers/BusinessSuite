@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import {
   useDeferredValue,
   useEffect,
@@ -1220,7 +1221,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                       />
                     </Field>
                     <Field label="Description">
-                      <textarea
+                      <RichTextField
                         required
                         rows={3}
                         value={assignment.description}
@@ -2484,7 +2485,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
               />
             </Field>
             <Field label="Message">
-              <textarea
+              <RichTextField
                 required
                 value={notice.message}
                 onChange={(e) =>

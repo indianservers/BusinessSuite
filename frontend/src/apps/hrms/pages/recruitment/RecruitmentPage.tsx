@@ -1,10 +1,11 @@
+import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase, Plus, Users, Calendar, CheckCircle2,
   XCircle, RefreshCw, Eye, ChevronDown
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,7 +76,7 @@ export default function RecruitmentPage() {
       }).then((r) => r.data),
   });
 
-  const { register: registerJob, handleSubmit: handleJobSubmit, reset: resetJob, formState: { errors: jobErrors } } = useForm<JobForm>({
+  const { control: editorControl, register: registerJob, handleSubmit: handleJobSubmit, reset: resetJob, formState: { errors: jobErrors } } = useForm<JobForm>({
     defaultValues: { openings: 1, employment_type: "Full-time" },
   });
 
@@ -186,7 +187,7 @@ export default function RecruitmentPage() {
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Job Title *</Label>
                 <Input {...registerJob("title", { required: "Required" })} placeholder="e.g. Senior Software Engineer" />
-                {jobErrors.title && <p className="text-xs text-red-500">{jobErrors.title.message}</p>}
+                {jobErrors.title && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={jobErrors.title.message}/></div>}
               </div>
               <div className="space-y-1.5">
                 <Label>Employment Type</Label>
@@ -209,21 +210,11 @@ export default function RecruitmentPage() {
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Job Description</Label>
-                <textarea
-                  {...registerJob("description")}
-                  rows={3}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
-                  placeholder="Describe the role..."
-                />
+                <Controller name="description" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Description" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Requirements</Label>
-                <textarea
-                  {...registerJob("requirements")}
-                  rows={3}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
-                  placeholder="Skills and qualifications required..."
-                />
+                <Controller name="requirements" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Requirements" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
               </div>
               <div className="sm:col-span-2 flex gap-3">
                 <Button type="submit" disabled={createJobMutation.isPending}>

@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Workspace collaboration, with email-bound, single-use invitations."""
 import hashlib
 import secrets
@@ -251,7 +252,7 @@ def accept(data: AcceptInput, db: Session = Depends(get_db), user: User = Depend
 
 class EntryInput(BaseModel):
     kind: Literal["note", "chat"]
-    body: str = Field(min_length=1, max_length=20000)
+    body: rich_text_type(20000, 1) = Field()
     task_id: int | None = None
 
 

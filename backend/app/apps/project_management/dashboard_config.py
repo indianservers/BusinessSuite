@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Versioned dashboard configuration; deliberately no SQL or executable formulas."""
 
 from datetime import date
@@ -44,7 +45,7 @@ class Widget(Strict):
     id: str = Field(min_length=1, max_length=80, pattern=r"^[a-zA-Z0-9_-]+$")
     type: str = Field(min_length=1, max_length=80)
     title: str = Field(default="", max_length=120)
-    description: str = Field(default="", max_length=500)
+    description: rich_text_type(500, 0) = Field(default="")
     icon: Literal[
         "auto",
         "chart",
@@ -111,7 +112,7 @@ class Widget(Strict):
     number_format: Literal["number", "percent", "hours", "currency"] = "number"
     sort: Literal["value_desc", "value_asc", "name"] = "value_desc"
     limit: int = Field(default=10, ge=1, le=100)
-    notes: str = Field(default="", max_length=5000)
+    notes: rich_text_type(5000, 0) = Field(default="")
     url: str = Field(default="", max_length=2000)
     formula: Literal[
         "completion_rate", "on_time_rate", "remaining_hours", "budget_utilization"

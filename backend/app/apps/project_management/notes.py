@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Personal notes. Project membership and administrator roles never confer access."""
 from datetime import datetime, timezone
 from html import unescape
@@ -22,7 +23,7 @@ router = APIRouter(dependencies=[Depends(private_response)])
 class NoteInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(default="Untitled note", max_length=180)
-    content: str = Field(default="", max_length=200000)
+    content: rich_text_type(200000, 0) = Field(default="")
     # None represents the owner's built-in Personal notes project, never an unfiled note.
     project_id: int | None = Field(default=None, gt=0, description="PMS project ID, or null for your private Personal project (default).")
     task_id: int | None = Field(default=None, gt=0)

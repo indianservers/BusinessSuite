@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Backward-compatible dashboard builder API, using existing workspace entry storage."""
 
 import json
@@ -23,8 +24,10 @@ from .dashboard_engine import Engine
 
 router = APIRouter()
 KIND = "dashboard_v1"
-HISTORY = "dashboard_revision_v2"
-PREFERENCES = "dashboard_preferences_v2"
+HISTORY = "dash_rev_v2"  # Workspace entry kinds are VARCHAR(12).
+HISTORY_KINDS = (HISTORY, "dashboard_revision_v2")
+PREFERENCES = "dash_pref_v2"
+PREFERENCE_KINDS = (PREFERENCES, "dashboard_preferences_v2")
 
 
 def now():
@@ -40,7 +43,7 @@ class Share(BaseModel):
 class Definition(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=120)
-    description: str = Field(default="", max_length=2000)
+    description: rich_text_type(2000, 0) = Field(default="")
     visibility: Literal["private", "selected", "workspace", "organization"] = "private"
     shared_users: list[Share] | None = Field(default=None, max_length=100)
     icon: (
@@ -266,7 +269,7 @@ def persist(db, row, data, revision, user):
 def preference_row(db, row, user):
     return (
         db.query(PMSWorkspaceEntry)
-        .filter_by(workspace_id=row.workspace_id, author_id=user.id, kind=PREFERENCES)
+        .filter(PMSWorkspaceEntry.workspace_id == row.workspace_id, PMSWorkspaceEntry.author_id == user.id, PMSWorkspaceEntry.kind.in_(PREFERENCE_KINDS))
         .first()
     )
 
@@ -549,7 +552,7 @@ def history(
     row = find(db, user, did, editable=True)
     records = (
         db.query(PMSWorkspaceEntry)
-        .filter_by(workspace_id=row.workspace_id, kind=HISTORY)
+        .filter(PMSWorkspaceEntry.workspace_id == row.workspace_id, PMSWorkspaceEntry.kind.in_(HISTORY_KINDS))
         .order_by(PMSWorkspaceEntry.id.desc())
         .all()
     )
@@ -572,7 +575,7 @@ def restore_version(
     prior = db.get(PMSWorkspaceEntry, rid)
     if (
         not prior
-        or prior.kind != HISTORY
+        or prior.kind not in HISTORY_KINDS
         or json.loads(prior.body).get("dashboard_id") != did
     ):
         raise HTTPException(404, "Revision not found")
@@ -703,7 +706,7 @@ def permanent(
         raise HTTPException(409, "Dashboard changed")
     for prior in (
         db.query(PMSWorkspaceEntry)
-        .filter_by(workspace_id=row.workspace_id, kind=HISTORY)
+        .filter(PMSWorkspaceEntry.workspace_id == row.workspace_id, PMSWorkspaceEntry.kind.in_(HISTORY_KINDS))
         .all()
     ):
         if json.loads(prior.body).get("dashboard_id") == did:

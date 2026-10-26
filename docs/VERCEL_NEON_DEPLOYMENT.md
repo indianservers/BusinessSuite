@@ -106,3 +106,18 @@ Before promoting a preview, run authenticated smoke checks and file upload/downl
 - https://vercel.com/docs/functions/limitations
 - https://vercel.com/docs/cron-jobs/manage-cron-jobs
 - https://neon.com/docs/connect/connection-pooling
+
+
+## Independent customer installations and multiple domains
+
+Deploy DSB and Indian Servers as separate installations when their accounts and data must remain independent. Each installation needs its own Vercel project, PostgreSQL database, private object store (or isolated storage credentials/prefix), access and refresh signing secrets, scheduler secret, bootstrap administrator, and organization branding. Domains attached to the same project are aliases of the same installation; a hostname does not select a separate customer database.
+
+The main frontend defaults to `/api/v1`, so the same source works on either installation without customer URLs in the compiled application. Set `BACKEND_PUBLIC_URL` and `FRONTEND_PUBLIC_URL` to that installation's canonical HTTPS app origin. Add each permitted app/Interns Hub origin explicitly to `BACKEND_CORS_ORIGINS`. Generated reset, SSO and file links use the configured canonical origin, even if someone visits an alias.
+
+Package each Interns Hub release with its own backend API URL, HRMS login URL and public Firebase configuration. Its subdomain must point to its own frontend project, and that frontend must use the matching installation's backend. Enable Google and authorize the new hostnames in the selected Firebase project. The backend Firebase project IDs must match the corresponding public web configuration. Reusing a Firebase project is a deliberate identity choice, not database or session isolation.
+
+Do not copy an existing customer's `.local` environment snapshots, database URL, Blob token, signing secrets (including previous rotation keys), or deployment package `config.js` into another customer's project. `.vercel/project.json` is a local CLI project link: inspect the account/project before every deployment and use a separate linked checkout or release directory for each account. A Git-connected project only receives commits present on its configured remote branch; a local CLI release can contain newer committed code.
+
+Provision a fresh PostgreSQL baseline and bootstrap before the first production deployment. The build migration script rejects an unprovisioned database. Configure the authenticated scheduler separately for each installation; the repository does not install a cron schedule automatically. Preview deployments also need separate database/storage resources if they must not modify production data.
+
+Local verification includes `tests/test_multi_installation_configuration.py`: it accepts independent app/intern domain configurations and confirms that an installation rejects another installation's access tokens, refresh tokens and private-file tokens when separate keys are configured. These checks do not certify the new account's DNS, environment values, Firebase authorized domains, storage credentials or live database migrations; run the live deployment checker against that installation after configuring it.

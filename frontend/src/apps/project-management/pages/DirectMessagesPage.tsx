@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -409,7 +410,7 @@ export default function DirectMessagesPage() {
           <time>{instant(m.created_at).toLocaleString()}</time>
           {m.edited_at && <small>edited</small>}
         </header>
-        <p>{m.deleted_at ? "Message deleted" : m.body}</p>
+        <div><RichTextContent value={m.deleted_at ? "Message deleted" : m.body}/></div>
         {m.attachments.map((f) => (
           <ChatFile
             key={f.id}
@@ -629,7 +630,7 @@ export default function DirectMessagesPage() {
                         }
                       >
                         <strong>{m.conversation_name}</strong>
-                        <p>{highlight(m.body.slice(0, 600))}</p>
+                        <div>{highlight(richTextPlainText(m.body).slice(0, 600))}</div>
                         {m.parent_id && (
                           <small>
                             Thread reply ·{" "}
@@ -658,7 +659,7 @@ export default function DirectMessagesPage() {
                   <header className="chat-room-header">
                     <div>
                       <h2>{title(room)}</h2>
-                      <p>{room.description}</p>
+                      <div><RichTextContent value={room.description}/></div>
                       <small>
                         {room.participants.length} participants ·{" "}
                         {room.archived
@@ -772,7 +773,7 @@ export default function DirectMessagesPage() {
                         {pendingSend?.context === context && (
                           <article aria-label="Pending message">
                             <strong>You · Sending…</strong>
-                            <p>{pendingSend.body || "Attachments"}</p>
+                            <div><RichTextContent value={pendingSend.body || "Attachments"}/></div>
                           </article>
                         )}
                       </div>
@@ -789,7 +790,7 @@ export default function DirectMessagesPage() {
                             void send();
                           }}
                         >
-                          <textarea
+                          <RichTextField data-legacy-format="markdown"
                             aria-label={thread ? "Reply to thread" : "Message"}
                             maxLength={20000}
                             value={draft}
@@ -957,7 +958,7 @@ export default function DirectMessagesPage() {
                     </label>
                     <label>
                       Description
-                      <textarea
+                      <RichTextField data-legacy-format="markdown"
                         value={description}
                         maxLength={1000}
                         onChange={(e) => setDescription(e.target.value)}
@@ -1018,7 +1019,7 @@ export default function DirectMessagesPage() {
                     </label>
                     <label>
                       Description
-                      <textarea
+                      <RichTextField data-legacy-format="markdown"
                         value={description}
                         maxLength={1000}
                         onChange={(e) => setDescription(e.target.value)}
@@ -1184,7 +1185,7 @@ export default function DirectMessagesPage() {
             )}
             {dialog === "edit" && (
               <>
-                <textarea
+                <RichTextField data-legacy-format="markdown"
                   aria-label="Edit message text"
                   value={body}
                   maxLength={20000}

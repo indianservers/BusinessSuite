@@ -2084,6 +2084,8 @@ def list_projects(
         query = query.filter(PMSProject.status == status)
     
     projects = query.offset(skip).limit(limit).all()
+    for project in projects:
+        project.can_edit_project = can_access_project(db, project, current_user, "edit_project")
     return projects
 
 
@@ -2097,6 +2099,7 @@ def get_project(
     project = get_project_for_action(db, project_id, current_user)
     payload = _model_payload(project)
     payload["can_manage_tasks"] = can_access_project(db, project, current_user, "manage_tasks")
+    payload["can_edit_project"] = can_access_project(db, project, current_user, "edit_project")
     try:
         from app.apps.srm.models import SRMBillingPlan, SRMContract, SRMEngagement, SRMSalesOrder
 
@@ -7046,6 +7049,28 @@ def get_project_dashboard(
         "project": get_project(project_id, db, current_user),
         "metrics": metrics
     }
+
+
+@router.get("/trash/projects")
+def list_trashed_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    projects = accessible_project_query(db, current_user, deleted=True).order_by(PMSProject.deleted_at.desc()).all()
+    return [{"id": project.id, "title": project.name, "project_key": project.project_key,
+             "deleted_at": project.deleted_at,
+             "can_restore": can_access_project(db, project, current_user, "edit_project")} for project in projects]
+
+
+@router.post("/trash/projects/{project_id}/restore")
+def restore_trashed_project(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = accessible_project_query(db, current_user, deleted=True).filter(PMSProject.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Deleted project not found")
+    if not can_access_project(db, project, current_user, "edit_project"):
+        raise HTTPException(status_code=403, detail="Project access denied")
+    project.deleted_at = None
+    _record_activity(db, project.id, current_user, "project.restored", "project", project.id,
+                     f"Restored project {project.project_key}")
+    db.commit()
+    return {"id": project.id, "message": "Project restored"}
 
 
 @router.get("/trash/tasks")

@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Intern-only portal APIs. HRMS remains the source of employee and attendance data."""
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -164,7 +165,7 @@ def submissions(page: int = Query(1, ge=1), per_page: int = Query(500, ge=1, le=
 class TaskTimeInput(BaseModel):
     task_id:int
     minutes:int=Field(ge=0,le=1440)
-    notes:str=Field("",max_length=1000)
+    notes:rich_text_type(1000, 0) = Field("")
 
 
 class ReportInput(BaseModel):
@@ -358,7 +359,7 @@ def certificate_download(certificate_id: int, e=Depends(intern), db: Session = D
 
 class TicketInput(BaseModel):
     subject: str = Field(min_length=1, max_length=200)
-    message: str = Field(min_length=1, max_length=4000)
+    message: rich_text_type(4000, 1) = Field()
 
 
 @router.get("/support")
@@ -400,7 +401,7 @@ class TaskInput(BaseModel):
     idempotency_key: str | None = None
     employee_id: int
     title: str = Field(min_length=1, max_length=200)
-    description: str = Field(min_length=1, max_length=10000)
+    description: rich_text_type(10000, 1) = Field()
     category: str = Field("Project", max_length=80)
     priority: Literal["High", "Medium", "Low"] = "Medium"
     points: int = Field(10, ge=0, le=100)
@@ -450,7 +451,7 @@ class Question(BaseModel):
 
 class CourseInput(BaseModel):
     title: str = Field(min_length=1, max_length=180)
-    description: str = Field("", max_length=5000)
+    description: rich_text_type(5000, 0) = Field("")
     level: str = Field("Beginner", max_length=40)
     department_id: int | None = None
     lessons: list[Lesson] = Field(default_factory=list, max_length=50)

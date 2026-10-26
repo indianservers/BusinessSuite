@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 """Exercise the real API from invitation through tasks/Gantt and access removal."""
 from datetime import datetime, timedelta
 import pytest
@@ -44,6 +45,14 @@ def test_invitation_activation_status_and_replacement_link(client, db):
     assert preview.json()["account_exists"] is False
     assert preview.json()["email"] == payload["email"]
     password = "Audit-test-password-2026"
+    activated = client.post(BASE + "/workspace-invitations/activate", json={"token": second["token"], "password": password})
+    # Tenant workspaces require administrator provisioning; only legacy unscoped
+    # workspaces retain the historical single-use activation flow.
+    assert activated.status_code == 403, activated.text
+    assert db.query(User).filter_by(email=payload["email"]).first() is None
+    from app.apps.project_management.models import PMSWorkspace
+    db.get(PMSWorkspace, wid).organization_id = None
+    db.commit()
     activated = client.post(BASE + "/workspace-invitations/activate", json={"token": second["token"], "password": password})
     assert activated.status_code == 201, activated.text
     assert client.post(BASE + "/workspace-invitations/activate", json={"token": second["token"], "password": password}).status_code == 400

@@ -128,6 +128,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 from app.core.middleware.storage import PrivateUploadURLMiddleware
 app.add_middleware(PrivateUploadURLMiddleware)
+from app.core.middleware.rich_text import RichTextMiddleware
+app.add_middleware(RichTextMiddleware)
 
 # CORS
 app.add_middleware(

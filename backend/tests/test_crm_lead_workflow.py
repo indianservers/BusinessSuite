@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import datetime, timedelta, timezone
 
 from app.apps.crm.models import CRMActivity, CRMTimelineEvent

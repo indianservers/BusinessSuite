@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Link } from "react-router-dom";
 import type { ElementType } from "react";
 import {
@@ -263,7 +264,7 @@ export default function RoleWorkspacePage() {
                   <CardTitle className="pt-4 text-base">{item.label}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="min-h-12 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                  <div className="min-h-12 text-sm leading-6 text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.description}/></div>
                   <Button asChild variant="outline" size="sm">
                     <Link to={item.href}>Open</Link>
                   </Button>

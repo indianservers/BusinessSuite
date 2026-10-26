@@ -499,10 +499,14 @@ def test_attachment_ownership_atomicity_and_project_sharing(
 def test_organization_mismatch_and_search_validation(client, db):
     wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
     base = f"{BASE}/workspaces/{wid}/chat"
-    owner.organization_id = 998
+    from app.apps.project_management.models import PMSWorkspace
+    workspace = db.get(PMSWorkspace, wid)
+    workspace.organization_id = 998
+    db.commit()
     assert client.get(base + "/conversations", headers=oh).status_code == 404
     assert client.get(base + "/search?q=private", headers=oh).status_code == 404
-    owner.organization_id = None
+    workspace.organization_id = 1
+    db.commit()
     assert (
         client.get(
             base + "/search?q=" + "+".join(["word"] * 13), headers=oh

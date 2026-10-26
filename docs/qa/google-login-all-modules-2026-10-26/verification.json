@@ -1,0 +1,28 @@
+{
+  "modules": [
+    "hrms",
+    "crm",
+    "project_management",
+    "srm",
+    "fam"
+  ],
+  "identity_provider": "Existing Firebase Google provider",
+  "account_policy": "Existing active application accounts only; no automatic application-account creation",
+  "preserved_controls": [
+    "Module grants and role checks",
+    "Installed-module checks",
+    "MFA and module-bound MFA challenge",
+    "Account lockouts",
+    "IP access policies",
+    "Dedicated Interns Hub restriction",
+    "Firebase signature, issuer, audience, Google provider and verified email checks"
+  ],
+  "checks": {
+    "tests_passed": 46,
+    "frontend_build": "passed",
+    "five_browser_buttons_visible_and_enabled": true,
+    "current_preview": "http://127.0.0.1:5195/crm/login"
+  },
+  "live_google_account_completion": "Not performed. Firebase returned auth/unauthorized-domain for the local 127.0.0.1 hostname. Add the development hostname to Firebase Authentication Authorized domains to exercise the external popup locally.",
+  "release": "Source and local preview updated; no production deployment in this task."
+}

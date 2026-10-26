@@ -1,3 +1,4 @@
+import { RichTextContent, richTextPlainText } from "../../src/components/rich-text/RichTextContent";
 import React, { createContext, useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -206,7 +207,7 @@ export function Heading({
     <div className="heading">
       <div>
         <h1>{title}</h1>
-        <p>{description}</p>
+        <div><RichTextContent legacyFormat="plain" value={description}/></div>
       </div>
       {children || (
         <div className="date-label">
@@ -325,7 +326,7 @@ export function TaskTable({
                   </span>
                   <div>
                     <b>{t.title}</b>
-                    <small>{t.description.slice(0, 75)}</small>
+                    <small>{richTextPlainText(t.description).slice(0, 75)}</small>
                   </div>
                 </Link>
               </td>

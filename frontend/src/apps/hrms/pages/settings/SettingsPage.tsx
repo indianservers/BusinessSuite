@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields } from "@/lib/validation";
 import { useMemo, useState } from "react";
@@ -227,7 +228,7 @@ export default function SettingsPage() {
                     <p className="truncate text-sm font-semibold">{section.title}</p>
                     <Badge variant="secondary">{dataByKey[section.key].length}</Badge>
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{section.description}</p>
+                  <div className="mt-0.5 truncate text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={section.description}/></div>
                 </div>
                 <span className="text-xs text-muted-foreground">{index + 1}</span>
               </button>
@@ -243,7 +244,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h2 className="font-semibold">{activeSection.title}</h2>
-                <p className="text-sm text-muted-foreground">{activeSection.description}</p>
+                <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={activeSection.description}/></div>
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">

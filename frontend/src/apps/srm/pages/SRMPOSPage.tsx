@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -720,7 +721,7 @@ export default function SRMPOSPage() {
           </div>
           <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/80 p-3 text-xs text-slate-600">
             <div className="flex items-center gap-2 font-semibold text-slate-900"><Settings className="h-4 w-4" />Active template</div>
-            <p className="mt-2">{activeStoreProfile.description}</p>
+            <div className="mt-2"><RichTextContent legacyFormat="plain" value={activeStoreProfile.description}/></div>
           </div>
         </aside>
         <section className="min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
@@ -952,7 +953,7 @@ export default function SRMPOSPage() {
                 <div>
                   <strong>{bill.holdNo}</strong>
                   <p className="text-sm text-slate-400">{customers.find((item) => item.id === bill.customerId)?.name || "Customer"} · {bill.cart.length} items · {currency(bill.amount)}</p>
-                  <p className="text-xs text-slate-500">{bill.notes}</p>
+                  <div className="text-xs text-slate-500"><RichTextContent legacyFormat="plain" value={bill.notes}/></div>
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={() => recallBill(bill)}>Recall</Button>
@@ -1187,7 +1188,7 @@ function ProfileSettingsPanel({
               <span className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <span>
                   <strong className="text-base text-white">{profile.name}</strong>
-                  <span className="mt-1 block text-sm text-slate-400">{profile.description}</span>
+                  <div className="mt-1 block text-sm text-slate-400"><RichTextContent legacyFormat="plain" value={profile.description}/></div>
                 </span>
                 <Badge variant={active ? "default" : "secondary"}>{profile.mode}</Badge>
               </span>

@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
 import { Layers, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ export default function TemplateLibrary<T extends Template>({ templates, project
         </div>
         <div className="flex flex-1 flex-col gap-3 p-4">
           <div><h3 className="break-words font-semibold">{template.name}</h3><p className="mt-1 break-words text-xs text-muted-foreground">{projects.find(item => item.id === template.project_id)?.name || "Project unavailable"} · {template.enabled ? "Active" : "Paused"}</p></div>
-          <p className="line-clamp-3 break-words text-sm text-muted-foreground">{template.description || "A reusable task workflow for this project."}</p>
+          <div className="line-clamp-3 break-words text-sm text-muted-foreground"><RichTextContent value={template.description || "A reusable task workflow for this project."}/></div>
           <Button className="mt-auto w-full" variant="outline" disabled={busy || !canEdit || !template.enabled} onClick={() => onPreview(template)}>Preview and use</Button>
         </div>
       </article>)}

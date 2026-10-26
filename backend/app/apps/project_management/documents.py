@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Project documents with optimistic version checks and immutable revisions."""
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,7 +16,7 @@ router = APIRouter()
 class DocumentInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(min_length=1, max_length=180)
-    content: str = Field(default="", max_length=200000)
+    content: rich_text_type(200000, 0) = Field(default="")
     task_id: int | None = None
 
 

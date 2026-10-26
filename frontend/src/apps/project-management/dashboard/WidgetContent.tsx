@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -188,7 +189,7 @@ export default function WidgetContent({
         role={data.state === "error" ? "alert" : "status"}
       >
         <AlertCircle size={20} />
-        <p>{data.message}</p>
+        <div><RichTextContent value={data.message}/></div>
         {data.state === "error" && (
           <button onClick={onRetry}>
             <RefreshCw size={14} />

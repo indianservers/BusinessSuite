@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, CheckCheck, ExternalLink, RefreshCw } from "lucide-react";
@@ -109,7 +110,7 @@ export default function NotificationsPage() {
                       {item.module && <Badge variant="outline">{item.module}</Badge>}
                       {item.priority !== "normal" && <Badge variant="warning">{item.priority}</Badge>}
                     </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{item.message}</p>
+                    <div className="mt-2 text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.message}/></div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <span>{formatDate(item.created_at)}</span>
                       {item.delivery_logs?.map((log) => (

@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { ReactNode, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -313,7 +314,7 @@ function SavedReports() {
                 <p className="truncate text-sm font-medium">{definition.name}</p>
                 <ModuleBadge module={definition.module || "custom"} />
               </div>
-              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{definition.description || "No description"}</p>
+              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={definition.description || "No description"}/></div>
             </button>
           ))}
           <div className="border-t pt-3">

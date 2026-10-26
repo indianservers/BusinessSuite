@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CheckCircle2, Link2, Network, RefreshCw, ShieldCheck } from "lucide-react";
@@ -181,7 +182,7 @@ export default function BusinessOSAdminPage() {
                 <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
                 <div>
                   <p className="font-medium">{event.event_name} / {event.module_key}</p>
-                  <p className="text-muted-foreground">{event.message || event.status}</p>
+                  <div className="text-muted-foreground"><RichTextContent value={event.message || event.status}/></div>
                 </div>
               </div>
             )) : <p className="text-sm text-muted-foreground">No lifecycle events selected. Module enable/disable actions will appear here.</p>}

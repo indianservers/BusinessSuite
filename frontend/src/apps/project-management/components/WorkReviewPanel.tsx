@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -142,9 +143,7 @@ export default function WorkReviewPanel({
         </div>
         <Badge variant="outline">{item.status}</Badge>
       </div>
-      <p className="whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm">
-        {item.notes}
-      </p>
+      <div className="whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm"><RichTextContent value={item.notes}/></div>
       {item.revision_note && (
         <p className="text-sm">
           <b>Revision note:</b> {item.revision_note}
@@ -196,7 +195,7 @@ export default function WorkReviewPanel({
             Recorded PMS decision: {item.status} · {item.raw_score}/
             {item.maximum_score}
           </b>
-          <p className="mt-2 whitespace-pre-wrap">{item.feedback}</p>
+          <div className="mt-2 whitespace-pre-wrap"><RichTextContent value={item.feedback}/></div>
           {item.strengths && <p>Strengths: {item.strengths}</p>}
           {item.improvements && <p>Improvements: {item.improvements}</p>}
         </div>
@@ -244,7 +243,7 @@ export default function WorkReviewPanel({
           </Label>
           <Label className="sm:col-span-2">
             Feedback
-            <textarea
+            <RichTextField data-legacy-format="markdown"
               required
               maxLength={5000}
               className="mt-2 w-full rounded-md border bg-background p-3 text-sm"

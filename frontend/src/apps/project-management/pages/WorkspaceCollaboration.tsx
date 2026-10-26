@@ -1,3 +1,5 @@
+import { appendRichMarkdown } from "@/components/rich-text/content";
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { MessageSquare, StickyNote, Send } from "lucide-react";
@@ -67,15 +69,15 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
       {!visibleEntries.length && entries.some(entry => entry.kind === tab) && <p className="ws-collab-empty">No matching {tab === "chat" ? "messages" : "notes"}. <button type="button" className="underline" onClick={() => { setSearch(""); setLinkedOnly(false); }}>Clear filters</button></p>}
       {visibleEntries.map(e => <article key={e.id} className={tab === "note" ? "ws-note" : "ws-message"}>
         <header><strong title={e.author}>{personName(e.author)}</strong><time dateTime={e.created_at}>{new Date(/(Z|[+-]\d{2}:\d{2})$/.test(e.created_at) ? e.created_at : `${e.created_at}Z`).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time></header>
-        <p className="whitespace-pre-wrap break-words">{e.body}</p>
+        <div className="whitespace-pre-wrap break-words"><RichTextContent value={e.body}/></div>
         {e.task_id && <button className="ws-collab-task" onClick={() => onOpen(e.task_id!)}>↗ {tasks.find(t => t.id === e.task_id)?.title || "Open linked task"}</button>}
       </article>)}<div ref={end} />
     </div>
     {error && <p role="alert" className="ws-alert">{error}</p>}
     {canEdit ? <form className="ws-collab-compose" onSubmit={e => { e.preventDefault(); void send(); }}>
-      {tab === "note" && <div className="space-y-2"><button type="button" className="ws-button ws-outline" disabled={busy || drafts.note.length + meetingOutline.length + (drafts.note ? 2 : 0) > 20000} onClick={() => setDrafts(current => ({ ...current, note: current.note ? `${current.note}\n\n${meetingOutline}` : meetingOutline }))}>Insert meeting outline</button><p className="text-xs text-muted-foreground">Capture decisions and actions with owners and deadlines. Saved notes are shared with this workspace.</p></div>}
+      {tab === "note" && <div className="space-y-2"><button type="button" className="ws-button ws-outline" disabled={busy || richTextPlainText(drafts.note).length + meetingOutline.length + (drafts.note ? 2 : 0) > 20000} onClick={() => setDrafts(current => ({ ...current, note: appendRichMarkdown(current.note, meetingOutline) }))}>Insert meeting outline</button><p className="text-xs text-muted-foreground">Capture decisions and actions with owners and deadlines. Saved notes are shared with this workspace.</p></div>}
       <select aria-label="Link to task" value={taskId} onChange={e => setTaskId(e.target.value)}><option value="">Link a task (optional)</option>{tasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</select>
-      <textarea aria-label={tab === "chat" ? "Message your team" : "Write a quick note"} placeholder={tab === "chat" ? "Share an update or ask a question…" : "Write a note…"} value={drafts[tab]} maxLength={20000} onChange={e => setDrafts(current => ({ ...current, [tab]: e.target.value }))} />
+      <RichTextField data-legacy-format="markdown" aria-label={tab === "chat" ? "Message your team" : "Write a quick note"} placeholder={tab === "chat" ? "Share an update or ask a question…" : "Write a note…"} value={drafts[tab]} maxLength={20000} onChange={e => setDrafts(current => ({ ...current, [tab]: e.target.value }))} />
       <button className="ws-button ws-primary" disabled={busy || !drafts[tab].trim()}><Send size={14} />{busy ? "Saving…" : tab === "chat" ? "Send message" : "Save note"}</button>
     </form> : <p className="ws-collab-sync">You have read-only access.</p>}
   </aside>;

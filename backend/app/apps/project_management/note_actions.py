@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Private note attachments and explicit, reviewed note-to-task publication."""
 from datetime import date, datetime, timezone
 from hashlib import sha256
@@ -130,7 +131,7 @@ class TaskFromNote(BaseModel):
     model_config = ConfigDict(extra="forbid")
     project_id: int = Field(gt=0)
     title: str = Field(min_length=1, max_length=220)
-    description: str = Field(default="", max_length=10000)
+    description: rich_text_type(10000, 0) = Field(default="")
     due_date: date | None = None
     priority: Literal["Low", "Medium", "High", "Urgent"] = "Medium"
     publish_to_project: Literal[True]

@@ -1,0 +1,23 @@
+{
+  "backend_full_regression": {
+    "passed": 135
+  },
+  "final_targeted_regression": {
+    "passed": 27,
+    "includes_additional_usage_attribution_case": true
+  },
+  "browser_regression": {
+    "passed": 13
+  },
+  "live_browser": {
+    "passed": 1
+  },
+  "frontend_build": "passed",
+  "database_revision": "pg_20261026_027_ai_security",
+  "live_gemini_calls": 2,
+  "pending": [
+    "OpenAI",
+    "Claude",
+    "physical microphone test"
+  ]
+}

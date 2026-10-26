@@ -409,17 +409,18 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
 
 @router.get("/firebase/config")
 def firebase_login_config():
+    from app.module_registry import is_app_enabled
     project = settings.FIREBASE_PROJECT_ID
     config = {key:value for key,value in settings.FIREBASE_WEB_CONFIG.items() if key in {
         "apiKey", "authDomain", "projectId", "appId", "storageBucket", "messagingSenderId",
     }}
     enabled = bool(project and config.get("projectId") == project and all(config.get(key) for key in ["apiKey", "authDomain", "appId"]))
-    return {"enabled":enabled, "firebase_config":config if enabled else None, "modules":["project_management"]}
+    return {"enabled":enabled, "firebase_config":config if enabled else None, "modules":[module for module in MODULE_ROLE_MAP if is_app_enabled(module)]}
 
 
 class FirebaseLoginInput(BaseModel):
     token: str = Field(min_length=20, max_length=16384)
-    module: Literal["project_management"] = "project_management"
+    module: Literal["hrms", "crm", "project_management", "srm", "fam"] = "project_management"
 
 
 @router.post("/firebase/login")
@@ -427,8 +428,11 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
     from app.core.firebase import verify_google_identity
     import httpx
     _check_ip_policy(db, request)
-    if not firebase_login_config()["enabled"]:
+    config = firebase_login_config()
+    if not config["enabled"]:
         raise HTTPException(503, "Google sign-in is not configured for this installation")
+    if data.module not in config["modules"]:
+        raise HTTPException(403, "This module is not installed")
     try:
         identity = verify_google_identity(data.token, settings.FIREBASE_PROJECT_ID)
     except HTTPException:
@@ -439,7 +443,7 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
         raise HTTPException(401, "Google identity could not be verified") from None
     user = db.query(User).filter(func.lower(User.email) == identity['email'].lower()).first()
     if not user or not user.is_active:
-        raise HTTPException(403, "Your Google email needs an active account with PMS access")
+        raise HTTPException(403, "Your Google email needs an active account with access to this module")
     if user.sso_provider_id:
         raise HTTPException(403, "Use your organization's configured SSO provider")
     lockout = check_lockout(db, user)

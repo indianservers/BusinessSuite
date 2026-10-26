@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1424,9 +1425,7 @@ export default function PlannerPage() {
             </Dialog.Description>
             {selected?.task && (
               <>
-                <p className="planner-detail-description">
-                  {selected.task.description || "No description yet."}
-                </p>
+                <div className="planner-detail-description"><RichTextContent value={selected.task.description || "No description yet."}/></div>
                 <p className="planner-detail-meta">
                   {selected.task.priority} priority · {selected.task.task_key}
                 </p>

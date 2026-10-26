@@ -43,7 +43,10 @@ ACTION_GLOBAL_PERMISSIONS = {
 
 
 def organization_id_for(user: User) -> int | None:
-    return getattr(user, "organization_id", None)
+    # Resolve persisted person/employee tenancy for collaborators loaded from the
+    # database, as well as the request-scoped organization attached to the actor.
+    from app.apps.srm.services.commercial import tenant
+    return tenant(user)
 
 
 def user_permission_names(user: User) -> set[str]:
@@ -116,8 +119,8 @@ def can_access_project(db: Session, project: PMSProject, user: User, action: str
     return False
 
 
-def accessible_project_query(db: Session, user: User):
-    query = db.query(PMSProject).filter(PMSProject.deleted_at == None)
+def accessible_project_query(db: Session, user: User, *, deleted: bool = False):
+    query = db.query(PMSProject).filter(PMSProject.deleted_at.isnot(None) if deleted else PMSProject.deleted_at.is_(None))
     from .workspace_lifecycle import archived_ids
     workspace_ids = db.query(PMSWorkspaceMember.workspace_id).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspaceMember.workspace_id.notin_(archived_ids()))
     workspace_access = PMSProject.workspace_id.in_(workspace_ids)

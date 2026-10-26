@@ -175,3 +175,70 @@ Final verification for this extension: **125 backend tests**, **10 browser check
 build passed. A cancellation-during-enqueue regression verifies that a cancelled
 parent cannot reactivate its queued PMS child. Gemini remains the only enabled
 provider; OpenAI, Claude and physical microphone testing are still pending.
+
+## HRMS, CRM, SRM and FAM agents — 26 October 2026
+
+The connected operator now retains module scope, source tools and selected record
+IDs across follow-up questions, revisions and continuations. It re-reads those
+sources through their canonical APIs before each LLM call, rather than treating a
+previous answer as current business state. Missing required details produce a
+clarification, with no incomplete actions or writes. Already completed receipts
+are supplied to the next turn to prevent repeating work.
+
+Each of these four modules has private user/company/workspace memory, backed by
+the existing security-bound assistant storage. No new memory database or new
+migration is introduced. The operator supplies the latest ten visible memories
+per selected module. Records whose authorization seal is no longer valid are
+excluded, consistent with the existing AI security policy.
+
+- `GET /ai-operator/suite/memories?module=CRM&workspace_id=…` lists private memories.
+- `POST /ai-operator/suite/memories` saves a preference, decision, term or constraint.
+- `DELETE /ai-operator/suite/memories/{id}` is an explicit owner-only UI operation
+  that marks a memory forgotten. It does not erase the append-only audit log.
+- `hrms.remember`, `crm.remember`, `srm.remember` and `fam.remember` prepare memory
+  writes in an approved multi-step plan. They cannot bypass permissions or change
+  administrator policy. The LLM cannot invoke the forgetting operation.
+
+The UI exposes scoped memory controls and opens the correct module from the
+global AI operator button. Sources can be explicitly selected, including a CRM
+task/deal/lead, SRM invoice or FAM voucher by record ID. With no explicit sources,
+the focused module supplies bounded reference lists: HR leave types and ticket
+categories; CRM companies/tasks/deals; SRM invoices/inventory; FAM financial years,
+voucher types and ledgers. Up to six sources are allowed, capped at 50 records
+per source. Personal HR ticket reads always force the initiating employee filter.
+
+Approved actions reuse the existing APIs:
+
+- HRMS: own leave requests and HR helpdesk tickets; HR approvals stay separate.
+- CRM: create/update follow-up tasks and add validated internal record notes.
+- SRM: manual invoice drafts; issuance, sending and payment stay separate.
+- FAM: cost centers and balanced voucher drafts; posting stays separate.
+
+Plans can combine modules and reference earlier creation receipts. Existing exact
+plan-hash approvals, current role/tenant/session checks, stale-target guards,
+background execution, cancellation and uncertain-write reconciliation remain in
+force. Provider logs include both context modules and action modules, actual token
+usage, latency, request IDs and configured price estimates. Memory saves/forgetting
+also produce audit metadata without copying the remembered text into audit logs.
+Gemini remains the only enabled provider; OpenAI and Claude were not configured.
+
+Recovery now follows the current non-deleting task contract. Supported field
+restoration still requires a reviewed plan; removing a created checklist item or
+dependency is disclosed as manual recovery instead of generating a prohibited
+deletion or a server error.
+
+The local database was still at revision 014 while current code required the newer
+tenancy/security schema. A private logical snapshot was saved under ignored local
+QA storage, and the existing migration chain was applied through
+`pg_20261026_027_ai_security`. Historical rows without trustworthy authorization
+seals are not assigned invented seals. The local backend and worker were restarted.
+
+Verification: **135 backend tests**, **13 browser regression checks**, **one real
+backend browser check**, and the production frontend build passed. Two real Gemini
+calls verified a four-module memory plan, approval, worker receipts, a follow-up
+recalling all four memories, and scoped usage logs. The labelled QA memories were
+forgotten afterward. Canonical HR ticket, CRM note, SRM invoice-draft and FAM cost
+center writes are also exercised together in integration tests. Evidence and
+desktop/mobile captures are in `docs/qa/module-agents-2026-10-26/`; the opt-in
+metered verifier is `backend/scripts/verify_suite_module_agents_live.py` and the
+browser verifier is `playwright/suite-module-agents-live.spec.ts`.

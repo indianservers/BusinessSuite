@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import {
   useEffect,
   useId,
@@ -20,7 +21,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { tasksAPI } from "../services/api";
+import { projectsAPI, tasksAPI } from "../services/api";
 import { workspaceError } from "../pages/workspaceTypes";
 import type { TaskPriority, TaskStatus } from "../types";
 import "./RecordActions.css";
@@ -93,9 +94,7 @@ export function RecordSummary({
         {record.status && <span>{record.status}</span>}
         {record.priority && <span>{record.priority} priority</span>}
       </div>
-      <p className="pms-record-description">
-        {record.description || "No description added yet."}
-      </p>
+      <div className="pms-record-description"><RichTextContent value={record.description || "No description added yet."}/></div>
       <dl>
         <div>
           <dt>Start</dt>
@@ -278,6 +277,7 @@ export default function RecordActions({
         run: () => navigate(`${href}/${route}`),
       })),
     );
+  if (kind === "project" && canEdit) actions.push({label:"Edit project", run:()=>navigate(`${href}/edit`)});
   if (kind === "task" && record.project_id)
     actions.push({
       label: "Go to project",
@@ -353,6 +353,8 @@ export default function RecordActions({
           });
         }, "Task duplicated in the same project. Attachments and comments stay with the original."),
     });
+  }
+  if (canEdit) {
     actions.push({
       label: "Move to trash…",
       icon: <Trash2 size={15} />,
@@ -578,10 +580,10 @@ export default function RecordActions({
             className="pms-record-confirm"
             onClick={(e) => e.stopPropagation()}
           >
-            <Dialog.Title>Move task to trash?</Dialog.Title>
+            <Dialog.Title>Move {kind} to trash?</Dialog.Title>
             <Dialog.Description>
               “{record.title}” will be removed from active views. You can
-              restore it from Task recovery.
+              restore it from Trash. {kind === "project" && "Its tasks and files remain attached and become accessible again when the project is restored."}
             </Dialog.Description>
             <div>
               <button disabled={busy} onClick={() => setConfirmTrash(false)}>
@@ -592,8 +594,8 @@ export default function RecordActions({
                 disabled={busy}
                 onClick={() =>
                   void run(
-                    () => tasksAPI.delete(record.id),
-                    "Task moved to trash.",
+                    () => kind === "project" ? projectsAPI.delete(record.id) : tasksAPI.delete(record.id),
+                    `${kind === "project" ? "Project" : "Task"} moved to trash.`,
                     true,
                   )
                 }

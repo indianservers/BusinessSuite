@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -521,7 +522,7 @@ export default function PMSProfileMenu({
               >
                 <label>
                   Notes
-                  <textarea
+                  <RichTextField
                     aria-label="Personal notes"
                     maxLength={20000}
                     rows={10}
@@ -556,7 +557,7 @@ export default function PMSProfileMenu({
                     {alerts.data?.items.map((n) => (
                       <article key={n.id}>
                         <strong>{n.title}</strong>
-                        <p>{n.message || n.body}</p>
+                        <div><RichTextContent value={n.message || n.body}/></div>
                         <small>{new Date(n.created_at).toLocaleString()}</small>
                         {!n.is_read && (
                           <button

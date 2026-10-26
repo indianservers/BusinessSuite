@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Search, X } from "lucide-react";
@@ -411,7 +412,7 @@ export function WidgetSettings({
           </label>
           <label className="db-field">
             <span>Description</span>
-            <textarea
+            <RichTextField data-legacy-format="markdown"
               maxLength={500}
               value={value.description}
               onChange={(e) => patch("description", e.target.value)}
@@ -466,7 +467,7 @@ export function WidgetSettings({
                 </small>
               )}
               {value.type === "notes" ? (
-                <textarea
+                <RichTextField data-legacy-format="markdown"
                   rows={6}
                   maxLength={5000}
                   value={value.notes}

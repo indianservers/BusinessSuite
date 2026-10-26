@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -1583,7 +1584,7 @@ export default function PayrollPage() {
                       <p className="font-medium">{check.check_name}</p>
                       <Badge variant={check.status === "Passed" ? "secondary" : check.blocker ? "destructive" : "outline"}>{check.status}</Badge>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{check.message || check.check_type}</p>
+                    <div className="mt-1 text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={check.message || check.check_type}/></div>
                   </div>
                 ))}
                 {!(preRunChecks as PayrollPreRunCheck[] | undefined)?.length && (

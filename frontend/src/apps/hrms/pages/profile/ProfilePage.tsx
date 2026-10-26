@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -415,7 +416,7 @@ export default function ProfilePage() {
                     <Icon className="mt-0.5 h-4 w-4 text-primary" />
                     <div>
                       <p className="text-sm font-medium">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">{item.description}</p>
+                      <div className="text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.description}/></div>
                     </div>
                   </div>
                 );

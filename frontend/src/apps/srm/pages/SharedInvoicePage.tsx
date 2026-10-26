@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { InvoicePaymentForm } from "./ConnectedCollectionsPage";
 import { useAuthStore } from "@/store/authStore";
 import { useState } from "react";
@@ -119,7 +120,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           {r.lines.map((l: any) => (
             <div className="border-b py-2" key={l.id}>
               <div className="flex flex-wrap justify-between gap-3">
-                <span>{l.description}</span>
+                <div><RichTextContent legacyFormat="plain" value={l.description}/></div>
                 <span>
                   {l.quantity} × {l.unit_price}
                 </span>

@@ -1,6 +1,7 @@
 """Lead operations. All reads, mutations and transfers share CRM tenant/RBAC rules."""
 
 from __future__ import annotations
+from app.core.rich_text import rich_text_type
 
 import copy
 import csv
@@ -668,7 +669,7 @@ class Qualification(Strict):
 class Interest(Strict):
     name: str = Field(min_length=1, max_length=180)
     value: Decimal = Field(default=0, ge=0, le=9999999999)
-    requirements: str = Field(default="", max_length=4000)
+    requirements: rich_text_type(4000, 0) = Field(default="")
 
 
 class DetailsPatch(Strict):
@@ -1537,7 +1538,7 @@ def schedule_follow_up(
 
 
 class TeamNotePayload(Strict):
-    body: str = Field(min_length=1, max_length=4000)
+    body: rich_text_type(4000, 1) = Field()
     mentionIds: list[int] = Field(default_factory=list, max_length=20)
     version: int = Field(ge=0)
 

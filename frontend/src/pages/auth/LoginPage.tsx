@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles, ClipboardCheck, Users, BarChart3, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles, ClipboardCheck, Users, BarChart3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ import { setRememberSession, useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/config/runtime";
-import { moduleDefaultCredentials } from "@/lib/defaultCredentials";
 import { getDefaultPathForUser } from "@/lib/products";
 
 const loginSchema = z.object({
@@ -33,7 +32,6 @@ const moduleLogins = {
     description: "Enter your HRMS credentials",
     afterLogin: "/hrms",
     accent: "blue",
-    demoLogins: moduleDefaultCredentials.hrms,
   },
   crm: {
     product: "VyaparaCRM",
@@ -42,7 +40,6 @@ const moduleLogins = {
     description: "Enter your CRM credentials",
     afterLogin: "/crm",
     accent: "emerald",
-    demoLogins: moduleDefaultCredentials.crm,
   },
   project_management: {
     product: "KaryaFlow",
@@ -51,7 +48,6 @@ const moduleLogins = {
     description: "Enter your PMS credentials to continue",
     afterLogin: "/pms",
     accent: "violet",
-    demoLogins: moduleDefaultCredentials.project_management,
   },
   srm: {
     product: "Sales & Inventory",
@@ -60,7 +56,6 @@ const moduleLogins = {
     description: "Enter your Sales & Inventory credentials",
     afterLogin: "/srm",
     accent: "amber",
-    demoLogins: moduleDefaultCredentials.srm,
   },
   fam: {
     product: "FinanceFlow FAM",
@@ -69,7 +64,6 @@ const moduleLogins = {
     description: "Enter your FAM credentials",
     afterLogin: "/fam",
     accent: "cyan",
-    demoLogins: moduleDefaultCredentials.fam,
   },
 } as const;
 
@@ -166,7 +160,6 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
@@ -187,7 +180,7 @@ export default function LoginPage() {
   });
   const { data: firebaseLoginConfig } = useQuery({
     queryKey:["firebase-login-config"], queryFn:()=>authApi.firebaseConfig().then(r=>r.data),
-    enabled:loginModule === "project_management", staleTime:5*60*1000,
+    staleTime:5*60*1000,
   });
   const hintedProvider = useMemo(() => {
     const domain = emailValue?.split("@")[1]?.toLowerCase();
@@ -310,7 +303,7 @@ export default function LoginPage() {
     setSsoBusy(true);setInlineError("");
     try {
       const {googleFirebaseLogin} = await import("@/services/firebaseLogin");
-      const {data} = await googleFirebaseLogin(firebaseLoginConfig.firebase_config);
+      const {data} = await googleFirebaseLogin(firebaseLoginConfig.firebase_config, loginConfig.authModule);
       if(data.mfa_required) {setMfaToken(data.mfa_token);setLoginPhase("mfa");return;}
       queryClient.clear();
       setTokens(data.access_token,data.refresh_token);
@@ -531,35 +524,9 @@ export default function LoginPage() {
                 ))}
               </div>
             )}
-            {loginModule === "project_management" && loginPhase === "credentials" && authView === "login" && !ssoProviders?.some(provider => provider.button_icon === "google" || provider.provider_type === "google") && <div className="mt-5"><div className="karya-divider">OR</div><Button type="button" variant="outline" className="karya-google" disabled={!firebaseLoginConfig?.enabled || ssoBusy || isSubmitting} onClick={()=>{void signInWithGoogle();}}><ProviderIcon icon="google"/>{ssoBusy?"Connecting…":"Continue with Google"}</Button>{firebaseLoginConfig && !firebaseLoginConfig.enabled && <p className="karya-sso-note">Google sign-in is temporarily unavailable. Please use your password.</p>}</div>}
+            {loginPhase === "credentials" && authView === "login" && !ssoProviders?.some(provider => provider.button_icon === "google" || provider.provider_type === "google") && <div className="mt-5"><div className="karya-divider">OR</div><Button type="button" aria-label={ssoBusy ? "Connecting to Google" : "Continue with Google"} variant="outline" className={loginModule === "project_management" ? "karya-google" : "h-12 w-full gap-3 rounded-xl border-white/20 bg-white text-slate-900 hover:bg-slate-100"} disabled={!firebaseLoginConfig?.enabled || !firebaseLoginConfig.modules?.includes(loginConfig.authModule) || ssoBusy || isSubmitting} onClick={()=>{void signInWithGoogle();}}><ProviderIcon icon="google"/>{ssoBusy?"Connecting…":"Continue with Google"}</Button>{firebaseLoginConfig && !firebaseLoginConfig.enabled && <p className="karya-sso-note">Google sign-in is temporarily unavailable. Please use your password.</p>}</div>}
             {inlineError && loginPhase === "credentials" && authView === "login" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
 
-            {import.meta.env.DEV && authView === "login" && (
-            <details className="mt-4 space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3"><summary className="cursor-pointer text-xs text-slate-500">Development accounts</summary>
-              <p className="text-xs font-medium text-blue-200/80">Role logins</p>
-              {loginConfig.demoLogins.map((login) => (
-                <button
-                  key={login.email}
-                  type="button"
-                  className="w-full rounded-md border border-white/10 bg-white/5 p-2 text-left transition hover:bg-white/10"
-                  onClick={() => {
-                    setValue("email", login.email, { shouldValidate: true });
-                    setValue("password", login.password, { shouldValidate: true });
-                  }}
-                >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-semibold text-white">{login.label}</span>
-                    <span className="text-[11px] text-blue-200/60">{login.email}</span>
-                  </span>
-                  <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-200/80">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Credentials auto-filled
-                  </span>
-                  <span className="mt-1 block text-[11px] text-blue-200/45">{login.description}</span>
-                </button>
-              ))}
-            </details>
-            )}
             {loginModule === "project_management" && <div className="karya-secure"><ShieldCheck /><div><strong>Secure Access</strong><p>Your data is encrypted and protected</p></div></div>}
           </CardContent>
         </Card>

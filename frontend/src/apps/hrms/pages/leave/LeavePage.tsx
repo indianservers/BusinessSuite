@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -120,7 +121,7 @@ export default function LeavePage() {
   const [accountEmployeeId, setAccountEmployeeId] = useState("");
   const [accountUserId, setAccountUserId] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
-  const [accountPassword, setAccountPassword] = useState("Employee@123456");
+  const [accountPassword, setAccountPassword] = useState("");
 
   const { data: balances, isLoading: loadingBalance } = useQuery({
     queryKey: ["leave-balance"],
@@ -447,7 +448,7 @@ export default function LeavePage() {
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
-                {errors.leave_type_id && <p className="text-xs text-red-500">{errors.leave_type_id.message}</p>}
+                {errors.leave_type_id && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.leave_type_id.message}/></div>}
               </div>
 
               <div className="space-y-1.5">
@@ -464,13 +465,13 @@ export default function LeavePage() {
               <div className="space-y-1.5">
                 <Label>From Date *</Label>
                 <Input type="date" {...register("from_date", { required: "Required" })} />
-                {errors.from_date && <p className="text-xs text-red-500">{errors.from_date.message}</p>}
+                {errors.from_date && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.from_date.message}/></div>}
               </div>
 
               <div className="space-y-1.5">
                 <Label>To Date *</Label>
                 <Input type="date" {...register("to_date", { required: "Required" })} />
-                {errors.to_date && <p className="text-xs text-red-500">{errors.to_date.message}</p>}
+                {errors.to_date && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.to_date.message}/></div>}
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
@@ -481,7 +482,7 @@ export default function LeavePage() {
                   className="flex w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm"
                   placeholder="Reason for leave..."
                 />
-                {errors.reason && <p className="text-xs text-red-500">{errors.reason.message}</p>}
+                {errors.reason && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.reason.message}/></div>}
               </div>
 
               <div className="flex gap-3 sm:col-span-2">

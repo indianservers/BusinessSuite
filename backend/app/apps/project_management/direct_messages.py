@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Private workspace messages; only current participants can read conversations."""
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -20,7 +21,7 @@ class StartInput(BaseModel):
 
 class MessageInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    body: str = Field(min_length=1, max_length=20000)
+    body: rich_text_type(20000, 1) = Field()
     client_id: UUID
 
 

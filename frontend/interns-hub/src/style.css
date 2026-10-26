@@ -2457,3 +2457,6 @@ tr.you {
 @media (max-width: 600px) { .login-form { padding: 24px 16px; }.login-card { padding: 25px 20px; }.social-signup-buttons { grid-template-columns: 1fr; }.intern-apply-card { padding: 16px 13px; gap: 10px; }.intern-apply-card strong { font-size: 17px; } }
 .login-card form { margin-top: 20px; }.login-card label { margin: 14px 0; }.login-card > .icon-small { width: 40px; height: 40px; margin-bottom: 12px; }.login-card > p { margin: 8px 0 18px; }.login-card > .login-note { margin: 14px 0; }.login-card .button { min-height: 44px; margin-top: 4px; }.signup-divider { margin: 18px 0 12px; }.intern-apply-card { margin-top: 18px; padding-top: 16px; padding-bottom: 16px; }.social-signup-error { color: #b42318; font-size: 12px; line-height: 1.5; margin-top: 12px; }
 .social-signup-buttons { grid-template-columns: 1fr; }.social-signup-button { font-size: 13px; }
+
+/* Shared editor tokens are scoped; portal branding uses its existing hex colors. */
+.suite-rte,.suite-rich-content{--primary:249 100% 63%;--background:0 0% 100%;--foreground:238 55% 14%;--border:227 44% 91%;--muted:225 40% 96%;--muted-foreground:225 20% 50%;--popover:0 0% 100%;--destructive:0 76% 53%}

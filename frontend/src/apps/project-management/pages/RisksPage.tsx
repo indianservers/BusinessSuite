@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { Fragment, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertTriangle, Edit2, Plus, ShieldAlert, Trash2, X } from "lucide-react";
@@ -266,13 +267,13 @@ export default function RisksPage() {
                 </div>
               </Field>
               <Field label="Description" wide>
-                <textarea className="input min-h-24" value={form.description || ""} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
+                <RichTextField data-legacy-format="markdown" className="input min-h-24" value={form.description || ""} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
               </Field>
               <Field label="Mitigation plan" wide>
-                <textarea className="input min-h-24" value={form.mitigation_plan || ""} onChange={(event) => setForm((current) => ({ ...current, mitigation_plan: event.target.value }))} />
+                <RichTextField data-legacy-format="markdown" className="input min-h-24" value={form.mitigation_plan || ""} onChange={(event) => setForm((current) => ({ ...current, mitigation_plan: event.target.value }))} />
               </Field>
               <Field label="Contingency plan" wide>
-                <textarea className="input min-h-24" value={form.contingency_plan || ""} onChange={(event) => setForm((current) => ({ ...current, contingency_plan: event.target.value }))} />
+                <RichTextField data-legacy-format="markdown" className="input min-h-24" value={form.contingency_plan || ""} onChange={(event) => setForm((current) => ({ ...current, contingency_plan: event.target.value }))} />
               </Field>
               <div className="flex gap-2 lg:col-span-2">
                 <Button type="submit" disabled={saving || !form.title.trim() || !form.project_id}>{saving ? "Saving..." : editing ? "Update risk" : "Create risk"}</Button>
@@ -327,7 +328,7 @@ export default function RisksPage() {
                       <tr key={risk.id} className="border-b align-top hover:bg-muted/40">
                         <td className="max-w-sm p-3">
                           <p className="font-semibold">{risk.title}</p>
-                          <p className="line-clamp-2 text-xs text-muted-foreground">{risk.description || risk.category || "No description"}</p>
+                          <div className="line-clamp-2 text-xs text-muted-foreground"><RichTextContent value={risk.description || risk.category || "No description"}/></div>
                         </td>
                         <td className="p-3">{projectsById.get(risk.project_id)?.name || `Project ${risk.project_id}`}</td>
                         <td className="p-3"><Badge className={statusColor(risk.status)}>{risk.status}</Badge></td>

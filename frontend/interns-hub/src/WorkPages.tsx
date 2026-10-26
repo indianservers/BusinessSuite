@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent } from "../../src/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -112,7 +113,7 @@ export function Dashboard() {
               .map((s) => (
                 <div className="feedback" key={s.id}>
                   <b>{data.me.manager || "Your HRMS team"}</b>
-                  <p>{s.feedback}</p>
+                  <div><RichTextContent legacyFormat="plain" value={s.feedback}/></div>
                   <Badge>{s.status}</Badge>
                 </div>
               ))}
@@ -244,7 +245,7 @@ export function TaskDetail() {
               </span>
               <div>
                 <h2>{task.title}</h2>
-                <p>{task.description}</p>
+                <div><RichTextContent legacyFormat="plain" value={task.description}/></div>
               </div>
               <Badge>{task.status}</Badge>
             </div>
@@ -281,7 +282,7 @@ export function TaskDetail() {
               </div>
             ))}
           </Card>
-          {!["Completed","In Review","Cancelled"].includes(task.status)&&<Card title="Work Progress"><label>Progress %<input aria-label="Progress percent" type="number" min={0} max={99} value={progress} onChange={e=>setProgress(Number(e.target.value))}/></label><label>Work notes<textarea aria-label="Work notes" value={workNotes} onChange={e=>setWorkNotes(e.target.value)}/></label><button className="button" onClick={()=>act(()=>hub(`/tasks/${task.id}/progress`,send("POST",{progress_percent:progress,notes:workNotes})),"PMS progress updated")}>Save Progress</button></Card>}
+          {!["Completed","In Review","Cancelled"].includes(task.status)&&<Card title="Work Progress"><label>Progress %<input aria-label="Progress percent" type="number" min={0} max={99} value={progress} onChange={e=>setProgress(Number(e.target.value))}/></label><label>Work notes<RichTextField aria-label="Work notes" value={workNotes} onChange={e=>setWorkNotes(e.target.value)}/></label><button className="button" onClick={()=>act(()=>hub(`/tasks/${task.id}/progress`,send("POST",{progress_percent:progress,notes:workNotes})),"PMS progress updated")}>Save Progress</button></Card>}
           <div className="actions">
             <button
               className="button outline"
@@ -423,7 +424,7 @@ export function SubmitWork() {
                 </option>
               ))}
             </select>
-            <p>{task.description}</p>
+            <div><RichTextContent legacyFormat="plain" value={task.description}/></div>
             <div className="detail-metrics">
               <div>
                 <small>Category</small>
@@ -511,7 +512,7 @@ export function SubmitWork() {
             </div>
             <label>
               Explanation / Notes *
-              <textarea
+              <RichTextField
                 maxLength={5000}
                 rows={4}
                 value={notes}
@@ -521,7 +522,7 @@ export function SubmitWork() {
             </label>
             <label>
               Revision / Resubmission Note
-              <textarea
+              <RichTextField
                 value={revision}
                 maxLength={2000}
                 onChange={(e) => setRevision(e.target.value)}
@@ -661,7 +662,7 @@ export function DailyReport() {
               <Card key={key}>
                 <label>
                   {label}
-                  <textarea
+                  <RichTextField
                     maxLength={2000}
                     rows={4}
                     value={form[key]}
@@ -674,7 +675,7 @@ export function DailyReport() {
               </Card>
             ))}
           </div>
-          <Card title="Task time (self-reported)">{data.tasks.filter(t=>t.status!=="Cancelled").map(t=><label key={t.id}>{t.title}<input aria-label={`Minutes for ${t.title}`} type="number" min={0} max={1440} value={form.task_entries?.find((v:Row)=>v.task_id===t.id)?.minutes||0} onChange={e=>setForm({...form,task_entries:[...(form.task_entries||[]).filter((v:Row)=>v.task_id!==t.id),{task_id:t.id,minutes:Number(e.target.value),notes:""}]})}/></label>)}<label>Work in progress<textarea value={form.in_progress||""} onChange={e=>setForm({...form,in_progress:e.target.value})}/></label></Card>
+          <Card title="Task time (self-reported)">{data.tasks.filter(t=>t.status!=="Cancelled").map(t=><label key={t.id}>{t.title}<input aria-label={`Minutes for ${t.title}`} type="number" min={0} max={1440} value={form.task_entries?.find((v:Row)=>v.task_id===t.id)?.minutes||0} onChange={e=>setForm({...form,task_entries:[...(form.task_entries||[]).filter((v:Row)=>v.task_id!==t.id),{task_id:t.id,minutes:Number(e.target.value),notes:""}]})}/></label>)}<label>Work in progress<RichTextField value={form.in_progress||""} onChange={e=>setForm({...form,in_progress:e.target.value})}/></label></Card>
           <Card title="How was your day?" icon={Sparkles}>
             <div className="tabs moods">
               {["Great", "Good", "Okay", "Stressed", "Tired"].map((m, i) => (
@@ -844,10 +845,8 @@ export function Reviews() {
               </div>
               <div className="feedback">
                 <b>{data.me.manager || "Your HRMS team"}</b>
-                <p>
-                  {item.feedback ||
-                    "Your submission is waiting for a mentor review."}
-                </p>
+                <div><RichTextContent legacyFormat="plain" value={item.feedback ||
+                    "Your submission is waiting for a mentor review."}/></div>
               </div>
               <div className="form-grid">
                 <div className="callout green">
@@ -865,7 +864,7 @@ export function Reviews() {
                 </div>
               </div>
               <h3>Submission notes</h3>
-              <p className="preline">{item.notes}</p>
+              <div className="preline"><RichTextContent legacyFormat="plain" value={item.notes}/></div>
               {item.links.map((link: string) => (
                 <p key={link}>
                   <a href={link} target="_blank" rel="noreferrer">

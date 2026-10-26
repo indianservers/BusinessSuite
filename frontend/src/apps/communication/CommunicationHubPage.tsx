@@ -1,5 +1,10 @@
+import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
+import { contentToHtml, RICH_TEXT_PREFIX } from "@/components/rich-text/content";
+import { Input } from "@/components/ui/input";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, Mail, Megaphone, MessageCircle, ScrollText, Send, ShieldCheck, TableProperties, Users } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -93,7 +98,32 @@ function Hub() {
 }
 
 function Templates() {
-  return <GenericSection title="Email Templates" description="Merge-ready CRM email templates for leads, contacts, accounts, deals, quotes, and customers." queryKey="communication-templates" queryFn={communicationApi.templates} action="Create Template" mutation={() => communicationApi.createTemplate({ name: "Welcome Lead", subject: "Hello {{name}}", body_text: "Thanks for contacting us, {{name}}.", module_name: "lead", template_type: "email", active: true })} />;
+  const qc = useQueryClient();
+  const user = useAuthStore(state => state.user);
+  const canManage = Boolean(user?.is_superuser || !user?.access?.managed || Object.values(user?.access?.grants || {}).some(grant => grant.enabled && grant.permissions.includes("communication_templates_manage")));
+  const query = useQuery({queryKey:["communication-templates"],queryFn:communicationApi.templates});
+  const [id,setId]=useState<number | null>(null);
+  const [draft,setDraft]=useState({name:"",subject:"",content:"",module_name:"lead"});
+  const [error,setError]=useState("");
+  const [notice,setNotice]=useState("");
+  const mutation=useMutation({mutationFn:async()=>{
+    const payload={name:draft.name.trim(),subject:draft.subject.trim(),body_html:draft.content,body_text:richTextPlainText(draft.content),module_name:draft.module_name,template_type:"email",active:true};
+    return id ? api.put(`/communication/email-templates/${id}`,payload) : communicationApi.createTemplate(payload);
+  },onSuccess:()=>{setNotice("Template saved");setError("");qc.invalidateQueries({queryKey:["communication-templates"]});},onError:(e:any)=>setError(typeof e.response?.data?.detail === "string" ? e.response.data.detail : "Could not save. Your draft is retained.")});
+  return <div className="grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
+    <Card><CardContent className="space-y-3 p-4"><h2 className="font-semibold">Email templates</h2><Button variant="outline" disabled={!canManage} onClick={()=>{setId(null);setDraft({name:"",subject:"",content:"",module_name:"lead"});setNotice("");setError("");}}>New template</Button>
+      {query.isLoading && <p role="status">Loading templates...</p>}{query.isError && <p role="alert">Could not load templates.</p>}
+      {query.data?.items.map(item=><button type="button" key={item.id} className={`block w-full rounded-lg border p-3 text-left text-sm ${id===item.id ? "border-primary bg-primary/5" : "hover:bg-muted"}`} onClick={()=>{setId(item.id!);setDraft({name:String(item.name||""),subject:String(item.subject||""),content:item.body_html ? String(item.body_html) : RICH_TEXT_PREFIX + contentToHtml(String(item.body_text||""), "plain"),module_name:String(item.module_name||"lead")});setNotice("");setError("");}}><strong>{String(item.name)}</strong><span className="block text-xs text-muted-foreground">{String(item.subject||"")}</span></button>)}
+    </CardContent></Card>
+    <Card><CardContent className="p-5"><form className="space-y-4" onSubmit={event=>{event.preventDefault();setNotice("");mutation.mutate();}}>
+      <h2 className="text-lg font-semibold">{id ? "Edit email template" : "Create email template"}</h2>
+      <p className="text-sm text-muted-foreground">Write a reusable message. Merge fields such as {"{{name}}"} remain available when composing an email.</p>
+      <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-1 text-sm">Template name<Input required maxLength={180} minLength={2} value={draft.name} disabled={!canManage || mutation.isPending} onChange={event=>setDraft({...draft,name:event.target.value})}/></label><label className="space-y-1 text-sm">Subject<Input required maxLength={240} value={draft.subject} disabled={!canManage || mutation.isPending} onChange={event=>setDraft({...draft,subject:event.target.value})}/></label></div>
+      <RichTextEditor key={id ?? "new"} label="Email template content" legacyFormat="html" variant="document" value={draft.content} onChange={content=>setDraft({...draft,content})} readOnly={!canManage} disabled={mutation.isPending} maxLength={20000}/>
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
+      <Button type="submit" disabled={!canManage || mutation.isPending}>{mutation.isPending ? "Saving..." : "Save template"}</Button>
+    </form></CardContent></Card>
+  </div>;
 }
 
 function Emails() {

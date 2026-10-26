@@ -1,3 +1,4 @@
+import RichTextEditor from "@/components/rich-text/LazyRichText";
 import * as Dialog from "@radix-ui/react-dialog";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { X, FilePlus2, ClipboardList, Bug, Lightbulb, BarChart3, Layers3, CalendarDays, Link2, Paperclip, Repeat2, ChevronRight, Sparkles, Bold, Italic, Underline, List, ListOrdered, Code2, Eye, Folder, Type, Users, Flag, Circle, Tag, FileText, Image as ImageIcon } from "lucide-react";
@@ -23,14 +24,12 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
   initialWorkType?: "Task" | "Story" | "Bug";
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId);
   const [projectOptions, setProjectOptions] = useState(projects || []);
   const [title, setTitle] = useState("");
   const [workType, setWorkType] = useState<string>(initialWorkType);
   const [workTypes, setWorkTypes] = useState(["Task", "Bug", "Feature", "Improvement", "Epic"]);
   const [description, setDescription] = useState("");
-  const [preview, setPreview] = useState(false);
   const [status, setStatus] = useState<TaskStatus>("To Do");
   const [priority, setPriority] = useState<TaskPriority>("Medium");
   const [dueDate, setDueDate] = useState("");
@@ -83,14 +82,8 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
     return () => { active = false; };
   }, [isOpen, selectedProjectId, workspacePeople]);
 
-  function format(before: string, after = before) {
-    const editor = descriptionRef.current; if (!editor) return;
-    const start = editor.selectionStart, end = editor.selectionEnd;
-    setDescription(description.slice(0, start) + before + description.slice(start, end) + after + description.slice(end));
-    requestAnimationFrame(() => { editor.focus(); editor.setSelectionRange(start + before.length, end + before.length); });
-  }
   function reset() {
-    setTitle(""); setDescription(""); setDueDate(""); setStartDate(""); setAssignees([]); setStoryPoints(""); setSelectedTags([]); setNewTagName(""); setFiles([]); setDependencyId(""); setRecurrence(""); setRecurrenceUntil(""); setPreview(false); created.current = null; completed.current.clear();
+    setTitle(""); setDescription(""); setDueDate(""); setStartDate(""); setAssignees([]); setStoryPoints(""); setSelectedTags([]); setNewTagName(""); setFiles([]); setDependencyId(""); setRecurrence(""); setRecurrenceUntil(""); created.current = null; completed.current.clear();
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -150,7 +143,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
                 <div className="compose-field"><Folder /><div><label htmlFor="task-project">Project</label><select id="task-project" required value={selectedProjectId || ""} onChange={e => { setSelectedProjectId(Number(e.target.value)); setAssignees([]); }}><option value="" disabled>Choose project</option>{!projectOptions.some(p => p.id === selectedProjectId) && selectedProjectId > 0 && <option value={selectedProjectId}>Current project</option>}{projectOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div></div>
                 <div className="compose-field"><Type /><div><label htmlFor="task-title">Title <span className="required">*</span></label><Input ref={titleRef} id="task-title" required maxLength={500} placeholder="What needs to be done?" value={title} onChange={e => setTitle(e.target.value)} /></div></div>
               </div>
-              <div className="compose-field compose-description"><FileText /><div><label htmlFor="task-description">Description</label><div className="compose-editor"><div className="compose-toolbar"><select aria-label="Text style" onChange={e => { if (e.target.value) format(e.target.value, ""); e.target.value = ""; }}><option value="">Normal</option><option value="# ">Heading 1</option><option value="## ">Heading 2</option><option value="> ">Quote</option></select>{[{Icon:Bold,label:"Bold",before:"**"},{Icon:Italic,label:"Italic",before:"*"},{Icon:Underline,label:"Underline",before:"<u>",after:"</u>"},{Icon:List,label:"Bulleted list",before:"\n- ",after:""},{Icon:ListOrdered,label:"Numbered list",before:"\n1. ",after:""},{Icon:Link2,label:"Insert link",before:"[",after:"](https://)"},{Icon:Code2,label:"Code",before:"`"}].map(({Icon,label,before,after}) => <button key={label} type="button" aria-label={label} title={label} onClick={() => { setPreview(false); format(before, after); }}><Icon /></button>)}<button type="button" aria-label="Attach an image" title="Attach an image" onClick={() => setQuickOption("files")}><ImageIcon /></button><button type="button" className="preview-button" aria-pressed={preview} onClick={() => setPreview(!preview)}><Eye />{preview ? "Edit" : "Preview"}</button></div>{preview ? <div className="compose-preview"><DescriptionPreview text={description} /></div> : <textarea ref={descriptionRef} id="task-description" placeholder="Add details, context, or acceptance criteria…" value={description} onChange={e => setDescription(e.target.value)} />}</div></div></div>
+              <div className="compose-field compose-description"><FileText /><div><label htmlFor="task-description">Description</label><RichTextEditor id="task-description" label="Task description" value={description} onChange={setDescription} onAttach={() => setQuickOption("files")} disabled={submitting} placeholder="Add details, context, or acceptance criteria..." /></div></div>
               <div className="compose-pair">
                 <div className="compose-field"><CalendarDays /><div><label htmlFor="task-start">Start date</label><Input id="task-start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div></div>
                 <div className="compose-field"><CalendarDays /><div><label htmlFor="task-due">Due date</label><Input id="task-due" type="date" min={startDate || undefined} value={dueDate} onChange={e => setDueDate(e.target.value)} /></div></div>
@@ -170,20 +163,5 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
         <footer className="task-compose-footer"><label><input type="checkbox" checked={createAnother} disabled={submitting} onChange={e => setCreateAnother(e.target.checked)} />Create another task after saving</label><div><Button type="button" variant="outline" disabled={submitting} onClick={onClose}>Cancel</Button><Button type="submit" disabled={submitting}><Sparkles />{submitting ? "Creating…" : created.current ? "Retry extras" : "Create task"}</Button></div></footer>
       </form>
     </Dialog.Content></Dialog.Portal></Dialog.Root>;
-}
-
-function DescriptionPreview({ text }: { text: string }) {
-  return <>{text.split("\n").map((line, index) => {
-    const heading = line.match(/^(#{1,2}) (.*)/); const list = line.match(/^(?:- |\d+\. )(.*)/);
-    const content = (heading?.[2] || list?.[1] || line).split(/(\*\*.*?\*\*|\*[^*]+\*|`[^`]+`|<u>.*?<\/u>|\[.*?\]\(.*?\))/g).map((part,i) => {
-      if (part.startsWith("**")) return <strong key={i}>{part.slice(2,-2)}</strong>;
-      if (part.startsWith("*")) return <em key={i}>{part.slice(1,-1)}</em>;
-      if (part.startsWith("`")) return <code key={i}>{part.slice(1,-1)}</code>;
-      if (part.startsWith("<u>")) return <u key={i}>{part.slice(3,-4)}</u>;
-      const link = part.match(/^\[(.*?)\]\((.*?)\)$/); if (link && /^https?:\/\//i.test(link[2])) return <a key={i} href={link[2]} target="_blank" rel="noreferrer">{link[1]}</a>;
-      return part;
-    });
-    return heading ? <h4 key={index}>{content}</h4> : <p key={index}>{list ? "• " : ""}{content.length ? content : <br />}</p>;
-  })}</>;
 }
 

@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Module entry points for the same commercial records and services."""
 from app.access.catalog import permission_objects
 
@@ -766,7 +767,7 @@ def invoice_detail(
 
 
 class LinePatch(BaseModel):
-    description: str = Field(min_length=1, max_length=2000)
+    description: rich_text_type(2000, 1) = Field()
     quantity: Decimal = Decimal("1")
     unit_price: Decimal = Decimal("0")
     tax_amount: Decimal = Decimal("0")

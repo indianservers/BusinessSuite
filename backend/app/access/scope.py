@@ -192,6 +192,8 @@ def install_scope(db, user, company, grants):
                 "instance_id",
                 "form_id",
                 "approval_id",
+                "quote_id",
+                "quotation_id",
             )
         ):
             for origin in (
@@ -279,6 +281,8 @@ def install_scope(db, user, company, grants):
             "instance_id",
             "form_id",
             "approval_id",
+            "quote_id",
+            "quotation_id",
         ):
             if field not in columns:
                 continue

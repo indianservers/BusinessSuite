@@ -236,6 +236,30 @@ SUITE = {
     "srm.inventory": ("SRM", "GET", "/srm/inventory/items", ()),
     "srm.invoices": ("SRM", "GET", "/srm/invoices", ()),
 }
+
+# Explicitly reviewed module memory and lookup capabilities. Keep this registry
+# independent of runtime tool registration so new code does not self-authorize.
+SUITE.update({
+    'hrms.ticket_categories':('HRMS','GET','/helpdesk/categories',()),
+    'hrms.my_tickets':('HRMS','GET','/helpdesk/tickets',()),
+    'crm.companies':('CRM','GET','/crm/companies',()),
+    'crm.contacts':('CRM','GET','/crm/contacts',()),
+    'crm.task':('CRM','GET','/crm/tasks/{record_id}',()),
+    'crm.deal':('CRM','GET','/crm/deals/{record_id}',()),
+    'crm.lead':('CRM','GET','/crm/leads/{record_id}',()),
+    'crm.add_note':('CRM','POST','/crm/notes',('crm_activities_manage','crm_manage','crm_admin')),
+    'srm.invoice':('SRM','GET','/srm/invoices/{record_id}',()),
+    'srm.sales_orders':('SRM','GET','/srm/sales-orders',()),
+    'fam.financial_years':('FAM','GET','/fam/financial-years',()),
+    'fam.branches':('FAM','GET','/fam/branches',()),
+    'fam.voucher':('FAM','GET','/fam/vouchers/{record_id}',()),
+    'hrms.remember':('HRMS','POST','/ai-operator/suite/memories',()),
+    'crm.remember':('CRM','POST','/ai-operator/suite/memories',()),
+    'srm.remember':('SRM','POST','/ai-operator/suite/memories',()),
+    'fam.remember':('FAM','POST','/ai-operator/suite/memories',()),
+    # Recovery can propose only the current non-deleting TaskPlan contract.
+    'pms.undo':('PMS','POST','/ai-operator/workbench/runs',('pms_manage_tasks','pms_manage_projects','pms_admin')),
+})
 ASSISTANT = (
     "customers.search",
     "projects.search",

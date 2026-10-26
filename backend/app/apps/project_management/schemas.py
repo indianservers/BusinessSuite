@@ -111,6 +111,7 @@ class PMSProjectUpdate(BaseModel):
 
 
 class PMSProjectResponse(PMSProjectBase):
+    can_edit_project: bool = False
     id: int
     organization_id: Optional[int] = None
     completed_at: Optional[datetime] = None

@@ -1,0 +1,870 @@
+{
+  "generatedAt": "2026-10-26T06:32:58.003Z",
+  "origin": "http://127.0.0.1:5195",
+  "registeredRoutes": 73,
+  "screenshots": [
+    {
+      "route": "/crm/gantt",
+      "pattern": "/crm/gantt",
+      "file": "01_crm-gantt.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/gantt",
+      "heading": [
+        "CRM Gantt"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm",
+      "pattern": "/crm",
+      "file": "02_crm.png",
+      "actualUrl": "http://127.0.0.1:5195/crm",
+      "heading": [
+        "CRM Overview"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/dashboard",
+      "pattern": "/crm/dashboard",
+      "file": "03_crm-dashboard.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/dashboard",
+      "heading": [
+        "CRM Overview"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/profile",
+      "pattern": "/crm/profile",
+      "file": "04_crm-profile.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/profile",
+      "heading": [
+        "admin",
+        "CRM Profile"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/leads",
+      "pattern": "/crm/leads",
+      "file": "05_crm-leads.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/leads",
+      "heading": [
+        "Lead workbench 60"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/leads/classic",
+      "pattern": "/crm/leads/classic",
+      "file": "06_crm-leads-classic.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/leads/classic",
+      "heading": [
+        "Leads"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/leads/workbench",
+      "pattern": "/crm/leads/workbench",
+      "file": "07_crm-leads-workbench.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/leads/workbench",
+      "heading": [
+        "Lead workbench 60"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/leads/1",
+      "pattern": "/crm/leads/:id",
+      "file": "08_crm-leads-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/leads/1",
+      "heading": [
+        "Ananya Rao"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/contacts",
+      "pattern": "/crm/contacts",
+      "file": "09_crm-contacts.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/contacts",
+      "heading": [
+        "Contacts"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/contacts/35",
+      "pattern": "/crm/contacts/:id",
+      "file": "10_crm-contacts-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/contacts/35",
+      "heading": [
+        "Tara Kapoor"
+      ],
+      "errors": [
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        },
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        }
+      ],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/accounts",
+      "pattern": "/crm/accounts",
+      "file": "11_crm-accounts.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/accounts",
+      "heading": [
+        "Accounts"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/accounts/19",
+      "pattern": "/crm/accounts/:id",
+      "file": "12_crm-accounts-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/accounts/19",
+      "heading": [
+        "Maple Consulting Pvt Ltd"
+      ],
+      "errors": [
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        },
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        }
+      ],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/companies",
+      "pattern": "/crm/companies",
+      "file": "13_crm-companies.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/companies",
+      "heading": [
+        "Accounts"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/companies/19",
+      "pattern": "/crm/companies/:id",
+      "file": "14_crm-companies-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/companies/19",
+      "heading": [
+        "Maple Consulting Pvt Ltd"
+      ],
+      "errors": [
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        },
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        }
+      ],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/deals",
+      "pattern": "/crm/deals",
+      "file": "15_crm-deals.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/deals",
+      "heading": [
+        "Deals"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/deals/18",
+      "pattern": "/crm/deals/:id",
+      "file": "16_crm-deals-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/deals/18",
+      "heading": [
+        "Maple Consulting · sales transformation"
+      ],
+      "errors": [
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        },
+        {
+          "url": "http://127.0.0.1:5195/api/v1/srm/business/customers/19/history",
+          "status": 403
+        }
+      ],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/pipeline",
+      "pattern": "/crm/pipeline",
+      "file": "17_crm-pipeline.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/pipeline",
+      "heading": [
+        "Sales command pipeline"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/templates",
+      "pattern": "/crm/templates",
+      "file": "18_crm-templates.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/templates",
+      "heading": [
+        "Customized CRM templates"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/pipeline-settings",
+      "pattern": "/crm/pipeline-settings",
+      "file": "19_crm-pipeline-settings.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/pipeline-settings",
+      "heading": [
+        "Pipeline Settings"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/pipelines",
+      "pattern": "/crm/pipelines",
+      "file": "20_crm-pipelines.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/pipelines",
+      "heading": [
+        "Pipeline Settings"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/pipelines/1",
+      "pattern": "/crm/pipelines/:id",
+      "file": "21_crm-pipelines-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/pipelines/1",
+      "heading": [
+        "Pipeline Settings"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/activities",
+      "pattern": "/crm/activities",
+      "file": "22_crm-activities.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/activities",
+      "heading": [
+        "Activities"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/tasks",
+      "pattern": "/crm/tasks",
+      "file": "23_crm-tasks.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/tasks",
+      "heading": [
+        "CRM Tasks"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/calendar",
+      "pattern": "/crm/calendar",
+      "file": "24_crm-calendar.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/calendar",
+      "heading": [
+        "CRM calendar"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/calendar-integrations",
+      "pattern": "/crm/calendar-integrations",
+      "file": "25_crm-calendar-integrations.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/calendar-integrations",
+      "heading": [
+        "Calendar Integrations"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/webhooks",
+      "pattern": "/crm/webhooks",
+      "file": "26_crm-webhooks.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/webhooks",
+      "heading": [
+        "Webhook Settings"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/communication-hub",
+      "pattern": "/crm/communication-hub",
+      "file": "27_crm-communication-hub.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/communication-hub",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/email-templates",
+      "pattern": "/crm/email-templates",
+      "file": "28_crm-email-templates.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/email-templates",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/emails",
+      "pattern": "/crm/emails",
+      "file": "29_crm-emails.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/emails",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/webforms",
+      "pattern": "/crm/webforms",
+      "file": "30_crm-webforms.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/webforms",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "pattern": "/crm/webforms/:id",
+      "skipped": "No existing record available"
+    },
+    {
+      "route": "/crm/campaigns",
+      "pattern": "/crm/campaigns",
+      "file": "32_crm-campaigns.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/campaigns",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/campaigns/1",
+      "pattern": "/crm/campaigns/:id",
+      "file": "33_crm-campaigns-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/campaigns/1",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/consents",
+      "pattern": "/crm/consents",
+      "file": "34_crm-consents.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/consents",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/whatsapp",
+      "pattern": "/crm/whatsapp",
+      "file": "35_crm-whatsapp.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/whatsapp",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/auto-responses",
+      "pattern": "/crm/auto-responses",
+      "file": "36_crm-auto-responses.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/auto-responses",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/delivery-logs",
+      "pattern": "/crm/delivery-logs",
+      "file": "37_crm-delivery-logs.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/delivery-logs",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/communication-timeline",
+      "pattern": "/crm/communication-timeline",
+      "file": "38_crm-communication-timeline.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/communication-timeline",
+      "heading": [
+        "Communication Hub"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/products",
+      "pattern": "/crm/products",
+      "file": "39_crm-products.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/products",
+      "heading": [
+        "Products"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/products/1",
+      "pattern": "/crm/products/:id",
+      "file": "40_crm-products-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/products/1",
+      "heading": [
+        "Products"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/services",
+      "pattern": "/crm/services",
+      "file": "41_crm-services.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/services",
+      "heading": [
+        "Services"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/services/1",
+      "pattern": "/crm/services/:id",
+      "file": "42_crm-services-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/services/1",
+      "heading": [
+        "Services"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/price-books",
+      "pattern": "/crm/price-books",
+      "file": "43_crm-price-books.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/price-books",
+      "heading": [
+        "Price Books"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/price-books/1",
+      "pattern": "/crm/price-books/:id",
+      "file": "44_crm-price-books-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/price-books/1",
+      "heading": [
+        "Price Books"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/cpq",
+      "pattern": "/crm/cpq",
+      "file": "49_crm-cpq.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/cpq",
+      "heading": [
+        "CPQ Rules"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/guided-selling",
+      "pattern": "/crm/guided-selling",
+      "file": "50_crm-guided-selling.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/guided-selling",
+      "heading": [
+        "Guided Selling"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/approval-settings",
+      "pattern": "/crm/approval-settings",
+      "file": "53_crm-approval-settings.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/approval-settings",
+      "heading": [
+        "Approval Settings"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/my-approvals",
+      "pattern": "/crm/my-approvals",
+      "file": "54_crm-my-approvals.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/my-approvals",
+      "heading": [
+        "My Approvals"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/duplicates",
+      "pattern": "/crm/duplicates",
+      "file": "55_crm-duplicates.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/duplicates",
+      "heading": [
+        "Duplicate Management"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/territories",
+      "pattern": "/crm/territories",
+      "file": "56_crm-territories.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/territories",
+      "heading": [
+        "Territory Settings"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/tickets",
+      "pattern": "/crm/tickets",
+      "file": "57_crm-tickets.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/tickets",
+      "heading": [
+        "Support Tickets"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/files",
+      "pattern": "/crm/files",
+      "file": "58_crm-files.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/files",
+      "heading": [
+        "Files"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/reports",
+      "pattern": "/crm/reports",
+      "file": "59_crm-reports.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/reports",
+      "heading": [
+        "Win/Loss Analysis"
+      ],
+      "errors": [
+        {
+          "runtime": "Cannot read properties of null (reading 'useState')"
+        },
+        {
+          "runtime": "Cannot read properties of null (reading 'useState')"
+        },
+        {
+          "runtime": "Cannot read properties of null (reading 'useState')"
+        },
+        {
+          "runtime": "Cannot read properties of null (reading 'useState')"
+        },
+        {
+          "runtime": "Cannot read properties of null (reading 'useState')"
+        },
+        {
+          "runtime": "Cannot read properties of null (reading 'useState')"
+        }
+      ],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/automation",
+      "pattern": "/crm/automation",
+      "file": "60_crm-automation.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/automation",
+      "heading": [
+        "Sales Automation"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/lead-to-cash",
+      "pattern": "/crm/lead-to-cash",
+      "file": "61_crm-lead-to-cash.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/lead-to-cash",
+      "heading": [
+        "Lead-to-Cash"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/forecasting",
+      "pattern": "/crm/forecasting",
+      "file": "62_crm-forecasting.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/forecasting",
+      "heading": [
+        "Forecasting"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/forecasts",
+      "pattern": "/crm/forecasts",
+      "file": "63_crm-forecasts.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/forecasts",
+      "heading": [
+        "Forecasting"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/targets",
+      "pattern": "/crm/targets",
+      "file": "64_crm-targets.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/targets",
+      "heading": [
+        "Sales Targets"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/sales-performance",
+      "pattern": "/crm/sales-performance",
+      "file": "65_crm-sales-performance.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/sales-performance",
+      "heading": [
+        "Sales Performance"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/funnel",
+      "pattern": "/crm/funnel",
+      "file": "66_crm-funnel.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/funnel",
+      "heading": [
+        "Sales Funnel"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/lost-analysis",
+      "pattern": "/crm/lost-analysis",
+      "file": "67_crm-lost-analysis.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/lost-analysis",
+      "heading": [
+        "Lost Analysis"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/customer-360",
+      "pattern": "/crm/customer-360",
+      "file": "68_crm-customer-360.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/customer-360",
+      "heading": [
+        "Customer 360"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/import-export",
+      "pattern": "/crm/import-export",
+      "file": "69_crm-import-export.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/import-export",
+      "heading": [
+        "Import & Export Engine"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/settings",
+      "pattern": "/crm/settings",
+      "file": "70_crm-settings.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/settings",
+      "heading": [
+        "Custom Fields"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/lead-scoring",
+      "pattern": "/crm/lead-scoring",
+      "file": "71_crm-lead-scoring.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/lead-scoring",
+      "heading": [
+        "Lead Scoring"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/feature-checklist",
+      "pattern": "/crm/feature-checklist",
+      "file": "72_crm-feature-checklist.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/feature-checklist",
+      "heading": [
+        "CRM Feature Checklist"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/admin",
+      "pattern": "/crm/admin",
+      "file": "73_crm-admin.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/admin",
+      "heading": [
+        "CRM Admin"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/login",
+      "pattern": "/crm/login",
+      "file": "00_crm-login.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/login",
+      "heading": [
+        "VyaparaCRM"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/quotes",
+      "pattern": "/crm/quotes",
+      "file": "45_crm-quotes.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/quotes",
+      "heading": [
+        "Quotes"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/quotes/18",
+      "pattern": "/crm/quotes/:id",
+      "file": "46_crm-quotes-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/quotes/18",
+      "heading": [
+        "Quote Builder"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/quotes/18/builder",
+      "pattern": "/crm/quotes/:id/builder",
+      "file": "47_crm-quotes-detail-builder.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/quotes/18/builder",
+      "heading": [
+        "Quote Builder"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/quote-approvals",
+      "pattern": "/crm/quote-approvals",
+      "file": "48_crm-quote-approvals.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/quote-approvals",
+      "heading": [
+        "Quote Approvals"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/quotations",
+      "pattern": "/crm/quotations",
+      "file": "51_crm-quotations.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/quotations",
+      "heading": [
+        "Quotations"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    },
+    {
+      "route": "/crm/quotations/18",
+      "pattern": "/crm/quotations/:id",
+      "file": "52_crm-quotations-detail.png",
+      "actualUrl": "http://127.0.0.1:5195/crm/quotations/18",
+      "heading": [
+        "DEMO-QT-2026-018"
+      ],
+      "errors": [],
+      "visibleFailure": false
+    }
+  ]
+}

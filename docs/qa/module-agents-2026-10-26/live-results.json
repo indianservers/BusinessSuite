@@ -1,0 +1,116 @@
+{
+  "checks": [
+    {
+      "name": "Real Gemini prepares four module memories without executing",
+      "status": "passed",
+      "evidence": {
+        "run_id": 9,
+        "tools": [
+          "hrms.remember",
+          "crm.remember",
+          "srm.remember",
+          "fam.remember"
+        ]
+      }
+    },
+    {
+      "name": "Approved four-module execution returns canonical receipts",
+      "status": "passed",
+      "evidence": {
+        "run_id": 9,
+        "receipts": [
+          {
+            "step": 1,
+            "tool": "hrms.remember",
+            "record_id": 4,
+            "status": "succeeded"
+          },
+          {
+            "step": 2,
+            "tool": "crm.remember",
+            "record_id": 5,
+            "status": "succeeded"
+          },
+          {
+            "step": 3,
+            "tool": "srm.remember",
+            "record_id": 6,
+            "status": "succeeded"
+          },
+          {
+            "step": 4,
+            "tool": "fam.remember",
+            "record_id": 7,
+            "status": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Real Gemini follow-up recalls all four private module memories",
+      "status": "passed",
+      "evidence": {
+        "run_id": 10,
+        "parent_run_id": 9,
+        "summary": "Based on the saved QA 4FB5854 memories, the review days are as follows: HRMS is Monday, CRM is Tuesday, SRM is Wednesday, and FAM is Thursday."
+      }
+    },
+    {
+      "name": "Usage logs attribute both Gemini requests to all four modules",
+      "status": "passed",
+      "evidence": [
+        {
+          "id": 19,
+          "user_id": 1,
+          "run_id": null,
+          "suite_run_id": 10,
+          "module": "CRM+FAM+HRMS+SRM",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash-lite",
+          "purpose": "suite_summary",
+          "status": "success",
+          "error_code": null,
+          "http_status": 200,
+          "provider_request_id": "x8DeaovqD6_l694P4P2msQc",
+          "input_tokens": 1824,
+          "output_tokens": 44,
+          "estimated_cost": 0.0006572,
+          "duration_ms": 1219,
+          "created_at": "2026-10-26T02:53:57.019977+00:00"
+        },
+        {
+          "id": 18,
+          "user_id": 1,
+          "run_id": null,
+          "suite_run_id": 9,
+          "module": "CRM+FAM+HRMS+SRM",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash-lite",
+          "purpose": "suite_plan",
+          "status": "success",
+          "error_code": null,
+          "http_status": 200,
+          "provider_request_id": "r8DeapfVM425694PsafCmQc",
+          "input_tokens": 14870,
+          "output_tokens": 260,
+          "estimated_cost": 0.005111,
+          "duration_ms": 14687,
+          "created_at": "2026-10-26T02:53:33.339242+00:00"
+        }
+      ]
+    },
+    {
+      "name": "Only labelled QA memories were forgotten after verification",
+      "status": "passed",
+      "evidence": {
+        "memory_ids": [
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    }
+  ],
+  "provider": "gemini"
+}

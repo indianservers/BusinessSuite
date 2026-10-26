@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
@@ -153,6 +154,7 @@ function money(value: unknown) {
 }
 
 function text(value: unknown) {
+  if (typeof value === "string" && value.startsWith("<!--suite-richtext:v1-->")) return richTextPlainText(value);
   if (value === null || value === undefined || value === "") return "-";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "number") return value.toLocaleString("en-IN");
@@ -239,7 +241,7 @@ function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetchin
         <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
-          <p className="text-sm text-muted-foreground">{meta.description}</p>
+          <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={meta.description}/></div>
         </div>
       </div>
       {onRefresh ? <Button variant="outline" onClick={onRefresh} disabled={isFetching}><RefreshCw className="h-4 w-4" />Refresh</Button> : null}
@@ -337,7 +339,7 @@ function DataTable({ rows, columns }: { rows: FAMRecord[]; columns: string[] }) 
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full min-w-[780px] text-sm">
         <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead>
-        <tbody>{rows.map((row) => <tr key={String(row.id)} className="border-t">{columns.map((column) => <td key={column} className="px-3 py-2">{column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : text(row[column])}</td>)}</tr>)}</tbody>
+        <tbody>{rows.map((row) => <tr key={String(row.id)} className="border-t">{columns.map((column) => <td key={column} className="px-3 py-2">{column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}</tr>)}</tbody>
       </table>
     </div>
   );
@@ -458,7 +460,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
         </Field>
         <Field label="Voucher Date"><Input type="date" value={String(effective.voucher_date || "")} onChange={(event) => patch("voucher_date", event.target.value)} disabled={!canEdit} /></Field>
         <Field label="Reference Number"><Input value={String(effective.reference_number || "")} onChange={(event) => patch("reference_number", event.target.value)} disabled={!canEdit} /></Field>
-        <Field label="Narration"><Input value={String(effective.narration || "")} onChange={(event) => patch("narration", event.target.value)} disabled={!canEdit} /></Field>
+        <Field label="Narration"><RichTextField value={String(effective.narration || "")} onChange={(event) => patch("narration", event.target.value)} disabled={!canEdit} /></Field>
       </div>
       <Card>
         <CardHeader><CardTitle className="text-base">Debit / Credit lines</CardTitle></CardHeader>
@@ -636,7 +638,7 @@ function PostingRulesView() {
 }
 
 function ListCreateInline({ fields, draft, setDraft, onCreate }: { fields: string[]; draft: FAMRecord; setDraft: (value: FAMRecord | ((current: FAMRecord) => FAMRecord)) => void; onCreate: () => void }) {
-  return <Card><CardContent className="grid gap-3 p-4 md:grid-cols-6">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<div className="flex items-end"><Button onClick={onCreate}>Add</Button></div></CardContent></Card>;
+  return <Card><CardContent className="grid gap-3 p-4 md:grid-cols-6">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["notes","remarks","narration"].includes(field) ? <RichTextField value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<div className="flex items-end"><Button onClick={onCreate}>Add</Button></div></CardContent></Card>;
 }
 
 function AuditView() {
@@ -718,13 +720,13 @@ function BookView({ kind }: { kind: "bank" | "cash" }) {
 function ContraView() {
   const [draft, setDraft] = useState<FAMRecord>({ from_ledger_id: 1, to_ledger_id: 2, amount: 1000, contra_date: "2026-06-06", reference_number: "CONTRA-1", narration: "Cash deposited to bank" });
   const mutation = useMutation({ mutationFn: () => famApi.postContra(draft), onSuccess: () => toast({ title: "Contra voucher posted" }) });
-  return <Card><CardHeader><CardTitle className="text-base">Post contra entry</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{["from_ledger_id", "to_ledger_id", "amount", "contra_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<div className="md:col-span-2"><Button onClick={() => mutation.mutate()}>Post contra</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Post contra entry</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{["from_ledger_id", "to_ledger_id", "amount", "contra_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<div className="md:col-span-2"><Button onClick={() => mutation.mutate()}>Post contra</Button></div></CardContent></Card>;
 }
 
 function BankChargesView() {
   const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: 1, expense_ledger_id: 1, amount: 250, charge_date: "2026-06-06", reference_number: "CHG-1", narration: "Monthly bank charges" });
   const mutation = useMutation({ mutationFn: () => famApi.postBankCharges(draft), onSuccess: () => toast({ title: "Bank charge voucher posted" }) });
-  return <Card><CardHeader><CardTitle className="text-base">Post bank charges</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{["bank_account_id", "expense_ledger_id", "amount", "charge_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<div className="md:col-span-2"><Button onClick={() => mutation.mutate()}>Post bank charge</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Post bank charges</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{["bank_account_id", "expense_ledger_id", "amount", "charge_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<div className="md:col-span-2"><Button onClick={() => mutation.mutate()}>Post bank charge</Button></div></CardContent></Card>;
 }
 
 function GSTHomeView() {
@@ -749,7 +751,7 @@ function GSTMasterView({ kind }: { kind: "registrations" | "rates" | "hsn" }) {
   const query = useQuery({ queryKey: ["fam", config.queryKey], queryFn: config.queryFn });
   const [draft, setDraft] = useState<FAMRecord>(config.draft);
   const mutation = useMutation({ mutationFn: () => config.mutationFn(draft), onSuccess: () => { toast({ title: "GST master saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create {kind}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create {kind}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} /></CardContent></Card></div>;
 }
 
 function GSTSettingsView() {
@@ -900,7 +902,7 @@ function ProviderSettingsView({ kind }: { kind: "einvoice" | "ewaybill" }) {
       <CardContent className="space-y-3">
         <State label={`${kind} settings`} isLoading={query.isLoading} isError={query.isError} />
         <Badge variant={ready ? "default" : "secondary"}>{ready ? "configured" : "not configured"}</Badge>
-        {["provider_name", "api_base_url", ...(isEinvoice ? ["applicable_from"] : ["threshold_amount"])].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
+        {["provider_name", "api_base_url", ...(isEinvoice ? ["applicable_from"] : ["threshold_amount"])].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(effective[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}
         <div className="grid gap-3 sm:grid-cols-2"><label className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"><span>Credentials configured</span><input type="checkbox" checked={Boolean(effective.credentials_configured)} onChange={(event) => setDraft((current) => ({ ...current, credentials_configured: event.target.checked }))} /></label><label className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"><span>Active</span><input type="checkbox" checked={Boolean(effective.active)} onChange={(event) => setDraft((current) => ({ ...current, active: event.target.checked }))} /></label></div>
         <div className="rounded-lg border p-3">
           <p className="text-sm font-medium">Provider preflight</p>
@@ -970,7 +972,7 @@ function PurchaseBillFormView({ detail }: { detail?: boolean }) {
     <div className="space-y-4">
       <State label="purchase bill" isLoading={billQuery.isLoading} isError={billQuery.isError} />
       <div className="grid gap-3 md:grid-cols-4">
-        {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} /></Field>)}
+        {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} />}</Field>)}
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(effective.status || "draft")}>{text(effective.status || "draft")}</Badge></CardContent></Card>
       </div>
       <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr key={index} className="border-t">{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></table></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
@@ -1002,7 +1004,7 @@ function ExpenseFormView() {
   const lines = (draft.lines as FAMRecord[]) || [];
   const total = lines.reduce((sum, line) => sum + Number(line.taxable_value || 0) + Number(line.gst_amount || 0), 0);
   const mutation = useMutation({ mutationFn: () => famApi.createExpense(draft), onSuccess: () => { toast({ title: "Expense claim saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4">{["claimant_name", "claim_number", "claim_date", "status"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}</div><Card><CardHeader><CardTitle className="text-base">Expense lines</CardTitle></CardHeader><CardContent className="space-y-3">{lines.map((line, index) => <div key={index} className="grid gap-3 md:grid-cols-4">{["expense_ledger_id", "description", "taxable_value", "gst_amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: lines.map((item, lineIndex) => lineIndex === index ? { ...item, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value } : item) }))} /></Field>)}</div>)}<Button variant="outline" onClick={() => setDraft((current) => ({ ...current, lines: [...lines, { expense_ledger_id: 1, description: "", taxable_value: 0, gst_amount: 0 }] }))}><Plus className="h-4 w-4" />Add expense line</Button></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Claim total</p><p className="text-lg font-semibold">{money(total)}</p></CardContent></Card><Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save expense claim</Button></div>;
+  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4">{["claimant_name", "claim_number", "claim_date", "status"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}</div><Card><CardHeader><CardTitle className="text-base">Expense lines</CardTitle></CardHeader><CardContent className="space-y-3">{lines.map((line, index) => <div key={index} className="grid gap-3 md:grid-cols-4">{["expense_ledger_id", "description", "taxable_value", "gst_amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: lines.map((item, lineIndex) => lineIndex === index ? { ...item, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value } : item) }))} /></Field>)}</div>)}<Button variant="outline" onClick={() => setDraft((current) => ({ ...current, lines: [...lines, { expense_ledger_id: 1, description: "", taxable_value: 0, gst_amount: 0 }] }))}><Plus className="h-4 w-4" />Add expense line</Button></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Claim total</p><p className="text-lg font-semibold">{money(total)}</p></CardContent></Card><Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save expense claim</Button></div>;
 }
 
 function ExpensesView() {
@@ -1016,7 +1018,7 @@ function ExpensesView() {
 function TDSHomeView() {
   const [draft, setDraft] = useState<FAMRecord>({ vendor_id: 2, section_id: 1, taxable_amount: 1000, deduction_date: "2026-06-06" });
   const calc = useMutation({ mutationFn: () => famApi.calculateTds(draft), onSuccess: (data) => toast({ title: `TDS ${money((data as FAMRecord).tds_amount)}` }) });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Calculate TDS</CardTitle></CardHeader><CardContent className="space-y-3">{["vendor_id", "section_id", "taxable_amount", "deduction_date"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => calc.mutate()}>Calculate TDS</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">TDS workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2">{[["Sections", "/fam/tds/sections"], ["Transactions", "/fam/tds/transactions"], ["Payable", "/fam/tds/payable"]].map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}<p className="text-xs text-muted-foreground sm:col-span-2">TDS return filing is not implemented or simulated in this phase.</p></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Calculate TDS</CardTitle></CardHeader><CardContent className="space-y-3">{["vendor_id", "section_id", "taxable_amount", "deduction_date"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => calc.mutate()}>Calculate TDS</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">TDS workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2">{[["Sections", "/fam/tds/sections"], ["Transactions", "/fam/tds/transactions"], ["Payable", "/fam/tds/payable"]].map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}<p className="text-xs text-muted-foreground sm:col-span-2">TDS return filing is not implemented or simulated in this phase.</p></CardContent></Card></div>;
 }
 
 function TDSSectionsView() {
@@ -1024,7 +1026,7 @@ function TDSSectionsView() {
   const query = useQuery({ queryKey: ["fam", "tdsSections"], queryFn: famApi.tdsSections });
   const [draft, setDraft] = useState<FAMRecord>({ section_code: "194J", description: "Professional fees", default_rate: 10, threshold_amount: 30000, effective_from: "2026-04-01", active: true });
   const mutation = useMutation({ mutationFn: () => famApi.createTdsSection(draft), onSuccess: () => { toast({ title: "TDS section saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create TDS section</CardTitle></CardHeader><CardContent className="space-y-3">{["section_code", "description", "default_rate", "threshold_amount", "effective_from"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save section</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Sections</CardTitle></CardHeader><CardContent><State label="TDS sections" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section_code", "description", "default_rate", "threshold_amount", "effective_from", "active"]} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create TDS section</CardTitle></CardHeader><CardContent className="space-y-3">{["section_code", "description", "default_rate", "threshold_amount", "effective_from"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save section</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Sections</CardTitle></CardHeader><CardContent><State label="TDS sections" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section_code", "description", "default_rate", "threshold_amount", "effective_from", "active"]} /></CardContent></Card></div>;
 }
 
 function TDSTransactionsView() {
@@ -1057,7 +1059,7 @@ function VendorPaymentsView() {
   const line = ((draft.items as FAMRecord[]) || [])[0] || {};
   const prepare = useMutation({ mutationFn: () => famApi.prepareVendorPayment(draft), onSuccess: () => toast({ title: "Payment run prepared" }) });
   const post = useMutation({ mutationFn: () => famApi.postVendorPayment(draft), onSuccess: () => { toast({ title: "Vendor payment posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Vendor payment run</CardTitle></CardHeader><CardContent className="space-y-3">{["payment_date", "bank_ledger_id"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{["vendor_id", "purchase_bill_id", "bill_reference_id", "amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, items: [{ ...line, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }] }))} /></Field>)}<div className="flex gap-2"><Button variant="outline" onClick={() => prepare.mutate()}>Prepare</Button><Button onClick={() => post.mutate()}>Post payment</Button></div></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Open payables</CardTitle></CardHeader><CardContent><State label="payables" isLoading={dashboard.isLoading} isError={dashboard.isError} /><DataTable rows={(dashboard.data as FAMRecord | undefined)?.items as FAMRecord[] || []} columns={["bill_number", "party_id", "due_date", "outstanding_amount", "status"]} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Vendor payment run</CardTitle></CardHeader><CardContent className="space-y-3">{["payment_date", "bank_ledger_id"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{["vendor_id", "purchase_bill_id", "bill_reference_id", "amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, items: [{ ...line, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }] }))} /></Field>)}<div className="flex gap-2"><Button variant="outline" onClick={() => prepare.mutate()}>Prepare</Button><Button onClick={() => post.mutate()}>Post payment</Button></div></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Open payables</CardTitle></CardHeader><CardContent><State label="payables" isLoading={dashboard.isLoading} isError={dashboard.isError} /><DataTable rows={(dashboard.data as FAMRecord | undefined)?.items as FAMRecord[] || []} columns={["bill_number", "party_id", "due_date", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
 function PayablesDashboardView() {
@@ -1315,7 +1317,7 @@ function QuickOperationsCard() {
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">{operation.label}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{operation.description}</span>
+                  <div className="block truncate text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={operation.description}/></div>
                 </span>
               </span>
               <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -1415,7 +1417,7 @@ function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "de
     },
   });
   const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate"] : ["stock_item_id", "warehouse_id", quantityKey, "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Post {movementType.replace(/_/g, " ")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["movement_date", "reference_number", "notes"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /></Field>)}{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: Number(event.target.value) })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post movement</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Post {movementType.replace(/_/g, " ")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["movement_date", "reference_number", "notes"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} />}</Field>)}{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: Number(event.target.value) })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post movement</Button></div></CardContent></Card>;
 }
 
 function InventoryOpeningStockView() {
@@ -1439,11 +1441,15 @@ function InventoryOpeningStockView() {
         <CardContent className="space-y-3">
           {fields.map((field) => (
             <Field key={field} label={field.replace(/_/g, " ")}>
-              <Input
+              {["narration","notes","remarks"].includes(field) ? <RichTextField
+
+                value={String(draft[field] ?? "")}
+                onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : Number(event.target.value) }))}
+              /> : <Input
                 type={field.includes("date") ? "date" : "text"}
                 value={String(draft[field] ?? "")}
                 onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : Number(event.target.value) }))}
-              />
+              />}
             </Field>
           ))}
           <Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save opening stock</Button>
@@ -1543,11 +1549,15 @@ function InventoryBatchesView() {
           <CardContent className="grid gap-3 md:grid-cols-2">
             {["product_id", "warehouse_id", "batch_number", "manufacture_date", "expiry_date", "quantity", "available_quantity", "unit_cost", "status", "notes"].map((field) => (
               <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input
+                {["narration","notes","remarks"].includes(field) ? <RichTextField
+
+                  value={String(batchDraft[field] ?? "")}
+                  onChange={(event) => setBatchDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
+                /> : <Input
                   type={field.includes("date") ? "date" : "text"}
                   value={String(batchDraft[field] ?? "")}
                   onChange={(event) => setBatchDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
-                />
+                />}
               </Field>
             ))}
             <div className="md:col-span-2"><Button onClick={() => createBatch.mutate()} disabled={createBatch.isPending}>Save batch</Button></div>
@@ -1558,11 +1568,15 @@ function InventoryBatchesView() {
           <CardContent className="grid gap-3 md:grid-cols-2">
             {["product_id", "warehouse_id", "batch_id", "serial_number", "status", "received_date", "reference_number"].map((field) => (
               <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input
+                {["narration","notes","remarks"].includes(field) ? <RichTextField
+
+                  value={String(serialDraft[field] ?? "")}
+                  onChange={(event) => setSerialDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
+                /> : <Input
                   type={field.includes("date") ? "date" : "text"}
                   value={String(serialDraft[field] ?? "")}
                   onChange={(event) => setSerialDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))}
-                />
+                />}
               </Field>
             ))}
             <div className="md:col-span-2"><Button onClick={() => createSerial.mutate()} disabled={createSerial.isPending}>Save serial</Button></div>
@@ -1767,7 +1781,7 @@ function InventoryManufacturingView() {
           <CardContent className="space-y-3">
             {["bom_id", "warehouse_id", "planned_quantity", "order_date", "notes"].map((field) => (
               <Field key={field} label={field.replace(/_/g, " ")}>
-                <Input type={field.includes("date") ? "date" : "text"} value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />
+                {["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(orderDraft[field] ?? "")} onChange={(event) => setOrderDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}
               </Field>
             ))}
             <Button onClick={() => createOrder.mutate()} disabled={createOrder.isPending}>Create order</Button>
@@ -1903,7 +1917,7 @@ function InventoryTransferView() {
   });
   const headerFields = isSrmInventory ? ["movement_date", "from_warehouse_id", "to_warehouse_id"] : ["transfer_date", "from_warehouse_id", "to_warehouse_id"];
   const lineFields = isSrmInventory ? ["product_id", "quantity", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity", "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Stock transfer</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post transfer</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Stock transfer</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post transfer</Button></div></CardContent></Card>;
 }
 
 function InventoryAdjustmentView() {
@@ -1926,7 +1940,7 @@ function InventoryAdjustmentView() {
   });
   const headerFields = isSrmInventory ? ["movement_date", "warehouse_id", "reason"] : ["adjustment_date", "warehouse_id", "reason"];
   const lineFields = isSrmInventory ? ["product_id", "quantity_in", "quantity_out", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity_in", "quantity_out", "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post adjustment</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post adjustment</Button></div></CardContent></Card>;
 }
 
 type InventoryReportKind = "summary" | "valuation" | "reorder" | "reports" | "warehouse" | "aging" | "dead" | "fastSlow" | "grossMargin" | "cogs" | "hsnSummary" | "audit" | "crmLink" | "srmLink";
@@ -2032,7 +2046,7 @@ function InventoryAIView() {
   const mutation = useMutation({ mutationFn: () => famApi.inventoryAI({ prompt }) });
   const data = (mutation.data || {}) as FAMRecord;
   const response = (data.response || data.response_json || {}) as FAMRecord;
-  return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Audited AI request</CardTitle></CardHeader><CardContent className="space-y-3"><Field label="Prompt"><textarea className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm" value={prompt} onChange={(event) => setPrompt(event.target.value)} /></Field><Button onClick={() => mutation.mutate()}>Run inventory AI</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Result</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><State label="inventory AI" isLoading={mutation.isPending} isError={mutation.isError} /><p>{text(response.message || "No request submitted.")}</p><Badge variant="outline">{text(data.status)}</Badge><p className="text-xs text-muted-foreground">Requests are logged in fam_inventory_ai_logs. Unsupported providers remain labelled as not configured.</p></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Audited AI request</CardTitle></CardHeader><CardContent className="space-y-3"><Field label="Prompt"><textarea className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm" value={prompt} onChange={(event) => setPrompt(event.target.value)} /></Field><Button onClick={() => mutation.mutate()}>Run inventory AI</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Result</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><State label="inventory AI" isLoading={mutation.isPending} isError={mutation.isError} /><div><RichTextContent legacyFormat="plain" value={text(response.message || "No request submitted.")}/></div><Badge variant="outline">{text(data.status)}</Badge><p className="text-xs text-muted-foreground">Requests are logged in fam_inventory_ai_logs. Unsupported providers remain labelled as not configured.</p></CardContent></Card></div>;
 }
 
 function parseJson(value: unknown) {

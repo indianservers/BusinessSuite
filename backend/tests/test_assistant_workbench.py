@@ -53,7 +53,8 @@ def test_edited_plan_impact_execution_recovery_and_stale_guard(client,db):
     client.post(f'/api/v1/ai-operator/runs/{child["id"]}/approve',headers=h,json={'plan_hash':child['plan_hash']})
     process_batch(db)
     assert db.get(PMSTask,t).priority==original
-    assert db.query(PMSChecklistItem).filter_by(task_id=t).count()==0
+    assert db.query(PMSChecklistItem).filter_by(task_id=t).count()==1
+    assert any('manual recovery' in notice for notice in undo.json()['manual'])
 
 
 def test_schedule_respects_holidays_dependencies_and_capacity(client,db):

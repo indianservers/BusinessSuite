@@ -1,0 +1,155 @@
+{
+  "date": "2026-10-26",
+  "environment": "Local Vite + FastAPI + PostgreSQL; no production writes or deployments",
+  "scope": "Installed PMS, HRMS, CRM, Sales/Inventory and FAM modules. Navigation smoke checks are separate from CRUD coverage. Not a certification of every dynamic route, role and business workflow.",
+  "fixed": [
+    "Permission-aware project menu: Edit project and Move to trash; project Trash category and restore retain tasks/files.",
+    "Reusable project edit form, immutable project keys, editable details/dates/budget with existing API permissions.",
+    "PMS chat resolves persisted collaborator tenancy consistently instead of rejecting legitimate legacy-tenant workspace members.",
+    "Dashboard revision and preference entry markers fit PostgreSQL VARCHAR(12); legacy long markers remain readable.",
+    "Shared editor no longer accesses an unmounted DOM view during lazy route transitions.",
+    "Company save errors show actual error messages when no server detail is available."
+  ],
+  "browser": {
+    "static_routes_visited": 381,
+    "counts_by_module": {
+      "crm": 59,
+      "fam": 105,
+      "hrms": 62,
+      "project-management": 82,
+      "srm": 73
+    },
+    "initial_render_failures": [
+      "/crm/email-templates"
+    ],
+    "post_fix_editor_routes_retested": 20,
+    "final_captured_render_failures": 0,
+    "limits": "Heading/alert/visible-error snapshots; no assertion that every asynchronous request, export, every role or CRUD action passed."
+  },
+  "browser_workflows": [
+    {
+      "module": "PMS",
+      "record": "QA CRUD audit 20261026 updated (project 6)",
+      "verified": [
+        "create",
+        "read",
+        "edit",
+        "soft-delete",
+        "restore"
+      ]
+    },
+    {
+      "module": "PMS",
+      "record": "QA CRUD Task 20261026 (task 10)",
+      "verified": [
+        "create",
+        "read formatted description",
+        "status update to Done",
+        "soft-delete",
+        "restore"
+      ]
+    },
+    {
+      "module": "CRM",
+      "record": "QA CRUD Contact 20261026 updated",
+      "verified": [
+        "create",
+        "read",
+        "edit",
+        "bulk delete"
+      ],
+      "cleanup": "Deleted through UI"
+    },
+    {
+      "module": "HRMS",
+      "record": "QA CRUD Branch Browser updated",
+      "verified": [
+        "create",
+        "read",
+        "update",
+        "deactivate"
+      ],
+      "cleanup": "Deactivated through UI"
+    },
+    {
+      "module": "FAM",
+      "record": "QA CRUD Finance Group 20261026",
+      "verified": [
+        "create",
+        "read"
+      ],
+      "gap": "No edit/delete actions in the tested list"
+    },
+    {
+      "module": "Sales",
+      "record": "QA CRUD Draft Order 20261026",
+      "verified": [
+        "create unposted draft",
+        "read"
+      ],
+      "gap": "Tested list exposes Submit but no open/edit control; no submission or financial posting performed"
+    },
+    {
+      "module": "Inventory",
+      "record": "QA CRUD Inventory Item 20261026",
+      "verified": [
+        "create",
+        "detail read"
+      ],
+      "gap": "Tested detail page exposes no edit/deactivate control; no stock movement performed"
+    }
+  ],
+  "automated_checks": {
+    "initial_all_module_postgres": {
+      "passed": 1281,
+      "failed": 16,
+      "skipped": 4,
+      "total": 1301
+    },
+    "final_all_pms_postgres": {
+      "passed": 150,
+      "failed": 0
+    },
+    "remaining_non_pms_failures_rerun": {
+      "failed": 4,
+      "names": [
+        "tests/test_employees.py::test_employee_directory_filters_and_team_only",
+        "tests/test_sensitive_masking.py::test_employee_sensitive_fields_are_masked_for_manager_but_visible_to_hr",
+        "tests/test_subscription_feature_gates.py::test_subscription_feature_gate_blocks_disabled_feature_and_allows_admin_override",
+        "tests/test_tenant_settings.py::test_tenant_company_settings_flags_subscription_and_usage"
+      ]
+    },
+    "main_frontend_build": "passed",
+    "intern_frontend_build": "passed",
+    "note": "Initial full-suite and focused rerun counts overlap and must not be summed. Full suite was not rerun after the final fixes; all PMS tests and the four remaining failures were rerun."
+  },
+  "open_findings": [
+    {
+      "priority": "high",
+      "area": "HRMS directory and sensitive masking",
+      "evidence": "Directory team-filter assertion fails; manager detail returns 404 where masking test expects 200. Verify intended visibility and repair tests/behavior without widening access."
+    },
+    {
+      "priority": "high",
+      "area": "Subscription feature gates",
+      "evidence": "Disabled-feature expectation fails. Needs reconciliation with tenant feature policy."
+    },
+    {
+      "priority": "medium",
+      "area": "Tenant settings",
+      "evidence": "Legacy global settings route returns 403 under current Super Admin/company-scoped policy. Test/workflow must target supported company administration."
+    },
+    {
+      "priority": "medium",
+      "area": "FAM, Sales, Inventory CRUD UI",
+      "evidence": "Create/read passes but edit/delete or deactivate affordances missing in tested lists/details."
+    },
+    {
+      "priority": "medium",
+      "area": "PMS planning/financial overview routes",
+      "evidence": "PMSOperationsPage.tsx uses workData sample records and hardcoded metrics for dependency-management, resource-planning, agile-execution and project-financials. These are not verified live business data."
+    }
+  ],
+  "qa_records_left_local": "Restored QA project/task, FAM group, unposted sales draft, inventory item, and API-created QA branch remain identifiable for follow-up. No real employee, customer or existing business record was edited/deleted.",
+  "release_status": "Not signed off for full production CRUD readiness; fixes remain local."
+}

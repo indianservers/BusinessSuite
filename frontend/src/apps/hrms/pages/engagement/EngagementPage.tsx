@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent } from "@/components/rich-text/LazyRichText";
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -96,7 +97,7 @@ export default function EngagementPage() {
             <Megaphone className="mt-1 h-5 w-5 text-primary" />
             <div>
               <p className="font-semibold">{item.title}</p>
-              <p className="text-sm text-muted-foreground">{item.body}</p>
+              <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.body}/></div>
             </div>
           </div>
         </div>
@@ -108,7 +109,7 @@ export default function EngagementPage() {
           <CardContent>
             <form className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createAnnouncement.mutate(); }}>
               <div className="space-y-2"><Label>Title</Label><Input value={announcement.title} onChange={(e) => setAnnouncement({ ...announcement, title: e.target.value })} required /></div>
-              <div className="space-y-2"><Label>Message</Label><Input value={announcement.body} onChange={(e) => setAnnouncement({ ...announcement, body: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Message</Label><RichTextField value={announcement.body} onChange={(e) => setAnnouncement({ ...announcement, body: e.target.value })} required /></div>
               <Button type="submit" disabled={createAnnouncement.isPending}><Send className="h-4 w-4" />Publish</Button>
             </form>
           </CardContent>
@@ -178,7 +179,7 @@ export default function EngagementPage() {
                 {employees.data?.map((item: any) => <option key={item.id} value={item.id}>{item.first_name} {item.last_name} ({item.employee_id})</option>)}
               </select>
               <Input placeholder="Recognition title" value={recognition.title} onChange={(e) => setRecognition({ ...recognition, title: e.target.value })} required />
-              <Input placeholder="Message" value={recognition.message} onChange={(e) => setRecognition({ ...recognition, message: e.target.value })} />
+              <RichTextField placeholder="Message" value={recognition.message} onChange={(e) => setRecognition({ ...recognition, message: e.target.value })} />
               <Button type="submit" disabled={createRecognition.isPending}><Trophy className="h-4 w-4" />Post shoutout</Button>
             </form>
           </CardContent>
@@ -195,7 +196,7 @@ export default function EngagementPage() {
                   </div>
                   <Badge variant="secondary">{item.badge || "Shoutout"}</Badge>
                 </div>
-                {item.message && <p className="mt-2 text-sm">{item.message}</p>}
+                {item.message && <div className="mt-2 text-sm"><RichTextContent legacyFormat="plain" value={item.message}/></div>}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {["clap", "star", "heart"].map((emoji) => (
                     <Button key={emoji} variant="outline" size="sm" onClick={() => engagementApi.reactToRecognition(item.id, { emoji }).then(() => qc.invalidateQueries({ queryKey: ["recognition-wall"] }))}>

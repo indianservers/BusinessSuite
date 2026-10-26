@@ -383,7 +383,7 @@ def conversations(
     _require_ai_access(user)
     rows = db.query(AssistantConversation).filter_by(
         user_id=user.id, organization_id=tenant(user), deleted_at=None
-    )
+    ).filter(AssistantConversation.references['suite_memory'].as_boolean().is_not(True))
     return [
         {"id": r.id, "title": r.title, "created_at": r.created_at}
         for r in rows.filter(AssistantConversation.title.ilike(f"%{q[:100]}%"))

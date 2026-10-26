@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent } from "../../src/components/rich-text/LazyRichText";
 import { useState, type CSSProperties } from "react";
 import { PhoneInput } from "./validation/PhoneInput";
 import { UnifiedProfile, type ProfileRequest } from "../../src/features/profiles/UnifiedProfile";
@@ -507,7 +508,7 @@ export function Support() {
             </label>
             <label>
               Message
-              <textarea
+              <RichTextField
                 required
                 rows={6}
                 maxLength={4000}
@@ -537,11 +538,11 @@ export function Support() {
             <h3>
               {t.subject} <Badge>{t.status}</Badge>
             </h3>
-            <p>{t.message}</p>
+            <div><RichTextContent legacyFormat="plain" value={t.message}/></div>
             {t.reply && (
               <div className="callout green">
                 <b>HRMS reply</b>
-                <p>{t.reply}</p>
+                <div><RichTextContent legacyFormat="plain" value={t.reply}/></div>
               </div>
             )}
           </div>

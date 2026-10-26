@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-26",
+  "login_ui": {
+    "modules": [
+      "HRMS",
+      "CRM",
+      "PMS",
+      "Sales/Inventory",
+      "FAM"
+    ],
+    "development_menu_removed_from_source": true,
+    "credential_autofill_registry_deleted": true,
+    "local_browser_pages_checked": 5,
+    "production_browser_pages_checked": 10,
+    "production_origins": [
+      "https://app.dsbchartered.com",
+      "https://app.indianservers.com"
+    ],
+    "development_menu_visible": false
+  },
+  "production_databases": {
+    "DSB": {
+      "demo_accounts_retired": 24,
+      "sessions_revoked": 165,
+      "active_demo_accounts_after": 0
+    },
+    "Indian Servers": {
+      "demo_accounts_matched": 0,
+      "active_demo_accounts_after": 0
+    },
+    "replacement_admin": "saisatish@indianservers.com",
+    "replacement_admin_active_and_superuser_preserved_in_both": true,
+    "business_records_preserved": true,
+    "method": "Disable account and grants, replace password hash with unrecoverable random credential, revoke sessions, erase reset and MFA credentials. User rows retained for linked history."
+  },
+  "live_auth_verification": {
+    "DSB_default_PMS_login_http_status": 401,
+    "Indian_Servers_default_PMS_login_http_status": 401,
+    "tokens_issued": false
+  },
+  "code_hardening": [
+    "No built-in bootstrap administrator email",
+    "Explicit demo seeding rejected in production/serverless",
+    "Default seeding disabled outside explicit development/test setup",
+    "Bootstrap never reactivates default or disabled users",
+    "HRMS new-account password field starts empty; administrator must supply a password."
+  ],
+  "tests": {
+    "passed": 33,
+    "frontend_build": "passed"
+  },
+  "deployment": "Production DB revocations applied immediately. Frontend/bootstrap source changes are local, not deployed in this task. Existing production login pages already omit demo menus; local development pages now do too.",
+  "local_database": "Disposable development fixture accounts were not retired because no real replacement administrator exists there. Production accounts were not blocked by this local-only guard."
+}

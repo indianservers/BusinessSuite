@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, Copy, Edit2, GitBranch, GripVertical, MoreHorizontal, Plus, Save, Search, Trash2 } from "lucide-react";
@@ -376,7 +377,7 @@ function StepEditor({ definitionId, step }: { definitionId: number | null; step:
       </div>
       <Section title="Basic">
         <Field label="Name"><Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} /></Field>
-        <Field label="Description"><textarea rows={3} className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={draft.description || ""} onChange={(e) => patch({ description: e.target.value })} /></Field>
+        <Field label="Description"><RichTextField rows={3} className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={draft.description || ""} onChange={(e) => patch({ description: e.target.value })} /></Field>
         <Field label="Step Type"><Select value={draft.step_type} options={STEP_TYPES} onChange={(value) => patch({ step_type: value })} /></Field>
       </Section>
       <Section title="Assignment">
@@ -494,7 +495,7 @@ function NewDefinitionDialog({ onClose, onCreate, pending }: { onClose: () => vo
         <Field label="Name"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
         <Field label="Module"><Select value={form.module} options={MODULES} onChange={(value) => setForm({ ...form, module: value })} /></Field>
         <Field label="Trigger Event"><Input value={form.trigger_event} onChange={(e) => setForm({ ...form, trigger_event: e.target.value })} /></Field>
-        <Field label="Description"><textarea rows={3} className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
+        <Field label="Description"><RichTextField rows={3} className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
         <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={!form.name || pending} onClick={() => onCreate(form)}>Save</Button></div>
       </div>
     </Modal>

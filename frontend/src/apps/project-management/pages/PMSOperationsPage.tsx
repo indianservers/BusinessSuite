@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import {
   AlertTriangle,
   BarChart3,
@@ -72,7 +73,7 @@ export default function PMSOperationsPage({ mode }: { mode: PMSOpsMode }) {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="page-title">{meta.title}</h1>
-          <p className="page-description">{meta.description}</p>
+          <div className="page-description"><RichTextContent value={meta.description}/></div>
         </div>
         <Button onClick={() => navigate(meta.actionPath)}>{meta.action}</Button>
       </div>

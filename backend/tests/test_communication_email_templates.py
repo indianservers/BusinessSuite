@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from tests.communication_test_utils import communication_headers
 from app.apps.communication.models import CommunicationEmailTemplate, CommunicationTimelineEvent
 

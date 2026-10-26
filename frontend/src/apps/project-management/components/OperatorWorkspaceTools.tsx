@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from 'react';
 import { api } from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,7 @@ export function OperatorWorkspaceTools({ projectId, workspaceId, command, provid
           <p>{proposal.payload.plan.summary}</p>{proposal.payload.plan.clarification && <p>{proposal.payload.plan.clarification}</p>}
           {proposal.payload.plan.milestones.map(m => <p key={m.key}>Milestone {m.key}: {m.name} · {m.due_date || 'unscheduled'}</p>)}
           <ol className="list-decimal pl-5">{proposal.payload.plan.tasks.map(t => <li key={t.key} className="py-2"><strong>{t.key}: {t.title}</strong>
-            {t.description && <p className="whitespace-pre-wrap">{t.description}</p>}
+            {t.description && <div className="whitespace-pre-wrap"><RichTextContent value={t.description}/></div>}
             <p className="text-sm">{t.estimated_hours ?? 'Unestimated'} hours · {t.start_date || 'unscheduled'} → {t.due_date || 'unscheduled'}
               {t.parent_key && ` · parent ${t.parent_key}`}{t.milestone_key && ` · milestone ${t.milestone_key}`}{t.blocked_by.length > 0 && ` · blocked by ${t.blocked_by.join(', ')}`}</p></li>)}</ol>
           {proposal.status === 'awaiting_approval' && <Button disabled={busy} onClick={() => void action(async () => setProposal((await api.post(`/ai-operator/proposals/${proposal.id}/approve`, { plan_hash: proposal.plan_hash })).data))}>Approve project setup</Button>}

@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import RunningTimer from "../components/RunningTimer";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Edit2, Timer, Trash2 } from "lucide-react";
@@ -218,7 +219,7 @@ export default function TimeTrackingPage() {
                     <Badge variant="outline">{log.approval_status}</Badge>
                     {log.task_id ? <Badge variant="secondary">Task #{log.task_id}</Badge> : <Badge variant="secondary">Project time</Badge>}
                   </div>
-                  <p className="mt-2 text-muted-foreground">{log.description || "No description"}</p>
+                  <div className="mt-2 text-muted-foreground"><RichTextContent value={log.description || "No description"}/></div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {formatDate(log.log_date)}
                     {log.start_time ? ` / ${formatTime(log.start_time)}` : ""}

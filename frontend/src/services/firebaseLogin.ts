@@ -2,7 +2,7 @@ import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, GoogleAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signOut } from "firebase/auth";
 import { authApi } from "./api";
 
-export async function googleFirebaseLogin(config: FirebaseOptions) {
+export async function googleFirebaseLogin(config: FirebaseOptions, module: "hrms" | "crm" | "project_management" | "srm" | "fam") {
   const app = getApps().find(item=>item.name === "suite-google-login") || initializeApp(config,"suite-google-login");
   const auth = getAuth(app);
   await setPersistence(auth,inMemoryPersistence);
@@ -10,7 +10,7 @@ export async function googleFirebaseLogin(config: FirebaseOptions) {
   provider.setCustomParameters({prompt:"select_account"});
   try {
     const result = await signInWithPopup(auth,provider);
-    return await authApi.firebaseLogin(await result.user.getIdToken());
+    return await authApi.firebaseLogin(await result.user.getIdToken(), module);
   } finally {
     await signOut(auth);
   }

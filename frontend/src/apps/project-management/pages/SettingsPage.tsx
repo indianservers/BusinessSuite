@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Link } from "react-router-dom";
 import { FormEvent, useEffect, useState } from "react";
 import { Github, Gitlab, Settings, Trash2 } from "lucide-react";
@@ -26,7 +27,7 @@ const settings = [
   { label: "Task views", href: "/pms/tasks", description: "Save filters and choose visible columns." },
   { label: "Templates and intake", href: "/pms/workspace-tools", description: "Manage saved templates, goals and authenticated intake." },
   { label: "Task automation", href: "/pms/automation", description: "Create and manage workspace automation rules." },
-  { label: "Task recovery", href: "/pms/trash", description: "Find and restore deleted tasks." },
+  { label: "Trash", href: "/pms/trash", description: "Find and restore deleted projects and tasks." },
 ];
 
 export default function SettingsPage() {
@@ -96,7 +97,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" />KaryaFlow settings</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
-          {settings.map(item => <Link key={item.href} to={item.href} className="rounded-lg border p-4 hover:bg-muted/40"><strong className="text-sm">{item.label}</strong><p className="mt-1 text-xs text-muted-foreground">{item.description}</p></Link>)}
+          {settings.map(item => <Link key={item.href} to={item.href} className="rounded-lg border p-4 hover:bg-muted/40"><strong className="text-sm">{item.label}</strong><div className="mt-1 text-xs text-muted-foreground"><RichTextContent value={item.description}/></div></Link>)}
           <p className="text-sm text-muted-foreground md:col-span-2">Custom fields are configured from task details and apply to the task's project. Workspace-wide preference controls will appear here as their saved behavior is implemented.</p>
         </CardContent>
       </Card>

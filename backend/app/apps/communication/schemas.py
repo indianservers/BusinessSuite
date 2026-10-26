@@ -3,10 +3,18 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class EmailTemplatePayload(BaseModel):
+    @field_validator("body_html")
+    @classmethod
+    def safe_body_html(cls, value):
+        from app.core.rich_text import PREFIX, sanitize_rich_text
+        if value:
+            return sanitize_rich_text(value if value.startswith(PREFIX) else PREFIX + value)
+        return value
+
     name: str = Field(min_length=2, max_length=180)
     subject: str = Field(min_length=1, max_length=240)
     body_html: str | None = None

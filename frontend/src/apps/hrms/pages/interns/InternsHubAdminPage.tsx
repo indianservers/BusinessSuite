@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -266,7 +267,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                     ].map(([key, label]) => (
                       <div key={key}>
                         <Label htmlFor={`task-${key}`}>{label}</Label>
-                        <textarea
+                        <RichTextField
                           id={`task-${key}`}
                           className={inputClass}
                           rows={3}
@@ -293,9 +294,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                         <b>{t.title}</b>
                         <Badge variant="outline">{t.status}</Badge>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {t.description}
-                      </p>
+                      <div className="mt-2 text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={t.description}/></div>
                       <p className="mt-2 text-xs">
                         Due {t.due_date} · {t.points} pts
                       </p>
@@ -339,7 +338,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="whitespace-pre-line text-sm">{s.notes}</p>
+                        <div className="whitespace-pre-line text-sm"><RichTextContent legacyFormat="plain" value={s.notes}/></div>
                         <div className="my-3 flex flex-wrap gap-2">
                           {s.files.map((id: number) => (
                             <Button
@@ -408,7 +407,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                           ].map(([key, label]) => (
                             <div key={key}>
                               <Label>{label}</Label>
-                              <textarea
+                              <RichTextField
                                 className={inputClass}
                                 required={key === "feedback"}
                                 value={form[key]}
@@ -499,7 +498,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   </Label>
                   <Label>
                     Description
-                    <textarea
+                    <RichTextField
                       className={inputClass}
                       value={course.description}
                       onChange={(e) =>
@@ -787,9 +786,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="mb-4 whitespace-pre-line text-sm">
-                      {t.message}
-                    </p>
+                    <div className="mb-4 whitespace-pre-line text-sm"><RichTextContent legacyFormat="plain" value={t.message}/></div>
                     <form
                       className="space-y-3"
                       onSubmit={(e) => {
@@ -803,7 +800,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                         });
                       }}
                     >
-                      <textarea
+                      <RichTextField
                         className={inputClass}
                         required
                         placeholder="Reply to intern…"

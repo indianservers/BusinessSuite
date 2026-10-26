@@ -1,3 +1,4 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Link } from "react-router-dom";
 import {
   BarChart3,
@@ -126,7 +127,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="min-h-12 text-sm text-muted-foreground">{item.description}</p>
+                <div className="min-h-12 text-sm text-muted-foreground"><RichTextContent value={item.description}/></div>
                 <Button asChild size="sm" variant="outline">
                   <Link to={item.href}>Open</Link>
                 </Button>

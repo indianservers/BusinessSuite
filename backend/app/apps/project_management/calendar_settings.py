@@ -1,3 +1,4 @@
+from app.core.rich_text import rich_text_type
 """Personal calendar preferences, timed events and availability."""
 import math
 from datetime import date, datetime, timedelta, timezone
@@ -114,7 +115,7 @@ def save_preferences(data: PreferenceSave, db: Session=Depends(get_db), user: Us
 
 class EventInput(Strict):
     title: str = Field(min_length=1, max_length=220)
-    description: str = Field(default="", max_length=10000)
+    description: rich_text_type(10000, 0) = Field(default="")
     start_at: datetime
     end_at: datetime
     timezone: str = "UTC"

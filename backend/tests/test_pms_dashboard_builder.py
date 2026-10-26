@@ -107,7 +107,9 @@ def test_builder_layout_cas_history_and_source_security(client, db):
 def test_shared_configuration_does_not_grant_underlying_records(client, db):
     wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
     outsider, xh = account(db, "dashboard-outsider@example.invalid", True)
-    owner.organization_id = outsider.organization_id = 77
+    from tests.tenant_test_utils import assign_company
+    assign_company(db, owner, 77)
+    assign_company(db, outsider, 77)
     db.get(PMSWorkspace, wid).organization_id = 77
     db.add(PMSTask(project_id=pid, title="Secret project task", task_key="DASH-SECRET"))
     db.commit()

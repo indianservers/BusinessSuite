@@ -1,9 +1,10 @@
+import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Target, Plus, Star, TrendingUp, CheckCircle2, RefreshCw, MessageSquareText, Users, Grid3X3, BriefcaseBusiness, IndianRupee
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -160,8 +161,8 @@ export default function PerformancePage() {
     retry: false,
   });
 
-  const { register: regGoal, handleSubmit: submitGoal, reset: resetGoal, formState: { errors: goalErrors } } = useForm<GoalForm>();
-  const { register: regReview, handleSubmit: submitReview, reset: resetReview } = useForm<ReviewForm>({
+  const { control: goalEditorControl, register: regGoal, handleSubmit: submitGoal, reset: resetGoal, formState: { errors: goalErrors } } = useForm<GoalForm>();
+  const { control: reviewEditorControl, register: regReview, handleSubmit: submitReview, reset: resetReview } = useForm<ReviewForm>({
     defaultValues: { rating: 3, goals_achieved: 0 },
   });
 
@@ -302,16 +303,11 @@ export default function PerformancePage() {
                   <div className="sm:col-span-2 space-y-1.5">
                     <Label>Goal Title *</Label>
                     <Input {...regGoal("title", { required: "Required" })} placeholder="e.g. Complete Q2 product launch" />
-                    {goalErrors.title && <p className="text-xs text-red-500">{goalErrors.title.message}</p>}
+                    {goalErrors.title && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={goalErrors.title.message}/></div>}
                   </div>
                   <div className="sm:col-span-2 space-y-1.5">
                     <Label>Description</Label>
-                    <textarea
-                      {...regGoal("description")}
-                      rows={2}
-                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
-                      placeholder="Describe the goal..."
-                    />
+                    <Controller name="description" control={goalEditorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Description" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
                   </div>
                   <div className="space-y-1.5">
                     <Label>Target Value</Label>
@@ -380,7 +376,7 @@ export default function PerformancePage() {
                           )}
                         </div>
                         {goal.description && (
-                          <p className="text-xs text-muted-foreground">{goal.description}</p>
+                          <div className="text-xs text-muted-foreground"><RichTextContent legacyFormat="plain" value={goal.description}/></div>
                         )}
                         {goal.target_value && (
                           <p className="text-xs text-muted-foreground">
@@ -466,12 +462,7 @@ export default function PerformancePage() {
 
               <div className="space-y-1.5">
                 <Label>Self Comments</Label>
-                <textarea
-                  {...regReview("self_comments")}
-                  rows={4}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
-                  placeholder="Summarize your achievements, challenges, and areas for growth..."
-                />
+                <Controller name="self_comments" control={reviewEditorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Self Comments" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
               </div>
 
               <Button type="submit" disabled={submitReviewMutation.isPending}>

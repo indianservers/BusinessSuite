@@ -1,8 +1,9 @@
+import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, BarChart3, LifeBuoy, MessageSquare, Plus, RefreshCw, Send, Star } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,7 +96,7 @@ export default function HelpdeskPage() {
     enabled: !!selectedTicket,
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<TicketForm>({
+  const { control: editorControl, register, handleSubmit, reset, formState: { errors } } = useForm<TicketForm>({
     defaultValues: { priority: "Medium" },
   });
 
@@ -240,7 +241,7 @@ export default function HelpdeskPage() {
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Subject *</Label>
                 <Input autoFocus {...register("subject", { required: "Required" })} placeholder="Brief description of the issue" />
-                {errors.subject && <p className="text-xs text-red-500">{errors.subject.message}</p>}
+                {errors.subject && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.subject.message}/></div>}
               </div>
               <div className="space-y-1.5">
                 <Label>Category</Label>
@@ -257,8 +258,8 @@ export default function HelpdeskPage() {
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Description *</Label>
-                <textarea {...register("description", { required: "Required" })} rows={4} className="flex w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Describe your issue in detail..." />
-                {errors.description && <p className="text-xs text-red-500">{errors.description.message}</p>}
+                <Controller name="description" control={editorControl} rules={{validate: value => Boolean(richTextPlainText(value || "")) || "Required"}} render={({field}) => <RichTextEditor legacyFormat="plain" label="Description" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} required />}/>
+                {errors.description && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.description.message}/></div>}
               </div>
               <div className="flex gap-3 sm:col-span-2">
                 <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Submitting..." : "Raise Ticket"}</Button>
@@ -329,7 +330,7 @@ export default function HelpdeskPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="rounded-lg bg-muted/30 p-4">
-                  <p className="text-sm">{selectedTicket.description}</p>
+                  <div className="text-sm"><RichTextContent legacyFormat="plain" value={selectedTicket.description}/></div>
                   <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(selectedTicket.created_at)}</p>
                 </div>
 
@@ -344,15 +345,15 @@ export default function HelpdeskPage() {
                         </span>
                         <span className="text-xs text-muted-foreground">{formatDateTime(reply.created_at)}</span>
                       </div>
-                      <p>{reply.message}</p>
+                      <div><RichTextContent legacyFormat="plain" value={reply.message}/></div>
                     </div>
                   ))}
                 </div>
 
                 {selectedTicket.status !== "Closed" && (
                   <div className="flex gap-2">
-                    <Input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a reply..." onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && replyText.trim()) {
+                    <RichTextField className="min-w-0 flex-1" rows={3} disabled={replyMutation.isPending} value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type a reply..." onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && replyText.trim()) {
                         e.preventDefault();
                         replyMutation.mutate(replyText.trim());
                       }

@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
@@ -47,7 +48,7 @@ export default function NoteTaskActions({ noteId, title, selection, projectId, p
       <form onSubmit={e => { e.preventDefault(); void create(); }}>
         <label>Destination project<select aria-label="Task destination project" required disabled={busy} value={project} onChange={e => { setProject(e.target.value); changed(); }}><option value="" disabled>Choose a work project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <label>Task title<Input aria-label="New task title" required maxLength={220} disabled={busy} value={taskTitle} onChange={e => { setTaskTitle(e.target.value); changed(); }} /></label>
-        <label>Task description<textarea aria-label="New task description" maxLength={10000} disabled={busy} value={description} placeholder="Only text entered here will be copied." onChange={e => { setDescription(e.target.value); changed(); }} /></label>
+        <label>Task description<RichTextField data-legacy-format="plain" aria-label="New task description" maxLength={10000} disabled={busy} value={description} placeholder="Only text entered here will be copied." onChange={e => { setDescription(e.target.value); changed(); }} /></label>
         {selection.trim() && <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setDescription(selection.slice(0, 10000)); changed(); }}>Copy selected text into description</Button>}
         <div className="notes-metadata"><label>Due date<Input type="date" aria-label="New task due date" disabled={busy} value={due} onChange={e => { setDue(e.target.value); changed(); }} onInput={e => { setDue(e.currentTarget.value); changed(); }} /></label><label>Priority<select aria-label="New task priority" disabled={busy} value={priority} onChange={e => { setPriority(e.target.value); changed(); }}>{["Low", "Medium", "High", "Urgent"].map(p => <option key={p}>{p}</option>)}</select></label></div>
         <label className="notes-publish-confirm"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I understand that this task title and description will be visible in the selected project.</label>

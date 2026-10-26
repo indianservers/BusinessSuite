@@ -103,9 +103,13 @@ def test_pms_project_clone_archive_template_and_reports(db):
 def test_department_scoped_project_visibility(db):
     manager = _user(db, "pms-dept-manager@example.com", ["pms_manage_projects"])
     employee_user = _user(db, "pms-dept-member@example.com")
-    company = Company(name="PMS Readiness Co")
-    db.add(company)
-    db.flush()
+    # Both accounts and their department must belong to the same tenant.
+    # PostgreSQL bootstraps tenant 1 before this fixture runs.
+    company = db.get(Company, 1)
+    if company is None:
+        company = Company(id=1, name="PMS Readiness Co")
+        db.add(company)
+        db.flush()
     branch = Branch(name="Hyderabad", code="HYD", company_id=company.id)
     db.add(branch)
     db.flush()

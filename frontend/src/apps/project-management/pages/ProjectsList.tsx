@@ -1,7 +1,8 @@
+import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import RecordActions from "../components/RecordActions";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CalendarDays, Kanban, Plus, Search } from "lucide-react";
+import { CalendarDays, Kanban, Plus, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,9 +44,9 @@ export default function ProjectsList() {
           <h1 className="page-title">Projects</h1>
           <p className="page-description">Track active work, ownership, progress, budgets, and delivery risk.</p>
         </div>
-        <Button asChild>
+        <div className="flex gap-2"><Button variant="outline" asChild><Link to="/pms/trash?type=projects"><Trash2 className="h-4 w-4" />Trash</Link></Button><Button asChild>
           <Link to="/pms/projects/new"><Plus className="h-4 w-4" />New project</Link>
-        </Button>
+        </Button></div>
       </div>
 
       <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2">
@@ -58,7 +59,7 @@ export default function ProjectsList() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((project) => (
-          <RecordActions key={project.id} kind="project" record={{...project,title:project.name,key:project.project_key}} onOpen={()=>openProject(project)}>{menu=><Card data-testid={`project-card-${project.id}`} tabIndex={0} className="min-w-0 cursor-pointer transition hover:border-primary/40 hover:shadow-md">
+          <RecordActions key={project.id} kind="project" canEdit={project.can_edit_project === true} onChanged={async()=>{setProjects(await projectsAPI.list());}} record={{...project,title:project.name,key:project.project_key}} onOpen={()=>openProject(project)}>{menu=><Card data-testid={`project-card-${project.id}`} tabIndex={0} className="min-w-0 cursor-pointer transition hover:border-primary/40 hover:shadow-md">
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -67,7 +68,7 @@ export default function ProjectsList() {
                 </div>
                 <div className="flex items-center gap-1"><Badge className={statusColor(project.status)}>{project.status}</Badge>{menu}</div>
               </div>
-              <p className="mt-3 line-clamp-2 min-h-10 text-sm text-muted-foreground">{project.description || "No description added yet."}</p>
+              <div className="mt-3 line-clamp-2 min-h-10 text-sm text-muted-foreground"><RichTextContent value={project.description || "No description added yet."}/></div>
               <div className="mt-5">
                 <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Progress</span>

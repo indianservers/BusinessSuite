@@ -1,3 +1,4 @@
+import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -1544,7 +1545,7 @@ function LeadDrawer({
                     </Field>
                   </div>
                   <Field label="Notes">
-                    <textarea
+                    <RichTextField
                       rows={3}
                       value={value("notes")}
                       onChange={(e) => setValue("notes", e.target.value)}
@@ -1671,7 +1672,7 @@ function LeadDrawer({
                         }
                         key={key}
                       >
-                        <textarea
+                        <RichTextField
                           rows={2}
                           value={val}
                           onChange={(e) =>
@@ -1720,7 +1721,7 @@ function LeadDrawer({
                         />
                       </Field>
                       <Field label="Requirements">
-                        <textarea
+                        <RichTextField
                           value={interest.requirements}
                           onChange={(e) =>
                             setDetail({
@@ -1877,7 +1878,7 @@ function LeadDrawer({
                     )}
                   </div>
                   <Field label="Outcome or meeting purpose">
-                    <textarea
+                    <RichTextField
                       rows={3}
                       value={activity.outcome}
                       onChange={(e) =>
@@ -2052,7 +2053,7 @@ function LeadDrawer({
                         {item.event_type.replace(/_/g, " ")}
                       </span>
                       <h3>{item.title}</h3>
-                      {item.description && <p>{item.description}</p>}
+                      {item.description && <div><RichTextContent legacyFormat="plain" value={item.description}/></div>}
                       <small>
                         {formatDate(item.occurred_at)} ·{" "}
                         {bootstrap.owners.find(
