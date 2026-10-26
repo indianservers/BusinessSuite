@@ -15,27 +15,27 @@ Reviewed 26 October 2026 against the current Notes implementation and Evernote's
 - Autosave, optimistic concurrency, per-tab draft recovery, revisions, explicit revocable read-only sharing, attachments and PDF preview, templates, Markdown import/export, PDF export, print.
 - Task Notes tab reuses the real PMS task; default privacy does not change with project membership.
 
-## Highest-priority remaining interaction polish
+## Interaction roadmap (updated 27 October 2026)
 
-1. Persistent Undo snackbar after a move/archive/Trash action. Editor undo currently covers document edits, while note management uses explicit restore/unarchive/move.
-2. Ctrl/Cmd-click selection and Shift-click ranges in the note list; checkbox multi-select already works.
-3. Touch/pointer drag handles for mobile/tablet and equivalent Move controls for every drag action. Current mouse drag uses native HTML drag-and-drop.
-4. A live insertion line while dragging an editor block; current block drag highlights the document, while folder drops show before/inside/after feedback.
+1. **Completed** — Sticky Undo after move/archive/Trash/restore, with atomic version checks that protect newer edits.
+2. **Completed** — Ctrl/Cmd-click toggles selection and Shift-click selects ranges; checkbox selection remains available.
+3. **Partial** — Touch/pen grips now reorder editor blocks. Note/folder touch drag still uses the existing Move controls.
+4. **Completed** — A live insertion guide shows the document block drop position.
 5. Multi-block drag, dragging nested list items independently, and Alt-drag to copy blocks. Current handle moves one complete top-level block.
-6. Auto-scroll near the edges of the editor/tree during long drags; spring-loaded expansion is present for tree nodes.
+6. **Partial** — Document and focus-mode auto-scroll during block dragging. Tree drag edge scrolling remains open.
 7. Drag a folder back to a project/task/personal root. Current folder drops target another folder; notes can already target those root views.
 8. Persist manual note ordering in a folder. Current list order is modified/created/title, with pins first; dragging note cards moves their folder association.
-9. Keyboard shortcut help and a Notes command palette for creation, navigation, search, and moving items.
-10. Arrow-key selection and focus management in the slash menu. Current filtered commands support Enter for the first match and mouse selection.
+9. **Partial** — Notes shortcut help, new-note/search shortcuts, and Escape to clear selection are present. A command palette is still open.
+10. **Completed** — Slash commands support arrow selection, wrapping, Enter/Tab, and active-command announcements.
 11. Tooltips with a consistent delay and a complete shortcut reference. Current toolbar uses accessible labels and native title tooltips.
-12. Rich revision diffs and formatted history preview; current history preview is plain text and restores content as a new version.
+12. **Partial** — Formatted history previews are present. Rich revision diffs remain open.
 13. Explicit sync/offline status, a reconnect queue, and cross-device local drafts. Current recovery is per tab/session; it is not an offline-first note store.
-14. Keyboard announcements for completed moves, selection counts, upload progress, and recovery events; broader screen-reader and high-contrast validation.
-15. Per-user persistence of view mode, editor width, sort, selected scope, and last-opened note. Panel sizes and tree expansion already persist; note URLs survive refresh.
+14. **Partial** — Selection counts, active slash commands, and completed management actions are announced. Broader screen-reader/high-contrast validation remains open.
+15. **Completed** — View, width, sort, scope, panel visibility, and last-opened note persist locally per user. Cross-device preferences are not implemented.
 16. Load/search pagination and virtualization for large libraries; current note lists are loaded together.
 17. Better folder search that reveals matching descendants and their ancestors, including unloaded project tasks.
 18. Consistent loading skeletons, cancel/retry uploads, and a clear multi-file progress queue.
-19. Share dialog autocomplete, confirmed invitation state, and immediately updated privacy badges after the last reader is revoked.
+19. **Partial** — Privacy badges update after the final reader is revoked. Share autocomplete and expanded invitation states remain open.
 20. Full export fidelity for complex tables, fonts, colors, checklists, and private images across Markdown/PDF/print. PDF export includes protected images; Markdown uses attachment references rather than packaging image files, and print currently shows image labels.
 
 ## Documented Evernote capabilities still missing or substantially narrower
@@ -107,3 +107,11 @@ First complete Undo, selection shortcuts, drag insertion feedback, touch accessi
 - TypeScript check and production build passed.
 - PostgreSQL migration 028 rehearsed upgrade/downgrade/re-upgrade on expiring copies of both production databases; existing note data was unchanged.
 - Screenshots: [desktop](qa/notes-desktop.png), [mobile](qa/notes-mobile.png).
+
+## Follow-up implementation — 27 October 2026
+
+The next UX pass adds version-safe Undo for bulk organization/status actions; Ctrl/Cmd and Shift selection; per-user local workspace preferences and last-note restoration; Notes shortcut help; slash-menu arrow navigation; live block insertion guides; touch/pen block dragging; document edge scrolling; formatted history previews; and immediate privacy-badge refresh after revoking the last reader. Direct links reveal notes that do not belong to the remembered scope.
+
+This pass changes no database tables or columns. Undo validates note ownership, folder/project/task permissions, duplicate IDs, and every expected version before atomically updating organization/status. It never replaces a note's content or newer edits. The Undo notice lasts until dismissed or superseded while the Notes page remains open; it is not a cross-session history system. Preferences are local to this browser and site. Touch dragging in this pass applies to editor blocks; note/folder moves retain their existing controls.
+
+Validation for this pass: 43 backend/rich-text checks, 23 browser workflows covering prior features and the new interactions (22 full-suite workflows plus the added empty-folder regression), and a production frontend build. The existing migration stays at 028.

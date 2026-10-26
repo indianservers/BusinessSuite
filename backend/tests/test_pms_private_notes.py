@@ -335,3 +335,53 @@ def test_folder_drag_reorder_is_atomic_owned_and_cycle_safe(notes_client):
     assert c.post(path,json={'version':1,'target_id':a['id'],'placement':'inside'}).status_code==409
     actor[0]=admin
     assert c.post(path,json={'version':2,'target_id':a['id'],'placement':'inside'}).status_code==404
+
+@pytest.mark.parametrize('action', ['move', 'archive', 'trash', 'unarchive', 'restore'])
+def test_management_undo_restores_metadata_without_replacing_content(notes_client, action):
+    c, owner, admin, actor = notes_client
+    source=c.post('/note-folders',json={'name':'Source'}).json()
+    target=c.post('/note-folders',json={'name':'Target'}).json()
+    before=c.post('/notes',json={'title':'Keep title','content':'Keep my private content','folder_id':source['id'],'archived':action=='unarchive'}).json()
+    if action=='restore':
+        c.request('DELETE',f'/notes/{before["id"]}',json={'version':before['version']})
+        before=c.get(f'/notes/{before["id"]}').json()
+    payload={'action':action,'items':[{'id':before['id'],'version':before['version']}]}
+    if action=='move':payload.update(folder_id=target['id'])
+    changed=c.post('/note-actions/bulk',json=payload)
+    assert changed.status_code==200
+    expected_version=changed.json()['items'][0]['version']
+    assert expected_version==before['version']+1
+    undo={'id':before['id'],'version':expected_version,'project_id':before['project_id'],'task_id':before['task_id'],'folder_id':before['folder_id'],'archived':before['archived'],'trashed':bool(before['deleted_at'])}
+    assert c.post('/note-actions/undo',json={'items':[undo]}).status_code==200
+    after=c.get(f'/notes/{before["id"]}').json()
+    for key in ['title','content','folder_id','project_id','task_id','archived']:assert after[key]==before[key]
+    assert bool(after['deleted_at'])==bool(before['deleted_at'])
+    assert after['version']==expected_version+1
+
+
+def test_management_undo_conflicts_are_atomic_and_readers_cannot_undo(notes_client):
+    c, owner, admin, actor = notes_client
+    notes=[c.post('/notes',json={'title':title,'content':'Original'}).json() for title in ['One','Two']]
+    assert c.post('/note-actions/bulk',json={'action':'archive','items':[{'id':n['id'],'version':1} for n in notes]}).status_code==200
+    items=[{'id':n['id'],'version':2,'archived':False,'trashed':False} for n in notes]
+    actor[0]=admin
+    assert c.post('/note-actions/undo',json={'items':items}).status_code==404
+    actor[0]=owner
+    assert c.put(f'/notes/{notes[1]["id"]}',json={'version':2,'title':'New title','content':'Newer content','archived':True}).status_code==200
+    assert c.post('/note-actions/undo',json={'items':items}).status_code==409
+    assert all(c.get(f'/notes/{n["id"]}').json()['archived'] for n in notes)
+    assert c.get(f'/notes/{notes[1]["id"]}').json()['content']=='Newer content'
+    assert c.post('/note-actions/undo',json={'items':[items[0],items[0]]}).status_code==422
+
+
+def test_management_undo_rejects_foreign_folder_and_arbitrary_fields(notes_client):
+    c, owner, admin, actor = notes_client
+    note=c.post('/notes',json={'title':'Private'}).json()
+    actor[0]=admin
+    folder=c.post('/note-folders',json={'name':'Foreign'}).json()
+    actor[0]=owner
+    item={'id':note['id'],'version':1,'archived':False,'trashed':False,'folder_id':folder['id']}
+    assert c.post('/note-actions/undo',json={'items':[item]}).status_code==404
+    item.pop('folder_id');item['content']='Overwrite attempt'
+    assert c.post('/note-actions/undo',json={'items':[item]}).status_code==422
+    assert c.get(f'/notes/{note["id"]}').json()['version']==1

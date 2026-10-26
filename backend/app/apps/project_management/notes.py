@@ -421,7 +421,47 @@ def bulk_notes(data: BulkInput, db: Session = Depends(get_db), user: User = Depe
         if count != 1: db.rollback(); raise HTTPException(409, "A selected note changed. No notes were updated.")
         db.expire(note); db.refresh(note); revision(db, note)
         db.add(PMSNoteEvent(note_id=note.id, actor_id=user.id, action=data.action))
-    db.commit(); return {"updated": len(rows)}
+    db.commit(); return {"updated": len(rows), "items": [{"id": note.id, "version": version+1} for note, version in rows]}
+
+
+class NoteUndoItem(BulkItem):
+    model_config = ConfigDict(extra="forbid")
+    project_id: int | None = Field(default=None, gt=0)
+    task_id: int | None = Field(default=None, gt=0)
+    folder_id: int | None = Field(default=None, gt=0)
+    archived: bool
+    trashed: bool
+
+
+class NoteUndoInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[NoteUndoItem] = Field(min_length=1, max_length=200)
+
+
+@router.post("/note-actions/undo")
+def undo_note_action(data: NoteUndoInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Restore organization/status only; never overwrite a subsequently edited note."""
+    if len({item.id for item in data.items}) != len(data.items):
+        raise HTTPException(422, "Select each note once")
+    rows = [(owned(db, item.id, user), item) for item in data.items]
+    for note, item in rows:
+        if note.version != item.version:
+            raise HTTPException(409, "A note changed since that action. Undo made no changes; reload the latest notes.")
+        validate_links(db, item, user)
+    for note, item in rows:
+        values = item.model_dump(exclude={"id", "version", "trashed"})
+        values.update(version=item.version + 1, updated_at=datetime.now(timezone.utc),
+                      deleted_at=datetime.now(timezone.utc) if item.trashed else None)
+        count = db.execute(update(PMSNote).where(PMSNote.id == note.id, PMSNote.owner_id == user.id,
+            PMSNote.version == item.version).values(**values).execution_options(synchronize_session=False)).rowcount
+        if count != 1:
+            db.rollback()
+            raise HTTPException(409, "A note changed since that action. Undo made no changes.")
+        db.refresh(note)
+        revision(db, note)
+        db.add(PMSNoteEvent(note_id=note.id, actor_id=user.id, action="undo"))
+    db.commit()
+    return {"updated": len(rows)}
 
 
 @router.post("/notes/{note_id}/duplicate", status_code=201)
