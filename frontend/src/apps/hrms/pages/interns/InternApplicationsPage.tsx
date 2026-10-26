@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import InternApplicationSettings from "./InternApplicationSettings";
 type Row = Record<string, any>;
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
@@ -151,6 +152,7 @@ export default function InternApplicationsPage() {
           Review applications and activate approved interns in the same HRMS.
         </p>
       </div>
+      <InternApplicationSettings />
       <div className="flex flex-wrap gap-2">
         <Link to="/hrms/interns/profiles" className="inline-flex items-center rounded-md border px-3 py-2 text-sm">Manage connected profiles</Link>
         {["Pending", "Correction Requested", "Approved", "Rejected", ""].map((status) => (

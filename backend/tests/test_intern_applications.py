@@ -33,7 +33,7 @@ def test_application_requires_approval_before_login(client, db, superuser_header
     admin_list=client.get(f"{base}/admin/applications",headers=superuser_headers)
     assert admin_list.status_code==200 and admin_list.json()[0]["identity_last4"]=="1234"
     assert "password_hash" not in admin_list.text and "TEST-ID-1234" not in admin_list.text
-    company=Company(name="Application Company");db.add(company);db.flush()
+    company=db.get(Company,1) or Company(id=1,name="Application Company");db.add(company);db.flush()
     branch=Branch(name="HQ",company_id=company.id);db.add(branch);db.flush()
     department=Department(name="Engineering",branch_id=branch.id);db.add(department);db.flush()
     designation=Designation(name="Development Intern",department_id=department.id);db.add(designation)
@@ -81,3 +81,27 @@ def test_status_attempts_are_limited_per_applicant(client, application_payload):
         assert client.post(f"{base}/applications/status",json={"email":application_payload["email"],"password":"WrongPassword"}).status_code==401
     assert client.post(f"{base}/applications/status",json={"email":application_payload["email"],"password":"WrongPassword"}).status_code==423
     assert client.post(f"{base}/applications/status",json={"email":"other@example.com","password":"WrongPassword"}).status_code==401
+
+
+def test_application_roles_are_hrms_managed_and_enforced(client, superuser_headers, application_payload):
+    base='/api/v1/interns-hub'
+    assert client.get(base+'/admin/application-settings').status_code == 403
+    initial=client.get(base+'/admin/application-settings',headers=superuser_headers).json()
+    saved=client.put(base+'/admin/application-settings',headers=superuser_headers,json={'roles':['Security Intern'],'version':initial['version']})
+    assert saved.status_code == 200, saved.text
+    assert client.get(base+'/application-options').json()['roles'] == ['Security Intern']
+    assert client.post(base+'/applications',json=application_payload).status_code == 422
+    assert client.post(base+'/applications',json={**application_payload,'role':'Security Intern'}).status_code == 201
+    assert client.put(base+'/admin/application-settings',headers=superuser_headers,json={'roles':['Other'],'version':initial['version']}).status_code == 409
+    assert client.put(base+'/admin/application-settings',headers=superuser_headers,json={'roles':['Intern','intern'],'version':saved.json()['version']}).status_code == 422
+
+
+@pytest.mark.parametrize('field,value',[('address','a'*201),('gender','Prefer not to say')])
+def test_application_new_field_limits_reject_api_bypass(client,application_payload,field,value):
+    result=client.post('/api/v1/interns-hub/applications',json={**application_payload,field:value})
+    assert result.status_code == 422
+    assert any(error['loc'][-1] == field for error in result.json()['detail'])
+
+
+def test_application_address_allows_200_characters(client,application_payload):
+    assert client.post('/api/v1/interns-hub/applications',json={**application_payload,'address':'a'*200}).status_code == 201

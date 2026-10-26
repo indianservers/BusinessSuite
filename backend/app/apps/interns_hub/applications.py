@@ -51,7 +51,7 @@ class ApplicationInput(BaseModel):
     email: EmailAddress = Field(max_length=150)
     identity_type: Literal["Aadhaar", "PAN", "Voter ID", "Passport", "Other"]
     identity_number: str = Field(min_length=4, max_length=40)
-    gender: Literal["Male", "Female", "Other", "Prefer not to say"]
+    gender: Literal["Male", "Female", "Other"]
     date_of_birth: date
     city: str = Field(min_length=1, max_length=100)
     state: str = Field(min_length=1, max_length=100)
@@ -68,7 +68,7 @@ class ApplicationInput(BaseModel):
     mode: Literal["On-site", "Remote", "Hybrid"]
     available_from: date
     duration: Literal["1 Month", "2 Months", "3 Months", "6 Months", "12 Months"]
-    address: str = Field(min_length=5, max_length=1500)
+    address: str = Field(min_length=5, max_length=200)
     linkedin: HttpUrl | None = None
     emergency_contact: NationalPhone
     emergency_contact_country_code: CallingCode
@@ -138,8 +138,60 @@ def receipt(item, db):
 
 @router.get("/application-options")
 def options(db: Session = Depends(get_db)):
-    roles = [row[0] for row in db.query(Designation.name).filter(Designation.name.ilike("%intern%"),Designation.is_active.is_(True)).order_by(Designation.name).distinct().all()]
-    return {"roles": sorted(set(roles+["Software Development Intern","Software Testing Intern","Web Development Intern","AI / ML Intern","Mobile Application Intern","Data Analytics Intern","Regular Employee","Other"])),"validation":CONTRACT,"today":str(today())}
+    return {"roles": application_settings(db, settings.INTERN_HUB_ORGANIZATION_ID)["roles"], "validation": CONTRACT, "today": str(today())}
+
+
+DEFAULT_APPLICATION_ROLES = ["Software Development Intern", "Software Testing Intern", "Web Development Intern", "AI / ML Intern", "Mobile Application Intern", "Data Analytics Intern", "Regular Employee", "Other"]
+
+
+def application_settings(db, organization_id):
+    from app.shared.models import ServicePolicy
+    policy = db.query(ServicePolicy).filter_by(scope_key=f"intern-recruitment:{organization_id}", organization_id=organization_id).first()
+    if policy:
+        return {"roles": policy.values_json.get("roles", []), "version": policy.version}
+    existing = db.query(Designation.name).join(Department, Designation.department_id == Department.id).join(Branch, Department.branch_id == Branch.id).filter(Branch.company_id == organization_id, Designation.is_active.is_(True), Designation.name.ilike("%intern%")).all()
+    return {"roles": sorted(set(DEFAULT_APPLICATION_ROLES + [row[0] for row in existing])), "version": 0}
+
+
+class ApplicationSettingsInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    roles: list[str] = Field(max_length=100)
+    version: int = Field(ge=0)
+
+    @field_validator("roles")
+    @classmethod
+    def validate_roles(cls, roles):
+        cleaned = [clean_text(role, 150) for role in roles]
+        if len({role.casefold() for role in cleaned}) != len(cleaned):
+            raise ValueError("Role names must be unique")
+        return cleaned
+
+
+@router.get("/admin/application-settings")
+def get_application_settings(db: Session = Depends(get_db), user=Depends(application_admin)):
+    return application_settings(db, tenant(user))
+
+
+@router.put("/admin/application-settings")
+def save_application_settings(data: ApplicationSettingsInput, db: Session = Depends(get_db), user=Depends(application_admin)):
+    from app.shared.models import ServicePolicy
+    organization = tenant(user)
+    key = f"intern-recruitment:{organization}"
+    policy = db.query(ServicePolicy).filter_by(scope_key=key, organization_id=organization).with_for_update().first()
+    if data.version != (policy.version if policy else 0):
+        raise HTTPException(409, "Application roles changed; reload before saving")
+    if policy:
+        policy.values_json = {"roles": data.roles}
+        policy.version += 1
+        policy.updated_by = user.id
+    else:
+        db.add(ServicePolicy(scope_key=key, organization_id=organization, module_key="interns_hub", kind="recruitment", values_json={"roles": data.roles}, version=1, updated_by=user.id))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Application roles changed; reload before saving") from None
+    return application_settings(db, organization)
 
 
 @router.post("/applications", status_code=201)
@@ -152,7 +204,7 @@ def apply(data: ApplicationInput, request: Request, db: Session = Depends(get_db
         raise HTTPException(409, "An application or account already exists for this email. Check your application status or sign in.")
     digest = hashlib.sha256(("intern-application:" + settings.SECRET_KEY).encode()).digest()
     cipher = Fernet(base64.urlsafe_b64encode(digest))
-    item = InternApplication(reference="APP-" + uuid4().hex[:16].upper(), email=email, full_name=data.full_name,
+    item = InternApplication(organization_id=settings.INTERN_HUB_ORGANIZATION_ID, reference="APP-" + uuid4().hex[:16].upper(), email=email, full_name=data.full_name,
         password_hash=get_password_hash(data.password),
         details=jsonable_encoder(data.model_dump(exclude={"email", "full_name", "password", "identity_number", "document_tokens"})),
         identity_number_encrypted=cipher.encrypt(data.identity_number.encode()).decode(), identity_last4=data.identity_number[-4:], status="Pending")

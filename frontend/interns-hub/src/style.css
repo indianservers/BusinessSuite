@@ -2436,3 +2436,24 @@ tr.you {
   height: 100%;
   object-fit: cover;
 }
+/* Applicant entry: clear paths for returning interns and new applicants. */
+.login-form { background: radial-gradient(ellipse at top right, #eeebff, #fafbff 60%); }
+.login-card { max-width: 460px; padding: 32px; border: 1px solid #e9e6f6; border-radius: 26px; background: #fff; box-shadow: 0 18px 65px #3628860b; }
+.signup-divider { display: flex; align-items: center; gap: 12px; color: #8991a8; font-size: 11px; margin: 25px 0 17px; }
+.signup-divider::before,.signup-divider::after { content: ''; height: 1px; flex: 1; background: #e8e9f1; }
+.signup-divider span { white-space: nowrap; }
+.social-signup-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.social-signup-button { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 49px; padding: 10px; background: #fff; border: 1px solid #dfe2ee; border-radius: 12px; color: #283149; font-size: 12px; font-weight: 650; transition: border-color .15s,box-shadow .15s; }
+.social-signup-button:hover:not(:disabled) { border-color: #9182ef; box-shadow: 0 4px 12px #5141ff12; }
+.social-signup-button:disabled { cursor: not-allowed; color: #71798a; background: #fafbfe; }
+.social-signup-button:focus-visible,.intern-apply-card:focus-visible { outline: 3px solid #ada2ff; outline-offset: 3px; }
+.microsoft-mark { display: grid; grid-template-columns: 8px 8px; grid-template-rows: 8px 8px; gap: 2px; flex-shrink: 0; }
+.microsoft-mark i:nth-child(1) { background: #f25022; }.microsoft-mark i:nth-child(2) { background: #7fba00; }.microsoft-mark i:nth-child(3) { background: #00a4ef; }.microsoft-mark i:nth-child(4) { background: #ffb900; }
+.social-signup-note { color: #80889c; text-align: center; font-size: 11px; line-height: 1.6; margin: 12px 0 0; }
+.intern-apply-card { display: flex; align-items: center; gap: 14px; margin-top: 24px; padding: 19px 17px; border-radius: 16px; background: linear-gradient(115deg,#f0edff,#edf4ff); border: 1px solid #dcd7ff; color: #352186; }
+.intern-apply-icon { display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 13px; background: #fff; color: #6550dd; flex-shrink: 0; }
+.intern-apply-card strong { display: block; font-size: 18px; letter-spacing: -.4px; line-height: 1.3; }.intern-apply-card small { display: block; font-size: 11px; color: #76718f; margin-top: 5px; }.intern-apply-card > svg { margin-left: auto; flex-shrink: 0; }
+.login-card > .application-status-link { margin: 19px 0 0; font-size: 11px; text-align: center; color: #777d98; }.application-status-link a { display: inline-flex; align-items: center; gap: 3px; }
+@media (max-width: 600px) { .login-form { padding: 24px 16px; }.login-card { padding: 25px 20px; }.social-signup-buttons { grid-template-columns: 1fr; }.intern-apply-card { padding: 16px 13px; gap: 10px; }.intern-apply-card strong { font-size: 17px; } }
+.login-card form { margin-top: 20px; }.login-card label { margin: 14px 0; }.login-card > .icon-small { width: 40px; height: 40px; margin-bottom: 12px; }.login-card > p { margin: 8px 0 18px; }.login-card > .login-note { margin: 14px 0; }.login-card .button { min-height: 44px; margin-top: 4px; }.signup-divider { margin: 18px 0 12px; }.intern-apply-card { margin-top: 18px; padding-top: 16px; padding-bottom: 16px; }.social-signup-error { color: #b42318; font-size: 12px; line-height: 1.5; margin-top: 12px; }
+.social-signup-buttons { grid-template-columns: 1fr; }.social-signup-button { font-size: 13px; }

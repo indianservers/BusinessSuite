@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   UserRound,
   Users,
@@ -35,7 +35,6 @@ import { hub, send, FieldValidationError } from "./api";
 import { PhoneInput } from './validation/PhoneInput';
 import { applicationErrors, contract } from './validation';
 import { Logo, formatDate } from "./ui";
-import { hrmsLoginUrl } from "./config";
 import "./application.css";
 
 const states = [
@@ -171,7 +170,7 @@ const baseFields: Field[] = [
     label: "Gender",
     icon: UserRound,
     type: "radio",
-    options: ["Male", "Female", "Other", "Prefer not to say"],
+    options: ["Male", "Female", "Other"],
   },
   {
     key: "date_of_birth",
@@ -330,7 +329,6 @@ export function PublicHeader() {
         <Link to="/apply">Home</Link>
         <a href="/apply#application">Internships</a>
         <a href="/apply#why-interns-hub">For Students</a>
-        {hrmsLoginUrl && <a href={hrmsLoginUrl}>For Employers</a>}
         <Link to="/application-status">Application Status</Link>
       </nav>
       <div className="public-actions">
@@ -441,7 +439,7 @@ function ApplicationField({
         ? "0"
         : undefined;
   return (
-    <div className={`application-field ${field.span || ""}`}>
+    <div className={`application-field ${field.span || ""}`} style={field.span === "half" ? {gridColumn:"span 6"} : undefined}>
       <label htmlFor={`application-${key}`}>
         <Icon size={15} />
         {label}
@@ -486,7 +484,7 @@ function ApplicationField({
         <textarea
           id={`application-${key}`}
           rows={3}
-          maxLength={1500}
+          maxLength={200}
           required={required}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -519,12 +517,14 @@ function ApplicationField({
           }
         />
       )}
+      {key === 'address' && <small className="address-counter">{value.length}/200 characters</small>}
       {error&&type!=='tel'&&<small id={`application-${key}-error`} role="alert" style={{color:'#b42318'}}>{error}</small>}
     </div>
   );
 }
 
 export function ApplicationPage() {
+  const location = useLocation();
   const [form, setForm] = useState<Form>(defaults);
   const [step, setStep] = useState(0);
   const [documents,setDocuments]=useState<Array<{token:string;name:string;category:string}>>([]);
@@ -550,15 +550,7 @@ export function ApplicationPage() {
     document.title = "Apply for an Internship · Interns Hub";
     hub("/application-options")
       .then((r) => {setRoles(r.roles);if(r.today)setServerToday(r.today);})
-      .catch(() =>
-        setRoles([
-          "Software Development Intern",
-          "Marketing Intern",
-          "Design Intern",
-          "Research Intern",
-          "Other",
-        ]),
-      );
+      .catch(() => setError("Application roles could not be loaded. Please refresh before applying."));
     try {
       const draft = sessionStorage.getItem(draftKey);
       if (draft) {
@@ -568,6 +560,11 @@ export function ApplicationPage() {
         setNotice("Your saved draft has been restored.");
       }
     } catch {}
+    const profile = location.state?.signupProfile;
+    if (profile?.email) {
+      setForm(current=>({...current,email:profile.email,full_name:profile.full_name || current.full_name}));
+      setNotice("Your account details are ready. Complete your application below; approval is required before intern access.");
+    }
   }, []);
   const errors={...applicationErrors(form,roles,serverToday),...serverErrors};
   const choiceMap:Record<string,string[]>={degree:contract.degrees,current_year:contract.current_years,state:contract.states,area_of_interest:contract.areas,passout_year:Array.from({length:131},(_,index)=>String(1970+index))};
@@ -719,12 +716,19 @@ export function ApplicationPage() {
                 }}
               >
                 {step === 0 ? (
-                  <div className="application-fields">
+                  <div className="application-field-groups">
                     {attempted&&Object.keys(errors).length>0&&<div className="application-validation-summary" style={{gridColumn:"1 / -1"}} role="alert" tabIndex={-1}><p>Please correct the highlighted fields.</p><ul>{fields.filter(field=>errors[field.key]).map(field=><li key={field.key}><a href={`#application-${field.key}`} onClick={()=>document.getElementById(`application-${field.key}`)?.focus()}>{field.label}: {errors[field.key]}</a></li>)}</ul></div>}
-                    {fields.map((field) => (
+                    {[
+                      {name:"Personal details",keys:["full_name","parent_name","mobile","email","identity_type","identity_number","gender","date_of_birth"]},
+                      {name:"Education",keys:["degree","current_year","college","specialization","passout_year","tenth_marks","twelfth_marks"]},
+                      {name:"Internship preferences",keys:["employment_type","department","role","area_of_interest","skills","mode","available_from","duration","portfolio","github","linkedin"]},
+                      {name:"Address & emergency contact",keys:["address","city","state","emergency_contact"]},
+                    ].map(group => <fieldset className="application-field-group" key={group.name}>
+                      <legend>{group.name}</legend><div className="application-fields">
+                        {fields.filter(field => group.keys.includes(field.key)).map((field) => (
                       <ApplicationField
                         key={field.key}
-                        field={field}
+                        field={{...field,span:group.name === "Personal details" ? "half" : field.span}}
                         value={form[field.key]}
                         onChange={value=>change(field.key,value)}
                         onBlur={()=>setTouched(current=>({...current,[field.key]:true}))}
@@ -733,6 +737,7 @@ export function ApplicationPage() {
                         onCountryCodeChange={value=>change(field.key+'_country_code',value)}
                       />
                     ))}
+                      </div></fieldset>)}
                   </div>
                 ) : (
                   <>

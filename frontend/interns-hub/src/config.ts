@@ -1,9 +1,11 @@
+import type { FirebaseOptions } from "firebase/app";
 declare global {
   interface Window {
-    __INTERNHUB_CONFIG__?: { apiBaseUrl?: string; hrmsLoginUrl?: string };
+    __INTERNHUB_CONFIG__?: { apiBaseUrl?: string; hrmsLoginUrl?: string; firebaseConfig?: FirebaseOptions };
   }
 }
 const runtime = window.__INTERNHUB_CONFIG__ || {};
+export const firebaseConfig = runtime.firebaseConfig;
 export const apiBaseUrl = (
   runtime.apiBaseUrl ||
   import.meta.env.VITE_API_BASE_URL ||

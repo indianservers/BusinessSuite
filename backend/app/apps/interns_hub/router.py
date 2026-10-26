@@ -532,6 +532,9 @@ def update_password(data: ChangePasswordRequest, request: Request, e=Depends(int
 from .applications import router as application_router
 router.include_router(application_router)
 
+from .signup import router as signup_router
+router.include_router(signup_router)
+
 from .management_api import router as management_router
 router.include_router(management_router)
 

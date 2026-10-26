@@ -55,4 +55,12 @@ The portal opens at `/login` for signed-out users. `/apply` remains the public, 
 
 Applications remain Pending without a user or employee account. HR staff review them at `/hrms/interns-hub/applications`, assign branch, department, designation, manager and joining date, and approve or reject them. Approval creates an HRMS employee, a restricted intern account using the applicant's already-hashed password, and a unique `IH-…` intern ID. The applicant can then sign in with their chosen credentials and view that ID. No email delivery service is assumed. Application status is checked in the portal.
 
+HR staff manage the public role list in the **Internship roles for applications** card on that same Applications page. Save changes to publish them; removing a role does not alter existing applications. Role settings are scoped to the staff member's organization. `INTERN_HUB_ORGANIZATION_ID` selects the organization accepting public applications for this installation (default 1). Addresses are limited to 200 characters on both the application form and API.
+
+### Google application signup through Firebase
+
+Set `INTERN_SIGNUP_FIREBASE_PROJECT_ID` on the backend. In Firebase Authentication, enable Google sign-in and add the portal hostname under Authorized domains. Microsoft signup is disabled. Provider secrets never go in this repository or the browser.
+
+Pass the public Firebase web configuration as `--firebase-config-file path/to/firebase-web.json` when packaging a release. It is stored in the runtime `config.js`, keeping the compiled application customer-independent. Analytics is not enabled by the signup flow. The frontend loads Firebase Authentication when an applicant chooses a provider; the backend checks token signatures, audience, issuer, expiry and allowed provider against the configured project. Returned name/email only prefill an application; they never link existing accounts or grant employee access. Applicants still complete their application and choose an intern password, and HRMS approval remains required.
+
 ID numbers are encrypted using a purpose-specific key derived from the existing backend secret. Staff listings show only the last four characters. Review notes are visible to the applicant. The application database migration follows the initial Interns Hub migration.

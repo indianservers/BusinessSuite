@@ -34,14 +34,14 @@ export function identityError(kind:string,value:string) {
 export function applicationErrors(form:Record<string,string>,roles:string[],today:string) {
   const errors:Record<string,string>={};
   const set=(key:string,value:string)=>{if(value)errors[key]=value;};
-  for(const [key,max] of Object.entries({full_name:160,parent_name:160,city:100,college:200,specialization:150,skills:1000,address:1500}))set(key,textError(form[key],max,true,key==='address'));
+  for(const [key,max] of Object.entries({full_name:160,parent_name:160,city:100,college:200,specialization:150,skills:1000,address:200}))set(key,textError(form[key],max,true,key==='address'));
   if(form.college.trim().length<2)errors.college='Use at least 2 characters.';
   if(form.address.trim().length<5)errors.address='Use at least 5 characters.';
   set('email',emailError(form.email,true));
   set('mobile',phoneError(form.mobile,form.mobile_country_code,true));
   set('emergency_contact',phoneError(form.emergency_contact,form.emergency_contact_country_code,true));
   set('identity_number',identityError(form.identity_type,form.identity_number));
-  const choices:Record<string,string[]>={identity_type:contract.identity_types,gender:contract.gender,state:contract.states,degree:contract.degrees,current_year:contract.current_years,area_of_interest:contract.areas,mode:contract.modes,duration:contract.durations,employment_type:['Intern','Full-time','Part-time','Contract'],role:roles};
+  const choices:Record<string,string[]>={identity_type:contract.identity_types,gender:['Male','Female','Other'],state:contract.states,degree:contract.degrees,current_year:contract.current_years,area_of_interest:contract.areas,mode:contract.modes,duration:contract.durations,employment_type:['Intern','Full-time','Part-time','Contract'],role:roles};
   for(const [key,values] of Object.entries(choices))if(!values.includes(form[key]))errors[key]='Select a supported option.';
   for(const key of ['tenth_marks','twelfth_marks']) {
     if(key==='twelfth_marks'&&form[key]==='')continue;

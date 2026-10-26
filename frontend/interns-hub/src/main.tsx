@@ -33,7 +33,6 @@ import {
   ArrowRight,
   LockKeyhole,
   Sparkles,
-  ExternalLink,
   AlertCircle,
 } from "lucide-react";
 import { hub, request, send, token, setToken } from "./api";
@@ -55,7 +54,7 @@ import {
 } from "./GrowthPages";
 import { Profile, Certificates, Support } from "./AccountPages";
 import "./style.css";
-import { hrmsLoginUrl } from "./config";
+import { SocialSignup } from "./SocialSignup";
 import { ApplicationPage, ApplicationStatus } from "./ApplicationPage";
 const nav = [
   ["/", "Dashboard", LayoutDashboard],
@@ -213,18 +212,10 @@ function Login({ onLogin }: { onLogin: () => void }) {
             <LockKeyhole size={15} />
             For active interns with an HRMS-linked account.
           </p>
-          <p className="muted">
-            New here? <Link to="/apply">Apply for an internship</Link> ·{" "}
-            <Link to="/application-status">Check application status</Link>
-          </p>
-          <div className="login-divider" />
-          <p className="muted">Need access? Contact your HRMS administrator.</p>
-          {hrmsLoginUrl && <a
-            className="admin-login"
-            href={hrmsLoginUrl}
-          >
-            HRMS Admin Login <ExternalLink size={14} />
-          </a>}
+          {!mfa && <><SocialSignup />
+            <Link to="/apply" className="intern-apply-card"><span className="intern-apply-icon"><GraduationCap size={25}/></span><span><strong>Apply for an Internship</strong><small>Your next chapter starts here</small></span><ArrowRight size={21}/></Link>
+            <p className="application-status-link"><Link to="/application-status">Already applied? Check application status <ChevronRight size={14}/></Link></p>
+          </>}
         </div>
       </main>
     </div>

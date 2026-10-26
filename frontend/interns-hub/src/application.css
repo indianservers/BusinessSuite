@@ -998,3 +998,7 @@
 .application-field {
   align-self: end;
 }
+.application-field-groups { display: grid; gap: 24px; }
+.application-field-group { min-width: 0; border: 0; padding: 18px 0 0; margin: 0; border-top: 1px solid #e9edf5; }
+.application-field-group legend { font-size: 14px; font-weight: 750; color: #28345e; padding: 0 12px 0 0; }
+.application-field .address-counter { display: block; text-align: right; margin-top: 5px; font-size: 10px; }

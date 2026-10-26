@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     RECAPTCHA_SITE_KEY: str = ""
     RECAPTCHA_SECRET_KEY: str = Field(default="", repr=False)
     ENVIRONMENT: str = "development"
+    INTERN_HUB_ORGANIZATION_ID: int = Field(1, ge=1)
+    INTERN_SIGNUP_FIREBASE_PROJECT_ID: str = ""
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
     SERVERLESS: bool = bool(os.environ.get("VERCEL"))
