@@ -62,7 +62,7 @@ class ApplicationInput(BaseModel):
     current_year: str = Field(min_length=1, max_length=50)
     college: str = Field(min_length=2, max_length=200)
     specialization: str = Field(min_length=1, max_length=150)
-    passout_year: int = Field(ge=1970, le=2100)
+    passout_year: int = Field(ge=1970, strict=True)
     area_of_interest: str = Field(min_length=1, max_length=150)
     skills: str = Field(min_length=1, max_length=1000)
     role: str = Field(min_length=1, max_length=150)
@@ -70,6 +70,7 @@ class ApplicationInput(BaseModel):
     available_from: date
     duration: Literal["1 Month", "2 Months", "3 Months", "6 Months", "12 Months"]
     address: str = Field(min_length=5, max_length=200)
+    pincode: str = Field(pattern=r'^[1-9][0-9]{5}$', min_length=6, max_length=6, strict=True)
     linkedin: HttpUrl | None = None
     emergency_contact: NationalPhone
     emergency_contact_country_code: CallingCode
@@ -126,7 +127,7 @@ class ApplicationInput(BaseModel):
     @field_validator('passout_year')
     @classmethod
     def valid_passout(cls,value,info: ValidationInfo):
-        if info.data.get('current_year')=='Graduated' and value>today().year:raise ValueError('A completed degree cannot have a future pass-out year')
+        if value>today().year:raise ValueError(f'Pass-out year must be between 1970 and {today().year}')
         return value
 
 
@@ -303,6 +304,7 @@ def decide(application_id: int, data: DecisionInput, user=Depends(application_ad
             reporting_manager_id=manager.id, personal_email=item.email, phone_number=details["mobile"],phone_number_country_code=details.get('mobile_country_code'),
             date_of_birth=date.fromisoformat(details["date_of_birth"]), gender=details["gender"],
             present_city=details["city"], present_state=details["state"], present_address=details["address"],
+            present_pincode=details.get("pincode"),
             emergency_contact_number=details["emergency_contact"],emergency_contact_number_country_code=details.get('emergency_contact_country_code'), family_information="Parent / Guardian: " + details["parent_name"], interests=details["area_of_interest"],
             work_location="Office" if details["mode"] == "On-site" else details["mode"])
         db.add(employee)

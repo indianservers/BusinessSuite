@@ -39,7 +39,7 @@ def test_unicode_mononym_and_controls():
 
 @pytest.fixture
 def valid_application():
-    return dict(full_name='李',parent_name="O’Brien",mobile='0001234567',mobile_country_code='+1',email='synthetic@example.com',identity_type='Other',identity_number='TEST-ONLY',gender='Other',date_of_birth='2000-01-01',city='São Paulo',state='Other',tenth_marks=0,twelfth_marks=None,degree='Other',current_year='Graduated',college='Example University',specialization='Design',passout_year=2020,area_of_interest='Software Development',skills='Python, Python',role='Other',mode='Remote',available_from=str(today()),duration='3 Months',address='Example address',emergency_contact='2025550100',emergency_contact_country_code='+1',password='Synthetic@123456',consent=True)
+    return dict(full_name='李',parent_name="O’Brien",mobile='0001234567',mobile_country_code='+1',email='synthetic@example.com',identity_type='Other',identity_number='TEST-ONLY',gender='Other',date_of_birth='2000-01-01',city='São Paulo',state='Other',tenth_marks=0,twelfth_marks=None,degree='Other',current_year='Graduated',college='Example University',specialization='Design',passout_year=2020,area_of_interest='Software Development',skills='Python, Python',role='Other',mode='Remote',available_from=str(today()),duration='3 Months',address='Example address',pincode='520001',emergency_contact='2025550100',emergency_contact_country_code='+1',password='Synthetic@123456',consent=True)
 
 @pytest.mark.parametrize('patch',[{'mobile':'98765432101'},{'mobile_country_code':None},{'email':'invalid'},{'full_name':'   '},{'date_of_birth':'2025-02-30'},{'date_of_birth':'2099-01-01'},{'tenth_marks':101},{'tenth_marks':-1},{'tenth_marks':True},{'tenth_marks':float('inf')},{'gender':'tampered'},{'state':'tampered'},{'degree':'tampered'},{'consent':False},{'identity_type':'PAN','identity_number':'bad'}])
 def test_api_bypass_rejected(client,valid_application,patch):
@@ -54,6 +54,27 @@ def test_valid_application_keeps_leading_zero_and_optional_blank(valid_applicati
     record=ApplicationInput(**valid_application)
     assert record.mobile=='0001234567' and record.mobile_country_code=='+1'
     assert record.twelfth_marks is None and record.skills=='Python'
+
+@pytest.mark.parametrize('value',['','12345','1234567','012345','12 456','12345a','５２０００１',520001,None])
+def test_application_rejects_invalid_pincode(valid_application,value):
+    with pytest.raises(ValidationError):ApplicationInput(**{**valid_application,'pincode':value})
+
+def test_application_requires_and_preserves_pincode(valid_application):
+    assert ApplicationInput(**valid_application).model_dump()['pincode']=='520001'
+    values={**valid_application};values.pop('pincode')
+    with pytest.raises(ValidationError):ApplicationInput(**values)
+
+@pytest.mark.parametrize('year',[2026,2027])
+@pytest.mark.parametrize('status',['Graduated','3rd Year'])
+def test_passout_year_uses_current_year_for_all_applicants(monkeypatch,valid_application,year,status):
+    from datetime import date
+    from app.apps.interns_hub import applications
+    monkeypatch.setattr(applications,'today',lambda:date(year,1,1))
+    values={**valid_application,'current_year':status,'available_from':f'{year}-01-01'}
+    assert ApplicationInput(**{**values,'passout_year':year}).passout_year==year
+    assert ApplicationInput(**{**values,'passout_year':1970}).passout_year==1970
+    for invalid in (1969,year+1,True,float(year),str(year)):
+        with pytest.raises(ValidationError):ApplicationInput(**{**values,'passout_year':invalid})
 
 @pytest.mark.parametrize('folder,prefix',[('alembic',''),('alembic_postgresql','pg_')])
 def test_migration_is_retryable_and_never_guesses_country(tmp_path,folder,prefix):

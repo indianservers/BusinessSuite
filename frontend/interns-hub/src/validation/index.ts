@@ -3,6 +3,9 @@ import contract from './contract.json';
 export { contract };
 export const PHONE_ERROR=contract.phone_error;
 export const NATIONAL_PHONE_LENGTH=contract.national_phone_length;
+export function passoutYears(today:string) {
+  return Array.from({length:Math.max(0,Number(today.slice(0,4))-1970+1)},(_,index)=>String(1970+index));
+}
 export const phoneFields=new Set(['mobile','mobile_number','phone','phone_number','alternate_phone','whatsapp_number','emergency_contact','emergency_contact_number','contact_phone','contact_number','business_phone_number','primary_phone','secondary_phone']);
 export function phoneError(number:unknown,code:unknown,required=false) {
   if(!required&&(number===''||number==null))return '';
@@ -37,6 +40,7 @@ export function applicationErrors(form:Record<string,string>,roles:string[],toda
   for(const [key,max] of Object.entries({full_name:160,parent_name:160,city:100,college:200,specialization:150,skills:1000,address:200}))set(key,textError(form[key],max,true,key==='address'));
   if(form.college.trim().length<2)errors.college='Use at least 2 characters.';
   if(form.address.trim().length<5)errors.address='Use at least 5 characters.';
+  if(!/^[1-9][0-9]{5}$/.test(form.pincode || ''))errors.pincode='Enter a valid 6-digit PIN code.';
   set('email',emailError(form.email,true));
   set('mobile',phoneError(form.mobile,form.mobile_country_code,true));
   set('emergency_contact',phoneError(form.emergency_contact,form.emergency_contact_country_code,true));
@@ -50,8 +54,7 @@ export function applicationErrors(form:Record<string,string>,roles:string[],toda
   const validDate=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
   if(!validDate(form.date_of_birth)||form.date_of_birth>=today)errors.date_of_birth='Enter a real date of birth in the past.';
   if(!validDate(form.available_from)||form.available_from<today)errors.available_from='Availability must be today or later.';
-  if(!/^[0-9]{4}$/.test(form.passout_year)||Number(form.passout_year)<1970||Number(form.passout_year)>2100)errors.passout_year='Select a pass-out year from 1970 to 2100.';
-  if(form.current_year==='Graduated'&&Number(form.passout_year)>Number(today.slice(0,4)))errors.passout_year='A completed degree cannot have a future pass-out year.';
+  if(!passoutYears(today).includes(form.passout_year))errors.passout_year=`Select a pass-out year from 1970 to ${today.slice(0,4)}.`;
   for(const key of ['linkedin','portfolio','github'])if(form[key]){try{const u=new URL(form[key]);if(!['http:','https:'].includes(u.protocol)||/\s/.test(form[key]))throw Error();}catch{errors[key]='Enter a complete HTTP or HTTPS URL.';}}
   const skills=form.skills.split(',').map(value=>value.trim());
   if(skills.length>30||skills.some(value=>!value||value.length>80))errors.skills='Enter up to 30 comma-separated skills, each 1–80 characters.';

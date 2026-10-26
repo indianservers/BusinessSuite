@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { hub, send, FieldValidationError } from "./api";
 import { PhoneInput } from './validation/PhoneInput';
-import { applicationErrors, contract } from './validation';
+import { applicationErrors, contract, passoutYears } from './validation';
 import { Logo, formatDate } from "./ui";
 import "./application.css";
 
@@ -107,6 +107,7 @@ const defaults: Form = {
   available_from: "",
   duration: "",
   address: "",
+  pincode: "",
   linkedin: "",
   emergency_contact: "",
   emergency_contact_country_code:'+91',
@@ -242,9 +243,7 @@ const baseFields: Field[] = [
     key: "passout_year",
     label: "Year of Passout",
     icon: CalendarDays,
-    options: Array.from({ length: 16 }, (_, i) =>
-      String(new Date().getFullYear() - 8 + i),
-    ),
+    options: [],
   },
   {
     key: "area_of_interest",
@@ -299,6 +298,12 @@ const baseFields: Field[] = [
     type: "textarea",
     placeholder: "Enter your current address",
     span: "wide",
+  },
+  {
+    key: "pincode",
+    label: "PIN Code",
+    icon: MapPin,
+    placeholder: "Enter 6-digit PIN code",
   },
   {
     key: "linkedin",
@@ -412,10 +417,11 @@ function ApplicationField({
   field,
   value,
   onChange,
-  countryCode,onCountryCodeChange,error,onBlur,readOnly,
+  countryCode,onCountryCodeChange,error,onBlur,readOnly,today,
 }: {
   field: Field;
   value: string;
+  today: string;
   readOnly?: boolean;
   onChange: (value: string) => void;
   countryCode?:string;onCountryCodeChange?:(value:string)=>void;error?:string;onBlur?:()=>void;
@@ -423,10 +429,10 @@ function ApplicationField({
   const { key, label, icon: Icon, type, options, placeholder } = field;
   const required = field.required !== false;
   const max =
-    key === "date_of_birth" ? new Date().toISOString().slice(0, 10) : undefined;
+    key === "date_of_birth" ? new Date(Date.parse(today+'T00:00:00Z')-86400000).toISOString().slice(0,10) : undefined;
   const min =
     key === "available_from"
-      ? new Date().toLocaleDateString("en-CA")
+      ? today
       : type === "number"
         ? "0"
         : undefined;
@@ -488,19 +494,21 @@ function ApplicationField({
           id={`application-${key}`}
           type={type || "text"}
           readOnly={readOnly}
+          inputMode={key === 'pincode' ? 'numeric' : undefined}
+          pattern={key === 'pincode' ? '[1-9][0-9]{5}' : undefined}
           required={required}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur} aria-invalid={!!error} aria-describedby={error?`application-${key}-error`:undefined}
           placeholder={placeholder}
           maxLength={
-            key === "identity_number" ? 40 : key === "skills" ? 1000 : ['full_name','parent_name'].includes(key)?160:key==='email'?150:['city','state'].includes(key)?100:key==='specialization'?150:200
+            key === 'pincode' ? 6 : key === "identity_number" ? 40 : key === "skills" ? 1000 : ['full_name','parent_name'].includes(key)?160:key==='email'?150:['city','state'].includes(key)?100:key==='specialization'?150:200
           }
           min={min}
           max={type === "number" ? "100" : max}
           step={type === "number" ? "0.01" : undefined}
           autoComplete={
-            key === "email"
+            key === 'pincode' ? 'postal-code' : key === "email"
               ? "email"
               : key === "full_name"
                 ? "name"
@@ -533,7 +541,7 @@ export function ApplicationPage({applicant}:{applicant:{email:string;full_name:s
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<any>();
   const [roles, setRoles] = useState<string[]>([]);
-  const [serverToday,setServerToday]=useState(new Date().toLocaleDateString('en-CA'));
+  const [serverToday,setServerToday]=useState(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}));
   const [touched,setTouched]=useState<Record<string,boolean>>({});
   const [attempted,setAttempted]=useState(false);
   const [serverErrors,setServerErrors]=useState<Record<string,string>>({});
@@ -559,7 +567,7 @@ export function ApplicationPage({applicant}:{applicant:{email:string;full_name:s
     }
   }, []);
   const errors={...applicationErrors(form,roles,serverToday),...serverErrors};
-  const choiceMap:Record<string,string[]>={degree:contract.degrees,current_year:contract.current_years,state:contract.states,area_of_interest:contract.areas,passout_year:Array.from({length:131},(_,index)=>String(1970+index))};
+  const choiceMap:Record<string,string[]>={degree:contract.degrees,current_year:contract.current_years,state:contract.states,area_of_interest:contract.areas,passout_year:passoutYears(serverToday)};
   const fields=baseFields.map(field=>({...field,options:field.key==='role'?roles:choiceMap[field.key]||field.options}));
   function change(key:string,value:string){setForm(current=>({...current,[key]:value}));setServerErrors(current=>{const next={...current};delete next[key];return next;});}
   function focusError(issues:Record<string,string>){const first=baseFields.find(field=>issues[field.key]);if(first)document.getElementById(`application-${first.key}`)?.focus();}
@@ -714,12 +722,13 @@ export function ApplicationPage({applicant}:{applicant:{email:string;full_name:s
                       {name:"Personal details",keys:["full_name","parent_name","mobile","email","identity_type","identity_number","gender","date_of_birth"]},
                       {name:"Education",keys:["degree","current_year","college","specialization","passout_year","tenth_marks","twelfth_marks"]},
                       {name:"Internship preferences",keys:["employment_type","department","role","area_of_interest","skills","mode","available_from","duration","portfolio","github","linkedin"]},
-                      {name:"Address & emergency contact",keys:["address","city","state","emergency_contact"]},
+                      {name:"Address & emergency contact",keys:["address","city","state","pincode","emergency_contact"]},
                     ].map(group => <fieldset className="application-field-group" key={group.name}>
                       <legend>{group.name}</legend><div className="application-fields">
                         {fields.filter(field => group.keys.includes(field.key)).map((field) => (
                       <ApplicationField
                         key={field.key}
+                        today={serverToday}
                         field={{...field,span:group.name === "Personal details" ? "half" : field.span}}
                         value={form[field.key]}
                         readOnly={field.key === "email"}

@@ -11,9 +11,9 @@ def application_payload():
     return dict(full_name="Ananya Rao", parent_name="Parent Rao", mobile="9876543210", mobile_country_code="+91", email="applicant@example.com",
         identity_type="Other", identity_number="TEST-ID-1234", gender="Female", date_of_birth="2003-03-15",
         city="Hyderabad", state="Telangana", tenth_marks=92, twelfth_marks=88, degree="B.Tech / B.E.",
-        current_year="3rd Year", college="Example University", specialization="Computer Science", passout_year=today().year+1,
+        current_year="3rd Year", college="Example University", specialization="Computer Science", passout_year=today().year,
         area_of_interest="Software Development", skills="Python, React", role="Software Development Intern", mode="Remote",
-        available_from=str(today()), duration="3 Months", address="Example Road, Hyderabad", linkedin=None,
+        available_from=str(today()), duration="3 Months", address="Example Road, Hyderabad", pincode="500001", linkedin=None,
         emergency_contact="9123456789", emergency_contact_country_code="+91", password="Applicant@123456", consent=True)
 
 
