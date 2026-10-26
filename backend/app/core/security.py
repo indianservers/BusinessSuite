@@ -10,11 +10,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 logger = logging.getLogger(__name__)
 
 
-def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None, session_id: int | None = None, portal: str | None = None) -> str:
+def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None, session_id: int | None = None, portal: str | None = None, ai_origin: dict | None = None) -> str:
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
+    if ai_origin is not None:
+        to_encode["ai_origin"]=ai_origin
     if portal:
         to_encode["portal"] = portal
     if session_id is not None:

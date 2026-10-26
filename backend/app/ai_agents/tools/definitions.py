@@ -77,3 +77,7 @@ CROSS_MODULE_TOOLS = [
 ]
 
 ALL_TOOL_DEFINITIONS = CRM_TOOLS + PMS_TOOLS + HRMS_TOOLS + CROSS_MODULE_TOOLS
+
+# Every capability has an explicit backend permission; personal records still require native scope.
+from dataclasses import replace
+ALL_TOOL_DEFINITIONS = [replace(tool, required_permission=tool.required_permission or "employee_view") for tool in ALL_TOOL_DEFINITIONS]

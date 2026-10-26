@@ -16,6 +16,7 @@ from app.db.base_class import Base
 
 class AssistantConversation(Base):
     __tablename__ = "pms_assistant_conversations"
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True)
     organization_id = Column(Integer, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
@@ -33,6 +34,7 @@ class AssistantMessage(Base):
             "conversation_id", "request_key", name="uq_assistant_message_request"
         ),
     )
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True)
     conversation_id = Column(
         Integer,

@@ -250,12 +250,18 @@ class TenantSubscriptionPlan(Base):
     code = Column(String(60), unique=True, nullable=False, index=True)
     name = Column(String(120), nullable=False)
     features_json = Column(JSON, default=list)
+    config_json = Column(JSON, default=dict)
+    version = Column(Integer, nullable=False, default=1, server_default="1")
     active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class TenantSubscription(Base):
     __tablename__ = "tenant_subscriptions"
+
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, unique=True, index=True)
+    config_json = Column(JSON, default=dict)
+    version = Column(Integer, nullable=False, default=1, server_default="1")
 
     id = Column(Integer, primary_key=True, index=True)
     plan_id = Column(Integer, ForeignKey("tenant_subscription_plans.id", ondelete="SET NULL"), nullable=True, index=True)

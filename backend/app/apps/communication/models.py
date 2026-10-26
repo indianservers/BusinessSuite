@@ -7,6 +7,7 @@ from app.db.base_class import Base
 class CommunicationEmailTemplate(Base):
     __tablename__ = "communication_email_templates"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(180), nullable=False, index=True)
     subject = Column(String(240), nullable=False)
@@ -23,6 +24,7 @@ class CommunicationEmailTemplate(Base):
 class CommunicationEmailMessage(Base):
     __tablename__ = "communication_email_messages"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     related_record_type = Column(String(80), nullable=False, index=True)
     related_record_id = Column(Integer, nullable=False, index=True)
@@ -190,6 +192,7 @@ class CommunicationWhatsAppTemplate(Base):
 class CommunicationTimelineEvent(Base):
     __tablename__ = "communication_timeline_events"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     record_type = Column(String(80), nullable=False, index=True)
     record_id = Column(Integer, nullable=False, index=True)
@@ -205,6 +208,7 @@ class CommunicationTimelineEvent(Base):
 class CommunicationDeliveryLog(Base):
     __tablename__ = "communication_delivery_logs"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     channel = Column(String(40), nullable=False, index=True)
     related_message_id = Column(Integer, nullable=True, index=True)

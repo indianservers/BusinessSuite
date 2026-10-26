@@ -1,0 +1,9 @@
+{
+  "database": "isolated disposable PostgreSQL database",
+  "restored": true,
+  "probeData": "verified",
+  "schemaMigrationHead": "verified present",
+  "fileBytes": "verified",
+  "elapsedSeconds": 9.72,
+  "productionRtoMeasured": false
+}

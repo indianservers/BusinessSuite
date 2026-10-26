@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import "./access.css";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ControlNav } from "./ControlCenter";
 
 type Grant = {
   enabled: boolean;
@@ -33,6 +35,7 @@ type Person = {
   department?: string;
   departmentId?: number;
   branchId?: number;
+  branch?: string;
   companyId: number;
   role?: string;
   status: string;
@@ -51,6 +54,8 @@ type Module = {
   route: string;
   permissions: { name: string; description: string; group: string }[];
   routeCount: number;
+  actions?: string[];
+  scopes?: string[];
 };
 type Catalog = {
   modules: Module[];
@@ -212,7 +217,7 @@ function ModuleEditor({
               </label>
               <h4>Actions</h4>
               <div className="ua-check-grid">
-                {catalog.actions.map((a) => (
+                {(m.actions || catalog.actions).map((a) => (
                   <label key={a}>
                     <input
                       type="checkbox"
@@ -283,9 +288,13 @@ export default function UsersAccessPage() {
   const [catalog, setCatalog] = useState<Catalog>();
   const [data, setData] = useState<any>();
   const [templates, setTemplates] = useState<any[]>([]);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState("Matrix");
   const [filters, setFilters] = useState({
     search: "",
+    sort: "name",
+    descending: "",
     role: "",
     status: "",
     branch: "",
@@ -315,6 +324,18 @@ export default function UsersAccessPage() {
   const [templateMode, setTemplateMode] = useState("merge");
   const [templateMeta, setTemplateMeta] = useState<any>();
   const [createMode, setCreateMode] = useState<"add" | "invite">();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const requested = params.get("tab");
+    if (requested && ["Matrix", "User listing", "Roles", "Templates", "Audit", "Insights"].includes(requested)) setTab(requested);
+    if (params.get("action") === "add" || params.get("action") === "invite") {
+      setCreateMode(params.get("action") as "add" | "invite");
+      params.delete("action");
+      navigate({pathname: location.pathname, search: params.toString()}, {replace: true});
+    }
+    if (params.get("module")) setFilters(f => ({...f, module: params.get("module") || ""}));
+  }, [location.search]);
+
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "" });
   const [invitation, setInvitation] = useState("");
   const [cloneFrom, setCloneFrom] = useState("");
@@ -563,6 +584,7 @@ export default function UsersAccessPage() {
   const virtualUsers = users.slice(first, first + 24);
   return (
     <div className="ua-root">
+      <ControlNav />
       <header className="ua-header">
         <div>
           <span className="ua-eyebrow">MASTER SUITE / SUPER ADMIN</span>
@@ -685,7 +707,7 @@ export default function UsersAccessPage() {
       </nav>
       {["Matrix", "User listing"].includes(tab) && (
         <>
-          <div className="ua-filters">
+          <div className="ua-filters"><select aria-label="Sort users" value={filters.sort} onChange={e => changeFilter("sort", e.target.value)}>{["name", "email", "role", "status", "lastLogin"].map(k => <option key={k} value={k}>Sort: {k}</option>)}</select><select aria-label="Sort direction" value={filters.descending} onChange={e => changeFilter("descending", e.target.value)}><option value="">Ascending</option><option value="true">Descending</option></select>
             <label className="ua-search">
               <Search size={16} />
               <input
@@ -887,6 +909,7 @@ export default function UsersAccessPage() {
                         "Email",
                         "Employee ID",
                         "Department",
+                        "Branch",
                         "Company",
                         "Account type",
                         "Modules",
@@ -935,6 +958,7 @@ export default function UsersAccessPage() {
                           <strong>{u.name}</strong>
                           <small>{u.department || u.email}</small>
                         </button>
+                        <Link aria-label={`Access profile for ${u.name}`} to={`/admin/control/users/${u.id}`}>360</Link>
                         {u.isSuperuser && (
                           <ShieldCheck
                             size={14}
@@ -983,7 +1007,7 @@ export default function UsersAccessPage() {
                       })
                     ) : (
                       <>
-                        <td>{u.email}</td>
+                        <td>{u.email}<Link className="ml-2 text-primary" to={`/admin/control/users/${u.id}`}>Access 360�</Link></td>
                         <td>{u.employeeCode || "—"}</td>
                         <td>{u.department || "—"}</td>
                         <td>
@@ -1858,7 +1882,7 @@ export default function UsersAccessPage() {
             </p>
             {roleEdit.affectedUsers?.map((u: Person) => (
               <p key={u.id}>
-                {u.name} · {u.email}
+                {u.name} · {u.email}<Link className="ml-2 text-primary" to={`/admin/control/users/${u.id}`}>Access 360�</Link>
               </p>
             ))}
             <label>

@@ -25,6 +25,9 @@ def resolve_provider(db, user, provider, workspace_id=None):
     rows = db.query(OperatorProvider).filter(OperatorProvider.scope_key.in_(sources), OperatorProvider.provider == 'gemini',
         OperatorProvider.allow_workspace_inheritance.is_(True)).all() if sources else []
     # Ambiguous private workspace sponsorship must be resolved by a workspace override.
+    if workspace.organization_id is None:
+        owner_ids={owner.id for owner in owners}
+        rows=[row for row in rows if not row.scope_key.startswith("company:") or row.updated_by in owner_ids]
     return rows[0] if len(rows) == 1 else None
 
 

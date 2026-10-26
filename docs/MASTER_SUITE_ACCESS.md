@@ -1,12 +1,14 @@
 # Master Suite: Users & Access
 
+The subsequent [Phase 1 control-center report](MASTER_SUITE_PHASE1.md) documents the dashboard, organization hierarchy, company entitlements, security center, audit consolidation and latest rollout requirements.
+
 The existing Business Suite shell now includes `/admin/access` for global Super Admins and explicitly delegated organization administrators. The compact user × module matrix uses the live backend catalog; screenshot examples are not seeded production users or counts. Account activation uses `/invite-access` and the existing password-reset mechanism.
 
 ## Discovery
 
 The registry and router inventory discovers 18 access groups: HRMS, CRM, Project Management, SRM, Finance (FAM), Interns Hub, Forms, Scheduling, Approvals, Audit, Automation, Customization, Communication, Analytics, AI, Security, SaaS, and Business OS. Five are registered product modules; the others are shared functional groups. Sales, quotes, tasks, inventory and invoicing remain within their existing applications rather than becoming duplicate applications.
 
-The generated [discovery inventory](qa/suite-access/discovery.json) records 2,196 HTTP route definitions, 204 seeded permission names and 35 seeded role definitions. Discovery is an integration inventory, not proof that every route has an independently exercised security test.
+The generated [discovery inventory](qa/suite-access/discovery.json), refreshed after Phase 1, records 2,210 HTTP route definitions, 204 seeded permission names and 35 seeded role definitions. Discovery is an integration inventory, not proof that every route has an independently exercised security test.
 
 ## Architecture and behavior
 

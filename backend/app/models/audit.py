@@ -8,9 +8,11 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
     __table_args__ = (
         Index("idx_audit_log_entity", "entity_type", "entity_id", "created_at"),
+        Index("ix_audit_company_time_status", "organization_id", "created_at", "status_code"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     method = Column(String(10), nullable=False)
     endpoint = Column(String(500))

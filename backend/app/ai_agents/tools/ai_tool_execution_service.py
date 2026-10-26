@@ -30,7 +30,18 @@ class AiToolExecutionService:
         self.db = db
         self.registry = AiToolRegistryService(db)
 
-    def execute_tool(
+    def execute_tool(self, **kwargs):
+        from app.ai_agents.security import authorize_tool,strict_input
+        tool=self.registry.get_tool(kwargs.get("tool_name"))
+        try:
+            authorize_tool(self.db,kwargs["user"],"legacy",kwargs.get("tool_name"),tool)
+            strict_input(tool.input_schema,kwargs.get("input"))
+        except HTTPException as exc:
+            name=kwargs.get("tool_name","")
+            return self._fail(kwargs["user"],None,tool.module if tool else "CROSS",name,{},"AI_POLICY_DENIED",str(exc.detail),kwargs.get("ip_address"),kwargs.get("user_agent"),{"tool_name":name,"module":tool.module if tool else None,"requires_approval":False,"approval_id":None})
+        return self._execute_tool(**kwargs)
+
+    def _execute_tool(
         self,
         *,
         user: User,
@@ -84,7 +95,7 @@ class AiToolExecutionService:
                 result = {**base, "success": False, "error_code": code, "message": str(exc.detail), "data": None}
                 self._audit(user, agent, tool.module, "AI_TOOL_FAILED", tool_name, input, result, "failed", ip_address, user_agent, related_entity_type, related_entity_id)
                 return result
-            approval = self._create_approval(user, agent, tool, proposed_data, conversation_id, related_entity_type, related_entity_id)
+            approval = self._create_approval(user, agent, tool, {"arguments":input,"preview":proposed_data}, conversation_id, related_entity_type, related_entity_id)
             AiUsageService(self.db).record_event(user=user, agent_id=agent.id, module=tool.module, event_type="approval_created")
             result = {
                 **base,
@@ -122,7 +133,7 @@ class AiToolExecutionService:
             self._audit(user, agent, tool.module, "AI_TOOL_FAILED", tool_name, input, result, "failed", ip_address, user_agent, related_entity_type, related_entity_id)
             return result
         except Exception as exc:
-            result = {**base, "success": False, "error_code": "TOOL_EXECUTION_FAILED", "message": str(exc), "data": None}
+            result = {**base, "success": False, "error_code": "TOOL_EXECUTION_FAILED", "message": "AI tool execution failed; see the correlated security event.", "data": None}
             self._audit(user, agent, tool.module, "AI_TOOL_FAILED", tool_name, input, result, "failed", ip_address, user_agent, related_entity_type, related_entity_id)
             return result
 
@@ -135,7 +146,10 @@ class AiToolExecutionService:
             "cross": CrossModuleAiAdapter(self.db),
         }[namespace]
         method = getattr(adapter, method_name)
-        return method(user, input)
+        from app.ai_agents.security import scoped,bounded_result,MODULES
+        module=MODULES.get(tool.module,"ai")
+        with scoped(self.db,user,module):
+            return bounded_result(self.db,user,method(user,input))
 
     def _effective_scope(self, user: User, agent: AiAgent) -> str:
         if user.is_superuser:
@@ -175,7 +189,7 @@ class AiToolExecutionService:
             action_type=tool.action_type or tool.tool_name,
             related_entity_type=related_entity_type,
             related_entity_id=related_entity_id,
-            proposed_action_json={"tool_name": tool.tool_name, "input": input},
+            proposed_action_json={"tool_name": tool.tool_name, "input": input["arguments"], "preview":input["preview"]},
             status="pending",
         )
         self.db.add(approval)

@@ -47,6 +47,8 @@ class AiAgentTool(Base):
 class AiConversation(Base):
     __tablename__ = "ai_conversations"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     agent_id = Column(Integer, ForeignKey("ai_agents.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -79,6 +81,8 @@ class AiMessage(Base):
 class AiActionApproval(Base):
     __tablename__ = "ai_action_approvals"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True, index=True)
     conversation_id = Column(Integer, ForeignKey("ai_conversations.id", ondelete="CASCADE"), nullable=True, index=True)
     agent_id = Column(Integer, ForeignKey("ai_agents.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -107,6 +111,10 @@ class AiActionApproval(Base):
 class AiAuditLog(Base):
     __tablename__ = "ai_audit_logs"
 
+    organization_id = Column(Integer, nullable=True, index=True)
+    session_id = Column(Integer, nullable=True)
+    correlation_id = Column(String(64), nullable=True, index=True)
+    event_key = Column(String(64), nullable=True, unique=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     agent_id = Column(Integer, ForeignKey("ai_agents.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -241,6 +249,8 @@ class AiMessageFeedback(Base):
 
 class AiHandoffNote(Base):
     __tablename__ = "ai_handoff_notes"
+    organization_id = Column(Integer, ForeignKey("companies.id"), index=True)
+    security_context = Column(JSON)
 
     id = Column(Integer, primary_key=True, index=True)
     conversation_id = Column(Integer, ForeignKey("ai_conversations.id", ondelete="CASCADE"), nullable=True, index=True)
@@ -257,3 +267,10 @@ class AiHandoffNote(Base):
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+from sqlalchemy import event as _ai_event
+@_ai_event.listens_for(AiAuditLog,"before_update")
+@_ai_event.listens_for(AiAuditLog,"before_delete")
+def _protect_ai_audit(mapper,connection,target):
+    raise ValueError("AI audit events are append-only")

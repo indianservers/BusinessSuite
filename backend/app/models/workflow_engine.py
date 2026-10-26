@@ -7,6 +7,7 @@ from app.db.base_class import Base
 class WorkflowDefinition(Base):
     __tablename__ = "workflow_definitions"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(160), nullable=False)
     module = Column(String(80), nullable=False, index=True)
@@ -50,6 +51,7 @@ class WorkflowStepDefinition(Base):
 class WorkflowInstance(Base):
     __tablename__ = "workflow_instances"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     workflow_id = Column(Integer, ForeignKey("workflow_definitions.id", ondelete="SET NULL"), nullable=True, index=True)
     module = Column(String(80), nullable=False, index=True)
@@ -93,6 +95,7 @@ class WorkflowTask(Base):
 class WorkflowDelegation(Base):
     __tablename__ = "workflow_delegations"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     delegator_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     delegator_role = Column(String(120), index=True)

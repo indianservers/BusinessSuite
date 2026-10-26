@@ -27,8 +27,8 @@ from app.models.user import User
 
 
 def company_id_for(user: User) -> int | None:
-    employee = getattr(user, "employee", None)
-    return getattr(employee, "organization_id", None) or getattr(user, "company_id", None)
+    from app.ai_agents.security import company
+    return company(user)
 
 
 def permission_names(user: User) -> set[str]:
@@ -123,7 +123,7 @@ class AiPromptSecurityService:
 class AiDataRedactionService:
     SECRET_PATTERNS = [
         (re.compile(r"sk-[A-Za-z0-9_-]{20,}"), "[REDACTED_SECRET]"),
-        (re.compile(r"(?i)(api[_-]?key|token|password|otp)\s*[:=]\s*['\"]?[^\\s,'\"]+"), r"\1=[REDACTED_SECRET]"),
+        (re.compile(r"(?i)(api[_-]?key|token|password|otp)\s*[:=]\s*['\"]?[^\s,'\"]+"), r"\1=[REDACTED_SECRET]"),
         (re.compile(r"\b\d{12,16}\b"), "[REDACTED_BANK_DETAILS]"),
         (re.compile(r"\b\d{4}\s?\d{4}\s?\d{4}\b"), "[REDACTED_PERSONAL_ID]"),
     ]

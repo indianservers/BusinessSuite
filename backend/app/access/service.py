@@ -51,7 +51,7 @@ def schema_ready(db):
     return db.info["suite_access_schema_ready"]
 
 
-def legacy_grants(db, user):
+def legacy_grants(db, user, company=None):
     names = {p.name for p in (user.role.permissions if user.role else [])}
     by_module = {}
     for module in catalog(db):
@@ -81,7 +81,13 @@ def legacy_grants(db, user):
             by_module["interns_hub"].update(
                 role="Intern", actions=["view", "create", "edit"], scope="own"
             )
-    return by_module
+    from app.access.entitlements import apply
+
+    return apply(
+        db,
+        company or getattr(user, "organization_id", None) or primary_company(user),
+        by_module,
+    )
 
 
 def resolved_grants(db, policy):
@@ -104,7 +110,9 @@ def resolved_grants(db, policy):
                     actions=role.actions,
                     scope=grant.get("scope") or role.scope,
                 )
-    return grants
+    from app.access.entitlements import apply
+
+    return apply(db, policy.company_id, grants)
 
 
 def validate_grants(db, grants, company):
@@ -186,7 +194,7 @@ def snapshot(db, user, company):
     employee = getattr(user, "employee", None)
     person = getattr(user, "person", None)
     grants = (
-        legacy_grants(db, user)
+        legacy_grants(db, user, company)
         if not policy or user.is_superuser
         else resolved_grants(db, policy)
     )
@@ -223,6 +231,8 @@ def snapshot(db, user, company):
             else "active" if user.is_active else "deactivated"
         ),
         "lastLogin": user.last_login.isoformat() if user.last_login else None,
+        "updatedAt": user.updated_at.isoformat() if user.updated_at else None,
+        "branch": employee.branch.name if employee and employee.branch else None,
         "version": policy.version if policy else 0,
         "managed": bool(policy),
         "grants": grants,
@@ -248,6 +258,11 @@ def audit(
         request.headers.get("authorization", "").partition(" ")[2] if request else ""
     )
     payload = verify_access_token(token) or {} if token else {}
+    if request:
+        after = {
+            **(after or {}),
+            "requestId": getattr(request.state, "request_id", None),
+        }
     db.add(
         AccessAudit(
             actor_id=actor.id,
@@ -310,7 +325,7 @@ def apply_user(db, actor, target, company, patch, reason, request):
         policy = AccessPolicy(
             user_id=target.id,
             company_id=company,
-            grants=legacy_grants(db, target),
+            grants=legacy_grants(db, target, company),
             version=0,
         )
         db.add(policy)
@@ -364,6 +379,13 @@ def bind_authorization(db, user, request):
         reset_authorization(user)
         raise HTTPException(403, "Access to this organization is " + policy.status)
     module = request_module(request)
+    from app.access.entitlements import enforce
+
+    enforce(db, company, module)
+    from app.enterprise.controls import governance_module_check
+    governance_module_check(db,user,company,module,action_for(request))
+    from app.enterprise.controls import reserve_api_request
+    reserve_api_request(db,user,company,module)
     user._suite_current_module = module
     if user._suite_grants is None:
         user._suite_permission_objects = list(
@@ -429,6 +451,11 @@ def effective_objects(db, grants, module=None):
 
 def check_background_access(db, user, module, action="view"):
     company = getattr(user, "organization_id", None) or primary_company(user)
+    from app.access.entitlements import enforce
+
+    enforce(db, company, module)
+    from app.enterprise.controls import governance_module_check
+    governance_module_check(db,user,company,module,action)
     policy = policy_for(db, user, company)
     if user.is_superuser or not policy:
         return None

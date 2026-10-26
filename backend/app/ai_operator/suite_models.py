@@ -7,6 +7,7 @@ from app.db.base_class import Base
 class SuiteRun(Base):
     __tablename__ = 'ai_suite_runs'
     __table_args__ = (UniqueConstraint('user_id', 'request_key', name='uq_suite_user_request'),)
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     session_id = Column(Integer, ForeignKey('user_sessions.id'), nullable=True)

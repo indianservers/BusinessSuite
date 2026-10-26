@@ -171,7 +171,11 @@ def test_assistant_customer_ambiguity_and_unauthorized_history(
     )
     db.add(user)
     db.commit()
-    headers = {"Authorization": f"Bearer {create_access_token(user.id)}"}
+    from app.models.user import UserSession
+    from datetime import datetime,timedelta,timezone
+    session=UserSession(user_id=user.id,session_token_hash="isolated-test-session",status="Active",expires_at=datetime.now(timezone.utc)+timedelta(hours=1))
+    db.add(session);db.commit()
+    headers = {"Authorization": f"Bearer {create_access_token(user.id,session_id=session.id)}"}
     assert (
         client.get(f"{BASE}/conversations/{conversation}", headers=headers).status_code
         == 404
@@ -356,12 +360,11 @@ def test_revoked_financial_permission_and_changed_tenant_cannot_use_history(
         p for p in user.role.permissions if p.name != "srm_invoice_create"
     ]
     db.commit()
-    assert confirm(client, headers, conv, m).status_code == 403
+    assert confirm(client, headers, conv, m).status_code == 404
     history = client.get(f"{BASE}/conversations/{conv}", headers=headers)
-    assert (
-        history.status_code == 200
-        and history.json()["messages"][0]["card"]["kind"] == "notice"
-    )
+    assert history.status_code == 404
+    from app.models.company import Company
+    if not db.get(Company,2):db.add(Company(id=2,name="Other isolated tenant"));db.flush()
     db.add(
         CommonPerson(
             user_id=user.id, organization_id=2, display_name="Tenant reassigned"

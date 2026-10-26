@@ -38,6 +38,9 @@ def access(db, user, project_id):
 def items(db, user, project_id, kind=None):
     _, scope = access(db, user, project_id)
     q = db.query(AssistantArtifact).filter_by(user_id=user.id, project_id=project_id, scope_key=scope)
+    from app.ai_agents.security import fingerprint, company
+    q = q.filter(AssistantArtifact.security_context["fingerprint"].as_string() == fingerprint(db,user,company(user)),
+                 AssistantArtifact.security_context["company_id"].as_integer() == company(user))
     return q.filter_by(kind=kind) if kind else q
 
 
@@ -48,6 +51,8 @@ def owned(db, user, ident, lock=False):
         raise HTTPException(404, 'Assistant item not found')
     if access(db, user, row.project_id)[1] != row.scope_key:
         raise HTTPException(403, 'Project scope changed')
+    from app.ai_agents.security import verify
+    verify(db, user, row.security_context, history=True)
     return row
 
 
@@ -199,8 +204,15 @@ def project_today(db,user,project_id):
 
 
 def memory_context(db,user,project_id):
-    return [{'id':r.id,'category':r.payload.get('category','preference'),'text':r.payload['text']}
-            for r in items(db,user,project_id,'memory').order_by(AssistantArtifact.id.desc()).limit(20)]
+    from app.ai_agents.security import verify
+    result = []
+    for r in items(db,user,project_id,'memory').order_by(AssistantArtifact.id.desc()).limit(20):
+        try:
+            verify(db,user,r.security_context,history=True)
+        except HTTPException:
+            continue  # Retain quarantined history without disclosing it to the model.
+        result.append({'id':r.id,'category':r.payload.get('category','preference'),'text':r.payload['text']})
+    return result
 
 
 class PlanInput(Strict):

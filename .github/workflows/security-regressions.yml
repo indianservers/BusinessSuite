@@ -23,7 +23,8 @@ jobs:
           tests/test_security_employee_scope.py tests/test_security_files_and_formulas.py
           tests/test_security_test_isolation.py tests/test_shared_batch_migration.py
           tests/test_security_employee_passwords.py tests/test_security_logging.py
-          tests/test_security_realtime.py
+          tests/test_security_realtime.py tests/test_ai_zero_trust.py tests/test_ai_workflow_boundary.py
+          tests/test_ai_operator.py tests/test_suite_operator.py tests/test_pms_assistant.py
           tests/test_intern_evidence_storage.py tests/test_intern_applications.py
           tests/test_intern_management.py tests/test_interns_hub.py -q
         working-directory: backend

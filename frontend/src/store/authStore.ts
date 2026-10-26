@@ -29,7 +29,7 @@ export interface AuthUser {
   primary_role?: string | null;
   is_superuser: boolean;
   employee_id?: number | null;
-  access?: { managed: boolean; companyId: number; grants: Record<string, { enabled: boolean; role: string; scope: string; permissions: string[]; actions: string[] }>; modules: { key: string; route: string; label: string; navigationPaths?: string[] }[]; isAccessAdmin: boolean; isGlobalAdmin: boolean; memberships: number[] };
+  access?: { companyDisabledModules?: string[]; managed: boolean; companyId: number; grants: Record<string, { enabled: boolean; role: string; scope: string; permissions: string[]; actions: string[] }>; modules: { key: string; route: string; label: string; navigationPaths?: string[] }[]; isAccessAdmin: boolean; isGlobalAdmin: boolean; memberships: number[] };
 }
 
 interface AuthState {

@@ -25,6 +25,9 @@ def isolate_generic_http_audit(monkeypatch):
 
 
 def setup_operator(client, db, provider="openai"):
+    from app.models.company import Company
+    if not db.get(Company,1):
+        db.add(Company(id=1,name="AI test company"));db.commit()
     headers, user = auth_headers(client, db, email=f"operator-{uuid4().hex}@example.com",
         permissions=["ai_assistant", "settings_manage", "pms_manage_projects", "pms_manage_tasks"])
     p = client.post("/api/v1/project-management/projects", headers=headers, json={"name": "Operator", "project_key": "OP"})
@@ -276,7 +279,7 @@ def test_emergency_disable_prevents_execution(client, db, monkeypatch):
     headers, _, project, task = setup_operator(client, db)
     mock_provider(monkeypatch, plan_for(task))
     run = preview(client, headers, project, task).json()
-    setting = db.query(AiSecuritySetting).filter_by(company_id=None).one()
+    setting = db.query(AiSecuritySetting).filter_by(company_id=1).one()
     setting.pms_ai_enabled = False
     db.commit()
     response = client.post(f"/api/v1/ai-operator/runs/{run['id']}/approve", headers=headers, json={"plan_hash": run["plan_hash"]})

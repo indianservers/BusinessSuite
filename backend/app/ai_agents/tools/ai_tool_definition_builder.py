@@ -27,6 +27,10 @@ class AiToolDefinitionBuilder:
                 continue
             if not self._has_permission(user, tool.required_permission):
                 continue
+            from app.ai_agents.security import _authorize_tool
+            from fastapi import HTTPException
+            try:_authorize_tool(self.db,user,"legacy",tool.tool_name,tool)
+            except HTTPException:continue
             tools.append(tool)
         return tools
 

@@ -60,7 +60,7 @@ class TaskChanges(BaseModel):
 
 class PlanStep(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    tool: Literal["update_task", "add_checklist", "move_to_sprint", "schedule_task", "add_dependency", "remove_dependency", "update_checklist", "remove_checklist", "add_comment"]
+    tool: Literal["update_task", "add_checklist", "move_to_sprint", "schedule_task", "add_dependency", "update_checklist", "add_comment"]
     task_id: int = Field(gt=0)
     changes: TaskChanges | None = None
     title: str | None = Field(default=None, min_length=1, max_length=220)

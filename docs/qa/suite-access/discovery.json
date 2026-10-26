@@ -776,6 +776,482 @@
       ]
     },
     {
+      "path": "/api/v1/access/control/organizations",
+      "methods": [
+        "GET"
+      ],
+      "handler": "app.access.control.organization_tree",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/organizations",
+      "methods": [
+        "POST"
+      ],
+      "handler": "app.access.control.create_company",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/organizations/{company_id}",
+      "methods": [
+        "PUT"
+      ],
+      "handler": "app.access.control.edit_company",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/units/{kind}/{unit_id}",
+      "methods": [
+        "PUT"
+      ],
+      "handler": "app.access.control.save_unit",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/units/{kind}",
+      "methods": [
+        "POST"
+      ],
+      "handler": "app.access.control.save_unit",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/dashboard",
+      "methods": [
+        "GET"
+      ],
+      "handler": "app.access.control.dashboard",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/modules",
+      "methods": [
+        "GET"
+      ],
+      "handler": "app.access.control.modules",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/modules/{module_key}",
+      "methods": [
+        "PUT"
+      ],
+      "handler": "app.access.control.entitlement",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/users/{user_id}/360",
+      "methods": [
+        "GET"
+      ],
+      "handler": "app.access.control.user360",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/users/{user_id}/identity",
+      "methods": [
+        "PUT"
+      ],
+      "handler": "app.access.control.edit_identity",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/security",
+      "methods": [
+        "GET"
+      ],
+      "handler": "app.access.control.security",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/sessions/revoke",
+      "methods": [
+        "POST"
+      ],
+      "handler": "app.access.control.revoke_sessions",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/password-policy",
+      "methods": [
+        "PUT"
+      ],
+      "handler": "app.access.control.update_policy",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/access/control/audit",
+      "methods": [
+        "GET"
+      ],
+      "handler": "app.access.control.audit_events",
+      "module": null,
+      "dependencies": [
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "admin",
+          "permissions": []
+        },
+        {
+          "name": "get_current_user",
+          "permissions": []
+        },
+        {
+          "name": "HTTPBearer",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        },
+        {
+          "name": "get_db",
+          "permissions": []
+        }
+      ]
+    },
+    {
       "path": "/api/v1/profiles/me",
       "methods": [
         "GET"

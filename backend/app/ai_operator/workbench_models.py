@@ -7,6 +7,7 @@ from app.db.base_class import Base
 class AssistantArtifact(Base):
     __tablename__ = 'pms_assistant_artifacts'
     __table_args__ = (UniqueConstraint('user_id', 'project_id', 'kind', 'key', name='uq_assistant_artifact_key'),)
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     project_id = Column(Integer, ForeignKey('pms_projects.id'), nullable=False, index=True)

@@ -17,7 +17,7 @@ from app.core.config import settings
 class OpenAiService:
     def __init__(self):
         self.api_key = settings.OPENAI_API_KEY
-        self.client = OpenAI(api_key=self.api_key, timeout=45) if self.api_key and OpenAI else None
+        self.client = OpenAI(api_key=self.api_key, timeout=30, max_retries=0) if self.api_key and OpenAI else None
 
     def create_response(
         self,
@@ -26,6 +26,7 @@ class OpenAiService:
         tools: list[dict[str, Any]],
         model: str | None = None,
         temperature: float | None = None,
+        timeout: float = 30,
     ) -> dict[str, Any]:
         if OpenAI is None:
             return {
@@ -46,6 +47,8 @@ class OpenAiService:
                 "model": model or settings.OPENAI_MODEL,
                 "messages": messages,
                 "temperature": temperature if temperature is not None else settings.AI_AGENT_DEFAULT_TEMPERATURE,
+                "max_completion_tokens":4096,
+                "timeout": max(0.1, min(30, timeout)),
             }
             if tools:
                 kwargs["tools"] = tools

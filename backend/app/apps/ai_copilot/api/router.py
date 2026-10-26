@@ -74,6 +74,7 @@ def _log(
     detail: dict[str, Any] | None = None,
     error: str | None = None,
 ) -> AIActionLog:
+    from app.ai_agents.security import metadata
     row = AIActionLog(
         prompt_run_id=prompt_run_id,
         agent_action_id=agent_action_id,
@@ -82,8 +83,8 @@ def _log(
         record_type=record_type,
         record_id=record_id,
         status=status_value,
-        detail_json=detail or {},
-        error_message=error,
+        detail_json=metadata(detail),
+        error_message="AI_OPERATION_FAILED" if error else None,
         created_by=user.id,
     )
     db.add(row)
@@ -333,6 +334,8 @@ def preview_agent_action(payload: AIAgentActionPreviewRequest, db: Session = Dep
     _assert_action_permission(current_user, action_type, payload.module_name)
     context = build_secure_context(db, current_user, record_type=payload.record_type, record_id=payload.record_id, module_name=payload.module_name, data=payload.input_json)
     action = AIAgentAction(action_type=action_type, module_name=context["module_name"], record_type=context["record_type"], record_id=context.get("record_id"), preview_json={"action_type": action_type, "input": context["input_data"], "requires_confirmation": True}, status="previewed", requires_confirmation=True, created_by=current_user.id)
+    from app.ai_agents.security import seal
+    action.preview_json = {**action.preview_json, "_security":seal(db,current_user,action.preview_json)}
     db.add(action)
     db.flush()
     _log(db, current_user, event_type="ai_agent_action_preview", status_value="previewed", module_name=context["module_name"], record_type=context["record_type"], record_id=context.get("record_id"), agent_action_id=action.id, detail=action.preview_json)
@@ -346,13 +349,20 @@ def confirm_agent_action(payload: AIAgentActionConfirmRequest, db: Session = Dep
     action = db.query(AIAgentAction).filter(AIAgentAction.id == payload.action_id).first()
     if not action:
         raise HTTPException(status_code=404, detail="AI agent action not found")
+    from app.ai_agents.security import verify
+    preview = dict(action.preview_json or {})
+    security_context = preview.pop("_security", None)
+    verify(db,current_user,security_context,preview,confirmation=True)
+    if action.created_by!=current_user.id:raise HTTPException(403,"Only the initiating user may confirm this draft")
+    if action.status!="previewed":raise HTTPException(409,"AI draft is no longer pending")
+    if action.action_type in {"create_task","add_note","update_field"}:raise HTTPException(501,"This legacy executor is unavailable; use the permission-aware assistant tool registry")
     _assert_action_permission(current_user, action.action_type, action.module_name)
     build_secure_context(db, current_user, record_type=action.record_type, record_id=action.record_id, module_name=action.module_name, data=action.preview_json or {})
     action.status = "confirmed"
     action.confirmed_by = current_user.id
     action.confirmed_at = datetime.now(timezone.utc)
     action.result_json = {
-        "executed": action.action_type in {"create_task", "add_note", "update_field"},
+        "executed": False,
         "draft_only": action.action_type in {"draft_email", "draft_workflow", "suggest_quote_line", "suggest_collection_escalation"},
         "message": "Action confirmed. Draft/suggestion actions still require module owner review before final execution.",
         "confirmation_note": payload.confirmation_note,
@@ -372,8 +382,10 @@ def action_log(
     query = db.query(AIActionLog).order_by(AIActionLog.created_at.desc(), AIActionLog.id.desc())
     if not current_user.is_superuser and not has_any(current_user, "ai_manage_settings"):
         query = query.filter(AIActionLog.created_by == current_user.id)
+    query = query.filter(AIActionLog.created_by == current_user.id)
     rows = query.limit(limit).all()
-    return {"items": [_serialize(row) for row in rows], "total": len(rows)}
+    from app.ai_agents.security import metadata
+    return {"items": [{**_serialize(row),"detail_json":metadata(row.detail_json),"error_message":"AI_OPERATION_FAILED" if row.error_message else None} for row in rows], "total": len(rows)}
 
 
 @router.post("/feedback", status_code=201)

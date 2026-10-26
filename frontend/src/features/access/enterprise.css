@@ -1,0 +1,280 @@
+.ec-root h1 {
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.ec-root h2 {
+  font-size: 15px;
+  font-weight: 650;
+}
+.ec-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ec-root select,
+.ec-root input,
+.ec-root textarea {
+  border: 1px solid hsl(var(--border));
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: hsl(var(--background));
+  max-width: 100%;
+  font-size: 13px;
+}
+.ec-sections {
+  gap: 5px;
+}
+.ec-sections a {
+  font-size: 12px;
+}
+.ec-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.ec-kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ec-kpi span {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.ec-kpi strong {
+  font-size: 27px;
+}
+.ec-kpi svg {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+}
+.ec-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.ec-grid .cc-card {
+  margin: 0;
+}
+.ec-grid p {
+  margin: 12px 0;
+  font-size: 13px;
+}
+.ec-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+.ec-shortcuts a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.ec-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  background: #eef2f6;
+  color: #475569;
+}
+.ec-healthy,
+.ec-active,
+.ec-enabled,
+.ec-resolved {
+  background: #e4f6ef;
+  color: #116047;
+}
+.ec-high,
+.ec-critical,
+.ec-degraded,
+.ec-suspended {
+  background: #fff0ed;
+  color: #9b3027;
+}
+.ec-notice {
+  padding: 12px;
+  background: #e4f6ef;
+  color: #116047;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.ec-filter {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.ec-filter label,
+.ec-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.ec-total {
+  font-size: 30px;
+  font-weight: 650;
+  margin: 20px 0;
+}
+.ec-total small {
+  font-size: 13px;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+}
+.ec-root td small {
+  display: block;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  max-width: 300px;
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+}
+.ec-dialog {
+  max-width: 680px;
+  max-height: 88vh;
+}
+.ec-editor {
+  overflow: auto;
+  max-height: 65vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 4px;
+}
+.ec-editor textarea {
+  min-height: 90px;
+  font-family: monospace;
+}
+.ec-editor input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+.ec-brand-preview {
+  border: 1px solid hsl(var(--border));
+  padding: 30px;
+  min-height: 180px;
+  margin: 20px 0;
+}
+.ec-brand-preview strong {
+  font-size: 22px;
+}
+.ec-action span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+.ec-action h2 {
+  margin: 15px 0;
+}
+.ec-root .cc-scroll {
+  margin: 14px 0;
+}
+.ec-root table {
+  width: 100%;
+}
+@media (max-width: 1000px) {
+  .ec-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ec-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .ec-grid,
+  .ec-editor {
+    grid-template-columns: 1fr;
+  }
+  .ec-root .cc-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .ec-toolbar {
+    width: 100%;
+  }
+  .ec-filter label {
+    width: 100%;
+  }
+  .ec-sections {
+    max-height: 135px;
+    overflow: auto;
+  }
+  .ec-kpis {
+    gap: 8px;
+  }
+  .ec-root .cc-card {
+    padding: 14px;
+  }
+  .ec-dialog {
+    width: 94vw;
+  }
+}
+.ec-studio {
+  margin-top: 20px;
+}
+.ec-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.ec-widget {
+  min-width: 0;
+}
+.ec-widget .ec-toolbar {
+  gap: 5px;
+}
+.ec-widget input {
+  min-width: 60px;
+  width: 60%;
+}
+.ec-widget svg {
+  width: 100%;
+  max-height: 160px;
+  color: #6d28d9;
+}
+.ec-donut {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.ec-donut svg {
+  max-width: 140px;
+}
+.ec-donut p {
+  font-size: 12px;
+}
+@media (max-width: 850px) {
+  .ec-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .ec-widget {
+    grid-column: span 1 !important;
+  }
+}
+@media (max-width: 640px) {
+  .ec-root .cc-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    max-height: none;
+    min-height: 48px;
+    align-items: flex-start;
+    padding-bottom: 10px;
+  }
+  .ec-root .cc-nav a {
+    flex-shrink: 0;
+  }
+}

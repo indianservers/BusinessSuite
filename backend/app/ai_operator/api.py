@@ -52,6 +52,8 @@ def owned_run(db, user, run_id, lock=False):
     row = (query.with_for_update() if lock else query).first()
     if not row:
         raise HTTPException(404, "Run not found")
+    from app.ai_agents.security import verify
+    verify(db,user,row.security_context,history=True)
     project = get_project_for_action(db, row.project_id, user, "manage_tasks")
     if row.scope_key != scope_key(db, user, project.workspace_id):
         raise HTTPException(403, "Run scope changed")
@@ -248,7 +250,8 @@ def runs(project_id: int, db: Session = Depends(get_db), user: User = Depends(ge
     _require_ai_access(user)
     project = get_project_for_action(db, project_id, user, "manage_tasks")
     scope = scope_key(db, user, project.workspace_id)
-    return {"items": [public_run(r) for r in db.query(OperatorRun).filter_by(user_id=user.id, project_id=project_id, scope_key=scope).order_by(OperatorRun.id.desc()).limit(50).all()]}
+    from app.ai_agents.security import visible_history
+    return {"items": [public_run(r) for r in visible_history(db,user,db.query(OperatorRun).filter_by(user_id=user.id, project_id=project_id, scope_key=scope).order_by(OperatorRun.id.desc()).limit(50).all())]}
 
 
 @router.get("/runs/{run_id}")

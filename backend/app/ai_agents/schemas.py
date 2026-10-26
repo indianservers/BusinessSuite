@@ -74,8 +74,9 @@ class AiMessageCreate(BaseModel):
 
 
 class AiChatRequest(BaseModel):
+    model_config = {"extra":"forbid"}
     conversation_id: int | None = None
-    message: str = Field(..., min_length=1)
+    message: str = Field(..., min_length=1, max_length=8000)
     module: AiModule | None = None
     related_entity_type: str | None = Field(default=None, max_length=80)
     related_entity_id: str | None = Field(default=None, max_length=80)
@@ -171,6 +172,7 @@ class AiFeedbackCreate(BaseModel):
 
 
 class AiHandoffCreate(BaseModel):
+    model_config = {"extra":"forbid"}
     conversation_id: int | None = None
     agent_id: int | None = None
     module: AiModule
@@ -188,6 +190,7 @@ class AiHandoffStatusUpdate(BaseModel):
 
 
 class AiToolTestRequest(BaseModel):
+    model_config = {"extra":"forbid"}
     agent_code: str = Field(..., min_length=1, max_length=120)
     tool_name: str = Field(..., min_length=1, max_length=120)
     input: dict[str, Any] = Field(default_factory=dict)

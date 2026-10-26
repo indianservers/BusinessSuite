@@ -139,6 +139,9 @@ class AiApprovalExecutorService:
         approval = self.db.query(AiActionApproval).filter(AiActionApproval.id == approval_id).with_for_update().first()
         if not approval:
             raise HTTPException(status_code=404, detail="Approval not found")
+        self._ensure_can_approve(user,approval)
+        from app.ai_agents.security import verify
+        verify(self.db,user,approval.security_context,payload=approval.proposed_action_json,confirmation=True)
         if approval.action_type == "EXECUTE_PMS_OPERATOR_PLAN":
             from app.ai_operator.models import OperatorRun
             run_id = (approval.proposed_action_json or {}).get("input", {}).get("run_id")
@@ -159,6 +162,9 @@ class AiApprovalExecutorService:
 
         try:
             action_key, definition = self._resolve_action(approval)
+            from app.ai_agents.security_catalog import ACTIONS
+            if ACTIONS.get(action_key)!=(definition.module,definition.permission,definition.executor_name):
+                raise HTTPException(403,"AI action is not code-approved")
             proposed_action = self._proposed_action(approval)
             self._validate_proposed_action(definition, proposed_action)
             if not self._has_permission(user, definition.permission):
@@ -201,11 +207,9 @@ class AiApprovalExecutorService:
         except HTTPException:
             raise
         except Exception as exc:
-            return self._mark_failed(approval, user, "APPROVAL_EXECUTION_FAILED", str(exc), ip_address, user_agent)
+            return self._mark_failed(approval, user, "APPROVAL_EXECUTION_FAILED", "Approved action failed; no execution details disclosed.", ip_address, user_agent)
 
     def _ensure_can_approve(self, user: User, approval: AiActionApproval) -> None:
-        if user.is_superuser:
-            return
         if approval.user_id != user.id:
             self._audit(approval, user, "AI_APPROVAL_PERMISSION_DENIED", {"approval_id": approval.id}, {"reason": "approval owner mismatch"}, "failed", None, None)
             raise HTTPException(status_code=403, detail="You do not have permission to approve this AI action")
@@ -275,7 +279,16 @@ class AiApprovalExecutorService:
                 "message": "Required existing module service method is not available yet.",
                 "missing_method": definition.executor_name,
             }
-        return method(user, proposed_action)
+        from app.ai_agents.security import scoped,MODULES
+        with scoped(self.db,user,MODULES[definition.module]):
+            if definition.executor_name=="crm.execute_lead_score_status_update":
+                from app.apps.crm.models import CRMLead
+                preview=(proposed_action.get("preview") or {}).get("proposed_action",{})
+                values=proposed_action.get("input",{})
+                record=self.db.query(CRMLead).filter_by(id=values.get("lead_id")).populate_existing().with_for_update().first()
+                if not record or preview.get("current_status")!=record.status or preview.get("current_score")!=record.lead_score:
+                    raise HTTPException(409,"Record changed since AI preview")
+            return method(user, proposed_action)
 
     def _mark_failed(
         self,
@@ -307,8 +320,8 @@ class AiApprovalExecutorService:
             "crm_manage": {"crm_admin"},
             "pms_manage_tasks": {"pms_manage_projects", "pms_admin"},
             "leave_apply": {"leave_manage"},
-            "attendance_manage": {"attendance_view"},
-            "employee_update": {"employee_sensitive_view"},
+            "attendance_manage": set(),
+            "employee_update": set(),
             "recruitment_manage": set(),
         }
         return bool(permissions.intersection(aliases.get(permission, set())))

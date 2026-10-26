@@ -43,6 +43,7 @@ class Branch(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False, index=True)
     code = Column(String(20))
+    manager_employee_id = Column(Integer, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True), nullable=True)
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
     organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     description = Column(Text)
@@ -62,7 +63,7 @@ class Branch(Base):
 
     company = relationship("Company", back_populates="branches", foreign_keys=[company_id])
     departments = relationship("Department", back_populates="branch", cascade="all, delete-orphan")
-    employees = relationship("Employee", back_populates="branch")
+    employees = relationship("Employee", back_populates="branch", foreign_keys="Employee.branch_id")
 
 
 class BusinessUnit(Base):

@@ -194,7 +194,16 @@ def _custom_field_context(db: Session, record_type: str, record_id: int | None) 
     return output
 
 
-def build_secure_context(db: Session, user: User, *, record_type: str | None, record_id: int | None, module_name: str | None, data: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_secure_context(db: Session, user: User, **kwargs) -> dict[str, Any]:
+    from app.ai_agents.security import scoped,MODULES
+    kind=_record_type(kwargs.get("record_type"))
+    module=_module_for(kind,None if kind in MODEL_BY_RECORD_TYPE else kwargs.get("module_name"))
+    from app.shared.contracts import authorize
+    authorize(db,user,__import__("app.ai_agents.security",fromlist=["company"]).company(user),module)
+    with scoped(db,user,module):return _build_secure_context(db,user,**kwargs)
+
+
+def _build_secure_context(db: Session, user: User, *, record_type: str | None, record_id: int | None, module_name: str | None, data: dict[str, Any] | None = None) -> dict[str, Any]:
     normalized_type = _record_type(record_type)
     module = _module_for(normalized_type, module_name)
     _assert_module_permission(user, module, normalized_type)

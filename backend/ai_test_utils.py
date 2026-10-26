@@ -20,6 +20,9 @@ AI_PERMISSIONS = [
 
 
 def auth_headers(client, db, email: str = "ai-admin@example.com", permissions: list[str] | None = None, role_name: str | None = None):
+    from app.models.company import Company
+    if not db.get(Company,1):
+        db.add(Company(id=1,name="AI Test Company")); db.flush()
     role = Role(name=role_name or f"role-{email}"[:50], description="AI test role", is_system=False)
     db.add(role)
     db.flush()

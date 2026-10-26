@@ -1,0 +1,16 @@
+{
+  "profile": "sequential authorized analytics; synthetic account/company/module metadata and real CRM rows",
+  "users": 10000,
+  "companies": 100,
+  "registeredModules": 25,
+  "leads": 10000,
+  "requests": 20,
+  "p50Ms": 121.54,
+  "p95Ms": 167.51,
+  "p99Ms": 167.51,
+  "throughputPerSecond": 7.06,
+  "errorRate": 0,
+  "acceptanceP95Ms": 2000,
+  "concurrentActivityVerified": false,
+  "resourceTelemetry": "not configured"
+}

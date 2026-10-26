@@ -16,10 +16,16 @@ class AppModule:
     router_modules: tuple[str, ...] = ()
     model_modules: tuple[str, ...] = ()
     seed_module: str | None = None
+    shared_services: bool = True
+    service_registration: str | None = None
 
 
 COMMON_ROUTER_MODULES = (
     "app.access.api",
+    "app.access.control",
+    "app.shared.api",
+    "app.enterprise.api",
+    "app.ai_agents.security_api",
     "app.common.profile_api",
     "app.forms.router",
     "app.apps.scheduling.router",
@@ -42,6 +48,8 @@ COMMON_ROUTER_MODULES = (
 
 COMMON_MODEL_MODULES = (
     "app.access.models",
+    "app.shared.models",
+    "app.models.platform",
     "app.forms.models",
     "app.apps.scheduling.models",
     "app.models.deployment",
@@ -62,6 +70,7 @@ COMMON_MODEL_MODULES = (
     "app.apps.saas.models",
     "app.apps.business_os.models",
     "app.ai_agents.models",
+    "app.ai_agents.security",
 )
 
 APP_MODULES: dict[str, AppModule] = {
@@ -204,4 +213,7 @@ def build_api_router() -> APIRouter:
             module = import_module(module_name)
             register_routes(module.router, module_name, app_module.key)
             api_router.include_router(module.router)
+    for app_module in iter_enabled_modules():
+        if app_module.shared_services and app_module.service_registration:
+            import_module(app_module.service_registration).register_services()
     return api_router

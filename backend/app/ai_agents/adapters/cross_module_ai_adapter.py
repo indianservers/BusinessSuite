@@ -33,9 +33,9 @@ class CrossModuleAiAdapter(AiAdapterBase):
         query = self.db.query(AiActionApproval).filter(AiActionApproval.status == "pending")
         if input.get("module"):
             query = query.filter(AiActionApproval.module == str(input["module"]).upper())
-        if not user.is_superuser:
-            query = query.filter(AiActionApproval.user_id == user.id)
-        rows = query.order_by(AiActionApproval.created_at.desc()).limit(100).all()
+        from app.ai_agents.security import company, visible_history
+        query = query.filter(AiActionApproval.user_id == user.id,AiActionApproval.organization_id == company(user))
+        rows = visible_history(self.db,user,query.order_by(AiActionApproval.created_at.desc()).limit(100).all())
         return {"approvals": [model_to_dict(row) for row in rows], "count": len(rows)}
 
     def safe_search_crm(self, user: User, input: dict[str, Any]) -> dict[str, Any]:

@@ -1138,10 +1138,23 @@ function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
 }
 
 export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
-  if (pathname.startsWith("/admin/access")) return [
+  if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return [
+    {label:"Dashboard",to:"/admin/control/dashboard",icon:Building2},
+    {label:"Organizations",to:"/admin/control/organizations",icon:Building2},
     {label:"Users & Access",to:"/admin/access",icon:Users},
-    {label:"Suite modules",to:"/admin/business-os/modules",icon:Building2},
-    {label:"Security settings",to:"/admin/security",icon:ShieldCheck},
+    {label:"Roles & Permissions",to:"/admin/access?tab=Roles",icon:ShieldCheck},
+    {label:"Module Management",to:"/admin/control/modules",icon:Building2},
+    {label:"Security Center",to:"/admin/control/security",icon:ShieldCheck},
+    {label:"Audit Logs",to:"/admin/control/audit",icon:ShieldCheck},
+    ...[["Executive Overview","overview"],["Business Insights","analytics"],["Action Center","actions"],["Subscriptions & Licensing","licensing"],["Feature Management","flags"],["Branding","branding"],["Health Monitor","health"],["Error Center","errors"],["Backup & Recovery","backups"],["Data Governance","governance"],["Support Center","support"],["Module Coverage","coverage"]].map(([label,path])=>({label,to:`/admin/control/enterprise/${path}`,icon:Building2,group:"Enterprise operations"})).filter(item=>!item.to.endsWith("/backups")||isSuperuser),
+    {label:"AI Security",to:"/admin/control/ai-security",icon:ShieldCheck,group:"AI Management"},
+    {label:"Shared Services",to:"/admin/control/services/services",icon:Building2,group:"Shared platform"},
+    {label:"Workflow Builder",to:"/admin/control/services/workflows",icon:Building2,group:"Workflows"},
+    {label:"Execution History",to:"/admin/control/services/executions",icon:ShieldCheck,group:"Workflows"},
+    {label:"Connected Applications",to:"/admin/control/services/connections",icon:Building2,group:"Integrations"},
+    {label:"Delivery Logs",to:"/admin/control/services/delivery",icon:ShieldCheck,group:"Communications"},
+    {label:"Documents & Storage",to:"/admin/control/services/documents",icon:Building2,group:"Data & Configuration"},
+    {label:"Global Settings",to:"/admin/control/services/settings",icon:ShieldCheck,group:"Data & Configuration"},
   ].filter(item => canAccessRoute(item.to,role,isSuperuser));
   const access = useAuthStore.getState().user?.access;
   if (access?.managed && !isSuperuser) {
@@ -1298,7 +1311,9 @@ const routeAccess: Record<string, RoleKey[]> = {
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
   const access = useAuthStore.getState().user?.access;
-  if (pathname.startsWith("/admin/access")) return isSuperuser || Boolean(access?.isAccessAdmin);
+  if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return isSuperuser || Boolean(access?.isAccessAdmin);
+  const companyModule = access ? centralModuleForPath(access, pathname) : undefined;
+  if (companyModule && access?.companyDisabledModules?.includes(companyModule.key)) return false;
   if (access?.managed && !isSuperuser) {
     const module = centralModuleForPath(access, pathname);
     if (module) return Boolean(access.grants[module.key]?.enabled) && (!["hrms","crm","project_management","srm","fam","ai"].includes(module.key) || isFrontendModuleEnabled(module.key));

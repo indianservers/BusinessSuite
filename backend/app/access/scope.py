@@ -102,6 +102,8 @@ def install_scope(db, user, company, grants):
     cache = {}
 
     def predicate(model, stack=()):
+        if model.__tablename__ in {"ai_agents","ai_agent_tools"}:
+            return None  # Code-owned public tool metadata; admin writes have explicit endpoint guards.
         if model in cache:
             return cache[model]
         if model in stack:

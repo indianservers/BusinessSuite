@@ -35,11 +35,13 @@ router = APIRouter(prefix="/assistant", tags=["PMS Assistant"])
 
 
 class ConversationInput(BaseModel):
+    model_config={"extra":"forbid"}
     title: str = Field("New conversation", min_length=1, max_length=160)
     workspace_id: int | None = None
 
 
 class MessageInput(BaseModel):
+    model_config={"extra":"forbid"}
     request_key: UUID
     text: str = Field("", max_length=6000)
     project_id: int | None = None
@@ -49,6 +51,7 @@ class MessageInput(BaseModel):
 
 
 class Confirmation(BaseModel):
+    model_config={"extra":"forbid"}
     approval_hash: str = Field(min_length=64, max_length=64)
 
 
@@ -67,6 +70,8 @@ def owned(db, user, ident):
         from app.apps.project_management.workspaces import workspace_member
 
         workspace_member(db, row.workspace_id, user)
+    from app.ai_agents.security import verify
+    verify(db,user,row.security_context,history=True)
     return row
 
 
@@ -155,6 +160,8 @@ def parse_local(text, project_id=None):
 
 
 def prepare(db, user, intent):
+    from app.ai_agents.security import authorize_tool
+    authorize_tool(db,user,"assistant",intent.tool)
     if intent.tool == "payments.record":
         require(user, "srm_collection_create", "srm_admin")
         if not intent.invoice_id or not intent.amount:
@@ -659,6 +666,8 @@ def confirm(
     )
     if not row or row.approval_hash != data.approval_hash:
         raise HTTPException(409, "Approval does not match this action.")
+    from app.ai_agents.security import verify,operation
+    verify(db,user,row.security_context,payload=operation(row),confirmation=True)
     if row.status == "completed":
         return public_message(db, user, row)
     if row.status != "awaiting_approval":

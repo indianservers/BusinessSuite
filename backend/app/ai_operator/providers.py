@@ -69,11 +69,15 @@ def generate_json(db, user, config, *, prompt, schema, run_id=None, purpose="pla
                                          "responseMimeType": "application/json"}}
         else:
             raise HTTPException(422, "Unsupported provider")
-        with httpx.Client(timeout=httpx.Timeout(45, connect=10), follow_redirects=False) as client:
+        from app.ai_agents.security import limits, company
+        seconds = min(45, limits(db, company(user))["max_seconds"])
+        with httpx.Client(timeout=httpx.Timeout(seconds, connect=min(10, seconds)), follow_redirects=False) as client:
             response = client.post(url, headers=headers, json=body)
         log.http_status = response.status_code
         log.provider_request_id = (response.headers.get("x-request-id") or response.headers.get("request-id") or "")[:180] or None
         response.raise_for_status()
+        if len(response.content) > 262144:
+            raise ValueError("Provider response exceeds the bounded output limit")
         data = response.json()
         if config.provider == "openai":
             usage = data.get("usage", {})

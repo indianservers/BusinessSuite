@@ -8,6 +8,7 @@ from app.db.base_class import Base
 class ApprovalRequest(Base):
     __tablename__ = "approval_requests"
 
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     id = Column(Integer, primary_key=True, index=True)
     source_module = Column(String(80), nullable=False, index=True)
     approval_type = Column(String(80), nullable=False, index=True)

@@ -48,6 +48,9 @@ def org(user):
 
 
 def module(key, db=None, organization_id=1):
+    from app.module_registry import APP_MODULES
+    if key in APP_MODULES and APP_MODULES[key].shared_services:
+        MODULES.setdefault(key, key)
     if key not in MODULES or not is_app_enabled(MODULES[key]):
         raise HTTPException(404, "Module unavailable")
     if db is not None:

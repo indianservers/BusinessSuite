@@ -11,7 +11,7 @@ import jwt
 from jwt import PyJWTError as JWTError
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
-from app.access import service
+from app.access import service, entitlements
 from app.access.catalog import catalog, preset, SCOPES, ACTIONS, permission_names
 from app.access.models import (
     AccessPolicy,
@@ -201,6 +201,7 @@ def my_access(
                 .first()
             )
         ),
+        "companyDisabledModules": [key for key, enabled in entitlements.states(db, company).items() if not enabled],
         "modules": catalog(db),
         "memberships": sorted(service.companies_for(db, actor)),
     }
@@ -285,6 +286,8 @@ def list_users(
     module: str = "",
     page: int = Query(1, ge=1),
     perPage: int = Query(50, ge=1, le=200),
+    sort: str = Query("name", pattern="^(name|email|status|lastLogin|role)$"),
+    descending: bool = False,
     db: Session = Depends(get_db),
     actor: User = Depends(admin),
 ):
@@ -352,6 +355,7 @@ def list_users(
         and (not status or u["status"] == status)
         and (not module or u["grants"].get(module, {}).get("enabled"))
     ]
+    rows.sort(key=lambda row: str(row.get(sort) or "").casefold(), reverse=descending)
     return {
         "items": rows[(page - 1) * perPage : page * perPage],
         "total": len(rows),
@@ -845,6 +849,9 @@ def membership(
         .filter_by(company_id=data.companyId, user_id=data.userId)
         .first()
     )
+    if data.active and user.is_active and data.companyId not in service.companies_for(db,user):
+        from app.enterprise.controls import quota
+        quota(db,data.companyId,"seats")
     if not row:
         row = AccessMembership(company_id=data.companyId, user_id=data.userId)
         db.add(row)

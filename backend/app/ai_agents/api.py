@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.ai_agents.security import metadata
 from app.access.catalog import permission_objects
 
 import csv
@@ -75,8 +76,8 @@ def _request_ip(request: Request) -> str | None:
 
 
 def _company_id(user: User) -> int | None:
-    employee = getattr(user, "employee", None)
-    return getattr(employee, "organization_id", None) or getattr(user, "company_id", None)
+    from app.ai_agents.security import company
+    return company(user)
 
 
 def _can_access_ai_agents(user: User) -> bool:
@@ -396,7 +397,7 @@ def save_conversation_message(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    message = AiMessage(conversation_id=conversation.id, role="user", content=payload.content)
+    message = AiMessage(conversation_id=conversation.id, role="user", content=AiDataRedactionService().redact_text(payload.content))
     db.add(message)
     db.flush()
     _audit(
@@ -423,12 +424,13 @@ def pending_approvals(
     current_user: User = Depends(get_current_user),
 ):
     _require_ai_access(current_user)
-    query = db.query(AiActionApproval).filter(AiActionApproval.status == "pending")
+    query = db.query(AiActionApproval).filter(AiActionApproval.status == "pending",AiActionApproval.user_id==current_user.id,AiActionApproval.organization_id==_company_id(current_user))
     if module:
         query = query.filter(AiActionApproval.module == module.upper())
     if not current_user.is_superuser:
         query = query.filter(AiActionApproval.user_id == current_user.id)
-    return query.order_by(AiActionApproval.created_at.desc()).limit(100).all()
+    from app.ai_agents.security import visible_history
+    return visible_history(db,current_user,query.order_by(AiActionApproval.created_at.desc()).limit(100).all())
 
 
 @router.post("/approvals/{approval_id}/approve", response_model=AiApprovalRead)
@@ -496,7 +498,7 @@ def ai_logs(
     current_user: User = Depends(get_current_user),
 ):
     _require_ai_access(current_user)
-    query = db.query(AiAuditLog)
+    query = db.query(AiAuditLog).filter(AiAuditLog.organization_id == _company_id(current_user))
     if module:
         query = query.filter(AiAuditLog.module == module.upper())
     if not current_user.is_superuser:
@@ -512,8 +514,8 @@ def ai_logs(
             "status": row.status,
             "related_entity_type": row.related_entity_type,
             "related_entity_id": row.related_entity_id,
-            "input_json": row.input_json,
-            "output_json": row.output_json,
+            "input_json": metadata(row.input_json),
+            "output_json": metadata(row.output_json),
             "created_at": row.created_at,
         }
         for row in rows
@@ -664,13 +666,13 @@ def security_events(module: str | None = None, db: Session = Depends(get_db), cu
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
     actions = ["AI_PROMPT_INJECTION_DETECTED", "AI_UNSAFE_PROMPT_BLOCKED", "AI_RESPONSE_BLOCKED_BY_SAFETY_FILTER", "AI_TOOL_FAILED", "AI_RATE_LIMIT_EXCEEDED", "AI_CONTEXT_SANITIZED", "AI_APPROVED_ACTION_FAILED"]
-    query = db.query(AiAuditLog).filter(AiAuditLog.action.in_(actions))
+    query = db.query(AiAuditLog).filter(AiAuditLog.action.in_(actions),AiAuditLog.organization_id==_company_id(current_user))
     if not current_user.is_superuser:
         query = query.filter(AiAuditLog.user_id == current_user.id)
     if module:
         query = query.filter(AiAuditLog.module == module.upper())
     rows = query.order_by(AiAuditLog.created_at.desc()).limit(200).all()
-    return [{"id": row.id, "action": row.action, "module": row.module, "status": row.status, "created_at": row.created_at, "input_json": row.input_json, "output_json": row.output_json} for row in rows]
+    return [{"id": row.id, "action": row.action, "module": row.module, "status": row.status, "created_at": row.created_at, "input_json": metadata(row.input_json), "output_json": metadata(row.output_json)} for row in rows]
 
 
 @router.get("/security/permissions")
@@ -817,14 +819,38 @@ def create_feedback(message_id: int, payload: AiFeedbackCreate, db: Session = De
 def list_feedback(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _require_ai_access(current_user)
     _require_ai_admin(current_user)
-    rows = db.query(AiMessageFeedback).order_by(AiMessageFeedback.created_at.desc()).limit(200).all()
+    from app.ai_agents.security import fingerprint,company
+    visible=db.query(AiConversation.id).filter(AiConversation.user_id==current_user.id,AiConversation.organization_id==company(current_user),AiConversation.security_context["fingerprint"].as_string()==fingerprint(db,current_user,company(current_user)))
+    rows = db.query(AiMessageFeedback).filter(AiMessageFeedback.conversation_id.in_(visible)).order_by(AiMessageFeedback.created_at.desc()).limit(200).all()
     return [{"id": row.id, "message_id": row.message_id, "conversation_id": row.conversation_id, "user_id": row.user_id, "agent_id": row.agent_id, "rating": row.rating, "feedback_type": row.feedback_type, "feedback_text": row.feedback_text, "created_at": row.created_at} for row in rows]
 
 
 @router.post("/handoff-notes")
 def create_handoff(payload: AiHandoffCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _require_ai_access(current_user)
-    row = AiHandoffNote(created_by=current_user.id, **payload.model_dump())
+    from app.ai_agents.security import company,handoff_guard,history_guard
+    row = AiHandoffNote(created_by=current_user.id,organization_id=company(current_user), **payload.model_dump())
+    if row.conversation_id:
+        conversation=db.query(AiConversation).filter_by(id=row.conversation_id,user_id=current_user.id).first()
+        if not conversation:raise HTTPException(404,"Conversation unavailable")
+        history_guard(db,current_user,conversation)
+        row.module=conversation.module
+        row.related_entity_type=conversation.related_entity_type
+        row.related_entity_id=conversation.related_entity_id
+    from app.ai_agents.security import seal
+    row.security_context=seal(db,current_user)
+    handoff_guard(db,current_user,row)
+    if row.assigned_to and row.assigned_to!=current_user.id:
+        recipient=db.get(User,row.assigned_to)
+        from app.access.service import companies_for
+        if not recipient or not recipient.is_active or row.organization_id not in companies_for(db,recipient):
+            raise HTTPException(403,"Handoff recipient must belong to the same company")
+        previous=getattr(recipient,"organization_id",None)
+        recipient.organization_id=row.organization_id
+        try:handoff_guard(db,recipient,row,recipient=True)
+        finally:
+            if previous is None:recipient.__dict__.pop("organization_id",None)
+            else:recipient.organization_id=previous
     db.add(row)
     db.commit()
     return {"status": "created", "id": row.id}
@@ -833,12 +859,17 @@ def create_handoff(payload: AiHandoffCreate, db: Session = Depends(get_db), curr
 @router.get("/handoff-notes")
 def list_handoff(status: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     _require_ai_access(current_user)
-    query = db.query(AiHandoffNote)
+    query = db.query(AiHandoffNote).filter(AiHandoffNote.organization_id==_company_id(current_user),(AiHandoffNote.created_by==current_user.id)|(AiHandoffNote.assigned_to==current_user.id))
     if not _is_ai_admin(current_user):
         query = query.filter((AiHandoffNote.created_by == current_user.id) | (AiHandoffNote.assigned_to == current_user.id))
     if status:
         query = query.filter(AiHandoffNote.status == status)
-    rows = query.order_by(AiHandoffNote.created_at.desc()).limit(200).all()
+    from app.ai_agents.security import handoff_guard
+    rows=[]
+    for item in query.order_by(AiHandoffNote.created_at.desc()).limit(200).all():
+        try:handoff_guard(db,current_user,item)
+        except HTTPException:continue
+        rows.append(item)
     return [{"id": row.id, "conversation_id": row.conversation_id, "agent_id": row.agent_id, "module": row.module, "related_entity_type": row.related_entity_type, "related_entity_id": row.related_entity_id, "assigned_to": row.assigned_to, "priority": row.priority, "summary": row.summary, "reason": row.reason, "recommended_action": row.recommended_action, "status": row.status, "created_by": row.created_by, "created_at": row.created_at} for row in rows]
 
 
@@ -848,6 +879,8 @@ def update_handoff_status(note_id: int, payload: AiHandoffStatusUpdate, db: Sess
     row = db.query(AiHandoffNote).filter(AiHandoffNote.id == note_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Handoff note not found")
+    from app.ai_agents.security import handoff_guard
+    handoff_guard(db,current_user,row)
     if not _is_ai_admin(current_user) and row.assigned_to != current_user.id and row.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="You do not have permission to update this handoff note")
     row.status = payload.status

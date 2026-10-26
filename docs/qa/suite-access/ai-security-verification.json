@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-26",
+  "policy": "ai-zero-trust-1",
+  "catalogue": {
+    "legacy": 44,
+    "suite": 33,
+    "assistant": 21,
+    "approval_actions": 12
+  },
+  "runs": [
+    {
+      "file": "ai-security-complete-boundary.log",
+      "database": "disposable PostgreSQL",
+      "passed": 92,
+      "skipped": 0
+    },
+    {
+      "file": "ai-security-complete-postgres.log",
+      "database": "disposable PostgreSQL",
+      "passed": 277,
+      "skipped": 0
+    },
+    {
+      "file": "ai-security-verified-postgres.log",
+      "database": "disposable PostgreSQL",
+      "passed": 273,
+      "skipped": 0
+    },
+    {
+      "file": "ai-security-boundary-postgres.log",
+      "database": "disposable PostgreSQL",
+      "passed": 88,
+      "skipped": 0
+    },
+    {
+      "file": "ai-security-boundary-final.log",
+      "database": "disposable SQLite",
+      "passed": 83,
+      "skipped": 1,
+      "skip_reason": "PostgreSQL database trigger requires migrated PostgreSQL"
+    },
+    {
+      "file": "ai-security-final-focused.log",
+      "database": "disposable SQLite",
+      "passed": 148,
+      "skipped": 1
+    },
+    {
+      "file": "ai-security-denial-audit.log",
+      "passed": 5
+    },
+    {
+      "file": "ai-security-browser.log",
+      "passed": 1,
+      "backend": "real FastAPI responses with isolated test database"
+    },
+    {
+      "file": "ai-security-final-audit-postgres.log",
+      "database": "disposable PostgreSQL",
+      "passed": 6,
+      "skipped": 0
+    },
+    {
+      "file": "ai-security-final-privacy.log",
+      "database": "disposable SQLite",
+      "passed": 8,
+      "skipped": 0
+    }
+  ],
+  "frontend_build": "passed",
+  "production_database_migrated": false,
+  "live_providers_exercised": false,
+  "deployment_performed": false,
+  "screenshots": [
+    "ai-security-desktop.png",
+    "ai-security-mobile.png"
+  ],
+  "report": "docs/AI_ASSISTANT_SECURITY_HARDENING.md"
+}

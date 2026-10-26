@@ -118,6 +118,8 @@ def setup_preview(payload: SetupInput, request: Request, db: Session = Depends(g
     fingerprint = digest(payload.model_dump(exclude={"request_key"}))
     old = db.query(OperatorProposal).filter_by(user_id=user.id, request_key=payload.request_key).first()
     if old:
+        from app.ai_agents.security import verify
+        verify(db,user,old.security_context,history=True)
         if old.scope_key != scope or old.request_hash != fingerprint:
             raise HTTPException(409, "Idempotency key already used")
         return proposal_public(old)
@@ -195,6 +197,8 @@ def owned_proposal(db, user, proposal_id):
     row = db.query(OperatorProposal).filter_by(id=proposal_id, user_id=user.id).first()
     if not row:
         raise HTTPException(404, "Proposal not found")
+    from app.ai_agents.security import verify
+    verify(db,user,row.security_context,history=True)
     if setup_access(db, user, row.workspace_id, row.payload.get("project_id")) != row.scope_key:
         raise HTTPException(403, "Proposal scope changed")
     return row
@@ -230,6 +234,8 @@ def execute_setup(db, user, proposal):
     planning_agent(db, user)
     if row.plan_hash != data["plan_hash"] or digest(row.payload) != row.plan_hash or digest(proposal.get("preview")) != row.plan_hash:
         raise HTTPException(409, "Preview changed")
+    from app.ai_agents.security import verify
+    verify(db,user,row.security_context)
     if row.status == "succeeded":
         return row.result
     if row.status != "awaiting_approval":

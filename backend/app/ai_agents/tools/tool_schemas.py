@@ -4,7 +4,7 @@ from typing import Any
 
 
 def schema(properties: dict[str, dict[str, Any]], required: list[str] | None = None) -> dict[str, Any]:
-    return {"type": "object", "properties": properties, "required": required or []}
+    return {"type": "object", "properties": properties, "required": required or [], "additionalProperties": False}
 
 
 def s(description: str = "") -> dict[str, Any]:

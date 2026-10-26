@@ -84,7 +84,7 @@ def test_resolver_literal_search_and_capacity(client, db):
     assert response.json()["week_start"] == "2026-10-19"
 
 
-def test_remove_dependency_uses_reviewed_task_execution(client, db, monkeypatch):
+def test_ai_cannot_remove_dependency_even_with_review(client, db, monkeypatch):
     headers, _, project, task = setup_operator(client, db)
     other = client.post(f"/api/v1/project-management/projects/{project}/tasks", headers=headers,
         json={"title": "Blocker", "task_key": "OP-2"}).json()["id"]
@@ -93,11 +93,10 @@ def test_remove_dependency_uses_reviewed_task_execution(client, db, monkeypatch)
     db.commit()
     dep_id = dep.id
     mock_provider(monkeypatch, {"summary": "Remove blocker", "steps": [{"tool": "remove_dependency", "task_id": task, "dependency_id": dep_id}]})
-    run = preview(client, headers, project, task, task_ids=[task, other]).json()
-    assert run["status"] == "awaiting_approval", run
-    response = client.post(f"/api/v1/ai-operator/runs/{run['id']}/approve", headers=headers, json={"plan_hash": run["plan_hash"]})
-    assert response.json()["status"] == "succeeded", response.text
-    assert db.get(PMSTaskDependency, dep_id) is None
+    response = preview(client, headers, project, task, task_ids=[task, other])
+    assert response.status_code == 200 and response.json()["status"] == "failed", response.text
+    assert response.json()["error_code"] == "PROVIDER_INVALID_OUTPUT"
+    assert db.get(PMSTaskDependency,dep_id) is not None
 
 
 def test_local_plan_needs_no_provider_and_remains_subject_to_validation_and_approval(client, db, monkeypatch):
@@ -142,6 +141,10 @@ def test_extensions_migration_is_repeatable_on_empty_feature_tables(db):
     with Operations.context(MigrationContext.configure(bind)):
         module.upgrade()
         module.upgrade()
+    # Restore current ORM schema after verifying the historical migration.
+    from sqlalchemy import inspect, text
+    if "security_context" not in {c["name"] for c in inspect(bind).get_columns("ai_operator_proposals")}:
+        bind.execute(text("ALTER TABLE ai_operator_proposals ADD COLUMN security_context JSON"))
     assert db.query(OperatorMonitor).count() == 0
     assert db.query(OperatorProposal).count() == 0
 
@@ -210,8 +213,7 @@ def test_expanded_tools_reuse_pms_operations_and_replay_receipts(client, db, mod
     plan = {'summary':'Update estimates, complete QA and add a comment', 'steps':[
         {'tool':'update_task','task_id':task,'changes':{'title':'Updated title','description':'Acceptance criteria','estimated_hours':3.5,'story_points':8}},
         {'tool':'update_checklist','task_id':task,'item_id':first_id,'is_completed':True},
-        {'tool':'add_comment','task_id':task,'body':'Ready for QA'},
-        {'tool':'remove_checklist','task_id':task,'item_id':second_id}]}
+        {'tool':'add_comment','task_id':task,'body':'Ready for QA'}]}
     response = preview(client, headers, project, task, local_plan=plan, background=mode!='sync', execution_mode='checkpointed' if mode=='checkpointed' else 'atomic')
     assert response.status_code == 200, response.text
     run = response.json()
@@ -224,7 +226,7 @@ def test_expanded_tools_reuse_pms_operations_and_replay_receipts(client, db, mod
     record = db.get(PMSTask,task)
     assert record.title == 'Updated title' and float(record.estimated_hours) == 3.5 and record.story_points == 8
     assert db.get(PMSChecklistItem,first_id).is_completed
-    assert db.get(PMSChecklistItem,second_id) is None
+    assert db.get(PMSChecklistItem,second_id) is not None
     comments = db.query(PMSComment).filter_by(task_id=task).all()
     assert len(comments)==1 and comments[0].body=='Ready for QA' and comments[0].is_internal
     assert db.query(OperatorApiLog).count()==0

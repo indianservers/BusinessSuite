@@ -220,9 +220,11 @@ def create_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("approval_os_create", "approval_os_admin", "company_manage")),
 ):
+    if (data.context_json or {}).get("_shared") is not None:
+        raise HTTPException(422,"Shared approval references can only be created by the central service")
     if not data.assigned_to_user_id and not data.assigned_role:
         raise HTTPException(status_code=400, detail="Approval request requires an assigned user or role")
-    request = ApprovalRequest(**data.model_dump(), requester_user_id=current_user.id)
+    request = ApprovalRequest(**data.model_dump(), organization_id=current_user.organization_id, requester_user_id=current_user.id)
     db.add(request)
     db.flush()
     _record_history(db, request, "created", current_user.id, None, request.status, details={"source_module": request.source_module})
@@ -273,6 +275,11 @@ def _decide(request_id: int, decision: str, data: ApprovalDecision, db: Session,
     request = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id).first()
     if not request:
         raise HTTPException(status_code=404, detail="Approval request not found")
+    if (request.context_json or {}).get("_shared"):
+        from app.shared.runtime import decide_approval
+        result = decide_approval(db, current_user, request_id, decision, data.reason)
+        db.commit()
+        return result
     if request.status != "Pending":
         raise HTTPException(status_code=400, detail="Approval request is not pending")
     if not _can_decide_request(request, current_user):

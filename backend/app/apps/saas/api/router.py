@@ -135,6 +135,13 @@ def _partner_ids(db: Session, user: PortalUser) -> list[int]:
     return [row.partner_id for row in db.query(PortalPartnerLink).filter(PortalPartnerLink.portal_user_id == user.id, PortalPartnerLink.active.is_(True)).all()]
 
 
+
+def global_configuration(user: User = Depends(get_current_user)):
+    if not user.is_superuser:
+        raise HTTPException(403, "Legacy global configuration requires Super Admin; use company-scoped Master Suite administration")
+    return user
+
+
 def _ensure_default_plans(db: Session) -> None:
     if db.get_bind().dialect.name == "postgresql":
         # Both subscription screens can bootstrap concurrently on a fresh DB.
@@ -462,7 +469,7 @@ def refresh_sandbox(sandbox_id: int, db: Session = Depends(get_db), current_user
     return _serialize(job)
 
 
-@router.get("/admin/company-settings")
+@router.get("/admin/company-settings", dependencies=[Depends(global_configuration)])
 def get_company_settings(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_view", "tenant_admin"))):
     item = db.query(TenantCompanySetting).first()
     if not item:
@@ -473,7 +480,7 @@ def get_company_settings(db: Session = Depends(get_db), current_user: User = Dep
     return _serialize(item)
 
 
-@router.put("/admin/company-settings")
+@router.put("/admin/company-settings", dependencies=[Depends(global_configuration)])
 def update_company_settings(data: CompanySettingsPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_admin"))):
     item = db.query(TenantCompanySetting).first() or TenantCompanySetting()
     for key, value in data.model_dump().items():
@@ -486,12 +493,12 @@ def update_company_settings(data: CompanySettingsPayload, db: Session = Depends(
     return _serialize(item)
 
 
-@router.get("/admin/feature-flags")
+@router.get("/admin/feature-flags", dependencies=[Depends(global_configuration)])
 def list_feature_flags(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_view", "tenant_admin"))):
     return _items(db.query(TenantFeatureFlag).order_by(TenantFeatureFlag.feature_key.asc()).all())
 
 
-@router.put("/admin/feature-flags")
+@router.put("/admin/feature-flags", dependencies=[Depends(global_configuration)])
 def upsert_feature_flag(data: FeatureFlagPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_admin"))):
     item = db.query(TenantFeatureFlag).filter(TenantFeatureFlag.feature_key == data.feature_key).first() or TenantFeatureFlag(feature_key=data.feature_key)
     item.enabled = data.enabled
@@ -503,14 +510,14 @@ def upsert_feature_flag(data: FeatureFlagPayload, db: Session = Depends(get_db),
     return _serialize(item)
 
 
-@router.get("/admin/subscription-plans")
+@router.get("/admin/subscription-plans", dependencies=[Depends(global_configuration)])
 def list_subscription_plans(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_view", "tenant_admin"))):
     _ensure_default_plans(db)
     db.commit()
     return _items(db.query(TenantSubscriptionPlan).order_by(TenantSubscriptionPlan.id.asc()).all())
 
 
-@router.post("/admin/subscription-plans", status_code=201)
+@router.post("/admin/subscription-plans", status_code=201, dependencies=[Depends(global_configuration)])
 def create_subscription_plan(data: SubscriptionPlanPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_admin"))):
     if db.query(TenantSubscriptionPlan).filter(TenantSubscriptionPlan.code == data.code).first():
         raise HTTPException(status_code=409, detail="Subscription plan already exists")
@@ -521,14 +528,14 @@ def create_subscription_plan(data: SubscriptionPlanPayload, db: Session = Depend
     return _serialize(item)
 
 
-@router.get("/admin/subscription")
+@router.get("/admin/subscription", dependencies=[Depends(global_configuration)])
 def get_subscription(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_view", "tenant_admin"))):
     _ensure_default_plans(db)
     db.commit()
     return _serialize(db.query(TenantSubscription).order_by(TenantSubscription.id.desc()).first())
 
 
-@router.put("/admin/subscription")
+@router.put("/admin/subscription", dependencies=[Depends(global_configuration)])
 def update_subscription(data: SubscriptionPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_admin"))):
     _ensure_default_plans(db)
     item = db.query(TenantSubscription).first() or TenantSubscription()
@@ -542,7 +549,7 @@ def update_subscription(data: SubscriptionPayload, db: Session = Depends(get_db)
     return _serialize(item)
 
 
-@router.get("/admin/usage")
+@router.get("/admin/usage", dependencies=[Depends(global_configuration)])
 def usage_metrics(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_view", "tenant_admin"))):
     if not db.query(TenantUsageMetric).first():
         db.add_all([

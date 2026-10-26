@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.core.deps import RequirePermission, get_db
+from app.core.deps import RequirePermission, get_db, get_current_user
 from app.core.hr_audit import (
     anonymize_employee,
     has_active_legal_hold,
@@ -46,6 +46,13 @@ DOMAIN_PACK_CATALOG = {
 }
 
 
+
+def global_configuration(user: User = Depends(get_current_user)):
+    if not user.is_superuser:
+        raise HTTPException(403, "Legacy global governance requires Super Admin; use company-scoped Master Suite administration")
+    return user
+
+
 def _ensure_pack_enabled(db: Session, pack_key: str, company_id: int | None = None) -> DomainPackRegistry:
     item = db.query(DomainPackRegistry).filter(
         DomainPackRegistry.pack_key == pack_key,
@@ -59,19 +66,28 @@ def _ensure_pack_enabled(db: Session, pack_key: str, company_id: int | None = No
 
 @router.post("/integration-credentials", response_model=IntegrationCredentialSchema, status_code=201)
 def create_integration_credential(data: IntegrationCredentialCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
-    item = IntegrationCredential(**data.model_dump(), created_by=current_user.id)
+    from app.access.service import primary_company
+    from app.shared.integrations import protect
+    values=data.model_dump()
+    if not values["secret_ref"].startswith(("secret://","vault://","env:")):
+        values["secret_ref"]=protect(values["secret_ref"])
+    item = IntegrationCredential(**values, organization_id=getattr(current_user,"organization_id",None) or primary_company(current_user), created_by=current_user.id)
     db.add(item)
     db.commit()
     db.refresh(item)
-    return item
+    return {**{c.name:getattr(item,c.name) for c in item.__table__.columns},"secret_ref":"configured"}
 
 
 @router.get("/integration-credentials", response_model=List[IntegrationCredentialSchema])
 def list_integration_credentials(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_view"))):
-    return db.query(IntegrationCredential).order_by(IntegrationCredential.id.desc()).all()
+    from sqlalchemy import func
+    from app.access.service import primary_company
+    company=getattr(current_user,"organization_id",None) or primary_company(current_user)
+    rows=db.query(IntegrationCredential).filter(func.coalesce(IntegrationCredential.organization_id,1)==company).order_by(IntegrationCredential.id.desc()).all()
+    return [{**{c.name:getattr(item,c.name) for c in item.__table__.columns},"secret_ref":"configured"} for item in rows]
 
 
-@router.post("/webhooks", response_model=WebhookSubscriptionSchema, status_code=201)
+@router.post("/webhooks", response_model=WebhookSubscriptionSchema, status_code=201, dependencies=[Depends(global_configuration)])
 def create_webhook_subscription(data: WebhookSubscriptionCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
     item = WebhookSubscription(**data.model_dump(), created_by=current_user.id)
     db.add(item)
@@ -80,12 +96,12 @@ def create_webhook_subscription(data: WebhookSubscriptionCreate, db: Session = D
     return item
 
 
-@router.get("/webhooks", response_model=List[WebhookSubscriptionSchema])
+@router.get("/webhooks", response_model=List[WebhookSubscriptionSchema], dependencies=[Depends(global_configuration)])
 def list_webhook_subscriptions(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_view"))):
     return db.query(WebhookSubscription).order_by(WebhookSubscription.id.desc()).all()
 
 
-@router.post("/integration-events", response_model=IntegrationEventSchema, status_code=201)
+@router.post("/integration-events", response_model=IntegrationEventSchema, status_code=201, dependencies=[Depends(global_configuration)])
 def queue_integration_event(data: IntegrationEventCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
     item = IntegrationEvent(**data.model_dump())
     db.add(item)
@@ -94,7 +110,7 @@ def queue_integration_event(data: IntegrationEventCreate, db: Session = Depends(
     return item
 
 
-@router.get("/integration-events", response_model=List[IntegrationEventSchema])
+@router.get("/integration-events", response_model=List[IntegrationEventSchema], dependencies=[Depends(global_configuration)])
 def list_integration_events(
     status: Optional[str] = Query(None),
     event_type: Optional[str] = Query(None),
@@ -232,7 +248,7 @@ def list_privacy_requests(status: Optional[str] = Query(None), db: Session = Dep
     return query.order_by(DataPrivacyRequest.id.desc()).limit(300).all()
 
 
-@router.post("/retention-policies", response_model=DataRetentionPolicySchema, status_code=201)
+@router.post("/retention-policies", response_model=DataRetentionPolicySchema, status_code=201, dependencies=[Depends(global_configuration)])
 def create_retention_policy(data: DataRetentionPolicyCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
     item = DataRetentionPolicy(**data.model_dump())
     db.add(item)
@@ -241,12 +257,12 @@ def create_retention_policy(data: DataRetentionPolicyCreate, db: Session = Depen
     return item
 
 
-@router.get("/retention-policies", response_model=List[DataRetentionPolicySchema])
+@router.get("/retention-policies", response_model=List[DataRetentionPolicySchema], dependencies=[Depends(global_configuration)])
 def list_retention_policies(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_view"))):
     return db.query(DataRetentionPolicy).order_by(DataRetentionPolicy.module, DataRetentionPolicy.record_type).all()
 
 
-@router.post("/retention-policies/run")
+@router.post("/retention-policies/run", dependencies=[Depends(global_configuration)])
 def run_retention_policies(
     dry_run: bool = Query(True),
     db: Session = Depends(get_db),
@@ -262,7 +278,7 @@ def run_retention_policies(
         employees = db.query(Employee).filter(Employee.created_at <= cutoff).limit(500).all()
         for employee in employees:
             summary["evaluated"] += 1
-            blockers = []
+            blockers = statutory_retention_blockers(db, employee)
             if has_active_legal_hold(db, employee.id):
                 blockers.append("active_legal_hold")
             if blockers:
@@ -281,7 +297,7 @@ def run_retention_policies(
     return summary
 
 
-@router.post("/legal-holds", response_model=LegalHoldSchema, status_code=201)
+@router.post("/legal-holds", response_model=LegalHoldSchema, status_code=201, dependencies=[Depends(global_configuration)])
 def create_legal_hold(data: LegalHoldCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
     item = LegalHold(**data.model_dump(), placed_by=current_user.id)
     db.add(item)
@@ -290,7 +306,7 @@ def create_legal_hold(data: LegalHoldCreate, db: Session = Depends(get_db), curr
     return item
 
 
-@router.put("/legal-holds/{hold_id}/release", response_model=LegalHoldSchema)
+@router.put("/legal-holds/{hold_id}/release", response_model=LegalHoldSchema, dependencies=[Depends(global_configuration)])
 def release_legal_hold(hold_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
     item = db.query(LegalHold).filter(LegalHold.id == hold_id).first()
     if not item:
@@ -302,12 +318,12 @@ def release_legal_hold(hold_id: int, db: Session = Depends(get_db), current_user
     return item
 
 
-@router.get("/legal-holds", response_model=List[LegalHoldSchema])
+@router.get("/legal-holds", response_model=List[LegalHoldSchema], dependencies=[Depends(global_configuration)])
 def list_legal_holds(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_view"))):
     return db.query(LegalHold).order_by(LegalHold.id.desc()).all()
 
 
-@router.post("/metrics", response_model=MetricDefinitionSchema, status_code=201)
+@router.post("/metrics", response_model=MetricDefinitionSchema, status_code=201, dependencies=[Depends(global_configuration)])
 def create_metric_definition(data: MetricDefinitionCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("reports_manage"))):
     item = MetricDefinition(**data.model_dump())
     db.add(item)
@@ -316,7 +332,7 @@ def create_metric_definition(data: MetricDefinitionCreate, db: Session = Depends
     return item
 
 
-@router.get("/metrics", response_model=List[MetricDefinitionSchema])
+@router.get("/metrics", response_model=List[MetricDefinitionSchema], dependencies=[Depends(global_configuration)])
 def list_metric_definitions(module: Optional[str] = Query(None), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("reports_view"))):
     query = db.query(MetricDefinition).filter(MetricDefinition.is_active == True)
     if module:

@@ -1,3 +1,4 @@
+import {useCompanyBranding} from "@/features/access/useCompanyBranding";
 import NavigationShortcuts from "./NavigationShortcuts";
 import ModuleSwitcher from "./ModuleSwitcher";
 import MessagingNavLink from "./MessagingNavLink";
@@ -21,7 +22,9 @@ interface SidebarProps {
 
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
+  const companyBrandName=useCompanyBranding(location.pathname);
   const { user } = useAuthStore();
+  const isControlCenter = location.pathname.startsWith("/admin/control") || location.pathname.startsWith("/admin/access");
   const roleNav = getRoleNav(user?.role, user?.is_superuser, location.pathname);
   const primaryPaths: Record<string, string[]> = {
     hrms: ["/hrms", "/hrms/employees", "/hrms/interns", "/hrms/attendance", "/hrms/leave", "/hrms/payroll", "/hrms/recruitment"],
@@ -39,7 +42,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
   const moduleKey = location.pathname.split("/")[1];
   useEffect(() => { setShowAll(false); setQuery(""); }, [moduleKey]);
   const matchingItems = allNavItems.filter(item => !query || `${item.label} ${item.group || ""}`.toLowerCase().includes(query.toLowerCase()));
-  const navItems = showAll || query ? matchingItems : matchingItems.filter((item, index) => index < 6 || (item.to !== "/" && (location.pathname === item.to || (!item.exact && item.to.split("/").length > 2 && location.pathname.startsWith(`${item.to}/`)))));
+  const navItems = isControlCenter || showAll || query ? matchingItems : matchingItems.filter((item, index) => index < 6 || (item.to !== "/" && (location.pathname === item.to || (!item.exact && item.to.split("/").length > 2 && location.pathname.startsWith(`${item.to}/`)))));
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const profilePath = location.pathname.startsWith("/hrms")
@@ -107,7 +110,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
         </div>
 
         {!collapsed && <ModuleSwitcher />}
-        {!location.pathname.startsWith("/admin/access") && (user?.is_superuser || user?.access?.isAccessAdmin) && <Link to="/admin/access" onClick={onClose} className="mx-3 my-2 rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium hover:bg-sidebar-accent">Users & Access</Link>}
+        {!isControlCenter && (user?.is_superuser || user?.access?.isAccessAdmin) && <Link to="/admin/access" onClick={onClose} className="mx-3 my-2 rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium hover:bg-sidebar-accent">Users & Access</Link>}
         {/* Collapse toggle when collapsed */}
         {collapsed && (
           <Button
@@ -125,7 +128,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
           {!collapsed && <label className="mx-3 mb-3 flex items-center gap-2 rounded-md border border-sidebar-border px-2 py-2"><Search className="h-3.5 w-3.5 shrink-0 opacity-50" /><input aria-label="Find a page" placeholder="Find a page…" value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 w-full bg-transparent text-xs outline-none" /></label>}
           <ul className={cn("px-2", collapsed ? "space-y-0.5" : "space-y-1")}>
             {navItems.map((item, index) => {
-              const showGroup = !collapsed && (showAll || Boolean(query)) && item.group && item.group !== navItems[index - 1]?.group;
+              const showGroup = !collapsed && (isControlCenter || showAll || Boolean(query)) && item.group && item.group !== navItems[index - 1]?.group;
               return (
                 <Fragment key={`${item.to}:${item.label}`}>
                   {showGroup && (
@@ -143,7 +146,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
                       className={({ isActive }) =>
                         cn(
                           "nav-link",
-                          isActive ? "nav-link-active" : "nav-link-inactive",
+                          (isActive && (!isControlCenter || !item.to.startsWith("/admin/access") || (item.to.includes("?") ? location.search.includes("tab=Roles") : !location.search.includes("tab=Roles")))) ? "nav-link-active" : "nav-link-inactive",
                           collapsed && "justify-center px-2"
                         )
                       }
@@ -167,16 +170,16 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
           </ul>
           {!navItems.length && <p className="px-5 py-3 text-xs text-sidebar-foreground/60">No matching pages.</p>}
           {moduleKey === "pms" && !navItems.some(item=>item.to==="/pms/messages") && <MessagingNavLink collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
-          {!query && !showAll && <NavigationShortcuts excludedPaths={navItems.map(item => item.to)} collapsed={collapsed} onNavigate={onClose} />}
+          {!isControlCenter && !query && !showAll && <NavigationShortcuts excludedPaths={navItems.map(item => item.to)} collapsed={collapsed} onNavigate={onClose} />}
           {moduleKey === "pms" && <PMSMoreMenu collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
-          {moduleKey !== "pms" && allNavItems.length > 6 && !query && <button type="button" aria-label={showAll ? "Show fewer pages" : "Show all pages"} aria-expanded={showAll} onClick={() => setShowAll(value => !value)} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs"><MoreHorizontal className="h-4 w-4" />{!collapsed && (showAll ? "Show fewer" : `More pages (${allNavItems.length - navItems.length})`)}</button>}
+          {!isControlCenter && moduleKey !== "pms" && allNavItems.length > 6 && !query && <button type="button" aria-label={showAll ? "Show fewer pages" : "Show all pages"} aria-expanded={showAll} onClick={() => setShowAll(value => !value)} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs"><MoreHorizontal className="h-4 w-4" />{!collapsed && (showAll ? "Show fewer" : `More pages (${allNavItems.length - navItems.length})`)}</button>}
         </nav>
 
         {/* User section */}
         <div className="border-t border-sidebar-border p-4">
           {!collapsed && (
             <div className="mb-3 rounded-md border border-sidebar-border/70 px-3 py-2 text-[10px] font-medium text-sidebar-foreground/55">
-              {BUSINESS_SUITE_DISPLAY_NAME}
+              {companyBrandName || BUSINESS_SUITE_DISPLAY_NAME}
             </div>
           )}
           <NavLink

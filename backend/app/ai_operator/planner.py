@@ -41,9 +41,13 @@ def generate_plan(db, user, run):
         parent = db.query(OperatorRun).filter_by(id=parent_id, user_id=user.id, project_id=run.project_id).first()
         if not parent:
             raise HTTPException(403, "Parent context unavailable")
+        from app.ai_agents.security import verify
+        verify(db,user,parent.security_context,history=True)
         history.append({"command": parent.command, "plan": parent.plan, "committed_result": parent.result})
         parent_id = parent.parent_run_id
-    outbound = AiDataRedactionService().redact_for_ai(user, "PMS", {"command": run.command, "authorized_context": context,
+    from app.ai_agents.security import bounded_result
+    context_for_model=bounded_result(db,user,context)
+    outbound = AiDataRedactionService().redact_for_ai(user, "PMS", {"command": run.command, "authorized_context": context_for_model,
         "prior_turns_newest_first": history, "local_time": datetime.now(ZoneInfo(run.timezone)).isoformat(),
         "timezone": run.timezone,
         "instructions": "Revise the previous plan using the follow-up command. Do not repeat committed effects. Keep all targets inside the frozen selection. Step depends_on uses earlier one-based step positions; omitted means preceding steps. Dates must be explicit ISO dates."})

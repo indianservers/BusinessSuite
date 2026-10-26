@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -21,8 +21,12 @@ class HelpdeskTicket(Base):
     __tablename__ = "helpdesk_tickets"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    module_key = Column(String(80), nullable=True, index=True)
+    detail_json = Column(JSON, default=dict)
+    version = Column(Integer, nullable=False, default=1, server_default="1")
     ticket_number = Column(String(30), unique=True, nullable=False, index=True)
-    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=True)
     category_id = Column(Integer, ForeignKey("helpdesk_categories.id", ondelete="SET NULL"), nullable=True)
     subject = Column(String(300), nullable=False)
     description = Column(Text, nullable=False)

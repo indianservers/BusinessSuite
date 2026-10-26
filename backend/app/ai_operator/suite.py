@@ -90,6 +90,8 @@ class Approval(Strict):
 
 
 def authorize(db, user, workspace_id, module=None):
+    from app.ai_agents.security import ORIGIN,company
+    ORIGIN.set({"company_id":company(user)})
     from app.access.service import check_background_access
     check_background_access(db, user, "ai", "view")
     _require_ai_access(user)
@@ -109,6 +111,8 @@ def check_tool(db, user, workspace_id, step, write=None):
     tool = TOOLS.get(step.tool)
     if not tool:
         raise HTTPException(422, 'Unsupported suite tool')
+    from app.ai_agents.security import authorize_tool
+    authorize_tool(db,user,"suite",step.tool,tool)
     authorize(db, user, workspace_id, tool.module)
     from app.access.service import check_background_access
     check_background_access(db, user, MODULES[tool.module], "view" if tool.method == "GET" else "create" if tool.method == "POST" else "edit")
@@ -160,9 +164,13 @@ def references(value, position, steps, receipts=None):
 
 
 async def api_call(app, authorization, method, path, payload=None):
+    from app.ai_agents.security import delegated_token
+    authorization=delegated_token(authorization,method,'/api/v1'+path,payload)
+    from app.core.security import verify_access_token
+    selected=verify_access_token(authorization.partition(' ')[2])['ai_origin']['company_id']
     # Fixed local ASGI transport invokes canonical routers AND their dependencies.
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app, raise_app_exceptions=False),
-                                 base_url='http://suite-internal', headers={'Authorization': authorization}, follow_redirects=False) as client:
+                                 base_url='http://suite-internal', headers={'Authorization': authorization,'X-Suite-Organization':str(selected)}, follow_redirects=False) as client:
         response = await client.request(method, '/api/v1'+path, params=payload if method == 'GET' else None,
                                         json=payload if method != 'GET' else None)
     if not 200 <= response.status_code < 300:
@@ -172,6 +180,8 @@ async def api_call(app, authorization, method, path, payload=None):
 
 
 async def preflight(app, authorization, db, user, workspace_id, plan, run=None):
+    from app.ai_agents.security import limits,company
+    if len(plan.steps)>limits(db,company(user))["max_calls"]:raise HTTPException(422,"AI tool-call budget exceeded")
     snapshots = {}
     prepared = {}
     total_task_steps=0
@@ -233,6 +243,8 @@ def owned(db, user, ident, lock=False):
     run = (query.with_for_update().populate_existing() if lock else query).first()
     if not run:
         raise HTTPException(404, 'Suite run not found')
+    from app.ai_agents.security import verify
+    verify(db,user,run.security_context,history=True)
     if authorize(db, user, run.workspace_id) != run.scope_key:
         raise HTTPException(403, 'Suite scope changed')
     return run
@@ -249,7 +261,8 @@ def tools(db: Session = Depends(get_db), user: User = Depends(get_current_user))
 def runs(workspace_id: int | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     scope = authorize(db, user, workspace_id)
     rows = db.query(SuiteRun).filter_by(user_id=user.id, scope_key=scope).order_by(SuiteRun.id.desc()).limit(50).all()
-    return {'items': [public(r) for r in rows]}
+    from app.ai_agents.security import visible_history
+    return {'items': [public(r) for r in visible_history(db,user,rows)]}
 
 
 @router.get('/runs/{ident}')
@@ -321,8 +334,12 @@ async def command(data: Command, request: Request, db: Session = Depends(get_db)
             project_context['selected_task_ids']=data.task_ids
             enrich_context(db,user,project.id,project_context)
             from app.ai_operator.models import OperatorRun
-            project_context['execution_history']=[{'id':r.id,'status':r.status,'plan':r.plan,'result':r.result}
-                for r in db.query(OperatorRun).filter_by(user_id=user.id,project_id=project.id).order_by(OperatorRun.id.desc()).limit(5)]
+            project_context['execution_history']=[]
+            from app.ai_agents.security import verify
+            for r in db.query(OperatorRun).filter_by(user_id=user.id,project_id=project.id).order_by(OperatorRun.id.desc()).limit(5):
+                try: verify(db,user,r.security_context,history=True)
+                except HTTPException: continue
+                project_context['execution_history'].append({'id':r.id,'status':r.status,'plan':r.plan,'result':r.result})
         for step in data.context:
             tool = check_tool(db, user, data.workspace_id, step, False)
             if not isinstance(step.record_id, (int, type(None))):
@@ -333,7 +350,8 @@ async def command(data: Command, request: Request, db: Session = Depends(get_db)
             value = await api_call(request.app, header, 'GET', tool.path.format(record_id=step.record_id), params)
             if step.tool == 'pms.projects':
                 value = [p for p in value if p.get('workspace_id') == data.workspace_id]
-            context.append({'tool': step.tool, 'record_id': step.record_id, 'records': minimize(value), 'limit': 50})
+            from app.ai_agents.security import bounded_result
+            context.append({'tool': step.tool, 'record_id': step.record_id, 'records': bounded_result(db,user,minimize(value)), 'limit': 50})
         if data.local_plan:
             plan = data.local_plan
         else:
@@ -348,7 +366,7 @@ async def command(data: Command, request: Request, db: Session = Depends(get_db)
                 'command': data.text, 'authorized_context': context, 'tools': [] if data.mode == 'summary' else catalog(), 'current_time': now().isoformat(),
                 'project_context':project_context,'conversation_newest_first':history,'timezone':data.timezone,
                 'current_local_date':datetime.now(ZoneInfo(data.timezone)).date().isoformat(),
-                'pms_instructions':'Use pms.kickoff for complete projects/milestones/tasks/subtasks/blockers with draft keys pointing to earlier tasks. Use pms.task_plan for ALL existing-task tools including status, priority, assignee_user_ids, title, description, estimated_hours, story_points, schedule_task, move_to_sprint, add/remove_dependency, add/update/remove_checklist, add_comment. Resolve selected-task pronouns and collaborator names only from fresh context. Ask one focused question when ambiguous. pms.schedule deterministically uses calendar/dependencies; its start_date can be relative. Reuse project memory and prior collected facts. Do not repeat completed receipts. Playbooks, monitoring and rules are separate tools; an LLM cannot enable standing autonomy consent. Dates inside task/work-breakdown plans must be ISO. All changes remain drafts until approved.',
+                'pms_instructions':'Use pms.kickoff for complete projects/milestones/tasks/subtasks/blockers with draft keys pointing to earlier tasks. Use pms.task_plan for ALL existing-task tools including status, priority, assignee_user_ids, title, description, estimated_hours, story_points, schedule_task, move_to_sprint, add_dependency, add/update_checklist, add_comment. Resolve selected-task pronouns and collaborator names only from fresh context. Ask one focused question when ambiguous. pms.schedule deterministically uses calendar/dependencies; its start_date can be relative. Reuse project memory and prior collected facts. Do not repeat completed receipts. Playbooks, monitoring and rules are separate tools; an LLM cannot enable standing autonomy consent. Dates inside task/work-breakdown plans must be ISO. All changes remain drafts until approved.',
                 'instructions': ('Summarize only the supplied minimized records. Distinguish empty samples from company-wide absence. State source limits. Return only the summary field, without actions, questions or invented facts.' if data.mode == 'summary' else 'Return summary grounded in supplied records, or a complete action plan. Ask question if any required field/ID is missing. Never invent IDs. Steps only use action tools; reads belong in selected context. For a summary return steps []. For missing information return question and steps []. A later step may reference a newly created record via {"$step":1,"field":"id"}. Never claim a draft was executed. No outbound messages, payroll changes, approvals of leave, posting financial entries or money movement.')})
             module = '+'.join(sorted({TOOLS[s.tool].module for s in data.context}|({'PMS'} if data.project_id else set()))) or 'CROSS'
             output_type = Summary if data.mode == 'summary' else Plan
@@ -383,7 +401,7 @@ async def command(data: Command, request: Request, db: Session = Depends(get_db)
     except HTTPException as exc:
         # Keep sanitized usage even for failed generation/domain validation.
         run.status = 'failed'
-        run.error_code = str(exc.detail)[:80] if isinstance(exc.detail, str) else 'PLAN_VALIDATION_FAILED'
+        run.error_code = f'AI_POLICY_HTTP_{exc.status_code}'[:80] if isinstance(exc.detail, str) else 'PLAN_VALIDATION_FAILED'
         retire_drafts(db,run)
         db.commit()
     return public(run)
@@ -392,6 +410,9 @@ async def command(data: Command, request: Request, db: Session = Depends(get_db)
 @router.post('/runs/{ident}/approve')
 def approve(ident: int, data: Approval, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     run = owned(db, user, ident, True)
+    from app.ai_agents.security import verify
+    sealed=db.get(AiActionApproval,run.approval_id)
+    if sealed:verify(db,user,sealed.security_context,payload=sealed.proposed_action_json,confirmation=True)
     if run.plan_hash != data.plan_hash or digest(run.plan) != data.plan_hash:
         raise HTTPException(409, 'Plan changed; review the current draft')
     if run.status in ('queued', 'executing', 'waiting_pms', 'succeeded'):
@@ -523,12 +544,17 @@ async def process_suite_batch(db, app, limit=10):
             from app.access.service import activate_run_context
             activate_run_context(db,user,run)
             authorize(db, user, run.workspace_id)
+            from app.ai_agents.security import verify
+            verify(db,user,run.security_context)
             approval = db.get(AiActionApproval, run.approval_id)
             if not approval or approval.status != 'approved' or approval.approved_by != user.id or digest(run.plan) != run.plan_hash:
                 raise HTTPException(409, 'Approval is unavailable or changed')
+            verify(db,user,approval.security_context,payload=approval.proposed_action_json,confirmation=True)
             approved_input = (approval.proposed_action_json or {}).get('input', {})
             if approved_input.get('plan_hash') != run.plan_hash or approved_input.get('suite_run_id') != run.id:
                 raise HTTPException(409, 'Approval hash changed')
+            from app.ai_agents.security import execution_budget
+            execution_budget(db,user,run)
             plan = Plan.model_validate(run.plan)
             index = len(run.receipts) + 1
             step = plan.steps[index-1]
@@ -543,7 +569,7 @@ async def process_suite_batch(db, app, limit=10):
                     raise HTTPException(403, 'PMS project workspace changed')
             if step.tool == 'pms.create_project':
                 payload['workspace_id'] = run.workspace_id
-            authorization = 'Bearer ' + create_access_token(str(user.id), expires_delta=timedelta(minutes=5), session_id=run.session_id)
+            authorization = 'Bearer ' + create_access_token(str(user.id), expires_delta=timedelta(minutes=5), session_id=run.session_id,ai_origin={'company_id':user.organization_id})
             if tool.guard and str(index) in run.snapshots:
                 current = await api_call(app, authorization, 'GET', tool.guard.format(record_id=record_id))
                 if digest(current) != run.snapshots[str(index)]:

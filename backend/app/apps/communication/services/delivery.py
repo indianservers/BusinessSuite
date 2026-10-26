@@ -115,6 +115,7 @@ def deliver_email(db: Session, message: CommunicationEmailMessage, current_user:
 def _timeline(db: Session, message: CommunicationEmailMessage, event_type: str, current_user: User | None) -> None:
     db.add(
         CommunicationTimelineEvent(
+            organization_id=getattr(message,"organization_id",None),
             record_type=message.related_record_type,
             record_id=message.related_record_id,
             channel="email",
@@ -130,6 +131,7 @@ def _timeline(db: Session, message: CommunicationEmailMessage, event_type: str, 
 def _delivery_log(db: Session, message: CommunicationEmailMessage, provider: str, status: str, request_json: dict[str, Any], response_json: dict[str, Any] | None = None, error_message: str | None = None) -> None:
     db.add(
         CommunicationDeliveryLog(
+            organization_id=getattr(message,"organization_id",None),
             channel="email",
             related_message_id=message.id,
             provider=provider,

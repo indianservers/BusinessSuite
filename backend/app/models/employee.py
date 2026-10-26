@@ -213,7 +213,7 @@ class Employee(Base):
 
     # Relationships
     user = relationship("User", back_populates="employee", foreign_keys=[user_id])
-    branch = relationship("Branch", back_populates="employees")
+    branch = relationship("Branch", back_populates="employees", foreign_keys=[branch_id])
     department = relationship("Department", back_populates="employees", foreign_keys=[department_id])
     designation = relationship("Designation", back_populates="employees")
     reporting_manager = relationship("Employee", remote_side=[id], foreign_keys=[reporting_manager_id])

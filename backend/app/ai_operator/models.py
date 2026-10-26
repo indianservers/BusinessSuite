@@ -24,6 +24,7 @@ class OperatorProvider(Base):
 class OperatorRun(Base):
     __tablename__ = "ai_operator_runs"
     __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_operator_command_request"),)
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True)
     scope_key = Column(String(100), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
@@ -112,6 +113,7 @@ class OperatorEvent(Base):
 class OperatorProposal(Base):
     __tablename__ = "ai_operator_proposals"
     __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_operator_proposal_request"),)
+    security_context = Column(JSON)
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     scope_key = Column(String(100), nullable=False, index=True)

@@ -266,6 +266,9 @@ def test_financial_permissions_and_tenant_boundaries(client, db, superuser_heade
         permissions=["srm_invoice_view", "srm_invoice_create", "srm_invoice_approve"],
     )
     u = db.query(User).filter_by(email="finance2@example.com").one()
+    if not db.get(Company, 2):
+        db.add(Company(id=2, name="Other real tenant"))
+        db.flush()
     db.add(CommonPerson(user_id=u.id, organization_id=2, display_name="Other tenant"))
     db.commit()
     assert (
@@ -619,84 +622,198 @@ def test_milestone_and_whole_order_cannot_bill_same_obligation(
 
 def test_atomic_payment_retry_reversal_and_cancellation(client, db, superuser_headers):
     from app.apps.srm.models import SRMReceipt
+
     buyer, contact, project, team = setup_business(db)
     link(client, superuser_headers, buyer, contact, project, team)
-    invoice = client.post(f"/api/v1/project-management/projects/{project.id}/invoices", headers=superuser_headers, json={"request_id": str(uuid4()), "lines": [{"description": "Receipt workflow", "unit_price": 100}]}).json()
-    assert client.post(f"/api/v1/srm/invoices/{invoice['id']}/approve", headers=superuser_headers).status_code == 200
-    data = {"request_id": str(uuid4()), "amount": "40", "reference": "Synthetic transaction"}
+    invoice = client.post(
+        f"/api/v1/project-management/projects/{project.id}/invoices",
+        headers=superuser_headers,
+        json={
+            "request_id": str(uuid4()),
+            "lines": [{"description": "Receipt workflow", "unit_price": 100}],
+        },
+    ).json()
+    assert (
+        client.post(
+            f"/api/v1/srm/invoices/{invoice['id']}/approve", headers=superuser_headers
+        ).status_code
+        == 200
+    )
+    data = {
+        "request_id": str(uuid4()),
+        "amount": "40",
+        "reference": "Synthetic transaction",
+    }
     url = f"/api/v1/srm/business/invoices/{invoice['id']}/payments"
     first = client.post(url, headers=superuser_headers, json=data)
     assert first.status_code == 201, first.text
     repeated = client.post(url, headers=superuser_headers, json=data)
     assert repeated.json()["receipt_id"] == first.json()["receipt_id"]
     assert db.query(SRMReceipt).count() == 1
-    billing = client.get(f"/api/v1/project-management/projects/{project.id}/billing", headers=superuser_headers).json()
+    billing = client.get(
+        f"/api/v1/project-management/projects/{project.id}/billing",
+        headers=superuser_headers,
+    ).json()
     assert billing["invoices"][0]["balance_amount"] == 60
-    assert client.post(f"/api/v1/srm/business/invoices/{invoice['id']}/cancel", headers=superuser_headers, json={"reason": "Paid invoice must not cancel"}).status_code == 409
+    assert (
+        client.post(
+            f"/api/v1/srm/business/invoices/{invoice['id']}/cancel",
+            headers=superuser_headers,
+            json={"reason": "Paid invoice must not cancel"},
+        ).status_code
+        == 409
+    )
     receipt_id = first.json()["receipt_id"]
-    reverse = client.post(f"/api/v1/srm/business/payments/{receipt_id}/reverse", headers=superuser_headers, json={"reason": "Synthetic payment entered in error"})
+    reverse = client.post(
+        f"/api/v1/srm/business/payments/{receipt_id}/reverse",
+        headers=superuser_headers,
+        json={"reason": "Synthetic payment entered in error"},
+    )
     assert reverse.status_code == 200, reverse.text
     assert reverse.json()["invoice"]["balance_amount"] == 100
-    assert client.post(f"/api/v1/srm/business/payments/{receipt_id}/reverse", headers=superuser_headers, json={"reason": "Retry"}).json()["invoice"]["balance_amount"] == 100
-    cancel = client.post(f"/api/v1/srm/business/invoices/{invoice['id']}/cancel", headers=superuser_headers, json={"reason": "Synthetic cancellation after reversal"})
+    assert (
+        client.post(
+            f"/api/v1/srm/business/payments/{receipt_id}/reverse",
+            headers=superuser_headers,
+            json={"reason": "Retry"},
+        ).json()["invoice"]["balance_amount"]
+        == 100
+    )
+    cancel = client.post(
+        f"/api/v1/srm/business/invoices/{invoice['id']}/cancel",
+        headers=superuser_headers,
+        json={"reason": "Synthetic cancellation after reversal"},
+    )
     assert cancel.status_code == 200, cancel.text
     assert cancel.json()["document_status"] == "cancelled"
     assert cancel.json()["payment_status"] == "not_payable"
     assert db.query(SRMInvoice).one().total_amount == Decimal("100")
 
 
-def test_commercial_handoff_carries_customer_contact_team_and_origin(client, db, superuser_headers):
+def test_commercial_handoff_carries_customer_contact_team_and_origin(
+    client, db, superuser_headers
+):
     from tests.test_srm_crm_won_handoff import create_won_deal_with_quote
     from app.apps.srm.commercial_models import ProjectCommercial, MilestoneBillingSource
+
     buyer, contact, independent, team = setup_business(db)
     deal, quote = create_won_deal_with_quote(db, "Canonical handoff")
     deal.company_id, deal.contact_id = buyer.id, contact.id
     buyer.assigned_team_id = team.id
     db.commit()
-    handoff = client.post(f"/api/v1/srm/from-crm/deals/{deal.id}/create-sales-order", headers=superuser_headers)
+    handoff = client.post(
+        f"/api/v1/srm/from-crm/deals/{deal.id}/create-sales-order",
+        headers=superuser_headers,
+    )
     assert handoff.status_code == 201, handoff.text
     order = handoff.json()["sales_order"]
     engagement = handoff.json()["engagement"]
-    client.post(f"/api/v1/srm/sales-orders/{order['id']}/submit", headers=superuser_headers)
-    client.post(f"/api/v1/srm/sales-orders/{order['id']}/approve", headers=superuser_headers)
-    assert client.post(f"/api/v1/srm/sales-orders/{order['id']}/confirm", headers=superuser_headers).status_code == 200
-    created = client.post(f"/api/v1/srm/engagements/{engagement['id']}/create-pms-project", headers=superuser_headers)
+    client.post(
+        f"/api/v1/srm/sales-orders/{order['id']}/submit", headers=superuser_headers
+    )
+    client.post(
+        f"/api/v1/srm/sales-orders/{order['id']}/approve", headers=superuser_headers
+    )
+    assert (
+        client.post(
+            f"/api/v1/srm/sales-orders/{order['id']}/confirm", headers=superuser_headers
+        ).status_code
+        == 200
+    )
+    created = client.post(
+        f"/api/v1/srm/engagements/{engagement['id']}/create-pms-project",
+        headers=superuser_headers,
+    )
     assert created.status_code == 200, created.text
     project_id = created.json()["project"]["id"]
     ctx = db.get(ProjectCommercial, project_id)
-    assert (ctx.customer_id, ctx.contact_id, ctx.team_id, ctx.seller_id) == (buyer.id, contact.id, team.id, 1)
-    assert (ctx.opportunity_id, ctx.sales_order_id, ctx.engagement_id) == (deal.id, order["id"], engagement["id"])
+    assert (ctx.customer_id, ctx.contact_id, ctx.team_id, ctx.seller_id) == (
+        buyer.id,
+        contact.id,
+        team.id,
+        1,
+    )
+    assert (ctx.opportunity_id, ctx.sales_order_id, ctx.engagement_id) == (
+        deal.id,
+        order["id"],
+        engagement["id"],
+    )
     assert db.query(CRMCompany).count() == 1
     assert db.query(MilestoneBillingSource).count() > 0
-    again = client.post(f"/api/v1/srm/engagements/{engagement['id']}/create-pms-project", headers=superuser_headers)
+    again = client.post(
+        f"/api/v1/srm/engagements/{engagement['id']}/create-pms-project",
+        headers=superuser_headers,
+    )
     assert again.json()["project"]["id"] == project_id
-    related = client.get(f"/api/v1/srm/business/related-projects?engagement_id={engagement['id']}", headers=superuser_headers)
+    related = client.get(
+        f"/api/v1/srm/business/related-projects?engagement_id={engagement['id']}",
+        headers=superuser_headers,
+    )
     assert related.json()[0]["id"] == project_id
 
 
-def test_pms_legacy_project_tenant_boundary_applies_before_global_role_and_membership(db, superuser_headers):
-    from app.apps.project_management.access import can_access_project, accessible_project_query
+def test_pms_legacy_project_tenant_boundary_applies_before_global_role_and_membership(
+    db, superuser_headers
+):
+    from app.apps.project_management.access import (
+        can_access_project,
+        accessible_project_query,
+    )
     from app.apps.project_management.models import PMSProjectMember
+
     buyer, contact, local, team = setup_business(db)
     owner = db.query(User).first()
-    foreign = PMSProject(organization_id=2, name="Other tenant confidential", project_key="OTHER-TENANT", manager_user_id=owner.id)
-    db.add(foreign); db.flush()
-    db.add(PMSProjectMember(project_id=foreign.id, user_id=owner.id, role="Manager")); db.commit()
-    assert not can_access_project(db, foreign, owner), "Tenant admin/membership must not override another tenant boundary"
+    foreign = PMSProject(
+        organization_id=2,
+        name="Other tenant confidential",
+        project_key="OTHER-TENANT",
+        manager_user_id=owner.id,
+    )
+    db.add(foreign)
+    db.flush()
+    db.add(PMSProjectMember(project_id=foreign.id, user_id=owner.id, role="Manager"))
+    db.commit()
+    assert not can_access_project(
+        db, foreign, owner
+    ), "Tenant admin/membership must not override another tenant boundary"
     assert foreign.id not in {p.id for p in accessible_project_query(db, owner).all()}
     assert can_access_project(db, local, owner)
 
 
-def test_pms_task_access_does_not_expose_srm_commercial_payload(client, db, superuser_headers):
+def test_pms_task_access_does_not_expose_srm_commercial_payload(
+    client, db, superuser_headers
+):
     from app.apps.srm.models import SRMEngagement
     from app.apps.project_management.models import PMSProjectMember
+
     buyer, contact, project, team = setup_business(db)
-    headers = auth_headers_for(client, db, "contributor-audit@example.com", "srm_viewer", permissions=["pms_manage_tasks", "srm_view"])
+    headers = auth_headers_for(
+        client,
+        db,
+        "contributor-audit@example.com",
+        "srm_viewer",
+        permissions=["pms_manage_tasks", "srm_view"],
+    )
     user = db.query(User).filter_by(email="contributor-audit@example.com").one()
     db.add(PMSProjectMember(project_id=project.id, user_id=user.id, role="Member"))
-    db.add(SRMEngagement(organization_id=1, engagement_number="PRIVATE-COMMERCIAL", name="Sensitive commercial", pms_project_id=project.id, budget_amount=98765))
+    db.add(
+        SRMEngagement(
+            organization_id=1,
+            engagement_number="PRIVATE-COMMERCIAL",
+            name="Sensitive commercial",
+            pms_project_id=project.id,
+            budget_amount=98765,
+        )
+    )
     db.commit()
-    response = client.get(f"/api/v1/project-management/projects/{project.id}", headers=headers)
+    response = client.get(
+        f"/api/v1/project-management/projects/{project.id}", headers=headers
+    )
     assert response.status_code == 200, response.text
     assert response.json().get("srm_links") is None
-    assert client.get(f"/api/v1/project-management/projects/{project.id}/billing", headers=headers).status_code == 403
+    assert (
+        client.get(
+            f"/api/v1/project-management/projects/{project.id}/billing", headers=headers
+        ).status_code
+        == 403
+    )

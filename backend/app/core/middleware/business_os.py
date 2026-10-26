@@ -62,6 +62,11 @@ class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
                 requested = request.headers.get("X-Suite-Organization", "")
                 if requested.isdecimal() and (actor.is_superuser or int(requested) in companies_for(db, actor)):
                     company_id = int(requested)
+            from app.models.company import Company
+            if not db.get(Company, company_id):
+                if actor:
+                    return JSONResponse(status_code=403,content={"detail":"Organization context is unavailable"})
+                return await call_next(request)
             if not is_module_enabled(db, module_key, company_id=company_id):
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,

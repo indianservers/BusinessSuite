@@ -98,6 +98,8 @@ def key_for_source(source, default=None):
         return "forms"
     if source in {
         "app.access.api",
+        "app.access.control",
+        "app.shared.api", "app.enterprise.api", "app.ai_agents.security_api",
         "app.common.profile_api",
         "app.api.v1.auth",
         "app.api.v1.users",
@@ -317,6 +319,17 @@ def action_permissions(names, tier):
     return [n for n in names if not any(word in n for word in forbidden)]
 
 
+def module_actions(key):
+    from types import SimpleNamespace
+
+    supported = {
+        action_for(SimpleNamespace(method=method, url=SimpleNamespace(path=path)))
+        for (_, path, method), module in ROUTES.items()
+        if module == key
+    }
+    return [action for action in ACTIONS if action in supported]
+
+
 def catalog(db):
     cached = db.info.get("suite_access_catalog")
     if cached is not None:
@@ -361,7 +374,7 @@ def catalog(db):
                 "navigationPaths": NAVIGATION_PATHS.get(key, [meta["route"]]),
                 "installed": installed,
                 "permissions": grouped[key],
-                "actions": ACTIONS,
+                "actions": module_actions(key),
                 "scopes": SCOPES,
                 "routeCount": sum(1 for value in ROUTES.values() if value == key),
             }
@@ -386,6 +399,6 @@ def preset(module, tier, permissions):
         "role": tier,
         "roleId": None,
         "permissions": names,
-        "actions": actions,
+        "actions": [action for action in actions if action in module_actions(module)],
         "scope": "organization" if tier == "admin" else "own",
     }

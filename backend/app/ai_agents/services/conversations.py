@@ -28,8 +28,12 @@ class AiConversationService:
                 AiConversation.id == conversation_id,
                 AiConversation.user_id == user.id,
             ).first()
-            if conversation:
-                return conversation
+            if not conversation or conversation.agent_id!=agent.id:
+                from fastapi import HTTPException
+                raise HTTPException(404,"Conversation not found")
+            from app.ai_agents.security import history_guard
+            history_guard(self.db,user,conversation)
+            return conversation
         title = message.strip().replace("\n", " ")[:80] or f"{agent.name} chat"
         conversation = AiConversation(
             user_id=user.id,

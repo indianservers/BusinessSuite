@@ -714,6 +714,9 @@ def create_user(
         if not role:
             raise HTTPException(status_code=404, detail="Role not found")
     _validate_password_policy(db, data.password)
+    if not data.is_superuser:
+        from app.enterprise.controls import quota
+        quota(db,1,"seats")
     user = User(
         email=data.email,
         hashed_password=get_password_hash(data.password),

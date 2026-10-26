@@ -30,6 +30,11 @@ const CustomizationStudioPage = React.lazy(() => import("@/apps/customization/Cu
 const AnalyticsPage = React.lazy(() => import("@/apps/analytics/AnalyticsPage"));
 const BusinessOSAdminPage = React.lazy(() => import("@/apps/business-os/BusinessOSAdminPage"));
 const BusinessOSWorkspacePage = React.lazy(() => import("@/apps/business-os/BusinessOSWorkspacePage"));
+const AiSecurityPage = React.lazy(() => import("@/features/access/AiSecurityPage"));
+const EnterprisePage = React.lazy(() => import("@/features/access/EnterprisePage"));
+const SharedServicesPage = React.lazy(() => import("@/features/access/SharedServicesPage"));
+const ControlCenter = React.lazy(() => import("@/features/access/ControlCenter"));
+const UserAccess360 = React.lazy(() => import("@/features/access/ControlCenter").then(m => ({ default: m.UserAccess360 })));
 const UsersAccessPage = React.lazy(() => import("@/features/access/UsersAccessPage"));
 const AccessInvitationPage = React.lazy(() => import("@/features/access/UsersAccessPage").then(m => ({ default: m.AccessInvitationPage })));
 
@@ -130,6 +135,11 @@ export default function App() {
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
     { path: "admin/access", element: <UsersAccessPage /> },
+    { path: "admin/control/ai-security", element: <AiSecurityPage /> },
+    { path: "admin/control/enterprise/:section", element: <EnterprisePage /> },
+    { path: "admin/control/services/:section", element: <SharedServicesPage /> },
+    ...["dashboard", "organizations", "modules", "security", "audit"].map(page => ({ path: `admin/control/${page}`, element: <ControlCenter /> })),
+    { path: "admin/control/users/:id", element: <UserAccess360 /> },
     ...["pms","crm","srm","hrms","fam"].flatMap(module=>["published","responses","custom-fields","new",":formId/edit",":formId/responses"].map(path=>({path:`${module}/forms/${path}`,element:<SharedFormsPage/>}))),
     ...["pms","crm","srm","hrms","fam"].map(module=>({path:`${module}/forms/:formId/view`,element:<PublicFormPage internal/>})),
     ...["crm","srm","hrms","fam"].map(module=>({path:`${module}/forms`,element:<SharedFormsPage/>})),

@@ -82,6 +82,8 @@ TOOLS = {
         ('title', 'task_key', 'description', 'priority', 'estimated_hours', 'start_date', 'due_date'), 'app.apps.project_management.schemas:PMSTaskCreate', '/project-management/projects/{record_id}'),
 }
 
+TOOLS["hrms.approve_leave"] = Tool("HRMS", "PUT", "/leave/requests/{record_id}/approve", "Apply an independently approved leave decision through HRMS.", ("leave_approve",), ("status", "review_remarks"), "app.schemas.leave:LeaveApprovalRequest", "/leave/requests/{record_id}")
+
 # These adapters use the existing PMS planner/approval/worker rather than
 # reimplementing task mutations in the cross-module executor.
 PMS_PERMISSIONS=('pms_manage_tasks','pms_manage_projects','pms_admin')
@@ -115,6 +117,8 @@ def schema_for(tool):
 
 
 def validate_payload(tool, payload):
+    from app.ai_agents.security import strict_input
+    strict_input({"properties":{field:{} for field in tool.fields}},payload)
     if set(payload) - set(tool.fields):
         raise HTTPException(422, 'Tool contains unsupported fields')
     model = schema_for(tool)
@@ -130,7 +134,7 @@ def validate_payload(tool, payload):
 def catalog():
     return [{'name': name, 'module': t.module, 'description': t.description, 'approval_required': t.method != 'GET',
              'record_id_required': '{record_id}' in t.path or (t.project_target and not t.optional_project), 'record_id_optional':t.optional_project,'fields': list(t.fields),
-             'payload_schema': schema_for(t).model_json_schema() if t.model else None} for name, t in TOOLS.items()]
+             'payload_schema': schema_for(t).model_json_schema() if t.model else None} for name, t in TOOLS.items() if name in __import__('app.ai_agents.security_catalog',fromlist=['SUITE']).SUITE]
 
 
 # Never forward arbitrary employee/customer records into a provider prompt.

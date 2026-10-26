@@ -372,6 +372,18 @@ def all_leave_requests(
     return items
 
 
+@router.get("/requests/{request_id}", response_model=LeaveRequestSchema)
+def get_leave_request(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    row = db.query(LeaveRequest).filter(LeaveRequest.id == request_id, LeaveRequest.deleted_at.is_(None)).first()
+    if not row or (not current_user.is_superuser and (row.company_id or 1) != _current_company_id(current_user)):
+        raise HTTPException(404, "Leave request not found")
+    permissions = {p.name for p in permission_objects(current_user)}
+    own = current_user.employee and row.employee_id == current_user.employee.id
+    if not current_user.is_superuser and not own and "leave_approve" not in permissions:
+        raise HTTPException(403, "Leave request is outside your authorized scope")
+    return row
+
+
 @router.get("/calendar", response_model=LeaveCalendarResponse)
 def leave_calendar(
     from_date: date = Query(...),

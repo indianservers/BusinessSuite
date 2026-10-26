@@ -224,8 +224,8 @@ def _action_result(db: Session, action: AutomationAction, context: dict[str, Any
         db.flush()
         return {"type": action_type, "status": "approval_requested", "approval_request_id": request.id}
     if action_type == "call_webhook":
-        return {"type": action_type, "status": "webhook_test_logged", "webhook_endpoint_id": payload.get("webhook_endpoint_id")}
-    return {"type": action_type, "status": "simulated", "payload": payload}
+        raise HTTPException(503,"Publish a shared workflow with an approved connection to execute webhooks")
+    raise HTTPException(501,"This legacy action has no execution adapter; use an approved shared workflow action")
 
 
 def execute_workflow(db: Session, workflow: AutomationWorkflow, context: dict[str, Any], user: User) -> AutomationExecutionLog:

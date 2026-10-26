@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from app.ai_agents.models import AiActionApproval, AiAgent, AiAgentSetting
+from app.ai_agents.services.audit import AiAuditService
 from app.ai_agents.services.advanced_security import AiAgentPermissionService, AiSecuritySettingsService, AiUsageService, company_id_for
 from app.ai_operator.models import OperatorRun
 from app.ai_operator.schemas import TaskPlan
@@ -20,7 +21,12 @@ def scope_key(db, user, workspace_id=None, *, manage=False):
         from app.apps.project_management.workspaces import workspace_member
         workspace_member(db, workspace_id, user, manage)
         return f"workspace:{workspace_id}"
-    company = company_id_for(user)
+    person=getattr(user,"person",None)
+    employee=getattr(user,"employee",None)
+    company=getattr(person,"organization_id",None) or (employee.branch.company_id if employee and employee.branch else None)
+    from app.access.models import AccessMembership
+    selected=getattr(user,"organization_id",None)
+    if selected and db.query(AccessMembership).filter_by(user_id=user.id,company_id=selected,active=True).first():company=selected
     # Never share an unscoped/global provider credential between unrelated users.
     return f"company:{company}" if company is not None else f"user:{user.id}"
 
@@ -68,12 +74,16 @@ def context_for(db, user, project_id, ids):
         "sprints_complete": len(sprints) <= 100,
         "as_of": datetime.now(timezone.utc).isoformat(),
         "supported_tools": ["update_task (status, priority, replace assignee_user_ids, title, description, estimated_hours, story_points)", "add_checklist (title)", "move_to_sprint (sprint_id)",
-            "update_checklist (item_id, is_completed)", "remove_checklist (item_id)", "add_comment (body; internal plain text)",
-            "schedule_task (start_date, due_date; ISO dates)", "add_dependency (source_task_id blocks task_id; both must be selected)",
-            "remove_dependency (dependency_id from task snapshot; both endpoints must be selected)"]}
+            "update_checklist (item_id, is_completed)", "add_comment (body; internal plain text)",
+            "schedule_task (start_date, due_date; ISO dates)", "add_dependency (source_task_id blocks task_id; both must be selected)"]}
 
 
 def validate_plan(db, user, run, plan):
+    from app.ai_agents.security import limits, company, authorize_tool
+    from app.ai_operator.suite_tools import TOOLS
+    authorize_tool(db,user,"suite","pms.task_plan",TOOLS["pms.task_plan"])
+    if len(plan.steps) > limits(db,company(user))["max_calls"]:
+        raise HTTPException(422,"AI action count exceeds company execution limit")
     from app.apps.project_management.api.router import _sync_task_planning_links
     from app.apps.project_management.schemas import PMSTaskUpdate
     if plan.clarification:
@@ -89,6 +99,8 @@ def validate_plan(db, user, run, plan):
     edges = [(d.depends_on_task_id, d.task_id, d.dependency_type, d.lag_days or 0)
         for d in db.query(PMSTaskDependency).filter(PMSTaskDependency.task_id.in_(list(project_tasks))).all()]
     for step in plan.steps:
+        from app.ai_agents.security import plan_step
+        plan_step(step)
         if step.task_id not in run.selection:
             raise HTTPException(422, "Plan targets a task outside the frozen selection")
         task, project = get_task_project_for_action(db, step.task_id, user, "manage_tasks")
@@ -152,6 +164,21 @@ def validate_plan(db, user, run, plan):
 
 
 def perform_step(db, user, step, position):
+    audit = AiAuditService(db)
+    try:
+        result = _perform_step(db,user,step,position)
+    except Exception:
+        audit.log(user=user,agent_id=None,module="PMS",action="AI_PMS_STEP_DENIED",
+                  input_json={"task_id":step.task_id,"tool_name":"pms.task_plan"},output_json={"success":False},status="failed")
+        raise
+    audit.log(user=user,agent_id=None,module="PMS",action="AI_PMS_STEP_EXECUTED",
+              input_json={"task_id":step.task_id,"tool_name":"pms.task_plan"},output_json={"success":True})
+    return result
+
+
+def _perform_step(db, user, step, position):
+    from app.ai_agents.security import plan_step
+    plan_step(step)
     from app.apps.project_management.api.router import (update_task_operation, create_task_checklist_operation,
         move_task_to_sprint_operation, TaskSprintMoveRequest, update_task_schedule_operation,
         TaskScheduleUpdateRequest, create_task_dependency_operation, TaskDependencyCreateRequest, delete_task_dependency_operation,
@@ -202,6 +229,8 @@ class OperatorExecutor:
         run = db.query(OperatorRun).filter_by(id=data["run_id"], user_id=user.id).with_for_update().first()
         if not run:
             raise HTTPException(404, "Operator run not found")
+        from app.ai_agents.security import verify
+        verify(db,user,run.security_context)
         if run.status == "succeeded":
             return run.result
         if (run.status not in {"awaiting_approval", "queued", "executing"} or run.plan_hash != data["plan_hash"] or digest(run.plan) != run.plan_hash
@@ -233,7 +262,12 @@ class OperatorExecutor:
                 validate_plan(db, user, run, plan)
                 run.status = "executing"
                 receipts = []
+                import time
+                from app.ai_agents.security import limits,company
+                started=time.monotonic()
                 for index, step in enumerate(plan.steps):
+                    if time.monotonic()-started>limits(db,company(user))["max_seconds"]:
+                        raise HTTPException(409,"AI execution time budget exhausted")
                     receipts.append(perform_step(db, user, step, index + 1))
                 run.status = "succeeded"
                 run.result = {"success": True, "run_id": run.id, "receipts": receipts}

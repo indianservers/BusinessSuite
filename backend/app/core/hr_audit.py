@@ -210,6 +210,15 @@ def record_salary_field_changes(
 
 
 def has_active_legal_hold(db: Session, employee_id: int) -> bool:
+    from app.models.company import Branch
+    from app.shared.models import ServicePolicy
+    from sqlalchemy import select,func,inspect
+    employee=Employee.__table__
+    branch=Branch.__table__
+    company=db.connection().execute(select(func.coalesce(branch.c.company_id,1)).select_from(employee.outerjoin(branch,branch.c.id==employee.c.branch_id)).where(employee.c.id==employee_id)).scalar() or 1
+    if inspect(db.connection()).has_table(ServicePolicy.__tablename__):
+        policies=db.connection().execute(select(ServicePolicy.__table__.c.values_json).where(ServicePolicy.__table__.c.organization_id==company,ServicePolicy.__table__.c.kind=="governance")).scalars()
+        if any((value or {}).get("module")=="hrms" and (value or {}).get("legalHold") for value in policies):return True
     return db.query(LegalHold).filter(
         LegalHold.status == "Active",
         or_(LegalHold.entity_id == employee_id, LegalHold.entity_id.is_(None)),

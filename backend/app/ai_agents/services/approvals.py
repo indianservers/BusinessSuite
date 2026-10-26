@@ -42,23 +42,14 @@ class AiApprovalService:
         return approval
 
     def approve(self, approval_id: int, user: User) -> AiActionApproval:
-        approval = self.db.query(AiActionApproval).filter(AiActionApproval.id == approval_id).first()
-        if not approval:
-            raise HTTPException(status_code=404, detail="Approval not found")
-        if approval.status != "pending":
-            raise HTTPException(status_code=400, detail="Approval is not pending")
-        approval.status = "approved"
-        approval.approved_by = user.id
-        approval.approved_at = datetime.utcnow()
-        approval.updated_at = datetime.utcnow()
-        self.db.flush()
-        return approval
+        from app.ai_agents.services.approval_executor import AiApprovalExecutorService
+        return AiApprovalExecutorService(self.db).execute_approved_action(user=user,approval_id=approval_id)
 
     def reject(self, approval_id: int, reason: str, user: User) -> AiActionApproval:
         approval = self.db.query(AiActionApproval).filter(AiActionApproval.id == approval_id).with_for_update().first()
         if not approval:
             raise HTTPException(status_code=404, detail="Approval not found")
-        if not user.is_superuser and approval.user_id != user.id:
+        if approval.user_id != user.id:
             raise HTTPException(status_code=403, detail="You do not have permission to reject this AI action")
         if approval.status != "pending":
             raise HTTPException(status_code=400, detail="Approval is not pending")

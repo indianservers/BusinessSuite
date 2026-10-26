@@ -32,9 +32,14 @@ def enqueue(db, run, kind):
 
 
 def authorize(db, user, run):
+    from app.ai_agents.security import verify
     from app.access.service import check_background_access, activate_run_context
     if user:
         activate_run_context(db,user,run)
+        verify(db,user,run.security_context)
+        approval=db.get(AiActionApproval,run.approval_id) if run.approval_id else None
+        if approval:
+            verify(db,user,approval.security_context,payload=approval.proposed_action_json,confirmation=approval.status=="approved")
         check_background_access(db, user, "project_management", "edit")
         check_background_access(db, user, "ai", "create")
     from app.ai_agents.api import _require_ai_access
@@ -158,6 +163,8 @@ def execute_checkpoint(db, job, run, approval, user):
         or digest(run.plan) != run.plan_hash or digest(approval.proposed_action_json.get("preview")) != run.plan_hash):
         raise HTTPException(409, "APPROVAL_CHANGED")
     authorize(db, user, run)
+    from app.ai_agents.security import execution_budget
+    execution_budget(db,user,run)
     tasks = check_snapshots(db, user, run)
     steps = db.query(OperatorStep).filter_by(run_id=run.id).order_by(OperatorStep.position).all()
     complete = {s.position for s in steps if s.status == "succeeded"}
@@ -174,7 +181,7 @@ def execute_checkpoint(db, job, run, approval, user):
     db.flush()
     run.snapshots = {str(t.id): digest(task_snapshot(db, t)) for t in tasks}
     run.status, run.error_code = "executing", None
-    run.result = {"success": False, "partial": True, "receipts": receipts_for(db, run)}
+    run.result = {**(run.result or {}),"success": False, "partial": True, "receipts": receipts_for(db, run)}
     approval.execution_status = "executing"
     emit(db, run, "step.succeeded", step=pending.position, receipt=receipt)
     job.failures, job.error_code = 0, None
