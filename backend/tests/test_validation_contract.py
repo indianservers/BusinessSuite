@@ -39,7 +39,7 @@ def test_unicode_mononym_and_controls():
 
 @pytest.fixture
 def valid_application():
-    return dict(full_name='李',parent_name="O’Brien",mobile='0001234567',mobile_country_code='+1',email='synthetic@example.com',identity_type='Other',identity_number='TEST-ONLY',gender='Prefer not to say',date_of_birth='2000-01-01',city='São Paulo',state='Other',tenth_marks=0,twelfth_marks=None,degree='Other',current_year='Graduated',college='Example University',specialization='Design',passout_year=2020,area_of_interest='Software Development',skills='Python, Python',role='Other',mode='Remote',available_from=str(today()),duration='3 Months',address='Example address',emergency_contact='2025550100',emergency_contact_country_code='+1',password='Synthetic@123456',consent=True)
+    return dict(full_name='李',parent_name="O’Brien",mobile='0001234567',mobile_country_code='+1',email='synthetic@example.com',identity_type='Other',identity_number='TEST-ONLY',gender='Other',date_of_birth='2000-01-01',city='São Paulo',state='Other',tenth_marks=0,twelfth_marks=None,degree='Other',current_year='Graduated',college='Example University',specialization='Design',passout_year=2020,area_of_interest='Software Development',skills='Python, Python',role='Other',mode='Remote',available_from=str(today()),duration='3 Months',address='Example address',emergency_contact='2025550100',emergency_contact_country_code='+1',password='Synthetic@123456',consent=True)
 
 @pytest.mark.parametrize('patch',[{'mobile':'98765432101'},{'mobile_country_code':None},{'email':'invalid'},{'full_name':'   '},{'date_of_birth':'2025-02-30'},{'date_of_birth':'2099-01-01'},{'tenth_marks':101},{'tenth_marks':-1},{'tenth_marks':True},{'tenth_marks':float('inf')},{'gender':'tampered'},{'state':'tampered'},{'degree':'tampered'},{'consent':False},{'identity_type':'PAN','identity_number':'bad'}])
 def test_api_bypass_rejected(client,valid_application,patch):
@@ -202,3 +202,8 @@ def test_identity_sync_does_not_guess_legacy_codes_and_supports_explicit_clear(d
         SharedIdentityService.sync_from_employee(db,employee);db.commit()
         assert person.phone_number is None and person.phone_number_country_code is None
     finally:context.reset(token)
+
+
+@pytest.fixture(autouse=True)
+def _google_application_access(google_applicant):
+    google_applicant('synthetic@example.com')

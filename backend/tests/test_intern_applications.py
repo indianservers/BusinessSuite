@@ -105,3 +105,15 @@ def test_application_new_field_limits_reject_api_bypass(client,application_paylo
 
 def test_application_address_allows_200_characters(client,application_payload):
     assert client.post('/api/v1/interns-hub/applications',json={**application_payload,'address':'a'*200}).status_code == 201
+
+
+@pytest.fixture(autouse=True)
+def _google_application_access(google_applicant):
+    google_applicant('applicant@example.com')
+
+
+
+def test_application_email_is_bound_to_google_identity(client,application_payload,google_applicant):
+    google_applicant('another@example.com')
+    response=client.post('/api/v1/interns-hub/applications',json=application_payload)
+    assert response.status_code==403

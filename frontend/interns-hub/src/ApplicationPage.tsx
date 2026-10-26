@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   UserRound,
   Users,
@@ -76,7 +76,6 @@ const states = [
   "Puducherry",
   "Other",
 ];
-const draftKey = "internhub.application-draft";
 type Form = Record<string, string>;
 const defaults: Form = {
   employment_type: "Intern",
@@ -421,10 +420,11 @@ function ApplicationField({
   field,
   value,
   onChange,
-  countryCode,onCountryCodeChange,error,onBlur,
+  countryCode,onCountryCodeChange,error,onBlur,readOnly,
 }: {
   field: Field;
   value: string;
+  readOnly?: boolean;
   onChange: (value: string) => void;
   countryCode?:string;onCountryCodeChange?:(value:string)=>void;error?:string;onBlur?:()=>void;
 }) {
@@ -495,6 +495,7 @@ function ApplicationField({
         <input
           id={`application-${key}`}
           type={type || "text"}
+          readOnly={readOnly}
           required={required}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -523,8 +524,8 @@ function ApplicationField({
   );
 }
 
-export function ApplicationPage() {
-  const location = useLocation();
+export function ApplicationPage({applicant}:{applicant:{email:string;full_name:string}}) {
+  const draftKey = `internhub.application-draft:${applicant.email.toLowerCase()}`;
   const [form, setForm] = useState<Form>(defaults);
   const [step, setStep] = useState(0);
   const [documents,setDocuments]=useState<Array<{token:string;name:string;category:string}>>([]);
@@ -560,9 +561,8 @@ export function ApplicationPage() {
         setNotice("Your saved draft has been restored.");
       }
     } catch {}
-    const profile = location.state?.signupProfile;
-    if (profile?.email) {
-      setForm(current=>({...current,email:profile.email,full_name:profile.full_name || current.full_name}));
+    if (applicant.email) {
+      setForm(current=>({...current,email:applicant.email,full_name:applicant.full_name || current.full_name}));
       setNotice("Your account details are ready. Complete your application below; approval is required before intern access.");
     }
   }, []);
@@ -730,6 +730,7 @@ export function ApplicationPage() {
                         key={field.key}
                         field={{...field,span:group.name === "Personal details" ? "half" : field.span}}
                         value={form[field.key]}
+                        readOnly={field.key === "email"}
                         onChange={value=>change(field.key,value)}
                         onBlur={()=>setTouched(current=>({...current,[field.key]:true}))}
                         error={attempted||touched[field.key]?errors[field.key]:undefined}

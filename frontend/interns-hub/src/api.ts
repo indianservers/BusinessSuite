@@ -1,4 +1,5 @@
 import { apiBaseUrl } from "./config";
+import { applicationToken } from "./applicationSession";
 export const API = apiBaseUrl;
 const KEY = "internhub.session";
 const REFRESH_KEY = "internhub.refresh";
@@ -49,10 +50,14 @@ export async function request<T = any>(
         ? {}
         : { "Content-Type": "application/json" }),
       ...(token() ? { Authorization: `Bearer ${token()}` } : {}),
+      ...(applicationToken() ? { "X-Intern-Application-Token": applicationToken()! } : {}),
       ...options.headers,
     },
   });
   if (!response.ok) {
+    if(response.status === 401 && ["/interns-hub/application-options","/interns-hub/application-uploads","/interns-hub/applications","/interns-hub/applications/corrections"].includes(path)) {
+      window.dispatchEvent(new Event("internhub:applicant-expired"));
+    }
     if (response.status === 401 && sessionRequest && retry && token()) {
       if (!refreshing)
         refreshing = refreshSession().finally(() => {

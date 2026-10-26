@@ -183,3 +183,16 @@ def pytest_sessionfinish(session, exitstatus):
     temporary=globals().get('_secondary_db_directory')
     if temporary is not None:
         temporary.cleanup()
+
+@pytest.fixture
+def google_applicant(client, monkeypatch):
+    """Explicitly authorize a synthetic Google applicant for protected form tests."""
+    from app.apps.interns_hub.signup import applicant_session
+    from app.core.config import settings
+    monkeypatch.setattr(settings, 'INTERN_SIGNUP_FIREBASE_PROJECT_ID', 'test-project')
+    def sign_in(email='applicant@example.com'):
+        token = applicant_session({'subject':'test-google-user','email':email,'full_name':'Test Applicant'})
+        client.headers['X-Intern-Application-Token'] = token
+        return token
+    yield sign_in
+    client.headers.pop('X-Intern-Application-Token', None)

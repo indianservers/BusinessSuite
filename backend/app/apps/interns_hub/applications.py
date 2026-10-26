@@ -24,6 +24,7 @@ from .models import InternApplication
 from .management_models import ApplicationEvent,ApplicationDocument
 from app.apps.srm.services.commercial import tenant
 from app.core.input_validation import NationalPhone,CallingCode,EmailAddress,CONTRACT,clean_text,identity_number,national_phone,calling_code
+from .signup import require_applicant
 
 router = APIRouter()
 
@@ -137,7 +138,7 @@ def receipt(item, db):
 
 
 @router.get("/application-options")
-def options(db: Session = Depends(get_db)):
+def options(db: Session = Depends(get_db), applicant=Depends(require_applicant)):
     return {"roles": application_settings(db, settings.INTERN_HUB_ORGANIZATION_ID)["roles"], "validation": CONTRACT, "today": str(today())}
 
 
@@ -195,7 +196,9 @@ def save_application_settings(data: ApplicationSettingsInput, db: Session = Depe
 
 
 @router.post("/applications", status_code=201)
-def apply(data: ApplicationInput, request: Request, db: Session = Depends(get_db)):
+def apply(data: ApplicationInput, request: Request, db: Session = Depends(get_db), applicant=Depends(require_applicant)):
+    if str(data.email).casefold() != applicant['email'].casefold():
+        raise HTTPException(403, 'Use the email from your Google sign-in')
     if data.role not in options(db)['roles']:raise HTTPException(422,detail=[{'loc':['body','role'],'msg':'Select an active supported role','type':'value_error'}])
     _check_ip_policy(db, request)
     _validate_password_policy(db, data.password)
@@ -332,7 +335,7 @@ def decide(application_id: int, data: DecisionInput, user=Depends(application_ad
 
 
 @router.post('/application-uploads',status_code=201)
-def upload_application_document(request:Request,file:UploadFile=File(...),category:str=Form(...),db:Session=Depends(get_db)):
+def upload_application_document(request:Request,file:UploadFile=File(...),category:str=Form(...),db:Session=Depends(get_db),applicant=Depends(require_applicant)):
     from .application_documents import upload_document
     from app.core.middleware.audit import client_addresses
     source,_,_=client_addresses(request)
@@ -350,7 +353,9 @@ class CorrectionInput(BaseModel):
     application:ApplicationInput
 
 @router.post('/applications/corrections')
-def correct_application(data:CorrectionInput,request:Request,db:Session=Depends(get_db)):
+def correct_application(data:CorrectionInput,request:Request,db:Session=Depends(get_db),applicant=Depends(require_applicant)):
+    if str(data.application.email).casefold() != applicant['email'].casefold():
+        raise HTTPException(403, 'Use the email from your Google sign-in')
     status(data.credentials,request,db)
     item=db.query(InternApplication).filter_by(email=str(data.credentials.email).lower()).with_for_update().one()
     if item.status!='Correction Requested':raise HTTPException(409,'Corrections have not been requested')

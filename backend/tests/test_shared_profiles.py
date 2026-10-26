@@ -1,4 +1,5 @@
 from datetime import date
+import pytest
 
 from app.apps.interns_hub.models import InternApplication
 from app.common.models import CommonPerson
@@ -485,3 +486,8 @@ def test_email_connection_does_not_bypass_pending_application(
         == 409
     )
     assert employee.user_id is None
+
+
+@pytest.fixture(autouse=True)
+def _google_application_access(google_applicant):
+    google_applicant('applicant@example.com')

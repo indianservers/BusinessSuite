@@ -4,7 +4,7 @@ import { firebaseConfig } from "./config";
 import { hub, send } from "./api";
 
 export async function firebaseSignup() {
-  if (!firebaseConfig?.projectId) throw new Error("Social signup is not available yet. Please apply with email.");
+  if (!firebaseConfig?.projectId) throw new Error("Google sign-in is not configured yet.");
   const app = getApps().find(item=>item.name === "intern-hub-signup") || initializeApp(firebaseConfig,"intern-hub-signup");
   const auth = getAuth(app);
   await setPersistence(auth,inMemoryPersistence);

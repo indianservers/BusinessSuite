@@ -38,7 +38,11 @@ def test_firebase_signup_prefills_without_creating_app_accounts(client,db,fireba
     users=db.query(User).count()
     result=client.post('/api/v1/interns-hub/signup/firebase',json={'token':firebase_identity()})
     assert result.status_code==200,result.text
-    assert result.json()=={'email':'applicant@gmail.com','full_name':'Applicant Name','provider':'google'}
+    profile=result.json()
+    assert {key:profile[key] for key in ['email','full_name','provider']}=={'email':'applicant@gmail.com','full_name':'Applicant Name','provider':'google'}
+    assert profile['application_token']
+    client.headers['X-Intern-Application-Token']=profile['application_token']
+    assert client.get('/api/v1/interns-hub/signup/session').status_code==200
     assert 'no-store' in result.headers['cache-control']
     assert db.query(User).count()==users
     assert db.query(InternApplication).count()==0
@@ -68,3 +72,19 @@ def test_unconfigured_firebase_signup_is_unavailable(client,monkeypatch):
     result=client.get('/api/v1/interns-hub/signup/providers').json()
     assert result['providers']==[{'provider':'google','enabled':False}]
     assert client.post('/api/v1/interns-hub/signup/firebase',json={'token':'invalid-token-with-enough-characters'}).status_code==503
+
+
+@pytest.mark.parametrize('path,method',[('/application-options','get'),('/applications','post'),('/applications/corrections','post'),('/application-uploads','post'),('/signup/session','get')])
+def test_google_login_is_required_for_application_endpoints(client,path,method):
+    assert getattr(client,method)('/api/v1/interns-hub'+path).status_code==401
+
+
+def test_google_application_session_rejects_forgery_expiry_and_other_organization(client,firebase_identity):
+    result=client.post('/api/v1/interns-hub/signup/firebase',json={'token':firebase_identity()})
+    token=result.json()['application_token']
+    claims=jwt.decode(token,options={'verify_signature':False})
+    for changes in [{'exp':1},{'organization':2},{'aud':'access'},{'project':'other-project'}]:
+        invalid=jwt.encode({**claims,**changes},settings.SECRET_KEY,algorithm=settings.ALGORITHM)
+        assert client.get('/api/v1/interns-hub/signup/session',headers={'X-Intern-Application-Token':invalid}).status_code==401
+    assert client.get('/api/v1/auth/me',headers={'Authorization':'Bearer '+token}).status_code==401
+    assert client.get('/api/v1/interns-hub/signup/session',headers={'X-Intern-Application-Token':token+'forged'}).status_code==401

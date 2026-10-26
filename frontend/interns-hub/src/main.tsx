@@ -55,7 +55,8 @@ import {
 import { Profile, Certificates, Support } from "./AccountPages";
 import "./style.css";
 import { SocialSignup } from "./SocialSignup";
-import { ApplicationPage, ApplicationStatus } from "./ApplicationPage";
+import { ApplicationStatus } from "./ApplicationPage";
+import { ApplicationGate } from "./ApplicationGate";
 const nav = [
   ["/", "Dashboard", LayoutDashboard],
   ["/tasks", "My Tasks", SquareCheck],
@@ -450,7 +451,7 @@ function App() {
     window.addEventListener("internhub:expired", logout);
     return () => window.removeEventListener("internhub:expired", logout);
   }, []);
-  if (location.pathname === "/apply") return <ApplicationPage />;
+  if (location.pathname === "/apply") return <ApplicationGate />;
   if (location.pathname === "/application-status") return <ApplicationStatus />;
   return authenticated ? (
     <Portal logout={logout} />
