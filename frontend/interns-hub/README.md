@@ -13,13 +13,23 @@ For isolated visual QA, run `backend/venv/Scripts/python.exe backend/scripts/ser
 ## Separate subdomain deployment
 
 1. Deploy the existing backend changes, with HRMS enabled in `INSTALLED_APPS`. Run its normal migration command, `alembic upgrade head`, against the existing shared database. Both migration directories include the Interns Hub tables.
-2. Create a separate frontend deployment whose root directory is `frontend/interns-hub`. Install with `npm ci`, build with `npm run build`, and serve `dist`. Node 22 is supported.
+2. Build from a complete repository checkout: from `frontend/interns-hub`, install with `npm ci` and build with `npm run build`. The portal uses the suite's shared profile component at build time; do not upload only this source folder to a cloud builder. The compiled `dist` contains its dependencies and can be served independently. Node 22 is supported.
 3. Configure this installation by editing `dist/config.js` after building: set `apiBaseUrl` to its existing HRMS API root and `hrmsLoginUrl` to its HRMS admin sign-in URL. The same compiled build can be deployed to any number of customer domains with different config files. Serve `config.js` with `Cache-Control: no-store`. As a build-time alternative, set `VITE_API_BASE_URL=https://YOUR_EXISTING_BACKEND/api/v1` and `VITE_HRMS_URL=https://YOUR_HRMS_DOMAIN/hrms/login` before building. These are public URLs, not secrets. Do not put database credentials or backend secrets in this deployment.
 4. Add the exact intern origin (for example `https://interns.example.com`) to the existing backend's `BACKEND_CORS_ORIGINS`. Keep all existing origins. Configure the subdomain on this frontend deployment with HTTPS.
 5. Configure SPA rewrites to `index.html` for client routes. A Vercel configuration is included. If a same-origin reverse proxy is preferred, proxy `/api` to the existing backend and use `/api/v1` as the API base.
 6. Submission uploads use the shared PMS work-evidence storage and permission checks. Configure the existing backend's private Vercel Blob or S3-compatible storage for serverless deployments, or a persistent upload volume for self-hosted deployments. Local serverless staging is temporary. The existing backend upload limit is respected.
 
 The frontend root has its own package manifest, lockfile, environment example and build. It does not include or import the HRMS frontend bundle. No customer domain is hardcoded or registered. Each installation uses its existing HRMS deployment and database; the runtime config does not create new database tenants or a second backend. No production deployment is created automatically by this change.
+
+### Repeatable compiled releases
+
+After building, package a customer release into a new directory outside the Git checkout:
+
+```powershell
+npm run package:release -- --output C:/releases/interns-customer-001 --api-base-url https://app.customer.example/api/v1 --hrms-login-url https://app.customer.example/hrms/login
+```
+
+This creates a self-contained static site in `.vercel/output/static` and a Vercel Build Output API configuration. Link the release directory to its dedicated frontend Vercel project, then run `vercel --prebuilt --prod` from that directory. Keeping the release outside the monorepo avoids accidentally selecting the main BusinessSuite project. For other hosts, serve the static directory with SPA fallback and `Cache-Control: no-store` for `config.js`. Customer URLs live only in that runtime file; the compiled application can be reused across installations.
 
 ## HRMS setup and administration
 

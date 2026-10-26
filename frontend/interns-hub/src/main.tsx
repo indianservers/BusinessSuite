@@ -219,15 +219,12 @@ function Login({ onLogin }: { onLogin: () => void }) {
           </p>
           <div className="login-divider" />
           <p className="muted">Need access? Contact your HRMS administrator.</p>
-          <a
+          {hrmsLoginUrl && <a
             className="admin-login"
-            href={
-              import.meta.env.VITE_HRMS_URL ||
-              "http://localhost:5173/hrms/login"
-            }
+            href={hrmsLoginUrl}
           >
             HRMS Admin Login <ExternalLink size={14} />
-          </a>
+          </a>}
         </div>
       </main>
     </div>
