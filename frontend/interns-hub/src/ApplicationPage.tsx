@@ -330,14 +330,6 @@ export function PublicHeader() {
         <a href="/apply#why-interns-hub">For Students</a>
         <Link to="/application-status">Application Status</Link>
       </nav>
-      <div className="public-actions">
-        <Link className="button outline" to="/login">
-          Log In
-        </Link>
-        <Link className="button" to="/apply">
-          Apply Now
-        </Link>
-      </div>
     </header>
   );
 }
@@ -439,7 +431,7 @@ function ApplicationField({
         ? "0"
         : undefined;
   return (
-    <div className={`application-field ${field.span || ""}`} style={field.span === "half" ? {gridColumn:"span 6"} : undefined}>
+    <div className={`application-field ${field.span || ""}`}>
       <label htmlFor={`application-${key}`}>
         <Icon size={15} />
         {label}
