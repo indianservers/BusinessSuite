@@ -5,10 +5,27 @@ from sqlalchemy.orm import deferred, relationship
 from app.db.base_class import Base
 
 
+class PMSNoteFolder(Base):
+    __tablename__ = "pms_note_folders"
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_id = Column(Integer, ForeignKey("pms_note_folders.id", ondelete="SET NULL"), nullable=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="SET NULL"), nullable=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
+    name = Column(String(120), nullable=False)
+    color = Column(String(7), nullable=False, default="#8b5cf6")
+    icon = Column(String(24), nullable=False, default="folder")
+    position = Column(Integer, nullable=False, default=0)
+    version = Column(Integer, nullable=False, default=1)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
 class PMSNote(Base):
     __tablename__ = "pms_private_notes"
     id = Column(Integer, primary_key=True)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    folder_id = Column(Integer, ForeignKey("pms_note_folders.id", ondelete="SET NULL"), nullable=True, index=True)
+    favorite = Column(Boolean, nullable=False, default=False)
     title = Column(String(180), nullable=False, default="Untitled note")
     content = Column(Text, nullable=False, default="")
     project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="SET NULL"), nullable=True)
@@ -30,6 +47,23 @@ class PMSNoteRevision(Base):
     version = Column(Integer, nullable=False)
     title = Column(String(180), nullable=False)
     content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PMSNoteShare(Base):
+    __tablename__ = "pms_note_shares"
+    __table_args__ = (UniqueConstraint("note_id", "user_id", name="uq_pms_note_share"),)
+    id = Column(Integer, primary_key=True)
+    note_id = Column(Integer, ForeignKey("pms_private_notes.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+
+class PMSNoteEvent(Base):
+    __tablename__ = "pms_note_events"
+    id = Column(Integer, primary_key=True)
+    note_id = Column(Integer, ForeignKey("pms_private_notes.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    action = Column(String(40), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 

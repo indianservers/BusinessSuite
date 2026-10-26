@@ -1,7 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, List, Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
+from urllib.parse import urlsplit
 
 
 class CompanyBase(BaseModel):
@@ -29,10 +30,28 @@ class CompanyBase(BaseModel):
 
 
 class CompanyCreate(CompanyBase):
-    pass
+    @field_validator("website")
+    @classmethod
+    def normalize_website(cls, value: Optional[str]) -> Optional[str]:
+        if value is None or not value.strip():
+            return None
+        value = value.strip()
+        # Company forms commonly receive a domain pasted without its scheme.
+        if ":" not in value.split("/", 1)[0] and not value.startswith("/"):
+            value = "https://" + value
+        try:
+            parsed = urlsplit(value)
+            if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+                    or "." not in parsed.hostname or parsed.username or parsed.password
+                    or any(char.isspace() for char in value) or len(value) > 200):
+                raise ValueError()
+            parsed.port  # Reject malformed ports as well.
+        except ValueError:
+            raise ValueError("Enter a valid website, such as https://www.example.com") from None
+        return value
 
 
-class CompanyUpdate(CompanyBase):
+class CompanyUpdate(CompanyCreate):
     name: Optional[str] = None
 
 
