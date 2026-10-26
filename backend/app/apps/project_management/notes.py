@@ -1,10 +1,10 @@
 from app.core.rich_text import rich_text_type
 """Personal notes. Project membership and administrator roles never confer access."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from html import unescape
 import re
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import or_, update, func, cast, String
 from sqlalchemy.orm import Session
@@ -114,12 +114,12 @@ def result(db, note, user, full=True):
     return payload
 
 
-def note_excerpt(content):
+def note_excerpt(content, limit=160):
     text = re.sub(r"<[^>]*>", " ", content)
     text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
     text = re.sub(r"(?m)^\s*(?:#{1,6}\s+|>\s+|[-*+]\s+(?:\[[ xX]\]\s*)?|\d+\.\s+)", "", text)
     text = re.sub(r"\*\*|__|\+\+|==|~~|`", "", text)
-    return " ".join(unescape(text).split())[:160]
+    return " ".join(unescape(text).split())[:limit]
 
 
 def revision(db, note):
@@ -130,6 +130,7 @@ def revision(db, note):
 def list_notes(q: str = Query(default="", max_length=200), view: Literal["all", "pinned", "favorites", "recent", "shared", "quick", "archive", "trash"] = "all",
                folder_id: int | None = None, task_id: int | None = None, sort: Literal["modified", "created", "title"] = "modified",
                project_id: int | None = None, personal: bool = False, tag: str = Query(default="", max_length=40),
+               modified_after: date | None = None, modified_before: date | None = None, has_attachments: bool = False,
                db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     query = db.query(PMSNote)
     if view == "shared":
@@ -152,11 +153,25 @@ def list_notes(q: str = Query(default="", max_length=200), view: Literal["all", 
     if q.strip():
         term = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         query = query.filter(or_(PMSNote.title.ilike(f"%{term}%", escape="\\"), PMSNote.content.ilike(f"%{term}%", escape="\\"), cast(PMSNote.tags, String).ilike(f"%{term}%", escape="\\")))
+    if modified_after: query = query.filter(PMSNote.updated_at >= datetime.combine(modified_after, datetime.min.time(), tzinfo=timezone.utc))
+    if modified_before: query = query.filter(PMSNote.updated_at < datetime.combine(modified_before + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
+    if modified_after and modified_before and modified_after > modified_before: raise HTTPException(422, "Choose an end date on or after the start date")
+    if has_attachments:
+        from .models import PMSNoteAttachment
+        query = query.filter(PMSNote.id.in_(db.query(PMSNoteAttachment.note_id).filter(PMSNoteAttachment.deleted_at.is_(None))))
     order = PMSNote.title.asc() if sort == "title" else PMSNote.created_at.desc() if sort == "created" else PMSNote.updated_at.desc()
     rows = query.order_by(PMSNote.pinned.desc(), order, PMSNote.id.desc()).all()
     if view == "shared":
         rows = [row for row in rows if _may_read(db, row.id, user)]
-    return [result(db, row, user, False) for row in rows if not tag or tag.strip().lower() in row.tags]
+    output = []
+    for row in rows:
+        if tag and tag.strip().lower() not in row.tags: continue
+        item = result(db, row, user, False)
+        if q.strip():
+            plain = note_excerpt(row.content, None); position = plain.lower().find(q.strip().lower())
+            if position >= 0: item["preview"] = ("…" if position > 60 else "") + plain[max(0,position-60):max(0,position-60)+160]
+        output.append(item)
+    return output
 
 
 @router.post("/notes", status_code=201)
@@ -462,6 +477,27 @@ def undo_note_action(data: NoteUndoInput, db: Session = Depends(get_db), user: U
         db.add(PMSNoteEvent(note_id=note.id, actor_id=user.id, action="undo"))
     db.commit()
     return {"updated": len(rows)}
+
+
+@router.get("/notes/{note_id}/backlinks")
+def note_backlinks(note_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from html.parser import HTMLParser
+    from urllib.parse import urlparse, parse_qs
+    readable(db, note_id, user)
+    class Links(HTMLParser):
+        found = False
+        def handle_starttag(self, tag, attrs):
+            if tag != "a": return
+            href = dict(attrs).get("href", "")
+            parsed = urlparse(href)
+            if parsed.path == "/pms/notes" and parsed.hostname in {None, request.url.hostname} and parse_qs(parsed.query).get("note") == [str(note_id)]: self.found = True
+    rows = db.query(PMSNote).filter(PMSNote.id != note_id, PMSNote.deleted_at.is_(None), PMSNote.archived.is_(False), or_(PMSNote.owner_id == user.id, PMSNote.id.in_(db.query(PMSNoteShare.note_id).filter_by(user_id=user.id)))).order_by(PMSNote.updated_at.desc()).all()
+    output = []
+    for row in rows:
+        if not _may_read(db, row.id, user): continue
+        parser = Links(); parser.feed(row.content)
+        if parser.found: output.append(result(db, row, user, False))
+    return output
 
 
 @router.post("/notes/{note_id}/duplicate", status_code=201)

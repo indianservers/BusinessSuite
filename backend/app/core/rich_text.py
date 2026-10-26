@@ -28,6 +28,12 @@ def allowed_attribute(tag, name, value):
         return value.isdigit() and 1 <= int(value) <= 30
     if tag == "p" and name == "data-note-image":
         return value.isdigit() and int(value) > 0
+    if tag == "p" and name == "data-note-width":
+        return value.isdigit() and 120 <= int(value) <= 1200
+    if tag == "p" and name == "data-note-align":
+        return value in {"left", "center", "right"}
+    if tag == "p" and name == "data-note-caption":
+        return len(value) <= 240 and not any(ord(char) < 32 for char in value)
     if name == "data-indent":
         return value.isdigit() and 0 <= int(value) <= 6
     if name == "data-type":

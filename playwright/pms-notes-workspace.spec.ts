@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "../frontend/node_modules/playwright/test";
 const base="/api/v1/project-management";
+const rich="<!--suite-richtext:v1-->";
 async function login(page:Page,email="notes-admin@example.com"){
   const response=await page.request.post("/api/v1/auth/login",{data:{email,password:"NotesQA@123",module:"project_management"}});
   expect(response.ok()).toBeTruthy();const auth=await response.json();
@@ -208,4 +209,64 @@ test("revoking the last reader immediately returns the note badge to Private",as
 
 test("returning to an empty folder preserves its scope instead of reopening an unrelated note",async({page})=>{
   const headers=await login(page);const note=await create(page,headers,"Unrelated last note");const folder=await(await page.request.post(base+"/note-folders",{headers,data:{name:`Empty remembered folder ${Date.now()}`}})).json();await open(page,note.id);await page.getByRole("treeitem",{name:new RegExp(folder.name)}).click();await expect(page.getByRole("region",{name:"Note list",exact:true}).getByRole("heading",{name:folder.name,exact:true})).toBeVisible();await page.goto("/pms/notes");await expect(page.getByRole("region",{name:"Note list",exact:true}).getByRole("heading",{name:folder.name,exact:true})).toBeVisible();await expect(page.locator(".notes-document-empty")).toBeVisible();
+});
+
+test("polished writing layout, one location row and outline folding preserve content",async({page},info)=>{
+  await page.setViewportSize({width:1680,height:1050});const headers=await login(page);const body=rich+'<h1>Introduction</h1><p>Visible introduction</p><h2>Details</h2><p>Fold this paragraph</p><h1>Conclusion</h1><p>Keep this visible</p>';
+  const note=await create(page,headers,'Outline polish',{content:body});await open(page,note.id);
+  await expect(page.getByRole('textbox',{name:'Note content',exact:true})).toHaveCount(1);
+  await expect(page.getByRole('textbox',{name:'Note content',exact:true})).toHaveCSS('font-size','16px');
+  await page.getByLabel('Toggle writing layout',{exact:true}).click();await expect(page.locator('.product-shell>aside')).toBeHidden();await page.reload();await expect(page.getByLabel('Toggle writing layout',{exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.notes-associations')).toHaveCount(1);await page.getByText('Edit location',{exact:true}).click();await expect(page.getByLabel('Note project',{exact:true})).toBeVisible();await page.getByText('Edit location',{exact:true}).click();
+  await page.getByRole('button',{name:'Document outline',exact:true}).click();const outline=page.getByRole('navigation',{name:'Document outline',exact:true});await expect(outline.getByRole('button',{name:'Details',exact:true})).toBeVisible();
+  await outline.getByRole('button',{name:'Collapse section Details',exact:true}).click();await expect(page.getByText('Fold this paragraph',{exact:true})).toBeHidden();await expect(page.getByText('Keep this visible',{exact:true})).toBeVisible();
+  const unchanged=await(await page.request.get(base+`/notes/${note.id}`,{headers})).json();expect(unchanged.content).toContain('Fold this paragraph');expect(unchanged.version).toBe(1);
+  await outline.getByRole('button',{name:'Details',exact:true}).click();await expect(page.getByText('Fold this paragraph',{exact:true})).toBeVisible();await page.screenshot({path:info.outputPath('notes-polished-desktop.png'),animations:'disabled'});
+  await page.getByLabel('Toggle writing layout',{exact:true}).click();await expect(page.locator('.product-shell>aside')).toBeVisible();
+});
+
+test("image width, caption, alt text, alignment and lightbox survive reload",async({page})=>{
+  const headers=await login(page);const note=await create(page,headers,'Image presentation');await open(page,note.id);
+  await page.getByLabel('Insert private image',{exact:true}).setInputFiles({name:'presentation.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5k0AAAAASUVORK5CYII=','base64')});
+  const image=page.locator('.note-inline-image img');await expect(image).toBeVisible();await image.click();await expect(page.getByRole('toolbar',{name:'Image formatting',exact:true})).toBeVisible();
+  await page.getByLabel('Image width',{exact:true}).fill('320');await page.getByLabel('Image caption',{exact:true}).fill('Architecture sketch');await page.getByLabel('Image alt text',{exact:true}).fill('Private architecture diagram');await page.getByLabel('Image align right',{exact:true}).click();
+  await expect(page.getByLabel('Resize image',{exact:true})).toBeVisible();
+  await expect.poll(async()=>(await(await page.request.get(base+`/notes/${note.id}`,{headers})).json()).content).toContain('data-note-caption="Architecture sketch"');
+  await page.reload();await expect(image).toHaveAttribute('alt','Private architecture diagram');await expect(page.locator('.note-image-frame')).toHaveCSS('width','320px');await expect(page.locator('.note-inline-image figcaption')).toHaveText('Architecture sketch');
+  await page.getByLabel('Enlarge image',{exact:true}).click();await expect(page.getByRole('dialog').getByRole('img',{name:'Private architecture diagram',exact:true})).toHaveAttribute('alt','Private architecture diagram');await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+});
+
+test("tag suggestions and removable chips autosave",async({page})=>{
+  const headers=await login(page);const note=await create(page,headers,'Tags presentation');await open(page,note.id);await page.getByLabel('Add note tag',{exact:true}).click();await page.getByLabel('New note tag',{exact:true}).fill('document');await page.getByRole('listbox',{name:'Suggested tags',exact:true}).getByRole('option',{name:'#documentation',exact:true}).click();
+  await expect.poll(async()=>(await(await page.request.get(base+`/notes/${note.id}`,{headers})).json()).tags).toContain('documentation');await page.getByLabel('Add note tag',{exact:true}).click();await page.getByLabel('New note tag',{exact:true}).fill('fresh-tag');await page.getByLabel('New note tag',{exact:true}).press('Enter');await expect(page.getByLabel('Remove tag fresh-tag',{exact:true})).toBeVisible();
+  await page.getByLabel('Remove tag documentation',{exact:true}).click();await expect.poll(async()=>(await(await page.request.get(base+`/notes/${note.id}`,{headers})).json()).tags).toEqual(['fresh-tag']);await page.reload();await expect(page.getByLabel('Remove tag fresh-tag',{exact:true})).toBeVisible();
+});
+
+test("searchable note links preview real content and create private backlinks",async({page})=>{
+  const headers=await login(page);const target=await create(page,headers,'Connected destination',{content:'Destination preview details'});const source=await create(page,headers,'Connected source');await open(page,source.id);await page.getByLabel('More formatting',{exact:true}).click();await page.getByRole('button',{name:'Insert note link',exact:true}).click();await page.getByLabel('Search notes to link',{exact:true}).fill('Connected destination');await page.getByRole('dialog').getByRole('button',{name:/Connected destination/}).click();await expect(page.getByRole('region',{name:'Linked note preview',exact:true})).toContainText('Destination preview details');await page.getByRole('dialog').getByRole('button',{name:'Insert note link',exact:true}).click();
+  await expect(page.getByRole('textbox',{name:'Note content',exact:true}).getByRole('link',{name:'Connected destination',exact:true})).toHaveAttribute('href',new RegExp(`note=${target.id}$`));
+  await expect.poll(async()=>(await(await page.request.get(base+`/notes/${target.id}/backlinks`,{headers})).json()).map((n:any)=>n.id)).toContain(source.id);
+  await open(page,target.id);await page.getByText('Linked from 1 note',{exact:true}).click();await page.locator('.notes-backlinks').getByRole('button',{name:/Connected source/}).click();await expect(page.getByRole('textbox',{name:'Note title',exact:true})).toHaveValue('Connected source');
+});
+
+test("search highlights matching snippets and saved filters can be reapplied",async({page})=>{
+  const headers=await login(page);const note=await create(page,headers,'Searchable polished card',{content:'A long introduction. '.repeat(20)+'uniqueuxneedle appears here',tags:['ux-search']});await open(page,note.id);await page.getByLabel('Search notes',{exact:true}).fill('uniqueuxneedle');const list=page.getByRole('region',{name:'Note list',exact:true});await expect(list.locator('.notes-card mark')).toHaveText('uniqueuxneedle');
+  await page.locator('.notes-search-tools summary').click();await page.getByLabel('Filter by tag',{exact:true}).selectOption('ux-search');await page.getByLabel('Edited from',{exact:true}).fill('2020-01-01');await page.getByLabel('Saved search name',{exact:true}).fill('My UX search');await page.getByLabel('Save search',{exact:true}).click();await expect(page.getByRole('button',{name:'My UX search',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Clear search & filters',exact:true}).click();await page.reload();await page.getByRole('button',{name:'My UX search',exact:true}).click();await expect(page.getByLabel('Search notes',{exact:true})).toHaveValue('uniqueuxneedle');await expect(list.locator('.notes-card mark')).toHaveText('uniqueuxneedle');await page.locator('.notes-search-tools summary').click();await expect(page.getByLabel('Filter by tag',{exact:true})).toHaveValue('ux-search');await expect(page.getByLabel('Edited from',{exact:true})).toHaveValue('2020-01-01');
+  await page.getByLabel('Has attachments',{exact:true}).check();await expect(list.locator('.notes-card')).toHaveCount(0);await page.getByLabel('Remove saved search My UX search',{exact:true}).click();await expect(page.getByRole('button',{name:'My UX search',exact:true})).toHaveCount(0);
+});
+
+test("four visual templates create useful persisted notes",async({page})=>{
+  const headers=await login(page);await page.goto('/pms/notes');await expect(page.getByRole('textbox',{name:'Note content',exact:true})).toBeVisible();
+  for(const [name,section] of [['Meeting notes','Agenda'],['Project plan','Milestones'],['Research','Research question'],['Daily journal','Today’s priorities']]){
+    await page.getByLabel('More note actions',{exact:true}).click();await page.getByRole('button',{name:'Note templates',exact:true}).click();await expect(page.locator('.notes-template-preview')).toHaveCount(6);await page.getByRole('button',{name:`Create ${name}`,exact:true}).click();await expect(page.getByRole('textbox',{name:'Note title',exact:true})).toHaveValue(name);await expect(page.getByRole('textbox',{name:'Note content',exact:true})).toContainText(section);await expect(page).toHaveURL(/note=\d+/);const id=new URL(page.url()).searchParams.get('note');await expect.poll(async()=>(await(await page.request.get(base+`/notes/${id}`,{headers})).json()).content).toContain(section);await expect(page.getByRole('status').filter({hasText:'Saved'})).toBeVisible();
+  }
+});
+
+test("cursor menus stay near text, contextual tools work and folder names remain accessible",async({page})=>{
+  await page.setViewportSize({width:1680,height:1050});const headers=await login(page);const note=await create(page,headers,'Cursor tools',{content:rich+'<p>Select these words</p><p><a href="https://example.com">Reference website</a></p>'});await open(page,note.id);const editor=page.getByRole('textbox',{name:'Note content',exact:true});
+  await editor.locator('p').first().click();await editor.press('Home');await editor.press('Shift+End');const floating=page.getByRole('toolbar',{name:'Selection formatting',exact:true});await expect(floating).toBeVisible();const menuBox=await floating.boundingBox(),textBox=await editor.locator('p').first().boundingBox();expect(Math.abs(menuBox!.y-textBox!.y)).toBeLessThan(80);await page.getByLabel('Selection bold',{exact:true}).click();await expect(editor.locator('strong')).toHaveText('Select these words');
+  await editor.getByRole('link',{name:'Reference website',exact:true}).click();await expect(page.getByRole('toolbar',{name:'Link formatting',exact:true})).toBeVisible();await page.getByRole('button',{name:'Remove link',exact:true}).click();await expect(editor.getByRole('link')).toHaveCount(0);
+  await editor.press('Control+End');await editor.press('Enter');await editor.pressSequentially('/call');const slash=page.getByRole('menu',{name:'Insert block',exact:true});await expect(slash).toBeVisible();const slashBox=await slash.boundingBox(),caretBlock=await editor.locator('p').last().boundingBox();expect(Math.abs(slashBox!.y-caretBlock!.y)).toBeLessThan(240);await editor.press('Enter');await expect(editor.locator('blockquote')).toBeVisible();
+  await expect(page.getByRole('treeitem',{name:/Website Development/}).first()).toHaveAttribute('title','Website Development');await expect.poll(async()=>(await(await page.request.get(base+`/notes/${note.id}`,{headers})).json()).content).toContain('<strong>');
 });

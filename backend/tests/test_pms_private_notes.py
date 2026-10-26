@@ -385,3 +385,49 @@ def test_management_undo_rejects_foreign_folder_and_arbitrary_fields(notes_clien
     item.pop('folder_id');item['content']='Overwrite attempt'
     assert c.post('/note-actions/undo',json={'items':[item]}).status_code==422
     assert c.get(f'/notes/{note["id"]}').json()['version']==1
+
+def test_note_search_filters_dates_attachments_and_match_context(db, notes_client):
+    from datetime import datetime, timezone
+    from app.apps.project_management.models import PMSNote
+    c, owner, admin, actor = notes_client
+    first=c.post('/notes',json={'title':'Research','content':'Intro '*80+'needle in the findings','tags':['research']}).json()
+    second=c.post('/notes',json={'title':'Other','content':'Other text'}).json()
+    db.get(PMSNote,first['id']).updated_at=datetime(2026,10,20,12,tzinfo=timezone.utc);db.get(PMSNote,second['id']).updated_at=datetime(2026,10,25,12,tzinfo=timezone.utc);db.commit()
+    assert [n['id'] for n in c.get('/notes',params={'modified_after':'2026-10-19','modified_before':'2026-10-21'}).json()]==[first['id']]
+    assert 'needle' in c.get('/notes',params={'q':'needle'}).json()[0]['preview']
+    assert c.get('/notes',params={'modified_after':'2026-10-25','modified_before':'2026-10-20'}).status_code==422
+    attachment=c.post(f'/notes/{first["id"]}/attachments',files={'file':('research.txt',b'Safe file','text/plain')}).json()
+    assert [n['id'] for n in c.get('/notes',params={'has_attachments':True}).json()]==[first['id']]
+    assert c.delete(f'/notes/{first["id"]}/attachments/{attachment["id"]}').status_code==200
+    assert c.get('/notes',params={'has_attachments':True}).json()==[]
+
+
+def test_backlinks_respect_both_target_and_source_permissions(notes_client):
+    c, owner, admin, actor = notes_client
+    target=c.post('/notes',json={'title':'Target'}).json()
+    content=f'<!--suite-richtext:v1--><p><a href="https://testserver/pms/notes?note={target["id"]}">Target</a></p>'
+    source=c.post('/notes',json={'title':'Private owner source','content':content}).json()
+    c.post('/notes',json={'title':'External URL is not a backlink','content':content.replace('testserver','example.invalid')})
+    actor[0]=admin
+    private=c.post('/notes',json={'title':'Admin private source','content':content}).json()
+    assert c.get(f'/notes/{target["id"]}/backlinks').status_code==404
+    actor[0]=owner
+    rows=c.get(f'/notes/{target["id"]}/backlinks').json();assert [n['id'] for n in rows]==[source['id']]
+    assert 'content' not in rows[0]
+    assert c.post(f'/notes/{target["id"]}/shares',json={'email':admin.email,'version':1}).status_code==200
+    actor[0]=admin
+    assert [n['id'] for n in c.get(f'/notes/{target["id"]}/backlinks').json()]==[private['id']]
+    actor[0]=owner
+    c.post(f'/notes/{source["id"]}/shares',json={'email':admin.email,'version':1})
+    actor[0]=admin
+    assert {n['id'] for n in c.get(f'/notes/{target["id"]}/backlinks').json()}=={private['id'],source['id']}
+
+
+def test_inline_image_presentation_attributes_are_bounded_and_sanitized(notes_client):
+    c,*_=notes_client
+    content='<!--suite-richtext:v1--><p data-note-image="1" data-note-width="360" data-note-align="right" data-note-caption="Architecture overview">Accessible image description</p>'
+    result=c.post('/notes',json={'content':content}).json()['content']
+    assert 'data-note-width="360"' in result and 'data-note-align="right"' in result and 'Architecture overview' in result
+    unsafe=content.replace('360','99999').replace('right','javascript:alert(1)')
+    result=c.post('/notes',json={'content':unsafe}).json()['content']
+    assert 'data-note-width' not in result and 'data-note-align' not in result

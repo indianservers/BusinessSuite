@@ -115,3 +115,27 @@ The next UX pass adds version-safe Undo for bulk organization/status actions; Ct
 This pass changes no database tables or columns. Undo validates note ownership, folder/project/task permissions, duplicate IDs, and every expected version before atomically updating organization/status. It never replaces a note's content or newer edits. The Undo notice lasts until dismissed or superseded while the Notes page remains open; it is not a cross-session history system. Preferences are local to this browser and site. Touch dragging in this pass applies to editor blocks; note/folder moves retain their existing controls.
 
 Validation for this pass: 43 backend/rich-text checks, 23 browser workflows covering prior features and the new interactions (22 full-suite workflows plus the added empty-folder regression), and a production frontend build. The existing migration stays at 028.
+
+## Fifteen-point Notes polish — 27 October 2026
+
+Implemented in the shared PMS Notes page used by both production sites:
+
+1. Persistent Writing layout hides the global PMS sidebar on desktop and restores it on toggle.
+2. 16px document text, comfortable line spacing, and darker metadata improve readability.
+3. One breadcrumb location row with an Edit location popover keeps project/task/folder controls together.
+4. Neutral surfaces and borders reserve purple for selection and primary actions.
+5. Note cards have two-line excerpts, relative timestamps, search-context snippets, and protected image thumbnails.
+6. Contextual table controls, selected-image formatting, and link edit/remove controls keep relevant actions close.
+7. Selection and keyboard-accessible slash menus anchor near the selected text/caret and reposition on scroll/resize.
+8. Folder labels expose their full name through native hover titles and focus wrapping; indentation is capped.
+9. Document outline discovers actual headings and jumps to their position.
+10. Heading sections fold without changing saved content; moving the cursor into a folded section expands it.
+11. Private images support pointer resize, bounded width input, alignment, captions, alt text, and a lightbox. Authentication still gates downloads.
+12. Tags have existing-tag suggestions, Enter-to-create, removable chips, and filter shortcuts.
+13. Searchable note-link selection shows a preview; backlinks only reveal source notes the current user can read.
+14. Search highlights title/excerpt matches, with tag, modified-date, and attachment filters plus named saved searches.
+15. Meeting notes, Project plan, Research, and Daily journal have visual previews and useful editable content. Blank drafts and the empty editor offer template shortcuts.
+
+No schema migration is required. Image attributes are allowlisted and bounded by both rich-text sanitizers. Folding is a viewing preference, not a content deletion. Saved searches and Writing layout are stored per account in this browser on each site; they do not sync across devices or domains. Note links are ordinary authenticated site URLs; they do not grant access. Backlinks omit archived/deleted sources and recheck source permissions. Existing richer Evernote capabilities in the audit above remain separate work.
+
+Validation: 46 backend/rich-text tests and 30 real-browser workflows passed against disposable SQLite, plus TypeScript and the production frontend build. Browser coverage includes existing drag/drop, touch/mobile navigation, privacy/revocation, autosave/recovery/conflicts and the new outline/folding, layout, image metadata/lightbox, tags, note-link preview/backlinks, saved searches/filters, templates, and cursor-positioned contextual menus. No production note data was changed during testing.

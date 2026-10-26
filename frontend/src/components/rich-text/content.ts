@@ -8,11 +8,16 @@ export const safeLink = (url: string) => /^(https?:\/\/|mailto:)[^\s<>]+$/i.test
 const allowedTags = ["p","br","h1","h2","h3","h4","h5","h6","strong","b","em","i","u","s","del","span","mark","a","ul","ol","li","blockquote","pre","code","hr","table","thead","tbody","tr","th","td","colgroup","col","label","input"];
 export function sanitizeRichHtml(html: string): string {
   const clean = DOMPurify.sanitize(html, { ALLOWED_TAGS: allowedTags,
-    ALLOWED_ATTR: ["href","target","rel","style","colspan","rowspan","data-indent","data-note-image","data-type","data-checked","type","checked"],
+    ALLOWED_ATTR: ["href","target","rel","style","colspan","rowspan","data-indent","data-note-image","data-note-width","data-note-align","data-note-caption","data-type","data-checked","type","checked"],
     ALLOW_DATA_ATTR: false, FORBID_TAGS: ["script","style","iframe","object","embed","img","svg","math"] });
   const template = document.createElement("template"); template.innerHTML = clean;
   template.content.querySelectorAll("[data-note-image]").forEach(element => {
     if (element.tagName !== "P" || !/^[1-9][0-9]*$/.test(element.getAttribute("data-note-image") || "")) element.removeAttribute("data-note-image");
+  });
+  template.content.querySelectorAll("[data-note-width],[data-note-align],[data-note-caption]").forEach(element=>{
+    const width=Number(element.getAttribute("data-note-width"));if(element.tagName!=="P"||!Number.isInteger(width)||width<120||width>1200)element.removeAttribute("data-note-width");
+    if(element.tagName!=="P"||!["left","center","right"].includes(element.getAttribute("data-note-align")||""))element.removeAttribute("data-note-align");
+    if(element.tagName!=="P"||(element.getAttribute("data-note-caption")||"").length>240)element.removeAttribute("data-note-caption");
   });
   template.content.querySelectorAll("a").forEach(element => {
     if (!safeLink(element.getAttribute("href") || "")) element.removeAttribute("href");
