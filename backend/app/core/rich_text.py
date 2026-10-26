@@ -9,7 +9,7 @@ from bleach.css_sanitizer import CSSSanitizer
 from fastapi import HTTPException
 
 PREFIX = "<!--suite-richtext:v1-->"
-TAGS = {"p", "br", "h1", "h2", "h3", "h4", "strong", "b", "em", "i", "u", "s", "del", "span", "mark", "a", "ul", "ol", "li", "blockquote", "pre", "code", "hr", "table", "thead", "tbody", "tr", "th", "td", "colgroup", "col", "label", "input"}
+TAGS = {"p", "br", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "b", "em", "i", "u", "s", "del", "span", "mark", "a", "ul", "ol", "li", "blockquote", "pre", "code", "hr", "table", "thead", "tbody", "tr", "th", "td", "colgroup", "col", "label", "input"}
 CSS = CSSSanitizer(allowed_css_properties={"color", "background-color", "font-family", "font-size", "text-align", "margin-left"})
 FONTS = {"Inter", "Arial", "Georgia", "Times New Roman", "Courier New"}
 SIZES = {"12px", "14px", "16px", "18px", "20px", "24px", "32px", "40px"}
@@ -26,6 +26,8 @@ def allowed_attribute(tag, name, value):
         return value == "_blank"
     if tag in {"td", "th"} and name in {"colspan", "rowspan"}:
         return value.isdigit() and 1 <= int(value) <= 30
+    if tag == "p" and name == "data-note-image":
+        return value.isdigit() and int(value) > 0
     if name == "data-indent":
         return value.isdigit() and 0 <= int(value) <= 6
     if name == "data-type":
@@ -109,7 +111,7 @@ class PlainHTML(HTMLParser):
             self.parts.append("\n")
 
     def handle_endtag(self, tag):
-        if tag in {"p", "li", "h1", "h2", "h3", "h4", "tr", "blockquote", "pre"}:
+        if tag in {"p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "tr", "blockquote", "pre"}:
             self.parts.append("\n")
         if tag in {"td", "th"}:
             self.parts.append("\t")
@@ -159,7 +161,7 @@ def rich_text_pdf_markup(value):
                 name = supported[tag]
                 self.parts.append(f"<{name}>")
                 self.stack.append((tag, name))
-            elif tag in {"h1", "h2", "h3", "h4", "th"}:
+            elif tag in {"h1", "h2", "h3", "h4", "h5", "h6", "th"}:
                 self.parts.append("<b>")
                 self.stack.append((tag, "b"))
             elif tag == "li":
@@ -171,7 +173,7 @@ def rich_text_pdf_markup(value):
             if self.stack and self.stack[-1][0] == tag:
                 _, name = self.stack.pop()
                 self.parts.append(f"</{name}>")
-            if tag in {"p", "h1", "h2", "h3", "h4", "li", "tr", "blockquote", "pre"}:
+            if tag in {"p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "tr", "blockquote", "pre"}:
                 self.parts.append("<br/>")
             elif tag in {"td", "th"}:
                 self.parts.append(" | ")

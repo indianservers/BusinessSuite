@@ -17,7 +17,7 @@ from app.core.deps import get_current_user, get_db
 from app.models.user import User
 from .access import can_access_project, get_project_for_action, get_task_project_for_action
 from .models import PMSNote, PMSNoteAttachment, PMSNoteTaskLink, PMSProject, PMSTask
-from .notes import owned, private_response
+from .notes import owned, readable, private_response
 
 router = APIRouter(dependencies=[Depends(private_response)])
 MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
@@ -42,7 +42,7 @@ def attachment_result(row):
 
 
 def attachment(db, note_id, attachment_id, user, include_deleted=False):
-    owned(db, note_id, user)
+    readable(db, note_id, user)
     row = db.query(PMSNoteAttachment).filter_by(id=attachment_id, note_id=note_id).first()
     if row is None or (row.deleted_at and not include_deleted):
         raise HTTPException(404, "Attachment not found")
@@ -51,10 +51,10 @@ def attachment(db, note_id, attachment_id, user, include_deleted=False):
 
 @router.get("/notes/{note_id}/attachments")
 def list_attachments(note_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    owned(db, note_id, user)
+    note = readable(db, note_id, user)
     rows = db.query(PMSNoteAttachment).filter_by(note_id=note_id).order_by(PMSNoteAttachment.id).all()
     return {"items": [attachment_result(r) for r in rows if r.deleted_at is None],
-            "removed_items": [attachment_result(r) for r in rows if r.deleted_at is not None],
+            "removed_items": [attachment_result(r) for r in rows if r.deleted_at is not None and note.owner_id == user.id],
             "max_file_bytes": min(settings.MAX_UPLOAD_SIZE_MB, 10) * 1024 * 1024,
             "max_note_bytes": 50 * 1024 * 1024, "max_files": 20}
 

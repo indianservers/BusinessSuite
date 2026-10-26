@@ -257,3 +257,81 @@ def test_rich_note_excerpt_is_readable_without_changing_stored_content(notes_cli
     note = c.post('/notes', json={'content': content}).json()
     assert note['preview'] == 'Launch plan Decision: keep private files. Reference'
     assert note['content'] == content
+
+
+def test_nested_folders_cycles_and_owner_isolation(db, notes_client):
+    c, owner, admin, actor = notes_client
+    root = c.post("/note-folders", json={"name": "Personal"}).json()
+    child = c.post("/note-folders", json={"name": "Ideas", "parent_id": root["id"]}).json()
+    moved = c.put(f'/note-folders/{root["id"]}', json={**{k:v for k,v in root.items() if k != "id"}, "parent_id": child["id"]})
+    assert moved.status_code == 422
+    note = c.post("/notes", json={"title": "Nested", "folder_id": child["id"], "favorite": True}).json()
+    assert c.get("/notes", params={"folder_id": child["id"]}).json()[0]["id"] == note["id"]
+    assert c.get("/notes", params={"view": "favorites"}).json()[0]["id"] == note["id"]
+    assert c.request("DELETE",f'/note-folders/{root["id"]}',json={"version":1}).status_code == 409
+    actor[0] = admin
+    assert c.get("/note-folders").json() == []
+    assert c.post("/notes",json={"folder_id":child["id"]}).status_code == 404
+    assert c.get("/notes",params={"folder_id":child["id"]}).status_code == 404
+
+
+def test_explicit_sharing_is_read_only_revocable_and_hides_trashed_notes(notes_client):
+    c, owner, admin, actor = notes_client
+    note = c.post("/notes",json={"title":"Explicit sharing", "content":"Only invited readers"}).json()
+    assert c.post(f'/notes/{note["id"]}/shares',json={"email":admin.email,"version":1}).status_code == 200
+    actor[0] = admin
+    shared = c.get("/notes",params={"view":"shared"}).json()
+    assert shared[0]["can_edit"] is False
+    assert c.get(f'/notes/{note["id"]}').json()["content"] == "Only invited readers"
+    assert c.put(f'/notes/{note["id"]}',json={"version":1,"title":"Edit"}).status_code == 404
+    actor[0] = owner
+    assert c.delete(f'/notes/{note["id"]}/shares/{admin.id}').status_code == 200
+    actor[0] = admin
+    assert c.get(f'/notes/{note["id"]}').status_code == 404
+
+
+def test_bulk_conflict_is_atomic_and_trash_remains_recoverable(notes_client):
+    c, *_ = notes_client
+    notes=[c.post("/notes",json={"title":title}).json() for title in ["One","Two"]]
+    payload={"action":"trash", "items":[{"id":notes[0]["id"],"version":1},{"id":notes[1]["id"],"version":99}]}
+    assert c.post("/note-actions/bulk",json=payload).status_code == 409
+    assert len(c.get("/notes").json()) == 2
+    payload["items"][1]["version"]=1
+    assert c.post("/note-actions/bulk",json=payload).json()["updated"] == 2
+    assert len(c.get("/notes",params={"view":"trash"}).json()) == 2
+    assert c.get("/notes").json() == []
+    assert c.post(f'/notes/{notes[0]["id"]}/restore',json={"version":2}).status_code == 200
+
+
+def test_pdf_export_and_duplicate_keep_private_notes(notes_client):
+    c, owner, admin, actor = notes_client
+    note=c.post("/notes",json={"title":"PDF","content":"A **legacy** note"}).json()
+    assert c.get(f'/notes/{note["id"]}/export.pdf').content.startswith(b"%PDF")
+    copy=c.post(f'/notes/{note["id"]}/duplicate').json()
+    assert copy["content"] == note["content"] and copy["id"] != note["id"]
+    assert copy["visibility"] == "private"
+    actor[0]=admin
+    assert c.get(f'/notes/{note["id"]}/export.pdf').status_code == 404
+
+
+def test_inline_image_references_never_store_remote_sources(notes_client):
+    c,*_=notes_client
+    body='<!--suite-richtext:v1--><p data-note-image="12" onclick="bad()">Screenshot</p><img src="https://tracker.invalid/image"><script>alert(1)</script>'
+    note=c.post("/notes",json={"content":body}).json()
+    assert 'data-note-image="12"' in note["content"]
+    assert 'onclick' not in note["content"] and '<img' not in note["content"] and '<script' not in note["content"]
+
+def test_folder_drag_reorder_is_atomic_owned_and_cycle_safe(notes_client):
+    c, owner, admin, actor = notes_client
+    a=c.post('/note-folders',json={'name':'First'}).json()
+    b=c.post('/note-folders',json={'name':'Second'}).json()
+    child=c.post('/note-folders',json={'name':'Child','parent_id':a['id']}).json()
+    path=f'/note-folders/{b["id"]}/move'
+    assert c.post(path,json={'version':b['version'],'target_id':a['id'],'placement':'before'}).status_code==200
+    roots=[row for row in c.get('/note-folders').json() if row['parent_id'] is None]
+    assert [row['id'] for row in roots]==[b['id'],a['id']]
+    current=next(row for row in roots if row['id']==a['id'])
+    assert c.post(f'/note-folders/{a["id"]}/move',json={'version':current['version'],'target_id':child['id'],'placement':'inside'}).status_code==422
+    assert c.post(path,json={'version':1,'target_id':a['id'],'placement':'inside'}).status_code==409
+    actor[0]=admin
+    assert c.post(path,json={'version':2,'target_id':a['id'],'placement':'inside'}).status_code==404

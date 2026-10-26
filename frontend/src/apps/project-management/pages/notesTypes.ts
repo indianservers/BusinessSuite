@@ -1,0 +1,7 @@
+export type NoteDraft = { title: string; content: string; project_id: number | null; task_id: number | null; folder_id: number | null; tags: string[]; pinned: boolean; favorite: boolean; archived: boolean };
+export type NoteRecord = NoteDraft & { id: number; version: number; project_name: string; task_title: string | null; visibility: "private" | "shared"; can_edit?: boolean; can_share?: boolean; preview: string; created_at: string; updated_at: string; deleted_at: string | null; thumbnail_attachment_id?: number | null };
+export type NoteFolder = { id: number; name: string; parent_id: number | null; project_id: number | null; task_id: number | null; color: string; icon: string; position: number; version: number; count?: number };
+export type NoteScope = { kind: "all" | "quick" | "personal" | "project" | "task" | "folder" | "shared" | "favorites" | "recent" | "archive" | "trash"; title: string; project_id?: number | null; task_id?: number | null; folder_id?: number | null };
+export const noteBase = "/project-management/notes";
+export const blankNote = (scope?: NoteScope): NoteDraft => ({title:"",content:"",project_id:scope?.project_id||null,task_id:scope?.task_id||null,folder_id:scope?.folder_id||null,tags:[],pinned:false,favorite:false,archived:false});
+export const draftFrom = (note: NoteRecord): NoteDraft => ({title:note.title,content:note.content,project_id:note.project_id,task_id:note.task_id,folder_id:note.folder_id||null,tags:note.tags,pinned:note.pinned,favorite:note.favorite||false,archived:note.archived});

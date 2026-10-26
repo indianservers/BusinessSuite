@@ -5,12 +5,15 @@ export const RICH_TEXT_PREFIX = "<!--suite-richtext:v1-->";
 export const fontFamilies = ["Inter", "Arial", "Georgia", "Times New Roman", "Courier New"];
 export const fontSizes = ["12px", "14px", "16px", "18px", "20px", "24px", "32px", "40px"];
 export const safeLink = (url: string) => /^(https?:\/\/|mailto:)[^\s<>]+$/i.test(url);
-const allowedTags = ["p","br","h1","h2","h3","h4","strong","b","em","i","u","s","del","span","mark","a","ul","ol","li","blockquote","pre","code","hr","table","thead","tbody","tr","th","td","colgroup","col","label","input"];
+const allowedTags = ["p","br","h1","h2","h3","h4","h5","h6","strong","b","em","i","u","s","del","span","mark","a","ul","ol","li","blockquote","pre","code","hr","table","thead","tbody","tr","th","td","colgroup","col","label","input"];
 export function sanitizeRichHtml(html: string): string {
   const clean = DOMPurify.sanitize(html, { ALLOWED_TAGS: allowedTags,
-    ALLOWED_ATTR: ["href","target","rel","style","colspan","rowspan","data-indent","data-type","data-checked","type","checked"],
+    ALLOWED_ATTR: ["href","target","rel","style","colspan","rowspan","data-indent","data-note-image","data-type","data-checked","type","checked"],
     ALLOW_DATA_ATTR: false, FORBID_TAGS: ["script","style","iframe","object","embed","img","svg","math"] });
   const template = document.createElement("template"); template.innerHTML = clean;
+  template.content.querySelectorAll("[data-note-image]").forEach(element => {
+    if (element.tagName !== "P" || !/^[1-9][0-9]*$/.test(element.getAttribute("data-note-image") || "")) element.removeAttribute("data-note-image");
+  });
   template.content.querySelectorAll("a").forEach(element => {
     if (!safeLink(element.getAttribute("href") || "")) element.removeAttribute("href");
     element.setAttribute("rel", "noopener noreferrer");

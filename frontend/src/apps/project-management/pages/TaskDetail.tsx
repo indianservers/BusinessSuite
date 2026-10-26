@@ -1,3 +1,4 @@
+import TaskLinkedNotes from "../components/TaskLinkedNotes";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { insertRichMention } from "@/components/rich-text/content";
 import WorkReviewPanel from "../components/WorkReviewPanel";
@@ -65,7 +66,7 @@ import type {
   TaskStatus,
 } from "../types";
 
-type TabKey = "work" | "comments" | "activity" | "time" | "files" | "links" | "development" | "history";
+type TabKey = "notes" | "work" | "comments" | "activity" | "time" | "files" | "links" | "development" | "history";
 type ActivityFilter = "all" | "comments" | "changes" | "time" | "files";
 type ActivitySort = "desc" | "asc";
 
@@ -79,6 +80,7 @@ const tabs: { key: TabKey; label: string; icon: ReactNode }[] = [
   { key: "comments", label: "Comments", icon: <MessageSquare className="h-4 w-4" /> },
   { key: "activity", label: "Activity", icon: <GitBranch className="h-4 w-4" /> },
   { key: "time", label: "Time Logs", icon: <Timer className="h-4 w-4" /> },
+  { key: "notes", label: "Notes", icon: <FileText className="h-4 w-4" /> },
   { key: "files", label: "Files", icon: <Paperclip className="h-4 w-4" /> },
   { key: "links", label: "Linked Tasks", icon: <Link2 className="h-4 w-4" /> },
   { key: "development", label: "Development", icon: <Code2 className="h-4 w-4" /> },
@@ -934,6 +936,7 @@ export default function TaskDetail() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {activeTab === "notes" ? <TaskLinkedNotes projectId={task.project_id} taskId={task.id}/> : null}
               {activeTab === "work" ? <WorkReviewPanel taskId={task.id} onReviewed={() => { refreshActivity(); }} /> : null}
               {activeTab === "comments" ? (
                 <CommentsTab

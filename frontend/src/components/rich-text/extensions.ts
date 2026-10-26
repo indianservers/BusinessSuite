@@ -19,8 +19,8 @@ const Indent = Extension.create({
     } } }];
   },
 });
-export function richTextExtensions(placeholder = "Start writing...") {
-  return [Placeholder.configure({ placeholder }), StarterKit.configure({ heading: { levels: [1, 2, 3, 4] }, link: {
+export function richTextExtensions(placeholder = "Start writing...", levels: (1 | 2 | 3 | 4 | 5 | 6)[] = [1, 2, 3, 4]) {
+  return [Placeholder.configure({ placeholder }), StarterKit.configure({ heading: { levels }, link: {
     openOnClick: false, autolink: false, isAllowedUri: safeLink,
     HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
   } }), TableKit, TaskList, TaskItem.configure({ nested: true }),

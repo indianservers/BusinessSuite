@@ -6,7 +6,7 @@ import re
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import or_, update, func
+from sqlalchemy import or_, update, func, cast, String
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
@@ -65,7 +65,8 @@ def readable(db, note_id, user):
     if note and not note.deleted_at and db.query(PMSNoteShare.id).filter_by(note_id=note_id, user_id=user.id).first():
         from .access import organization_id_for
         owner = db.get(User, note.owner_id)
-        if owner and organization_id_for(owner) == organization_id_for(user) and (not note.project_id or can_access_project(db, db.get(PMSProject, note.project_id), user, "browse")):
+        project = db.get(PMSProject, note.project_id) if note.project_id else None
+        if owner and organization_id_for(owner) == organization_id_for(user) and (not note.project_id or (project is not None and project.deleted_at is None and can_access_project(db, project, user, "browse"))):
             return note
     raise HTTPException(404, "Note not found")
 
@@ -78,6 +79,7 @@ def folder_owned(db, folder_id, user):
 
 def validate_links(db, data, user, previous=None):
     if getattr(data, "folder_id", None):
+        db.query(User).filter_by(id=user.id).with_for_update().first()
         folder = folder_owned(db, data.folder_id, user)
         if (folder.project_id, folder.task_id) != (data.project_id, data.task_id):
             raise HTTPException(422, "Note project and task must match its folder")
@@ -105,6 +107,7 @@ def result(db, note, user, full=True):
                    visibility="shared" if db.query(PMSNoteShare.id).filter_by(note_id=note.id).first() else "private",
                    can_edit=note.owner_id == user.id, can_share=note.owner_id == user.id,
                    task_title=task.title if task is not None and task.deleted_at is None else None,
+                   thumbnail_attachment_id=int(re.search(r'data-note-image="([0-9]+)"', note.content).group(1)) if re.search(r'data-note-image="([0-9]+)"', note.content) else None,
                    preview=note_excerpt(note.content))
     if full:
         payload["content"] = note.content
@@ -112,7 +115,7 @@ def result(db, note, user, full=True):
 
 
 def note_excerpt(content):
-    text = re.sub(r"<[^>]*>", "", content)
+    text = re.sub(r"<[^>]*>", " ", content)
     text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
     text = re.sub(r"(?m)^\s*(?:#{1,6}\s+|>\s+|[-*+]\s+(?:\[[ xX]\]\s*)?|\d+\.\s+)", "", text)
     text = re.sub(r"\*\*|__|\+\+|==|~~|`", "", text)
@@ -148,7 +151,7 @@ def list_notes(q: str = Query(default="", max_length=200), view: Literal["all", 
         query = query.filter(PMSNote.project_id == project_id)
     if q.strip():
         term = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        query = query.filter(or_(PMSNote.title.ilike(f"%{term}%", escape="\\"), PMSNote.content.ilike(f"%{term}%", escape="\\"), func.cast(PMSNote.tags, __import__("sqlalchemy").String).ilike(f"%{term}%", escape="\\")))
+        query = query.filter(or_(PMSNote.title.ilike(f"%{term}%", escape="\\"), PMSNote.content.ilike(f"%{term}%", escape="\\"), cast(PMSNote.tags, String).ilike(f"%{term}%", escape="\\")))
     order = PMSNote.title.asc() if sort == "title" else PMSNote.created_at.desc() if sort == "created" else PMSNote.updated_at.desc()
     rows = query.order_by(PMSNote.pinned.desc(), order, PMSNote.id.desc()).all()
     if view == "shared":
@@ -203,6 +206,7 @@ def change_deleted(db, note_id, data, user, deleted):
         raise HTTPException(409, "Note changed. Reload before trying again.")
     db.refresh(note)
     revision(db, note)
+    db.add(PMSNoteEvent(note_id=note.id, actor_id=user.id, action="trash" if deleted else "restore"))
     db.commit()
     return result(db, note, user)
 
@@ -316,6 +320,41 @@ def remove_folder(folder_id: int, data: VersionInput, db: Session = Depends(get_
     db.commit(); return {"removed": True}
 
 
+class FolderMove(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    version: int = Field(gt=0)
+    target_id: int = Field(gt=0)
+    placement: Literal["before", "inside", "after"] = "inside"
+
+
+@router.post("/note-folders/{folder_id}/move")
+def move_folder(folder_id: int, data: FolderMove, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    db.query(User).filter_by(id=user.id).with_for_update().first()
+    folder = folder_owned(db, folder_id, user)
+    target = folder_owned(db, data.target_id, user)
+    if folder.version != data.version:
+        raise HTTPException(409, "Folder changed. Reload before moving it")
+    if folder.id == target.id:
+        raise HTTPException(422, "Choose a different destination folder")
+    parent_id = target.id if data.placement == "inside" else target.parent_id
+    payload = FolderInput(
+        name=folder.name, parent_id=parent_id, project_id=folder.project_id, task_id=folder.task_id,
+        color=folder.color, icon=folder.icon, position=folder.position)
+    if (target.project_id, target.task_id) != (folder.project_id, folder.task_id):
+        raise HTTPException(422, "Move folders within the same project and task; move notes to change scope")
+    check_parent(db, payload, user, folder)
+    siblings = db.query(PMSNoteFolder).filter_by(owner_id=user.id, parent_id=parent_id,
+        project_id=folder.project_id, task_id=folder.task_id, deleted_at=None).filter(PMSNoteFolder.id != folder.id).order_by(PMSNoteFolder.position, PMSNoteFolder.id).all()
+    index = len(siblings) if data.placement == "inside" else next(i for i, row in enumerate(siblings) if row.id == target.id) + (data.placement == "after")
+    siblings.insert(index, folder)
+    folder.parent_id = parent_id
+    for position, row in enumerate(siblings):
+        row.position = position * 10
+        row.version += 1
+    db.commit()
+    return {"moved": True}
+
+
 class ShareInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     email: str = Field(min_length=3, max_length=254)
@@ -335,7 +374,8 @@ def share_note(note_id: int, data: ShareInput, db: Session = Depends(get_db), us
     if note.deleted_at or note.version != data.version: raise HTTPException(409, "Save or reload the active note before sharing")
     person = db.query(User).filter(func.lower(User.email) == data.email.strip().lower(), User.is_active.is_(True)).first()
     if not person or person.id == user.id or organization_id_for(person) != organization_id_for(user): raise HTTPException(422, "Choose an active colleague in your organization")
-    if note.project_id and not can_access_project(db, db.get(PMSProject, note.project_id), person, "browse"): raise HTTPException(403, "This colleague cannot access the linked project")
+    project = db.get(PMSProject, note.project_id) if note.project_id else None
+    if note.project_id and (project is None or project.deleted_at is not None or not can_access_project(db, project, person, "browse")): raise HTTPException(403, "This colleague cannot access the linked project")
     if not db.query(PMSNoteShare.id).filter_by(note_id=note_id, user_id=person.id).first():
         db.add(PMSNoteShare(note_id=note_id, user_id=person.id))
         db.add(PMSNoteEvent(note_id=note_id, actor_id=user.id, action="share"))
@@ -382,3 +422,63 @@ def bulk_notes(data: BulkInput, db: Session = Depends(get_db), user: User = Depe
         db.expire(note); db.refresh(note); revision(db, note)
         db.add(PMSNoteEvent(note_id=note.id, actor_id=user.id, action=data.action))
     db.commit(); return {"updated": len(rows)}
+
+
+@router.post("/notes/{note_id}/duplicate", status_code=201)
+def duplicate_note(note_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from .models import PMSNoteAttachment
+    original = owned(db, note_id, user)
+    if original.deleted_at: raise HTTPException(409, "Restore the note before duplicating it")
+    values = {key: getattr(original, key) for key in NoteInput.model_fields}
+    values.update(title=(original.title[:173] + " (copy)"), pinned=False, favorite=False, archived=False)
+    validate_links(db, NoteInput(**values), user)
+    note = PMSNote(owner_id=user.id, **values)
+    db.add(note); db.flush()
+    ids = {}
+    for attachment in db.query(PMSNoteAttachment).filter_by(note_id=note_id, deleted_at=None):
+        clone = PMSNoteAttachment(note_id=note.id, filename=attachment.filename, media_type=attachment.media_type, size=attachment.size, body=attachment.body)
+        db.add(clone); db.flush(); ids[str(attachment.id)] = str(clone.id)
+    note.content = re.sub(r'data-note-image="([0-9]+)"', lambda match: 'data-note-image="' + ids.get(match.group(1), match.group(1)) + '"', note.content)
+    revision(db, note); db.commit(); db.refresh(note)
+    return result(db, note, user)
+
+
+@router.get("/notes/{note_id}/export.pdf")
+def export_note_pdf(note_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from io import BytesIO
+    from html import escape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from app.core.rich_text import rich_text_pdf_markup, PREFIX
+    note = readable(db, note_id, user)
+    styles = getSampleStyleSheet()
+    stream = BytesIO()
+    story = [Paragraph(escape(note.title), styles["Title"]), Spacer(1, 16)]
+    def add_text(content):
+        if content.startswith(PREFIX):
+            for block in rich_text_pdf_markup(content).split("<br/>"):
+                if block.strip(): story.extend([Paragraph(block, styles["BodyText"]), Spacer(1, 6)])
+        else:
+            for line in content.splitlines(): story.extend([Paragraph(escape(line) or " ", styles["BodyText"]), Spacer(1, 6)])
+    if note.content.startswith(PREFIX):
+        from .models import PMSNoteAttachment
+        from reportlab.platypus import Image
+        raw = note.content[len(PREFIX):]
+        previous = 0
+        for marker in re.finditer(r'<p\b[^>]*data-note-image="([0-9]+)"[^>]*>.*?</p>', raw, re.S):
+            add_text(PREFIX + raw[previous:marker.start()])
+            attachment = db.query(PMSNoteAttachment).filter_by(id=int(marker.group(1)),note_id=note_id,deleted_at=None).first()
+            if attachment and attachment.media_type in {"image/png","image/jpeg","image/gif","image/webp"}:
+                try:
+                    picture = Image(BytesIO(attachment.body))
+                    scale = min(1,450/picture.imageWidth,600/picture.imageHeight)
+                    picture.drawWidth=picture.imageWidth*scale;picture.drawHeight=picture.imageHeight*scale
+                    story.extend([picture,Spacer(1,12)])
+                except Exception:
+                    story.append(Paragraph("[Image could not be rendered]",styles["BodyText"]))
+            previous = marker.end()
+        add_text(PREFIX + raw[previous:])
+    else:
+        add_text(note.content)
+    SimpleDocTemplate(stream, title=note.title, author="KaryaFlow Notes").build(story)
+    return Response(stream.getvalue(), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="note-{note.id}.pdf"', "Cache-Control": "private, no-store"})
