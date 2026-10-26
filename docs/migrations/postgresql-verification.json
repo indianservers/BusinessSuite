@@ -1,29 +1,28 @@
 {
-  "database": "business_suite",
+  "database": "neondb",
   "dialect": "postgresql",
-  "version": "PostgreSQL 18.6 on x86_64-windows, compiled by msvc-19.44.35229, 64-bit",
-  "table_count": 619,
-  "expected_application_tables": 618,
+  "version": "PostgreSQL 18.6 (fd34222) on aarch64-unknown-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit",
+  "table_count": 706,
+  "expected_application_tables": 705,
   "missing_tables": [],
   "missing_columns": {},
-  "migration_revision": "pg_20261022_002",
-  "constraints": 4232,
-  "indexes": 4043,
+  "migration_revision": "pg_20261026_027_ai_security",
+  "constraints": 5139,
+  "indexes": 4347,
   "data_migration": "none; schema only, application bootstrap is separate",
   "fresh_business_rows": {
-    "employees": 0,
+    "employees": 1,
     "crm_leads": 0,
-    "pms_projects": 0,
-    "pms_tasks": 0,
-    "srm_sales_orders": 0,
+    "pms_projects": 21,
+    "pms_tasks": 46,
+    "srm_sales_orders": 1,
     "fam_vouchers": 0
   },
   "inventory": {
-    "database": "business_suite_inventory",
-    "tables": 136,
-    "business_tables": 135,
-    "missing_tables": [],
-    "missing_columns": {}
+    "checked": false,
+    "reason": "Standalone Inventory excluded by --suite-only"
   },
+  "expected_revision": "pg_20261026_027_ai_security",
+  "revision_current": true,
   "passed": true
 }

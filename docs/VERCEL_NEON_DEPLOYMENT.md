@@ -44,7 +44,7 @@ Set `STORAGE_BACKEND=s3`, bucket, region, credentials and optional custom endpoi
 
 The upload and document/export paths persist files before returning their records. Download endpoints retain their existing permissions and redirect to short-lived signed object URLs. Existing `/uploads/...` record references are signed in API JSON responses; edited records normalize signed links back to durable references so expiry is not saved into the database. Public static upload serving is disabled in S3 mode. Local disk under `/tmp` is staging only. Form 16 merging and resume parsing can retrieve private inputs on a different instance.
 
-Configure bucket CORS with the exact frontend origins, methods `GET` and `HEAD`, allowed headers `*`, and expose `Content-Disposition`. This is required for browser downloads that follow API redirects. Do not make the bucket public. Example AWS/R2 CORS rule:
+Downloads use expiring links to the backend's `/api/v1/files/blob` endpoint, which retrieves private objects server-side. Configure backend CORS with the exact frontend origin. Bucket CORS is needed only for clients that access storage directly. Keep the bucket private. Example AWS/R2 CORS rule for direct storage clients:
 
 ```json
 [{"AllowedOrigins":["https://YOUR-APP.vercel.app"],"AllowedMethods":["GET","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["Content-Disposition"],"MaxAgeSeconds":3600}]
@@ -89,7 +89,11 @@ After configuring the real services, run from `backend`:
 venv/Scripts/python.exe scripts/check_deployment.py --api-url https://YOUR-API.vercel.app
 ```
 
-This checks the actual migration head, a temporary private object round trip, signed/unsigned access, bucket CORS and authenticated API smoke requests. It never prints credentials or signed URLs; its temporary object is removed. Keep bootstrap credentials available in the secure shell for smoke login, then remove the bootstrap password from the deployed API environment because cold starts no longer need it.
+This supports both S3-compatible storage and Vercel Blob. It checks the actual migration head, persists a temporary private object, removes local staging, verifies the signed API download and backend CORS, rejects unsigned API and direct object access, and runs authenticated API smoke requests. `--api-url` selects the API origin for the signed download as well as smoke requests. The API must share the shell's signing secret, storage configuration and upload path. The checker never prints credentials or signed URLs; it removes its temporary object. Keep bootstrap credentials available in the secure shell for smoke login, then remove the bootstrap password from the deployed API environment because cold starts no longer need it.
+
+To verify suite tables and columns separately from cloud storage, run `venv/Scripts/python.exe scripts/verify_postgresql_schema.py --suite-only`. The separately deployed legacy Inventory/POS database is explicitly excluded by this option.
+
+Live HTTP checks allow 60 seconds per request for serverless cold starts. Override this with `--timeout SECONDS` when needed. Failures report the check or exception type without printing provider URLs or credentials.
 
 Before promoting a preview, run authenticated smoke checks and file upload/download after a fresh instance, two-session task collaboration, member removal, cron duplicate/retry tests, cross-module handoffs, payroll and PDF exports. Use a dedicated Neon preview branch and storage prefix.
 

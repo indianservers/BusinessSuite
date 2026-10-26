@@ -42,6 +42,8 @@ venv/Scripts/python.exe -m alembic revision --autogenerate -m "describe schema c
 venv/Scripts/python.exe scripts/verify_postgresql_schema.py
 ```
 
+For the FastAPI suite deployment without the separate legacy Inventory/POS database, run `venv/Scripts/python.exe scripts/verify_postgresql_schema.py --suite-only`. This verifies the suite migration head, tables and columns and explicitly reports the Inventory check as skipped. The default command still checks both databases.
+
 Review generated migrations before applying them. For production, set `DATABASE_AUTO_MIGRATE=false` and apply migrations as a deployment step. The standalone Inventory/POS app uses its own frozen baseline and `migrations_postgresql` folder.
 
 ## Tests and backups
