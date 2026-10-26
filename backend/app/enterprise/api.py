@@ -3,7 +3,7 @@
 import copy, csv, io, json, re, uuid
 from datetime import datetime, timezone
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, UploadFile, File
 from fastapi.responses import Response
 from pydantic import Field
 from sqlalchemy import func, inspect
@@ -1315,3 +1315,36 @@ def backup_policy(
     )
     db.commit()
     return result
+
+
+@router.post("/branding/logo")
+async def upload_branding_logo(companyId: int = Query(gt=0), file: UploadFile = File(...),
+                               db: Session = Depends(get_db), actor: User = Depends(admin)):
+    if not actor.is_superuser:
+        raise HTTPException(403, "Global Super Admin required")
+    company_access(db, actor, companyId)
+    if not db.get(Company, companyId):
+        raise HTTPException(404, "Company not found")
+    content = await file.read(2 * 1024 * 1024 + 1)
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(413, "Logo must be 2 MB or smaller")
+    from PIL import Image, UnidentifiedImageError
+    from pathlib import Path
+    from app.core.config import settings
+    from app.core.storage import persist_file
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            if image.format not in {"PNG", "JPEG", "WEBP"} or image.width * image.height > 16000000:
+                raise HTTPException(422, "Use a PNG, JPEG or WebP logo under 16 megapixels")
+            image.load()
+            image.thumbnail((1024, 1024))
+            output = io.BytesIO()
+            image.convert("RGBA").save(output, format="PNG")
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        raise HTTPException(422, "Invalid logo image")
+    name = f"{companyId}_{uuid.uuid4().hex}.png"
+    path = Path(settings.UPLOAD_DIR) / "branding" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(output.getvalue())
+    persist_file(str(path))
+    return {"url": f"/uploads/branding/{name}"}

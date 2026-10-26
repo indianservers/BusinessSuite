@@ -4,7 +4,14 @@ import { useAuthStore } from "@/store/authStore";
 
 export function useCompanyBranding(path: string) {
   const user = useAuthStore((s) => s.user);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const refresh = () => setRevision(value => value + 1);
+    window.addEventListener("suite-branding-updated", refresh);
+    return () => window.removeEventListener("suite-branding-updated", refresh);
+  }, []);
   const [name, setName] = useState("");
+  const [logo, setLogo] = useState("");
   useEffect(() => {
     if (!user) return;
     let live = true;
@@ -24,6 +31,7 @@ export function useCompanyBranding(path: string) {
         if (!live) return;
         const theme = response.data.values || {};
         setName(theme.appName || "");
+        setLogo(theme.logoPath || "");
         function hsl(hex: string) {
           let [r, g, b] = [1, 3, 5].map(
             (i) => parseInt(hex.slice(i, i + 2), 16) / 255,
@@ -76,6 +84,6 @@ export function useCompanyBranding(path: string) {
         else root.style.removeProperty(key);
       }
     };
-  }, [user?.id, path]);
-  return name;
+  }, [user?.id, path, revision]);
+  return { name, logo };
 }

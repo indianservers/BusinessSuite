@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import Field
 from app.core.input_validation import EmailAddress
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 from app.access.api import (
     admin,
@@ -965,3 +965,51 @@ def audit_events(
         "items": rows[(page - 1) * 50 : page * 50],
         "capped": len(rows) > 10000,
     }
+
+
+class SuperAdminInput(Strict):
+    companyId: int = Field(default=1, gt=0)
+    email: str = Field(min_length=3, max_length=254)
+    password: str | None = Field(default=None, max_length=256)
+    reason: str = Field(min_length=3, max_length=500)
+
+
+@router.post("/super-admins")
+def add_super_admin(data: SuperAdminInput, request: Request,
+                    db: Session = Depends(get_db), actor: User = Depends(admin)):
+    if not actor.is_superuser:
+        raise HTTPException(403, "Global Super Admin required")
+    company_access(db, actor, data.companyId)
+    if not db.get(Company, data.companyId):
+        raise HTTPException(404, "Company not found")
+    mutate(request, actor)
+    from app.core.input_validation import EmailAddress
+    from pydantic import TypeAdapter
+    from app.core.security import get_password_hash
+    from app.api.v1.auth import _validate_password_policy
+    try:
+        email = str(TypeAdapter(EmailAddress).validate_python(data.email)).lower()
+    except ValueError:
+        raise HTTPException(422, "Enter a valid email address")
+    target = db.query(User).filter(func.lower(User.email) == email).with_for_update().first()
+    created = target is None
+    if target and not target.is_active:
+        raise HTTPException(409, "Activate the account before granting Super Admin access")
+    if target and target.is_superuser:
+        raise HTTPException(409, "This account is already a Super Admin")
+    if created:
+        if not data.password:
+            raise HTTPException(422, "A password is required for a new account")
+        _validate_password_policy(db, data.password)
+        target = User(email=email, hashed_password=get_password_hash(data.password), is_active=True, is_superuser=True)
+        db.add(target)
+        db.flush()
+    else:
+        if data.password:
+            raise HTTPException(422, "Leave the password empty for an existing account")
+        target.is_superuser = True
+    record(db, actor, data.companyId, "super_admin.granted",
+           {"reason": data.reason, "created": created, "isSuperuser": True}, request,
+           before={"isSuperuser": False}, target=target.id)
+    db.commit()
+    return {"id": target.id, "email": target.email, "isSuperuser": True}

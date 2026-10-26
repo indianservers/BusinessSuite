@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/utils";
 import DashboardStudio from "./DashboardStudio";
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -91,6 +92,7 @@ const defaults: any = {
   },
   branding: {
     appName: "Business Suite",
+    logoPath: "",
     primary: "#6d28d9",
     surface: "#ffffff",
     background: "#f8fafc",
@@ -375,6 +377,7 @@ export default function EnterprisePage() {
     try {
       await action();
       setNotice("Saved and audited.");
+      if (section === "branding") window.dispatchEvent(new Event("suite-branding-updated"));
       await load();
     } catch (e: any) {
       if (
@@ -386,6 +389,7 @@ export default function EnterprisePage() {
         setPending(() => async () => {
           await action();
           setNotice("Saved and audited.");
+          if (section === "branding") window.dispatchEvent(new Event("suite-branding-updated"));
           await load();
         });
         setStep(true);
@@ -450,7 +454,7 @@ export default function EnterprisePage() {
         };
         version = sub?.version || 0;
       } else if (row.values_json) {
-        value = row.values_json;
+        value = { ...defaults[kind], ...row.values_json };
         policyKey = row.scope_key.split(`:${kind}:`)[1] || policyKey;
       }
     }
@@ -946,7 +950,7 @@ export default function EnterprisePage() {
       {section === "branding" && (
         <section className="cc-card">
           <div className="cc-heading">
-            <h2>Company theme</h2>
+            <h2>Company name & logo across all modules</h2>
             <Button onClick={() => edit("branding", data?.[0])}>
               <Palette size={14} />
               Edit branding
@@ -960,6 +964,7 @@ export default function EnterprisePage() {
               borderRadius: data?.[0]?.values_json?.radius || 8,
             }}
           >
+            {data?.[0]?.values_json?.logoPath && <img src={assetUrl(data[0].values_json.logoPath)} alt="Company logo" className="mb-3 h-16 w-16 object-contain" />}
             <strong>
               {data?.[0]?.values_json?.appName || "Business Suite"}
             </strong>
@@ -1411,6 +1416,17 @@ export default function EnterprisePage() {
         <DialogContent className="ec-dialog">
           <DialogTitle>{editor?.kind?.replace(/_/g, " ")}</DialogTitle>
           <div className="ec-editor">
+            {editor?.kind === "branding" && actor?.is_superuser && <label>Upload company logo (PNG, JPEG or WebP, up to 2 MB)
+              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={async event => {
+                const file = event.target.files?.[0]; if (!file) return;
+                if (file.size > 2 * 1024 * 1024) { setError("Logo must be 2 MB or smaller"); return; }
+                const body = new FormData(); body.append("file", file);
+                try { const response = await api.post(`${root}/branding/logo`, body, {params:{companyId:company}}); setValues((old:any) => ({...old,logoPath:response.data.url})); }
+                catch(e) { setError(text(e)); }
+                event.target.value = "";
+              }} />
+              {values.logoPath && <img src={assetUrl(values.logoPath)} alt="Logo preview" className="h-16 w-16 object-contain" />}
+            </label>}
             {Object.entries(values).map(([name, value]) => (
               <Field
                 key={name}

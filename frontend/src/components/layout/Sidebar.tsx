@@ -6,7 +6,7 @@ import PMSMoreMenu from "./PMSMoreMenu";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { Fragment, useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { assetUrl, cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Sparkles, UserCircle, X, LogOut, Search, MoreHorizontal } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ interface SidebarProps {
 
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
-  const companyBrandName=useCompanyBranding(location.pathname);
+  const companyBrand=useCompanyBranding(location.pathname);
   const { user } = useAuthStore();
   const isControlCenter = location.pathname.startsWith("/admin/control") || location.pathname.startsWith("/admin/access");
   const roleNav = getRoleNav(user?.role, user?.is_superuser, location.pathname);
@@ -74,17 +74,17 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
           {!collapsed && (
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                <Sparkles className="h-4 w-4 text-white" />
+                {companyBrand.logo ? <img src={assetUrl(companyBrand.logo)} alt={companyBrand.name || "Company logo"} className="h-8 w-8 rounded-lg object-contain bg-white" /> : <Sparkles className="h-4 w-4 text-white" />}
               </div>
               <div>
-                <p className="text-sm font-bold text-sidebar-foreground">{product.name}</p>
+                <p className="text-sm font-bold text-sidebar-foreground">{companyBrand.name || product.name}</p>
                 <p className="text-[10px] text-sidebar-foreground/50">{getProductDisplayName(product)} / {roleLabel}</p>
               </div>
             </div>
           )}
           {collapsed && (
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-              <Sparkles className="h-4 w-4 text-white" />
+              {companyBrand.logo ? <img src={assetUrl(companyBrand.logo)} alt={companyBrand.name || "Company logo"} className="h-8 w-8 rounded-lg object-contain bg-white" /> : <Sparkles className="h-4 w-4 text-white" />}
             </div>
           )}
           <div className="flex items-center gap-1">
@@ -179,7 +179,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: 
         <div className="border-t border-sidebar-border p-4">
           {!collapsed && (
             <div className="mb-3 rounded-md border border-sidebar-border/70 px-3 py-2 text-[10px] font-medium text-sidebar-foreground/55">
-              {companyBrandName || BUSINESS_SUITE_DISPLAY_NAME}
+              {companyBrand.name || BUSINESS_SUITE_DISPLAY_NAME}
             </div>
           )}
           <NavLink

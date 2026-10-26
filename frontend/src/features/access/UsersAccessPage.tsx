@@ -1,3 +1,4 @@
+import SuperAdminManager from "./SuperAdminManager";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Check,
@@ -601,6 +602,7 @@ export default function UsersAccessPage() {
         </span>
       </header>
       <div className="ua-toolbar">
+        {actor?.is_superuser && <SuperAdminManager companyId={company} />}
         <label>
           Company
           <select
@@ -1396,6 +1398,7 @@ export default function UsersAccessPage() {
                 : ""}
             </p>
             <div className="ua-toolbar">
+        {actor?.is_superuser && <SuperAdminManager companyId={company} />}
               <Button
                 variant="outline"
                 disabled={opened.isSuperuser}
@@ -1446,6 +1449,7 @@ export default function UsersAccessPage() {
               </Button>
             </div>
             <div className="ua-toolbar">
+        {actor?.is_superuser && <SuperAdminManager companyId={company} />}
               <select
                 aria-label="Copy access from user"
                 value={cloneFrom}
@@ -1517,6 +1521,7 @@ export default function UsersAccessPage() {
               </label>
             )}
             <div className="ua-toolbar">
+        {actor?.is_superuser && <SuperAdminManager companyId={company} />}
               <Button
                 disabled={
                   !drafts[opened.id] || reason.trim().length < 3 || busy
