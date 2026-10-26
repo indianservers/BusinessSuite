@@ -12,7 +12,8 @@
     "test:rbac": "playwright test --config=playwright.config.ts",
     "preview": "vite preview",
     "prepare:operator-llm": "python scripts/prepare-operator-llm.py",
-    "test:validation": "node scripts/test-validation.cjs"
+    "test:validation": "node scripts/test-validation.cjs",
+    "postbuild": "node scripts/write-release-version.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

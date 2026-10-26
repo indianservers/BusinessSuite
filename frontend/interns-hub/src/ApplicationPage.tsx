@@ -218,14 +218,7 @@ const baseFields: Field[] = [
     key: "current_year",
     label: "Current Year / Semester",
     icon: Layers,
-    options: [
-      "1st Year",
-      "2nd Year",
-      "3rd Year",
-      "4th Year",
-      "5th Year",
-      "Graduated",
-    ],
+    options: contract.current_years,
   },
   {
     key: "college",

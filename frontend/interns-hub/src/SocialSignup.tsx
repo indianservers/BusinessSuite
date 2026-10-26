@@ -10,10 +10,39 @@ function ProviderMark({ provider }: { provider: string }) {
 
 export function SocialSignup({mode="signup",onVerified}:{mode?:"signup"|"continue";onVerified?:(profile:{email:string;full_name:string;expires_at?:number})=>void}) {
   const [providers, setProviders] = useState<Array<{ provider: string; enabled: boolean }> | null>(null);
+  const [configurationError, setConfigurationError] = useState("");
+  const [configurationAttempt, setConfigurationAttempt] = useState(0);
   const [busy,setBusy] = useState("");
   const [error,setError] = useState("");
   const navigate = useNavigate();
-  useEffect(() => { hub("/signup/providers").then(result=>setProviders(result.project_id === firebaseConfig?.projectId ? result.providers : [])).catch(() => setProviders([])); }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    let disposed = false;
+    const timeout = window.setTimeout(() => controller.abort(), 20000);
+    setProviders(null);
+    setConfigurationError("");
+    hub("/signup/providers", { signal: controller.signal, cache: "no-store" }).then(result => {
+      if (disposed) return;
+      if (!firebaseConfig?.projectId || !firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.appId) {
+        setProviders([]);
+        setConfigurationError("Google signup is not configured on this site. Please contact the program team.");
+      } else if (result.project_id !== firebaseConfig.projectId) {
+        setProviders([]);
+        setConfigurationError("The signup service and this site use different Google configurations. Please contact the program team.");
+      } else {
+        const available = Array.isArray(result.providers) ? result.providers : [];
+        setProviders(available);
+        if (!available.some((item: {provider: string; enabled: boolean}) => item.provider === "google" && item.enabled)) {
+          setConfigurationError("Google signup is currently unavailable. Please retry or contact the program team.");
+        }
+      }
+    }).catch(() => {
+      if (disposed) return;
+      setProviders([]);
+      setConfigurationError(controller.signal.aborted ? "Loading Google signup took too long. Please retry." : "Could not load Google signup. Check your connection and retry.");
+    }).finally(() => window.clearTimeout(timeout));
+    return () => { disposed = true; window.clearTimeout(timeout); controller.abort(); };
+  }, [configurationAttempt]);
   async function signup(provider:string) {
     setBusy(provider);setError("");
     try {
@@ -39,10 +68,11 @@ export function SocialSignup({mode="signup",onVerified}:{mode?:"signup"|"continu
       {["google"].map(provider => <button type="button" key={provider}
         className="social-signup-button" disabled={!!busy || !providers?.some(item => item.provider === provider && item.enabled)}
         onClick={() => {void signup(provider);}}>
-        <ProviderMark provider={provider}/><span>{busy === provider ? "Connecting…" : mode === "continue" ? "Sign in with Google" : "Sign up with Google"}</span>
+        <ProviderMark provider={provider}/><span>{providers === null ? "Loading Google sign-in…" : busy === provider ? "Connecting…" : mode === "continue" ? "Sign in with Google" : "Sign up with Google"}</span>
       </button>)}
     </div>
-    {providers && !providers.some(item => item.enabled) && <p className="social-signup-note">Google sign-in is temporarily unavailable. Please try again later.</p>}
+    {providers === null && <p className="social-signup-note" role="status">Checking Google signup availability…</p>}
+    {configurationError && <div className="social-signup-error" role="alert"><p>{configurationError}</p><button type="button" className="underline" onClick={() => setConfigurationAttempt(attempt => attempt + 1)}>Retry Google signup</button></div>}
     {error && <p className="social-signup-error" role="alert">{error}</p>}
   </div>;
 }

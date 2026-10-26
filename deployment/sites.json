@@ -1,0 +1,62 @@
+{
+  "sites": [
+    {
+      "id": "dsb-suite",
+      "kind": "suite",
+      "projectId": "prj_AZ86wc2FbH4Qe10Whg49wJGL38jL",
+      "projectName": "businesssuite",
+      "url": "https://app.dsbchartered.com",
+      "orgId": "team_bE8rRsbbyPR30IkE3xI4oHso"
+    },
+    {
+      "id": "indianservers-suite",
+      "kind": "suite",
+      "projectId": "prj_b3XOky29D6HclRNTh6nu5kJtiI2q",
+      "projectName": "indianservers-app",
+      "url": "https://app.indianservers.com",
+      "orgId": "team_bE8rRsbbyPR30IkE3xI4oHso"
+    },
+    {
+      "id": "dsb-interns",
+      "kind": "interns-hub",
+      "projectId": "prj_y8dK333wdChLSDMIHYocfSQLrGxI",
+      "projectName": "businesssuite-interns-hub",
+      "url": "https://interns-hub.dsbchartered.com",
+      "publicConfig": {
+        "apiBaseUrl": "https://app.dsbchartered.com/api/v1",
+        "hrmsLoginUrl": "https://app.dsbchartered.com/hrms/login",
+        "firebaseConfig": {
+          "apiKey": "AIzaSyAF0DQ9LXILPnS_Ujl-JkUxwjkyYjz08D4",
+          "authDomain": "dsb-pro.firebaseapp.com",
+          "projectId": "dsb-pro",
+          "storageBucket": "dsb-pro.firebasestorage.app",
+          "messagingSenderId": "985710590950",
+          "appId": "1:985710590950:web:b63f7bafa492cf2e37f427",
+          "measurementId": "G-PW5M9YEENE"
+        }
+      },
+      "orgId": "team_bE8rRsbbyPR30IkE3xI4oHso"
+    },
+    {
+      "id": "indianservers-interns",
+      "kind": "interns-hub",
+      "projectId": "prj_v798fuBBSSsmOIdRr0uTAWwrdcZf",
+      "projectName": "indianservers-interns-hub",
+      "url": "https://interns-hub.indianservers.com",
+      "publicConfig": {
+        "firebaseConfig": {
+          "appId": "1:593351107909:web:e2ba110eb27a8ef6830a2c",
+          "apiKey": "AIzaSyDKiPMjAuHqmFFm1l6tW3YMCkF7xQlsoMw",
+          "measurementId": "G-MXPF0M66DZ",
+          "authDomain": "mlvisualizationsaimersweb.firebaseapp.com",
+          "messagingSenderId": "593351107909",
+          "storageBucket": "mlvisualizationsaimersweb.firebasestorage.app",
+          "projectId": "mlvisualizationsaimersweb"
+        },
+        "hrmsLoginUrl": "https://app.indianservers.com/hrms/login",
+        "apiBaseUrl": "https://app.indianservers.com/api/v1"
+      },
+      "orgId": "team_bE8rRsbbyPR30IkE3xI4oHso"
+    }
+  ]
+}

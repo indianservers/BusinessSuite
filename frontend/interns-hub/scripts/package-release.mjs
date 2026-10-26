@@ -43,6 +43,7 @@ await writeFile(resolve(output, "config.json"), JSON.stringify({
   routes: [
     { src: "/(.*)", headers: { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" }, continue: true },
     { src: "/config\\.js", headers: { "Cache-Control": "no-store" }, continue: true },
+    { src: "/release\\.json", headers: { "Cache-Control": "no-store" }, continue: true },
     { handle: "filesystem" },
     { src: "/api(?:/.*)?", status: 404 },
     { src: "/.*", dest: "/index.html" },
