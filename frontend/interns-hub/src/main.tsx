@@ -479,7 +479,7 @@ function App() {
           />
         }
       />
-      <Route path="*" element={<Navigate to="/apply" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

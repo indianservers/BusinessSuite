@@ -1,5 +1,7 @@
 # Interns Hub
 
+Interns Hub is a product of Indian Servers Pvt Limited. Keep customer domains, API endpoints and hosting configuration outside the application code so the product can be installed on thousands of servers. Each customer installation uses its own configured BusinessSuite backend and data; a portal deployment does not create a new tenant or database.
+
 A domain-independent, separately deployable, mobile-first intern product for repeated customer installations. It uses the **same HRMS backend, database, employee accounts, organization structure, and attendance records** as BusinessSuite. Do not deploy another backend or copy the database.
 
 ## Local development
@@ -15,7 +17,7 @@ For isolated visual QA, run `backend/venv/Scripts/python.exe backend/scripts/ser
 3. Configure this installation by editing `dist/config.js` after building: set `apiBaseUrl` to its existing HRMS API root and `hrmsLoginUrl` to its HRMS admin sign-in URL. The same compiled build can be deployed to any number of customer domains with different config files. Serve `config.js` with `Cache-Control: no-store`. As a build-time alternative, set `VITE_API_BASE_URL=https://YOUR_EXISTING_BACKEND/api/v1` and `VITE_HRMS_URL=https://YOUR_HRMS_DOMAIN/hrms/login` before building. These are public URLs, not secrets. Do not put database credentials or backend secrets in this deployment.
 4. Add the exact intern origin (for example `https://interns.example.com`) to the existing backend's `BACKEND_CORS_ORIGINS`. Keep all existing origins. Configure the subdomain on this frontend deployment with HTTPS.
 5. Configure SPA rewrites to `index.html` for client routes. A Vercel configuration is included. If a same-origin reverse proxy is preferred, proxy `/api` to the existing backend and use `/api/v1` as the API base.
-6. The backend needs persistent shared storage for protected submission uploads. Hub uploads live in `intern-hub-private` beside `UPLOAD_DIR`, outside the publicly mounted upload directory, and are served through authorized download endpoints. All backend replicas must use the same persistent filesystem volume. Serverless ephemeral storage is insufficient for durable uploads; use an appropriate shared storage implementation before deploying there. The existing backend upload limit is respected (maximum 50 MB).
+6. Submission uploads use the shared PMS work-evidence storage and permission checks. Configure the existing backend's private Vercel Blob or S3-compatible storage for serverless deployments, or a persistent upload volume for self-hosted deployments. Local serverless staging is temporary. The existing backend upload limit is respected.
 
 The frontend root has its own package manifest, lockfile, environment example and build. It does not include or import the HRMS frontend bundle. No customer domain is hardcoded or registered. Each installation uses its existing HRMS deployment and database; the runtime config does not create new database tenants or a second backend. No production deployment is created automatically by this change.
 
@@ -39,7 +41,7 @@ Assessment answers are scored on the server and answer keys are not sent to inte
 
 ## Public applications
 
-`/apply` is the public, mobile-first application page; `/login` is the intern login, and `/application-status` verifies the applicant's email/password before displaying their decision. Applicants submit details only: there is no resume or document-upload field. Save Draft stores non-credential form fields in browser session storage; passwords and identity numbers are excluded.
+The portal opens at `/login` for signed-out users. `/apply` remains the public, mobile-first application page; `/application-status` verifies the applicant's email/password before displaying their decision. Applicants submit details only: there is no resume or document-upload field. Save Draft stores non-credential form fields in browser session storage; passwords and identity numbers are excluded.
 
 Applications remain Pending without a user or employee account. HR staff review them at `/hrms/interns-hub/applications`, assign branch, department, designation, manager and joining date, and approve or reject them. Approval creates an HRMS employee, a restricted intern account using the applicant's already-hashed password, and a unique `IH-…` intern ID. The applicant can then sign in with their chosen credentials and view that ID. No email delivery service is assumed. Application status is checked in the portal.
 
