@@ -1,6 +1,8 @@
+import { useCompanyBranding } from "@/features/access/useCompanyBranding";
+import { assetUrl } from "@/lib/utils";
 import NavigationShortcuts from "./NavigationShortcuts";
 import ModuleSwitcher from "./ModuleSwitcher";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -39,6 +41,7 @@ export default function WorkspaceNavigation({
   onLogout: () => void;
   onClose: () => void;
 }) {
+  const companyBrand = useCompanyBranding(useLocation().pathname);
   const choose = (value: "board" | "people" | "calendar") => {
     onView(value);
     onClose();
@@ -48,9 +51,9 @@ export default function WorkspaceNavigation({
       <div className="kf-workspace-brand">
         <span>
           <span className="kf-brand-symbol">
-            <Sparkles size={21} />
+            {companyBrand.logo ? <img src={assetUrl(companyBrand.logo)} alt={companyBrand.name || "Company logo"} style={{width:32,height:32,objectFit:"contain",borderRadius:8}} /> : <Sparkles size={21} />}
           </span>
-          <span className="kf-brand-name">KaryaFlow</span>
+          <span className="kf-brand-name" title={companyBrand.name || "KaryaFlow"} style={{maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{companyBrand.name || "KaryaFlow"}</span>
         </span>
         <button
           className="kf-sidebar-collapse"
