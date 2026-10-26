@@ -64,6 +64,8 @@ Set `REALTIME_TRANSPORT=database` (automatic on Vercel). Authorized browser sess
 
 ## Build and validation
 
+PMS Google login uses Firebase Authentication. Configure `FIREBASE_PROJECT_ID` and `FIREBASE_WEB_CONFIG` (the public Firebase web configuration JSON containing `apiKey`, `authDomain`, `projectId` and `appId`) on the backend and authorize the app hostname in Firebase. The PMS login page reads the public configuration from `/api/v1/auth/firebase/config`. Only existing active accounts with PMS access can sign in; Google login does not provision accounts or bypass module permissions, IP policies, account lockout, configured organizational SSO, or application MFA. Intern application sessions remain separate from staff login.
+
 The runtime dependency list excludes unused scientific/native PDF packages; optional packages remain in `requirements-optional.txt`. Private storage uses boto3. CI explicitly uses a lower bcrypt work factor only for disposable test fixtures, while separately asserting the production hashing default remains at least 12 rounds. Production code does not read the test-only switch. GitHub Actions validates the dependency installation on Linux/Python 3.12, PostgreSQL migrations/tests and the frontend production build. Cloud preview validation remains necessary for Vercel bundle size, cold starts, the actual Neon pooler, S3 permissions and CORS, configured third-party providers, and plan limits.
 
 Local checks:

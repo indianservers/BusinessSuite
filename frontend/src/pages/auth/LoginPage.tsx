@@ -185,6 +185,10 @@ export default function LoginPage() {
     queryFn: () => authApi.ssoProviders().then((r) => r.data as SsoProvider[]),
     staleTime: 10 * 60 * 1000,
   });
+  const { data: firebaseLoginConfig } = useQuery({
+    queryKey:["firebase-login-config"], queryFn:()=>authApi.firebaseConfig().then(r=>r.data),
+    enabled:loginModule === "project_management", staleTime:5*60*1000,
+  });
   const hintedProvider = useMemo(() => {
     const domain = emailValue?.split("@")[1]?.toLowerCase();
     if (!domain) return null;
@@ -301,6 +305,26 @@ export default function LoginPage() {
   });
 
   const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname + location.search)}`;
+  async function signInWithGoogle() {
+    if(!firebaseLoginConfig?.enabled || !firebaseLoginConfig.firebase_config) return;
+    setSsoBusy(true);setInlineError("");
+    try {
+      const {googleFirebaseLogin} = await import("@/services/firebaseLogin");
+      const {data} = await googleFirebaseLogin(firebaseLoginConfig.firebase_config);
+      if(data.mfa_required) {setMfaToken(data.mfa_token);setLoginPhase("mfa");return;}
+      queryClient.clear();
+      setTokens(data.access_token,data.refresh_token);
+      setUser({id:data.user_id,email:data.email,role:data.role,is_superuser:data.is_superuser,employee_id:data.employee_id});
+      navigate(getPostLoginPath(data.role,data.is_superuser));
+    } catch(error:any) {
+      const messages:Record<string,string>={
+        "auth/popup-closed-by-user":"Google sign-in was canceled. Please try again.",
+        "auth/popup-blocked":"Please allow the Google sign-in popup and try again.",
+        "auth/unauthorized-domain":"Google sign-in is not available on this domain. Please contact your administrator.",
+      };
+      setInlineError(messages[error.code] || error.response?.data?.detail || "Google sign-in could not be completed. Please try again.");
+    } finally {setSsoBusy(false);}
+  }
 
   return (
     <div className={loginModule === "project_management" ? "karya-login" : `min-h-screen flex items-center justify-center bg-gradient-to-br ${loginTheme.page} p-4`}>
@@ -507,7 +531,7 @@ export default function LoginPage() {
                 ))}
               </div>
             )}
-            {loginModule === "project_management" && loginPhase === "credentials" && authView === "login" && !ssoProviders?.some(provider => provider.button_icon === "google" || provider.provider_type === "google") && <div className="mt-5"><div className="karya-divider">OR</div><Button type="button" variant="outline" className="karya-google" disabled title="An administrator must configure Google SSO for this workspace"><span className="google-letter">G</span>Continue with Google</Button><p className="karya-sso-note">Google sign-in becomes available when your workspace enables it.</p></div>}
+            {loginModule === "project_management" && loginPhase === "credentials" && authView === "login" && !ssoProviders?.some(provider => provider.button_icon === "google" || provider.provider_type === "google") && <div className="mt-5"><div className="karya-divider">OR</div><Button type="button" variant="outline" className="karya-google" disabled={!firebaseLoginConfig?.enabled || ssoBusy || isSubmitting} onClick={()=>{void signInWithGoogle();}}><ProviderIcon icon="google"/>{ssoBusy?"Connecting…":"Continue with Google"}</Button>{firebaseLoginConfig && !firebaseLoginConfig.enabled && <p className="karya-sso-note">Google sign-in is temporarily unavailable. Please use your password.</p>}</div>}
             {inlineError && loginPhase === "credentials" && authView === "login" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
 
             {import.meta.env.DEV && authView === "login" && (

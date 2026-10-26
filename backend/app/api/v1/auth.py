@@ -2,6 +2,9 @@ from datetime import datetime, timezone, timedelta
 import hashlib
 import ipaddress
 import secrets
+from typing import Literal
+from pydantic import BaseModel, Field
+from sqlalchemy import func
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -402,6 +405,58 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
     token_response = _token_response(db, user, request, portal="interns_hub" if request_data.module == "interns_hub" else None)
     db.commit()
     return token_response
+
+
+@router.get("/firebase/config")
+def firebase_login_config():
+    project = settings.FIREBASE_PROJECT_ID
+    config = {key:value for key,value in settings.FIREBASE_WEB_CONFIG.items() if key in {
+        "apiKey", "authDomain", "projectId", "appId", "storageBucket", "messagingSenderId",
+    }}
+    enabled = bool(project and config.get("projectId") == project and all(config.get(key) for key in ["apiKey", "authDomain", "appId"]))
+    return {"enabled":enabled, "firebase_config":config if enabled else None, "modules":["project_management"]}
+
+
+class FirebaseLoginInput(BaseModel):
+    token: str = Field(min_length=20, max_length=16384)
+    module: Literal["project_management"] = "project_management"
+
+
+@router.post("/firebase/login")
+def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Depends(get_db)):
+    from app.core.firebase import verify_google_identity
+    import httpx
+    _check_ip_policy(db, request)
+    if not firebase_login_config()["enabled"]:
+        raise HTTPException(503, "Google sign-in is not configured for this installation")
+    try:
+        identity = verify_google_identity(data.token, settings.FIREBASE_PROJECT_ID)
+    except HTTPException:
+        raise
+    except httpx.HTTPError:
+        raise HTTPException(503, "Google sign-in is temporarily unavailable; please try again") from None
+    except Exception:
+        raise HTTPException(401, "Google identity could not be verified") from None
+    user = db.query(User).filter(func.lower(User.email) == identity['email'].lower()).first()
+    if not user or not user.is_active:
+        raise HTTPException(403, "Your Google email needs an active account with PMS access")
+    if user.sso_provider_id:
+        raise HTTPException(403, "Use your organization's configured SSO provider")
+    lockout = check_lockout(db, user)
+    if lockout:
+        raise HTTPException(423, "Account is temporarily locked; please try again later")
+    employee = getattr(user, "employee", None)
+    if (user.role and user.role.name.lower() == "intern") or (employee and (employee.employment_type or "").strip().lower() == "intern"):
+        raise HTTPException(403, "Please use the dedicated Interns Hub login")
+    _ensure_module_login_allowed(user, data.module)
+    user.last_login = datetime.now(timezone.utc)
+    _log_attempt(db, user, user.email, True, request=request)
+    db.commit()
+    if user.mfa_enabled or _active_policy_mfa_required(db):
+        return {"mfa_required":True, "mfa_token":_create_mfa_token(user, data.module), "mfa_methods":["totp", "recovery"]}
+    response = _token_response(db, user, request)
+    db.commit()
+    return response
 
 
 @router.post("/mfa/verify")

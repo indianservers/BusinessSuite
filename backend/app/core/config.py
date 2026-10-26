@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     INTERN_HUB_ORGANIZATION_ID: int = Field(1, ge=1)
     INTERN_SIGNUP_FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_WEB_CONFIG: dict[str, str] = Field(default_factory=dict)
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
     SERVERLESS: bool = bool(os.environ.get("VERCEL"))

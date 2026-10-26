@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives import hashes,serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 from app.apps.interns_hub import signup
+from app.core import firebase
 from app.core.config import settings
 from app.models.user import User
 from app.apps.interns_hub.models import InternApplication
@@ -23,7 +24,7 @@ def firebase_identity(monkeypatch):
     pem=certificate.public_bytes(serialization.Encoding.PEM).decode()
     @lru_cache(maxsize=2)
     def certificates(bucket):return {'firebase-test':pem}
-    monkeypatch.setattr(signup,'_certificates',certificates)
+    monkeypatch.setattr(firebase,'_certificates',certificates)
     monkeypatch.setattr(settings,'INTERN_SIGNUP_FIREBASE_PROJECT_ID','test-project')
     def token(**changes):
         now=int(time.time())
