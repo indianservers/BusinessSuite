@@ -382,6 +382,120 @@ export default function EmployeeDetailPage() {
   const skillCount = emp.skills?.length || 0;
   const documentCount = emp.documents?.length || 0;
 
+  const loginAccountCard = (
+    <Card>
+      <CardHeader><CardTitle>Set up employee login</CardTitle><p className="text-sm text-muted-foreground">Create a login or link an existing account here to unlock the complete profile.</p></CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+          <p className="font-medium">Current login</p>
+          <p className="mt-1 text-muted-foreground">
+            {emp.user_id
+              ? `${linkedUser?.email || `User #${emp.user_id}`} is linked to this employee.`
+              : "No login user is linked to this employee yet."}
+          </p>
+        </div>
+
+        {!emp.user_id && (
+          <form
+            className="rounded-lg border p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createUserAccountMutation.mutate({
+                email: accountForm.email,
+                password: accountForm.password,
+              });
+            }}
+          >
+            <div className="grid gap-3 sm:grid-cols-[1fr_14rem_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="employee-login-email">Login Email</Label>
+                <Input
+                  id="employee-login-email"
+                  type="email"
+                  value={accountForm.email}
+                  onChange={(event) => setAccountForm((form) => ({ ...form, email: event.target.value }))}
+                  placeholder="employee@company.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee-login-password">Temporary Password</Label>
+                <Input
+                  id="employee-login-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={accountForm.password}
+                  onChange={(event) => setAccountForm((form) => ({ ...form, password: event.target.value }))}
+                  minLength={8}
+                  maxLength={72}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={createUserAccountMutation.isPending || !accountForm.email || accountForm.password.length < 8 || new TextEncoder().encode(accountForm.password).length>72}
+              >
+                <User className="mr-2 h-4 w-4" />
+                {createUserAccountMutation.isPending ? "Creating..." : "Create Login"}
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Creates an active employee user account and links it to this employee.
+            </p>
+          </form>
+        )}
+
+        {userOptions.isError && <p role="alert" className="text-sm text-destructive">Could not load login accounts. <button type="button" className="underline" onClick={() => { void userOptions.refetch(); }}>Retry accounts</button></p>}
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+          <div className="space-y-2">
+            <Label htmlFor="employee-login-user">Link an existing login account</Label>
+            <select
+              id="employee-login-user"
+              value={selectedUserId}
+              onChange={(event) => setSelectedUserId(event.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              disabled={userOptions.isLoading || userOptions.isError}
+            >
+              <option value="">No linked user</option>
+              {(userOptions.data || []).map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.email}{user.role ? ` (${user.role})` : ""}{user.employee_id ? " - current" : ""}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Choose an active account that is not linked to another employee.
+            </p>
+          </div>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              onClick={() => linkUserMutation.mutate(selectedUserId ? Number(selectedUserId) : null)}
+              disabled={!selectedUserId || selectedUserId === String(emp.user_id || "") || linkUserMutation.isPending || userOptions.isLoading || userOptions.isError}
+            >
+              <Link2 className="mr-2 h-4 w-4" />
+              {linkUserMutation.isPending ? "Saving..." : "Link Account"}
+            </Button>
+          </div>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSelectedUserId("");
+                linkUserMutation.mutate(null);
+              }}
+              disabled={!emp.user_id || linkUserMutation.isPending}
+            >
+              <Unlink className="mr-2 h-4 w-4" />
+              Unlink
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -605,7 +719,7 @@ export default function EmployeeDetailPage() {
       )}
 
       {/* Tab content */}
-      {activeTab === "profile" && <SharedProfilePage employeeId={Number(id)} />}
+      {activeTab === "profile" && (emp.user_id ? <SharedProfilePage key={emp.user_id} employeeId={Number(id)} accountActions={loginAccountCard} /> : loginAccountCard)}
       {activeTab === "360" && (
         <div className="space-y-5">
           <div className="grid gap-3 md:grid-cols-4">
@@ -833,114 +947,7 @@ export default function EmployeeDetailPage() {
         </Card>
       )}
 
-      {activeTab === "account" && (
-        <Card>
-          <CardHeader><CardTitle>User Login Mapping</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm">
-              <p className="font-medium">Current login</p>
-              <p className="mt-1 text-muted-foreground">
-                {emp.user_id
-                  ? `${linkedUser?.email || `User #${emp.user_id}`} is linked to this employee.`
-                  : "No login user is linked to this employee yet."}
-              </p>
-            </div>
-
-            {!emp.user_id && (
-              <form
-                className="rounded-lg border p-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  createUserAccountMutation.mutate({
-                    email: accountForm.email,
-                    password: accountForm.password,
-                  });
-                }}
-              >
-                <div className="grid gap-3 sm:grid-cols-[1fr_14rem_auto] sm:items-end">
-                  <div className="space-y-2">
-                    <Label>Login Email</Label>
-                    <Input
-                      type="email"
-                      value={accountForm.email}
-                      onChange={(event) => setAccountForm((form) => ({ ...form, email: event.target.value }))}
-                      placeholder="employee@company.com"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Temporary Password</Label>
-                    <Input
-                      type="password"
-                      value={accountForm.password}
-                      onChange={(event) => setAccountForm((form) => ({ ...form, password: event.target.value }))}
-                      minLength={8}
-                      maxLength={72}
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={createUserAccountMutation.isPending || !accountForm.email || accountForm.password.length < 8 || new TextEncoder().encode(accountForm.password).length>72}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    {createUserAccountMutation.isPending ? "Creating..." : "Create Login"}
-                  </Button>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Creates an active employee user account and links it to this employee.
-                </p>
-              </form>
-            )}
-
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-              <div className="space-y-2">
-                <Label>Select existing user</Label>
-                <select
-                  value={selectedUserId}
-                  onChange={(event) => setSelectedUserId(event.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  disabled={userOptions.isLoading}
-                >
-                  <option value="">No linked user</option>
-                  {(userOptions.data || []).map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.email}{user.role ? ` (${user.role})` : ""}{user.employee_id ? " - current" : ""}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Only unlinked users are shown, plus the user already linked to this employee.
-                </p>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  onClick={() => linkUserMutation.mutate(selectedUserId ? Number(selectedUserId) : null)}
-                  disabled={linkUserMutation.isPending || userOptions.isLoading}
-                >
-                  <Link2 className="mr-2 h-4 w-4" />
-                  {linkUserMutation.isPending ? "Saving..." : "Save Mapping"}
-                </Button>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedUserId("");
-                    linkUserMutation.mutate(null);
-                  }}
-                  disabled={!emp.user_id || linkUserMutation.isPending}
-                >
-                  <Unlink className="mr-2 h-4 w-4" />
-                  Unlink
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {activeTab === "account" && loginAccountCard}
 
       {activeTab === "bank" && (
         <Card>

@@ -66,6 +66,8 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "manager-dashboard", element: <ManagerDashboardPage /> },
   { path: "ess", element: <ESSPortalPage /> },
   { path: "employee-directory", element: <EmployeeDirectoryPage /> },
+  { path: "interns/applications", element: <InternApplicationsPage /> },
+  { path: "interns/list", element: <InternManagementPage page="batches" /> },
   { path: "interns-hub/applications", element: <InternApplicationsPage /> },
   { path: "interns-hub", element: <InternManagementPage page="dashboard" /> },
   { path: "interns", element: <InternManagementPage page="dashboard" /> },

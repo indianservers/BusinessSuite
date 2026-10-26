@@ -421,6 +421,7 @@ def firebase_login_config():
 class FirebaseLoginInput(BaseModel):
     token: str = Field(min_length=20, max_length=16384)
     module: Literal["hrms", "crm", "project_management", "srm", "fam"] = "project_management"
+    provider: Literal["google", "microsoft"] = "google"
 
 
 @router.post("/firebase/login")
@@ -434,16 +435,17 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
     if data.module not in config["modules"]:
         raise HTTPException(403, "This module is not installed")
     try:
-        identity = verify_google_identity(data.token, settings.FIREBASE_PROJECT_ID)
+        identity = verify_google_identity(data.token, settings.FIREBASE_PROJECT_ID,
+            allowed_providers={"google.com" if data.provider == "google" else "microsoft.com"})
     except HTTPException:
         raise
     except httpx.HTTPError:
         raise HTTPException(503, "Google sign-in is temporarily unavailable; please try again") from None
     except Exception:
-        raise HTTPException(401, "Google identity could not be verified") from None
+        raise HTTPException(401, "Sign-in identity could not be verified") from None
     user = db.query(User).filter(func.lower(User.email) == identity['email'].lower()).first()
     if not user or not user.is_active:
-        raise HTTPException(403, "Your Google email needs an active account with access to this module")
+        raise HTTPException(403, "Your sign-in email needs an active account with access to this module")
     if user.sso_provider_id:
         raise HTTPException(403, "Use your organization's configured SSO provider")
     lockout = check_lockout(db, user)

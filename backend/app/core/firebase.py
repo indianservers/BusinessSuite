@@ -1,4 +1,4 @@
-"""Verify Google identities issued by the installation's Firebase project."""
+"""Verify provider-scoped identities issued by the installation's Firebase project."""
 import time
 from functools import lru_cache
 import httpx
@@ -18,7 +18,7 @@ def _certificates(bucket):
     return response.json()
 
 
-def verify_google_identity(token, project):
+def verify_google_identity(token, project, allowed_providers=None):
     if not project:
         raise HTTPException(503, 'Google sign-in is not configured yet')
     header = jwt.get_unverified_header(token)
@@ -36,15 +36,15 @@ def verify_google_identity(token, project):
             or type(claims['auth_time']) is not int or claims['auth_time'] > time.time()):
         raise ValueError('Invalid Firebase subject or authentication time')
     provider = claims.get('firebase', {}).get('sign_in_provider')
-    if provider not in {'google.com'}:
+    if provider not in (allowed_providers or {'google.com'}):
         raise ValueError('Unsupported signup identity provider')
-    if provider == 'google.com' and claims.get('email_verified') is not True:
-        raise ValueError('Google email must be verified')
+    if claims.get('email_verified') is not True:
+        raise ValueError('Identity email must be verified')
     email = str(TypeAdapter(EmailStr).validate_python(claims.get('email')))
     if len(email) > 254:
         raise ValueError('Email exceeds account limit')
     name = claims.get('name') or ''
     if not isinstance(name, str):
         raise ValueError('Invalid display name')
-    return {'email':email, 'full_name':name.strip()[:160], 'provider':'google', 'subject':claims['sub']}
+    return {'email':email, 'full_name':name.strip()[:160], 'provider':'google' if provider == 'google.com' else 'microsoft', 'subject':claims['sub']}
 

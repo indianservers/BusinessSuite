@@ -1,16 +1,16 @@
 import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
-import { getAuth, GoogleAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signOut } from "firebase/auth";
 import { authApi } from "./api";
 
-export async function googleFirebaseLogin(config: FirebaseOptions, module: "hrms" | "crm" | "project_management" | "srm" | "fam") {
-  const app = getApps().find(item=>item.name === "suite-google-login") || initializeApp(config,"suite-google-login");
+export async function socialFirebaseLogin(config: FirebaseOptions, module: "hrms" | "crm" | "project_management" | "srm" | "fam", identityProvider: "google" | "microsoft" = "google") {
+  const app = getApps().find(item=>item.name === "suite-social-login") || initializeApp(config,"suite-social-login");
   const auth = getAuth(app);
   await setPersistence(auth,inMemoryPersistence);
-  const provider = new GoogleAuthProvider();
+  const provider = identityProvider === "google" ? new GoogleAuthProvider() : new OAuthProvider("microsoft.com");
   provider.setCustomParameters({prompt:"select_account"});
   try {
     const result = await signInWithPopup(auth,provider);
-    return await authApi.firebaseLogin(await result.user.getIdToken(), module);
+    return await authApi.firebaseLogin(await result.user.getIdToken(), module, identityProvider);
   } finally {
     await signOut(auth);
   }

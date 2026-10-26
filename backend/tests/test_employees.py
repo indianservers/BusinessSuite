@@ -305,3 +305,16 @@ def test_hr_cannot_create_employee_login_account(client, db):
     }, headers=headers)
     assert response.status_code == 403
     assert "only admin" in response.json()["detail"].lower()
+
+
+def test_login_link_options_only_include_active_accounts(client, db, superuser_headers):
+    from app.models.user import User
+    active = User(email="active-link@example.com", hashed_password="unused", is_active=True)
+    inactive = User(email="inactive-link@example.com", hashed_password="unused", is_active=False)
+    db.add_all([active, inactive])
+    db.commit()
+    response = client.get("/api/v1/employees/user-options", headers=superuser_headers)
+    assert response.status_code == 200
+    ids = {row["id"] for row in response.json()}
+    assert active.id in ids
+    assert inactive.id not in ids

@@ -397,12 +397,14 @@ export function UnifiedProfile({
   employeeId,
   onSaved,
   onDirtyChange,
+  renderLoadError,
 }: {
   request: ProfileRequest;
   userId?: number;
   employeeId?: number;
   onSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  renderLoadError?: (message: string) => React.ReactNode;
 }) {
   const path = employeeId
     ? `/profiles/employees/${employeeId}`
@@ -498,7 +500,7 @@ export function UnifiedProfile({
   if (!profile)
     return (
       <section className="up-root">
-        {error ? (
+        {error ? renderLoadError?.(error) || (
           <div className="up-error" role="alert">
             {error}
             <button onClick={() => setReload((v) => v + 1)}>Retry</button>

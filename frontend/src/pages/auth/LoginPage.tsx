@@ -178,7 +178,7 @@ export default function LoginPage() {
     queryFn: () => authApi.ssoProviders().then((r) => r.data as SsoProvider[]),
     staleTime: 10 * 60 * 1000,
   });
-  const { data: firebaseLoginConfig } = useQuery({
+  const { data: firebaseLoginConfig, isPending: firebaseConfigLoading, isError: firebaseConfigError, refetch: refetchFirebaseConfig } = useQuery({
     queryKey:["firebase-login-config"], queryFn:()=>authApi.firebaseConfig().then(r=>r.data),
     staleTime:5*60*1000,
   });
@@ -202,7 +202,7 @@ export default function LoginPage() {
         setTokens(data.access_token, data.refresh_token);
         setUser({ id: data.user_id, email: data.email, role: data.role, is_superuser: data.is_superuser, employee_id: data.employee_id });
         navigate(getPostLoginPath(data.role, data.is_superuser));
-      }).catch(() => setInlineError("Google sign-in could not be completed. Please start again."))
+      }).catch(() => setInlineError("SSO sign-in could not be completed. Please start again."))
         .finally(() => setSsoBusy(false));
     }
     if (ssoError) {
@@ -298,12 +298,12 @@ export default function LoginPage() {
   });
 
   const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname + location.search)}`;
-  async function signInWithGoogle() {
+  async function signInWithSocialProvider(provider: "google" | "microsoft" = "google") {
     if(!firebaseLoginConfig?.enabled || !firebaseLoginConfig.firebase_config) return;
     setSsoBusy(true);setInlineError("");
     try {
-      const {googleFirebaseLogin} = await import("@/services/firebaseLogin");
-      const {data} = await googleFirebaseLogin(firebaseLoginConfig.firebase_config, loginConfig.authModule);
+      const {socialFirebaseLogin} = await import("@/services/firebaseLogin");
+      const {data} = await socialFirebaseLogin(firebaseLoginConfig.firebase_config, loginConfig.authModule, provider);
       if(data.mfa_required) {setMfaToken(data.mfa_token);setLoginPhase("mfa");return;}
       queryClient.clear();
       setTokens(data.access_token,data.refresh_token);
@@ -311,11 +311,13 @@ export default function LoginPage() {
       navigate(getPostLoginPath(data.role,data.is_superuser));
     } catch(error:any) {
       const messages:Record<string,string>={
-        "auth/popup-closed-by-user":"Google sign-in was canceled. Please try again.",
+        "auth/popup-closed-by-user":"Sign-in was canceled. Please try again.",
+        "auth/operation-not-allowed":"This sign-in provider must be enabled by your administrator in Firebase Authentication.",
+        "auth/account-exists-with-different-credential":"This email already uses a different sign-in method. Please use that method or contact your administrator.",
         "auth/popup-blocked":"Please allow the Google sign-in popup and try again.",
         "auth/unauthorized-domain":"Google sign-in is not available on this domain. Please contact your administrator.",
       };
-      setInlineError(messages[error.code] || error.response?.data?.detail || "Google sign-in could not be completed. Please try again.");
+      setInlineError(messages[error.code] || error.response?.data?.detail || `${provider === "google" ? "Google" : "Microsoft"} sign-in could not be completed. Please try again.`);
     } finally {setSsoBusy(false);}
   }
 
@@ -524,7 +526,24 @@ export default function LoginPage() {
                 ))}
               </div>
             )}
-            {loginPhase === "credentials" && authView === "login" && !ssoProviders?.some(provider => provider.button_icon === "google" || provider.provider_type === "google") && <div className="mt-5"><div className="karya-divider">OR</div><Button type="button" aria-label={ssoBusy ? "Connecting to Google" : "Continue with Google"} variant="outline" className={loginModule === "project_management" ? "karya-google" : "h-12 w-full gap-3 rounded-xl border-white/20 bg-white text-slate-900 hover:bg-slate-100"} disabled={!firebaseLoginConfig?.enabled || !firebaseLoginConfig.modules?.includes(loginConfig.authModule) || ssoBusy || isSubmitting} onClick={()=>{void signInWithGoogle();}}><ProviderIcon icon="google"/>{ssoBusy?"Connectingâ€¦":"Continue with Google"}</Button>{firebaseLoginConfig && !firebaseLoginConfig.enabled && <p className="karya-sso-note">Google sign-in is temporarily unavailable. Please use your password.</p>}</div>}
+            {loginPhase === "credentials" && authView === "login" && (
+              <div className="mt-5 space-y-3">
+                {!ssoProviders?.length && <div className="karya-divider">OR</div>}
+                {(["google", "microsoft"] as const).filter(provider => !ssoProviders?.some(item =>
+                  item.provider_type === provider || (provider === "microsoft" && item.provider_type === "azure_ad")
+                )).map(provider => (
+                  <Button key={provider} type="button" variant="outline"
+                    className={loginModule === "project_management" ? "karya-google" : "h-12 w-full gap-3 rounded-xl border-white/20 bg-white text-slate-900 hover:bg-slate-100"}
+                    disabled={!firebaseLoginConfig?.enabled || !firebaseLoginConfig.modules?.includes(loginConfig.authModule) || ssoBusy || isSubmitting}
+                    onClick={() => { void signInWithSocialProvider(provider); }}>
+                    <ProviderIcon icon={provider} />Continue with {provider === "google" ? "Google" : "Microsoft"}
+                  </Button>
+                ))}
+                {firebaseConfigLoading && <p className="karya-sso-note" role="status">Loading sign-in options…</p>}
+                {firebaseConfigError && <p className="karya-sso-note" role="alert">Could not load sign-in options. <button type="button" className="underline" onClick={() => { void refetchFirebaseConfig(); }}>Retry</button></p>}
+                {firebaseLoginConfig && !firebaseLoginConfig.enabled && <p className="karya-sso-note">Social sign-in is not configured. Please contact your administrator or use your password.</p>}
+              </div>
+            )}
             {inlineError && loginPhase === "credentials" && authView === "login" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
 
             {loginModule === "project_management" && <div className="karya-secure"><ShieldCheck /><div><strong>Secure Access</strong><p>Your data is encrypted and protected</p></div></div>}

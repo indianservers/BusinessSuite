@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { getInstalledAppKeys } from "../../appRegistry";
 import { api } from "../../services/api";
@@ -19,8 +20,10 @@ export const profileRequest: ProfileRequest = async (path, options) =>
 
 export default function SharedProfilePage({
   employeeId,
+  accountActions,
 }: {
   employeeId?: number;
+  accountActions?: ReactNode;
 }) {
   const user = useAuthStore((state) => state.user);
   return (
@@ -28,6 +31,7 @@ export default function SharedProfilePage({
       <UnifiedProfile
         request={profileRequest}
         employeeId={employeeId}
+        renderLoadError={(message) => message.includes("active login account") ? accountActions : null}
         onSaved={() => {
           if (!employeeId || employeeId === user?.employee_id)
             api

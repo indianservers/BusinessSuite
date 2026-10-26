@@ -1205,7 +1205,7 @@ def list_employee_user_options(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_update")),
 ):
-    query = db.query(User).outerjoin(Employee, Employee.user_id == User.id)
+    query = db.query(User).filter(User.is_active.is_(True)).outerjoin(Employee, Employee.user_id == User.id)
     if search:
         term = f"%{search}%"
         query = query.filter(User.email.ilike(term))

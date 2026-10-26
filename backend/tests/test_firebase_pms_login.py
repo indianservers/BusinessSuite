@@ -126,3 +126,26 @@ def test_google_config_and_login_respect_installed_modules(client, firebase_iden
     monkeypatch.setattr(settings,"INSTALLED_APPS",["hrms"])
     assert client.get("/api/v1/auth/firebase/config").json()["modules"] == ["hrms"]
     assert login(client,firebase_identity(),module="crm").status_code == 403
+
+
+@pytest.mark.parametrize("module,role_name", MODULE_ROLES)
+def test_microsoft_login_preserves_module_access(client, db, firebase_identity, module, role_name):
+    role = Role(name=role_name, is_system=True)
+    db.add(role); db.flush()
+    user = User(email=f"microsoft-{module}@example.com", hashed_password="", is_active=True, role_id=role.id)
+    db.add(user); db.commit()
+    token = firebase_identity(email=user.email, firebase={"sign_in_provider": "microsoft.com"})
+    result = login(client, token, module=module, provider="microsoft")
+    assert result.status_code == 200, result.text
+    assert result.json()["email"] == user.email and result.json()["access_token"]
+    assert login(client, token, module=module).status_code == 401
+    other = "crm" if module != "crm" else "hrms"
+    assert login(client, token, module=other, provider="microsoft").status_code == 403
+    user.mfa_enabled = True; db.commit()
+    result = login(client, token, module=module, provider="microsoft")
+    assert result.json()["mfa_required"] and "access_token" not in result.json()
+
+
+def test_microsoft_rejects_unverified_email(client, firebase_identity):
+    token = firebase_identity(email_verified=False, firebase={"sign_in_provider": "microsoft.com"})
+    assert login(client, token, provider="microsoft").status_code == 401

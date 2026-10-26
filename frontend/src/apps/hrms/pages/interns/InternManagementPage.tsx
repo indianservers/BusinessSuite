@@ -49,6 +49,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import WorkReviewPanel from "@/apps/project-management/components/WorkReviewPanel";
 import InternApplicationsPage from "./InternApplicationsPage";
+import InternQuickLinks from "./InternQuickLinks";
 import InternsHubAdminPage from "./InternsHubAdminPage";
 import "./intern-management.css";
 type Row = Record<string, any>;
@@ -56,7 +57,6 @@ type Page = "dashboard" | "batches" | "tasks" | "reviews" | "performance";
 const root = "/interns-hub/management";
 const pages = [
   ["dashboard", "Dashboard", BarChart3],
-  ["batches", "Batches & Interns", Users],
   ["tasks", "Task Assignment", ClipboardList],
   ["reviews", "Daily Reports & Reviews", FileText],
   ["performance", "Performance & Completion", GraduationCap],
@@ -67,8 +67,8 @@ const titles: Record<Page, [string, string]> = {
     "Overview of intern programs, batches, PMS assignments, reviews and performance.",
   ],
   batches: [
-    "Batch & Intern Management",
-    "Organize interns into cohorts, allocate mentors, and manage enrollment at scale.",
+    "Interns & Batches",
+    "Find interns, review new signups, or organize interns into batches.",
   ],
   tasks: [
     "Task Assignment Center",
@@ -310,7 +310,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
     retry: false,
   });
   const allowed = !!access?.allowed;
-  const params = clean({ ...filter, include_employees:true, search: deferredSearch });
+  const params = clean({ ...filter, include_employees:!location.pathname.endsWith("/list"), search: deferredSearch });
   const { data: options } = useQuery<Row>({
     queryKey: ["intern-management", "options"],
     queryFn: () => api.get(root + "/options").then((r) => r.data),
@@ -469,7 +469,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
     setTab(new URLSearchParams(location.search).get("tab") || "");
     setSelected([]);
     setAllFiltered(false);
-  }, [page, location.search]);
+  }, [page, location.pathname, location.search]);
   useEffect(() => {
     setCurrent(1);
     setSelected([]);
@@ -574,6 +574,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
   const batchRows = batches?.items || [];
   const people = interns?.items || [];
   const staff = options?.staff || [];
+  const activeBatchTab = tab === "Participant Directory" ? "All Interns" : tab === "Onboarding" ? "Signups & Approvals" : tab || (location.pathname.endsWith("/list") ? "All Interns" : "Batches");
   const busy = mutation.isPending;
   const memberForm = membershipDialog || {};
   const loadError = [
@@ -603,7 +604,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
       )}
       <div className="im-heading">
         <div>
-          <h1>{titles[page][0]}</h1>
+          <h1>{location.pathname.endsWith("/list") ? "All Interns" : titles[page][0]}</h1>
           <p>{titles[page][1]}</p>
         </div>
         <div className="im-actions">
@@ -627,6 +628,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
           ) : null}
         </div>
       </div>
+      <InternQuickLinks />
       <nav className="im-page-nav" aria-label="Intern Management pages">
         {pages.map(([path, label, Icon]) => (
           <NavLink key={path} to={`/hrms/interns/${path}`}>
@@ -634,6 +636,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
             {label}
           </NavLink>
         ))}
+        <Link to="/hrms/interns/batches?tab=Learning%20%26%20Support" className={activeBatchTab === "Learning & Support" ? "active" : ""}><GraduationCap size={16} />Learning & Support</Link>
       </nav>
       <div className="im-filters">
         <label>
@@ -742,7 +745,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
         <>
           <div className="im-metrics">
             <Metric
-              label="Total Participants"
+              label={location.pathname.endsWith("/list") ? "Total Interns" : "Total Participants"}
               value={d.total_interns}
               icon={Users}
             />
@@ -890,7 +893,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                   if (!selected.length)
                     toast({
                       title:
-                        "Select recipients in Batches & Interns before sending an announcement",
+                        "Select recipients in All Interns before sending an announcement",
                     });
                 }}
               >
@@ -921,50 +924,13 @@ export default function InternManagementPage({ page }: { page: Page }) {
       )}
       {page === "batches" && (
         <>
-          <div className="im-metrics five">
-            <Metric
-              label="Total Participants"
-              value={d.total_interns}
-              icon={Users}
-            />
-            <Metric
-              label="Active Batches"
-              value={d.active_batches}
-              icon={Layers}
-            />
-            <Metric
-              label="Approved Completions"
-              value={d.completions}
-              icon={GraduationCap}
-            />
-            <Metric
-              label="Upcoming Batches"
-              value={d.upcoming_batches}
-              icon={Clock}
-            />
-            <Metric
-              label="Assigned PMS Tasks"
-              value={d.assigned_tasks}
-              icon={ClipboardList}
-            />
-          </div>
-          <Tabs
-            values={[
-              "Batches",
-              "Participant Directory",
-              "Onboarding",
-              "Learning & Support",
-            ]}
-            current={tab || "Batches"}
-            onChange={setTab}
-          />
-          {tab === "Onboarding" ? (
+          {activeBatchTab === "Signups & Approvals" ? (
             <InternApplicationsPage />
-          ) : tab === "Learning & Support" ? (
+          ) : activeBatchTab === "Learning & Support" ? (
             <InternsHubAdminPage resourceOnly />
-          ) : tab === "Participant Directory" ? (
+          ) : activeBatchTab === "All Interns" ? (
             <Panel
-              title="Participant Directory"
+              title="All Interns"
               action={
                 <div className="im-actions">
                   <Button
@@ -1105,7 +1071,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                   [
                     "Bulk allocate interns",
                     "Filter existing HRMS identities and add memberships",
-                    () => setTab("Participant Directory"),
+                    () => navigate("/hrms/interns/list"),
                   ],
                   [
                     "Transfer & rebalance",
@@ -1115,7 +1081,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                   [
                     "Review registrations",
                     "Approve applicants in the existing HRMS workflow",
-                    () => setTab("Onboarding"),
+                    () => navigate("/hrms/interns/applications"),
                   ],
                 ].map(([title, note, action], i) => (
                   <button
@@ -2303,7 +2269,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
               {allFiltered
                 ? `All ${interns?.total || 0} authorized filtered interns`
                 : `${selected.length} selected interns`}
-              . Select recipients in the Participant Directory tab.
+              . Select recipients in the All Interns page.
             </p>
             <Field label="Source / Target Batch">
               <Select
@@ -2461,7 +2427,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
           </DialogHeader>
           <p>
             {selected.length} explicitly selected intern recipients. Choose them
-            in Batches & Interns.
+            in All Interns.
           </p>
           <form
             className="im-stack"
