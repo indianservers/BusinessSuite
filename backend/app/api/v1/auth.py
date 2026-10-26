@@ -113,6 +113,8 @@ def _ensure_module_login_allowed(user: User, module: str | None) -> None:
         from app.apps.interns_hub.router import ensure_intern
         ensure_intern(user)
         return
+    if user.is_superuser:
+        return
     from sqlalchemy.orm import object_session
     from app.access.service import policy_for, primary_company, resolved_grants
     session = object_session(user)

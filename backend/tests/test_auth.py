@@ -7,6 +7,28 @@ from app.models.user import PasswordPolicy, User, Role, UserSession
 from app.db.init_db import init_db
 
 
+@pytest.mark.parametrize("module", ["hrms", "crm", "project_management", "srm", "fam"])
+def test_global_super_admin_can_sign_in_to_each_module(client, superuser_headers, module):
+    response = client.post("/api/v1/auth/login", json={
+        "email": "testadmin@test.com", "password": "Admin@123456", "module": module,
+    })
+    assert response.status_code == 200, response.text
+    assert response.json()["is_superuser"] is True
+
+
+def test_super_admin_role_name_does_not_grant_global_login(client, db):
+    role = Role(name="super_admin", description="Role without global admin flag")
+    db.add(role)
+    db.flush()
+    db.add(User(email="role-only@example.com", hashed_password=get_password_hash("RoleOnly@123456"),
+                role_id=role.id, is_active=True, is_superuser=False))
+    db.commit()
+    response = client.post("/api/v1/auth/login", json={
+        "email": "role-only@example.com", "password": "RoleOnly@123456", "module": "crm",
+    })
+    assert response.status_code == 403
+
+
 def test_login_success(client, db):
     role = Role(name="employee_role", description="Employee", is_system=False)
     db.add(role)
