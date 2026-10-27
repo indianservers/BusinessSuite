@@ -12,3 +12,5 @@
 @media(prefers-reduced-motion:reduce){.suite-launcher *{transition:none!important;scroll-behavior:auto!important}}
 
 @media(min-width:1151px){.suite-fam .suite-module-titles h3{font-size:16px;letter-spacing:-.7px}.suite-fam .suite-module-titles>div{gap:6px}.suite-fam .suite-product-version{padding-inline:7px}.suite-section-heading{margin-bottom:16px}}
+
+.suite-power_apps .suite-module-icon{background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#6d28d9}.suite-power_apps .suite-product-version{background:#f3efff;color:#6d28d9;border-color:#e5dcff}

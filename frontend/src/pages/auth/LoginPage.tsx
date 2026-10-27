@@ -14,7 +14,7 @@ import { setRememberSession, useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/config/runtime";
-import { getDefaultPathForUser } from "@/lib/products";
+import { loginDestination } from "@/lib/login";
 
 const loginSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -120,27 +120,16 @@ const loginThemes = {
   },
 } as const;
 
-function getLoginModule(pathname: string): keyof typeof moduleLogins {
-  if (pathname.startsWith("/crm")) return "crm";
-  if (pathname.startsWith("/pms")) return "project_management";
-  if (pathname.startsWith("/srm")) return "srm";
-  if (pathname.startsWith("/fam")) return "fam";
-  return "hrms";
-}
+function getLoginModule(_pathname: string): keyof typeof moduleLogins { return "hrms"; }
 
-function getLoginPathForModule(module: keyof typeof moduleLogins) {
-  if (module === "crm") return "/crm/login";
-  if (module === "project_management") return "/pms/login";
-  if (module === "srm") return "/srm/login";
-  if (module === "fam") return "/fam/login";
-  return "/hrms/login";
-}
+function getLoginPathForModule(_module: keyof typeof moduleLogins) { return "/login"; }
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const loginModule = getLoginModule(location.pathname);
-  const loginConfig = moduleLogins[loginModule];
+  const { data: branding } = useQuery({ queryKey: ["login-branding"], queryFn: () => authApi.branding().then(r => r.data as {company_name: string | null}), staleTime: 60_000 });
+  const loginConfig = { ...moduleLogins.hrms, product: "Business Suite", tagline: branding?.company_name || "Your connected business workspace", description: "Sign in with your Business Suite account" };
   const loginTheme = loginThemes[loginModule];
   const { setTokens, setUser } = useAuthStore();
   const queryClient = useQueryClient();
@@ -167,11 +156,8 @@ export default function LoginPage() {
   const apiBaseUrl = getApiBaseUrl();
   const resetToken = useMemo(() => new URLSearchParams(location.search).get("token"), [location.search]);
 
-  const workspaceReturn = new URLSearchParams(location.search).get("next");
-  const workspaceRedirect = workspaceReturn === "/pms/workspaces" || workspaceReturn?.startsWith("/pms/workspaces?") || workspaceReturn?.startsWith("/pms/invitation?") ? workspaceReturn : null;
-  const getPostLoginPath = useCallback((role?: string | null, isSuperuser = false) => (
-    workspaceRedirect || (loginModule === "hrms" ? getDefaultPathForUser(role, isSuperuser) : loginConfig.afterLogin)
-  ), [loginConfig.afterLogin, loginModule, workspaceRedirect]);
+  const destination = loginDestination(new URLSearchParams(location.search).get("next"));
+  const getPostLoginPath = useCallback((_role?: string | null, _isSuperuser = false) => destination, [destination]);
 
   const { data: ssoProviders } = useQuery({
     queryKey: ["sso-providers"],
@@ -220,7 +206,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      const res = await authApi.login(data.email, data.password, workspaceRedirect ? undefined : loginConfig.authModule);
+      const res = await authApi.login(data.email, data.password, undefined);
       if (res.data.mfa_required) {
         setMfaToken(res.data.mfa_token);
         setLoginPhase("mfa");
@@ -303,7 +289,7 @@ export default function LoginPage() {
     setSsoBusy(true);setInlineError("");
     try {
       const {socialFirebaseLogin} = await import("@/services/firebaseLogin");
-      const {data} = await socialFirebaseLogin(firebaseLoginConfig.firebase_config, loginConfig.authModule, provider);
+      const {data} = await socialFirebaseLogin(firebaseLoginConfig.firebase_config, undefined, provider);
       if(data.mfa_required) {setMfaToken(data.mfa_token);setLoginPhase("mfa");return;}
       queryClient.clear();
       setTokens(data.access_token,data.refresh_token);
@@ -340,7 +326,7 @@ export default function LoginPage() {
         {/* Card */}
         <Card className="border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-white text-xl">{authView === "reset" ? "Reset password" : authView === "forgot" ? "Recover access" : "Sign in"}</CardTitle>
+            <CardTitle className="text-white text-xl">{authView === "reset" ? "Reset password" : authView === "forgot" ? "Recover access" : "Login to Business Suite"}</CardTitle>
             <CardDescription className={loginTheme.textMuted}>
               {authView === "reset" ? "Choose a new password for your account" : authView === "forgot" ? "Send a secure reset link to your email" : loginConfig.description}
             </CardDescription>
@@ -534,7 +520,7 @@ export default function LoginPage() {
                 )).map(provider => (
                   <Button key={provider} type="button" variant="outline"
                     className={loginModule === "project_management" ? "karya-google" : "h-12 w-full gap-3 rounded-xl border-white/20 bg-white text-slate-900 hover:bg-slate-100"}
-                    disabled={!firebaseLoginConfig?.enabled || !firebaseLoginConfig.modules?.includes(loginConfig.authModule) || ssoBusy || isSubmitting}
+                    disabled={!firebaseLoginConfig?.enabled || !firebaseLoginConfig.modules?.length || ssoBusy || isSubmitting}
                     onClick={() => { void signInWithSocialProvider(provider); }}>
                     <ProviderIcon icon={provider} />Continue with {provider === "google" ? "Google" : "Microsoft"}
                   </Button>

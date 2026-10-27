@@ -114,8 +114,9 @@ api.interceptors.response.use(response => {
 
 // API service functions
 export const authApi = {
+  branding: () => api.get("/auth/branding", { progress: false }),
   firebaseConfig: () => api.get("/auth/firebase/config"),
-  firebaseLogin: (token: string, module: "hrms" | "crm" | "project_management" | "srm" | "fam", provider: "google" | "microsoft" = "google") => api.post("/auth/firebase/login", { token, module, provider }),
+  firebaseLogin: (token: string, module: "hrms" | "crm" | "project_management" | "srm" | "fam" | undefined, provider: "google" | "microsoft" = "google") => api.post("/auth/firebase/login", { token, module, provider }),
   completeSso: (providerId: number, code: string) => api.post(`/auth/sso/complete/${providerId}`, { code }),
   login: (email: string, password: string, module?: string, trustedDeviceToken?: string) =>
     api.post("/auth/login", { email, password, module, trusted_device_token: trustedDeviceToken }),

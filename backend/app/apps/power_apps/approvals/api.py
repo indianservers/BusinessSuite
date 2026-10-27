@@ -33,7 +33,8 @@ from app.apps.power_apps.service import (
     validate_environment,
 )
 from app.models.approval_os import ApprovalRequest, ApprovalComment, ApprovalHistory
-from app.apps.power_apps.runtime import now, utc, scope_values, finish
+from app.apps.power_apps.runtime import now, scope_values, finish
+from app.apps.power_apps.approvals.calendar import utc
 
 router = APIRouter(
     prefix="/power-apps/approvals",

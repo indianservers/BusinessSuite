@@ -408,6 +408,14 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
     return token_response
 
 
+@router.get("/branding")
+def login_branding(db: Session = Depends(get_db)):
+    """Public display name only, from the installation's configured master company."""
+    from app.models.company import Company
+    name = db.query(Company.name).filter(Company.id == settings.LOGIN_COMPANY_ID, Company.is_active.is_(True)).scalar()
+    return {"company_name": name or None}
+
+
 @router.get("/firebase/config")
 def firebase_login_config():
     from app.module_registry import is_app_enabled
@@ -421,7 +429,7 @@ def firebase_login_config():
 
 class FirebaseLoginInput(BaseModel):
     token: str = Field(min_length=20, max_length=16384)
-    module: Literal["hrms", "crm", "project_management", "srm", "fam"] = "project_management"
+    module: Literal["hrms", "crm", "project_management", "srm", "fam"] | None = None
     provider: Literal["google", "microsoft"] = "google"
 
 
@@ -433,7 +441,7 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
     config = firebase_login_config()
     if not config["enabled"]:
         raise HTTPException(503, "Google sign-in is not configured for this installation")
-    if data.module not in config["modules"]:
+    if data.module is not None and data.module not in config["modules"]:
         raise HTTPException(403, "This module is not installed")
     try:
         identity = verify_google_identity(data.token, settings.FIREBASE_PROJECT_ID,

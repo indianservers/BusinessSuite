@@ -36,6 +36,10 @@ def test_google_signature_and_workspace_claims(signing_key, changed):
 
 @pytest.mark.parametrize("mode", ["normal", "disabled", "mfa", "expired", "totp"])
 def test_google_callback_creates_revocable_session_and_rejects_replay(client, db, monkeypatch, mode):
+    from app.models.company import Company
+    if not db.get(Company, 1):
+        db.add(Company(id=1, name="SSO test company", is_active=True))
+        db.flush()
     user, _ = account(db, "sso-member@workspace.example")
     if mode == "totp":
         monkeypatch.setattr("app.api.v1.auth._active_totp", lambda *args: object())
@@ -76,7 +80,8 @@ def test_google_callback_creates_revocable_session_and_rejects_replay(client, db
     assert exchanged.status_code == 200, exchanged.text
     token = exchanged.json()["access_token"]
     headers = {"Authorization": "Bearer " + token}
-    assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
+    me = client.get("/api/v1/auth/me", headers=headers)
+    assert me.status_code == 200, me.text
     assert client.post("/api/v1/auth/logout", headers=headers).status_code == 200
     assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
     client.cookies.set(f"sso_state_{provider.id}", "audit-state", path="/api/v1/auth/sso")

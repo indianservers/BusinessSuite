@@ -34,11 +34,13 @@ export function ConditionBuilder({
   onChange,
   readOnly = false,
   depth = 0,
+  fieldOptions,
 }: {
   value: ConditionGroup;
   onChange: (value: ConditionGroup) => void;
   readOnly?: boolean;
   depth?: number;
+  fieldOptions?: { label: string; value: string }[];
 }) {
   return (
     <fieldset className="ai-condition" disabled={readOnly}>
@@ -63,6 +65,7 @@ export function ConditionBuilder({
               value={rule}
               readOnly={readOnly}
               depth={depth + 1}
+              fieldOptions={fieldOptions}
               onChange={(next) =>
                 onChange({
                   ...value,
@@ -74,24 +77,50 @@ export function ConditionBuilder({
             />
           ) : (
             <div className="ai-rule">
-              <input
-                aria-label={`Rule ${i + 1} left`}
-                value={
-                  typeof rule.left === "string"
-                    ? rule.left
-                    : JSON.stringify(rule.left)
-                }
-                onChange={(e) =>
-                  onChange({
-                    ...value,
-                    rules: value.rules.map((r, index) =>
-                      index === i
-                        ? { ...rule, left: parseValue(e.target.value) }
-                        : r,
-                    ),
-                  })
-                }
-              />
+              {fieldOptions ? (
+                <select
+                  aria-label={`Rule ${i + 1} field`}
+                  value={String(rule.left)}
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      rules: value.rules.map((r, index) =>
+                        index === i ? { ...rule, left: e.target.value } : r,
+                      ),
+                    })
+                  }
+                >
+                  {!fieldOptions.some((f) => f.value === rule.left) && (
+                    <option value={String(rule.left)}>
+                      Select an available field
+                    </option>
+                  )}
+                  {fieldOptions.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  aria-label={`Rule ${i + 1} left`}
+                  value={
+                    typeof rule.left === "string"
+                      ? rule.left
+                      : JSON.stringify(rule.left)
+                  }
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      rules: value.rules.map((r, index) =>
+                        index === i
+                          ? { ...rule, left: parseValue(e.target.value) }
+                          : r,
+                      ),
+                    })
+                  }
+                />
+              )}
               <select
                 aria-label={`Rule ${i + 1} operator`}
                 value={rule.operator}
@@ -145,7 +174,19 @@ export function ConditionBuilder({
       <button
         disabled={value.rules.length >= 30}
         onClick={() =>
-          onChange({ ...value, rules: [...value.rules, freshRule()] })
+          onChange({
+            ...value,
+            rules: [
+              ...value.rules,
+              fieldOptions?.length
+                ? {
+                    left: fieldOptions[0].value,
+                    operator: "is_not_empty",
+                    right: "",
+                  }
+                : freshRule(),
+            ],
+          })
         }
       >
         Add rule
@@ -155,7 +196,21 @@ export function ConditionBuilder({
         onClick={() =>
           onChange({
             ...value,
-            rules: [...value.rules, { join: "or", rules: [freshRule()] }],
+            rules: [
+              ...value.rules,
+              {
+                join: "or",
+                rules: [
+                  fieldOptions?.length
+                    ? {
+                        left: fieldOptions[0].value,
+                        operator: "is_not_empty",
+                        right: "",
+                      }
+                    : freshRule(),
+                ],
+              },
+            ],
           })
         }
       >

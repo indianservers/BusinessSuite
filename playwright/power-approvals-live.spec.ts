@@ -116,6 +116,9 @@ test("approval dashboard, inbox and authenticated worker resume", async ({
     page.getByRole("link", { name: "New request", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".ap-request-row").first()).toBeVisible();
+  await expect(
+    page.getByText("Loading page data", { exact: true }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: "../docs/qa/power-approvals-desktop.png",
     fullPage: true,
@@ -135,6 +138,9 @@ test("approval dashboard, inbox and authenticated worker resume", async ({
   await expect(
     page.getByRole("dialog").getByText("Approved", { exact: true }).first(),
   ).toBeVisible();
+  await expect(
+    page.getByText("Loading page data", { exact: true }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: "../docs/qa/power-approvals-decision.png",
     fullPage: true,
@@ -169,6 +175,9 @@ test("mobile document review and reasoned rejection", async ({ page }) => {
   await page
     .getByLabel("Decision reason")
     .fill("Supporting evidence needs correction");
+  await expect(
+    page.getByText("Loading page data", { exact: true }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: "../docs/qa/power-approvals-mobile.png",
     fullPage: true,
@@ -184,6 +193,7 @@ test("mobile document review and reasoned rejection", async ({ page }) => {
   ).toBeTruthy();
 });
 test("standalone pages and disabled templates", async ({ page }) => {
+  test.setTimeout(120_000);
   await setup(page);
   for (const route of [
     "templates",
@@ -211,6 +221,32 @@ test("standalone pages and disabled templates", async ({ page }) => {
     page.getByRole("button", { name: "Save version" }),
   ).toBeVisible();
   await expect(page.locator(".react-flow__node")).toHaveCount(1);
+  const publish = page.getByRole("button", { name: "Publish & activate" });
+  await page
+    .getByRole("textbox", { name: "Process name" })
+    .fill("Guided approval authoring QA");
+  await expect(publish).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Add request field", exact: true })
+    .click();
+  await expect(page.getByText("Typed fields (JSON)")).toHaveCount(0);
+  await page.getByLabel("Run this stage only when conditions match").check();
+  await expect(
+    page.getByRole("combobox", { name: "Rule 1 field" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Save version" }).click();
+  await expect(publish).toBeEnabled();
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: "Process name" })).toHaveValue(
+    "Guided approval authoring QA",
+  );
+  await expect(
+    page.getByLabel("Run this stage only when conditions match"),
+  ).toBeChecked();
+
+  await expect(
+    page.getByText("Loading page data", { exact: true }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: "../docs/qa/power-approvals-designer.png",
     fullPage: true,

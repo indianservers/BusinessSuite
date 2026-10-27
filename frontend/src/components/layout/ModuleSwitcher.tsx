@@ -32,7 +32,7 @@ export default function ModuleSwitcher() {
             {p.shortName}
           </option>
         ))}
-        <option value="/">All applications</option>
+        <option value="/dashboard">All applications</option>
       </select>
     </label>
     {!!user?.access && user.access.memberships.length > 1 && <label className="kf-module-switch"><span>Company</span><select aria-label="Current organization context" value={user.access.companyId} onChange={e => { sessionStorage.setItem("suite-organization", e.target.value); window.location.reload(); }}>{user.access.memberships.map(id => <option value={id} key={id}>Company {id}</option>)}</select></label>}

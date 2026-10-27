@@ -2,7 +2,7 @@ import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, GoogleAuthProvider, OAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signOut } from "firebase/auth";
 import { authApi } from "./api";
 
-export async function socialFirebaseLogin(config: FirebaseOptions, module: "hrms" | "crm" | "project_management" | "srm" | "fam", identityProvider: "google" | "microsoft" = "google") {
+export async function socialFirebaseLogin(config: FirebaseOptions, module: "hrms" | "crm" | "project_management" | "srm" | "fam" | undefined, identityProvider: "google" | "microsoft" = "google") {
   const app = getApps().find(item=>item.name === "suite-social-login") || initializeApp(config,"suite-social-login");
   const auth = getAuth(app);
   await setPersistence(auth,inMemoryPersistence);

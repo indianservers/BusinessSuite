@@ -56,7 +56,7 @@ def test_google_cannot_bypass_mfa(client,db,pms_account,firebase_identity):
 
 
 def test_google_respects_lockouts(client,pms_account,firebase_identity,monkeypatch):
-    monkeypatch.setattr(auth,'check_lockout',lambda db,user:{'attempts':5})
+    monkeypatch.setattr(auth,'check_lockout',lambda db,user,request=None:{'attempts':5})
     assert login(client,firebase_identity(email=pms_account.email)).status_code==423
 
 
@@ -149,3 +149,9 @@ def test_microsoft_login_preserves_module_access(client, db, firebase_identity, 
 def test_microsoft_rejects_unverified_email(client, firebase_identity):
     token = firebase_identity(email_verified=False, firebase={"sign_in_provider": "microsoft.com"})
     assert login(client, token, provider="microsoft").status_code == 401
+
+
+def test_suite_google_login_without_module(client, pms_account, firebase_identity):
+    response = client.post('/api/v1/auth/firebase/login', json={'token': firebase_identity(email=pms_account.email)})
+    assert response.status_code == 200, response.text
+    assert response.json()['email'] == pms_account.email

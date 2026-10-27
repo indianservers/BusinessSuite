@@ -16,6 +16,10 @@ import type {
   NodeDefinition,
   WorkflowNode,
 } from "../automations/builder/types";
+import {
+  ConditionBuilder,
+  type ConditionGroup,
+} from "../automations/builder/LogicEditors";
 import { ApproverPicker } from "./ApprovalComponents";
 import {
   approvalApi as api,
@@ -47,17 +51,14 @@ export const starter = (): Process => ({
 export function ApprovalPolicyEditor({
   stage,
   people,
+  fields,
   onChange,
 }: {
   stage: Stage;
   people: Person[];
+  fields: Process["fields"];
   onChange: (s: Stage) => void;
 }) {
-  const [text, setText] = useState(JSON.stringify(stage.when || null, null, 2));
-  useEffect(
-    () => setText(JSON.stringify(stage.when || null, null, 2)),
-    [stage.id, stage.when],
-  );
   return (
     <>
       <label>
@@ -261,24 +262,44 @@ export function ApprovalPolicyEditor({
           </option>
         </select>
       </label>
-      <label>
-        Conditional routing (safe JSON)
-        <textarea
-          rows={6}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onBlur={() => {
-            try {
-              onChange({ ...stage, when: JSON.parse(text) });
-            } catch {
-              setText(JSON.stringify(stage.when || null, null, 2));
-            }
-          }}
+      <label className="ap-check">
+        <input
+          type="checkbox"
+          checked={!!stage.when}
+          disabled={!fields.length}
+          onChange={(e) =>
+            onChange({
+              ...stage,
+              when: e.target.checked
+                ? {
+                    join: "and",
+                    rules: [
+                      {
+                        left: `{{trigger.input.fields.${fields[0].key}}}`,
+                        operator: "is_not_empty",
+                        right: "",
+                      },
+                    ],
+                  }
+                : null,
+            })
+          }
         />
+        Run this stage only when conditions match
       </label>
+      {stage.when && (
+        <ConditionBuilder
+          value={stage.when as ConditionGroup}
+          fieldOptions={fields.map((f) => ({
+            label: f.label,
+            value: `{{trigger.input.fields.${f.key}}}`,
+          }))}
+          onChange={(when) => onChange({ ...stage, when })}
+        />
+      )}
       <small>
-        Use null for always. Policy comparisons use the existing bounded rules
-        engine.
+        Unmatched stages are skipped. Conditions evaluate the submitted request
+        fields.
       </small>
     </>
   );
@@ -304,7 +325,7 @@ export function ApprovalDesigner({
     [error, setError] = useState(""),
     [nodes, setNodes] = useState<CanvasNode[]>([]),
     [definition, setDefinition] = useState<NodeDefinition | null>(null),
-    [fields, setFields] = useState(JSON.stringify(starter().fields, null, 2));
+    [savedFingerprint, setSavedFingerprint] = useState("");
   useEffect(() => {
     studioApi
       .nodes()
@@ -318,7 +339,9 @@ export function ApprovalDesigner({
       setName(policy.name);
       setProcess(policy.definition);
       setNodes([]);
-      setFields(JSON.stringify(policy.definition.fields, null, 2));
+      setSavedFingerprint(
+        JSON.stringify({ name: policy.name, process: policy.definition }),
+      );
     }
   }, [policy]);
   useEffect(() => {
@@ -363,13 +386,21 @@ export function ApprovalDesigner({
       }),
     );
   }, [process, selected, definition]);
+  const dirty =
+    JSON.stringify({ name, process }) !== savedFingerprint ||
+    nodes.some((n) => {
+      const saved = process.layout?.[n.id];
+      return saved
+        ? saved.x !== n.position.x || saved.y !== n.position.y
+        : false;
+    });
   const save = async () => {
     try {
       const value = {
         name,
         definition: {
           ...process,
-          fields: JSON.parse(fields),
+          fields: process.fields,
           layout: Object.fromEntries(nodes.map((n) => [n.id, n.position])),
         },
         expected_version: policy?.version,
@@ -419,6 +450,12 @@ export function ApprovalDesigner({
         </button>
         {policy && (
           <button
+            disabled={dirty}
+            title={
+              dirty
+                ? "Save your changes before publishing"
+                : "Activate the saved version"
+            }
             onClick={async () => {
               try {
                 await api.post(
@@ -476,6 +513,7 @@ export function ApprovalDesigner({
           <ApprovalPolicyEditor
             stage={process.stages[selected] || process.stages[0]}
             people={people}
+            fields={process.fields}
             onChange={(stage) =>
               setProcess({
                 ...process,
@@ -647,15 +685,126 @@ export function ApprovalDesigner({
           The inherited execution limit is seven calendar days for the entire
           request. Choose stage deadlines within that limit.
         </p>
-        <h3>Shared request form schema</h3>
-        <label>
-          Typed fields (JSON)
-          <textarea
-            rows={9}
-            value={fields}
-            onChange={(e) => setFields(e.target.value)}
-          />
-        </label>
+        <h3>Request form</h3>
+        <p className="ap-muted">
+          Define the information reviewers need. These fields also appear in
+          stage conditions.
+        </p>
+        {process.fields.map((field, index) => (
+          <fieldset key={index} className="ap-field-editor">
+            <legend>Field {index + 1}</legend>
+            <label>
+              Label
+              <input
+                value={field.label}
+                onChange={(e) =>
+                  setProcess({
+                    ...process,
+                    fields: process.fields.map((f, i) =>
+                      i === index ? { ...f, label: e.target.value } : f,
+                    ),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Field key
+              <input
+                value={field.key}
+                pattern="[A-Za-z][A-Za-z0-9_]*"
+                onChange={(e) =>
+                  setProcess({
+                    ...process,
+                    fields: process.fields.map((f, i) =>
+                      i === index ? { ...f, key: e.target.value } : f,
+                    ),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Answer type
+              <select
+                value={field.kind}
+                onChange={(e) =>
+                  setProcess({
+                    ...process,
+                    fields: process.fields.map((f, i) =>
+                      i === index ? { ...f, kind: e.target.value } : f,
+                    ),
+                  })
+                }
+              >
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="date">Date</option>
+                <option value="select">Single choice</option>
+              </select>
+            </label>
+            {field.kind === "select" && (
+              <label>
+                Choices (one per line)
+                <textarea
+                  value={(field.options || []).join("\n")}
+                  onChange={(e) =>
+                    setProcess({
+                      ...process,
+                      fields: process.fields.map((f, i) =>
+                        i === index
+                          ? { ...f, options: e.target.value.split("\n") }
+                          : f,
+                      ),
+                    })
+                  }
+                />
+              </label>
+            )}
+            <label className="ap-check">
+              <input
+                type="checkbox"
+                checked={!!field.required}
+                onChange={(e) =>
+                  setProcess({
+                    ...process,
+                    fields: process.fields.map((f, i) =>
+                      i === index ? { ...f, required: e.target.checked } : f,
+                    ),
+                  })
+                }
+              />
+              Required answer
+            </label>
+            <button
+              onClick={() =>
+                setProcess({
+                  ...process,
+                  fields: process.fields.filter((_, i) => i !== index),
+                })
+              }
+            >
+              Remove field {index + 1}
+            </button>
+          </fieldset>
+        ))}
+        <button
+          disabled={process.fields.length >= 30}
+          onClick={() =>
+            setProcess({
+              ...process,
+              fields: [
+                ...process.fields,
+                {
+                  key: `field_${Date.now()}`,
+                  label: "New field",
+                  kind: "text",
+                  required: false,
+                },
+              ],
+            })
+          }
+        >
+          Add request field
+        </button>
         <label className="ap-check">
           <input
             type="checkbox"

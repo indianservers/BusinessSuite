@@ -2,7 +2,11 @@
 
 from datetime import datetime, time, timedelta, timezone, date
 from zoneinfo import ZoneInfo
-from app.apps.power_apps.runtime import utc
+from app.apps.power_apps.runtime import utc as assume_utc
+
+
+def utc(value):
+    return assume_utc(value).astimezone(timezone.utc) if value is not None else None
 
 
 def deadline(start, seconds, calendar=None):

@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     POWER_RUNTIME_TENANT_QUEUE: int = Field(default=2000, ge=100, le=100000)
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, hide_input_in_errors=True)
 
+    LOGIN_COMPANY_ID: int = Field(default=1, ge=1)
     PROJECT_NAME: str = "Business Suite"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False

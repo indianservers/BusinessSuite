@@ -124,7 +124,7 @@ export default function PowerAppsPage() {
             Power Apps<small>BUSINESS SUITE</small>
           </strong>
         </Link>
-        <Link className="pa-suite-link" to="/">
+        <Link className="pa-suite-link" to="/dashboard">
           <ArrowLeft size={15} />
           Master Suite
         </Link>

@@ -778,3 +778,43 @@
     padding: 20px;
   }
 }
+
+.ap-field-editor {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  margin: 14px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+}
+.ap-field-editor legend {
+  font-weight: 650;
+  padding: 0 6px;
+}
+.ap-field-editor label {
+  min-width: 0;
+}
+.ap-field-editor .ap-check {
+  align-self: center;
+}
+.ap-designer .ai-rule {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.ap-designer .ai-condition {
+  margin: 12px 0;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 12px;
+  min-width: 0;
+}
+.ap-designer .ai-condition button {
+  margin: 6px 6px 0 0;
+}
+@media (max-width: 640px) {
+  .ap-field-editor {
+    grid-template-columns: 1fr;
+  }
+}

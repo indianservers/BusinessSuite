@@ -12,7 +12,7 @@ from fastapi.dependencies.utils import get_parameterless_sub_dependant
 
 PUBLIC_CAPABILITIES = (
     r"/power-apps/hooks/[^/]+",
-    r"/auth/(login|refresh|forgot-password|reset-password|mfa/verify|firebase/(config|login))",
+    r"/auth/(branding|login|refresh|forgot-password|reset-password|mfa/verify|firebase/(config|login))",
     r"/auth/sso/(providers/active|initiate/[^/]+|callback/oidc/[^/]+|complete/[^/]+)",
     r"/forms/public/[^/]+(?:/(?:challenge|submit))?",
     r"/public/webforms/[^/]+(?:/submit)?",

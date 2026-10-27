@@ -19,7 +19,6 @@ from app.apps.power_apps.service import (
 )
 from app.apps.power_apps.runtime import (
     now,
-    utc,
     scope_values,
     safe_data,
     resolve,
@@ -45,7 +44,7 @@ from app.apps.power_apps.approvals.models import (
 )
 from app.apps.power_apps.approvals.contracts import Process, Stage
 from app.apps.power_apps.approvals.resolver import ApproverResolver
-from app.apps.power_apps.approvals.calendar import deadline
+from app.apps.power_apps.approvals.calendar import deadline, utc
 
 TERMINAL = {"Approved", "Rejected", "Cancelled", "Expired", "Failed"}
 
@@ -121,6 +120,19 @@ def notify(db, state, users, event_type, title):
     from app.models.user import User
     from app.core.tenant_boundary import company_ids
 
+    labels = {
+        "requested": "Approval submitted",
+        "assigned": "Your approval is needed",
+        "reminder": "Approval reminder",
+        "escalated": "Approval escalated",
+        "changes_requested": "Changes requested",
+        "rejected": "Request rejected",
+        "approved": "Request approved",
+        "cancelled": "Request cancelled",
+        "failed": "Approval execution failed",
+        "resolution_required": "Administrative resolution required",
+        "expired": "Approval expired",
+    }
     for id in sorted(set(users)):
         user = db.get(User, id)
         if (
@@ -132,8 +144,8 @@ def notify(db, state, users, event_type, title):
         item = Notification(
             company_id=state.organization_id,
             user_id=id,
-            title=title[:200],
-            message="Review the approval request and its decision history.",
+            title=(labels.get(event_type, event_type) + ": " + title)[:200],
+            message=f"Request #{state.id}. Open the request to review its current state and verified decision history.",
             module="power_apps",
             event_type="power_approval." + event_type,
             related_entity_type="approval_request",
@@ -995,7 +1007,7 @@ def runtime_finished(db, run, status):
     for a in db.query(Assignment).filter_by(request_id=root.id, status="pending").all():
         a.status = "closed"
     evidence(db, root, state, None, "workflow_" + status)
-    notify(db, state, [root.requester_user_id], "completed", root.title)
+    notify(db, state, [root.requester_user_id], root.status.lower(), root.title)
 
 
 def due(db, run, wait):

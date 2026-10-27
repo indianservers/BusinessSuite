@@ -8,7 +8,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { canAccessRoute, effectiveModuleDisplayRole } from "@/lib/roles";
 import { getInstalledAppKeys, setBusinessOsEnabledModules, type FrontendRoute } from "@/appRegistry";
 import { api } from "@/services/api";
-import { BUSINESS_SUITE_DISPLAY_NAME, getLoginPathForContext } from "@/lib/products";
+import { BUSINESS_SUITE_DISPLAY_NAME } from "@/lib/products";
 import { hrmsRoutes } from "@/apps/hrms/routes";
 import { crmRoutes } from "@/apps/crm/routes";
 import { projectManagementRoutes } from "@/apps/project-management/routes";
@@ -24,6 +24,7 @@ import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 const AutomationRuntimePage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationRuntimePage"));
 const AutomationEditorPage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationEditorPage"));
 const ApprovalsPage = React.lazy(() => import("@/apps/power-apps/applications/approvals/ApprovalsPage"));
+const ModuleDashboardPage = React.lazy(() => import("@/pages/ModuleDashboardPage"));
 const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
 const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
 const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
@@ -74,6 +75,13 @@ function LoadingFallback() {
   );
 }
 
+function LegacyModuleLogin({ home }: { home: string }) {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  if (!params.has("next")) params.set("next", home);
+  return <Navigate to={`/login?${params.toString()}${location.hash}`} replace />;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { isAuthenticated, isHydrated, user } = useAuthStore();
@@ -91,9 +99,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey]);
   if (!isHydrated) return <LoadingFallback />;
   if (!isAuthenticated) {
-    const loginPath = getLoginPathForContext(location.pathname, user?.role, user?.is_superuser);
-    const next = location.pathname === "/pms/workspaces" ? `?next=${encodeURIComponent(location.pathname + location.search)}` : "";
-    return <Navigate to={loginPath + next} replace />;
+    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search + location.hash)}`} replace />;
   }
   if (!user) return <LoadingFallback />;
   if (!roleAllowed) {
@@ -215,14 +221,15 @@ export default function App() {
         <Routes>
           <Route path="/f/:slug" element={<PublicFormPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/dashboard" element={<ModuleDashboardPage />} />
           <Route path="/reset-password" element={<LoginPage />} />
           <Route path="/invite-access" element={<AccessInvitationPage />} />
-          <Route path="/hrms/login" element={<LoginPage />} />
-          <Route path="/crm/login" element={<LoginPage />} />
-          <Route path="/pms/login" element={<LoginPage />} />
+          <Route path="/hrms/login" element={<LegacyModuleLogin home="/hrms" />} />
+          <Route path="/crm/login" element={<LegacyModuleLogin home="/crm" />} />
+          <Route path="/pms/login" element={<LegacyModuleLogin home="/pms" />} />
           <Route path="/pms/invitation" element={<WorkspaceInvitationPage />} />
-          <Route path="/srm/login" element={<LoginPage />} />
-          <Route path="/fam/login" element={<LoginPage />} />
+          <Route path="/srm/login" element={<LegacyModuleLogin home="/srm" />} />
+          <Route path="/fam/login" element={<LegacyModuleLogin home="/fam" />} />
           <Route path="/portal/customer/login" element={<PortalPage />} />
           <Route path="/portal/customer/*" element={<PortalPage />} />
           <Route path="/portal/partner/login" element={<PortalPage />} />
