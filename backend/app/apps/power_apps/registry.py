@@ -33,7 +33,7 @@ APPLICATIONS = (
     Application("notifications", "Notifications", "BellRing", "Deliver the right update at the right moment."),
     Application("search", "Universal Search", "Search", "Find the resources that move your work forward."),
     Application("dashboards", "Dashboards & Reports", "ChartNoAxesCombined", "Bring your business into clearer view."),
-    Application("connectors", "Connectors", "Plug", "Connect tools through governed adapters."),
+    Application("connectors", "Connectors", "Plug", "Connect tools through governed adapters.", "available"),
     Application("documents", "Documents & Templates", "Files", "Create consistent documents from reusable templates."),
     Application("ai-agents", "AI Agents", "Bot", "Prepare permission-aware assistants for your business."),
     Application("activity", "Activity & Audit Center", "History", "A traceable record of changes in your environment.", "available", ("power_apps_view", "power_apps_activity_view")),

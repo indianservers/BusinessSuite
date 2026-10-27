@@ -37,6 +37,10 @@ PROVIDERS = {
 }
 
 
+from app.apps.power_apps.integrations.providers import PROFILES
+for key, profile in PROFILES.items():
+    if profile["scopes"]: PROVIDERS[key] = PROVIDERS["google_sheets"]
+
 def app_config(connector_id):
     if connector_id not in PROVIDERS:
         raise HTTPException(422, "This connector has no OAuth authorization flow")

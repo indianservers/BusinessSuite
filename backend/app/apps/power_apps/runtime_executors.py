@@ -115,6 +115,10 @@ EXECUTORS = {
 
 EXECUTORS["approval_wait"] = Executor("approval_wait", capabilities=("durable_approval",), idempotency="transactional")
 
+for kind in NODES:
+    if kind.startswith("connector_"):
+        EXECUTORS[kind] = Executor(kind, capabilities=("external_io",), timeout_seconds=15, retryable=False, idempotency="journaled")
+
 def capabilities():
     return [
         {

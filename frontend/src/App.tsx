@@ -25,6 +25,7 @@ const AutomationRuntimePage = React.lazy(() => import("@/apps/power-apps/applica
 const AutomationEditorPage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationEditorPage"));
 const ApprovalsPage = React.lazy(() => import("@/apps/power-apps/applications/approvals/ApprovalsPage"));
 const ModuleDashboardPage = React.lazy(() => import("@/pages/ModuleDashboardPage"));
+const IntegrationsPage = React.lazy(() => import("@/apps/power-apps/applications/integrations/IntegrationsPage"));
 const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
 const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
 const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
@@ -148,6 +149,8 @@ export default function App() {
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
     { path: "power-apps", element: <PowerAppsPage /> },
+    { path: "power-apps/connectors", element: <IntegrationsPage /> },
+    { path: "power-apps/integrations", element: <IntegrationsPage /> },
     { path: "power-apps/approvals", element: <ApprovalsPage /> },
     { path: "power-apps/approvals/:section", element: <ApprovalsPage /> },
     { path: "power-apps/approvals/designer/:id", element: <ApprovalsPage /> },
@@ -157,7 +160,7 @@ export default function App() {
     { path: "power-apps/automations/new", element: <AutomationEditorPage /> },
     ...["edit", "versions", "settings"].map(section => ({ path: `power-apps/automations/:resourceId/${section}`, element: <AutomationEditorPage /> })),
     { path: "power-apps/automations/:resourceId", element: <AutomationEditorPage /> },
-    ...applicationRoutes.map(id => ({ path: `power-apps/${id}`, element: <PowerAppsPage /> })),
+    ...applicationRoutes.filter(id => id !== "connectors").map(id => ({ path: `power-apps/${id}`, element: <PowerAppsPage /> })),
     { path: "admin/access", element: <UsersAccessPage /> },
     { path: "admin/control/ai-security", element: <AiSecurityPage /> },
     { path: "admin/control/enterprise/:section", element: <EnterprisePage /> },

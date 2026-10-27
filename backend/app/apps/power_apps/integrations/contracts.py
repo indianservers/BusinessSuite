@@ -113,6 +113,10 @@ class HTTPInput(Strict):
         return self
 
 
+class OutboundWebhookInput(HTTPInput):
+    method: Literal["POST"] = "POST"
+
+
 class DBInput(Strict):
     schema_name: str = Field(default="public", max_length=63)
     table: str = Field(default="", max_length=63)

@@ -1,4 +1,6 @@
-# Power Apps Phase 4 — connector foundation (in progress)
+# Power Apps Phase 4 — connector foundation checkpoint
+
+Current connector APIs, workflow dispatch, 44-provider catalog and Integration Studio are documented in [Power Apps integrations](power-apps-integrations.md). The remainder of this file records the earlier foundation checkpoint and its then-outstanding scope.
 
 Phase 4 is **not complete or production-ready**. This checkpoint adds server-side connector foundations. It does not expose Integration Studio routes, attach external executors to the Phase 3 worker, activate a connection, or change a native Business Suite module. No production migration or live provider call was performed.
 

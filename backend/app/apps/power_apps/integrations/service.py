@@ -18,6 +18,7 @@ from app.apps.power_apps.integrations.models import (
 )
 from app.apps.power_apps.integrations.registry import REGISTRY, INPUTS, get_action
 from app.apps.power_apps.integrations.contracts import IntegrationFailure
+from app.apps.power_apps.integrations.providers import PROFILES, execute as provider_execute
 from app.apps.power_apps.integrations.transport import scrub
 
 
@@ -66,6 +67,9 @@ def typed_action(conn, action_id, data, confirmed):
         and "https://www.googleapis.com/auth/spreadsheets" in granted
     ):
         granted.add("https://www.googleapis.com/auth/spreadsheets.readonly")
+    for scope in list(granted):
+        if scope.startswith("https://www.googleapis.com/auth/") and scope.rsplit("/",1)[-1] in {"documents","presentations","calendar.events","tasks","contacts","forms.body"}:
+            granted.add(scope+".readonly")
     if not required <= granted:
         raise IntegrationFailure(
             "scope", "Connection does not grant the required action scopes"
@@ -259,6 +263,8 @@ def invoke(
                     operation_key,
                     signed=conn.connector_id == "outgoing_webhook",
                 )
+            elif conn.connector_id in PROFILES:
+                output = provider_execute(conn, action_id, parsed, transport, headers, values, operation_key)
             else:
                 output = adapters.provider_action(
                     conn, action_id, parsed, transport, headers, values, operation_key
@@ -289,7 +295,7 @@ def invoke(
     op.error_category = error.category if error else None
     op.error = str(error)[:400] if error else None
     release(db, conn, operation_key, error)
-    if action_id == "test" and not error:
+    if not error and not (conn.connector_id == "openrouter" and action_id == "list_models"):
         conn.health = "healthy"
         conn.last_verified_at = now()
     elif error and error.category in {"authentication", "expired", "credential"}:

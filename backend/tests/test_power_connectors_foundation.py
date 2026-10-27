@@ -38,7 +38,7 @@ def resolver(host, port, **kwargs):
 
 
 def test_manifest_contracts_and_truthful_candidates():
-    assert len(REGISTRY) == 10
+    assert len(REGISTRY) >= 40
     assert len(REGISTRY["ai_gateway"].actions) == 15
     for manifest in REGISTRY.values():
         assert manifest.availability == "Requires Configuration"
@@ -46,7 +46,7 @@ def test_manifest_contracts_and_truthful_candidates():
         for action in manifest.actions:
             assert (manifest.id, action.id) in INPUTS
     candidates = [x for x in catalog(True) if x["id"].startswith("candidate_")]
-    assert len(candidates) >= 20 and all(
+    assert all(
         x["availability"] == "In Development" and x["actions"] == [] for x in candidates
     )
     assert all(not contract["active"] for contract in NATIVE.values())

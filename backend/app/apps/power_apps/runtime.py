@@ -1,7 +1,8 @@
 """Durable transactional orchestrator for the canonical Power Apps graph.
 
 Each queue job performs one bounded local action. Fenced claims and the run lock
-commit output, events and successor jobs atomically. No connector/network I/O.
+commit output, events and successor jobs atomically. External actions commit
+dispatch intent and release local checkpoints before bounded provider I/O.
 """
 
 import copy
@@ -231,7 +232,15 @@ def validate_runtime(definition):
                     "message": "No production executor registered for " + n.type,
                 }
             )
-        if n.credential_reference:
+        if n.type.startswith("connector_"):
+            from app.apps.power_apps.integrations.registry import INPUTS
+            try:
+                if not isinstance(n.config.get("input",{}),dict): raise ValueError("Connector input must be an object")
+                model=INPUTS[n.type.removeprefix("connector_"), n.config.get("action")]
+                if not expression_paths(n.config.get("input",{})): model.model_validate(n.config.get("input",{}))
+            except (KeyError,ValueError,TypeError):
+                issues.append({"node_id":n.id,"code":"connector_input","message":"Choose a supported integration action and configure its required inputs"})
+        if n.credential_reference and not n.type.startswith("connector_"):
             issues.append(
                 {
                     "node_id": n.id,
@@ -435,6 +444,19 @@ def lifecycle(db, row, user, action, expected_version, policy=None):
                 row.owner_user_id,
                 service=True,
             )
+        from app.apps.power_apps.integrations.registry import get_action
+        from app.apps.power_apps.integrations import vault
+        connector_actor = None
+        for external_node in VisualWorkflowDefinition.model_validate(row.definition).nodes:
+            if not external_node.type.startswith("connector_"): continue
+            if connector_actor is None: connector_actor = authority(db, chosen.service_user_id if chosen.identity == "service" else row.owner_user_id if chosen.identity == "owner" else user.id, row.organization_id, row.environment, row.owner_user_id)
+            if not external_node.credential_reference or not external_node.credential_reference.isdecimal(): raise HTTPException(422,"Choose a saved connection for every integration node")
+            connection = vault.connection(db, connector_actor, row.environment, int(external_node.credential_reference))
+            if connection.connector_id != external_node.type.removeprefix("connector_") or not connection.enabled: raise HTTPException(422,"Connection does not match this integration node")
+            try: external_action=get_action(connection.connector_id,external_node.config.get("action"))
+            except ValueError: raise HTTPException(422,"Choose a supported connector action") from None
+            external_mutates = external_action.mutates or connection.connector_id == "http" and external_node.config.get("input",{}).get("method","GET") not in {"GET","HEAD"}
+            if external_mutates and not (connection.writes_enabled and external_node.config.get("confirm_write") is True): raise HTTPException(422,"External writes need connection opt-in and explicit node authorization")
         state.version_id = version.id
         state.policy = chosen.model_dump()
         state.status = "published"
@@ -1257,10 +1279,37 @@ def process(db, job_id, token):
                 checkpoint.commit();db.commit()
             return "waiting" if waiting else "completed"
         started = time.monotonic()
-        output, active = EXECUTORS[node.type].execute(
-            node, config, run.input_payload, previous
-        )
-        if time.monotonic() - started > min(
+        if node.type.startswith("connector_"):
+            from app.apps.power_apps.integrations import service as connector_service, vault
+            from app.apps.power_apps.integrations.contracts import IntegrationFailure
+            checkpoint.commit();db.commit()
+            try:
+                actor=authority(db,run.effective_user_id,run.organization_id,run.environment,run.owner_user_id)
+                if not node.credential_reference or not node.credential_reference.isdecimal(): raise ValueError("A saved connection is required")
+                conn=vault.connection(db,actor,run.environment,int(node.credential_reference))
+                if conn.connector_id!=node.type.removeprefix("connector_"):raise ValueError("Connection/provider mismatch")
+                output=connector_service.invoke(db,actor,conn,config["action"],config.get("input",{}),confirmed=config.get("confirm_write") is True,key=f"run:{run.id}:step:{step.id}",run_id=run.id,step_id=step.id)
+                from app.apps.power_apps.integrations.providers import PROFILES
+                if conn.connector_id not in PROFILES:
+                    raw_output=output
+                    output={**(raw_output if isinstance(raw_output,dict) else {}), "data":raw_output, "http_status":raw_output.get("http_status",raw_output.get("status_code")) if isinstance(raw_output,dict) else None}
+                external_error=None
+            except (IntegrationFailure,HTTPException,ValueError,TypeError) as exc:
+                external_error=exc
+            db.rollback()
+            root=db.query(PowerExecution).filter_by(id=run.id).with_for_update().populate_existing().one()
+            job=db.query(Job).filter_by(id=job_id).with_for_update().populate_existing().one()
+            if job.lease_token!=token or job.status!="running" or utc(job.lease_until)<=now() or root.status in TERMINAL:
+                db.rollback();return "lost_lease"
+            db.refresh(run);db.refresh(step)
+            checkpoint=db.begin_nested()
+            if external_error:
+                fail_job(db,job,run,step,"ExternalActionFailed",str(external_error) if isinstance(external_error,IntegrationFailure) else "Connection authority or input is unavailable",False)
+                checkpoint.commit();db.commit();return step.status
+            active={"out"}
+        else:
+            output, active = EXECUTORS[node.type].execute(node, config, run.input_payload, previous)
+        if not node.type.startswith("connector_") and time.monotonic() - started > min(
             node.advanced.timeout_seconds, EXECUTORS[node.type].timeout_seconds
         ):
             raise TimeoutError("Executor timeout")

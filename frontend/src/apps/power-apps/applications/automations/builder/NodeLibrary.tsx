@@ -200,7 +200,9 @@ export function NodeLibrary({
                         configure ·{" "}
                         {def.preview_supported
                           ? "Local preview"
-                          : "Runtime unavailable"}
+                          : def.executable
+                            ? "Runtime executor"
+                            : "Runtime unavailable"}
                       </small>
                     </span>
                     <Plus size={13} />
@@ -217,9 +219,9 @@ export function NodeLibrary({
         )}
       </div>
       <footer>
-        Editor definitions only.
+        Local previews do not call providers.
         <br />
-        Publish supported nodes from the runtime page.
+        Configure accounts, then publish and run supported nodes.
       </footer>
     </section>
   );

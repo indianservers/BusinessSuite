@@ -9,6 +9,7 @@ import {
   Variable,
   X,
 } from "lucide-react";
+import ConnectorNodeEditor from "../../integrations/ConnectorNodeEditor";
 import { NodeIcon } from "./NodeIcon";
 import { VariablePicker } from "./VariablePicker";
 import { ReferenceSelector } from "./ReferenceSelector";
@@ -19,6 +20,7 @@ import {
   type ConfigurationPanelProps,
 } from "./types";
 export default function ConfigurationPanel({
+  environmentName,
   recommendations,
   logicEditor,
   onOpenWorkflow,
@@ -283,7 +285,11 @@ export default function ConfigurationPanel({
         )}
       </div>
       <div className="as-config-scroll">
-        <p className="as-runtime-label">Not Executable Yet</p>
+        <p className="as-runtime-label">
+          {definition.executable
+            ? "Runtime executor available"
+            : "Runtime unavailable"}
+        </p>
         {readOnly && <p className="as-readonly-note">Read-only inspection</p>}
         <section hidden={tab !== "Parameters"}>
           <label className="as-basic-field">
@@ -317,9 +323,16 @@ export default function ConfigurationPanel({
               Open referenced workflow
             </button>
           )}
-          {logicEditor}
+          {!node.type.startsWith("connector_") && logicEditor}
           <h3>INPUT PARAMETERS</h3>
-          {definition.fields.length ? (
+          {node.type.startsWith("connector_") ? (
+            <ConnectorNodeEditor
+              node={node}
+              onChange={onChange}
+              readOnly={readOnly}
+              environment={environmentName || "development"}
+            />
+          ) : definition.fields.length ? (
             definition.fields
               .filter(
                 (field) =>
@@ -344,33 +357,35 @@ export default function ConfigurationPanel({
           ) : (
             <p className="as-config-note">This node has no input parameters.</p>
           )}
-          <details open={definition.requires_credential}>
-            <summary>
-              <KeyRound size={14} />
-              Credentials / connections
-              <ChevronDown size={13} />
-            </summary>
-            <label className="as-basic-field">
-              Credential reference
-              <input
-                readOnly={readOnly}
-                value={node.credential_reference || ""}
-                maxLength={120}
-                pattern="[a-zA-Z0-9_-]+"
-                placeholder="Connection reference only"
-                onChange={(e) =>
-                  onChange({
-                    ...node,
-                    credential_reference: e.target.value || null,
-                  })
-                }
-              />
-            </label>
-            <p className="as-config-note">
-              References only. No credential secrets are loaded. Connection
-              authorization will be verified by the Phase 3 worker.
-            </p>
-          </details>
+          {!node.type.startsWith("connector_") && (
+            <details open={definition.requires_credential}>
+              <summary>
+                <KeyRound size={14} />
+                Credentials / connections
+                <ChevronDown size={13} />
+              </summary>
+              <label className="as-basic-field">
+                Credential reference
+                <input
+                  readOnly={readOnly}
+                  value={node.credential_reference || ""}
+                  maxLength={120}
+                  pattern="[a-zA-Z0-9_-]+"
+                  placeholder="Connection reference only"
+                  onChange={(e) =>
+                    onChange({
+                      ...node,
+                      credential_reference: e.target.value || null,
+                    })
+                  }
+                />
+              </label>
+              <p className="as-config-note">
+                References only. No credential secrets are loaded. Connection
+                authorization will be verified by the Phase 3 worker.
+              </p>
+            </details>
+          )}
           {recommendations}
         </section>
         <section hidden={tab !== "Input / Output"}>
@@ -467,9 +482,7 @@ export default function ConfigurationPanel({
                     advanced: {
                       ...node.advanced,
                       error_strategy: e.target.value as
-                        | "stop"
-                        | "continue"
-                        | "branch",
+                        "stop" | "continue" | "branch",
                     },
                   })
                 }

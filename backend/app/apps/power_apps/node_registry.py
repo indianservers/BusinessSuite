@@ -1,4 +1,4 @@
-"""Editor contracts are independent of executors; no node is executable in Phase 2."""
+"""Editor contracts and server-owned execution capabilities are registered separately."""
 import json
 import math
 import re
@@ -8,6 +8,16 @@ from urllib.parse import urlsplit
 
 CATALOG_VERSION = 1
 NODES = {item["id"]: item for item in json.loads(Path(__file__).with_name("node_catalog.json").read_text(encoding="utf-8"))["nodes"]}
+# Named providers share a canonical external-action contract and governed dispatcher.
+from app.apps.power_apps.integrations.registry import REGISTRY as CONNECTORS
+for connector_id, manifest in CONNECTORS.items():
+    if not manifest.actions: continue
+    node_id = "connector_" + connector_id
+    NODES[node_id] = dict(id=node_id, name=manifest.name, category="Integrations", icon="Plug", description=manifest.description, trigger=False, editor_ready=True, executable=True, preview_supported=False, requires_credential=True,
+        fields=[dict(key="action",label="Action",kind="select",required=True,allow_expression=False,options=[a.id for a in manifest.actions],default=manifest.actions[0].id),dict(key="input",label="Action input",kind="json",required=True,allow_expression=True,default={}),dict(key="confirm_write",label="Authorize this external write",kind="boolean",required=False,allow_expression=False,default=False)],
+        inputs=[dict(id="in",label="In",data_type="flow",max_connections=1)],outputs=[dict(id="out",label="Next",data_type="flow",max_connections=1)],output_schema={"data":"object","http_status":"number","text":"string"},help="Configure a connection in Integration Studio, choose an action and map webhook or prior-step output. External writes require explicit authorization. Local previews do not call providers.")
+
+NODES["webhook_trigger"]["description"] = "Receive a signed webhook and start a durable workflow."
 SECRET_KEYS = {"api_key", "apikey", "secret", "client_secret", "password", "access_token", "refresh_token", "authorization", "private_key", "token"}
 PATH = re.compile(r"^(?:workflow\.variables\.[A-Za-z_][A-Za-z0-9_]*|env\.name|trigger\.(?:record|input)(?:\.[A-Za-z_][A-Za-z0-9_]*)*|steps\.[A-Za-z_][A-Za-z0-9_-]*\.output(?:\.[A-Za-z_][A-Za-z0-9_]*)*)$")
 TOKEN = re.compile(r"\{\{\s*([^{}]+?)\s*\}\}")

@@ -40,6 +40,9 @@ PROVIDER_HOSTS = {
     "outlook": ["graph.microsoft.com"],
 }
 
+from app.apps.power_apps.integrations.providers import PROFILES
+PROVIDER_HOSTS.update({key: [value["host"]] for key,value in PROFILES.items()})
+
 
 class CredentialVault:
     @staticmethod

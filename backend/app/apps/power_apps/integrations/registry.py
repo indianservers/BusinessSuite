@@ -4,6 +4,7 @@ from app.apps.power_apps.integrations.contracts import (
     Manifest,
     ActionSpec,
     HTTPInput,
+    OutboundWebhookInput,
     DBInput,
     AIInput,
     ProviderInput,
@@ -116,7 +117,7 @@ add(
     "Outgoing Webhooks",
     "Webhooks and APIs",
     ["signing", "none"],
-    [(action("deliver", "Deliver signed webhook", HTTPInput, True), HTTPInput)],
+    [(action("deliver", "Deliver webhook", OutboundWebhookInput, True), OutboundWebhookInput)],
     "https://datatracker.ietf.org/doc/html/rfc2104",
     [
         "Approve the destination host",
@@ -213,7 +214,7 @@ add(
     "google_sheets",
     "Google Sheets",
     "Productivity",
-    ["oauth2", "service_account"],
+    ["oauth2", "service_account", "bearer"],
     [
         (
             action(
@@ -255,7 +256,7 @@ add(
     "google_drive",
     "Google Drive",
     "File Storage",
-    ["oauth2", "service_account"],
+    ["oauth2", "service_account", "bearer"],
     [
         (
             action(
@@ -306,7 +307,7 @@ add(
     "outlook",
     "Microsoft Outlook",
     "Email",
-    ["oauth2"],
+    ["oauth2", "bearer"],
     [
         (
             action("test", "Verify account", ProviderInput, scopes=["User.Read"]),
@@ -414,7 +415,7 @@ def catalog(include_candidates=False):
                 ],
                 live_verification="Not implemented",
             ).model_dump()
-            for name, category in CANDIDATES.items()
+            for name, category in CANDIDATES.items() if name not in {m.name for m in REGISTRY.values()}
         ]
     return items
 
@@ -429,3 +430,7 @@ def get_action(connector_id, action_id):
     if not result:
         raise ValueError("Unsupported connector action")
     return result
+
+
+from app.apps.power_apps.integrations.providers import install as install_providers
+install_providers(add, action)
