@@ -234,7 +234,7 @@ export default function ModuleDashboardPage() {
       </main>
       <footer className="md-footer">
         <span>Business Suite - One account. Your authorized workspace.</span>
-        <Link to="/">Suite home</Link>
+        <Link to="/dashboard">Dashboard home</Link>
       </footer>
     </div>
   );

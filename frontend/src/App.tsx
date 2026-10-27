@@ -30,7 +30,6 @@ const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
 const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
 const WorkspaceInvitationPage = React.lazy(() => import("@/pages/auth/WorkspaceInvitationPage"));
-const ModuleIndexPage = React.lazy(() => import("@/pages/ModuleIndexPage"));
 const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
 const AutomationStudioPage = React.lazy(() => import("@/apps/automation/AutomationStudioPage"));
 const CustomizationStudioPage = React.lazy(() => import("@/apps/customization/CustomizationStudioPage"));
@@ -240,7 +239,7 @@ export default function App() {
           <Route path="/Inventory/*" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
           <Route path="/inventory" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
           <Route path="/inventory/*" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
-          <Route path="/" element={<ModuleIndexPage />} />
+          <Route path="/" element={!isHydrated ? <LoadingFallback /> : <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
           <Route
             path="/*"
             element={

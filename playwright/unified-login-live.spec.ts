@@ -5,8 +5,8 @@ test("one company-branded login and preserved module destinations", async ({
   page,
 }) => {
   test.setTimeout(120_000);
-  await page.goto("/dashboard");
-  await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
   await expect(
     page.getByRole("heading", { name: "Business Suite", exact: true }),
   ).toBeVisible();
@@ -94,7 +94,8 @@ test("authorized application dashboard supports search, navigation and mobile", 
     },
     { actor, access },
   );
-  await page.goto("/dashboard");
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/dashboard$/);
   await expect(
     page.getByRole("heading", { name: "Your work starts here." }),
   ).toBeVisible();
