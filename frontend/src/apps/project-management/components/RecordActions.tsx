@@ -1,3 +1,5 @@
+import { api } from "@/services/api";
+import { fieldPath, type FieldRecord } from "./CustomFields";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import {
   useEffect,
@@ -338,7 +340,10 @@ export default function RecordActions({
       run: () =>
         void run(async () => {
           const original = await tasksAPI.get(record.id);
+          const {data: custom}=await api.get<FieldRecord>(fieldPath("task",record.id));
+          const workType=original.work_type === "Sub-task" ? "Task" : original.work_type;
           await tasksAPI.create(original.project_id, {
+            custom_fields:Object.fromEntries(custom.fields.filter(f=>!f.task_type||f.task_type===workType).map(f=>[f.id,{value:f.value??null,...(f.country_code?{country_code:f.country_code}:{})}])),
             title: `Copy of ${original.title}`.slice(0, 220),
             task_key: `T-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
             description: original.description,

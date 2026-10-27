@@ -249,6 +249,7 @@ function Pagination({
 export default function InternManagementPage({ page }: { page: Page }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const isPms = location.pathname.startsWith("/pms");
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -266,7 +267,8 @@ export default function InternManagementPage({ page }: { page: Page }) {
   const [tab, setTab] = useState(
     new URLSearchParams(location.search).get("tab") || "",
   );
-  const [selected, setSelected] = useState<number[]>([]);
+  const initialRecipients: number[] = Array.isArray(location.state?.employee_ids) ? location.state.employee_ids.filter((id: unknown) => Number.isInteger(id)) : [];
+  const [selected, setSelected] = useState<number[]>(initialRecipients);
   const [allFiltered, setAllFiltered] = useState(false);
   const [batchDialog, setBatchDialog] = useState<Row | null>(null);
   const [membershipDialog, setMembershipDialog] = useState<Row | null>(null);
@@ -285,9 +287,9 @@ export default function InternManagementPage({ page }: { page: Page }) {
     description: "",
     category: "Project",
     priority: "Medium",
-    target_type: "batches",
+    target_type: initialRecipients.length ? "interns" : "batches",
     batch_ids: [],
-    employee_ids: [],
+    employee_ids: initialRecipients,
     exclude_ids: [],
     department_id: "",
     program: "",
@@ -467,10 +469,16 @@ export default function InternManagementPage({ page }: { page: Page }) {
   useEffect(() => {
     setCurrent(1);
     setTab(new URLSearchParams(location.search).get("tab") || "");
-    setSelected([]);
+    const recipients = Array.isArray(location.state?.employee_ids) ? location.state.employee_ids.filter((id: unknown) => Number.isInteger(id)) : [];
+    setSelected(recipients);
+    if (recipients.length) setAssignment(a => ({ ...a, target_type: "interns", employee_ids: recipients }));
     setAllFiltered(false);
-  }, [page, location.pathname, location.search]);
+  }, [page, location.pathname, location.search, location.state]);
+  const previousFilters = useRef(JSON.stringify([deferredSearch, filter]));
   useEffect(() => {
+    const signature = JSON.stringify([deferredSearch, filter]);
+    if (previousFilters.current === signature) return;
+    previousFilters.current = signature;
     setCurrent(1);
     setSelected([]);
     setAllFiltered(false);
@@ -604,8 +612,8 @@ export default function InternManagementPage({ page }: { page: Page }) {
       )}
       <div className="im-heading">
         <div>
-          <h1>{location.pathname.endsWith("/list") ? "All Interns" : titles[page][0]}</h1>
-          <p>{titles[page][1]}</p>
+          <h1>{location.pathname.endsWith("/list") ? "All Interns" : (isPms ? titles[page][0].replace(/Interns?/g, "People") : titles[page][0])}</h1>
+          <p>{isPms ? titles[page][1].replace(/interns/g, "employees and interns").replace(/intern /g, "participant ") : titles[page][1]}</p>
         </div>
         <div className="im-actions">
           {page === "dashboard" && (
@@ -628,8 +636,8 @@ export default function InternManagementPage({ page }: { page: Page }) {
           ) : null}
         </div>
       </div>
-      <InternQuickLinks />
-      <nav className="im-page-nav" aria-label="Intern Management pages">
+      {isPms ? <nav className="im-page-nav"><Link to="/pms/people-work">Profiles & Work</Link><Link to="/pms/batches">Groups & Programs</Link><Link to="/pms/batch-tasks">Assign Work</Link><Link to="/pms/reviews">Reviews</Link><Link to="/pms/my-notices">My Notices</Link></nav> : <InternQuickLinks />}
+      {!isPms && <nav className="im-page-nav" aria-label="Intern Management pages">
         {pages.map(([path, label, Icon]) => (
           <NavLink key={path} to={`/hrms/interns/${path}`}>
             <Icon size={16} />
@@ -637,13 +645,13 @@ export default function InternManagementPage({ page }: { page: Page }) {
           </NavLink>
         ))}
         <Link to="/hrms/interns/batches?tab=Learning%20%26%20Support" className={activeBatchTab === "Learning & Support" ? "active" : ""}><GraduationCap size={16} />Learning & Support</Link>
-      </nav>
+      </nav>}
       <div className="im-filters">
         <label>
           <Search size={16} />
           <Input
-            aria-label="Search interns or batches"
-            placeholder="Search interns, batches, reports…"
+            aria-label="Search people or batches"
+            placeholder="Search people, batches, reports…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -1238,7 +1246,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 <Field label="3. Assignment Scope">
                   <div className="im-scope-options">
                     {[
-                      ["interns", "Individual / Selected Interns"],
+                      ["interns", "Individual / Selected People"],
                       ["batches", "One / Multiple Batches"],
                       ["department", "Department"],
                       ["all", "All Eligible in Authorized Program"],
@@ -1286,7 +1294,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                             {b.code} · {b.name}
                           </b>
                           <small>
-                            {b.members} interns · {b.status}
+                            {b.members} people · {b.status}
                           </small>
                         </div>
                         <Status value={b.status} />
@@ -1439,7 +1447,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 <div className="im-preview">
                   <small>Eligible, deduplicated recipients</small>
                   <strong>
-                    {preview?.total ?? "—"} <span>interns</span>
+                    {preview?.total ?? "—"} <span>people</span>
                   </strong>
                   <p>
                     Each recipient has independent execution, evidence versions

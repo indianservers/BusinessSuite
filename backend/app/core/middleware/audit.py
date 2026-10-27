@@ -27,7 +27,8 @@ def client_addresses(request):
     hops = [value for value in hops if value]
     claimed = hops[0] if hops else None
     networks = []
-    for cidr in os.getenv('AUDIT_TRUSTED_PROXY_CIDRS', '').split(','):
+    from app.core.config import settings
+    for cidr in (settings.SECURITY_TRUSTED_PROXY_CIDRS or os.getenv('AUDIT_TRUSTED_PROXY_CIDRS', '')).split(','):
         try:
             networks.append(ipaddress.ip_network(cidr.strip()))
         except ValueError:

@@ -1,3 +1,4 @@
+import { beginProgress } from "../../src/lib/async-progress";
 import { apiBaseUrl } from "./config";
 import { applicationToken } from "./applicationSession";
 export const API = apiBaseUrl;
@@ -34,7 +35,7 @@ async function refreshSession() {
     return false;
   }
 }
-export async function request<T = any>(
+async function performRequest<T = any>(
   path: string,
   options: RequestInit = {},
   retry = true,
@@ -83,13 +84,24 @@ export async function request<T = any>(
   }
   return response.json();
 }
+export async function request<T = any>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
+  const finish = beginProgress(options.method && options.method !== "GET" ? "Processing your request" : "Loading page data");
+  try {
+    const result = await performRequest<T>(path, options, retry);
+    finish();
+    return result;
+  } catch (error) {
+    finish(false, error instanceof Error ? error.message : "Request failed");
+    throw error;
+  }
+}
 export const hub = <T = any>(path: string, options: RequestInit = {}) =>
   request<T>(`/interns-hub${path}`, options);
 export const send = (method: string, body?: unknown): RequestInit => ({
   method,
   ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
 });
-export async function download(path: string, filename: string) {
+async function performDownload(path: string, filename: string) {
   const response = await fetch(`${API}/interns-hub${path}`, {
     headers: { Authorization: `Bearer ${token()}` },
   });
@@ -100,4 +112,10 @@ export async function download(path: string, filename: string) {
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function download(path: string, filename: string) {
+  const finish = beginProgress("Downloading file");
+  try { await performDownload(path, filename); finish(); }
+  catch (error) { finish(false, "Download unavailable. Please try again."); throw error; }
 }

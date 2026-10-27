@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useDeferredValue, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, UserPlus, ArrowLeft } from "lucide-react";
-import { api, companyApi, employeeApi } from "@/services/api";
+import { api, companyApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +22,22 @@ const reviewable = (application: Row) => ["Pending", "Correction Requested"].inc
 const newDecision = (): Row => ({ branch_id: "", department_id: "", designation_id: "", reporting_manager_id: "", date_of_joining: new Date().toLocaleDateString("en-CA"), review_note: "" });
 const decisionBody = (status: DecisionStatus, values: Row) => status === "Approved" ? {
   ...Object.fromEntries(Object.entries(values).map(([key, value]) => [key, key.endsWith("_id") ? Number(value) || null : value])), status,
+  ...(Number(values.reporting_manager_id) < 0 ? { reporting_manager_id: null, reporting_manager_user_id: -Number(values.reporting_manager_id) } : {}),
 } : { status, review_note: values.review_note };
 const reviewError = (error: any) => typeof error.response?.data?.detail === "string" ? error.response.data.detail : "Could not update this application. Please refresh and retry.";
+
+function IntakeJobErrors({ jobId, total }: { jobId: number; total: number }) {
+  const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const { data, error } = useQuery<Row>({ queryKey: ["intake-job-errors", jobId, page, total], enabled: open,
+    queryFn: () => api.get(`/interns-hub/admin/application-jobs/${jobId}/errors`, { params: { page } }).then(r => r.data) });
+  return <details onToggle={e => setOpen(e.currentTarget.open)}><summary>Application errors ({total})</summary>
+    {error && <p role="alert">{reviewError(error)}</p>}
+    <ul>{data?.items.map((item: Row) => <li key={item.id}>#{item.id}: {item.message}</li>)}</ul>
+    <div className="flex gap-3"><Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous errors</Button>
+      <Button size="sm" variant="outline" disabled={!data || page * 50 >= data.total} onClick={() => setPage(p => p + 1)}>More errors</Button></div>
+  </details>;
+}
 
 function DecisionFields({ decision, setDecision, options, prefix, approval = true, requireReason = false }: {
   decision: Row; setDecision: (value: Row) => void; options?: OrganizationOptions; prefix: string; approval?: boolean; requireReason?: boolean;
@@ -132,7 +146,7 @@ function DecisionFields({ decision, setDecision, options, prefix, approval = tru
           <option value="">Select Manager</option>
           {options?.managers.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.first_name} {m.last_name} ({m.employee_id})
+              {m.name}
             </option>
           ))}
         </select>
@@ -180,7 +194,10 @@ export default function InternApplicationsPage() {
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [bulkReview, setBulkReview] = useState<{ status: DecisionStatus; ids: number[] } | null>(null);
   const [bulkDecision, setBulkDecision] = useState<Row>(newDecision);
-  const [bulkProgress, setBulkProgress] = useState(0);
+  const [intakePage, setIntakePage] = useState(1);
+  const deferredSearch = useDeferredValue(search);
+  const [bulkAll, setBulkAll] = useState(false);
+  const bulkKey = useRef(crypto.randomUUID());
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: { id: number; name: string; message: string }[] } | null>(null);
   const [decision, setDecision] = useState<Row>({
     branch_id: "",
@@ -190,44 +207,23 @@ export default function InternApplicationsPage() {
     date_of_joining: new Date().toLocaleDateString("en-CA"),
     review_note: "",
   });
-  const {
-    data: applications = [],
-    isLoading,
-    error,
-  } = useQuery<Row[]>({
-    queryKey: ["intern-applications"],
-    queryFn: () =>
-      api.get("/interns-hub/admin/applications").then((r) => r.data),
+  const { data: intake, isLoading, error } = useQuery<Row>({
+    queryKey: ["intern-applications", filter, deferredSearch, intakePage],
+    queryFn: () => api.get("/interns-hub/admin/application-intake", { params: { status: filter, search: deferredSearch, page: intakePage, per_page: 50 } }).then(r => r.data),
   });
+  const applications: Row[] = intake?.items || [];
+  const { data: intakeJobs } = useQuery<Row>({ queryKey: ["intake-jobs"],
+    queryFn: () => api.get("/interns-hub/admin/application-jobs").then(r => r.data), refetchInterval: 10000 });
   const { data: options } = useQuery({
     queryKey: ["intern-application-organization"],
     queryFn: async () => {
-      const [branches, departments, designations] = await Promise.all([
+      const [branches, departments, designations, managerResponse] = await Promise.all([
         companyApi.listBranches(),
         companyApi.listDepartments(),
         companyApi.listDesignations(),
+        api.get("/interns-hub/admin/reporting-managers"),
       ]);
-      const managers: Row[] = [];
-      let page = 1;
-      while (true) {
-        const { data } = await employeeApi.list({
-          page,
-          per_page: 100,
-          status: "Active",
-        });
-        managers.push(
-          ...data.items.filter(
-            (e: Row) => (e.employment_type || "").toLowerCase() !== "intern",
-          ),
-        );
-        if (
-          !data.items.length ||
-          page * 100 >= data.total ||
-          data.items.length < 100
-        )
-          break;
-        page++;
-      }
+      const managers = managerResponse.data as Row[];
       return {
         branches: branches.data as Row[],
         departments: departments.data as Row[],
@@ -245,16 +241,8 @@ export default function InternApplicationsPage() {
   };
   const application = list.find((a) => a.id === selected) || list[0];
   const mutation = useMutation({
-    mutationFn: (status: string) =>
-      api.post(`/interns-hub/admin/applications/${application.id}/decision`, {
-        status,
-        ...Object.fromEntries(
-          Object.entries(decision).map(([k, v]) => [
-            k,
-            k.endsWith("_id") ? Number(v) || null : v,
-          ]),
-        ),
-      }),
+    mutationFn: (status: DecisionStatus) =>
+      api.post(`/interns-hub/admin/applications/${application.id}/decision`, decisionBody(status, decision)),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["intern-applications"] });
       qc.invalidateQueries({ queryKey: ["intern-hub-admin"] });
@@ -283,32 +271,25 @@ export default function InternApplicationsPage() {
   });
   const bulkMutation = useMutation({
     mutationFn: async ({ status, ids, values }: { status: DecisionStatus; ids: number[]; values: Row }) => {
-      const failed: { id: number; name: string; message: string }[] = [];
-      let succeeded = 0;
-      setBulkProgress(0);
-      for (const id of ids) {
-        try {
-          await api.post(`/interns-hub/admin/applications/${id}/decision`, decisionBody(status, values));
-          succeeded++;
-        } catch (error) {
-          failed.push({ id, name: applications.find(item => item.id === id)?.full_name || `Application #${id}`, message: reviewError(error) });
-        }
-        setBulkProgress(succeeded + failed.length);
-      }
-      return { succeeded, failed };
+      const response = await api.post("/interns-hub/admin/application-jobs", {
+        application_ids: ids, all_filtered: bulkAll, status: filter, search: deferredSearch,
+        decision: decisionBody(status, values), request_key: bulkKey.current,
+      });
+      return response.data;
     },
-    onSuccess: result => {
-      setBulkResult(result);
-      setCheckedIds(result.failed.map(item => item.id));
-      setBulkReview(null);
-      refreshApplications();
-      toast({ title: `${result.succeeded} application(s) updated${result.failed.length ? `, ${result.failed.length} failed` : ""}`, variant: result.failed.length ? "destructive" : "default" });
+    onSuccess: job => {
+      const failed = (job.result?.failed || []).map((item: Row) => ({ ...item, name: `Application #${item.id}` }));
+      setBulkResult({ succeeded: job.result?.succeeded || 0, failed });
+      setCheckedIds([]); setBulkAll(false); setBulkReview(null);
+      refreshApplications(); void qc.invalidateQueries({ queryKey: ["intake-jobs"] });
+      toast({ title: `Intake operation #${job.id}: ${job.status}`, description: `${job.cursor}/${job.total} processed. Progress is saved; you can leave this page.` });
     },
+    onError: error => toast({ title: "Could not start intake operation", description: reviewError(error), variant: "destructive" }),
   });
   const busy = mutation.isPending || bulkMutation.isPending;
   const openBulkReview = (status: DecisionStatus) => {
     setBulkDecision(newDecision());
-    setBulkProgress(0);
+    bulkKey.current = crypto.randomUUID();
     setBulkReview({ status, ids: checkedApplications.map(item => item.id) });
   };
   const labels: Record<string, string> = {
@@ -359,7 +340,7 @@ export default function InternApplicationsPage() {
         <summary className="cursor-pointer text-sm font-medium">Signup form settings</summary>
         <div className="mt-4"><InternApplicationSettings /></div>
       </details>
-      <Input aria-label="Search signups" placeholder="Search signups by name, email or reference…" value={search} onChange={(event) => { setSearch(event.target.value); setSelected(undefined); setCheckedIds([]); }} />
+      <Input aria-label="Search signups" placeholder="Search signups by name, email or reference…" value={search} onChange={(event) => { setSearch(event.target.value); setIntakePage(1); setBulkAll(false); setSelected(undefined); setCheckedIds([]); }} />
       <div className="flex flex-wrap gap-2">
         <Link to="/hrms/interns/profiles" className="inline-flex items-center rounded-md border px-3 py-2 text-sm">Manage connected profiles</Link>
         {["Pending", "Correction Requested", "Approved", "Rejected", ""].map((status) => (
@@ -367,29 +348,39 @@ export default function InternApplicationsPage() {
             key={status}
             variant={filter === status ? "default" : "outline"}
             onClick={() => {
-              setFilter(status);
+              setFilter(status); setIntakePage(1); setBulkAll(false);
               setSelected(undefined);
               setCheckedIds([]);
             }}
           >
             {status || "All Applications"} (
-            {applications.filter((a) => !status || a.status === status).length})
+            {status ? intake?.counts?.[status] || 0 : Object.values(intake?.counts || {}).reduce((total: number, count) => total + Number(count), 0)})
           </Button>
         ))}
       </div>
       {!error && !isLoading && eligible.length > 0 && <section aria-label="Bulk application actions" className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" aria-label="Select all reviewable signups" checked={allChecked}
+          <input type="checkbox" aria-label="Select all reviewable signups" checked={bulkAll || allChecked}
             ref={node => { if (node) node.indeterminate = !allChecked && eligible.some(item => checkedIds.includes(item.id)); }}
-            disabled={busy} onChange={event => setCheckedIds(event.target.checked ? eligible.map(item => item.id) : [])} />
+            disabled={busy} onChange={event => { setBulkAll(false); setCheckedIds(event.target.checked ? eligible.map(item => item.id) : []); }} />
           Select all shown ({eligible.length})
         </label>
-        <span className="text-sm" role="status">{checkedApplications.length} selected</span>
-        <Button disabled={!checkedApplications.length || busy} onClick={() => openBulkReview("Approved")}>Approve selected</Button>
-        <Button variant="outline" disabled={!checkedApplications.length || busy} onClick={() => openBulkReview("Rejected")}>Reject selected</Button>
-        <Button variant="outline" disabled={!checkedApplications.length || busy} onClick={() => openBulkReview("Correction Requested")}>Request corrections for selected</Button>
-        {checkedIds.length > 0 && <Button variant="ghost" disabled={busy} onClick={() => setCheckedIds([])}>Clear selection</Button>}
+        <span className="text-sm" role="status">{bulkAll ? intake?.reviewable_total : checkedApplications.length} selected</span>
+        <Button disabled={(!checkedApplications.length && !bulkAll) || busy} onClick={() => openBulkReview("Approved")}>Approve selected</Button>
+        <Button variant="outline" disabled={(!checkedApplications.length && !bulkAll) || busy} onClick={() => openBulkReview("Rejected")}>Reject selected</Button>
+        <Button variant="outline" disabled={(!checkedApplications.length && !bulkAll) || busy} onClick={() => openBulkReview("Correction Requested")}>Request corrections for selected</Button>
+        {!bulkAll && <Button variant="outline" disabled={busy} onClick={() => { setBulkAll(true); setCheckedIds([]); }}>Select all {intake?.reviewable_total} matching reviewable applications</Button>}
+        {(checkedIds.length > 0 || bulkAll) && <Button variant="ghost" disabled={busy} onClick={() => { setCheckedIds([]); setBulkAll(false); }}>Clear selection</Button>}
       </section>}
+      <div className="flex flex-wrap items-center gap-3"><span>{intake?.total || 0} matching applications · Page {intakePage}</span>
+        <Button variant="outline" disabled={intakePage === 1 || busy} onClick={() => { setIntakePage(p => p - 1); setCheckedIds([]); setSelected(undefined); }}>Previous</Button>
+        <Button variant="outline" disabled={!intake || intakePage * 50 >= intake.total || busy} onClick={() => { setIntakePage(p => p + 1); setCheckedIds([]); setSelected(undefined); }}>Next</Button></div>
+      {!!intakeJobs?.items.length && <section className="rounded-xl border bg-card p-4 space-y-3" aria-label="Intake operations"><h2 className="font-semibold">Intake operations</h2>
+        {intakeJobs.items.map((job: Row) => <div key={job.id} className="space-y-2"><div className="flex flex-wrap items-center gap-3"><strong>#{job.id} · {job.status}</strong><span>{job.cursor}/{job.total} processed · {job.result?.succeeded || 0} succeeded · {job.result?.failed_count || 0} failed</span>
+          {job.status !== "Completed" && <Button variant="outline" disabled={busy} onClick={async () => { try { await api.post(`/interns-hub/admin/application-jobs/${job.id}/continue`); refreshApplications(); void qc.invalidateQueries({ queryKey: ["intake-jobs"] }); } catch (error) { toast({ title: "Could not continue intake", description: reviewError(error), variant: "destructive" }); } }}>Process next chunk</Button>}</div>
+          {job.error && <p role="alert" className="text-destructive">{job.error}</p>}
+          {!!job.result?.failed_count && <IntakeJobErrors jobId={job.id} total={job.result.failed_count} />}
+        </div>)}<p className="text-xs text-muted-foreground">You can leave this page. Scheduled processing resumes pending operations; you can also process the next chunk here.</p></section>}
       {bulkResult && <section className="rounded-xl border bg-card p-4" aria-label="Bulk review results">
         <p role="status">{bulkResult.succeeded} application(s) updated. {bulkResult.failed.length} failed.</p>
         {bulkResult.failed.length > 0 && <><p className="mt-2 text-sm text-muted-foreground">Successful applications have been removed from the selection. Review these errors before retrying.</p>
@@ -398,7 +389,7 @@ export default function InternApplicationsPage() {
       <Dialog open={!!bulkReview} onOpenChange={open => { if (!open && !bulkMutation.isPending) setBulkReview(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader><DialogTitle>{bulkReview?.status === "Approved" ? "Approve selected interns" : bulkReview?.status === "Rejected" ? "Reject selected applications" : "Request corrections for selected applications"}</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">This will update {bulkReview?.ids.length || 0} selected application(s). {bulkReview?.status === "Approved" ? "The same branch, department, designation, manager and joining date will apply to everyone selected." : "The reason or instructions below will apply to every selected applicant."}</p>
+          <p className="text-sm text-muted-foreground">This will update {bulkAll ? intake?.reviewable_total : bulkReview?.ids.length || 0} selected application(s). {bulkReview?.status === "Approved" ? "The same branch, department, designation, manager and joining date will apply to everyone selected." : "The reason or instructions below will apply to every selected applicant."}</p>
           <form onSubmit={event => {
             event.preventDefault();
             if (bulkReview && (bulkReview.status === "Approved" || bulkDecision.review_note.trim())) bulkMutation.mutate({ ...bulkReview, values: { ...bulkDecision } });
@@ -410,7 +401,7 @@ export default function InternApplicationsPage() {
                 <Button type="submit" disabled={bulkReview?.status !== "Approved" && !bulkDecision.review_note.trim()}>{bulkReview?.status === "Approved" ? "Approve & onboard selected" : bulkReview?.status === "Rejected" ? "Confirm rejection" : "Send correction requests"}</Button>
               </div>
             </fieldset>
-            {bulkMutation.isPending && <p role="status" className="mt-3 text-sm">Processing {bulkProgress} of {bulkReview?.ids.length} applications. Keep this page open.</p>}
+            {bulkMutation.isPending && <p role="status" className="mt-3 text-sm">Starting a resumable intake operation. Progress will be saved on the server.</p>}
           </form>
         </DialogContent>
       </Dialog>

@@ -1,3 +1,5 @@
+import { RecordCustomFields } from "../components/CustomFields";
+import { ConversationLauncher } from "@/shared/communication";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useEffect, useState } from "react";
@@ -49,7 +51,7 @@ export default function ProjectDashboard() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="page-title">{project.name}</h1>
+            <h1 className="page-title">{project.name}</h1><ConversationLauncher module="PMS" workspaceId={project.workspace_id} context={{type:"project",id}}/>
             <Badge className={statusColor(project.status)}>{project.status}</Badge>
           </div>
           <div className="page-description"><RichTextContent value={project.description || "Project workspace overview"}/></div>
@@ -79,6 +81,7 @@ export default function ProjectDashboard() {
         <Metric icon={Timer} label="Progress" value={`${project.progress_percent}%`} />
       </div>
 
+      <RecordCustomFields entity="project" id={id}/>
       <SecondaryDetails title="Task status and project details">
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <Card>

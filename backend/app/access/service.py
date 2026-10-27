@@ -457,7 +457,14 @@ def check_background_access(db, user, module, action="view"):
     from app.enterprise.controls import governance_module_check
     governance_module_check(db,user,company,module,action)
     policy = policy_for(db, user, company)
-    if user.is_superuser or not policy:
+    if user.is_superuser:
+        return None
+    if not policy:
+        from app.access.catalog import permission_objects, permission_module
+        relevant = [p.name for p in permission_objects(user) if permission_module(p) == module]
+        writes = ("manage", "admin", "create", "edit", "update", "approve", "assign", "delete")
+        if not relevant or (action != "view" and not any(any(word in name for word in writes) for name in relevant)):
+            raise HTTPException(403, "Background operation requires the current module permission")
         return None
     grant = resolved_grants(db, policy).get(module, {})
     if (
@@ -477,21 +484,23 @@ from contextlib import contextmanager
 
 @contextmanager
 def background_scope(db, user, module, action="view"):
-    policy = check_background_access(db, user, module, action)
-    cleanup = None
-    if policy and not getattr(user, "_suite_scope_active", False):
-        from app.access.scope import install_scope
-
-        grants = resolved_grants(db, policy)
-        user._suite_grants = grants
-        user._suite_current_module = module
-        user._suite_permission_objects = None
-        cleanup = install_scope(db, user, policy.company_id, grants)
-    try:
+    from contextlib import ExitStack
+    from app.core.tenant_boundary import install as install_boundary
+    if not user.is_active:
+        raise HTTPException(403, "Background actor is inactive")
+    company = getattr(user, "organization_id", None) or primary_company(user)
+    with ExitStack() as stack:
+        policy = check_background_access(db, user, module, action)
+        if policy and not getattr(user, "_suite_scope_active", False):
+            from app.access.scope import install_scope
+            grants = resolved_grants(db, policy)
+            user._suite_grants = grants
+            user._suite_current_module = module
+            user._suite_permission_objects = None
+            stack.callback(install_scope(db, user, policy.company_id, grants))
+        stack.callback(install_boundary(db, user, company))
         yield
-    finally:
-        if cleanup:
-            cleanup()
+
 
 
 def activate_run_context(db, user, run):

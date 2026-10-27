@@ -8,7 +8,9 @@ from app.core.rich_text import PREFIX, sanitize_tree
 
 class RichTextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        if "application/json" in request.headers.get("content-type", ""):
+        # Signed Power Apps ingress authenticates the exact raw bytes before schema validation.
+        signed_ingress = request.url.path.startswith("/api/v1/power-apps/hooks/")
+        if not signed_ingress and "application/json" in request.headers.get("content-type", ""):
             body = await request.body()
             if PREFIX.encode() in body:
                 try:

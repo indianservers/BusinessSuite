@@ -335,11 +335,14 @@ function SettingsView() {
 }
 
 function DataTable({ rows, columns }: { rows: FAMRecord[]; columns: string[] }) {
+  const { pathname } = useLocation();
+  const detailRoutes: Record<string, string> = { "/fam/vouchers": "/fam/vouchers", "/fam/customers": "/fam/parties", "/fam/vendors": "/fam/parties", "/fam/parties": "/fam/parties", "/fam/purchase-bills": "/fam/purchase-bills", "/fam/expenses": "/fam/expenses", "/fam/bank-statements": "/fam/bank-statements", "/fam/posting-jobs": "/fam/posting-jobs" };
+  const detailBase = detailRoutes[pathname];
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full min-w-[780px] text-sm">
         <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead>
-        <tbody>{rows.map((row) => <tr key={String(row.id)} className="border-t">{columns.map((column) => <td key={column} className="px-3 py-2">{column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}</tr>)}</tbody>
+        <tbody>{rows.map((row) => <tr key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2">{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}</tr>)}</tbody>
       </table>
     </div>
   );

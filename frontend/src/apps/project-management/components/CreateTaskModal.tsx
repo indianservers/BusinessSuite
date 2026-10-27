@@ -1,3 +1,4 @@
+import { CustomFieldsForm, type FieldDraft } from "./CustomFields";
 import RichTextEditor from "@/components/rich-text/LazyRichText";
 import * as Dialog from "@radix-ui/react-dialog";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -26,8 +27,10 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
   const titleRef = useRef<HTMLInputElement>(null);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId);
   const [projectOptions, setProjectOptions] = useState(projects || []);
+  const [customValues,setCustomValues]=useState<FieldDraft>({});
   const [title, setTitle] = useState("");
   const [workType, setWorkType] = useState<string>(initialWorkType);
+  useEffect(()=>setCustomValues({}),[selectedProjectId,workType,isOpen]);
   const [workTypes, setWorkTypes] = useState(["Task", "Bug", "Feature", "Improvement", "Epic"]);
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>("To Do");
@@ -100,7 +103,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
         task_key: `TSK-${Date.now().toString().slice(-6)}`, status, priority,
         start_date: startDate || undefined, due_date: dueDate || undefined, assignee_user_ids: assignees,
         story_points: storyPoints === "" ? undefined : Number(storyPoints), sprint_id: sprintId ? Number(sprintId) : undefined,
-        recurrence_rule: recurrence || undefined, recurrence_interval: 1, recurrence_until: recurrenceUntil || undefined,
+        custom_fields: customValues, recurrence_rule: recurrence || undefined, recurrence_interval: 1, recurrence_until: recurrenceUntil || undefined,
       });
       const task = created.current;
       const tagCache = [...availableTags];
@@ -119,7 +122,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
       if (dependencyId && !completed.current.has("dependency")) { await tasksAPI.addDependency(task.id, Number(dependencyId)); completed.current.add("dependency"); }
       for (let i = 0; i < files.length; i++) if (!completed.current.has(`file-${i}`)) { await filesAPI.uploadToTask(task.id, files[i]); completed.current.add(`file-${i}`); }
       const saved = await tasksAPI.get(task.id);
-      finish(); onTaskCreated(saved, createAnother); reset();
+      finish(); onTaskCreated(saved, createAnother); setCustomValues({}); reset();
       if (!createAnother) onClose(); else requestAnimationFrame(() => titleRef.current?.focus());
     } catch (err: any) {
       finish(false);
@@ -138,6 +141,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
           {optionsError && <div role="status" className="compose-error">{optionsError}</div>}
           <fieldset disabled={locked} className="task-compose-grid">
             <div className="task-compose-fields">
+              <CustomFieldsForm entity="task" projectId={selectedProjectId} workType={workType} values={customValues} onChange={setCustomValues}/>
               <section className="compose-type"><label>Work item type</label><div role="group" aria-label="Work item type">{workTypes.map(type => { const Icon = typeIcons[type] || ClipboardList; return <button key={type} type="button" aria-pressed={workType === type} className={workType === type ? "selected" : ""} onClick={() => setWorkType(type)}><Icon />{type}{workType === type && <span className="type-check">✓</span>}</button>; })}</div></section>
               <div className="compose-pair">
                 <div className="compose-field"><Folder /><div><label htmlFor="task-project">Project</label><select id="task-project" required value={selectedProjectId || ""} onChange={e => { setSelectedProjectId(Number(e.target.value)); setAssignees([]); }}><option value="" disabled>Choose project</option>{!projectOptions.some(p => p.id === selectedProjectId) && selectedProjectId > 0 && <option value={selectedProjectId}>Current project</option>}{projectOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div></div>

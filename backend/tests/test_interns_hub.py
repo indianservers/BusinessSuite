@@ -144,6 +144,9 @@ def test_manager_cannot_manage_other_interns(client, db, interns):
 
 
 def test_hrms_provisions_intern_login(client, db, superuser_headers):
+    # Account provisioning requires an actual company, as production bootstrap does.
+    db.add(Company(id=1, name="Provisioning Company"))
+    db.commit()
     response = client.post("/api/v1/employees/", headers=superuser_headers, json={"first_name":"New", "last_name":"Intern", "date_of_joining":str(today()), "employment_type":"Intern", "create_user_account":True, "user_email":"newintern@example.com", "user_password":"Intern@123456"})
     assert response.status_code == 201, response.text
     employee = db.get(Employee, response.json()["id"])

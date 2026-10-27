@@ -117,3 +117,44 @@ def test_application_email_is_bound_to_google_identity(client,application_payloa
     google_applicant('another@example.com')
     response=client.post('/api/v1/interns-hub/applications',json=application_payload)
     assert response.status_code==403
+
+
+def test_superadmin_can_be_selected_as_reporting_manager(client, db, superuser_headers, application_payload):
+    from app.models.company import Company, Branch, Department, Designation
+    base = "/api/v1/interns-hub"
+    admin = db.query(User).filter_by(email="testadmin@test.com").one()
+    inactive = User(email="inactive-admin@example.com", hashed_password="unused", is_active=False, is_superuser=True)
+    ordinary = User(email="ordinary@example.com", hashed_password="unused", is_active=True, is_superuser=False)
+    db.add_all([inactive, ordinary])
+    company = db.get(Company, 1) or Company(id=1, name="Application Company")
+    db.add(company); db.flush()
+    branch = Branch(name="HQ", company_id=company.id)
+    db.add(branch); db.flush()
+    department = Department(name="Engineering", branch_id=branch.id)
+    db.add(department); db.flush()
+    designation = Designation(name="Intern", department_id=department.id)
+    probation = Employee(employee_id="PROB-MGR", first_name="Probation", last_name="Manager", branch_id=branch.id,
+                         status="Probation", employment_type="Full-time", date_of_joining=today())
+    db.add_all([designation, probation]); db.commit()
+    assert client.get(base + "/admin/reporting-managers").status_code == 403
+    options = client.get(base + "/admin/reporting-managers", headers=superuser_headers)
+    assert options.status_code == 200, options.text
+    assert any(row["id"] == -admin.id and admin.email in row["name"] for row in options.json())
+    assert any(row["id"] == probation.id for row in options.json())
+    assert not any(row["id"] in {-inactive.id, -ordinary.id} for row in options.json())
+    assert client.post(base + "/applications", json=application_payload).status_code == 201
+    application = db.query(InternApplication).filter_by(email=application_payload["email"]).one()
+    decision = dict(status="Approved", branch_id=branch.id, department_id=department.id,
+                    designation_id=designation.id, reporting_manager_user_id=ordinary.id, date_of_joining=str(today()))
+    url = f"{base}/admin/applications/{application.id}/decision"
+    assert client.post(url, headers=superuser_headers, json=decision).status_code == 422
+    decision["reporting_manager_user_id"] = admin.id
+    approved = client.post(url, headers=superuser_headers, json=decision)
+    assert approved.status_code == 200, approved.text
+    manager = db.query(Employee).filter_by(user_id=admin.id).one()
+    intern = db.query(Employee).filter_by(employee_id=approved.json()["intern_id"]).one()
+    assert intern.reporting_manager_id == manager.id
+    assert manager.work_email == admin.email
+    options = client.get(base + "/admin/reporting-managers", headers=superuser_headers).json()
+    assert any(row["id"] == manager.id and "Superadmin" in row["name"] for row in options)
+    assert not any(row["id"] == -admin.id for row in options)

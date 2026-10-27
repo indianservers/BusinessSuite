@@ -9,7 +9,7 @@ from app.core.storage import sign_upload_references, normalize_upload_references
 def raw_private_reference(value):
     if isinstance(value,str) and value.startswith('/uploads/'):
         parts=value[len('/uploads/'):].replace('\\','/').split('/')
-        return any(part in {'.','..'} or ':' in part for part in parts) or parts[0].lower() not in {'photos','avatars','logos','branding'}
+        return any(part in {'.','..'} or ':' in part for part in parts) or parts[0].lower() not in {'logos','branding'}
     if isinstance(value,list):return any(raw_private_reference(item) for item in value)
     if isinstance(value,dict):return any(raw_private_reference(item) for item in value.values())
     return False
@@ -31,7 +31,22 @@ class PrivateUploadURLMiddleware(BaseHTTPMiddleware):
             except (ValueError,TypeError):pass
             if b"X-Amz-Signature=" in body or b"/api/v1/files/blob?" in body:
                 try:
-                    request._body = json.dumps(normalize_upload_references(json.loads(body))).encode()
+                    from starlette.concurrency import run_in_threadpool
+                    from app.core.security import verify_access_token
+                    from app.db.session import SessionLocal
+                    claims = verify_access_token(request.headers.get("authorization", "").partition(" ")[2]) or {}
+                    subject = claims.get("sub")
+                    organization = request.headers.get("X-Suite-Organization")
+                    def normalize():
+                        factory = getattr(request.app.state, "business_os_session_factory", SessionLocal)
+                        close = getattr(request.app.state, "business_os_close_session", True)
+                        db = factory()
+                        try:
+                            return normalize_upload_references(json.loads(body), db=db, actor_id=subject, company_id=organization, portal_token=request.headers.get("X-Portal-Session"))
+                        finally:
+                            if close:
+                                db.close()
+                    request._body = json.dumps(await run_in_threadpool(normalize)).encode()
                 except HTTPException:
                     return Response('{"detail":"Invalid or expired file reference"}',status_code=403,media_type='application/json')
                 except (ValueError, TypeError):

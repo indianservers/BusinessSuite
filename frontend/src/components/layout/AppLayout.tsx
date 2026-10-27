@@ -1,7 +1,7 @@
+import PageContextMenu from "@/components/app/PageContextMenu";
 import PMSAssistant from "@/apps/project-management/components/PMSAssistant";
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import AsyncProgress from "@/components/app/AsyncProgress";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import BackToTop from "@/components/app/BackToTop";
@@ -16,6 +16,7 @@ export default function AppLayout() {
   const location = useLocation();
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
+  const isMessaging = /^\/(pms|crm|hrms|srm|fam)\/messages\/?$/.test(location.pathname);
   const isPosTerminal = location.pathname === "/srm/pos" || location.pathname === "/srm/pos/terminal";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("sidebarCollapsed") === "true");
@@ -24,13 +25,18 @@ export default function AppLayout() {
     localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
+  if (location.pathname === "/power-apps" || location.pathname.startsWith("/power-apps/")) {
+    return <><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /></>;
+  }
+
   if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="h-dvh overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><PMSAssistant /></div>;
+    return <div className="h-dvh overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><PMSAssistant /></div>;
   }
 
   return (
     <div className={`product-shell ${product.themeClass} flex h-screen overflow-hidden bg-background`} data-product={product.key} style={{"--pms-assistant-left":sidebarCollapsed ? "80px" : "272px"} as import("react").CSSProperties}>
-      <AsyncProgress />
+
+      <PageContextMenu />
       {/* Sidebar */}
       <Sidebar
         open={sidebarOpen}
@@ -46,9 +52,9 @@ export default function AppLayout() {
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
-          {isPosTerminal ? null : <Breadcrumbs />}
-          <WorkspaceEnhancements terminal={isPosTerminal} />
+        <main className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+          {isPosTerminal || isMessaging ? null : <Breadcrumbs />}
+          {!isMessaging && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

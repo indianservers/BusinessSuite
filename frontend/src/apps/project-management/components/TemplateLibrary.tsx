@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Layers, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import BlueprintCatalog from "./BlueprintCatalog";
+import type { Blueprint } from "../data/blueprints";
 
 type Template = {
   id: number;
@@ -13,13 +15,15 @@ type Template = {
   enabled: boolean;
 };
 
-export default function TemplateLibrary<T extends Template>({ templates, projects, canEdit, busy, onPreview }: {
+export default function TemplateLibrary<T extends Template>({ templates, projects, canEdit, busy, onPreview, onSelectBlueprint }: {
   templates: T[];
   projects: { id: number; name: string }[];
   canEdit: boolean;
   busy: boolean;
   onPreview: (template: T) => void;
+  onSelectBlueprint: (blueprint: Blueprint) => void;
 }) {
+  const [source, setSource] = useState("catalog");
   const [search, setSearch] = useState("");
   const [project, setProject] = useState("");
   const [size, setSize] = useState("");
@@ -34,9 +38,11 @@ export default function TemplateLibrary<T extends Template>({ templates, project
   const selectClass = "h-11 min-w-0 rounded-md border bg-background px-3 text-sm";
 
   return <section aria-label="Workspace template library" className="space-y-5">
+    <div className="flex flex-wrap gap-2" aria-label="Blueprint library source"><Button variant={source === "catalog" ? "default" : "outline"} aria-pressed={source === "catalog"} onClick={() => setSource("catalog")}>Blueprint catalog</Button><Button variant={source === "workspace" ? "default" : "outline"} aria-pressed={source === "workspace"} onClick={() => setSource("workspace")}>Workspace blueprints ({templates.length})</Button></div>
+    {source === "catalog" ? <BlueprintCatalog busy={busy} onSelect={onSelectBlueprint} /> : <>
     <div className="rounded-xl border bg-primary/5 p-5">
-      <div className="flex items-center gap-3"><Layers className="h-6 w-6 text-primary" /><h3 className="text-xl font-semibold">Template center</h3></div>
-      <p className="mt-2 text-sm text-muted-foreground">Reuse your team's proven workflows. Preview the tasks and destination before creating work.</p>
+      <div className="flex items-center gap-3"><Layers className="h-6 w-6 text-primary" /><h3 className="text-xl font-semibold">Your team's playbook</h3></div>
+      <p className="mt-2 text-sm text-muted-foreground">Reuse your team's workflows. Customize tasks for a single run, or let an owner or admin update the saved blueprint.</p>
     </div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]">
       <div className="relative"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Search templates" placeholder="Search names, descriptions or tasks…" value={search} onChange={event => setSearch(event.target.value)} className="h-11 pl-9" /></div>
@@ -55,10 +61,11 @@ export default function TemplateLibrary<T extends Template>({ templates, project
         <div className="flex flex-1 flex-col gap-3 p-4">
           <div><h3 className="break-words font-semibold">{template.name}</h3><p className="mt-1 break-words text-xs text-muted-foreground">{projects.find(item => item.id === template.project_id)?.name || "Project unavailable"} · {template.enabled ? "Active" : "Paused"}</p></div>
           <div className="line-clamp-3 break-words text-sm text-muted-foreground"><RichTextContent value={template.description || "A reusable task workflow for this project."}/></div>
-          <Button className="mt-auto w-full" variant="outline" disabled={busy || !canEdit || !template.enabled} onClick={() => onPreview(template)}>Preview and use</Button>
+          <Button className="mt-auto w-full" variant="outline" disabled={busy} onClick={() => onPreview(template)}>Preview and customize</Button>
         </div>
       </article>)}
     </div>
     {!canEdit && <p className="text-sm text-muted-foreground">Guests can browse templates. Workspace members can apply them.</p>}
+    </>}
   </section>;
 }

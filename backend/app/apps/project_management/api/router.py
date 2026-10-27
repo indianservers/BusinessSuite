@@ -107,6 +107,10 @@ from ..org_chart import router as org_chart_router
 router.include_router(org_chart_router)
 from ..teams import router as teams_router
 router.include_router(teams_router)
+from app.shared.communication.api import router as collaboration_router
+router.include_router(collaboration_router)
+from ..directory import router as directory_router
+router.include_router(directory_router)
 from ..analytics import router as analytics_router
 router.include_router(analytics_router)
 from ..calendar_settings import router as calendar_settings_router
@@ -432,6 +436,14 @@ def _record_activity(
 ) -> None:
     from app.core.audit_context import set_audit_entity
     set_audit_entity(project_id, task_id or (entity_id if entity_type == "task" else None), (metadata or {}).get("changed_fields") or ([(metadata or {})["field"]] if (metadata or {}).get("field") else list(metadata or {}) if action == "bulk_updated" else []))
+    if entity_type == "task" and entity_id:
+        from app.shared.communication.models import FollowUp, CommunicationEvent
+        sources = db.query(FollowUp.workspace_id, FollowUp.conversation_id).filter(FollowUp.task_id == entity_id).distinct().limit(100).all()
+        if sources and db.get_bind().dialect.name == "postgresql":
+            from sqlalchemy import text
+            db.execute(text("SELECT pg_advisory_xact_lock(211028004)"))
+        for wid, rid in sources:
+            db.add(CommunicationEvent(workspace_id=wid, conversation_id=rid))
     db.add(PMSActivity(
         project_id=project_id,
         task_id=task_id,
@@ -2031,18 +2043,21 @@ def create_project_operation(
     if existing:
         raise HTTPException(status_code=400, detail="Project key already exists")
     
-    db_project = PMSProject(
-        organization_id=organization_id_for(current_user),
-        **project_in.dict()
-    )
+    project_data = project_in.dict()
+    custom_values = project_data.pop("custom_fields", None)
+    db_project = PMSProject(organization_id=organization_id_for(current_user), **project_data)
     if not db_project.owner_user_id:
         db_project.owner_user_id = db_project.manager_user_id or current_user.id
     if db_project.planned_start_date and not db_project.start_date:
         db_project.start_date = db_project.planned_start_date
     if db_project.planned_end_date and not db_project.due_date:
         db_project.due_date = db_project.planned_end_date
+    from ..custom_fields import apply_record_fields
+    apply_record_fields(db, current_user, "project", db_project, custom_values, validate_only=True)
     db.add(db_project)
     db.flush()
+    from ..custom_fields import apply_record_fields
+    apply_record_fields(db, current_user, "project", db_project, custom_values)
     _record_activity(db, db_project.id, current_user, "project.created", "project", db_project.id, f"Created project {db_project.project_key}")
     db.commit() if commit else db.flush()
     db.refresh(db_project)
@@ -2132,8 +2147,11 @@ def update_project(
     """Update a project."""
     project = get_project_for_action(db, project_id, current_user, "edit_project")
     
-    before = {field: getattr(project, field) for field in project_in.dict(exclude_unset=True)}
     update_data = project_in.dict(exclude_unset=True)
+    custom_values = update_data.pop("custom_fields", None)
+    before = {field: getattr(project, field) for field in update_data}
+    from ..custom_fields import apply_record_fields
+    apply_record_fields(db, current_user, "project", project, custom_values)
     for field, value in update_data.items():
         setattr(project, field, value)
     if update_data.get("status") in {"Completed", "Cancelled"} and not project.actual_end_date:
@@ -2294,6 +2312,8 @@ def clone_project(
                     dependency_type=dependency.dependency_type,
                     lag_days=dependency.lag_days,
                 ))
+    from ..custom_fields import copy_project_fields
+    copy_project_fields(db, source, cloned, task_map)
     team_user_ids: set[int] = set()
     if clone_in.include_team:
         for member in db.query(PMSProjectMember).filter(PMSProjectMember.project_id == source.id).all():
@@ -2813,6 +2833,7 @@ def create_task_operation(
         raise HTTPException(status_code=400, detail="Task key already exists in this project")
     
     task_data = task_in.dict()
+    custom_values = task_data.pop("custom_fields", None)
     validate_recurrence(task_in.recurrence_rule, task_in.due_date, task_in.recurrence_until, task_in.recurrence_interval)
     validate_task_type(db, task_data.get("work_type") or "Task", project.organization_id)
     task_data['project_id'] = project_id
@@ -2874,9 +2895,11 @@ def create_task_operation(
             PMSTask.deleted_at == None,
         ).count() + 1
     db_task = PMSTask(**task_data)
-    
+    from ..custom_fields import apply_record_fields
+    apply_record_fields(db, current_user, "task", db_task, custom_values, project, validate_only=True)
     db.add(db_task)
     db.flush()
+    apply_record_fields(db, current_user, "task", db_task, custom_values, project)
     apply_task_rules(db, db_task, project, current_user, "task.created")
     from ..recovery import task_state, record_edit
     recovery_before = task_state(db_task)
@@ -3627,6 +3650,10 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
     recovery_before = task_state(task)
 
     update_data = task_in.dict(exclude_unset=True)
+    custom_values = update_data.pop("custom_fields", None)
+    from types import SimpleNamespace
+    from ..custom_fields import apply_record_fields
+    apply_record_fields(db, current_user, "task", SimpleNamespace(id=task.id, work_type=update_data.get("work_type", task.work_type)), custom_values, project, validate_only=True)
     if update_data.get("status") in DONE_STATUSES and db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id == task.id, PMSTaskAssignee.source_key.isnot(None), PMSTaskAssignee.execution_status != "Done").first():
         raise HTTPException(409, "Approve each PMS work submission before closing this task")
     if update_data.get("work_type") and update_data["work_type"] != task.work_type:
@@ -3657,6 +3684,8 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
     for field, value in update_data.items():
         setattr(task, field, value)
 
+    from ..custom_fields import apply_record_fields
+    apply_record_fields(db, current_user, "task", task, custom_values, project)
     if "status" in update_data:
         task.completed_at = (task.completed_at or datetime.now(timezone.utc)) if task.status in DONE_STATUSES else None
     if "status" in update_data or "position" in update_data:
@@ -7105,3 +7134,8 @@ router.include_router(commercial_router)
 
 from ..work_api import router as work_router
 router.include_router(work_router)
+
+from app.module_registry import is_app_enabled
+if is_app_enabled("hrms"):
+    from app.apps.interns_hub.operations import router as operations_router
+    router.include_router(operations_router)

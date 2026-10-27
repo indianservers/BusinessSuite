@@ -250,6 +250,9 @@ a:focus-visible,
 .kf-main [role="tab"][data-state="active"] {
   color: hsl(var(--primary));
 }
+.kf-main [role="tab"][data-state="active"][class~="data-[state=active]:text-primary-foreground"] {
+  color: hsl(var(--primary-foreground));
+}
 .kf-page-header {
   display: flex;
   align-items: center;

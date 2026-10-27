@@ -1,3 +1,4 @@
+import { ConversationLauncher } from "@/shared/communication";
 import { insertRichMention } from "@/components/rich-text/content";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -361,6 +362,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="truncate text-2xl font-semibold">{title}</h1>
+                  {["leads","deals","accounts"].includes(kind) && <ConversationLauncher module="CRM" context={{type:kind === "leads" ? "lead" : kind === "deals" ? "deal" : "account", id:recordId}}/>}
                   {statusBadges.map((status) => <Badge key={status} className={statusColor(status)}>{status}</Badge>)}
                   {approvalStatus ? <Badge className={statusColor(approvalStatus)}>Approval {labelFor(approvalStatus)}</Badge> : null}
                   {kind === "quotations" ? <Badge className={statusColor(valueText(record.pdfStatus || record.pdf_status) || "not generated")}>PDF {labelFor(valueText(record.pdfStatus || record.pdf_status) || "not generated")}</Badge> : null}

@@ -1,3 +1,4 @@
+import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
@@ -29,6 +30,7 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 });
 
 export const srmRoutes: FrontendRoute[] = [
+ { path: "srm/messages", element: <CommunicationWorkspace module="Sales" /> },
   { path: "srm/gantt", element: <ModuleGanttPage key="srm" module="srm" /> },
   { path: "srm/inventory/gantt", element: <ModuleGanttPage key="inventory" module="inventory" /> },
   route("srm", "dashboard"),

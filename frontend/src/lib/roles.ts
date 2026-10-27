@@ -502,6 +502,7 @@ const pmsDeliveryOnlyPaths = [
 ];
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (["/pms/people-work", "/pms/my-notices"].includes(pathname.replace(/\/$/, ""))) return true;
   if (pathname.replace(/\/$/, "") === "/pms/notes" || /^\/pms\/projects\/\d+\/notes\/?$/.test(pathname)) return true;
   // Workspace membership is enforced by the API, independently of company roles.
   if (["/pms/batches", "/pms/batch-tasks", "/pms/my-assignments", "/pms/assignment-controls", "/pms/reviews", "/pms/recovery", "/pms", "/pms/", "/pms/workspaces", "/pms/workspace-tools", "/pms/goals", "/pms/forms", "/pms/templates", "/pms/org-chart", "/pms/dashboards", "/pms/messages"].includes(pathname.replace(/\/$/, ""))) return true;
@@ -1312,12 +1313,18 @@ const routeAccess: Record<string, RoleKey[]> = {
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
   const access = useAuthStore.getState().user?.access;
   if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return isSuperuser || Boolean(access?.isAccessAdmin);
+  if (pathname === "/power-apps" || pathname.startsWith("/power-apps/")) {
+    if (access?.companyDisabledModules?.includes("power_apps")) return false;
+    const grant = access?.grants.power_apps;
+    return isSuperuser || Boolean(grant?.enabled && grant.permissions.includes("power_apps_view"));
+  }
   const companyModule = access ? centralModuleForPath(access, pathname) : undefined;
   if (companyModule && access?.companyDisabledModules?.includes(companyModule.key)) return false;
   if (access?.managed && !isSuperuser) {
     const module = centralModuleForPath(access, pathname);
     if (module) return Boolean(access.grants[module.key]?.enabled) && (!["hrms","crm","project_management","srm","fam","ai"].includes(module.key) || isFrontendModuleEnabled(module.key));
   }
+  if (["/pms/people", "/pms/directory"].includes(pathname)) return isSuperuser || ["admin", "ceo", "hr", "manager"].includes(getRoleKey(role)) || normalizeRole(role) === "pms_org_admin";
   // Linked-record entry is authenticated by App; financial/project permissions stay server-authoritative.
   if (/^\/srm\/invoices\/\d+\/?$/.test(pathname) || /^\/pms\/projects\/\d+\/billing\/?$/.test(pathname)) return true;
   const lowercasePathname = pathname.toLowerCase();

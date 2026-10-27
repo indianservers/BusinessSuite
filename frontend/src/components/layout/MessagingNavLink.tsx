@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MessageSquare } from "lucide-react";
 import { api } from "@/services/api";
@@ -15,6 +15,10 @@ export default function MessagingNavLink({
   collapsed?: boolean;
 }) {
   const { user } = useAuthStore();
+  const location=useLocation();
+  const module=location.pathname.split("/")[1];
+  const route=`/${["pms","crm","hrms","srm","fam"].includes(module)?module:"pms"}/messages`;
+  const connected=useRealtimeStore(s=>s.connected&&s.transport==="websocket");
   const event = useRealtimeStore((s) => s.events[0]);
   const query = useQuery({
     queryKey: ["chat-unread", user?.id],
@@ -22,18 +26,19 @@ export default function MessagingNavLink({
     queryFn: async () =>
       (
         await api.get<{ unread: number }>(
-          "/project-management/messaging/unread",
+          "/collaboration/unread", {progress:false},
         )
       ).data,
-    refetchInterval: 15000,
+    refetchInterval: connected ? false : 30000,
   });
   useEffect(() => {
     if (event?.type === "chat.invalidate") void query.refetch();
   }, [event]);
   return (
     <Link
-      to={`/pms/messages${workspaceId ? `?workspace=${workspaceId}` : ""}`}
+      to={`${route}${workspaceId ? `?workspace=${workspaceId}` : ""}`}
       className={className}
+      aria-current={location.pathname===route?"page":undefined}
       aria-label={`Messages${query.data?.unread ? `, ${query.data.unread} unread` : ""}`}
       title="Messages"
     >

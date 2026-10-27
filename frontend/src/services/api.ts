@@ -45,13 +45,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const module = window.location.pathname.split("/")[1];
-  const isMutation = ["post", "put", "patch", "delete"].includes(config.method || "get");
-  // PMS workspaces already track complete operations, including their refresh.
-  if (isMutation && config.progress !== false && !config._finishProgress &&
-      module !== "pms" && !config.url?.startsWith("/auth/") &&
-      ["hrms", "crm", "srm", "fam"].includes(module)) {
-    config._finishProgress = beginProgress(`Processing ${module.toUpperCase()} request`);
+  if (config.progress !== false && !config._finishProgress) {
+    config._finishProgress = beginProgress(
+      (config.method || "get").toLowerCase() === "get" ? "Loading page data" : "Processing your request"
+    );
   }
   return config;
 });

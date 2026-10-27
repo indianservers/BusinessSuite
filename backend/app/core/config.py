@@ -8,6 +8,15 @@ from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
+    POWER_GOOGLE_CLIENT_ID: str = ""
+    POWER_GOOGLE_CLIENT_SECRET: str = ""
+    POWER_MICROSOFT_CLIENT_ID: str = ""
+    POWER_MICROSOFT_CLIENT_SECRET: str = ""
+    POWER_OAUTH_REDIRECT_URI: str = ""
+    POWER_CONNECTOR_PG_CA: str = ""
+    POWER_RUNTIME_TENANT_ACTIVE: int = Field(default=20, ge=1, le=100)
+    POWER_RUNTIME_ENVIRONMENT_ACTIVE: int = Field(default=10, ge=1, le=100)
+    POWER_RUNTIME_TENANT_QUEUE: int = Field(default=2000, ge=100, le=100000)
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, hide_input_in_errors=True)
 
     PROJECT_NAME: str = "Business Suite"
@@ -223,7 +232,18 @@ class Settings(BaseSettings):
         return self
 
     # Rate limiting
-    RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_PER_MINUTE: int = 120
+    SECURITY_RATE_LIMIT_ENABLED: bool = True
+    SECURITY_MAX_BODY_BYTES: int = 12 * 1024 * 1024
+    SECURITY_MAX_BATCH: int = 200
+    SECURITY_MAX_PAGE_SIZE: int = 500
+    SECURITY_MAX_OFFSET: int = 100000
+    SECURITY_MAX_JSON_DEPTH: int = 20
+    SECURITY_REQUEST_TIMEOUT_SECONDS: int = 60
+    SECURITY_EXPENSIVE_CONCURRENCY: int = 4
+    SECURITY_WORK_LEASE_SECONDS: int = 600
+    SECURITY_TRUSTED_PROXY_CIDRS: str = ""
+
 
     @field_validator("DEBUG", mode="before")
     @classmethod

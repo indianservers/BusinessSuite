@@ -741,9 +741,13 @@ class PMSWorkspaceEntry(Base):
 
 class PMSCustomField(Base):
     __tablename__ = "pms_custom_fields"
-    __table_args__ = (UniqueConstraint("project_id", "name", name="uq_pms_custom_field_name"),)
+    __table_args__ = (UniqueConstraint("project_id", "name", name="uq_pms_custom_field_name"), UniqueConstraint("scope_key", "name", name="uq_pms_field_scope_name"))
     id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=True, index=True)
+    organization_id = Column(Integer, nullable=True, index=True)
+    scope_key = Column(String(80), nullable=True, index=True)
+    entity_type = Column(String(12), nullable=False, default="task", server_default="task")
+    archived = Column(Boolean, nullable=False, default=False, server_default="0")
     name = Column(String(120), nullable=False)
     task_type = Column(String(40), nullable=False, default="", server_default="")
     field_type = Column(String(20), nullable=False)
@@ -755,6 +759,13 @@ class PMSCustomFieldValue(Base):
     __tablename__ = "pms_custom_field_values"
     field_id = Column(Integer, ForeignKey("pms_custom_fields.id", ondelete="CASCADE"), primary_key=True)
     task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    value_json = Column(Text, nullable=False)
+
+
+class PMSProjectCustomFieldValue(Base):
+    __tablename__ = "pms_project_custom_field_values"
+    field_id = Column(Integer, ForeignKey("pms_custom_fields.id", ondelete="CASCADE"), primary_key=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), primary_key=True)
     value_json = Column(Text, nullable=False)
 
 

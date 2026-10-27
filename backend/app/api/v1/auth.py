@@ -143,10 +143,9 @@ def _hash_token(token: str) -> str:
 def _client_ip(request: Request | None) -> str | None:
     if not request:
         return None
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",", 1)[0].strip()
-    return request.client.host if request.client else None
+    from app.core.middleware.audit import client_addresses
+    return client_addresses(request)[0]
+
 
 
 def _device_name(request: Request | None, explicit: str | None = None) -> str:
@@ -202,16 +201,18 @@ def _log_attempt(db: Session, user: User | None, email: str, success: bool, fail
     ))
 
 
-def check_lockout(db: Session, user: User) -> dict | None:
+def check_lockout(db: Session, user: User, request: Request | None = None) -> dict | None:
     """Returns lockout details when the account is temporarily locked."""
     policy = db.query(PasswordPolicy).filter((PasswordPolicy.is_default == True) | (PasswordPolicy.is_active == True)).order_by(PasswordPolicy.is_default.desc(), PasswordPolicy.id.desc()).first()
     attempts = policy.lockout_attempts if policy else 0
     if not policy or not attempts:
         return None
-    duration = policy.lockout_duration_minutes or policy.lockout_minutes or 30
+    # A targeted attacker cannot lock a victim out from every other network.
+    duration = min(policy.lockout_duration_minutes or policy.lockout_minutes or 1, 1)
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=duration)
     recent_failures = db.query(LoginAttempt).filter(
         LoginAttempt.user_id == user.id,
+        LoginAttempt.ip_address == _client_ip(request),
         ((LoginAttempt.success == False) | (LoginAttempt.status == "Failed")),
         LoginAttempt.created_at >= cutoff,
     ).count()
@@ -368,9 +369,9 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
     _check_ip_policy(db, request)
     user = db.query(User).filter(User.email == request_data.email).first()
     if user:
-        lockout = check_lockout(db, user)
+        lockout = check_lockout(db, user, request)
         if lockout:
-            raise HTTPException(status_code=423, detail=f"Account locked after {lockout['attempts']} failed attempts. Try again in {lockout['unlock_after_minutes']} minutes.")
+            raise HTTPException(status_code=429, detail="Login temporarily throttled. Try again shortly.", headers={"Retry-After": "60"})
     if not user or not user.hashed_password or not verify_password(request_data.password, user.hashed_password):
         _log_attempt(db, user, request_data.email, False, "Incorrect credentials", request)
         db.commit()
@@ -448,7 +449,7 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
         raise HTTPException(403, "Your sign-in email needs an active account with access to this module")
     if user.sso_provider_id:
         raise HTTPException(403, "Use your organization's configured SSO provider")
-    lockout = check_lockout(db, user)
+    lockout = check_lockout(db, user, request)
     if lockout:
         raise HTTPException(423, "Account is temporarily locked; please try again later")
     employee = getattr(user, "employee", None)
@@ -472,9 +473,9 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
     user = db.query(User).filter(User.id == token_record_id(payload.get("sub"))).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
-    lockout = check_lockout(db, user)
+    lockout = check_lockout(db, user, request)
     if lockout:
-        raise HTTPException(status_code=423, detail=f"Account locked after {lockout['attempts']} failed attempts. Try again in {lockout['unlock_after_minutes']} minutes.")
+        raise HTTPException(status_code=429, detail="Login temporarily throttled. Try again shortly.", headers={"Retry-After": "60"})
     _ensure_module_login_allowed(user, payload.get("module"))
     method = _active_totp(db, user.id)
     valid = False
@@ -788,6 +789,7 @@ def create_user(
         is_active=True,
     )
     db.add(user)
+    db.flush()
     db.commit()
     db.refresh(user)
     return user

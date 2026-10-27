@@ -1,3 +1,6 @@
+import AsyncProgress from "../../src/components/app/AsyncProgress";
+import RouteProgress from "../../src/components/app/RouteProgress";
+import NotificationsPage from "./NotificationsPage";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -65,6 +68,7 @@ const nav = [
   ["/report", "Daily Report", FileText],
   ["/analytics", "Analytics", BarChart3],
   ["/reviews", "Reviews", Star],
+  ["/notifications", "Notices & Warnings", Bell],
   ["/learning", "Learning", BookOpen],
   ["/leaderboard", "Leaderboard", Trophy],
   ["/attendance", "Attendance", CalendarDays],
@@ -224,6 +228,7 @@ function Login({ onLogin }: { onLogin: () => void }) {
 }
 function Portal({ logout }: { logout: () => void }) {
   const [data, setData] = useState<Data>();
+  const [unreadNotices, setUnreadNotices] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -231,6 +236,14 @@ function Portal({ logout }: { logout: () => void }) {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  useEffect(() => {
+    let active = true;
+    const refreshCount = () => hub('/operations/inbox-count').then(value => { if (active) setUnreadNotices(value.unacknowledged); }).catch(() => {});
+    refreshCount();
+    window.addEventListener('focus', refreshCount);
+    window.addEventListener('workforce:acknowledged', refreshCount);
+    return () => { active = false; window.removeEventListener('focus', refreshCount); window.removeEventListener('workforce:acknowledged', refreshCount); };
+  }, [location.pathname]);
   async function refresh() {
     const keys = [
       "me",
@@ -381,11 +394,11 @@ function Portal({ logout }: { logout: () => void }) {
             </form>
             <button
               className="notification"
-              aria-label="View reviews and notifications"
-              onClick={() => navigate("/reviews")}
+              aria-label={`View notices and warnings${unreadNotices ? `, ${unreadNotices} unread` : ""}`}
+              onClick={() => navigate("/notifications")}
             >
               <Bell size={22} />
-              {data.submissions.some((s) => s.feedback) && <span />}
+              {unreadNotices > 0 && <span />}
             </button>
             <Link className="top-profile" to="/profile">
               <Avatar name={name} photo={data.me.profile_photo_url} />
@@ -407,6 +420,7 @@ function Portal({ logout }: { logout: () => void }) {
               <Route path="/report" element={<DailyReport />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/reviews" element={<Reviews />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/learning" element={<Learning />} />
               <Route path="/learning/:id" element={<Course />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
@@ -474,6 +488,8 @@ function App() {
 }
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
+    <AsyncProgress />
+    <RouteProgress />
     <App />
   </BrowserRouter>,
 );

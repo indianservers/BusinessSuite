@@ -21,9 +21,15 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.apps.power_apps.approvals.api",
+    "app.apps.power_apps.runtime_api",
+    "app.apps.power_apps.intelligence_api",
+    "app.apps.power_apps.studio_api",
+    "app.apps.power_apps.router",
     "app.access.api",
     "app.access.control",
     "app.shared.api",
+    "app.shared.communication.gateway",
     "app.enterprise.api",
     "app.ai_agents.security_api",
     "app.common.profile_api",
@@ -47,6 +53,11 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.apps.power_apps.models",
+    "app.apps.power_apps.runtime_models",
+    "app.apps.power_apps.integrations.models",
+    "app.apps.power_apps.approvals.models",
+    "app.models.security_boundary",
     "app.access.models",
     "app.shared.models",
     "app.models.platform",
@@ -123,6 +134,7 @@ APP_MODULES: dict[str, AppModule] = {
         model_modules=(
             "app.apps.interns_hub.models",
             "app.apps.interns_hub.management_models",
+            "app.apps.interns_hub.operations_models",
             "app.models.company",
             "app.models.employee",
             "app.models.expense",
@@ -216,4 +228,6 @@ def build_api_router() -> APIRouter:
     for app_module in iter_enabled_modules():
         if app_module.shared_services and app_module.service_registration:
             import_module(app_module.service_registration).register_services()
+    from app.core.route_policy import enforce_private_defaults
+    enforce_private_defaults(api_router)
     return api_router

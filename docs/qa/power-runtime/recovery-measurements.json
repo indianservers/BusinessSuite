@@ -1,0 +1,14 @@
+{
+  "database": "isolated local PostgreSQL",
+  "crash_during_handler": true,
+  "uncommitted_output_survived": false,
+  "recovery_seconds": 4.904573799984064,
+  "recovery_lease": "expired explicitly to avoid waiting 30 seconds in the test",
+  "claims": 4,
+  "attempts": {
+    "log": 1,
+    "set": 1,
+    "start": 2
+  },
+  "final_status": "completed"
+}

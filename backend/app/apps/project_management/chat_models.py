@@ -100,3 +100,6 @@ class ChatAttachment(Base):
     path = Column(Text, nullable=False)
     project_file_id = Column(Integer, ForeignKey("pms_file_assets.id"))
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+# Shared communication metadata extends these canonical records.
+from app.shared.communication import models as communication_models  # noqa: F401,E402

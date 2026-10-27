@@ -1,0 +1,1123 @@
+[
+  {
+    "id": "A",
+    "name": "Manager Approval",
+    "definition": {
+      "schema_version": 2,
+      "catalog_version": 1,
+      "nodes": [
+        {
+          "id": "n0",
+          "type": "manual_trigger",
+          "label": "Manual Trigger",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 80,
+            "y": 180
+          },
+          "config": {},
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n1",
+          "type": "if_else",
+          "label": "If / Else",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 380,
+            "y": 180
+          },
+          "config": {
+            "operator": "equals",
+            "condition": {
+              "join": "and",
+              "rules": [
+                {
+                  "left": "{{trigger.record.amount}}",
+                  "operator": "greater_than",
+                  "right": 50000
+                }
+              ]
+            }
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n2",
+          "type": "create_approval",
+          "label": "Create Approval Request",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "config": {
+            "require_all": true,
+            "title": "Review high-value request",
+            "approver": "fixture_manager"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n3",
+          "type": "if_else",
+          "label": "If / Else",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 980,
+            "y": 180
+          },
+          "config": {
+            "operator": "equals",
+            "condition": {
+              "join": "and",
+              "rules": [
+                {
+                  "left": "{{steps.n2.output.value.decision}}",
+                  "operator": "equals",
+                  "right": "approved"
+                }
+              ]
+            }
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n4",
+          "type": "set_variable",
+          "label": "Set Variable",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1280,
+            "y": 180
+          },
+          "config": {
+            "value": "Approved"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n5",
+          "type": "set_variable",
+          "label": "Set Variable",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1580,
+            "y": 180
+          },
+          "config": {
+            "value": "Rejected"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n6",
+          "type": "create_notification",
+          "label": "Create Notification",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1880,
+            "y": 180
+          },
+          "config": {
+            "recipient": "fixture_user",
+            "title": "Standard request",
+            "message": "No manager approval needed"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_n0_out_n1",
+          "source": "n0",
+          "target": "n1",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n1_true_n2",
+          "source": "n1",
+          "target": "n2",
+          "source_port": "true",
+          "target_port": "in",
+          "label": "true"
+        },
+        {
+          "id": "e_n1_false_n6",
+          "source": "n1",
+          "target": "n6",
+          "source_port": "false",
+          "target_port": "in",
+          "label": "false"
+        },
+        {
+          "id": "e_n2_out_n3",
+          "source": "n2",
+          "target": "n3",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n3_true_n4",
+          "source": "n3",
+          "target": "n4",
+          "source_port": "true",
+          "target_port": "in",
+          "label": "true"
+        },
+        {
+          "id": "e_n3_false_n5",
+          "source": "n3",
+          "target": "n5",
+          "source_port": "false",
+          "target_port": "in",
+          "label": "false"
+        }
+      ],
+      "groups": [],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 0.75
+      }
+    },
+    "input": {
+      "record": {
+        "amount": 75000
+      }
+    },
+    "synthetic": {
+      "n2": {
+        "value": {
+          "decision": "approved"
+        }
+      }
+    },
+    "expected_node": "n4",
+    "expected_output": {
+      "value": "Approved"
+    }
+  },
+  {
+    "id": "B",
+    "name": "Intern Bug Escalation",
+    "definition": {
+      "schema_version": 2,
+      "catalog_version": 1,
+      "nodes": [
+        {
+          "id": "n0",
+          "type": "manual_trigger",
+          "label": "Manual Trigger",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 80,
+            "y": 180
+          },
+          "config": {},
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n1",
+          "type": "route_by_priority",
+          "label": "Route by Priority",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 380,
+            "y": 180
+          },
+          "config": {
+            "value": "{{trigger.record.severity}}"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n2",
+          "type": "create_task",
+          "label": "Create Task",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "config": {
+            "title": "Review critical synthetic bug",
+            "assignee": "fixture_owner",
+            "due_date": "2026-11-01"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n3",
+          "type": "create_notification",
+          "label": "Create Notification",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 980,
+            "y": 180
+          },
+          "config": {
+            "recipient": "fixture_owner",
+            "title": "Critical bug assigned",
+            "message": "Synthetic task {{steps.n2.output.task_id}}"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n4",
+          "type": "log_event",
+          "label": "Log Event",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1280,
+            "y": 180
+          },
+          "config": {
+            "level": "info",
+            "message": "Normal bug queue"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_n0_out_n1",
+          "source": "n0",
+          "target": "n1",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n1_route_1_n2",
+          "source": "n1",
+          "target": "n2",
+          "source_port": "route_1",
+          "target_port": "in",
+          "label": "route_1"
+        },
+        {
+          "id": "e_n2_out_n3",
+          "source": "n2",
+          "target": "n3",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n1_route_2_n4",
+          "source": "n1",
+          "target": "n4",
+          "source_port": "route_2",
+          "target_port": "in",
+          "label": "route_2"
+        }
+      ],
+      "groups": [],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 0.75
+      }
+    },
+    "input": {
+      "record": {
+        "severity": "Critical"
+      }
+    },
+    "synthetic": {
+      "n2": {
+        "task_id": 101
+      },
+      "n3": {
+        "value": "explicit notification fixture"
+      }
+    },
+    "expected_node": "n2",
+    "expected_output": {
+      "task_id": 101
+    }
+  },
+  {
+    "id": "C",
+    "name": "Employee Onboarding",
+    "definition": {
+      "schema_version": 2,
+      "catalog_version": 1,
+      "nodes": [
+        {
+          "id": "n0",
+          "type": "manual_trigger",
+          "label": "Manual Trigger",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 80,
+            "y": 180
+          },
+          "config": {},
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n1",
+          "type": "check_empty",
+          "label": "Check Empty Value",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 380,
+            "y": 180
+          },
+          "config": {
+            "value": "{{trigger.record.name}}"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n2",
+          "type": "log_event",
+          "label": "Log Event",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "config": {
+            "level": "info",
+            "message": "Missing employee name"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n3",
+          "type": "build_json",
+          "label": "Build JSON",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 980,
+            "y": 180
+          },
+          "config": {
+            "value": {
+              "checklist": [
+                "Review details",
+                "Assign buddy",
+                "Schedule orientation"
+              ]
+            }
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n4",
+          "type": "create_notification",
+          "label": "Create Notification",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1280,
+            "y": 180
+          },
+          "config": {
+            "recipient": "fixture_employee",
+            "title": "Onboarding checklist",
+            "message": "Review the supplied checklist"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_n0_out_n1",
+          "source": "n0",
+          "target": "n1",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n1_true_n2",
+          "source": "n1",
+          "target": "n2",
+          "source_port": "true",
+          "target_port": "in",
+          "label": "true"
+        },
+        {
+          "id": "e_n1_false_n3",
+          "source": "n1",
+          "target": "n3",
+          "source_port": "false",
+          "target_port": "in",
+          "label": "false"
+        },
+        {
+          "id": "e_n3_out_n4",
+          "source": "n3",
+          "target": "n4",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        }
+      ],
+      "groups": [],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 0.75
+      }
+    },
+    "input": {
+      "record": {
+        "name": "Synthetic Employee"
+      }
+    },
+    "synthetic": {
+      "n4": {
+        "value": "explicit notification fixture"
+      }
+    },
+    "expected_node": "n3",
+    "expected_output": {
+      "value": {
+        "checklist": [
+          "Review details",
+          "Assign buddy",
+          "Schedule orientation"
+        ]
+      }
+    }
+  },
+  {
+    "id": "D",
+    "name": "CRM Lead Qualification",
+    "definition": {
+      "schema_version": 2,
+      "catalog_version": 1,
+      "nodes": [
+        {
+          "id": "n0",
+          "type": "manual_trigger",
+          "label": "Manual Trigger",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 80,
+            "y": 180
+          },
+          "config": {},
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n1",
+          "type": "if_else",
+          "label": "If / Else",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 380,
+            "y": 180
+          },
+          "config": {
+            "operator": "equals",
+            "condition": {
+              "join": "and",
+              "rules": [
+                {
+                  "left": "{{trigger.record.email}}",
+                  "operator": "contains",
+                  "right": "@"
+                }
+              ]
+            }
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n2",
+          "type": "set_variable",
+          "label": "Set Variable",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "config": {
+            "value": ""
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          },
+          "mappings": {
+            "value": {
+              "source": "{{trigger.record.segment}}",
+              "constant": null,
+              "operations": [
+                {
+                  "op": "lookup",
+                  "argument": {
+                    "Enterprise": 80,
+                    "Small": 50
+                  }
+                }
+              ],
+              "target_type": "number",
+              "nullable": false
+            }
+          }
+        },
+        {
+          "id": "n3",
+          "type": "switch",
+          "label": "Switch",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 980,
+            "y": 180
+          },
+          "config": {
+            "cases": {
+              "route_1": "high",
+              "route_2": "low"
+            },
+            "value": "{{steps.n2.output.value}}",
+            "routes": [
+              {
+                "id": "route_high",
+                "label": "High score",
+                "value": 80
+              },
+              {
+                "id": "route_medium",
+                "label": "Medium score",
+                "value": 50
+              }
+            ]
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n4",
+          "type": "create_task",
+          "label": "Create Task",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1280,
+            "y": 180
+          },
+          "config": {
+            "title": "Qualify synthetic lead",
+            "assignee": "fixture_sales_owner",
+            "due_date": "2026-11-01"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n5",
+          "type": "log_event",
+          "label": "Log Event",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1580,
+            "y": 180
+          },
+          "config": {
+            "level": "info",
+            "message": "Review lead manually"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n6",
+          "type": "log_event",
+          "label": "Log Event",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1880,
+            "y": 180
+          },
+          "config": {
+            "level": "info",
+            "message": "Invalid contact"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n7",
+          "type": "log_event",
+          "label": "Log Event",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 2180,
+            "y": 180
+          },
+          "config": {
+            "level": "info",
+            "message": "General lead queue"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_n0_out_n1",
+          "source": "n0",
+          "target": "n1",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n1_true_n2",
+          "source": "n1",
+          "target": "n2",
+          "source_port": "true",
+          "target_port": "in",
+          "label": "true"
+        },
+        {
+          "id": "e_n1_false_n6",
+          "source": "n1",
+          "target": "n6",
+          "source_port": "false",
+          "target_port": "in",
+          "label": "false"
+        },
+        {
+          "id": "e_n2_out_n3",
+          "source": "n2",
+          "target": "n3",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n3_route_high_n4",
+          "source": "n3",
+          "target": "n4",
+          "source_port": "route_high",
+          "target_port": "in",
+          "label": "route_high"
+        },
+        {
+          "id": "e_n3_route_medium_n5",
+          "source": "n3",
+          "target": "n5",
+          "source_port": "route_medium",
+          "target_port": "in",
+          "label": "route_medium"
+        },
+        {
+          "id": "e_n3_default_n5",
+          "source": "n3",
+          "target": "n7",
+          "source_port": "default",
+          "target_port": "in",
+          "label": "default"
+        }
+      ],
+      "groups": [],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 0.75
+      }
+    },
+    "input": {
+      "record": {
+        "email": "fixture@example.invalid",
+        "segment": "Enterprise"
+      }
+    },
+    "synthetic": {
+      "n4": {
+        "task_id": 202
+      }
+    },
+    "expected_node": "n2",
+    "expected_output": {
+      "value": 80
+    }
+  },
+  {
+    "id": "E",
+    "name": "Complex Data Processing",
+    "definition": {
+      "schema_version": 2,
+      "catalog_version": 1,
+      "nodes": [
+        {
+          "id": "n0",
+          "type": "manual_trigger",
+          "label": "Manual Trigger",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 80,
+            "y": 180
+          },
+          "config": {},
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n1",
+          "type": "parse_json",
+          "label": "Parse JSON",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 380,
+            "y": 180
+          },
+          "config": {
+            "value": "{{trigger.record.json}}"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n2",
+          "type": "map_fields",
+          "label": "Map Fields",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 680,
+            "y": 180
+          },
+          "config": {
+            "mapping": {}
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          },
+          "mappings": {
+            "mapping": {
+              "source": "{{steps.n1.output.value}}",
+              "constant": null,
+              "operations": [
+                {
+                  "op": "path",
+                  "argument": "items"
+                },
+                {
+                  "op": "filter",
+                  "argument": {
+                    "path": "amount",
+                    "operator": "greater_than",
+                    "right": 10
+                  }
+                },
+                {
+                  "op": "map",
+                  "argument": [
+                    {
+                      "op": "path",
+                      "argument": "amount"
+                    }
+                  ]
+                }
+              ],
+              "target_type": "array",
+              "nullable": false
+            }
+          }
+        },
+        {
+          "id": "n3",
+          "type": "filter",
+          "label": "Filter",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 980,
+            "y": 180
+          },
+          "config": {
+            "operator": "equals",
+            "condition": {
+              "join": "and",
+              "rules": [
+                {
+                  "left": "{{trigger.record.include}}",
+                  "operator": "boolean_equals",
+                  "right": true
+                }
+              ]
+            }
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n4",
+          "type": "aggregate_values",
+          "label": "Aggregate Values",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1280,
+            "y": 180
+          },
+          "config": {
+            "values": [],
+            "operation": "sum"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          },
+          "mappings": {
+            "values": {
+              "source": "{{steps.n2.output.value}}",
+              "constant": null,
+              "operations": [],
+              "target_type": "array",
+              "nullable": false
+            }
+          }
+        },
+        {
+          "id": "n5",
+          "type": "set_variable",
+          "label": "Set Variable",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1580,
+            "y": 180
+          },
+          "config": {
+            "value": "{{steps.n4.output.value}}"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        },
+        {
+          "id": "n6",
+          "type": "log_event",
+          "label": "Log Event",
+          "description": "Synthetic design scenario",
+          "position": {
+            "x": 1880,
+            "y": 180
+          },
+          "config": {
+            "level": "info",
+            "message": "Input excluded"
+          },
+          "credential_reference": null,
+          "advanced": {
+            "retry_attempts": 3,
+            "timeout_seconds": 60,
+            "error_strategy": "stop"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_n0_out_n1",
+          "source": "n0",
+          "target": "n1",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n1_out_n2",
+          "source": "n1",
+          "target": "n2",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n2_out_n3",
+          "source": "n2",
+          "target": "n3",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        },
+        {
+          "id": "e_n3_true_n4",
+          "source": "n3",
+          "target": "n4",
+          "source_port": "true",
+          "target_port": "in",
+          "label": "true"
+        },
+        {
+          "id": "e_n3_false_n6",
+          "source": "n3",
+          "target": "n6",
+          "source_port": "false",
+          "target_port": "in",
+          "label": "false"
+        },
+        {
+          "id": "e_n4_out_n5",
+          "source": "n4",
+          "target": "n5",
+          "source_port": "out",
+          "target_port": "in",
+          "label": ""
+        }
+      ],
+      "groups": [],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 0.75
+      }
+    },
+    "input": {
+      "record": {
+        "json": "{\"items\": [{\"amount\": 5}, {\"amount\": 12}, {\"amount\": 25}]}",
+        "include": true
+      }
+    },
+    "synthetic": {},
+    "expected_node": "n5",
+    "expected_output": {
+      "value": 37
+    }
+  }
+]

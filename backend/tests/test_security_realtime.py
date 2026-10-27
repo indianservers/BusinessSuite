@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 from starlette.websockets import WebSocketDisconnect
 from app.core.security import create_access_token
-from app.models.user import User,Role
+from app.models.user import User,Role,Permission
 from app.models.employee import Employee
 from app.apps.project_management.realtime import PMSRealtimeManager
 
@@ -17,8 +17,11 @@ def test_intern_portal_token_is_rejected_at_pms_websocket(client):
 
 
 def test_open_realtime_identity_is_rechecked_after_becoming_an_intern(db):
-    user=User(email='synthetic-realtime@example.com',hashed_password='unused',is_active=True,role=Role(name='employee'))
-    db.add(user);db.commit()
+    user=User(email='synthetic-realtime@example.com',hashed_password='unused',is_active=True,role=Role(name='employee', permissions=[Permission(name='pms_view',module='project_management')]))
+    db.add(user);db.flush()
+    from tests.tenant_test_utils import assign_company
+    assign_company(db,user,1)
+    db.commit()
     @contextmanager
     def factory():
         yield db

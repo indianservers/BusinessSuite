@@ -174,9 +174,15 @@ def list_events(start: datetime, end: datetime, db: Session=Depends(get_db), use
 
 @router.post('/planner/events',status_code=201)
 def create_event(data: EventInput,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    return create_event_operation(data,db,user)
+
+
+def create_event_operation(data,db,user,*,commit=True):
     validate_scope(db,user,data)
     event=PMSCalendarEvent(owner_id=user.id,**{**data.model_dump(),'start_at':data.start_at.astimezone(UTC),'end_at':data.end_at.astimezone(UTC)})
-    db.add(event);db.commit();db.refresh(event)
+    db.add(event)
+    db.commit() if commit else db.flush()
+    db.refresh(event)
     return event_output(event,user)
 
 @router.put('/planner/events/{event_id}')

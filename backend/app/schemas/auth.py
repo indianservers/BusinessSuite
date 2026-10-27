@@ -1,19 +1,20 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from app.core.input_validation import EmailAddress
 
 
 class LoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     email: EmailAddress
-    password: str
+    password: str = Field(min_length=1, max_length=128)
     module: Optional[str] = None
     trusted_device_token: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
     access_token: str
-    refresh_token: str
+    refresh_token: str = Field(max_length=4096)
     token_type: str = "bearer"
     user_id: int
     email: str
@@ -23,8 +24,8 @@ class TokenResponse(BaseModel):
 
 
 class MFAVerifyRequest(BaseModel):
-    mfa_token: str
-    code: str
+    mfa_token: str = Field(max_length=4096)
+    code: str = Field(min_length=1, max_length=128)
     method: str = "totp"
     trust_device: bool = False
     device_name: Optional[str] = None
@@ -32,15 +33,15 @@ class MFAVerifyRequest(BaseModel):
 
 class MFAConfirmRequest(BaseModel):
     method_id: int
-    code: str
+    code: str = Field(min_length=1, max_length=128)
 
 
 class MFACodeRequest(BaseModel):
-    code: str
+    code: str = Field(min_length=1, max_length=128)
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(max_length=4096)
 
 
 class PasswordResetRequest(BaseModel):
@@ -48,13 +49,13 @@ class PasswordResetRequest(BaseModel):
 
 
 class PasswordResetConfirm(BaseModel):
-    token: str
-    new_password: str = Field(min_length=8)
+    token: str = Field(max_length=4096)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str = Field(min_length=8)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class PermissionSchema(BaseModel):

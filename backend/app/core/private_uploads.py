@@ -16,6 +16,6 @@ class ProtectedUploads(StaticFiles):
             raise HTTPException(404,'Not found')
         parts=tuple(path.replace('\\','/').strip('/').lower().split('/'))
         # Only explicitly public presentation assets may use permanent URLs.
-        if parts[:1] not in {('photos',),('avatars',),('logos',),('branding',)}:
+        if parts[:1] not in {('logos',),('branding',)}:
             raise HTTPException(404,'Not found')
         return await super().get_response(path,scope)

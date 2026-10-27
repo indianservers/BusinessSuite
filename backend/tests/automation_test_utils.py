@@ -16,6 +16,9 @@ def automation_headers(client, db, email: str = "automation-admin@example.com", 
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
+    db.flush()
+    from tests.tenant_test_utils import assign_company
+    assign_company(db, user, 1)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text

@@ -2,7 +2,7 @@
 import calendar
 from datetime import timedelta
 from fastapi import HTTPException
-from .models import PMSTask, PMSTaskAssignee, PMSTaskTag, PMSBoardColumn
+from .models import PMSTask, PMSTaskAssignee, PMSTaskTag, PMSBoardColumn, PMSCustomFieldValue
 
 
 def validate_recurrence(rule, due_date, until, interval):
@@ -47,4 +47,6 @@ def create_next_occurrence(db, task):
         db.add(PMSTaskAssignee(task_id=following.id, user_id=assignment.user_id))
     for tag in db.query(PMSTaskTag).filter_by(task_id=task.id).all():
         db.add(PMSTaskTag(task_id=following.id, tag_id=tag.tag_id))
+    for value in db.query(PMSCustomFieldValue).filter_by(task_id=task.id).all():
+        db.add(PMSCustomFieldValue(task_id=following.id, field_id=value.field_id, value_json=value.value_json))
     return following

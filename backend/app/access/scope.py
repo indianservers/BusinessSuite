@@ -102,6 +102,10 @@ def install_scope(db, user, company, grants):
     cache = {}
 
     def predicate(model, stack=()):
+        from app.apps.power_apps.approvals.scope import predicate as approval_predicate
+        approval = approval_predicate(model,user,company,grants)
+        if approval is not None:return approval
+
         if model.__tablename__ in {"ai_agents","ai_agent_tools"}:
             return None  # Code-owned public tool metadata; admin writes have explicit endpoint guards.
         if model in cache:
@@ -166,6 +170,10 @@ def install_scope(db, user, company, grants):
             if "organization_id" in table.c:
                 return func.coalesce(model.organization_id, 1) == company
             return false()
+        # Environment configuration is organization metadata; resource ownership
+        # is independently enforced by Power Apps services.
+        if model.__module__ == "app.apps.power_apps.models" and model.__tablename__ == "power_apps_environments":
+            return model.organization_id == company
         key = model_module(model)
         if key is None:
             return None
@@ -175,7 +183,12 @@ def install_scope(db, user, company, grants):
         scope = grant.get("scope", "own")
         columns = model.__table__.c
         tenant = None
-        if "organization_id" in columns:
+        from app.core.tenant_boundary import legacy_root
+        if legacy_root(model):
+            from app.models.security_boundary import SecurityResourceOwnership
+            ownership = SecurityResourceOwnership.__table__
+            tenant = model.id.in_(select(ownership.c.resource_id).where(ownership.c.resource_table == model.__tablename__, ownership.c.company_id == company))
+        elif "organization_id" in columns:
             tenant = func.coalesce(model.organization_id, 1) == company
         elif "company_id" in columns and key not in {"crm", "srm"}:
             tenant = model.company_id == company
@@ -369,6 +382,8 @@ def install_scope(db, user, company, grants):
 
     def validate(session, flush_context, instances):
         for item in session.new | session.dirty | session.deleted:
+            from app.apps.power_apps.approvals.scope import domain_write
+            if domain_write(session,item,user,company):continue
             if type(item).__module__ == "app.models.company":
                 from app.models.company import Company
 
@@ -411,7 +426,9 @@ def install_scope(db, user, company, grants):
                 and item.organization_id is None
             ):
                 item.organization_id = company
-            if grant.get("scope") == "organization" and not any(
+            from app.core.tenant_boundary import legacy_root
+            ledger_owned = legacy_root(type(item))
+            if not ledger_owned and grant.get("scope") == "organization" and not any(
                 key in columns
                 for key in (
                     "company_id",
@@ -432,7 +449,7 @@ def install_scope(db, user, company, grants):
             value = getattr(item, "organization_id", company)
             if value is not None and value != company:
                 raise HTTPException(403, "Cross-organization write blocked")
-            if not any(
+            if not ledger_owned and not any(
                 field in columns for field in ("organization_id", "company_id")
             ) and not any(
                 field in columns and getattr(item, field, None) is not None

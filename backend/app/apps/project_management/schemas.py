@@ -78,10 +78,11 @@ class PMSProjectBase(BaseModel):
 
 
 class PMSProjectCreate(PMSProjectBase):
-    pass
+    custom_fields: Optional[dict[str, Any]] = None
 
 
 class PMSProjectUpdate(BaseModel):
+    custom_fields: Optional[dict[str, Any]] = None
     name: Optional[str] = None
     description: Optional[str] = None
     client_id: Optional[int] = None
@@ -597,10 +598,12 @@ class PMSTaskBase(BaseModel):
 
 
 class PMSTaskCreate(PMSTaskBase):
+    custom_fields: Optional[dict[str, Any]] = None
     column_id: Optional[int] = None
 
 
 class PMSTaskUpdate(BaseModel):
+    custom_fields: Optional[dict[str, Any]] = None
     assignee_user_ids: Optional[list[int]] = Field(None, max_length=100)
     title: Optional[str] = None
     description: Optional[str] = None
@@ -696,7 +699,7 @@ class PMSTaskDependencyDetail(PMSTaskDependencyResponse):
 
 
 class TaskBulkUpdateRequest(BaseModel):
-    task_ids: List[int] = Field(..., min_items=1)
+    task_ids: List[int] = Field(..., min_length=1, max_length=200)
     status: Optional[str] = None
     assignee_user_id: Optional[int] = None
     priority: Optional[str] = None

@@ -1,0 +1,2784 @@
+{
+  "catalog_version": 1,
+  "templates": [
+    {
+      "id": "new-record-task",
+      "name": "New record to assigned task",
+      "description": "Turn a new record into a task for a responsible person.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "record events",
+        "task adapter"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "",
+            "position": {
+              "x": 80,
+              "y": 220
+            },
+            "config": {
+              "record_type": "business_record"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "task",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "",
+            "position": {
+              "x": 420,
+              "y": 220
+            },
+            "config": {
+              "title": "Review {{trigger.record.title}}"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_task",
+            "source": "trigger",
+            "target": "task",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "form-approval",
+      "name": "Form submission to approval",
+      "description": "Describe a review process for incoming information.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "form ingress",
+        "approval adapter"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "",
+            "position": {
+              "x": 80,
+              "y": 220
+            },
+            "config": {
+              "event_name": "form.submitted"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "approval",
+            "type": "create_approval",
+            "label": "Create Approval Request",
+            "description": "",
+            "position": {
+              "x": 420,
+              "y": 220
+            },
+            "config": {
+              "require_all": true,
+              "title": "Review submission"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_approval",
+            "source": "trigger",
+            "target": "approval",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "status-notification",
+      "name": "Status changed to notification",
+      "description": "Keep the responsible person informed.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "record events",
+        "notification adapter"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "status_changed",
+            "label": "Status Changed",
+            "description": "",
+            "position": {
+              "x": 80,
+              "y": 220
+            },
+            "config": {
+              "record_type": "business_record",
+              "status": "Ready"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "notification",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "",
+            "position": {
+              "x": 420,
+              "y": 220
+            },
+            "config": {
+              "title": "Status changed",
+              "message": "Record {{trigger.record.id}} is ready"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_notification",
+            "source": "trigger",
+            "target": "notification",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "scheduled-reminder",
+      "name": "Scheduled reminder",
+      "description": "Plan a recurring in-app reminder.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "scheduler",
+        "notification adapter"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "scheduled_trigger",
+            "label": "Scheduled Trigger",
+            "description": "",
+            "position": {
+              "x": 80,
+              "y": 220
+            },
+            "config": {
+              "schedule": "0 9 * * 1-5",
+              "timezone": "Asia/Kolkata"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "notification",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "",
+            "position": {
+              "x": 420,
+              "y": 220
+            },
+            "config": {
+              "title": "Daily reminder",
+              "message": "Review your open work."
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_notification",
+            "source": "trigger",
+            "target": "notification",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "critical-escalation",
+      "name": "Critical bug escalation",
+      "description": "Route critical reports for follow-up.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "record events",
+        "follow-up adapter"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "",
+            "position": {
+              "x": 60,
+              "y": 220
+            },
+            "config": {
+              "record_type": "bug"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "condition",
+            "type": "if_else",
+            "label": "If / Else",
+            "description": "",
+            "position": {
+              "x": 390,
+              "y": 220
+            },
+            "config": {
+              "operator": "equals",
+              "left": "{{trigger.record.priority}}",
+              "right": "Critical"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "escalate",
+            "type": "create_followup",
+            "label": "Create Follow-up",
+            "description": "",
+            "position": {
+              "x": 730,
+              "y": 90
+            },
+            "config": {
+              "title": "Investigate critical bug"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "finish",
+            "type": "stop_workflow",
+            "label": "Stop Workflow",
+            "description": "",
+            "position": {
+              "x": 730,
+              "y": 390
+            },
+            "config": {
+              "reason": "No escalation required"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_condition",
+            "source": "trigger",
+            "target": "condition",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          },
+          {
+            "id": "condition_true_escalate",
+            "source": "condition",
+            "target": "escalate",
+            "source_port": "true",
+            "target_port": "in",
+            "label": "True"
+          },
+          {
+            "id": "condition_false_finish",
+            "source": "condition",
+            "target": "finish",
+            "source_port": "false",
+            "target_port": "in",
+            "label": "False"
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "onboarding-checklist",
+      "name": "Employee onboarding checklist",
+      "description": "Describe checklist tasks without accessing employee data.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "employee events",
+        "bounded-loop executor",
+        "task adapter"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "",
+            "position": {
+              "x": 60,
+              "y": 220
+            },
+            "config": {
+              "record_type": "employee"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "items",
+            "type": "for_each",
+            "label": "For Each",
+            "description": "",
+            "position": {
+              "x": 390,
+              "y": 220
+            },
+            "config": {
+              "max_iterations": 100,
+              "items": "{{trigger.record.checklist}}"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "task",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "",
+            "position": {
+              "x": 730,
+              "y": 90
+            },
+            "config": {
+              "title": "Onboarding checklist task"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "finish",
+            "type": "stop_workflow",
+            "label": "Stop Workflow",
+            "description": "",
+            "position": {
+              "x": 730,
+              "y": 390
+            },
+            "config": {},
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_items",
+            "source": "trigger",
+            "target": "items",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          },
+          {
+            "id": "items_body_task",
+            "source": "items",
+            "target": "task",
+            "source_port": "body",
+            "target_port": "in",
+            "label": "Body"
+          },
+          {
+            "id": "items_done_finish",
+            "source": "items",
+            "target": "finish",
+            "source_port": "done",
+            "target_port": "in",
+            "label": "Done"
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "lead-assignment",
+      "name": "Lead created to representative task",
+      "description": "Prepare an explicit sales handoff.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "lead events",
+        "task adapter"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "",
+            "position": {
+              "x": 80,
+              "y": 220
+            },
+            "config": {
+              "record_type": "lead"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "task",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "",
+            "position": {
+              "x": 420,
+              "y": 220
+            },
+            "config": {
+              "title": "Follow up with {{trigger.record.name}}"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_task",
+            "source": "trigger",
+            "target": "task",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "approval-record-update",
+      "name": "Approval completed to record update",
+      "description": "Describe an authorized update after approval.",
+      "version": 1,
+      "category": "Business processes",
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "approval events",
+        "authorized internal service"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "record_updated",
+            "label": "Record Updated",
+            "description": "",
+            "position": {
+              "x": 80,
+              "y": 220
+            },
+            "config": {
+              "record_type": "approval"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          },
+          {
+            "id": "update",
+            "type": "internal_service",
+            "label": "Call Internal Service",
+            "description": "",
+            "position": {
+              "x": 420,
+              "y": 220
+            },
+            "config": {
+              "parameters": {
+                "approval_id": "{{trigger.record.id}}"
+              },
+              "service": "record.update"
+            },
+            "credential_reference": null,
+            "advanced": {
+              "retry_attempts": 3,
+              "error_strategy": "stop",
+              "timeout_seconds": 60
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "trigger_out_update",
+            "source": "trigger",
+            "target": "update",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 40,
+          "y": 0,
+          "zoom": 1
+        },
+        "settings": {
+          "max_attempts": 3,
+          "retry_backoff_seconds": 60,
+          "idempotency": "request_id",
+          "execution_identity": "owner",
+          "timezone": "Asia/Kolkata",
+          "retention_days": 30
+        }
+      }
+    },
+    {
+      "id": "market-1",
+      "name": "Form submission notification",
+      "category": "Productivity",
+      "description": "Form submission notification. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "form.submitted"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Form submission notification",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-2",
+      "name": "High-value manager approval",
+      "category": "Approvals",
+      "description": "High-value manager approval. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_approval"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "manual_trigger",
+            "label": "Manual Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {}
+          },
+          {
+            "id": "action",
+            "type": "create_approval",
+            "label": "Create Approval Request",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 760,
+              "y": 200
+            },
+            "config": {
+              "require_all": true,
+              "title": "High-value manager approval",
+              "approver": ""
+            }
+          },
+          {
+            "id": "threshold",
+            "type": "if_else",
+            "label": "If / Else",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "operator": "equals",
+              "condition": {
+                "join": "and",
+                "rules": [
+                  {
+                    "left": "{{trigger.record.amount}}",
+                    "operator": "greater_than",
+                    "right": 50000
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "normal",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 760,
+              "y": 450
+            },
+            "config": {
+              "recipient": "",
+              "title": "Standard request",
+              "message": "Below approval threshold"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "start",
+            "target": "threshold",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          },
+          {
+            "id": "e2",
+            "source": "threshold",
+            "target": "action",
+            "source_port": "true",
+            "target_port": "in",
+            "label": "Manager approval"
+          },
+          {
+            "id": "e3",
+            "source": "threshold",
+            "target": "normal",
+            "source_port": "false",
+            "target_port": "in",
+            "label": "Standard processing"
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-3",
+      "name": "Assign a new record owner",
+      "category": "Administration",
+      "description": "Assign a new record owner. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "standalone_record"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Assign a new record owner",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-4",
+      "name": "Overdue task reminder",
+      "category": "Project Management",
+      "description": "Overdue task reminder. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "scheduler"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "scheduled_trigger",
+            "label": "Scheduled Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "schedule": "0 9 * * 1-5",
+              "timezone": "Asia/Kolkata"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Overdue task reminder",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-5",
+      "name": "Critical bug escalation",
+      "category": "Project Management",
+      "description": "Critical bug escalation. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "issue.critical"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Critical bug escalation",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-6",
+      "name": "Employee onboarding checklist",
+      "category": "HR Processes",
+      "description": "Employee onboarding checklist. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "employee"
+            }
+          },
+          {
+            "id": "action",
+            "type": "build_json",
+            "label": "Build JSON",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "value": {
+                "checklist": [
+                  "Review supplied record",
+                  "Assign responsible person",
+                  "Confirm completion"
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-7",
+      "name": "Employee leave approval chain",
+      "category": "HR Processes",
+      "description": "Employee leave approval chain. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_approval",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "leave.requested"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_approval",
+            "label": "Create Approval Request",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "require_all": true,
+              "title": "Employee leave approval chain",
+              "approver": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-8",
+      "name": "Lead sales assignment",
+      "category": "CRM & Sales",
+      "description": "Lead sales assignment. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "lead"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Lead sales assignment",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-9",
+      "name": "Deal-stage follow-up",
+      "category": "CRM & Sales",
+      "description": "Deal-stage follow-up. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_followup",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "status_changed",
+            "label": "Status Changed",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "deal",
+              "status": "Follow-up"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_followup",
+            "label": "Create Follow-up",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Deal-stage follow-up",
+              "owner": "",
+              "at": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-10",
+      "name": "Invoice review request",
+      "category": "Finance",
+      "description": "Invoice review request. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_approval",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "invoice"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_approval",
+            "label": "Create Approval Request",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "require_all": true,
+              "title": "Invoice review request",
+              "approver": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-11",
+      "name": "Weekly report notification",
+      "category": "Notifications",
+      "description": "Weekly report notification. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "scheduler"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "scheduled_trigger",
+            "label": "Scheduled Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "schedule": "0 9 * * 1",
+              "timezone": "Asia/Kolkata"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Weekly report notification",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-12",
+      "name": "Missing document reminder",
+      "category": "Document Processing",
+      "description": "Missing document reminder. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "scheduler"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "scheduled_trigger",
+            "label": "Scheduled Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "schedule": "0 9 * * 1-5",
+              "timezone": "Asia/Kolkata"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Missing document reminder",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-13",
+      "name": "Complaint ticket assignment",
+      "category": "CRM & Sales",
+      "description": "Complaint ticket assignment. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "complaint.received"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Complaint ticket assignment",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-14",
+      "name": "Intern batch onboarding",
+      "category": "Internships & Testing",
+      "description": "Intern batch onboarding. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "intern"
+            }
+          },
+          {
+            "id": "action",
+            "type": "build_json",
+            "label": "Build JSON",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "value": {
+                "checklist": [
+                  "Review supplied record",
+                  "Assign responsible person",
+                  "Confirm completion"
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-15",
+      "name": "Intern submission mentor review",
+      "category": "Internships & Testing",
+      "description": "Intern submission mentor review. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_approval",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "intern.submission"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_approval",
+            "label": "Create Approval Request",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "require_all": true,
+              "title": "Intern submission mentor review",
+              "approver": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-16",
+      "name": "Failed test bug creation",
+      "category": "Internships & Testing",
+      "description": "Failed test bug creation. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "test.failed"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Failed test bug creation",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-17",
+      "name": "Contract renewal reminder",
+      "category": "Document Processing",
+      "description": "Contract renewal reminder. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "scheduler"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "scheduled_trigger",
+            "label": "Scheduled Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "schedule": "0 9 * * 1-5",
+              "timezone": "Asia/Kolkata"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Contract renewal reminder",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-18",
+      "name": "Record update approval",
+      "category": "Approvals",
+      "description": "Record update approval. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_approval",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_updated",
+            "label": "Record Updated",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "standalone_record"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_approval",
+            "label": "Create Approval Request",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "require_all": true,
+              "title": "Record update approval",
+              "approver": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-19",
+      "name": "Rejected approval notification",
+      "category": "Approvals",
+      "description": "Rejected approval notification. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "status_changed",
+            "label": "Status Changed",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "approval",
+              "status": "Rejected"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Rejected approval notification",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-20",
+      "name": "Completed approval status update",
+      "category": "Approvals",
+      "description": "Completed approval status update. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "update_task",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "status_changed",
+            "label": "Status Changed",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "approval",
+              "status": "Approved"
+            }
+          },
+          {
+            "id": "action",
+            "type": "update_task",
+            "label": "Update Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "status": "Done",
+              "task_id": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-21",
+      "name": "Upload metadata extraction",
+      "category": "Document Processing",
+      "description": "Upload metadata extraction. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "upload.received"
+            }
+          },
+          {
+            "id": "action",
+            "type": "transform_data",
+            "label": "Transform Data",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "mapping": {
+                "id": "{{trigger.record.id}}",
+                "source": "User-provided upload metadata"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-22",
+      "name": "Validation failure review queue",
+      "category": "Administration",
+      "description": "Validation failure review queue. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "validation.failed"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Validation failure review queue",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-23",
+      "name": "Webhook payload validation",
+      "category": "Data Synchronization",
+      "description": "Webhook payload validation. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "payload.received"
+            }
+          },
+          {
+            "id": "action",
+            "type": "check_empty",
+            "label": "Check Empty Value",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "value": "{{trigger.record.id}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-24",
+      "name": "Task assigned-user notification",
+      "category": "Notifications",
+      "description": "Task assigned-user notification. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "task"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Task assigned-user notification",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-25",
+      "name": "High-priority issue escalation",
+      "category": "Project Management",
+      "description": "High-priority issue escalation. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "issue.high_priority"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "High-priority issue escalation",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-26",
+      "name": "Scheduled audit work items",
+      "category": "Administration",
+      "description": "Scheduled audit work items. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_task",
+        "scheduler"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "scheduled_trigger",
+            "label": "Scheduled Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "schedule": "0 9 * * 1",
+              "timezone": "Asia/Kolkata"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_task",
+            "label": "Create Task",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "title": "Scheduled audit work items",
+              "assignee": "",
+              "due_date": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-27",
+      "name": "Missing attendance exception",
+      "category": "HR Processes",
+      "description": "Missing attendance exception. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_approval",
+        "scheduler"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "scheduled_trigger",
+            "label": "Scheduled Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "schedule": "0 9 * * 1-5",
+              "timezone": "Asia/Kolkata"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_approval",
+            "label": "Create Approval Request",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "require_all": true,
+              "title": "Missing attendance exception",
+              "approver": ""
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-28",
+      "name": "Form data transformation",
+      "category": "Data Synchronization",
+      "description": "Form data transformation. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "form.submitted"
+            }
+          },
+          {
+            "id": "action",
+            "type": "map_fields",
+            "label": "Map Fields",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "mapping": {
+                "name": "{{trigger.record.name}}"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-29",
+      "name": "Customer welcome workflow",
+      "category": "CRM & Sales",
+      "description": "Customer welcome workflow. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "authorized_record_events"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "record_created",
+            "label": "Record Created",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "record_type": "customer"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Customer welcome workflow",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-30",
+      "name": "Failed workflow administrator alert",
+      "category": "Administration",
+      "description": "Failed workflow administrator alert. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "create_notification",
+        "authorized_webhook_ingress"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "webhook_trigger",
+            "label": "Webhook Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {
+              "event_name": "workflow.failed"
+            }
+          },
+          {
+            "id": "action",
+            "type": "create_notification",
+            "label": "Create Notification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "recipient": "",
+              "title": "Failed workflow administrator alert",
+              "message": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    },
+    {
+      "id": "market-31",
+      "name": "Classify a supplied document",
+      "category": "AI Workflows",
+      "description": "Classify a supplied document. Supply a synthetic record and configure required references before use. No live module events are bound.",
+      "version": 1,
+      "requires_configuration": true,
+      "executable": false,
+      "required_adapters": [
+        "ai_classification"
+      ],
+      "definition": {
+        "schema_version": 2,
+        "catalog_version": 1,
+        "nodes": [
+          {
+            "id": "start",
+            "type": "manual_trigger",
+            "label": "Manual Trigger",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 80,
+              "y": 200
+            },
+            "config": {}
+          },
+          {
+            "id": "action",
+            "type": "ai_classification",
+            "label": "AI Classification",
+            "description": "Standalone design; bind authorized adapters in a future phase.",
+            "position": {
+              "x": 420,
+              "y": 200
+            },
+            "config": {
+              "categories": [
+                "Operations",
+                "Other"
+              ],
+              "input": "{{trigger.record.name}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_start_action",
+            "source": "start",
+            "target": "action",
+            "source_port": "out",
+            "target_port": "in",
+            "label": ""
+          }
+        ],
+        "groups": [],
+        "viewport": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        }
+      }
+    }
+  ]
+}

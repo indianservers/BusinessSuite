@@ -1,3 +1,4 @@
+import { ConversationLauncher } from "@/shared/communication";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields, emailError, textError } from "@/lib/validation";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -498,6 +499,7 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="space-y-6">
+      <ConversationLauncher module="HRMS" context={{type:"employee",id:Number(id)}}/>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
           <ChevronLeft className="h-4 w-4 mr-1" />

@@ -1,3 +1,13 @@
+import pytest
+from app.models.company import Company
+from tests.tenant_test_utils import assign_company
+
+@pytest.fixture(autouse=True)
+def company_context(db):
+    if not db.get(Company, 1):
+        db.add(Company(id=1, name="CRM integration tenant"))
+        db.flush()
+
 from app.apps.crm.models import CRMLeadConversionLog, CRMTimelineEvent
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
@@ -16,6 +26,8 @@ def _headers_for_permissions(client, db, email: str, permissions: list[str]):
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Sales@123456"), is_active=True, role_id=role.id)
     db.add(user)
+    db.flush()
+    assign_company(db, user, 1)
     db.commit()
     login = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
     assert login.status_code == 200

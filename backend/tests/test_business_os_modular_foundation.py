@@ -1,3 +1,14 @@
+import pytest
+from app.models.company import Company
+
+
+@pytest.fixture(autouse=True)
+def company_context(db):
+    if not db.get(Company, 1):
+        db.add(Company(id=1, name="Business OS integration tenant"))
+        db.flush()
+
+
 from app.apps.business_os.models import BOSLifecycleEvent
 from app.apps.business_os.services.module_service import enabled_module_keys, ensure_business_os_seed
 from app.apps.crm.models import CRMLead

@@ -23,6 +23,9 @@ def middleware_database(db):
 def account(db, email, admin=False):
     user = User(email=email, hashed_password="unused", is_active=True, is_superuser=admin)
     db.add(user)
+    db.flush()
+    from app.common.services.identity import SharedIdentityService
+    SharedIdentityService.ensure_person_for_user(db, user, organization_id=1)
     db.commit()
     return user, {"Authorization": "Bearer " + create_access_token(str(user.id))}
 

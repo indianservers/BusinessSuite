@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ClipboardList, Users, Layers } from "lucide-react";
 
 const links = [
+  { to: "/hrms/interns/operations", label: "Profiles & Work", description: "Study profiles, assign work, change supervisors and send warnings", Icon: Users },
   { to: "/hrms/interns/applications", label: "Signups & Approvals", description: "Review new signups and approve or reject applications", Icon: ClipboardList },
   { to: "/hrms/interns/list", label: "All Interns", description: "Find interns, open profiles and manage batch enrollment", Icon: Users },
   { to: "/hrms/interns/batches", label: "Batches", description: "Create batches and organize interns into groups", Icon: Layers },
@@ -9,7 +10,7 @@ const links = [
 
 export default function InternQuickLinks() {
   const { pathname } = useLocation();
-  return <nav aria-label="Intern quick access" className="grid gap-3 sm:grid-cols-3">
+  return <nav aria-label="Intern quick access" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
     {links.map(({ to, label, description, Icon }) => {
       const active = pathname === to || (to.endsWith("applications") && pathname === "/hrms/interns-hub/applications");
       return <Link key={to} to={to} aria-current={active ? "page" : undefined}

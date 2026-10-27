@@ -1,3 +1,6 @@
+import { api } from "@/services/api";
+import { type FieldRecord, fieldPath } from "../components/CustomFields";
+import { CustomFieldsForm, type FieldDraft } from "../components/CustomFields";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
@@ -17,6 +20,7 @@ export default function CreateProjectPage() {
   const [canEdit, setCanEdit] = useState(!editing);
   const [searchParams] = useSearchParams();
   const workspaceId = Number(searchParams.get("workspace_id")) || undefined;
+  const [customValues,setCustomValues]=useState<FieldDraft>({});
   const [name, setName] = useState("");
   const [projectKey, setProjectKey] = useState("");
   const [description, setDescription] = useState("");
@@ -34,6 +38,7 @@ export default function CreateProjectPage() {
     projectsAPI.get(Number(projectId)).then(project => {
       if (!active) return;
       setCanEdit(project.can_edit_project === true);
+      api.get<FieldRecord>(fieldPath("project",Number(projectId))).then(({data})=>{if(active)setCustomValues(Object.fromEntries(data.fields.map(f=>[f.id,{value:f.value??null,...(f.country_code?{country_code:f.country_code}:{})}])));}).catch(()=>undefined);
       setName(project.name); setProjectKey(project.project_key); setDescription(project.description || "");
       setStatus(project.status); setPriority(project.priority); setStartDate(project.start_date?.slice(0,10) || "");
       setDueDate(project.due_date?.slice(0,10) || ""); setBudget(String(project.budget_amount ?? ""));
@@ -56,6 +61,7 @@ export default function CreateProjectPage() {
       setError(null);
       const payload = {
         workspace_id: workspaceId,
+        custom_fields: customValues,
         name,
         project_key: projectKey,
         description,
@@ -98,6 +104,7 @@ export default function CreateProjectPage() {
                 <Input disabled={editing} id="project-key" value={projectKey} onChange={(event) => setProjectKey(event.target.value.toUpperCase())} maxLength={10} />
               </div>
             </div>
+            <CustomFieldsForm entity="project" projectId={projectId?Number(projectId):undefined} values={customValues} onChange={setCustomValues}/>
             <div className="space-y-2">
               <Label htmlFor="project-description">Description</Label>
               <RichTextField data-legacy-format="markdown" id="project-description" value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm" />

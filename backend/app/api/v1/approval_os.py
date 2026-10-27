@@ -99,7 +99,7 @@ def _notify_assignee(db: Session, request: ApprovalRequest) -> None:
 
 
 def _request_query(db: Session, user: User, scope: str):
-    query = db.query(ApprovalRequest)
+    query = db.query(ApprovalRequest).filter(ApprovalRequest.source_module != "power_apps")
     role_name = _role_name(user)
     if scope == "submitted":
         return query.filter(ApprovalRequest.requester_user_id == user.id)
@@ -224,6 +224,7 @@ def create_request(
         raise HTTPException(422,"Shared approval references can only be created by the central service")
     if not data.assigned_to_user_id and not data.assigned_role:
         raise HTTPException(status_code=400, detail="Approval request requires an assigned user or role")
+    if data.source_module == 'power_apps':raise HTTPException(422,'Use the governed Power Apps approval submission API')
     request = ApprovalRequest(**data.model_dump(), organization_id=current_user.organization_id, requester_user_id=current_user.id)
     db.add(request)
     db.flush()
@@ -263,7 +264,7 @@ def summary(
 
 @router.get("/requests/{request_id}", response_model=ApprovalRequestSchema)
 def get_request(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    request = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id).first()
+    request = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id, ApprovalRequest.source_module != "power_apps").first()
     if not request:
         raise HTTPException(status_code=404, detail="Approval request not found")
     if not _can_decide_request(request, current_user) and request.requester_user_id != current_user.id and not _can_view_all(current_user):
@@ -272,7 +273,7 @@ def get_request(request_id: int, db: Session = Depends(get_db), current_user: Us
 
 
 def _decide(request_id: int, decision: str, data: ApprovalDecision, db: Session, current_user: User) -> ApprovalRequest:
-    request = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id).first()
+    request = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id, ApprovalRequest.source_module != "power_apps").first()
     if not request:
         raise HTTPException(status_code=404, detail="Approval request not found")
     if (request.context_json or {}).get("_shared"):
@@ -329,6 +330,7 @@ def process_escalations(
 ):
     now = _now()
     rows = db.query(ApprovalRequest).filter(
+        ApprovalRequest.source_module != "power_apps",
         ApprovalRequest.status == "Pending",
         ApprovalRequest.sla_due_at.isnot(None),
         ApprovalRequest.sla_due_at <= now,

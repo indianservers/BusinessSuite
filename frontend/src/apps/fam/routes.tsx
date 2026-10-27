@@ -1,3 +1,4 @@
+import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
@@ -13,6 +14,7 @@ const route = (path: string, kind: FAMViewKind): FrontendRoute => ({
 
 
 export const famRoutes: FrontendRoute[] = [
+ { path: "fam/messages", element: <CommunicationWorkspace module="Finance" /> },
   { path: "fam/gantt", element: <ModuleGanttPage key="fam" module="fam" /> },
   route("fam", "dashboard"),
   route("fam/dashboard", "dashboard"),

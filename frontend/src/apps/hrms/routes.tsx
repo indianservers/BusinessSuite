@@ -1,14 +1,16 @@
+import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import { Navigate, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
+const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/WorkforceOperationsPage"));
 
 const InternApplicationsPage = React.lazy(() => import("@/apps/hrms/pages/interns/InternApplicationsPage"));
 const DashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/DashboardPage"));
 const RoleWorkspacePage = React.lazy(() => import("@/apps/hrms/pages/dashboard/RoleWorkspacePage"));
 const ManagerDashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/ManagerDashboardPage"));
 const EmployeesPage = React.lazy(() => import("@/apps/hrms/pages/employees/EmployeesPage"));
-const EmployeeDirectoryPage = React.lazy(() => import("@/apps/hrms/pages/employees/EmployeeDirectoryPage"));
+const EmployeeDirectoryPage = React.lazy(() => import("@/components/PeopleDirectoryPage"));
 const EmployeeDetailPage = React.lazy(() => import("@/apps/hrms/pages/employees/EmployeeDetailPage"));
 const AddEmployeePage = React.lazy(() => import("@/apps/hrms/pages/employees/AddEmployeePage"));
 const ProbationPage = React.lazy(() => import("@/apps/hrms/pages/employees/ProbationPage"));
@@ -68,6 +70,8 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "employee-directory", element: <EmployeeDirectoryPage /> },
   { path: "interns/applications", element: <InternApplicationsPage /> },
   { path: "interns/list", element: <InternManagementPage page="batches" /> },
+  { path: "interns/operations", element: <WorkforceOperationsPage context="interns" /> },
+  { path: "people-work", element: <WorkforceOperationsPage /> },
   { path: "interns-hub/applications", element: <InternApplicationsPage /> },
   { path: "interns-hub", element: <InternManagementPage page="dashboard" /> },
   { path: "interns", element: <InternManagementPage page="dashboard" /> },
@@ -129,6 +133,7 @@ function LegacyHrmsRedirect() {
 }
 
 export const hrmsRoutes: FrontendRoute[] = [
+ { path: "hrms/messages", element: <CommunicationWorkspace module="HRMS" /> },
   { path: "hrms/leave/gantt", element: <ModuleGanttPage key="hrms" module="hrms" /> },
   { path: "hrms", element: <DashboardPage /> },
   ...moduleRoutes.map((route) => ({

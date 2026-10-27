@@ -2313,6 +2313,10 @@ def _serialize_approval_request_step(step: CRMApprovalRequestStep) -> dict[str, 
 
 def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bool = False) -> dict[str, Any]:
     data = _normalize_payload(payload)
+    protected = {"id", "organization_id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "created_by_user_id", "updated_by_user_id", "is_superuser", "role_id", "permissions", "password", "hashed_password", "paid_amount", "amount_paid", "balance_due", "payment_status", "provider_message_id", "storage_path", "file_path"}
+    forbidden = protected.intersection(data)
+    if forbidden:
+        raise HTTPException(422, "Server-owned fields cannot be supplied: " + ", ".join(sorted(forbidden)))
     if resource.model is CRMCustomField:
         if "entity_type" in data and "entity" not in data:
             data["entity"] = data.pop("entity_type")
@@ -2507,11 +2511,15 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
     data.pop("custom_fields", None)
     data.pop("custom_field_values", None)
 
-    return {key: _coerce_value(columns[key], value) for key, value in data.items() if key in columns}
+    writable = set(columns) - protected
+    return {key: _coerce_value(columns[key], value) for key, value in data.items() if key in writable}
 
 
 def _get_record(db: Session, resource: Resource, record_id: int, organization_id: int, include_deleted: bool = False):
-    record = _base_query(db, resource, organization_id, include_deleted).filter(resource.model.id == record_id).first()
+    query = _base_query(db, resource, organization_id, include_deleted).filter(resource.model.id == record_id)
+    if db.info.get("security_write_request"):
+        query = query.with_for_update(of=resource.model)
+    record = query.first()
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CRM record not found")
     return record

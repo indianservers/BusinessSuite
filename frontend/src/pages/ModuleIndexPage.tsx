@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, BookOpen, Boxes, BriefcaseBusiness, CalendarDays, PieChart, Check, ChevronDown, CircleHelp, Crosshair, Database, FileText, Folder, Landmark, List, LogIn, Package, Search, ShoppingCart, Store, UserRound, Users, X, type LucideIcon } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, Boxes, BriefcaseBusiness, CalendarDays, PieChart, Check, ChevronDown, CircleHelp, Crosshair, Database, FileText, Folder, Landmark, Layers3, List, LogIn, Package, Search, ShoppingCart, Store, UserRound, Users, X, type LucideIcon } from "lucide-react";
 import { BUSINESS_SUITE_NAME, BUSINESS_SUITE_VERSION, products, type ProductKey } from "@/lib/products";
 import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import "./module-index.css";
 
-type ModuleIndexItem = { key: string; name: string; label: string; description: string; icon: LucideIcon; homePath: string; loginPath: string; productKey: ProductKey };
+type ModuleIndexItem = { key: string; name: string; label: string; description: string; icon: LucideIcon; homePath: string; loginPath: string; productKey?: ProductKey };
 const modules: ModuleIndexItem[] = [
+  { key: "power_apps", name: "Power Apps", label: "Build, automate & connect", description: "A dedicated platform for automations, approvals, forms, apps, and governed business tools.", icon: Layers3, homePath: "/power-apps", loginPath: "/login" },
   {
     key: "hrms",
     name: "AI HRMS",
@@ -61,6 +62,7 @@ const modules: ModuleIndexItem[] = [
 ];
 
 const features: Record<string, [LucideIcon, string][]> = {
+  power_apps: [[Boxes,"Apps"],[Database,"Data"],[List,"Automations"]],
   hrms: [[UserRound,"People"],[FileText,"Payroll"],[CalendarDays,"Attendance"]],
   crm: [[Crosshair,"Leads"],[BarChart3,"Deals"],[Users,"Customers"]],
   pms: [[Folder,"Projects"],[List,"Tasks"],[Users,"Teams"]],
@@ -93,9 +95,9 @@ export default function ModuleIndexPage() {
     </div></header>
     <main className="suite-content">
       <section className="suite-hero"><div className="suite-hero-copy"><p className="suite-eyebrow"><span/>Your connected workspace</p><h1>One workspace. Every part of your business.</h1><p className="suite-hero-description">Open CRM, HRMS, PMS, Sales &amp; Inventory, or FAM from one place. Sign in to the module you want to use.</p></div><WorkspaceArt/></section>
-      <section aria-labelledby="suite-applications-title" className="suite-applications"><div className="suite-section-heading"><div><h2 id="suite-applications-title">Explore your applications</h2><span className="suite-module-count">5 connected modules</span></div><p>All your business applications, in one connected workspace.</p></div>
-        <div className="suite-module-grid">{visible.map(module=>{const Icon=module.icon;const product=products[module.productKey];return <article key={module.key} className={`suite-module-card suite-${module.key}`}><div className="suite-module-heading"><div className="suite-module-icon"><Icon size={37} strokeWidth={2.4}/></div><div className="suite-module-titles"><div><h3>{module.name}</h3><span className="suite-product-version">{product.shortName} {product.version}</span></div><p>{module.label}</p></div></div><p className="suite-module-description">{module.description}</p><div className="suite-feature-pills">{features[module.key].map(([Feature,name])=><span key={name}><Feature size={19}/>{name}</span>)}</div><Link to={destination(module)} className="suite-open-application" aria-label={`Open ${module.name}`}><span>Open application</span><ArrowRight size={20}/></Link></article>;})}
-        {!query && <article className="suite-connected-card"><div><p className="suite-eyebrow"><span/>A connected workspace</p><h3>Built for your<br/>entire business.</h3><p>Five powerful modules. One seamless experience. Work smarter, faster, together.</p><ul>{["Single sign-on experience","Seamless data flow across modules","A unified platform for your growing business"].map(text=><li key={text}><span><Check size={13}/></span>{text}</li>)}</ul></div><WorkspaceArt compact/></article>}
+      <section aria-labelledby="suite-applications-title" className="suite-applications"><div className="suite-section-heading"><div><h2 id="suite-applications-title">Explore your applications</h2><span className="suite-module-count">6 platform modules</span></div><p>All your business applications, in one connected workspace.</p></div>
+        <div className="suite-module-grid">{visible.map(module=>{const Icon=module.icon;const product=module.productKey ? products[module.productKey] : undefined;return <article key={module.key} className={`suite-module-card suite-${module.key}`}><div className="suite-module-heading"><div className="suite-module-icon"><Icon size={37} strokeWidth={2.4}/></div><div className="suite-module-titles"><div><h3>{module.name}</h3><span className="suite-product-version">{module.key === "power_apps" ? "Phase 1" : `${product?.shortName} ${product?.version}`}</span></div><p>{module.label}</p></div></div><p className="suite-module-description">{module.description}</p><div className="suite-feature-pills">{features[module.key].map(([Feature,name])=><span key={name}><Feature size={19}/>{name}</span>)}</div><Link to={destination(module)} className="suite-open-application" aria-label={`Open ${module.name}`}><span>Open application</span><ArrowRight size={20}/></Link></article>;})}
+        {!query && <article className="suite-connected-card"><div><p className="suite-eyebrow"><span/>A connected workspace</p><h3>Built for your<br/>entire business.</h3><p>Six powerful modules. One seamless experience. Work smarter, faster, together.</p><ul>{["Single sign-on experience","Seamless data flow across modules","A unified platform for your growing business"].map(text=><li key={text}><span><Check size={13}/></span>{text}</li>)}</ul></div><WorkspaceArt compact/></article>}
         {!visible.length && <div className="suite-empty"><Search size={30}/><h3>No applications found</h3><p>Try searching for CRM, projects, payroll, sales, or finance.</p><button onClick={()=>setQuery("")}>Show all applications</button></div>}
         </div>
       </section>

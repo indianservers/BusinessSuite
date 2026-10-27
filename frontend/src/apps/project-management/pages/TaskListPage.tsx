@@ -1,3 +1,5 @@
+import { CustomFieldCell, useCustomFieldRecords, type CustomField } from "../components/CustomFields";
+import { api } from "@/services/api";
 import { StatusSelect } from "@/design-system/components";
 import RecordActions from "../components/RecordActions";
 import { useCallback, useEffect, useMemo, useState, Fragment, type ReactNode } from "react";
@@ -51,7 +53,8 @@ type ColumnKey =
   | "tags"
   | "due_date"
   | "created_at"
-  | "updated_at";
+  | "updated_at"
+  | `cf:${number}`;
 
 const defaultFilters: FilterState = {
   projectId: "",
@@ -73,7 +76,7 @@ const defaultFilters: FilterState = {
   search: "",
 };
 
-const columns: { key: ColumnKey; label: string }[] = [
+const baseColumns: { key: ColumnKey; label: string }[] = [
   { key: "task", label: "Task key" },
   { key: "title", label: "Title" },
   { key: "project", label: "Project" },
@@ -103,7 +106,7 @@ const sortableColumns: Partial<Record<ColumnKey, string>> = {
 const taskStatuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done", "Cancelled"];
 const priorityOrder: Record<string, number> = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
 
-const initialVisibleColumns = columns.reduce<Record<ColumnKey, boolean>>((acc, column) => {
+const initialVisibleColumns = baseColumns.reduce<Record<ColumnKey, boolean>>((acc, column) => {
   acc[column.key] = ["task", "title", "project", "status", "priority", "assignee", "due_date"].includes(column.key);
   return acc;
 }, {} as Record<ColumnKey, boolean>);
@@ -169,6 +172,9 @@ export default function TaskListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<PMSTaskListResponse | null>(null);
+  const [customFields,setCustomFields]=useState<CustomField[]>([]);
+  const custom=useCustomFieldRecords("task",data?.items.map(t=>t.id)||[]);
+  useEffect(()=>{let active=true;api.get<{fields:CustomField[]}>("/project-management/custom-fields").then(({data})=>{if(active)setCustomFields(data.fields.filter(f=>f.entity_type!=="project"));}).catch(()=>undefined);return()=>{active=false;};},[]);
   const [filters, setFilters] = useState<FilterState>({ ...defaultFilters, projectId: searchParams.get("projectId") || "" });
   const [sortBy, setSortBy] = useState("updatedDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
@@ -277,7 +283,9 @@ export default function TaskListPage() {
       : [...current, status]);
   };
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const visibleColumnList = useMemo(() => columns.filter((column) => column.key === "title" || visibleColumns[column.key]), [visibleColumns]);
+  const columns=useMemo(()=>[...baseColumns,...customFields.filter(f=>!filters.projectId||!f.project_id||f.project_id===Number(filters.projectId)).map(f=>({key:`cf:${f.id}` as ColumnKey,label:f.name+(f.project_id?` · ${f.project_name || "Project"}`:"")}))],[customFields,filters.projectId]);
+  const columnVisible=(key:ColumnKey)=>key==="title"||(visibleColumns[key]??key.startsWith("cf:"));
+  const visibleColumnList = useMemo(() => columns.filter((column) => columnVisible(column.key)), [visibleColumns,columns]);
   const currentPageTaskIds = useMemo(() => data?.items.map((task) => task.id) || [], [data?.items]);
   const selectedTasks = useMemo(() => data?.items.filter((task) => selectedTaskIds.includes(task.id)) || [], [data?.items, selectedTaskIds]);
   const allPageTasksSelected = Boolean(currentPageTaskIds.length) && currentPageTaskIds.every((id) => selectedTaskIds.includes(id));
@@ -329,7 +337,7 @@ export default function TaskListPage() {
         return acc;
       }, {} as Record<ColumnKey, boolean>));
     } else if (nextColumns && typeof nextColumns === "object") {
-      setVisibleColumns({ ...initialVisibleColumns, ...nextColumns });
+      setVisibleColumns({ ...initialVisibleColumns, ...nextColumns } as Record<ColumnKey, boolean>);
     }
     setSelectedViewId(String(view.id));
     setViewName(view.name);
@@ -494,6 +502,8 @@ export default function TaskListPage() {
   };
 
   const renderCell = (task: PMSTaskListItem, column: ColumnKey) => {
+    if(column.startsWith("cf:")){const record=custom.records[task.id];const field=record?.fields.find(f=>f.id===Number(column.slice(3)));return field?<CustomFieldCell entity="task" id={task.id} field={field} canEdit={record.can_edit} onSaved={custom.reload}/>:<span className="text-muted-foreground" title="Field does not apply to this task">—</span>;}
+
     switch (column) {
       case "task":
         return <span className="font-semibold text-primary">{task.task_key || task.id}</span>;
@@ -678,11 +688,12 @@ export default function TaskListPage() {
           <p className="text-sm text-muted-foreground">{firstResult}-{lastResult} of {data?.total || 0}</p>
         </CardHeader>
         <CardContent hidden={!columnsOpen}>
+          {custom.error && <p role="alert" className="text-sm text-destructive">{custom.error}</p>}
           <section aria-label="Task field chooser" className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2"><Input aria-label="Search task fields" placeholder="Search task fields" value={columnSearch} onChange={event => setColumnSearch(event.target.value)} /><Button variant="outline" size="sm" onClick={() => setVisibleColumns(initialVisibleColumns)}>Reset columns</Button><Button variant="outline" size="sm" onClick={() => setVisibleColumns(Object.fromEntries(columns.map(column => [column.key, true])) as Record<ColumnKey, boolean>)}>Show all fields</Button><Link className="text-sm text-primary underline" to="/pms/custom-fields">Create custom field</Link></div>
-            {[true, false].map(shown => <div key={String(shown)}><h3 className="mb-2 text-sm font-medium">{shown ? "Shown" : "Available properties"} ({columns.filter(column => Boolean(column.key === "title" || visibleColumns[column.key]) === shown).length})</h3><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{columns.filter(column => Boolean(column.key === "title" || visibleColumns[column.key]) === shown && column.label.toLowerCase().includes(columnSearch.toLowerCase())).map(column => <label key={column.key} className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm"><span>{column.label}{column.key === "title" && " (required)"}</span><input aria-label={`Show ${column.label} column`} type="checkbox" disabled={column.key === "title"} checked={column.key === "title" || visibleColumns[column.key]} onChange={event => setVisibleColumns(current => ({ ...current, [column.key]: event.target.checked }))} /></label>)}</div></div>)}
+            <div className="flex flex-wrap items-center gap-2"><Input aria-label="Search task fields" placeholder="Search task fields" value={columnSearch} onChange={event => setColumnSearch(event.target.value)} /><Button variant="outline" size="sm" onClick={() => setVisibleColumns(initialVisibleColumns)}>Reset columns</Button><Button variant="outline" size="sm" onClick={() => setVisibleColumns(Object.fromEntries(columns.map(column => [column.key, true])) as Record<ColumnKey, boolean>)}>Show all fields</Button><Link className="text-sm text-primary underline" to="/pms/custom-fields?entity=task&create=1">+ Add custom column</Link></div>
+            {[true, false].map(shown => <div key={String(shown)}><h3 className="mb-2 text-sm font-medium">{shown ? "Shown" : "Available properties"} ({columns.filter(column => Boolean(columnVisible(column.key)) === shown).length})</h3><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{columns.filter(column => Boolean(columnVisible(column.key)) === shown && column.label.toLowerCase().includes(columnSearch.toLowerCase())).map(column => <label key={column.key} className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm"><span>{column.label}{column.key === "title" && " (required)"}</span><input aria-label={`Show ${column.label} column`} type="checkbox" disabled={column.key === "title"} checked={columnVisible(column.key)} onChange={event => setVisibleColumns(current => ({ ...current, [column.key]: event.target.checked }))} /></label>)}</div></div>)}
             {!columns.some(column => column.label.toLowerCase().includes(columnSearch.toLowerCase())) && <p className="text-sm text-muted-foreground">No matching field.</p>}
-            <p className="text-xs text-muted-foreground">Selections persist in this browser. Save a view to reuse them with its filters across devices. Custom fields are managed separately.</p>
+            <p className="text-xs text-muted-foreground">Selections persist in this browser. Save a view to reuse them with its filters across devices. Custom columns appear automatically. Click a value to edit it.</p>
           </section>
         </CardContent>
       </Card>

@@ -12,7 +12,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_validator, field_validator, ValidationInfo
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.core.config import settings
 from app.core.deps import get_current_user, get_db
 from app.core.security import get_password_hash, verify_password
@@ -254,18 +254,54 @@ def applications(page:int=Query(1,ge=1),per_page:int=Query(100,ge=1,le=200),user
              "documents":[{"id":d.id,"name":d.name,"category":d.category,"size":d.size} for d in db.query(ApplicationDocument).filter_by(application_id=i.id)],"identity_last4": i.identity_last4, "created_at": i.created_at, **receipt(i, db)} for i in items]
 
 
+@router.get("/admin/reporting-managers")
+def reporting_managers(user=Depends(application_admin), db: Session = Depends(get_db)):
+    organization = tenant(user)
+    employees = db.query(Employee).outerjoin(Branch, Employee.branch_id == Branch.id).options(
+        joinedload(Employee.branch), joinedload(Employee.user).joinedload(User.person)).filter(
+        Employee.deleted_at.is_(None), Employee.status.in_(["Active", "Probation"]),
+        func.lower(func.coalesce(Employee.employment_type, "")).notin_(["intern"]),
+        (Branch.company_id == organization) | Employee.branch_id.is_(None)).all()
+    result = []
+    for employee in employees:
+        if (employee.employment_type or "").lower() == "intern":
+            continue
+        if employee.branch and employee.branch.company_id != organization:
+            continue
+        if not employee.branch and (tenant(employee.user) if employee.user else 1) != organization:
+            continue
+        result.append({"id": employee.id, "name": f"{employee.first_name} {employee.last_name} ({employee.employee_id})"})
+    # Negative option IDs distinguish accounts from employee IDs in the selector only.
+    for account in db.query(User).options(joinedload(User.person), joinedload(User.employee).joinedload(Employee.branch)).filter(User.is_active.is_(True), User.is_superuser.is_(True)).all():
+        if tenant(account) != organization:
+            continue
+        employee = account.employee
+        if employee:
+            for option in result:
+                if option["id"] == employee.id:
+                    option["name"] += f" — Superadmin ({account.email})"
+            continue
+        result.append({"id": -account.id, "name": f"{account.email} — Superadmin"})
+    return sorted(result, key=lambda option: option["name"].casefold())
+
+
 class DecisionInput(BaseModel):
     status: Literal["Approved", "Rejected", "Correction Requested"]
     branch_id: int | None = None
     department_id: int | None = None
     designation_id: int | None = None
     reporting_manager_id: int | None = None
+    reporting_manager_user_id: int | None = Field(default=None, gt=0)
     date_of_joining: date | None = None
     review_note: str = Field("", max_length=2000)
 
 
 @router.post("/admin/applications/{application_id}/decision")
 def decide(application_id: int, data: DecisionInput, user=Depends(application_admin), db: Session = Depends(get_db)):
+    return decide_application(application_id, data, user, db)
+
+
+def decide_application(application_id, data, user, db, *, commit=True):
     item = db.query(InternApplication).filter_by(id=application_id,organization_id=tenant(user)).with_for_update().first()
     if not item:
         raise HTTPException(404, "Application not found")
@@ -273,14 +309,27 @@ def decide(application_id: int, data: DecisionInput, user=Depends(application_ad
         raise HTTPException(409, "This application has already been reviewed")
     if data.status != "Approved" and not data.review_note.strip():raise HTTPException(422,"A rejection/correction reason is required")
     if data.status == "Approved":
-        if not all([data.branch_id, data.department_id, data.designation_id, data.reporting_manager_id, data.date_of_joining]):
+        if not all([data.branch_id, data.department_id, data.designation_id, data.reporting_manager_id or data.reporting_manager_user_id, data.date_of_joining]):
             raise HTTPException(422, "Assign a branch, department, designation, manager and joining date")
         branch = db.get(Branch, data.branch_id)
         department = db.get(Department, data.department_id)
         designation = db.get(Designation, data.designation_id)
-        manager = db.get(Employee, data.reporting_manager_id)
+        manager = db.get(Employee, data.reporting_manager_id) if data.reporting_manager_id else None
         if not branch or branch.company_id!=tenant(user) or not department or department.branch_id != branch.id or not designation or designation.department_id != department.id:
             raise HTTPException(422, "Choose a department and designation belonging to the selected branch")
+        if data.reporting_manager_user_id:
+            if data.reporting_manager_id:
+                raise HTTPException(422, "Choose one reporting manager")
+            account = db.query(User).filter_by(id=data.reporting_manager_user_id).with_for_update().first()
+            if not account or not account.is_active or not account.is_superuser or tenant(account) != tenant(user):
+                raise HTTPException(422, "Choose an active superadmin in this organization")
+            manager = db.query(Employee).filter_by(user_id=account.id).first()
+            if manager is None:
+                manager = Employee(employee_id="SUP-" + uuid4().hex[:16].upper(), user_id=account.id,
+                    first_name=account.email.split("@")[0], last_name="", work_email=account.email,
+                    branch_id=branch.id, date_of_joining=today(), status="Active", employment_type="Full-time")
+                db.add(manager)
+                db.flush()
         if manager and manager.branch and manager.branch.company_id!=tenant(user):raise HTTPException(403,"Manager is outside this organization")
         if not manager or manager.deleted_at or manager.status not in {"Active", "Probation"} or (manager.employment_type or "").lower() == "intern":
             raise HTTPException(422, "Choose an active employee as reporting manager")
@@ -329,9 +378,10 @@ def decide(application_id: int, data: DecisionInput, user=Depends(application_ad
     item.reviewed_by = user.id
     item.reviewed_at = datetime.now(timezone.utc)
     try:
-        db.commit()
+        db.commit() if commit else db.flush()
     except IntegrityError:
-        db.rollback()
+        if commit:
+            db.rollback()
         raise HTTPException(409, "The application was updated concurrently. Refresh and try again.")
     return receipt(item, db)
 

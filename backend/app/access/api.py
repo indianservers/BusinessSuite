@@ -760,23 +760,22 @@ def create_user(
         raise HTTPException(422, "A password is required for Add User")
     password = data.password or secrets.token_urlsafe(40)
     _validate_password_policy(db, password)
+    # Attach the existing identity relationship before flush so the shared
+    # tenant-account hook does not provision a second CommonPerson row.
     user = User(
         email=data.email,
         hashed_password=get_password_hash(password),
         is_active=not data.invite,
         is_superuser=False,
+        person=CommonPerson(
+            organization_id=data.companyId,
+            primary_email=data.email,
+            display_name=data.name,
+            status="active",
+        ),
     )
     db.add(user)
     db.flush()
-    db.add(
-        CommonPerson(
-            user_id=user.id,
-            organization_id=data.companyId,
-            primary_email=user.email,
-            display_name=data.name,
-            status="active",
-        )
-    )
     db.add(
         AccessPolicy(
             user_id=user.id,

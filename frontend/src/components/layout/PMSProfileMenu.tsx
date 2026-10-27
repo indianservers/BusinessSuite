@@ -151,7 +151,7 @@ export default function PMSProfileMenu({
       action: () =>
         onViewPeople
           ? onViewPeople()
-          : navigate(`/pms/workspaces?people=1${query}`),
+          : navigate("/pms/people"),
     },
     {
       id: "dashboard",

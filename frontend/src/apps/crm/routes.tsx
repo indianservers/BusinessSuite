@@ -1,3 +1,4 @@
+import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
@@ -9,6 +10,7 @@ const CommunicationHubPage = React.lazy(() => import("@/apps/communication/Commu
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
 export const crmRoutes: FrontendRoute[] = [
+ { path: "crm/messages", element: <CommunicationWorkspace module="CRM" /> },
   { path: "crm/gantt", element: <ModuleGanttPage key="crm" module="crm" /> },
   { path: "crm", element: <CRMWorkspacePage kind="dashboard" /> },
   { path: "crm/dashboard", element: <CRMWorkspacePage kind="dashboard" /> },

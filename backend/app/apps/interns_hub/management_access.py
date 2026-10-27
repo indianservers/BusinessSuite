@@ -1,6 +1,6 @@
 from app.access.catalog import permission_objects
 from fastapi import Depends, HTTPException
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_, func, cast, select, exists
 from app.core.deps import get_current_user
 from app.models.employee import Employee
 from app.models.company import Branch
@@ -34,7 +34,17 @@ def batch_query(db,user):
     q=db.query(InternBatch).filter(InternBatch.organization_id==tenant(user))
     if not organization_admin(user):
         e=user.employee
-        q=q.filter(or_(InternBatch.manager_user_id==user.id, and_(InternBatch.department_id==e.department_id, user.role.name.lower() in {"hr_manager","department_head"})) if e and e.department_id else InternBatch.manager_user_id==user.id)
+        if db.get_bind().dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import JSONB
+            backup = cast(InternBatch.additional_mentors, JSONB).contains([user.id])
+        else:
+            mentors = func.json_each(InternBatch.additional_mentors).table_valued("value").alias("batch_backup_mentors")
+            backup = exists(select(1).select_from(mentors).where(mentors.c.value == user.id))
+        scope = [InternBatch.manager_user_id == user.id, InternBatch.mentor_user_id == user.id,
+                 InternBatch.coordinator_user_id == user.id, backup]
+        if e and e.department_id and user.role.name.lower() in {"hr_manager", "department_head"}:
+            scope.append(InternBatch.department_id == e.department_id)
+        q=q.filter(or_(*scope))
     return q
 
 

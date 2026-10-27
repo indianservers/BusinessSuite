@@ -13,7 +13,7 @@ from app.core.deps import get_current_user, get_db
 from app.models.user import User
 from .access import get_project_for_action
 from .automations import apply_task_rules
-from .models import PMSActivity, PMSBoard, PMSBoardColumn, PMSProject, PMSTask, PMSWorkspaceEntry
+from .models import PMSActivity, PMSBoard, PMSBoardColumn, PMSProject, PMSTask, PMSWorkspace, PMSWorkspaceEntry
 from .workspaces import workspace_member
 
 router = APIRouter()
@@ -43,10 +43,51 @@ class ApplyInput(BaseModel):
     request_id: UUID
     title: str = Field(default="", max_length=220)
     description: rich_text_type(10000, 0) = Field(default="")
+    task_titles: list[str] | None = Field(default=None, min_length=1, max_length=20)
+
+    @field_validator("task_titles")
+    @classmethod
+    def valid_titles(cls, titles):
+        return validate_titles(titles) if titles is not None else None
 
 
-class ToolToggle(BaseModel):
-    enabled: bool
+def validate_titles(titles):
+    if not titles or any(not title.strip() or len(title.strip()) > 220 for title in titles):
+        raise ValueError("Templates require 1–20 task titles, each up to 220 characters")
+    return [title.strip() for title in titles]
+
+
+class BlueprintApplyInput(ApplyInput):
+    name: str = Field(min_length=1, max_length=120)
+    project_id: int = Field(gt=0)
+    task_titles: list[str] = Field(min_length=1, max_length=20)
+
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value):
+        if not value.strip():
+            raise ValueError("Name is required")
+        return value.strip()
+
+
+class ToolUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: rich_text_type(4000, 0) | None = None
+    task_titles: list[str] | None = Field(default=None, min_length=1, max_length=20)
+
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value):
+        if value is not None and not value.strip():
+            raise ValueError("Name is required")
+        return value.strip() if value is not None else None
+
+    @field_validator("task_titles")
+    @classmethod
+    def valid_titles(cls, titles):
+        return validate_titles(titles) if titles is not None else None
 
 
 def payload(db, row):
@@ -100,11 +141,16 @@ def tool_row(db, workspace_id, tool_id):
 
 
 @router.patch("/workspaces/{workspace_id}/tools/{tool_id}")
-def toggle_tool(workspace_id: int, tool_id: int, data: ToolToggle, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def update_tool(workspace_id: int, tool_id: int, data: ToolUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     workspace_member(db, workspace_id, user, True)
     row = tool_row(db, workspace_id, tool_id)
     value = json.loads(row.body)
-    value["enabled"] = data.enabled
+    changes = data.model_dump(exclude_unset=True)
+    if not changes or any(item is None for item in changes.values()):
+        raise HTTPException(422, "Supply non-null fields to update")
+    if value["kind"] != "template" and any(field != "enabled" for field in changes):
+        raise HTTPException(422, "Only templates support content editing")
+    value.update(changes)
     row.body = json.dumps(value)
     db.commit()
     from .api.router import _broadcast_realtime
@@ -123,16 +169,49 @@ def apply_tool(workspace_id: int, tool_id: int, data: ApplyInput, db: Session = 
     if project.workspace_id != workspace_id:
         raise HTTPException(404, "Project not found in this workspace")
     key = f"{tool_id}:{user.id}:{data.request_id}"
-    previous = db.query(PMSWorkspaceEntry).filter_by(workspace_id=workspace_id, kind="lib_run").all()
-    for run in previous:
+    replay = replay_run(db, workspace_id, key)
+    if replay:
+        return replay
+    if not tool["enabled"] or tool["kind"] == "goal":
+        raise HTTPException(422, "This tool cannot create tasks")
+    if data.task_titles is not None and tool["kind"] != "template":
+        raise HTTPException(422, "Task overrides are only supported for templates")
+    titles = (data.task_titles if data.task_titles is not None else tool["task_titles"]) if tool["kind"] == "template" else [data.title.strip()]
+    if any(not title for title in titles):
+        raise HTTPException(422, "A request title is required")
+    description = data.description or tool["description"]
+    if tool["kind"] == "template" and "description" in data.model_fields_set:
+        description = data.description
+    return create_tasks(db, user, workspace_id, project, tool, titles, description, key)
+
+
+@router.post("/workspaces/{workspace_id}/blueprints/apply")
+def apply_blueprint(workspace_id: int, data: BlueprintApplyInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _, membership = workspace_member(db, workspace_id, user)
+    if membership.role == "Guest":
+        raise HTTPException(403, "Guests have read-only access")
+    project = get_project_for_action(db, data.project_id, user, "manage_tasks")
+    if project.workspace_id != workspace_id:
+        raise HTTPException(404, "Project not found in this workspace")
+    # Serialize direct runs in a workspace so a retried request cannot create duplicates.
+    db.query(PMSWorkspace).filter(PMSWorkspace.id == workspace_id).with_for_update().one()
+    key = f"blueprint:{user.id}:{data.request_id}"
+    replay = replay_run(db, workspace_id, key)
+    if replay:
+        return replay
+    tool = {"name": data.name, "kind": "template", "description": data.description}
+    return create_tasks(db, user, workspace_id, project, tool, data.task_titles, data.description, key)
+
+
+def replay_run(db, workspace_id, key):
+    for run in db.query(PMSWorkspaceEntry).filter_by(workspace_id=workspace_id, kind="lib_run").all():
         saved = json.loads(run.body)
         if saved["key"] == key:
             return {"task_ids": saved["task_ids"], "replayed": True}
-    if not tool["enabled"] or tool["kind"] == "goal":
-        raise HTTPException(422, "This tool cannot create tasks")
-    titles = tool["task_titles"] if tool["kind"] == "template" else [data.title.strip()]
-    if any(not title for title in titles):
-        raise HTTPException(422, "A request title is required")
+    return None
+
+
+def create_tasks(db, user, workspace_id, project, tool, titles, description, key):
     board = db.query(PMSBoard).filter_by(project_id=project.id).order_by(PMSBoard.id).first()
     if not board:
         board = PMSBoard(project_id=project.id, name="Default Board", board_type="Kanban")
@@ -149,7 +228,7 @@ def apply_tool(workspace_id: int, tool_id: int, data: ApplyInput, db: Session = 
     position = db.query(PMSTask).filter_by(project_id=project.id).count()
     ids = []
     for index, title in enumerate(titles):
-        task = PMSTask(project_id=project.id, board_id=board.id, column_id=column.id, task_key="REQ-" + secrets.token_hex(5).upper(), title=title, description=data.description or tool["description"], reporter_user_id=user.id, status="To Do", priority="Medium", position=position + index, rank=position + index + 1)
+        task = PMSTask(project_id=project.id, board_id=board.id, column_id=column.id, task_key="REQ-" + secrets.token_hex(5).upper(), title=title, description=description, reporter_user_id=user.id, status="To Do", priority="Medium", position=position + index, rank=position + index + 1)
         db.add(task)
         db.flush()
         apply_task_rules(db, task, project, user, "task.created")

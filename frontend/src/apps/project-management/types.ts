@@ -74,6 +74,7 @@ export interface PMSProject {
 }
 
 export interface CreateProjectInput {
+  custom_fields?: Record<string, {value:string|number|boolean|null;country_code?:string}>;
   workspace_id?: number;
   name: string;
   project_key: string;
@@ -267,6 +268,7 @@ export interface PMSTaskListQuery {
 }
 
 export interface CreateTaskInput {
+  custom_fields?: Record<string, {value:string|number|boolean|null;country_code?:string}>;
   sprint_id?: number;
   recurrence_rule?: string;
   recurrence_interval?: number;

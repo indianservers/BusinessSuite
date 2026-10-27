@@ -138,7 +138,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Request-ID"],
+    expose_headers=["X-Request-ID", "Retry-After"],
 )
 
 # GZip compression
@@ -150,11 +150,13 @@ app.add_middleware(AuditLogMiddleware)
 app.add_middleware(RequestIDMiddleware)
 from app.core.middleware.security_headers import SecurityHeadersMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
+from app.core.middleware.request_boundary import RequestBoundaryMiddleware
+app.add_middleware(RequestBoundaryMiddleware)
 
 
 # Global exception handler
 from fastapi.exceptions import RequestValidationError
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, DBAPIError
 
 @app.exception_handler(RequestValidationError)
 async def invalid_input_handler(request:Request,exc:RequestValidationError):
@@ -163,6 +165,15 @@ async def invalid_input_handler(request:Request,exc:RequestValidationError):
 @app.exception_handler(IntegrityError)
 async def conflicting_record_handler(request:Request,exc:IntegrityError):
     return JSONResponse(status_code=409,content={'detail':'This record conflicts with an existing record or referenced value. Refresh the form and check its identifiers.'})
+
+@app.exception_handler(DBAPIError)
+async def database_request_handler(request: Request, exc: DBAPIError):
+    import logging
+    state = getattr(exc.orig, "sqlstate", None)
+    code = 422 if state in {"22003", "22P02", "22001"} else 503
+    logging.getLogger("businesssuite.security").warning("security_event=database_request_rejected sqlstate=%s status=%s", state, code)
+    return JSONResponse(status_code=code, content={"detail": "Invalid or out-of-range value" if code == 422 else "Database operation could not complete. Check its status before retrying."}, headers={"Retry-After": "5"} if code == 503 else {})
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

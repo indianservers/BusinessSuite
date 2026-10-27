@@ -25,8 +25,12 @@ def token_record_id(value) -> int:
 
 def get_db() -> Generator:
     db = SessionLocal()
+    db.info["security_http_timeout"] = True
     try:
         yield db
+    except BaseException:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -74,7 +78,7 @@ def get_current_user(
         expires_at = session.expires_at if session else None
         if expires_at and expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if not session or session.status.lower() == "revoked" or (expires_at and expires_at <= datetime.now(timezone.utc)):
+        if not session or session.status.lower() != "active" or (expires_at and expires_at <= datetime.now(timezone.utc)):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked or expired")
         last_seen = session.last_seen_at
         if last_seen and last_seen.tzinfo is None:
@@ -85,30 +89,46 @@ def get_current_user(
         if last_seen is None or last_seen <= now-timedelta(minutes=5):
             session.last_seen_at = now
             db.commit()
-    from app.access.service import bind_authorization
-    user._suite_session_id = token_record_id(session_id) if session_id else None
-    cleanup = bind_authorization(db, user, request)
-    from app.shared.tenancy import install as install_service_tenancy
-    request.state.observed_company_id = user.organization_id
-    from app.access.catalog import request_module
-    tenant_cleanup = install_service_tenancy(db,user.organization_id,request_module(request))
-    previous_shared_actor = db.info.get("shared_actor")
-    db.info["shared_actor"] = (user.id, user.organization_id)
+    from contextlib import ExitStack
     from app.core.audit_context import set_audit_actor
-    set_audit_actor(user)
+    from app.access.service import bind_authorization
+    from app.core.tenant_boundary import install as install_boundary
+    from app.shared.tenancy import install as install_service_tenancy
+    from app.core.request_limits import enforce_actor
+    from app.access.catalog import request_module
     from app.ai_agents.security import bind_http
-    ai_cleanup=lambda:None
-    try:
-        ai_cleanup=bind_http(db,user,request,payload)
+    user._suite_session_id = token_record_id(session_id) if session_id else None
+    set_audit_actor(user)
+    with ExitStack() as stack:
+        previous_write = db.info.get("security_write_request")
+        db.info["security_write_request"] = request.method not in {"GET", "HEAD", "OPTIONS"}
+        def restore_write():
+            if previous_write is None:
+                db.info.pop("security_write_request", None)
+            else:
+                db.info["security_write_request"] = previous_write
+        stack.callback(restore_write)
+        stack.callback(bind_authorization(db, user, request))
+        from app.core.tenant_boundary import company_ids
+        own_account = request.url.path in {"/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/auth/change-password", "/api/v1/auth/mfa/setup", "/api/v1/auth/mfa/confirm", "/api/v1/auth/mfa/disable"}
+        if not own_account or company_ids(db, user):
+            stack.callback(install_boundary(db, user, user.organization_id))
+        stack.callback(install_service_tenancy(db, user.organization_id, request_module(request)))
+        request.state.observed_company_id = user.organization_id
+        set_audit_actor(user)
+        stack.callback(enforce_actor(request, user))
+        previous = db.info.get("shared_actor")
+        db.info["shared_actor"] = (user.id, user.organization_id)
+        def restore_actor():
+            if previous is None:
+                db.info.pop("shared_actor", None)
+            else:
+                db.info["shared_actor"] = previous
+        stack.callback(restore_actor)
+        set_audit_actor(user)
+        stack.callback(bind_http(db, user, request, payload))
         yield user
-    finally:
-        ai_cleanup()
-        if previous_shared_actor is None:
-            db.info.pop("shared_actor", None)
-        else:
-            db.info["shared_actor"] = previous_shared_actor
-        tenant_cleanup()
-        cleanup()
+
 
 
 def get_current_active_superuser(current_user: User = Depends(get_current_user)) -> User:

@@ -1,0 +1,293 @@
+{
+  "name": "Intelligence E",
+  "description": "Isolated design-time scenario",
+  "definition": {
+    "schema_version": 2,
+    "catalog_version": 1,
+    "nodes": [
+      {
+        "mappings": {},
+        "disabled": false,
+        "id": "node_035c52d50b404e92",
+        "type": "manual_trigger",
+        "label": "Manual Trigger",
+        "description": "Synthetic design scenario",
+        "position": {
+          "x": 80,
+          "y": 180
+        },
+        "config": {},
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {},
+        "disabled": false,
+        "id": "node_ce68d5c097a24b44",
+        "type": "parse_json",
+        "label": "Parse JSON",
+        "description": "Synthetic design scenario",
+        "position": {
+          "x": 380,
+          "y": 180
+        },
+        "config": {
+          "value": "{{trigger.record.json}}"
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {
+          "mapping": {
+            "source": "{{steps.node_ce68d5c097a24b44.output.value}}",
+            "constant": null,
+            "operations": [
+              {
+                "op": "path",
+                "argument": "items"
+              },
+              {
+                "op": "filter",
+                "argument": {
+                  "path": "amount",
+                  "operator": "greater_than",
+                  "right": 10
+                }
+              },
+              {
+                "op": "map",
+                "argument": [
+                  {
+                    "op": "path",
+                    "argument": "amount"
+                  }
+                ]
+              }
+            ],
+            "target_type": "array",
+            "nullable": false
+          }
+        },
+        "disabled": false,
+        "id": "node_8e063eb7a5104304",
+        "type": "map_fields",
+        "label": "Map Fields",
+        "description": "Synthetic design scenario",
+        "position": {
+          "x": 680,
+          "y": 180
+        },
+        "config": {
+          "mapping": {}
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {},
+        "disabled": false,
+        "id": "node_36398b2572584ad6",
+        "type": "filter",
+        "label": "Filter",
+        "description": "Synthetic design scenario",
+        "position": {
+          "x": 980,
+          "y": 180
+        },
+        "config": {
+          "operator": "equals",
+          "condition": {
+            "join": "and",
+            "rules": [
+              {
+                "left": "{{trigger.record.include}}",
+                "operator": "boolean_equals",
+                "right": true
+              }
+            ]
+          }
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {
+          "values": {
+            "source": "{{steps.node_8e063eb7a5104304.output.value}}",
+            "constant": null,
+            "operations": [],
+            "target_type": "array",
+            "nullable": false
+          }
+        },
+        "disabled": false,
+        "id": "node_a7f3f735f7ab432a",
+        "type": "aggregate_values",
+        "label": "Aggregate Values",
+        "description": "Synthetic design scenario",
+        "position": {
+          "x": 1280,
+          "y": 180
+        },
+        "config": {
+          "values": [],
+          "operation": "sum"
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {
+          "value": {
+            "source": null,
+            "constant": 37,
+            "operations": [],
+            "target_type": "any",
+            "nullable": false
+          }
+        },
+        "disabled": false,
+        "id": "node_6eff6f059e0646be",
+        "type": "set_variable",
+        "label": "Set Variable",
+        "description": "Reviewed synthetic scenario",
+        "position": {
+          "x": 1580,
+          "y": 180
+        },
+        "config": {
+          "value": "{{steps.node_a7f3f735f7ab432a.output.value}}"
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {},
+        "disabled": false,
+        "id": "node_ab2ae16e17f243cd",
+        "type": "log_event",
+        "label": "Log Event",
+        "description": "Synthetic design scenario",
+        "position": {
+          "x": 1880,
+          "y": 180
+        },
+        "config": {
+          "level": "info",
+          "message": "Input excluded"
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      }
+    ],
+    "edges": [
+      {
+        "style": "bezier",
+        "id": "edge_f4d17fceee964601",
+        "source": "node_035c52d50b404e92",
+        "target": "node_ce68d5c097a24b44",
+        "source_port": "out",
+        "target_port": "in",
+        "label": ""
+      },
+      {
+        "style": "bezier",
+        "id": "edge_56c115ff34c64fa4",
+        "source": "node_ce68d5c097a24b44",
+        "target": "node_8e063eb7a5104304",
+        "source_port": "out",
+        "target_port": "in",
+        "label": ""
+      },
+      {
+        "style": "bezier",
+        "id": "edge_c974900858d84c22",
+        "source": "node_8e063eb7a5104304",
+        "target": "node_36398b2572584ad6",
+        "source_port": "out",
+        "target_port": "in",
+        "label": ""
+      },
+      {
+        "style": "bezier",
+        "id": "edge_46f11ddda7fc4ab8",
+        "source": "node_36398b2572584ad6",
+        "target": "node_a7f3f735f7ab432a",
+        "source_port": "true",
+        "target_port": "in",
+        "label": "true"
+      },
+      {
+        "style": "bezier",
+        "id": "edge_031a37e8ed844ea4",
+        "source": "node_36398b2572584ad6",
+        "target": "node_ab2ae16e17f243cd",
+        "source_port": "false",
+        "target_port": "in",
+        "label": "false"
+      },
+      {
+        "style": "bezier",
+        "id": "edge_cdfa39141ff240a5",
+        "source": "node_a7f3f735f7ab432a",
+        "target": "node_6eff6f059e0646be",
+        "source_port": "out",
+        "target_port": "in",
+        "label": ""
+      }
+    ],
+    "groups": [],
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 0.75
+    },
+    "settings": {
+      "max_attempts": 3,
+      "retry_backoff_seconds": 60,
+      "idempotency": "request_id",
+      "execution_identity": "owner",
+      "timezone": "Asia/Kolkata",
+      "retention_days": 30
+    },
+    "editor": {
+      "snap_to_grid": true,
+      "connection_style": "bezier"
+    },
+    "annotations": [],
+    "tags": [],
+    "block_contract": null,
+    "block_references": [],
+    "mapping_presets": [],
+    "variables": {}
+  }
+}

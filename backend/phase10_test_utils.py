@@ -31,15 +31,23 @@ def auth_headers(client, db, email="phase10-admin@example.com", role_name="crm_s
         role.permissions.append(perm)
     user = User(email=email, hashed_password=get_password_hash("Admin@123456"), is_active=True, is_superuser=superuser, role_id=role.id)
     db.add(user)
+    db.flush()
+    from tests.tenant_test_utils import assign_company
+    assign_company(db, user, 1)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Admin@123456"})
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-def invite_portal(client, headers, portal_type="customer", email="customer@example.com", customer_id=100, partner_id=200):
-    payload = {"email": email, "display_name": email.split("@")[0], "portal_type": portal_type}
+def invite_portal(client, db, headers, portal_type="customer", email="customer@example.com", customer_id=100, partner_id=200):
+    payload = {"email": email, "display_name": email.split("@")[0], "portal_type": portal_type, "permissions": ["view", "submit_lead"] if portal_type == "partner" else ["view"]}
     if portal_type == "customer":
+        from app.apps.crm.models import CRMCompany
+        # Provision a real, explicitly owned customer; arbitrary guessed IDs are denied.
+        if not db.get(CRMCompany, customer_id):
+            db.add(CRMCompany(id=customer_id, organization_id=1, name=f"Portal customer {customer_id}"))
+            db.commit()
         payload["customer_id"] = customer_id
     if portal_type == "partner":
         payload["partner_id"] = partner_id

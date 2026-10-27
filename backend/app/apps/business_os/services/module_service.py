@@ -17,6 +17,7 @@ from app.models.user import User
 
 
 CORE_MODULES = {
+    "power_apps": {"display_name": "Power Apps", "home_path": "/power-apps", "is_financial_backbone": False, "optional": True},
     "fam": {"display_name": "Accounts / FAM", "home_path": "/fam", "is_financial_backbone": True, "optional": True},
     "crm": {"display_name": "CRM", "home_path": "/crm", "is_financial_backbone": False, "optional": True},
     "srm": {"display_name": "Sales & Inventory", "home_path": "/srm", "is_financial_backbone": False, "optional": True},
@@ -27,7 +28,7 @@ CORE_MODULES = {
     "communication": {"display_name": "Communication", "home_path": "/admin/communication", "is_financial_backbone": False, "optional": True},
 }
 
-DEFAULT_ENABLED_MODULES = {"fam", "crm", "srm", "project_management", "hrms", "ai", "portals", "communication"}
+DEFAULT_ENABLED_MODULES = {"power_apps", "fam", "crm", "srm", "project_management", "hrms", "ai", "portals", "communication"}
 
 SUPPORTED_COMBINATIONS = [
     {"name": "Accounts only", "modules": ["fam"]},

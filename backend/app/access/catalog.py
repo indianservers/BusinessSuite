@@ -22,6 +22,7 @@ ALIASES = {
     "logs": "audit",
 }
 PATHS = {
+    "power_apps": "/power-apps",
     "project_management": "/pms",
     "ai": "/ai/copilot",
     "forms": "/pms/forms",
@@ -37,6 +38,7 @@ PATHS = {
     "scheduling": "/crm/calendar",
 }
 LABELS = {
+    "power_apps": "Power Apps",
     "project_management": "PMS",
     "srm": "Sales & Inventory",
     "fam": "Finance & Accounting",
@@ -99,7 +101,7 @@ def key_for_source(source, default=None):
     if source in {
         "app.access.api",
         "app.access.control",
-        "app.shared.api", "app.enterprise.api", "app.ai_agents.security_api",
+        "app.shared.api", "app.shared.communication.gateway", "app.enterprise.api", "app.ai_agents.security_api",
         "app.common.profile_api",
         "app.api.v1.auth",
         "app.api.v1.users",
@@ -172,6 +174,7 @@ def permission_module(permission):
     name = permission.name if hasattr(permission, "name") else str(permission)
     module = getattr(permission, "module", "") or ""
     for prefix, key in [
+        ("power_apps_", "power_apps"),
         ("pms_", "project_management"),
         ("crm_", "crm"),
         ("srm_", "srm"),
@@ -239,6 +242,18 @@ def action_for(request):
         return "export"
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return "view"
+    if path in {"/api/v1/power-apps/automations/intelligence/analyze", "/api/v1/power-apps/automations/intelligence/review", "/api/v1/power-apps/automations/portable/prepare"}:
+        return "view"
+    if path.startswith('/api/v1/power-apps/approvals/'):
+        if path.endswith('/decisions'):return 'approve'
+        if path.endswith(('/activate','/disable')):return 'configure'
+        if path.endswith(('/reassign','/resolve')) or '/delegations' in path:return 'assign'
+    if path.startswith("/api/v1/power-apps/automations/") and path.endswith(("/archive", "/unarchive")):
+        return "edit"
+    if path.startswith("/api/v1/power-apps/") and ("/runtime/" in path or "/triggers/" in path or path.endswith(("/publish", "/runtime-limits"))):
+        return "view" if path.endswith("/validate") else "configure"
+    if path.startswith("/api/v1/power-apps/executions/") or (path.startswith("/api/v1/power-apps/automations/") and path.endswith("/execute")):
+        return "create"
     segments = set(path.split("/"))
     if segments.intersection({"roles", "permissions", "users", "user-access"}):
         return "manage_users"
@@ -273,6 +288,9 @@ def action_for(request):
 def action_permissions(names, tier):
     if tier == "admin":
         return names
+    # Workflow editing presets do not confer platform administration or runtime powers.
+    power_admin_permissions = {"power_apps_manage_environment", "power_apps_manage_credentials", "power_apps_publish", "power_apps_execute", "power_apps_approval_decide", "power_apps_approval_manage", "power_apps_approval_delegate", "power_apps_approval_audit", "power_apps_approval_export"}
+    names = [name for name in names if name not in power_admin_permissions]
     forbidden = (
         "admin",
         "delete",

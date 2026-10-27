@@ -1,18 +1,20 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from app.core.input_validation import EmailAddress
 
 
 class PortalUserPayload(BaseModel):
-    email: str
-    display_name: str
+    model_config = ConfigDict(extra="forbid")
+    email: EmailAddress
+    display_name: str = Field(min_length=1, max_length=160)
     portal_type: str = Field(pattern="^(customer|partner|vendor)$")
-    customer_id: int | None = None
-    partner_id: int | None = None
+    customer_id: int | None = Field(default=None, gt=0)
+    partner_id: int | None = Field(default=None, gt=0)
 
 
 class PortalInvitePayload(PortalUserPayload):
-    permissions: list[str] = []
+    permissions: list[str] = Field(default_factory=list, max_length=20)
 
 
 class PartnerLeadPayload(BaseModel):

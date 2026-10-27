@@ -1,0 +1,9 @@
+{
+  "count": 250,
+  "renderMs": 1876,
+  "interactionMs": 345,
+  "serializationMs": 0.5,
+  "validationMs": 4.5999999940395355,
+  "bytes": 88454,
+  "valid": true
+}

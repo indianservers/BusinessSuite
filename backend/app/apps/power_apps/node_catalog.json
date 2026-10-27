@@ -1,0 +1,2782 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "manual_trigger",
+      "name": "Manual Trigger",
+      "category": "Triggers",
+      "icon": "MousePointer2",
+      "description": "Start with explicit test input.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "input": "object",
+        "record": "object"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "scheduled_trigger",
+      "name": "Scheduled Trigger",
+      "category": "Scheduling",
+      "icon": "CalendarClock",
+      "description": "Start on a schedule.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "schedule",
+          "label": "Cron schedule",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true,
+          "default": "0 9 * * 1-5"
+        },
+        {
+          "key": "timezone",
+          "label": "Timezone",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true,
+          "default": "Asia/Kolkata"
+        }
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "scheduled_at": "string"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "webhook_trigger",
+      "name": "Webhook Trigger",
+      "category": "Triggers",
+      "icon": "Webhook",
+      "description": "Describe an incoming webhook.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "event_name",
+          "label": "Event name",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true,
+          "default": "incoming.request"
+        }
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "body": "object"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "record_created",
+      "name": "Record Created",
+      "category": "Triggers",
+      "icon": "DatabaseZap",
+      "description": "When a record is created.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "record_type",
+          "label": "Record type",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "status",
+          "label": "Expected status",
+          "kind": "text",
+          "required": false,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "record": "object"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "record_updated",
+      "name": "Record Updated",
+      "category": "Triggers",
+      "icon": "DatabaseZap",
+      "description": "When record fields change.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "record_type",
+          "label": "Record type",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "status",
+          "label": "Expected status",
+          "kind": "text",
+          "required": false,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "record": "object"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "record_deleted",
+      "name": "Record Deleted",
+      "category": "Triggers",
+      "icon": "DatabaseZap",
+      "description": "When a record is deleted.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "record_type",
+          "label": "Record type",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "status",
+          "label": "Expected status",
+          "kind": "text",
+          "required": false,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "record": "object"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "status_changed",
+      "name": "Status Changed",
+      "category": "Triggers",
+      "icon": "DatabaseZap",
+      "description": "When a record reaches a status.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "record_type",
+          "label": "Record type",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "status",
+          "label": "Expected status",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "record": "object"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "date_reached",
+      "name": "Date Reached",
+      "category": "Triggers",
+      "icon": "CalendarCheck",
+      "description": "When a date is reached.",
+      "trigger": true,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "date",
+          "label": "Target date",
+          "kind": "date",
+          "required": true,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "if_else",
+      "name": "If / Else",
+      "category": "Logic & Conditions",
+      "icon": "GitBranch",
+      "description": "Choose a true or false path.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "left",
+          "label": "Left value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "operator",
+          "label": "Operator",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "equals",
+            "not_equals",
+            "greater_than",
+            "less_than",
+            "greater_or_equal",
+            "less_or_equal",
+            "contains",
+            "starts_with",
+            "ends_with",
+            "is_empty",
+            "is_not_empty",
+            "in_list",
+            "not_in_list",
+            "date_before",
+            "date_after",
+            "boolean_equals"
+          ],
+          "default": "equals"
+        },
+        {
+          "key": "right",
+          "label": "Right value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "condition",
+          "label": "Nested condition",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "true",
+          "label": "True",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "false",
+          "label": "False",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "result": "boolean"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "switch",
+      "name": "Switch",
+      "category": "Logic & Conditions",
+      "icon": "Split",
+      "description": "Route a value to a matching case.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "Value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "cases",
+          "label": "Case values",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": {
+            "route_1": "high",
+            "route_2": "low"
+          }
+        },
+        {
+          "key": "routes",
+          "label": "Named branches",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "route_1",
+          "label": "Route 1",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "route_2",
+          "label": "Route 2",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "default",
+          "label": "Default",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "route": "string"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "and_or",
+      "name": "AND / OR Condition",
+      "category": "Logic & Conditions",
+      "icon": "ListFilter",
+      "description": "Combine boolean values.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "values",
+          "label": "Boolean values",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": [
+            true,
+            false
+          ]
+        },
+        {
+          "key": "operator",
+          "label": "Operator",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "and",
+            "or"
+          ],
+          "default": "and"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "true",
+          "label": "True",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "false",
+          "label": "False",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "filter",
+      "name": "Filter",
+      "category": "Logic & Conditions",
+      "icon": "Filter",
+      "description": "Continue only on a match.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "left",
+          "label": "Left value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "operator",
+          "label": "Operator",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "equals",
+            "not_equals",
+            "greater_than",
+            "less_than",
+            "greater_or_equal",
+            "less_or_equal",
+            "contains",
+            "starts_with",
+            "ends_with",
+            "is_empty",
+            "is_not_empty",
+            "in_list",
+            "not_in_list",
+            "date_before",
+            "date_after",
+            "boolean_equals"
+          ],
+          "default": "equals"
+        },
+        {
+          "key": "right",
+          "label": "Right value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "condition",
+          "label": "Nested condition",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "true",
+          "label": "True",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "false",
+          "label": "False",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "compare_values",
+      "name": "Compare Values",
+      "category": "Logic & Conditions",
+      "icon": "Equal",
+      "description": "Compare two values.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "left",
+          "label": "Left value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "operator",
+          "label": "Operator",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "equals",
+            "not_equals",
+            "greater_than",
+            "less_than",
+            "greater_or_equal",
+            "less_or_equal",
+            "contains",
+            "starts_with",
+            "ends_with",
+            "is_empty",
+            "is_not_empty",
+            "in_list",
+            "not_in_list",
+            "date_before",
+            "date_after",
+            "boolean_equals"
+          ],
+          "default": "equals"
+        },
+        {
+          "key": "right",
+          "label": "Right value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "condition",
+          "label": "Nested condition",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "true",
+          "label": "True",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "false",
+          "label": "False",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "check_empty",
+      "name": "Check Empty Value",
+      "category": "Logic & Conditions",
+      "icon": "CircleDashed",
+      "description": "Check for missing data.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "Value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "true",
+          "label": "True",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "false",
+          "label": "False",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "evaluate_expression",
+      "name": "Evaluate Expression",
+      "category": "Logic & Conditions",
+      "icon": "Braces",
+      "description": "Resolve safe workflow references.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "expression",
+          "label": "Expression",
+          "kind": "expression",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "route_by_priority",
+      "name": "Route by Priority",
+      "category": "Logic & Conditions",
+      "icon": "Flag",
+      "description": "Route high and normal priority.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "Priority",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "route_1",
+          "label": "Route 1",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "route_2",
+          "label": "Route 2",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "delay",
+      "name": "Delay",
+      "category": "Flow Control",
+      "icon": "Timer",
+      "description": "Pause for a bounded interval.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "seconds",
+          "label": "Duration (seconds)",
+          "kind": "number",
+          "required": true,
+          "allow_expression": false,
+          "minimum": 1,
+          "maximum": 2592000,
+          "default": 60
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "wait_until",
+      "name": "Wait Until",
+      "category": "Scheduling",
+      "icon": "Clock3",
+      "description": "Continue after a date and time.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "until",
+          "label": "Continue at",
+          "kind": "datetime",
+          "required": true,
+          "allow_expression": false
+        },
+        {
+          "key": "event_key",
+          "label": "Authorized resume event key (optional)",
+          "kind": "text",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "for_each",
+      "name": "For Each",
+      "category": "Flow Control",
+      "icon": "Repeat2",
+      "description": "Process a bounded list of items.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "items",
+          "label": "Items",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "max_iterations",
+          "label": "Maximum iterations",
+          "kind": "number",
+          "required": true,
+          "allow_expression": false,
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        {
+          "key": "mode",
+          "label": "Iteration mode",
+          "kind": "select",
+          "required": false,
+          "allow_expression": false,
+          "options": [
+            "sequential",
+            "bounded_parallel"
+          ],
+          "default": "sequential"
+        },
+        {
+          "key": "concurrency",
+          "label": "Parallel limit",
+          "kind": "number",
+          "required": false,
+          "allow_expression": false,
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        {
+          "key": "exit_condition",
+          "label": "Exit condition",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "body",
+          "label": "Each item",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "loop",
+      "name": "Loop",
+      "category": "Flow Control",
+      "icon": "Repeat",
+      "description": "Repeat with an explicit bound.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "max_iterations",
+          "label": "Maximum iterations",
+          "kind": "number",
+          "required": true,
+          "allow_expression": false,
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 10
+        },
+        {
+          "key": "mode",
+          "label": "Iteration mode",
+          "kind": "select",
+          "required": false,
+          "allow_expression": false,
+          "options": [
+            "sequential",
+            "bounded_parallel"
+          ],
+          "default": "sequential"
+        },
+        {
+          "key": "concurrency",
+          "label": "Parallel limit",
+          "kind": "number",
+          "required": false,
+          "allow_expression": false,
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1
+        },
+        {
+          "key": "exit_condition",
+          "label": "Exit condition",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "body",
+          "label": "Each item",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "done",
+          "label": "Done",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "parallel_branch",
+      "name": "Parallel Branch",
+      "category": "Flow Control",
+      "icon": "GitFork",
+      "description": "Follow two independent paths.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "route_1",
+          "label": "Route 1",
+          "data_type": "flow",
+          "max_connections": 10
+        },
+        {
+          "id": "route_2",
+          "label": "Route 2",
+          "data_type": "flow",
+          "max_connections": 10
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "merge",
+      "name": "Merge",
+      "category": "Flow Control",
+      "icon": "Merge",
+      "description": "Bring incoming paths together.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "strategy",
+          "label": "Merge strategy",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "all",
+            "first",
+            "first_successful",
+            "first_completed",
+            "keyed"
+          ],
+          "default": "all"
+        },
+        {
+          "key": "keys",
+          "label": "Branch output keys",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 10
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "stop_workflow",
+      "name": "Stop Workflow",
+      "category": "Flow Control",
+      "icon": "CircleStop",
+      "description": "Finish this path.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "reason",
+          "label": "Reason",
+          "kind": "text",
+          "required": false,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "sub_workflow",
+      "name": "Sub-workflow",
+      "category": "Flow Control",
+      "icon": "Workflow",
+      "description": "Reference another automation.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "workflow_id",
+          "label": "Automation ID",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "set_variable",
+      "name": "Set Variable",
+      "category": "Data Transformation",
+      "icon": "Variable",
+      "description": "Make a value available downstream.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "Value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "name",
+          "label": "Workflow variable name",
+          "kind": "text",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "transform_data",
+      "name": "Transform Data",
+      "category": "Data Transformation",
+      "icon": "Wand2",
+      "description": "Build a declarative output object.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "mapping",
+          "label": "Output object",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": {}
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "map_fields",
+      "name": "Map Fields",
+      "category": "Data Transformation",
+      "icon": "ArrowRightLeft",
+      "description": "Map field names and values.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "mapping",
+          "label": "Field mapping",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": {}
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "format_date",
+      "name": "Format Date",
+      "category": "Data Transformation",
+      "icon": "Calendar",
+      "description": "Format a date safely.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "Date value",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "format",
+          "label": "Format",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "iso",
+            "date",
+            "year-month"
+          ],
+          "default": "date"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "string"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "format_number",
+      "name": "Format Number",
+      "category": "Data Transformation",
+      "icon": "Hash",
+      "description": "Format a numeric value.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "Number",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "digits",
+          "label": "Decimal places",
+          "kind": "number",
+          "required": true,
+          "allow_expression": false,
+          "minimum": 0,
+          "maximum": 8,
+          "default": 2
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "string"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "parse_json",
+      "name": "Parse JSON",
+      "category": "Data Transformation",
+      "icon": "FileJson",
+      "description": "Read a JSON value.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "JSON text",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "object"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "build_json",
+      "name": "Build JSON",
+      "category": "Data Transformation",
+      "icon": "Braces",
+      "description": "Compose a structured value.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "value",
+          "label": "JSON object",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": {}
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "object"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "aggregate_values",
+      "name": "Aggregate Values",
+      "category": "Data Transformation",
+      "icon": "Sigma",
+      "description": "Aggregate a list of numbers.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "values",
+          "label": "Numbers",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "key": "operation",
+          "label": "Operation",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "sum",
+            "average",
+            "min",
+            "max",
+            "count"
+          ],
+          "default": "sum"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "number"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "create_notification",
+      "name": "Create Notification",
+      "category": "Communication",
+      "icon": "Bell",
+      "description": "Prepare an in-app notification.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "recipient",
+          "label": "Recipient",
+          "kind": "user",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "message",
+          "label": "Message",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "send_email",
+      "name": "Send Email",
+      "category": "Communication",
+      "icon": "Mail",
+      "description": "Describe a governed email action.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": true,
+      "fields": [
+        {
+          "key": "recipient",
+          "label": "Recipient email",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "template",
+          "label": "Email template",
+          "kind": "template",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "subject",
+          "label": "Subject",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "create_task",
+      "name": "Create Task",
+      "category": "Actions",
+      "icon": "SquareCheck",
+      "description": "Describe a task for a future adapter.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Task title",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "assignee",
+          "label": "Assignee",
+          "kind": "user",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "due_date",
+          "label": "Due date",
+          "kind": "date",
+          "required": false,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "task_id": "number"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "update_task",
+      "name": "Update Task",
+      "category": "Actions",
+      "icon": "ClipboardCheck",
+      "description": "Describe an update to a task.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "task_id",
+          "label": "Task ID",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "status",
+          "label": "Status",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "Open",
+            "In Progress",
+            "Done"
+          ],
+          "default": "Open"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "create_approval",
+      "name": "Create Approval Request",
+      "category": "Approvals",
+      "icon": "BadgeCheck",
+      "description": "Prepare a permission-controlled decision.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Approval title",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "approver",
+          "label": "Approver",
+          "kind": "user",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "require_all",
+          "label": "Require all approvers",
+          "kind": "boolean",
+          "required": true,
+          "allow_expression": false,
+          "default": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "wait_approval",
+      "name": "Wait for Approval",
+      "category": "Approvals",
+      "icon": "UserCheck",
+      "description": "Continue after an approval outcome.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "approval_id",
+          "label": "Approval reference",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "true",
+          "label": "True",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "false",
+          "label": "False",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "create_followup",
+      "name": "Create Follow-up",
+      "category": "Actions",
+      "icon": "CalendarPlus",
+      "description": "Describe a business follow-up.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Follow-up title",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "owner",
+          "label": "Owner",
+          "kind": "user",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "at",
+          "label": "Follow-up time",
+          "kind": "datetime",
+          "required": true,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "add_comment",
+      "name": "Add Comment",
+      "category": "Actions",
+      "icon": "MessageSquare",
+      "description": "Prepare a comment on a record.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "record_id",
+          "label": "Record reference",
+          "kind": "record",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "message",
+          "label": "Comment",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "http_request",
+      "name": "HTTP Request",
+      "category": "Connectors",
+      "icon": "Globe",
+      "description": "Configure an HTTPS request without sending it.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": true,
+      "fields": [
+        {
+          "key": "url",
+          "label": "HTTPS URL",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "method",
+          "label": "Method",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ],
+          "default": "GET"
+        },
+        {
+          "key": "body",
+          "label": "JSON body",
+          "kind": "json",
+          "required": false,
+          "allow_expression": false,
+          "default": {}
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "connector_action",
+      "name": "Execute Connector Action",
+      "category": "Connectors",
+      "icon": "Plug",
+      "description": "Choose a future connector adapter.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": true,
+      "fields": [
+        {
+          "key": "connector",
+          "label": "Connector ID",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "action",
+          "label": "Action ID",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "parameters",
+          "label": "Parameters",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": {}
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "ai_text",
+      "name": "AI Text Processing",
+      "category": "AI",
+      "icon": "Sparkles",
+      "description": "Configure a governed AI text task.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": true,
+      "fields": [
+        {
+          "key": "instruction",
+          "label": "Instruction",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "input",
+          "label": "Input text",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "temperature",
+          "label": "Temperature",
+          "kind": "number",
+          "required": true,
+          "allow_expression": false,
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "ai_classification",
+      "name": "AI Classification",
+      "category": "AI",
+      "icon": "Bot",
+      "description": "Describe categories for a future AI adapter.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": true,
+      "fields": [
+        {
+          "key": "input",
+          "label": "Input",
+          "kind": "dynamic",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "categories",
+          "label": "Categories",
+          "kind": "multi-select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "Sales",
+            "Support",
+            "Operations",
+            "Other"
+          ],
+          "default": [
+            "Other"
+          ]
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "category": "string",
+        "confidence": "number"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "error_handler",
+      "name": "Error Handler",
+      "category": "Error Handling",
+      "icon": "ShieldAlert",
+      "description": "Describe a recovery path.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "message",
+          "label": "Recovery message",
+          "kind": "text",
+          "required": false,
+          "allow_expression": true
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "retry_action",
+      "name": "Retry Action",
+      "category": "Error Handling",
+      "icon": "RotateCcw",
+      "description": "Describe a bounded retry policy.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "attempts",
+          "label": "Maximum attempts",
+          "kind": "number",
+          "required": true,
+          "allow_expression": false,
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3
+        },
+        {
+          "key": "backoff",
+          "label": "Backoff (seconds)",
+          "kind": "number",
+          "required": true,
+          "allow_expression": false,
+          "minimum": 1,
+          "maximum": 86400,
+          "default": 60
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "retry",
+          "label": "Retry",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "log_event",
+      "name": "Log Event",
+      "category": "Utilities",
+      "icon": "ScrollText",
+      "description": "Inspect a diagnostic event locally.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": true,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "message",
+          "label": "Event message",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "level",
+          "label": "Level",
+          "kind": "select",
+          "required": true,
+          "allow_expression": false,
+          "options": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "default": "info"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. This node has a deterministic, side-effect-free local preview. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "internal_service",
+      "name": "Call Internal Service",
+      "category": "Utilities",
+      "icon": "Server",
+      "description": "Reference an explicitly authorized future service.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "service",
+          "label": "Service ID",
+          "kind": "text",
+          "required": true,
+          "allow_expression": true
+        },
+        {
+          "key": "parameters",
+          "label": "Parameters",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false,
+          "default": {}
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Input",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Next",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "error",
+          "label": "On error",
+          "data_type": "error",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "value": "any"
+      },
+      "help": "Design-time configuration only. Its runtime adapter is not available yet. No live actions are executed in Phase 2."
+    },
+    {
+      "id": "approval_wait",
+      "name": "Wait for Approval",
+      "category": "Approvals",
+      "icon": "BadgeCheck",
+      "description": "Assign an independent approval group and persist a durable decision wait.",
+      "trigger": false,
+      "editor_ready": true,
+      "executable": false,
+      "preview_supported": false,
+      "requires_credential": false,
+      "fields": [
+        {
+          "key": "stage",
+          "label": "Approval stage",
+          "kind": "json",
+          "required": true,
+          "allow_expression": false
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in",
+          "label": "Request",
+          "data_type": "flow",
+          "max_connections": 20
+        }
+      ],
+      "outputs": [
+        {
+          "id": "out",
+          "label": "Approved",
+          "data_type": "flow",
+          "max_connections": 1
+        },
+        {
+          "id": "rejected",
+          "label": "Rejected",
+          "data_type": "flow",
+          "max_connections": 1
+        }
+      ],
+      "output_schema": {
+        "request_id": "number",
+        "status": "string",
+        "revision": "number"
+      },
+      "help": "Requires a linked Power Apps approval request. Uses the existing automation worker and wait records."
+    }
+  ]
+}

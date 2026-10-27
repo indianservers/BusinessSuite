@@ -1,0 +1,425 @@
+{
+  "execution": {
+    "id": 1,
+    "organization_id": 1,
+    "environment": "development",
+    "resource_id": 1,
+    "owner_user_id": 1,
+    "workflow_version": 1,
+    "actor_user_id": 1,
+    "idempotency_key": "3f73c72e-7d34-40ba-acea-8980d89db308",
+    "status": "completed",
+    "attempt": 1,
+    "created_at": "2026-10-27T00:41:11",
+    "started_at": "2026-10-27T00:41:13.013114",
+    "finished_at": "2026-10-27T00:41:14.340565",
+    "effective_user_id": 1,
+    "correlation_id": "9d2418d5-8f52-448e-9fa8-850bccd550bd"
+  },
+  "run": {
+    "id": 1,
+    "version_id": 1,
+    "trigger_id": null,
+    "trigger_kind": "manual",
+    "effective_user_id": 1,
+    "correlation_id": "9d2418d5-8f52-448e-9fa8-850bccd550bd",
+    "input_payload": {},
+    "variables": {},
+    "started_at": "2026-10-27T00:41:13.013114",
+    "finished_at": "2026-10-27T00:41:14.340565",
+    "deadline": "2026-10-28T00:41:11.951489",
+    "error_type": null,
+    "error": null,
+    "payloads_purged_at": null,
+    "organization_id": 1,
+    "environment": "development",
+    "owner_user_id": 1
+  },
+  "definition": {
+    "schema_version": 2,
+    "catalog_version": 1,
+    "nodes": [
+      {
+        "mappings": {},
+        "disabled": false,
+        "id": "start",
+        "type": "manual_trigger",
+        "label": "manual trigger",
+        "description": "",
+        "position": {
+          "x": 0,
+          "y": 150
+        },
+        "config": {},
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {},
+        "disabled": false,
+        "id": "action",
+        "type": "set_variable",
+        "label": "set variable",
+        "description": "",
+        "position": {
+          "x": 350,
+          "y": 150
+        },
+        "config": {
+          "value": 42
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      },
+      {
+        "mappings": {},
+        "disabled": false,
+        "id": "log",
+        "type": "log_event",
+        "label": "log event",
+        "description": "",
+        "position": {
+          "x": 700,
+          "y": 150
+        },
+        "config": {
+          "message": "Runtime completed",
+          "level": "info"
+        },
+        "credential_reference": null,
+        "advanced": {
+          "retry_attempts": 3,
+          "error_strategy": "stop",
+          "timeout_seconds": 60
+        }
+      }
+    ],
+    "edges": [
+      {
+        "style": "bezier",
+        "id": "start_action",
+        "source": "start",
+        "target": "action",
+        "source_port": "out",
+        "target_port": "in",
+        "label": ""
+      },
+      {
+        "style": "bezier",
+        "id": "action_log",
+        "source": "action",
+        "target": "log",
+        "source_port": "out",
+        "target_port": "in",
+        "label": ""
+      }
+    ],
+    "groups": [],
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    },
+    "settings": {
+      "max_attempts": 3,
+      "retry_backoff_seconds": 60,
+      "idempotency": "request_id",
+      "execution_identity": "owner",
+      "timezone": "Asia/Kolkata",
+      "retention_days": 30
+    },
+    "editor": {
+      "snap_to_grid": true,
+      "connection_style": "bezier"
+    },
+    "annotations": [],
+    "tags": [],
+    "block_contract": null,
+    "block_references": [],
+    "mapping_presets": [],
+    "variables": {}
+  },
+  "steps": [
+    {
+      "id": 1,
+      "run_id": 1,
+      "node_id": "start",
+      "original_node_id": "start",
+      "scope": "",
+      "local_context": {},
+      "status": "completed",
+      "attempt": 1,
+      "input_payload": {},
+      "output": {
+        "input": {},
+        "record": {}
+      },
+      "active_ports": [
+        "out"
+      ],
+      "error_type": null,
+      "error": null,
+      "started_at": "2026-10-27T00:41:13.140316",
+      "finished_at": "2026-10-27T00:41:13.142317",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 2,
+      "run_id": 1,
+      "node_id": "action",
+      "original_node_id": "action",
+      "scope": "",
+      "local_context": {},
+      "status": "completed",
+      "attempt": 1,
+      "input_payload": {
+        "value": 42
+      },
+      "output": {
+        "value": 42
+      },
+      "active_ports": [
+        "out"
+      ],
+      "error_type": null,
+      "error": null,
+      "started_at": "2026-10-27T00:41:13.902445",
+      "finished_at": "2026-10-27T00:41:13.903445",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 3,
+      "run_id": 1,
+      "node_id": "log",
+      "original_node_id": "log",
+      "scope": "",
+      "local_context": {},
+      "status": "completed",
+      "attempt": 1,
+      "input_payload": {
+        "message": "Runtime completed",
+        "level": "info"
+      },
+      "output": {
+        "value": "Runtime completed"
+      },
+      "active_ports": [
+        "out"
+      ],
+      "error_type": null,
+      "error": null,
+      "started_at": "2026-10-27T00:41:14.339565",
+      "finished_at": "2026-10-27T00:41:14.339565",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    }
+  ],
+  "events": [
+    {
+      "id": 4,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": null,
+      "kind": "queued",
+      "details": {
+        "trigger": "manual",
+        "version_id": 1,
+        "correlation_id": "9d2418d5-8f52-448e-9fa8-850bccd550bd"
+      },
+      "created_at": "2026-10-27T00:41:12",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 5,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": null,
+      "kind": "running",
+      "details": {},
+      "created_at": "2026-10-27T00:41:13",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 6,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": 1,
+      "kind": "step_leased",
+      "details": {
+        "attempt": 1
+      },
+      "created_at": "2026-10-27T00:41:13",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 7,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": 1,
+      "kind": "step_completed",
+      "details": {
+        "attempt": 1,
+        "active_ports": [
+          "out"
+        ]
+      },
+      "created_at": "2026-10-27T00:41:13",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 8,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": 2,
+      "kind": "step_leased",
+      "details": {
+        "attempt": 1
+      },
+      "created_at": "2026-10-27T00:41:13",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 9,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": 2,
+      "kind": "step_completed",
+      "details": {
+        "attempt": 1,
+        "active_ports": [
+          "out"
+        ]
+      },
+      "created_at": "2026-10-27T00:41:13",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 10,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": 3,
+      "kind": "step_leased",
+      "details": {
+        "attempt": 1
+      },
+      "created_at": "2026-10-27T00:41:14",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 11,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": 3,
+      "kind": "step_completed",
+      "details": {
+        "attempt": 1,
+        "active_ports": [
+          "out"
+        ]
+      },
+      "created_at": "2026-10-27T00:41:14",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 12,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": 3,
+      "kind": "structured_log",
+      "details": {
+        "message": "Runtime completed",
+        "level": "info"
+      },
+      "created_at": "2026-10-27T00:41:14",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 13,
+      "run_id": 1,
+      "resource_id": 1,
+      "step_id": null,
+      "kind": "completed",
+      "details": {
+        "error_type": null
+      },
+      "created_at": "2026-10-27T00:41:14",
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    }
+  ],
+  "jobs": [
+    {
+      "id": 1,
+      "run_id": 1,
+      "step_id": 1,
+      "status": "completed",
+      "available_at": "2026-10-27T00:41:12.857190",
+      "lease_until": null,
+      "heartbeat_at": "2026-10-27T00:41:13.013114",
+      "claims": 1,
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 2,
+      "run_id": 1,
+      "step_id": 2,
+      "status": "completed",
+      "available_at": "2026-10-27T00:41:13.144315",
+      "lease_until": null,
+      "heartbeat_at": "2026-10-27T00:41:13.802623",
+      "claims": 1,
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    },
+    {
+      "id": 3,
+      "run_id": 1,
+      "step_id": 3,
+      "status": "completed",
+      "available_at": "2026-10-27T00:41:13.904445",
+      "lease_until": null,
+      "heartbeat_at": "2026-10-27T00:41:14.235599",
+      "claims": 1,
+      "organization_id": 1,
+      "environment": "development",
+      "owner_user_id": 1
+    }
+  ],
+  "history_immutable": true,
+  "can_export": true
+}

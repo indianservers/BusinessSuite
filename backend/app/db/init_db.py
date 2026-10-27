@@ -992,6 +992,12 @@ def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
         seed_demo = settings.ENVIRONMENT.lower() == "test" or settings.SEED_DEMO_DATA
     if seed_demo and (settings.SERVERLESS or settings.ENVIRONMENT.lower() not in {"development", "test"}):
         raise RuntimeError("Demo accounts cannot be seeded outside development/test")
+    # Power Apps permissions use the existing role and permission database.
+    from app.apps.power_apps.registry import PERMISSIONS as POWER_APPS_PERMISSIONS
+    for name in POWER_APPS_PERMISSIONS:
+        if not db.query(Permission).filter(Permission.name == name).first():
+            db.add(Permission(name=name, description=name.replace("_", " "), module="power_apps"))
+    db.flush()
     # Create permissions
     perm_map = {}
     for name, description, module in SYSTEM_PERMISSIONS:
@@ -1105,6 +1111,8 @@ def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
         db.flush()
     designation_id = designation.id
 
+    from app.core.tenant_boundary import claim_single_company_legacy
+    claim_single_company_legacy(db)
     # Seed role-based demo users: Admin, HR, Manager, and Employee.
     seeded_user_ids = {}
     for item in DEMO_USERS:
@@ -1133,6 +1141,8 @@ def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
             db.query(MFAMethod).filter(MFAMethod.user_id == user.id).delete(synchronize_session=False)
             db.query(LoginAttempt).filter(LoginAttempt.user_id == user.id).delete(synchronize_session=False)
             db.query(LoginAttempt).filter(LoginAttempt.email == item["email"]).delete(synchronize_session=False)
+        from app.common.services.identity import SharedIdentityService
+        SharedIdentityService.ensure_person_for_user(db, user, organization_id=company_id)
         seeded_user_ids[item["role"]] = user.id
     db.commit()
 

@@ -144,14 +144,16 @@ def accessible_project_query(db: Session, user: User, *, deleted: bool = False):
 
 
 def get_project_for_action(db: Session, project_id: int, user: User, action: str = "browse") -> PMSProject:
-    project = db.query(PMSProject).filter(
-        PMSProject.id == project_id,
-        PMSProject.deleted_at == None,
-    ).first()
+    query = db.query(PMSProject).filter(PMSProject.id == project_id, PMSProject.deleted_at == None)
+    if db.info.get("security_write_request"):
+        query = query.with_for_update(of=PMSProject)
+    project = query.first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     if not can_access_project(db, project, user, action):
         raise HTTPException(status_code=403, detail="Project access denied")
+    from app.core.audit_context import set_audit_entity
+    set_audit_entity(project_id=project.id)
     return project
 
 
@@ -160,4 +162,6 @@ def get_task_project_for_action(db: Session, task_id: int, user: User, action: s
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     project = get_project_for_action(db, task.project_id, user, action)
+    from app.core.audit_context import set_audit_entity
+    set_audit_entity(project_id=project.id, task_id=task.id)
     return task, project

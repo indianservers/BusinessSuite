@@ -1,3 +1,4 @@
+import { ConversationLauncher, TaskConversationSource } from "@/shared/communication";
 import TaskLinkedNotes from "../components/TaskLinkedNotes";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { insertRichMention } from "@/components/rich-text/content";
@@ -691,6 +692,7 @@ export default function TaskDetail() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3"><ConversationLauncher module="PMS" context={{type:"task",id:numericTaskId}}/><TaskConversationSource taskId={numericTaskId}/></div>
       <Button variant="ghost" onClick={() => navigate(canNavigateBoard ? `/pms/projects/${effectiveProjectId}/board` : "/pms/tasks")}>
         <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
       </Button>

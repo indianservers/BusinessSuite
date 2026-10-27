@@ -4,7 +4,7 @@ from phase10_test_utils import auth_headers, invite_portal
 
 def test_customer_portal_invite_profile_and_safe_empty_records(client, db):
     headers = auth_headers(client, db)
-    invited = invite_portal(client, headers, "customer", "cust1@example.com", customer_id=501)
+    invited = invite_portal(client, db, headers, "customer", "cust1@example.com", customer_id=501)
     portal_headers = {"X-Portal-Session": invited["one_time_session_token"]}
 
     me = client.get("/api/v1/customer-portal/me", headers=portal_headers)

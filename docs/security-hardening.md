@@ -1,0 +1,53 @@
+# Application security hardening — 27 October 2026
+
+## Implemented in repository
+
+The shared boundary applies to installed modules (HRMS, CRM, PMS, SRM, FAM, Interns Hub and suite services), rather than relying on each screen to hide buttons. Private routes require authentication by default. Explicit public entry points retain their existing signed webhook, applicant, invitation, portal-session or authentication protocol.
+
+Authenticated database sessions derive company access from persisted person/employee/company memberships. Queries, identity-map reads, relationship loads, ordinary writes and legacy bulk helpers enforce company and parent ownership. Existing module and record permissions further restrict that boundary. Client company headers select an already authorized company; they do not confer membership. Global Super Admin remains installation-wide by design. Unknown ownership is denied. Company discovery, nested records and background actor scopes use the same rule.
+
+Tenantless legacy configuration uses a company ownership ledger. New rows receive ownership transactionally. Migration backfills only a single-company installation; it deliberately does not guess ownership in multi-company databases. Global reference catalogues are read-only to ordinary accounts. User roles, activation, protected identifiers, foreign parent/user links and CRM server-owned fields cannot be mass assigned through ordinary resource writes. CRM, PMS and commercial write lookups lock records; existing workflow idempotency and transactional outbox controls remain in use. This does not make arbitrary mutations automatically retry-safe.
+
+PostgreSQL-backed atomic counters and expiring work leases are shared across instances. Defaults: 1,200 requests/IP/minute, 120/user/minute, 2,400/company/minute; authentication adds 60/IP/minute, 30/account/minute and 8/IP-account/minute. Portal sessions and realtime traffic have separate budgets. Throttling returns 429 and Retry-After. Store failure denies affected requests with 503. Account lockout is temporary and IP/account scoped. Forwarded addresses are ignored unless the immediate proxy is explicitly trusted.
+
+The outer request boundary bounds body size (12 MiB, with existing upload/platform limits often stricter), batch size (200), page size (500), offset/page magnitude (100,000), query length/count, JSON depth/nodes and multipart parts. Ordinary unbounded ORM reads cap at 5,000 rows. Expensive user/company work has four shared slots. HTTP read/response budget is 60 seconds; PostgreSQL HTTP statements have a 60-second timeout and five-second lock timeout. An overdue synchronous worker retains authorization guards and leases until it finishes; a 504 does not prove its transaction was cancelled. Check results before retrying. Platform execution limits remain necessary.
+
+Private photos/avatars no longer have raw public paths. Application-issued file links bind company, current role/permissions/session and, where available, PMS record access. Portal links bind current grants and portal sessions. System-issued bearer capabilities and direct object-storage presigned URLs remain expiry-bound; they cannot all be instantly revoked after issuance. Existing bearer-token authentication avoids ambient cookie authentication for business writes. The OIDC state cookie retains HttpOnly, SameSite=Lax and production Secure with state/nonce/PKCE validation.
+
+Request auditing records actor, company, action, target, timestamp, status and outcome without request bodies/passwords/tokens. Structured businesssuite.security events include company_access_denied, actor_throttled, request_throttled, request_rejected and lease failures. Correlate with request IDs and audit REJECTED outcomes. Alert on repeated 401/403, 429, auth failures, security-store 503 and audit_persistence_failed. Alert routing and retention are deployment responsibilities.
+
+## Deployment requirements
+
+Application changes and database migrations have **not** been deployed by this security task. Review the combined release because other module work is present in this checkout.
+
+1. Back up the database; rehearse the complete migration chain in staging. Apply the appropriate Alembic chain including pg_20261027_030_security (PostgreSQL) or 20261027_030_security before enabling this code. Three shared enforcement/ownership tables are required; missing tables fail closed. Historical Notes migration definitions were frozen so a fresh database does not import future schema.
+2. Review actual memberships. For multi-company legacy configuration, use backend/scripts/assign_legacy_company.py with --actor-email, --company-id, --table, --record-ids and --reason. It defaults to dry run; only add --apply after verifying provenance. Requires an active database Super Admin, accepts at most 200 existing IDs and refuses reassignment. Do not blindly assign all historical rows to company 1.
+3. Keep SECRET_KEY stable and consistent across replicas, use strong independent deployment secrets, private storage and HTTPS. Set SECURITY_RATE_LIMIT_ENABLED=true. Confirm database pool capacity for independent counter/audit sessions. Tune RATE_LIMIT_PER_MINUTE and SECURITY_* bounds using legitimate traffic, not production load tests.
+4. Leave SECURITY_TRUSTED_PROXY_CIDRS empty unless the ingress addresses and header sanitation are verified. Configure only actual proxy CIDRs, never 0.0.0.0/0 or ::/0. The supplied uvicorn launcher disables automatic proxy-header trust. Verify platform peer/header behavior in staging.
+5. Retain backend/platform hard execution limits (the current Vercel function configuration uses 300 seconds), upload limits and private object-store policies. Configure log alert routing and retention. Validate scheduled workers preserve explicit actor and company scopes.
+6. Smoke-test authorized workflows for each deployed module and the production storage adapter in staging, especially legacy ownership, portal attachments and company selection.
+
+## Infrastructure actually changed
+
+Both DSB and Indian Servers Vercel production firewalls were enabled/published with one custom deny rule for TRACE, TRACK and CONNECT under /api/v1/. Existing automatic mitigations were active. The attempted edge rate-limit configuration was rejected by Vercel: “Rate limiting is not available for this plan (401)”; its draft was discarded. Bot protection, OWASP rules, edge rate limits and attack mode were not enabled. No paid plan was purchased.
+
+An operator must obtain supported edge/WAF rate limiting or configure another ingress service for volumetric abuse protection. Application/database throttling alone cannot stop a large distributed denial-of-service attack. No production or third-party load testing was performed.
+
+## Verification scope
+
+Automated tests use two companies, distinct roles, persisted memberships and deliberate guessed/foreign IDs. Coverage includes authentication defaults across the route inventory, company/list/search/export isolation, nested PMS resources, atomic mixed-company bulk rejection, protected-field escalation, detached/identity-map/raw SQL paths, portal links, background access, file permission revocation, shared counters, spoofed proxy headers, request/pagination/batch limits, unavailable enforcement state, timeout cleanup and legitimate own-company operations.
+
+Fresh disposable local PostgreSQL migration/integration rehearsal: **77 passed**, including concurrent counter overshoot prevention. Consolidated SQLite security/auth/portal/file regression: **87 passed, 1 PostgreSQL-only test skipped**. Additional workflow and check results are recorded below after the final run. These are bounded regression checks, not proof that every business workflow or external infrastructure control is secure.
+
+Final additional workflow regression: **81 passed, 1 skipped** across suite access, PMS projects/workspaces/tools, portal-file revocation and Interns Hub applications. Workspace fixtures now explicitly establish company membership; workspace membership/invitations alone do not grant access to a company. Administrator provisioning is required where company membership is absent. An earlier broad run exposed these fixture assumptions; the rerun passed after explicit provisioning.
+
+Static verification: new security modules/tests passed Ruff F checks; affected backend areas passed undefined-name checks and Python compilation. Git whitespace check passed. Interns Hub TypeScript passed. The main frontend TypeScript check currently fails with five property-narrowing errors in the concurrently added Power Apps automation builder useDocument.ts. Full frontend ESLint reports 15 errors; running the same affected files from HEAD confirms the same 15 baseline errors. No security-task frontend source was changed to conceal these failures. These unrelated release blockers must be resolved before a combined deployment.
+
+Reproduce the main checks from the repository root with backend/venv/Scripts/python -m pytest and the following groups (FAST_TEST_PASSWORD_HASHES=1 is an explicit test-only speed option):
+
+- tests/test_company_security_boundary.py, test_shared_request_limits.py, test_security_boundary_migration.py, test_portal_security.py, test_portal_customer.py, test_portal_partner.py, test_enterprise_security_hardening.py, test_security_realtime.py, test_intern_evidence_storage.py, test_auth.py (all under backend/tests).
+- backend/tests/test_suite_access.py, test_pms_project_access.py, test_pms_workspaces.py, test_pms_workspace_tools.py, test_intern_applications.py, test_interns_hub.py plus test_portal_security.py.
+- For PostgreSQL, set TEST_DATABASE_URL to a freshly created disposable local PostgreSQL database whose name ends in _test. The test harness rejects other database targets. Never point test commands at a production database.
+- In frontend: npx tsc --noEmit; npx tsc --noEmit -p interns-hub/tsconfig.json; npm run lint.
+
+Residual limitations: this is a central boundary plus representative adversarial regression coverage, not an exhaustive manual review of every business permission or schema field. New raw SQL/background entry points must preserve explicit scope; database-owner SQL and actual installation Super Admin remain trusted. Public application/form endpoints intentionally accept submissions and require ongoing abuse monitoring. Large exports over the safety cap need a separately bounded, authorized streaming/job design. Production object-storage policies, alert delivery, platform forwarded-header sanitation and end-to-end production behavior remain unverified by these local tests.

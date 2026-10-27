@@ -8,6 +8,8 @@ import "./PMSMoreMenu.css";
 
 // Keep aliases searchable through the existing navigation labels; only show one link per URL.
 const additionalPages = [
+  ["People & work management", "/pms/people-work", "People & collaboration"],
+  ["My notices & warnings", "/pms/my-notices", "People & collaboration"],
   ["Create project", "/pms/projects/new", "Work & delivery"],
   ["OpenAI settings", "/pms/settings/ai/openai", "Manage & customize"],
   ["Gemini settings", "/pms/settings/ai/gemini", "Manage & customize"],

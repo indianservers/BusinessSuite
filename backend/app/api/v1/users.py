@@ -29,3 +29,8 @@ def search_users(
         for user in users
     ]
     return {"items": items, "total": len(items)}
+
+
+# Shared directory is available independently of the active frontend module.
+from app.apps.project_management.directory import people_directory
+router.add_api_route("/directory", people_directory, methods=["GET"])

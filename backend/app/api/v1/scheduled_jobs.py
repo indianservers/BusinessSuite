@@ -22,8 +22,13 @@ def cron(response: Response, authorization: str = Header(""), db=Depends(get_db)
         from app.apps.interns_hub.distribution import scheduled_tick
         from app.apps.interns_hub.router import today
         result["intern_management"] = scheduled_tick(db,today())
+        from app.apps.interns_hub.operations import scheduled_tick as workforce_tick
+        result["workforce_operations"] = workforce_tick(db)
     from app.shared.runtime import process_batch
     result["shared_services"] = process_batch(db, limit=10)
+    if is_app_enabled("project_management"):
+        from app.shared.communication.reminders import run_reminders
+        result["communication_reminders"] = run_reminders(db)
     return result
 
 

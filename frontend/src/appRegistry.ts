@@ -1,6 +1,7 @@
 import type React from "react";
 
 export type FrontendAppKey =
+  | "power_apps"
   | "hrms"
   | "crm"
   | "project_management"
@@ -24,8 +25,9 @@ export type FrontendAppModule = {
 };
 
 const rawInstalledApps =
-  import.meta.env.VITE_INSTALLED_APPS || "hrms,crm,project_management,srm,fam,ai,portals,communication";
+  import.meta.env.VITE_INSTALLED_APPS || "hrms,crm,project_management,srm,fam,ai,portals,communication,power_apps";
 const validAppKeys: FrontendAppKey[] = [
+  "power_apps",
   "hrms",
   "crm",
   "project_management",

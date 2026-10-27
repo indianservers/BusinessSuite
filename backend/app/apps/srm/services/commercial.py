@@ -49,6 +49,8 @@ def record(db, model, ident, user):
     )
     if hasattr(model, "deleted_at"):
         query = query.filter(model.deleted_at.is_(None))
+    if db.info.get("security_write_request"):
+        query = query.with_for_update(of=model)
     value = query.first()
     if not value:
         raise HTTPException(404, "Linked record not found in your organization")

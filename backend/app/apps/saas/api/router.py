@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, select, func
 
 from app.apps.crm.models import CRMDeal, CRMLead, CRMQuotation
 from app.apps.project_management.models import PMSProject
@@ -106,29 +106,79 @@ def _ensure_url(url: str) -> str:
 
 
 def _portal_session(db: Session, token: str | None, expected_type: str) -> PortalUser:
-    if not token:
+    if not token or len(token) > 512:
         raise HTTPException(status_code=403, detail="Portal session required")
     session = db.query(PortalSession).filter(PortalSession.session_token_hash == _hash(token), PortalSession.status == "active").first()
     now = datetime.now(timezone.utc)
-    if not session or (session.expires_at and session.expires_at.replace(tzinfo=timezone.utc) < now):
+    if not session or not session.expires_at or session.expires_at.replace(tzinfo=timezone.utc) <= now:
         raise HTTPException(status_code=403, detail="Portal session invalid")
     user = db.query(PortalUser).filter(PortalUser.id == session.portal_user_id, PortalUser.status == "active", PortalUser.portal_type == expected_type).first()
     if not user:
         raise HTTPException(status_code=403, detail="Portal user not allowed")
     session.last_seen_at = now
+    user._portal_session_id = session.id
     return user
 
 
-def _customer_user(db: Session = Depends(get_db), x_portal_session: str | None = Header(default=None, alias="X-Portal-Session")) -> PortalUser:
-    return _portal_session(db, x_portal_session, "customer")
+def _portal_context(request, db, user):
+    from contextlib import ExitStack
+    from types import SimpleNamespace
+    from app.models.security_boundary import SecurityResourceOwnership
+    from app.core.tenant_boundary import install
+    from app.core.request_limits import enforce_actor
+    table = SecurityResourceOwnership.__table__
+    company = db.connection().execute(select(table.c.company_id).where(table.c.resource_table == "portal_users", table.c.resource_id == user.id)).scalar_one_or_none()
+    if company is None:
+        raise HTTPException(403, "Portal company ownership has not been established")
+    stack = ExitStack()
+    try:
+        actor = SimpleNamespace(id=None, is_superuser=False, _suite_current_module="saas")
+        stack.callback(install(db, actor, company, verified_portal=True))
+        user.organization_id = company
+        request.state.observed_company_id = company
+        previous = db.info.get("shared_actor")
+        # A portal capability must never impersonate an internal workflow actor.
+        db.info.pop("shared_actor", None)
+        previous_company = db.info.get("security_company")
+        db.info["security_company"] = company
+        stack.callback(lambda: db.info.pop("security_company", None) if previous_company is None else db.info.__setitem__("security_company", previous_company))
+        stack.callback(lambda: db.info.pop("shared_actor", None) if previous is None else db.info.__setitem__("shared_actor", previous))
+        stack.callback(enforce_actor(request, SimpleNamespace(id=f"portal-{user.id}", organization_id=company)))
+        from app.core.audit_context import context
+        value = context.get()
+        if value is not None:
+            value["actor"] = {"user_id": None, "email": user.email, "role": user.portal_type + "_portal", "authenticated": True, "portal_user_id": user.id, "access_company": company, "access_portal_session": user._portal_session_id, "access_portal_grants": portal_fingerprint(db, user)}
+        return stack
+    except Exception:
+        stack.close()
+        raise
 
 
-def _partner_user(db: Session = Depends(get_db), x_portal_session: str | None = Header(default=None, alias="X-Portal-Session")) -> PortalUser:
-    return _portal_session(db, x_portal_session, "partner")
+def _customer_user(request: Request, db: Session = Depends(get_db), x_portal_session: str | None = Header(default=None, alias="X-Portal-Session")):
+    user = _portal_session(db, x_portal_session, "customer")
+    with _portal_context(request, db, user):
+        yield user
+
+
+def _partner_user(request: Request, db: Session = Depends(get_db), x_portal_session: str | None = Header(default=None, alias="X-Portal-Session")):
+    user = _portal_session(db, x_portal_session, "partner")
+    with _portal_context(request, db, user):
+        yield user
+
+
+def _portal_permission(db, user, permission):
+    grant = db.query(PortalAccessGrant).filter_by(portal_user_id=user.id, resource_type="portal_permissions", resource_id=0, active=True).first()
+    if not grant or permission not in (grant.permissions_json or []):
+        raise HTTPException(403, "Portal action has not been granted")
 
 
 def _customer_ids(db: Session, user: PortalUser) -> list[int]:
-    return [row.customer_id for row in db.query(PortalCustomerLink).filter(PortalCustomerLink.portal_user_id == user.id, PortalCustomerLink.active.is_(True)).all()]
+    from app.apps.crm.models import CRMCompany, CRMAccount
+    linked = [row.customer_id for row in db.query(PortalCustomerLink).filter(PortalCustomerLink.portal_user_id == user.id, PortalCustomerLink.active.is_(True)).all()]
+    allowed = set()
+    for model in (CRMCompany, CRMAccount):
+        allowed.update(row[0] for row in db.query(model.id).filter(model.id.in_(linked), func.coalesce(model.organization_id, 1) == user.organization_id).all())
+    return sorted(allowed)
 
 
 def _partner_ids(db: Session, user: PortalUser) -> list[int]:
@@ -179,15 +229,24 @@ def list_portal_users(db: Session = Depends(get_db), current_user: User = Depend
     return _items(db.query(PortalUser).order_by(PortalUser.created_at.desc()).all())
 
 
-@router.post("/portals/users", status_code=201)
-def create_portal_user(data: PortalUserPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("portal_manage", "tenant_admin"))):
+def _provision_portal_user(data, db, current_user):
+    if data.customer_id is not None:
+        from app.apps.crm.models import CRMCompany, CRMAccount
+        company = current_user.organization_id
+        exists = any(db.query(model.id).filter(model.id == data.customer_id, func.coalesce(model.organization_id, 1) == company).first() for model in (CRMCompany, CRMAccount))
+        if not exists:
+            raise HTTPException(404, "Customer not found in this company")
     if db.query(PortalUser).filter(PortalUser.email == data.email).first():
-        raise HTTPException(status_code=409, detail="Portal user already exists")
+        raise HTTPException(409, "Portal user already exists")
     role = db.query(PortalRole).filter(PortalRole.portal_type == data.portal_type).first()
     if not role:
-        role = PortalRole(name=f"{data.portal_type.title()} Portal User", portal_type=data.portal_type, permissions_json=["view"])
-        db.add(role)
-        db.flush()
+        # Code-owned catalogue: callers cannot choose its permissions or role name.
+        table = PortalRole.__table__
+        name = f"{data.portal_type.title()} Portal User"
+        from app.core.request_limits import insert_for
+        statement = insert_for(db, table).values(name=name, portal_type=data.portal_type, permissions_json=["view"]).on_conflict_do_nothing(index_elements=[table.c.name])
+        db.connection().execute(statement)
+        role = db.query(PortalRole).filter(PortalRole.name == name).one()
     user = PortalUser(email=data.email, display_name=data.display_name, portal_type=data.portal_type, role_id=role.id, status="active", created_by=current_user.id)
     db.add(user)
     db.flush()
@@ -196,14 +255,24 @@ def create_portal_user(data: PortalUserPayload, db: Session = Depends(get_db), c
     if data.portal_type == "partner" and data.partner_id:
         db.add(PortalPartnerLink(portal_user_id=user.id, partner_id=data.partner_id, partner_name=data.display_name, active=True))
     _portal_log(db, user, "portal_user_created", "portal_user", user.id)
+    return user
+
+
+@router.post("/portals/users", status_code=201)
+def create_portal_user(data: PortalUserPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("portal_manage", "tenant_admin"))):
+    user = _provision_portal_user(data, db, current_user)
     db.commit()
     return _serialize(user)
 
 
 @router.post("/portals/invite", status_code=201)
 def invite_portal_user(data: PortalInvitePayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("portal_manage", "tenant_admin"))):
-    created = create_portal_user(PortalUserPayload(**data.model_dump()), db, current_user)
-    user = db.query(PortalUser).filter(PortalUser.id == created["id"]).first()
+    allowed = {"view", "submit_lead", "accept_quote"}
+    permissions = set(data.permissions or ["view"])
+    if not permissions.issubset(allowed):
+        raise HTTPException(422, "Unsupported portal permission")
+    user = _provision_portal_user(PortalUserPayload(**data.model_dump(exclude={"permissions"})), db, current_user)
+    db.add(PortalAccessGrant(portal_user_id=user.id, resource_type="portal_permissions", resource_id=0, permissions_json=sorted(permissions), active=True))
     token = secrets.token_urlsafe(32)
     session = PortalSession(portal_user_id=user.id, session_token_hash=_hash(token), status="active", ip_address=request.client.host if request.client else None, expires_at=datetime.now(timezone.utc) + timedelta(days=14))
     db.add(session)
@@ -233,6 +302,7 @@ def customer_quotes(db: Session = Depends(get_db), portal_user: PortalUser = Dep
 
 @router.post("/customer-portal/quotes/{quote_id}/accept")
 def accept_customer_quote(quote_id: int, db: Session = Depends(get_db), portal_user: PortalUser = Depends(_customer_user)):
+    _portal_permission(db, portal_user, "accept_quote")
     customer_ids = _customer_ids(db, portal_user)
     quote = db.query(CRMQuotation).filter(CRMQuotation.id == quote_id).first()
     if not quote or (hasattr(quote, "account_id") and quote.account_id not in customer_ids):
@@ -281,10 +351,11 @@ def partner_leads(db: Session = Depends(get_db), portal_user: PortalUser = Depen
 
 @router.post("/partner-portal/leads", status_code=201)
 def submit_partner_lead(data: PartnerLeadPayload, db: Session = Depends(get_db), portal_user: PortalUser = Depends(_partner_user)):
+    _portal_permission(db, portal_user, "submit_lead")
     partner_ids = _partner_ids(db, portal_user)
     if not partner_ids:
         raise HTTPException(status_code=403, detail="Partner link required")
-    lead = CRMLead(first_name=data.contact_name, full_name=data.contact_name, company_name=data.company_name, email=data.email, source="Partner Portal", status="New")
+    lead = CRMLead(organization_id=portal_user.organization_id, first_name=data.contact_name, full_name=data.contact_name, company_name=data.company_name, email=data.email, source="Partner Portal", status="New")
     if hasattr(lead, "estimated_value"):
         lead.estimated_value = data.value
     db.add(lead)
@@ -564,3 +635,12 @@ def usage_metrics(db: Session = Depends(get_db), current_user: User = Depends(Re
 @router.get("/admin/feature-gates/{feature_key}")
 def check_feature_gate(feature_key: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return _feature_allowed(db, feature_key, current_user)
+
+
+def portal_fingerprint(db, user):
+    """Revokes issued file links when a portal grant or customer link changes."""
+    import json
+    grants = [(row.resource_type, row.resource_id, row.permissions_json, row.active) for row in db.query(PortalAccessGrant).filter_by(portal_user_id=user.id).order_by(PortalAccessGrant.id).all()]
+    customers = [(row.customer_id, row.active) for row in db.query(PortalCustomerLink).filter_by(portal_user_id=user.id).order_by(PortalCustomerLink.id).all()]
+    partners = [(row.partner_id, row.active) for row in db.query(PortalPartnerLink).filter_by(portal_user_id=user.id).order_by(PortalPartnerLink.id).all()]
+    return hashlib.sha256(json.dumps([grants, customers, partners], sort_keys=True).encode()).hexdigest()

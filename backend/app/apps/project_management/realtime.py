@@ -83,13 +83,21 @@ class PMSRealtimeManager:
                 expires = session.expires_at if session else None
                 if expires and expires.tzinfo is None:
                     expires = expires.replace(tzinfo=timezone.utc)
-                if not session or session.user_id != user_id or session.status.lower() == "revoked" or (expires and expires <= now):
+                if not session or session.user_id != user_id or session.status.lower() != "active" or (expires and expires <= now):
                     return False
             user = db.get(User, user_id)
             if not user or not user.is_active:
                 return False
             employee=getattr(user,'employee',None)
             if user.role and user.role.name.lower()=='intern' or employee and (employee.employment_type or '').lower()=='intern':
+                return False
+            from app.core.tenant_boundary import company_ids
+            from app.access.service import check_background_access
+            if not user.is_superuser and not company_ids(db, user):
+                return False
+            try:
+                check_background_access(db, user, "project_management", "view")
+            except Exception:
                 return False
             if project_id is None:
                 return True

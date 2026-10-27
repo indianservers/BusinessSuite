@@ -63,8 +63,8 @@ def test_login_attempt_lockout_blocks_after_threshold(client, db):
         assert failed.status_code == 401
 
     locked = client.post("/api/v1/auth/login", json={"email": "lockout@example.com", "password": "Str0ng!Pass99"})
-    assert locked.status_code == 423
-    assert "Account locked" in locked.json()["detail"]
+    assert locked.status_code == 429
+    assert locked.headers["Retry-After"] == "60"
 
 
 def test_mfa_required_login_trusted_device_and_recovery_code(client, db):
@@ -172,7 +172,9 @@ def test_sso_provider_config_validation(client, db):
     assert valid.json()["client_secret"] == "***"
 
 
-def test_ip_policy_blocklist_denies_login(client, db):
+def test_ip_policy_blocklist_denies_login(client, db, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "SECURITY_TRUSTED_PROXY_CIDRS", "127.0.0.0/8")
     init_db(db)
     headers, _ = _login(client)
     response = client.post(
@@ -181,7 +183,10 @@ def test_ip_policy_blocklist_denies_login(client, db):
         headers=headers,
     )
     assert response.status_code == 201
-    blocked = client.post(
+    from starlette.testclient import TestClient
+    from app.main import app
+    proxy_client = TestClient(app, client=("127.0.0.1", 123))
+    blocked = proxy_client.post(
         "/api/v1/auth/login",
         json={"email": "admin@aihrms.com", "password": "Admin@123456"},
         headers={"X-Forwarded-For": "203.0.113.10"},

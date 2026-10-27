@@ -1,3 +1,5 @@
+import { CustomFieldCell, FieldValue, useCustomFieldRecords, type CustomField } from "../components/CustomFields";
+import { api } from "@/services/api";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import RecordActions from "../components/RecordActions";
 import { useEffect, useMemo, useState } from "react";
@@ -15,6 +17,13 @@ import type { PMSProject } from "../types";
 export default function ProjectsList() {
   const navigate = useNavigate();
   const { projects, setProjects, setSelectedProject } = useProjectStore();
+  const custom=useCustomFieldRecords("project",projects.map(p=>p.id));
+  const [customFields,setCustomFields]=useState<CustomField[]>([]);
+  const [table,setTable]=useState(false),[columnsOpen,setColumnsOpen]=useState(false);
+  const [hiddenFields,setHiddenFields]=useState<number[]>(()=>{try{return JSON.parse(localStorage.getItem("pms.project-hidden-fields.v1")||"[]");}catch{return [];}});
+  useEffect(()=>{try{localStorage.setItem("pms.project-hidden-fields.v1",JSON.stringify(hiddenFields));}catch{/* optional browser preference */}},[hiddenFields]);
+  useEffect(()=>{let active=true;api.get<{fields:CustomField[]}>("/project-management/custom-fields").then(({data})=>{if(active)setCustomFields(data.fields.filter(f=>f.entity_type!=="task"));}).catch(()=>undefined);return()=>{active=false;};},[]);
+  const shownFields=customFields.filter(f=>!hiddenFields.includes(f.id));
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +63,14 @@ export default function ProjectsList() {
         <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects" className="border-0 shadow-none focus-visible:ring-0" />
       </div>
 
+      <div className="flex flex-wrap gap-2"><Button variant={table?"outline":"secondary"} size="sm" onClick={()=>setTable(false)}>Cards</Button><Button variant={table?"secondary":"outline"} size="sm" onClick={()=>setTable(true)}>Table</Button><Button variant="outline" size="sm" onClick={()=>setColumnsOpen(v=>!v)} aria-expanded={columnsOpen}>Custom columns</Button><Button asChild size="sm" variant="ghost"><Link to="/pms/custom-fields?entity=project&create=1">+ Add custom column</Link></Button></div>
+      {columnsOpen&&<div className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-3">{customFields.map(f=><label key={f.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!hiddenFields.includes(f.id)} onChange={e=>setHiddenFields(v=>e.target.checked?v.filter(id=>id!==f.id):[...v,f.id])}/>{f.name}</label>)}{!customFields.length&&<p className="text-sm text-muted-foreground">Create a project field to add your first custom column.</p>}</div>}
+      {custom.error&&<p role="alert" className="text-sm text-destructive">{custom.error}</p>}
+      {table&&<div className="overflow-x-auto rounded-xl border bg-card"><table className="w-full text-left text-sm"><thead className="border-b bg-muted/30"><tr><th className="p-4">Project</th><th className="p-4">Status</th><th className="p-4">Due date</th>{shownFields.map(f=><th key={f.id} className="min-w-44 p-4">{f.name}</th>)}</tr></thead><tbody>{filtered.map(p=><tr key={p.id} className="border-b last:border-0 hover:bg-muted/10"><td className="p-4"><Link className="font-medium text-primary" to={`/pms/projects/${p.id}`}>{p.name}</Link><p className="text-xs text-muted-foreground">{p.project_key}</p></td><td className="p-4"><Badge className={statusColor(p.status)}>{p.status}</Badge></td><td className="p-4">{formatDate(p.due_date||null)}</td>{shownFields.map(f=>{const record=custom.records[p.id];const field=record?.fields.find(item=>item.id===f.id);return <td key={f.id} className="p-4">{field?<CustomFieldCell entity="project" id={p.id} field={field} canEdit={record.can_edit} onSaved={custom.reload}/>:"—"}</td>;})}</tr>)}</tbody></table>{!filtered.length&&!loading&&<p className="p-8 text-center text-muted-foreground">No projects found.</p>}</div>}
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       {loading ? <div className="skeleton h-40 rounded-lg" /> : null}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className={table?"hidden":"grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"}>
         {filtered.map((project) => (
           <RecordActions key={project.id} kind="project" canEdit={project.can_edit_project === true} onChanged={async()=>{setProjects(await projectsAPI.list());}} record={{...project,title:project.name,key:project.project_key}} onOpen={()=>openProject(project)}>{menu=><Card data-testid={`project-card-${project.id}`} tabIndex={0} className="min-w-0 cursor-pointer transition hover:border-primary/40 hover:shadow-md">
             <CardContent className="p-5">
@@ -88,6 +101,7 @@ export default function ProjectsList() {
                   <p className="font-medium">{formatCurrency(Number(project.budget_amount || 0))}</p>
                 </div>
               </div>
+              <div className="mt-4 grid gap-2">{custom.records[project.id]?.fields.filter(f=>!hiddenFields.includes(f.id)).map(f=><div key={f.id} className="flex items-start justify-between gap-3 rounded-lg bg-muted/20 px-3 py-2 text-xs"><span className="text-muted-foreground">{f.name}</span><FieldValue field={f}/></div>)}</div>
               <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{formatDate(project.due_date || null)}</span>
                 <Link to={`/pms/projects/${project.id}/board`} onClick={(event) => event.stopPropagation()} className="inline-flex items-center gap-1 font-medium text-primary">

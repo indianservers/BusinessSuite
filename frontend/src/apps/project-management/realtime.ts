@@ -28,6 +28,8 @@ type RealtimeState = {
   events: PMSRealtimeEvent[];
   onlineUsers: string[];
   connected: boolean;
+  transport: "websocket" | "database" | null;
+  setTransport: (transport: "websocket" | "database") => void;
   receive: (event: PMSRealtimeEvent) => void;
   publish: (event: { actor: string; action: string; target: string }) => void;
   setConnected: (connected: boolean) => void;
@@ -44,6 +46,8 @@ export const useRealtimeStore = create<RealtimeState>((set, get) => ({
   events: [],
   onlineUsers: [],
   connected: false,
+  transport: null,
+  setTransport: transport => set({transport}),
   receive: (event) => {
     const name = actorName(event.actor);
     const onlineUsers = event.type === "user.presence" && name
@@ -160,6 +164,7 @@ export function usePMSRealtime({
         return;
       }
       socket.onopen = () => {
+        useRealtimeStore.getState().setTransport("websocket");
         useRealtimeStore.getState().setConnected(true);
         stopPolling();
         subscribe();
@@ -211,10 +216,10 @@ export function usePMSRealtime({
         if (!closedByEffect) feedTimer = setTimeout(pollFeed, document.hidden ? 15000 : 3000);
       }
     };
-    void api.get<{ transport: string }>("/project-management/realtime/config")
+    void api.get<{ transport: string }>("/project-management/realtime/config", { progress:false })
       .then(({ data }) => {
         if (closedByEffect) return;
-        if (data.transport === "database") void pollFeed();
+        if (data.transport === "database") { useRealtimeStore.getState().setTransport("database"); void pollFeed(); }
         else connect();
       }).catch(() => { if (!closedByEffect) connect(); });
 

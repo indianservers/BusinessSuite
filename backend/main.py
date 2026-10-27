@@ -8,4 +8,5 @@ if __name__ == "__main__":
         port=1534,
         reload=True,
         log_level="info",
+        proxy_headers=False,  # The application validates configured proxy CIDRs itself.
     )

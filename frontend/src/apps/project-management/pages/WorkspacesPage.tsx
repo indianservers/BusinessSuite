@@ -3,7 +3,7 @@ import GlobalSearch from "@/components/app/GlobalSearch";
 import { Menu } from "lucide-react";
 import UndoRedo from "../components/UndoRedo";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import { CalendarDays, Gauge, ArrowLeft, ArrowUpRight, CheckCircle2, ChevronDown, ChevronRight, Copy, Folder, LayoutGrid, List, Loader2, Plus, Search, ShieldCheck, Sparkles, Users, LogOut, X, MessageSquare, Zap, Bug, FileText } from "lucide-react";
 import { api } from "@/services/api";
@@ -17,7 +17,7 @@ import "./workspaces.css";
 import WorkspaceActivity from "./WorkspaceActivity";
 import WorkspacePlanning from "./WorkspacePlanning";
 import WorkspaceCollaboration from "./WorkspaceCollaboration";
-import AsyncProgress, { beginProgress } from "@/components/app/AsyncProgress";
+import { beginProgress } from "@/components/app/AsyncProgress";
 import MessagingNavLink from "@/components/layout/MessagingNavLink";
 import PMSMoreMenu from "@/components/layout/PMSMoreMenu";
 import PMSProfileMenu from "@/components/layout/PMSProfileMenu";
@@ -32,6 +32,7 @@ type Modal = "workspace" | "invite" | "join" | "project" | null;
 
 export default function WorkspacesPage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [navigationOpen,setNavigationOpen] = useState(false);
   const [navigationCollapsed,setNavigationCollapsed] = useState(()=>localStorage.getItem("sidebarCollapsed")==="true");
   useEffect(()=>{localStorage.setItem("sidebarCollapsed",String(navigationCollapsed));},[navigationCollapsed]);
@@ -61,6 +62,7 @@ export default function WorkspacesPage() {
   const [tasks, setTasks] = useState<WorkTask[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [view, setView] = useState<View>("list");
+  useEffect(() => { if (view === "people" || params.has("people")) navigate("/pms/people", { replace: true }); }, [view, params, navigate]);
   const [modal, setModal] = useState<Modal>(params.get("invite") ? "join" : null);
   const [name, setName] = useState("");
   const [projectKey, setProjectKey] = useState("");
@@ -188,7 +190,8 @@ export default function WorkspacesPage() {
       if (modal === "invite" && selected) { const { data } = await api.post(`${base}/workspaces/${selected}/invitations`, { email, role }); setInviteLink(`${window.location.origin}/pms/invitation?token=${encodeURIComponent(data.token)}`); setNotice("Invitation created — waiting for activation or acceptance"); setView("people"); setEmail(""); await loadDetails(); }
     });
   }
-  return <div className={`ws-app ${navigationCollapsed ? "kf-workspace-collapsed" : ""} ${navigationOpen ? "kf-navigation-open" : ""}`}><AsyncProgress />
+
+  return <div className={`ws-app ${navigationCollapsed ? "kf-workspace-collapsed" : ""} ${navigationOpen ? "kf-navigation-open" : ""}`}>
     <aside className="ws-sidebar"><WorkspaceNavigation view={view} onView={setView} workspaceId={selected} projectId={Number(projectFilter)||undefined} collapsed={navigationCollapsed && !navigationOpen} onCollapse={()=>setNavigationCollapsed(value=>!value)} onJoin={()=>openModal("join")} onLogout={()=>void signOut()} onClose={()=>setNavigationOpen(false)} /><label className="ws-workspace-switch"><span className="ws-workspace-mark">{workspace?.name.charAt(0).toUpperCase() || "K"}</span><select aria-label="Workspace" value={selected || ""} onChange={e => { setSelected(Number(e.target.value)); setError(""); }}><option value="" disabled>Choose workspace</option>{workspaces.map(w => <option value={w.id} key={w.id}>{w.name} · {w.role}</option>)}</select><ChevronDown size={14} /></label><div className="ws-sidebar-actions">{canCreateWorkspace && <button onClick={() => openModal("workspace")}><Plus size={14} />Create workspace</button>}<button onClick={() => openModal("join")}>Join</button></div><span className="ws-nav-caption">YOUR WORKSPACE</span><nav aria-label="Workspace navigation"><button className={view !== "people" ? "active" : ""} onClick={() => { setView("board"); setProjectFilter(""); setAssigneeFilter(""); }}><LayoutGrid size={17} />All work<span>{tasks.length}</span></button><button className={view === "people" ? "active" : ""} onClick={() => setView("people")}><Users size={17} />People<span>{members.length}</span></button><button onClick={() => { setView("list"); setAssigneeFilter(String(user?.id)); }}><CheckCircle2 size={17} />My tasks<span>{tasks.filter(t => taskAssignees(t).includes(user?.id || 0) && taskBucket(t.status) !== "Done").length}</span></button></nav><div className="ws-nav-caption ws-project-caption">PROJECTS{manages && <button aria-label="Create project" onClick={() => openModal("project")}><Plus size={15} /></button>}</div><div className="ws-project-nav">{projects.map((p, i) => <button key={p.id} className={projectFilter === String(p.id) ? "active" : ""} onClick={() => { setProjectFilter(String(p.id)); setView("board"); }}><span className={`ws-project-dot ${tones[i % tones.length]}`} />{p.name}<ChevronRight size={13} /></button>)}{!projects.length && <p>Your projects will appear here.</p>}</div><div className="ws-sidebar-bottom"><div className="ws-small-avatars">{members.slice(0, 4).map((m, i) => <WorkspaceAvatar key={m.id} email={m.email} tone={tones[i % tones.length]} />)}</div><strong>A little less busywork.</strong><p>A little more great work.</p>{manages && <button className="ws-invite-sidebar" onClick={() => openModal("invite")}><Plus size={15} />Invite your team</button>}<Link to="/pms/overview"><ArrowLeft size={13} />Back to Business Suite</Link></div></aside>
     <div className="ws-main"><header className="ws-topbar"><button className="kf-mobile-menu" aria-label="Open navigation" onClick={()=>setNavigationOpen(true)}><Menu size={20}/></button><div className="ws-breadcrumb"><span>{workspace?.name || "Workspaces"}</span><ChevronRight size={13} /><strong>{view === "people" ? "People" : "All work"}</strong></div><select className="ws-mobile-switch" aria-label="Mobile workspace" value={selected || ""} onChange={e => e.target.value === "new" ? openModal("workspace") : setSelected(Number(e.target.value))}><option value="" disabled>Workspace</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}{canCreateWorkspace && <option value="new">+ New workspace</option>}</select><div className="ws-search"><Search size={16} /><input ref={searchRef} aria-label="Search workspace" placeholder={view === "people" ? "Find a teammate…" : "Search tasks, descriptions, or IDs…"} value={query} onChange={e => setQuery(e.target.value)} /><kbd>/</kbd></div><div className="kf-workspace-command"><GlobalSearch /></div><div className="ws-connection"><i className={connected ? "live" : ""} /><span>{connected ? "Live updates" : "Auto refresh"}</span></div><PMSProfileMenu onCreateTask={() => { if (canEdit && projects.length) { setQuickWorkType("Task"); setShowTaskCreate(true); } else setNotice("Ask a workspace admin to create a project or grant task access."); }} onMyWork={() => { setView("list"); setProjectFilter(""); setQuery(""); setAssigneeFilter(String(user?.id)); }} onViewPeople={() => setView("people")} /></header>
       <div className="ws-content"><div className="ws-heading"><div><div className="ws-eyebrow">A SHARED SPACE FOR GREAT WORK</div><h1>{workspace?.name || "Find your flow"}<span className="ws-heading-dot">.</span></h1><p>{workspace ? "Less chasing updates. More moving forward, together." : "Bring your people and projects into one thoughtful workspace."}</p></div><div className="ws-heading-actions">{workspace && canEdit && <UndoRedo workspaceId={workspace.id} refreshKey={tasks} onChanged={() => { void loadDetails(); }} onError={setError} />}{workspace && <Link className="ws-button ws-outline" to={`/pms/recovery?workspace=${workspace.id}`}>Recovery</Link>}{workspace && <button className="ws-button ws-outline" aria-expanded={chatOpen} aria-controls="workspace-collaboration" onClick={() => setChatOpen(open => !open)}><MessageSquare size={15} />{chatOpen ? "Hide chat" : "Team chat"}</button>}{workspace && <span className="ws-role-badge"><ShieldCheck size={13} />{workspace.role}</span>}{manages && <button className="ws-button ws-outline" onClick={() => openModal("invite")}><Users size={15} />Invite people</button>}<NewMenu disabled={loading || detailsLoading} actions={[

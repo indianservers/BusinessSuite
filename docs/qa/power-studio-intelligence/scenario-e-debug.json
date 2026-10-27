@@ -1,0 +1,252 @@
+{
+  "design_time_only": true,
+  "integration_execution": false,
+  "validation": {
+    "valid": true,
+    "executable": false,
+    "issues": [
+      {
+        "code": "runtime_unavailable",
+        "message": "Not Executable Yet - runtime publishing is unavailable",
+        "node_id": "n0",
+        "field": null,
+        "severity": "warning"
+      },
+      {
+        "code": "runtime_unavailable",
+        "message": "Not Executable Yet - runtime publishing is unavailable",
+        "node_id": "n1",
+        "field": null,
+        "severity": "warning"
+      },
+      {
+        "code": "runtime_unavailable",
+        "message": "Not Executable Yet - runtime publishing is unavailable",
+        "node_id": "n2",
+        "field": null,
+        "severity": "warning"
+      },
+      {
+        "code": "runtime_unavailable",
+        "message": "Not Executable Yet - runtime publishing is unavailable",
+        "node_id": "n3",
+        "field": null,
+        "severity": "warning"
+      },
+      {
+        "code": "runtime_unavailable",
+        "message": "Not Executable Yet - runtime publishing is unavailable",
+        "node_id": "n4",
+        "field": null,
+        "severity": "warning"
+      },
+      {
+        "code": "runtime_unavailable",
+        "message": "Not Executable Yet - runtime publishing is unavailable",
+        "node_id": "n5",
+        "field": null,
+        "severity": "warning"
+      },
+      {
+        "code": "runtime_unavailable",
+        "message": "Not Executable Yet - runtime publishing is unavailable",
+        "node_id": "n6",
+        "field": null,
+        "severity": "warning"
+      }
+    ],
+    "node_count": 7,
+    "edge_count": 6,
+    "catalog_version": 1
+  },
+  "timeline": [
+    {
+      "node_id": "n0",
+      "label": "Manual Trigger",
+      "status": "previewed",
+      "input": {},
+      "output": {
+        "input": {
+          "record": {
+            "json": "{\"items\": [{\"amount\": 5}, {\"amount\": 12}, {\"amount\": 25}]}",
+            "include": true
+          }
+        },
+        "record": {
+          "json": "{\"items\": [{\"amount\": 5}, {\"amount\": 12}, {\"amount\": 25}]}",
+          "include": true
+        }
+      },
+      "error": null,
+      "active_ports": [
+        "out"
+      ],
+      "variables": {
+        "workflow": {},
+        "steps": [
+          "n0"
+        ]
+      }
+    },
+    {
+      "node_id": "n1",
+      "label": "Parse JSON",
+      "status": "previewed",
+      "input": {
+        "value": "{\"items\": [{\"amount\": 5}, {\"amount\": 12}, {\"amount\": 25}]}"
+      },
+      "output": {
+        "value": {
+          "items": [
+            {
+              "amount": 5
+            },
+            {
+              "amount": 12
+            },
+            {
+              "amount": 25
+            }
+          ]
+        }
+      },
+      "error": null,
+      "active_ports": [
+        "out"
+      ],
+      "variables": {
+        "workflow": {},
+        "steps": [
+          "n0",
+          "n1"
+        ]
+      }
+    },
+    {
+      "node_id": "n2",
+      "label": "Map Fields",
+      "status": "previewed",
+      "input": {
+        "mapping": [
+          12,
+          25
+        ]
+      },
+      "output": {
+        "value": [
+          12,
+          25
+        ]
+      },
+      "error": null,
+      "active_ports": [
+        "out"
+      ],
+      "variables": {
+        "workflow": {},
+        "steps": [
+          "n0",
+          "n1",
+          "n2"
+        ]
+      }
+    },
+    {
+      "node_id": "n3",
+      "label": "Filter",
+      "status": "previewed",
+      "input": {
+        "operator": "equals",
+        "condition": {
+          "join": "and",
+          "rules": [
+            {
+              "left": true,
+              "operator": "boolean_equals",
+              "right": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "result": true
+      },
+      "error": null,
+      "active_ports": [
+        "true"
+      ],
+      "variables": {
+        "workflow": {},
+        "steps": [
+          "n0",
+          "n1",
+          "n2",
+          "n3"
+        ]
+      }
+    },
+    {
+      "node_id": "n4",
+      "label": "Aggregate Values",
+      "status": "previewed",
+      "input": {
+        "values": [
+          12,
+          25
+        ],
+        "operation": "sum"
+      },
+      "output": {
+        "value": 37
+      },
+      "error": null,
+      "active_ports": [
+        "out"
+      ],
+      "variables": {
+        "workflow": {},
+        "steps": [
+          "n0",
+          "n1",
+          "n2",
+          "n3",
+          "n4"
+        ]
+      }
+    },
+    {
+      "node_id": "n6",
+      "label": "Log Event",
+      "status": "not_reached",
+      "input": null,
+      "output": null,
+      "error": null
+    },
+    {
+      "node_id": "n5",
+      "label": "Set Variable",
+      "status": "previewed",
+      "input": {
+        "value": 37
+      },
+      "output": {
+        "value": 37
+      },
+      "error": null,
+      "active_ports": [
+        "out"
+      ],
+      "variables": {
+        "workflow": {},
+        "steps": [
+          "n0",
+          "n1",
+          "n2",
+          "n3",
+          "n4",
+          "n5"
+        ]
+      }
+    }
+  ]
+}

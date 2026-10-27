@@ -25,4 +25,4 @@ def test_public_upload_mount_never_serves_private_pms_evidence(tmp_path):
     with TestClient(app) as client:
         for path in ['pms/work/1','pms/legacy','_private','PMS/WORK/1','employee_docs','resumes','documents','certificates','certificate_imports']:
             assert client.get('/uploads/'+path+'/known-file.txt').status_code==404
-        assert client.get('/uploads/avatars/known-file.txt').status_code==200
+        assert client.get('/uploads/avatars/known-file.txt').status_code==404

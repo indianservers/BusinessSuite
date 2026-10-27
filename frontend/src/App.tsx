@@ -1,3 +1,4 @@
+import { PendingPageProgress } from "./components/app/RouteProgress";
 import React, { Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
@@ -17,8 +18,13 @@ import { aiAgentRoutes } from "@/pages/ai-agents/routes";
 import { aiCopilotRoutes } from "@/apps/ai-copilot/routes";
 import { adminSecurityRoutes } from "@/apps/admin-security/routes";
 import { PortalPage, saasRoutes } from "@/apps/saas/routes";
+import { applicationRoutes } from "@/apps/power-apps/registry";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 
+const AutomationRuntimePage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationRuntimePage"));
+const AutomationEditorPage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationEditorPage"));
+const ApprovalsPage = React.lazy(() => import("@/apps/power-apps/applications/approvals/ApprovalsPage"));
+const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
 const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
 const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
@@ -53,6 +59,7 @@ function getEnabledRoutes() {
 function LoadingFallback() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 dark:bg-background">
+      <PendingPageProgress />
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Sparkles className="h-7 w-7" />
@@ -134,6 +141,17 @@ export default function App() {
   }, [isHydrated, isAuthenticated]);
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
+    { path: "power-apps", element: <PowerAppsPage /> },
+    { path: "power-apps/approvals", element: <ApprovalsPage /> },
+    { path: "power-apps/approvals/:section", element: <ApprovalsPage /> },
+    { path: "power-apps/approvals/designer/:id", element: <ApprovalsPage /> },
+    { path: "power-apps/automations/executions", element: <AutomationRuntimePage /> },
+    { path: "power-apps/automations/executions/:runId", element: <AutomationRuntimePage /> },
+    { path: "power-apps/automations/:resourceId/runtime", element: <AutomationRuntimePage /> },
+    { path: "power-apps/automations/new", element: <AutomationEditorPage /> },
+    ...["edit", "versions", "settings"].map(section => ({ path: `power-apps/automations/:resourceId/${section}`, element: <AutomationEditorPage /> })),
+    { path: "power-apps/automations/:resourceId", element: <AutomationEditorPage /> },
+    ...applicationRoutes.map(id => ({ path: `power-apps/${id}`, element: <PowerAppsPage /> })),
     { path: "admin/access", element: <UsersAccessPage /> },
     { path: "admin/control/ai-security", element: <AiSecurityPage /> },
     { path: "admin/control/enterprise/:section", element: <EnterprisePage /> },

@@ -1,3 +1,4 @@
+import PeopleDirectoryPage from "@/components/PeopleDirectoryPage";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
@@ -7,7 +8,7 @@ import { workspaceError, type WorkspaceMember } from "./workspaceTypes";
 type Team = { id: number; name: string; alias: string; member_ids: number[] };
 type Workspace = { id: number; name: string };
 const empty = { name: "", alias: "", member_ids: [] as number[] };
-export default function TeamsPage() {
+function ManageTeamsPage() {
   const [params] = useSearchParams();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selected, setSelected] = useState(0);
@@ -53,3 +54,5 @@ export default function TeamsPage() {
     </>}
   </div>;
 }
+
+export default function TeamsPage() { return new URLSearchParams(window.location.search).get("manage") === "1" ? <ManageTeamsPage /> : <PeopleDirectoryPage />; }

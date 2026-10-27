@@ -37,6 +37,8 @@ from .access import (
     organization_id_for,
 )
 
+from app.shared.communication.contexts import can_view_contexts as _context_visible, denied_rooms
+
 router = APIRouter(prefix="/workspaces/{wid}/chat")
 summary_router = APIRouter()
 
@@ -47,6 +49,7 @@ def unread_summary(
 ):
     from .workspace_lifecycle import archived_ids
     # Current workspace membership is part of the query, never a cached room list.
+    denied = denied_rooms(db, user)
     count = (
         db.query(func.count(Message.id))
         .join(Room, Room.id == Message.conversation_id)
@@ -71,6 +74,7 @@ def unread_summary(
             PMSWorkspace.id.notin_(archived_ids()),
             Message.id > Member.history_after,
             or_(Message.parent_id.is_(None), Message.parent_id > Member.history_after),
+            Message.conversation_id.notin_(denied),
             Message.id > Member.read_id,
             Message.author_id != user.id,
             Message.deleted_at.is_(None),
@@ -122,6 +126,11 @@ class Mute(Strict):
 
 
 def commit_chat(db, wid, rid=None, extra_ids=()):
+    from app.shared.communication.models import CommunicationEvent
+    if db.get_bind().dialect.name == "postgresql":
+        from sqlalchemy import text
+        db.execute(text("SELECT pg_advisory_xact_lock(211028004)"))
+    db.add(CommunicationEvent(workspace_id=wid, conversation_id=rid))
     db.commit()
     # Send no conversation metadata or content. Recheck current room and workspace
     # membership before selecting recipients; removed members get only one revocation hint.
@@ -330,6 +339,8 @@ def access(db, wid, rid, user, write=False, manage=False):
                 for m in db.query(Member).filter_by(conversation_id=rid, active=True)
             ],
         )
+    from app.shared.communication.contexts import authorize_contexts
+    authorize_contexts(db, user, rid)
     return room, member
 
 
@@ -362,6 +373,10 @@ def unread(db, room, member, uid):
 
 
 def room_data(db, room, member, uid):
+    from app.shared.communication.models import Preference, Draft
+    from app.core.rich_text import rich_text_plain
+    preference = db.get(Preference, (room.id, uid)) if member and member.active else None
+    latest = visible_query(db, room, member).filter(Message.deleted_at.is_(None)).order_by(Message.id.desc()).first() if member and member.active else None
     ids = (
         db.query(Member.user_id)
         .join(
@@ -388,6 +403,10 @@ def room_data(db, room, member, uid):
         "archived": room.archived,
         "owner_id": room.owner_id,
         "joined": bool(member and member.active),
+        "favorite": preference.favorite if preference else False,
+        "has_draft": db.query(Draft).filter_by(conversation_id=room.id,user_id=uid).filter(Draft.body != "").first() is not None if member and member.active else False,
+        "last_message": rich_text_plain(latest.body)[:120] if latest else "",
+        "last_message_at": latest.created_at if latest else None,
         "muted": member.muted if member else False,
         "unread": unread(db, room, member, uid) if member and member.active else 0,
         "participants": (
@@ -399,6 +418,7 @@ def room_data(db, room, member, uid):
 
 
 def message_data(db, msg, member):
+    from app.core.rich_text import rich_text_plain
     allowed_files = db.query(PMSFileAsset.id).filter(
         PMSFileAsset.project_id.in_(
             accessible_project_query(db, db.get(User, member.user_id)).with_entities(
@@ -449,12 +469,12 @@ def message_data(db, msg, member):
         "author_id": msg.author_id,
         "body": "" if msg.deleted_at else msg.body,
         "parent_id": msg.parent_id,
-        "root_preview": root.body[:160] if root and not root.deleted_at else None,
+        "root_preview": rich_text_plain(root.body)[:160] if root and not root.deleted_at else None,
         "created_at": msg.created_at,
         "edited_at": msg.edited_at,
         "deleted_at": msg.deleted_at,
         "reply_count": replies.count(),
-        "latest_reply": last.body[:120] if last else None,
+        "latest_reply": rich_text_plain(last.body)[:120] if last else None,
         "attachments": attachments,
         "client_id": msg.client_id,
         "legacy_message_id": msg.legacy_dm_message_id,
@@ -482,7 +502,7 @@ def conversations(
     )
     return {
         "conversations": [
-            room_data(db, r, membership(db, r, user.id), user.id) for r in rooms
+            room_data(db, r, membership(db, r, user.id), user.id) for r in rooms if _context_visible(db, user, r.id)
         ],
         "user_id": user.id,
         "can_send": workspace(db, wid, user).role != "Guest",
@@ -822,10 +842,16 @@ def send(
                 .all()
             )
             for recipient in recipients:
+                from app.shared.communication.reminders import should_notify
+                if not should_notify(db, rid, db.get(User, recipient.user_id), body):
+                    continue
+                if not _context_visible(db, db.get(User, recipient.user_id), rid):
+                    continue
                 if data.parent_id and data.parent_id <= recipient.history_after:
                     continue
                 db.add(
                     Notification(
+                        company_id=organization_id_for(user),
                         user_id=recipient.user_id,
                         title="New workspace message",
                         message="Open Messages to view an update in a conversation you joined.",
@@ -886,6 +912,8 @@ def edit_message(
         raise HTTPException(404, "Message not found")
     if not data.body.strip():
         raise HTTPException(422, "Message cannot be blank")
+    from app.shared.communication.models import Revision
+    db.add(Revision(workspace_id=wid, message_id=mid, user_id=user.id, body=msg.body))
     msg.body = data.body.strip()
     msg.edited_at = datetime.utcnow()
     if msg.legacy_dm_message_id:
@@ -967,7 +995,7 @@ def read_all(
         db.query(Member)
         .join(Room, Room.id == Member.conversation_id)
         .filter(
-            Room.workspace_id == wid, Member.user_id == user.id, Member.active.is_(True)
+            Room.workspace_id == wid, Member.user_id == user.id, Member.active.is_(True), Room.id.notin_(denied_rooms(db,user,wid))
         )
     ):
         target = floor(db, m.conversation_id)
@@ -1032,6 +1060,7 @@ def search(
             Message.deleted_at.is_(None),
         )
     )
+    query = query.filter(Room.id.notin_(denied_rooms(db, user, wid)))
     files = db.query(PMSFileAsset.id).filter(
         PMSFileAsset.project_id.in_(
             accessible_project_query(db, user).with_entities(PMSProject.id)

@@ -3652,7 +3652,7 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
           <tbody>
             {loading ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">Loading leads...</td></tr> : null}
             {!loading && rows.map((lead) => (
-              <tr key={lead.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === lead.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(lead)}>
+              <tr data-context-record="Lead" data-context-open="Open lead details" key={lead.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === lead.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(lead)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(lead.id)])} onChange={(event) => onToggleRow(lead, event.target.checked)} aria-label={`Select ${lead.name}`} /></td>
                 <td className="px-3 py-3"><div className="flex items-center gap-3"><LeadAvatar lead={lead} /><button type="button" className="font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" onClick={(event) => { event.stopPropagation(); onSelect(lead); }}>{lead.name}</button></div></td>
                 <td className="px-3 py-3 text-muted-foreground">{lead.company || "-"}</td>
@@ -4402,7 +4402,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
           <tbody>
             {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading contacts...</td></tr> : null}
             {!loading && rows.map((contact) => (
-              <tr key={contact.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === contact.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(contact)}>
+              <tr data-context-record="Contact" data-context-open="Open contact details" key={contact.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === contact.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(contact)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(contact.id)])} onChange={(event) => onToggleRow(contact, event.target.checked)} aria-label={`Select ${contact.name}`} /></td>
                 <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={contact.name} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
                 {visibleColumns.company ? <td className="px-3 py-3 text-muted-foreground"><span title={contact.companyName || "No company linked"}>{contact.companyName || "No company linked"}</span></td> : null}
@@ -5056,7 +5056,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
           <tbody>
             {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading accounts...</td></tr> : null}
             {!loading && rows.map((account) => (
-              <tr key={account.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
+              <tr data-context-record="Account" data-context-open="Open account details" key={account.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(account.id)])} onChange={(event) => onToggleRow(account, event.target.checked)} aria-label={`Select ${account.name}`} /></td>
                 <td className="px-3 py-3"><div className="flex items-center gap-3"><AccountAvatar account={account} /><button type="button" className="max-w-52 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={account.name} onClick={(event) => { event.stopPropagation(); onSelect(account); }}>{account.name}</button></div></td>
                 {visibleColumns.industry ? <td className="px-3 py-3 text-muted-foreground">{account.industry || "Not provided"}</td> : null}
@@ -5631,7 +5631,7 @@ function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected,
             {error ? <tr><td colSpan={13} className="px-3 py-10 text-center text-red-700 dark:text-red-300">{error}</td></tr> : null}
             {!loading && !error && !rows.length ? <tr><td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">No deals found.</td></tr> : null}
             {!loading && !error && rows.map((deal) => (
-              <tr key={deal.id} className={`group cursor-pointer transition hover:bg-white/[0.04] ${selectedId === deal.id ? "bg-emerald-400/[0.06]" : ""}`} onClick={() => onSelect(deal)}>
+              <tr data-context-record="Deal" data-context-open="Open deal details" key={deal.id} className={`group cursor-pointer transition hover:bg-white/[0.04] ${selectedId === deal.id ? "bg-emerald-400/[0.06]" : ""}`} onClick={() => onSelect(deal)}>
                 <td className="px-3 py-3"><input type="checkbox" checked={Boolean(selectedIds[String(deal.id)])} onChange={(event) => onToggleRow(deal, event.target.checked)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${deal.name}`} /></td>
                 <td className="min-w-56 px-3 py-3"><div className="flex items-center gap-3"><DealAvatar deal={deal} /><div><p className="font-semibold text-foreground">{deal.name}</p><p className="text-xs text-muted-foreground">{deal.pipelineName || "Pipeline not set"}</p></div></div></td>
                 {visibleColumns.company ? <td className="min-w-40 px-3 py-3 text-foreground">{deal.companyName || "-"}</td> : null}

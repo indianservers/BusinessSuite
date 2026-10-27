@@ -539,6 +539,12 @@ router.include_router(signup_router)
 from .management_api import router as management_router
 router.include_router(management_router)
 
+from .operations import router as operations_router
+router.include_router(operations_router)
+
+from .onboarding import router as onboarding_router
+router.include_router(onboarding_router)
+
 
 from app.apps.project_management.work_api import ProgressInput
 
