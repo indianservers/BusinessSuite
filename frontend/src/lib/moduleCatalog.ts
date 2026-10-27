@@ -39,7 +39,7 @@ export const modules: ModuleIndexItem[] = [
       "A dedicated platform for automations, approvals, forms, apps, and governed business tools.",
     icon: Layers3,
     homePath: "/power-apps",
-    loginPath: "/login?next=%2Fpower-apps",
+    loginPath: "/login",
   },
   {
     key: "hrms",
@@ -49,7 +49,7 @@ export const modules: ModuleIndexItem[] = [
       "Employees, payroll, attendance, leave, recruitment, and self-service.",
     icon: Users,
     homePath: "/hrms",
-    loginPath: "/login?next=%2Fhrms",
+    loginPath: "/login",
     productKey: "hrms",
   },
   {
@@ -60,7 +60,7 @@ export const modules: ModuleIndexItem[] = [
       "Leads, customers, deals, activities, campaigns, quotes, and sales follow-ups.",
     icon: Users,
     homePath: "/crm",
-    loginPath: "/login?next=%2Fcrm",
+    loginPath: "/login",
     productKey: "crm",
   },
   {
@@ -71,7 +71,7 @@ export const modules: ModuleIndexItem[] = [
       "Projects, tasks, sprints, milestones, reports, workload, risks, and delivery plans.",
     icon: Boxes,
     homePath: "/pms",
-    loginPath: "/login?next=%2Fpms",
+    loginPath: "/login",
     productKey: "project_management",
   },
   {
@@ -82,7 +82,7 @@ export const modules: ModuleIndexItem[] = [
       "Manage sales orders, POS, products, stock, delivery, billing, invoices, collections, and profitability.",
     icon: Package,
     homePath: "/srm",
-    loginPath: "/login?next=%2Fsrm",
+    loginPath: "/login",
     productKey: "srm",
   },
   {
@@ -93,7 +93,7 @@ export const modules: ModuleIndexItem[] = [
       "Manage financial settings, chart of accounts, ledgers, opening balances, branches, cost centers, and audit-ready books.",
     icon: Landmark,
     homePath: "/fam",
-    loginPath: "/login?next=%2Ffam",
+    loginPath: "/login",
     productKey: "fam",
   },
 ];

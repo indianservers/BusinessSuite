@@ -1,7 +1,7 @@
 import { loginDestination } from "../frontend/src/lib/login";
 import { test, expect } from "../frontend/node_modules/playwright/test";
 
-test("one company-branded login and preserved module destinations", async ({
+test("one company-branded login URL for every module", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -21,15 +21,15 @@ test("one company-branded login and preserved module destinations", async ({
   });
   for (const home of ["hrms", "crm", "pms", "srm", "fam"]) {
     await page.goto(`/${home}/login`);
-    await expect(page).toHaveURL(new RegExp(`/login\\?next=%2F${home}$`));
+    await expect(page).toHaveURL(/\/login$/);
     await expect(
       page.getByRole("heading", { name: "Business Suite", exact: true }),
     ).toBeVisible();
   }
   await page.goto("/power-apps/approvals?environment=development");
-  await expect(page).toHaveURL(
-    /\/login\?next=%2Fpower-apps%2Fapprovals%3Fenvironment%3Ddevelopment/,
-  );
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/login?next=%2Fhrms");
+  await expect(page).toHaveURL(/\/login$/);
   const payload = page.waitForRequest(
     (r) => r.url().endsWith("/auth/login") && r.method() === "POST",
   );
@@ -51,7 +51,7 @@ test("login redirects reject external hosts and normalized login loops", () => {
     expect(loginDestination(path)).toBe("/dashboard");
   expect(
     loginDestination("/power-apps/approvals?environment=development"),
-  ).toBe("/power-apps/approvals?environment=development");
+  ).toBe("/dashboard");
 });
 
 test("authorized application dashboard supports search, navigation and mobile", async ({

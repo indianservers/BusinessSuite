@@ -74,11 +74,12 @@ function LoadingFallback() {
   );
 }
 
-function LegacyModuleLogin({ home }: { home: string }) {
+function LegacyModuleLogin() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  if (!params.has("next")) params.set("next", home);
-  return <Navigate to={`/login?${params.toString()}${location.hash}`} replace />;
+  params.delete("next");
+  const query = params.toString();
+  return <Navigate to={`/login${query ? `?${query}` : ""}${location.hash}`} replace />;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -98,7 +99,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey]);
   if (!isHydrated) return <LoadingFallback />;
   if (!isAuthenticated) {
-    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search + location.hash)}`} replace />;
+    return <Navigate to="/login" replace />;
   }
   if (!user) return <LoadingFallback />;
   if (!roleAllowed) {
@@ -223,12 +224,12 @@ export default function App() {
           <Route path="/dashboard" element={<ModuleDashboardPage />} />
           <Route path="/reset-password" element={<LoginPage />} />
           <Route path="/invite-access" element={<AccessInvitationPage />} />
-          <Route path="/hrms/login" element={<LegacyModuleLogin home="/hrms" />} />
-          <Route path="/crm/login" element={<LegacyModuleLogin home="/crm" />} />
-          <Route path="/pms/login" element={<LegacyModuleLogin home="/pms" />} />
+          <Route path="/hrms/login" element={<LegacyModuleLogin />} />
+          <Route path="/crm/login" element={<LegacyModuleLogin />} />
+          <Route path="/pms/login" element={<LegacyModuleLogin />} />
           <Route path="/pms/invitation" element={<WorkspaceInvitationPage />} />
-          <Route path="/srm/login" element={<LegacyModuleLogin home="/srm" />} />
-          <Route path="/fam/login" element={<LegacyModuleLogin home="/fam" />} />
+          <Route path="/srm/login" element={<LegacyModuleLogin />} />
+          <Route path="/fam/login" element={<LegacyModuleLogin />} />
           <Route path="/portal/customer/login" element={<PortalPage />} />
           <Route path="/portal/customer/*" element={<PortalPage />} />
           <Route path="/portal/partner/login" element={<PortalPage />} />

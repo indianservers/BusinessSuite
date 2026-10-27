@@ -48,7 +48,7 @@ export default function ModuleDashboardPage() {
       </main>
     );
   if (!isAuthenticated)
-    return <Navigate to="/login?next=%2Fdashboard" replace />;
+    return <Navigate to="/login" replace />;
   const allowed = user?.access
     ? modules.filter((m) =>
         canAccessRoute(m.homePath, user.role, user.is_superuser),

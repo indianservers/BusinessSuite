@@ -156,6 +156,14 @@ export default function LoginPage() {
   const apiBaseUrl = getApiBaseUrl();
   const resetToken = useMemo(() => new URLSearchParams(location.search).get("token"), [location.search]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (!params.has("next")) return;
+    params.delete("next");
+    const query = params.toString();
+    navigate(`/login${query ? `?${query}` : ""}${location.hash}`, { replace: true });
+  }, [location.search, location.hash, navigate]);
+
   const destination = loginDestination(new URLSearchParams(location.search).get("next"));
   const getPostLoginPath = useCallback((_role?: string | null, _isSuperuser = false) => destination, [destination]);
 
