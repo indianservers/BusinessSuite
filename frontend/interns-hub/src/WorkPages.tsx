@@ -244,7 +244,7 @@ export function TaskDetail() {
                 <FileText />
               </span>
               <div>
-                <h2>{task.title}</h2>
+                <h2>{task.title}</h2>{task.skill_level && <p>Skill level: {task.skill_level}</p>}{!!task.blocked_by?.length && <p role="status" className="notice">Waiting for approval of your own prerequisites: {task.blocked_by.map((p:Row)=>p.title).join(", ")}</p>}{task.pack_run_id && task.start_date && task.start_date>localDay() && <p role="status" className="notice">This assignment opens on {formatDate(task.start_date)}.</p>}
                 <div><RichTextContent legacyFormat="plain" value={task.description}/></div>
               </div>
               <Badge>{task.status}</Badge>

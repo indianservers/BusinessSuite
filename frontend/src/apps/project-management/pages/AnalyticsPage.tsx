@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -23,7 +24,7 @@ export default function AnalyticsPage({ mode }: {mode:"team"|"project"}) {
   const workspace = params.get("workspace") || ""; const project = projectId || params.get("project") || ""; const team = params.get("team") || ""; const member = params.get("member") || "";
   const validRange = !!start && !!end && start <= end && (Date.parse(end)-Date.parse(start))/86400000 <= 365;
   function filter(key:string,value:string) { setParams(previous => { const next = new URLSearchParams(previous); value ? next.set(key,value) : next.delete(key); if(key==='workspace') ['project','team','member'].forEach(k=>next.delete(k)); if(key==='project') {next.delete('team');next.delete('member');} return next; }); }
-  useEffect(()=>{let active=true;api.get('/project-management/workspaces').then(({data})=>{if(active)setWorkspaces(data);}).catch(()=>undefined);return()=>{active=false;};},[]);
+  useRefreshableEffect(()=>{let active=true;api.get('/project-management/workspaces').then(({data})=>{if(active)setWorkspaces(data);}).catch(()=>undefined);return()=>{active=false;};},[]);
   const result = useQuery({queryKey:['pms-analytics',workspace,project,team,member,start,end],queryFn:({signal})=>api.get<Data>('/project-management/analytics/overview',{signal,params:{workspace_id:workspace||undefined,project_id:project||undefined,team_id:team||undefined,member_id:member||undefined,start_date:start,end_date:end}}).then(r=>r.data),enabled:validRange,refetchInterval:30000,retry:1});
   const data = result.data;
   const people = (data?.people || []).filter(p => p.name.toLowerCase().includes(query.toLowerCase()) && (activity==='all'||(activity==='recent'?p.recently_active:!p.recently_active))).sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='time'?b.tracked_minutes-a.tracked_minutes:b.open-a.open);

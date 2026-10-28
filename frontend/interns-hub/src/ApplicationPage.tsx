@@ -31,7 +31,7 @@ import {
   Search,
   CircleHelp,
 } from "lucide-react";
-import { hub, send, FieldValidationError } from "./api";
+import { hub, send, FieldValidationError, downloadApplicationReceipt } from "./api";
 import { PhoneInput } from './validation/PhoneInput';
 import { applicationErrors, contract, passoutYears } from './validation';
 import { Logo, formatDate } from "./ui";
@@ -318,7 +318,7 @@ const baseFields: Field[] = [
 
 export function PublicHeader() {
   return (
-    <header className="application-header">
+    <><header className="application-header">
       <Link to="/apply" aria-label="Interns Hub home">
         <Logo />
       </Link>
@@ -328,8 +328,22 @@ export function PublicHeader() {
         <a href="/apply#why-interns-hub">For Students</a>
         <Link to="/application-status">Application Status</Link>
       </nav>
-    </header>
+    </header><FreeProgramNotice /></>
   );
+}
+export function FreeProgramNotice() {
+  return <aside className="free-program-notice" aria-label="Important internship notice"><ShieldCheck size={22} aria-hidden="true"/><p><strong>Our internship program is completely free.</strong> If anyone asks you to pay a fee for this program, please report it to <a href="tel:9618222220">9618222220</a>.</p></aside>;
+}
+
+function ReceiptDownload({ receipt }: { receipt: any }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return <div className="receipt-download"><button className="button" type="button" disabled={busy} onClick={async () => {
+    setBusy(true); setError("");
+    try { await downloadApplicationReceipt(receipt.receipt_token, receipt.reference); }
+    catch (failure) { setError((failure as Error).message); }
+    finally { setBusy(false); }
+  }}>{busy ? "Preparing receipt…" : "Download application receipt (PDF)"}</button>{error && <p role="alert" className="error">{error}</p>}</div>;
 }
 function Footer() {
   return (
@@ -517,7 +531,7 @@ function ApplicationField({
   );
 }
 
-export function ApplicationPage({applicant}:{applicant:{email:string;full_name:string}}) {
+export function ApplicationPage({applicant}:{applicant:{email:string;full_name:string;details?:Record<string,unknown>}}) {
   const draftKey = `internhub.application-draft:${applicant.email.toLowerCase()}`;
   const [form, setForm] = useState<Form>(defaults);
   const [step, setStep] = useState(0);
@@ -555,7 +569,8 @@ export function ApplicationPage({applicant}:{applicant:{email:string;full_name:s
       }
     } catch {}
     if (applicant.email) {
-      setForm(current=>({...current,email:applicant.email,full_name:applicant.full_name || current.full_name}));
+      const saved = Object.fromEntries(Object.entries(applicant.details || {}).filter(([key])=>key in defaults && key !== 'identity_number').map(([key,value])=>[key,value == null ? '' : String(value)]));
+      setForm(current=>({...current,...saved,email:applicant.email,full_name:applicant.full_name || current.full_name}));
       setNotice("Your account details are ready. Complete your application below; approval is required before intern access.");
     }
   }, []);
@@ -657,6 +672,7 @@ export function ApplicationPage({applicant}:{applicant:{email:string;full_name:s
                 <strong>{receipt?.reference}</strong>
                 <span className="badge orange">Pending Approval</span>
               </div>
+              {receipt?.receipt_token && <ReceiptDownload receipt={receipt}/>}
               <p>
                 Once approved, your intern account will be activated and your
                 unique intern ID will be available. Sign in with the email and
@@ -946,9 +962,13 @@ export function ApplicationStatus() {
                   ? "Your application is awaiting HRMS review. Login becomes available after approval."
                   : result.status === "Approved"
                     ? "Your account is ready. Sign in with your application email and password."
+                    : result.status === "Correction Requested"
+                      ? "Please submit the corrections requested by the review team."
                     : "Your application was not approved."}
               </p>
               {result.review_note && <p>{result.review_note}</p>}
+              {result.correction_deadline && <p><strong>Correction deadline: {formatDate(result.correction_deadline)}</strong> (India time). Daily email reminders start three days before the deadline.</p>}
+              {result.receipt_token && <ReceiptDownload receipt={result}/>}
               {result.status==="Correction Requested" && <Link className="button" to="/apply?correction=1">Submit corrected application</Link>}
               {result.history?.map((event:any,index:number)=><p key={index}>{event.state} · {event.note||formatDate(event.created_at?.slice(0,10))}</p>)}
               {result.can_login && (

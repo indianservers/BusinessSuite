@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { ConversationLauncher, TaskConversationSource } from "@/shared/communication";
 import TaskLinkedNotes from "../components/TaskLinkedNotes";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -127,7 +128,7 @@ export default function TaskDetail() {
   const [subtaskSaving, setSubtaskSaving] = useState(false);
   const [newSubtaskAssignees, setNewSubtaskAssignees] = useState<number[]>([]);
   const [newSubtaskDescription, setNewSubtaskDescription] = useState("");
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     const id = task?.project_id || Number(projectId);
     if (id) pmsUsersAPI.search({ q: "", projectId: id }).then(people => { if (active) setSubtaskPeople(people); }).catch(() => { if (active) setSubtaskPeople([]); });
@@ -222,7 +223,7 @@ export default function TaskDetail() {
       });
   }, [numericTaskId]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     loadTaskData(active);
     return () => {
@@ -1581,7 +1582,7 @@ function FilesTab({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let objectUrl: string | null = null;
     if (!previewFile) {
       setPreviewUrl(null);

@@ -17,8 +17,17 @@ def main():
     from alembic import command
     from alembic.config import Config
     from alembic.script import ScriptDirectory
-    from sqlalchemy import inspect, text
-    from app.db.session import engine
+    from sqlalchemy import create_engine, inspect, text
+    from sqlalchemy.engine import make_url
+    from sqlalchemy.pool import NullPool
+    from app.core.config import settings
+
+    # DDL/advisory locks require a direct Neon connection rather than transaction pooling.
+    migration_url = make_url(settings.SQLALCHEMY_DATABASE_URI)
+    if migration_url.host and migration_url.host.endswith(".neon.tech"):
+        migration_url = migration_url.set(host=migration_url.host.replace("-pooler.", ".", 1))
+    engine = create_engine(migration_url, poolclass=NullPool, pool_pre_ping=True,
+        connect_args=settings.SQLALCHEMY_CONNECT_ARGS)
 
     config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
     head = ScriptDirectory.from_config(config).get_current_head()

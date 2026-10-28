@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link, useSearchParams } from "react-router-dom";
@@ -19,7 +20,7 @@ export default function CustomFieldManagerPage(){
  const [open,setOpen]=useState(params.get("create")==="1"),[editing,setEditing]=useState<CustomField|null>(null),[draft,setDraft]=useState({...initial,entity_type:params.get("entity")||"both"}),[busy,setBusy]=useState(false),[formError,setFormError]=useState("");
  const [taskTypes,setTaskTypes]=useState<string[]>([]);
  async function refresh(){const {data}=await api.get<Library>("/project-management/custom-fields?include_archived=true");setData(data);}
- useEffect(()=>{let active=true;api.get<Library>("/project-management/custom-fields?include_archived=true").then(r=>{if(active)setData(r.data);}).catch(e=>{if(active)setError(workspaceError(e));}).finally(()=>{if(active)setLoading(false);});api.get("/project-management/task-types").then(({data})=>{if(active)setTaskTypes(data.types.filter((t:{archived:boolean})=>!t.archived).map((t:{name:string})=>t.name));}).catch(()=>undefined);return()=>{active=false;};},[]);
+ useRefreshableEffect(()=>{let active=true;api.get<Library>("/project-management/custom-fields?include_archived=true").then(r=>{if(active)setData(r.data);}).catch(e=>{if(active)setError(workspaceError(e));}).finally(()=>{if(active)setLoading(false);});api.get("/project-management/task-types").then(({data})=>{if(active)setTaskTypes(data.types.filter((t:{archived:boolean})=>!t.archived).map((t:{name:string})=>t.name));}).catch(()=>undefined);return()=>{active=false;};},[]);
  const canCreate=data.can_manage_shared||data.projects.some(p=>p.can_manage);
  function create(template?:typeof templates[number]){setEditing(null);setDraft({...initial,entity_type:params.get("entity")||"both",scope:data.can_manage_shared?"company":"project",project_id:location!=="company"?location:"",...(template?{name:template.name,field_type:template.type,options:template.options}:{})});setFormError("");setOpen(true);}
  const fields=data.fields.filter(f=>!!f.archived===showArchived&&(!target||f.entity_type===target||f.entity_type==="both")&&(!location||(location==="company"?!f.project_id:f.project_id===Number(location)))&&(!type||f.field_type===type)&&`${f.name} ${f.project_name}`.toLowerCase().includes(search.toLowerCase()));

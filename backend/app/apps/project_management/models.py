@@ -440,6 +440,61 @@ class PMSTaskAssignee(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class PMSInternTaskPack(Base):
+    __tablename__ = "pms_intern_task_packs"
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id"), nullable=False, index=True)
+    name = Column(String(160), nullable=False)
+    description = Column(Text, nullable=False, default="")
+    steps = Column(JSON, nullable=False)
+    version = Column(Integer, nullable=False, default=1)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PMSInternPackRun(Base):
+    __tablename__ = "pms_intern_pack_runs"
+    __table_args__ = (UniqueConstraint("organization_id", "request_key", name="uq_pms_intern_pack_run"),)
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id"), nullable=False)
+    pack_id = Column(Integer, ForeignKey("pms_intern_task_packs.id"), nullable=False)
+    pack_version = Column(Integer, nullable=False)
+    snapshot = Column(JSON, nullable=False)
+    result = Column(JSON, nullable=False, default=dict)
+    request_key = Column(String(100), nullable=False)
+    request_hash = Column(String(64), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PMSInternAssignmentPlan(Base):
+    __tablename__ = "pms_intern_assignment_plans"
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    run_id = Column(Integer, ForeignKey("pms_intern_pack_runs.id"), nullable=False, index=True)
+    step_key = Column(String(40), nullable=False)
+    skill_level = Column(String(20), nullable=False)
+    prerequisites = Column(JSON, nullable=False, default=list)
+    rubric = Column(JSON, nullable=False, default=list)
+
+
+class PMSBulkDeadlineChange(Base):
+    __tablename__ = "pms_bulk_deadline_changes"
+    __table_args__ = (UniqueConstraint("organization_id", "request_key", name="uq_pms_bulk_deadline_request"),)
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id"), nullable=False)
+    reason = Column(Text, nullable=False)
+    changes = Column(JSON, nullable=False)
+    request_key = Column(String(100), nullable=False)
+    request_hash = Column(String(64), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class PMSWorkSubmission(Base):
     __tablename__ = "pms_work_submissions"
     __table_args__ = (UniqueConstraint("task_id", "user_id", "version", name="uq_pms_work_version"),)

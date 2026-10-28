@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, List, Optional
-from pydantic import BaseModel, EmailStr, field_validator, ValidationInfo
+from pydantic import Field, BaseModel, EmailStr, field_validator, ValidationInfo
 from app.core.input_validation import clean_text,email_address,EmailAddress
 
 
@@ -278,6 +278,7 @@ class EmployeeUpdate(BaseModel):
         if value not in (None,'','Male','Female','Other','Prefer not to say'):raise ValueError('Select a supported gender')
         return value
 
+    role_id: Optional[int] = Field(default=None, gt=0)
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None

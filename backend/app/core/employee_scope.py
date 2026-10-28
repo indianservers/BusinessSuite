@@ -2,6 +2,7 @@
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy import event, or_
 from sqlalchemy.orm import with_loader_criteria
+from app.core.reporting_managers import eligible_reporting_manager
 from app.core.deps import get_current_user, get_db
 from app.models.employee import Employee, EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeSkill, EmployeeLifecycleEvent, EmployeeChangeRequest
 from app.models.company import Branch, Department, Designation
@@ -25,8 +26,16 @@ def validate_employee_links(db, user, values, employee=None):
     if (employee is None or {'branch_id','department_id','designation_id'}.intersection(values)) and designation_id is not None and not db.query(Designation.id).filter(Designation.id == designation_id, Designation.department_id == department_id).first():
         raise HTTPException(422, 'Designation must belong to the selected department')
     manager_id = values.get('reporting_manager_id')
-    if manager_id is not None and not db.query(Employee.id).filter(Employee.id == manager_id).first():
-        raise HTTPException(404, 'Authorized manager not found')
+    if manager_id is not None:
+        manager = db.query(Employee).filter(Employee.id == manager_id, Employee.deleted_at.is_(None)).first()
+        if manager is None:
+            raise HTTPException(404, 'Authorized manager not found')
+        if employee is not None and manager.id == employee.id:
+            raise HTTPException(422, 'An employee cannot report to themselves')
+        if (manager.employment_type or '').strip().lower() == 'intern':
+            raise HTTPException(422, 'Interns cannot be reporting managers')
+        if not eligible_reporting_manager(manager):
+            raise HTTPException(422, 'Choose a Super Admin, CEO, HR or Project Manager as reporting manager')
 
 
 def employee_tenant_scope(request: Request, db=Depends(get_db), user=Depends(get_current_user)):

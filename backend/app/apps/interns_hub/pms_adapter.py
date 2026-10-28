@@ -13,10 +13,12 @@ STATUS={"To Do":"Pending","In Progress":"In Progress","In Review":"In Review","D
 
 def task_rows(db,employee,*,page=1,per_page=500):
     q=db.query(PMSTask,PMSTaskAssignee).join(PMSTaskAssignee,PMSTaskAssignee.task_id==PMSTask.id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(PMSTaskAssignee.user_id==employee.user_id,PMSTask.deleted_at.is_(None),PMSProject.deleted_at.is_(None),func.coalesce(PMSProject.organization_id,1)==tenant(employee.user))
+    rows=q.order_by(func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date),PMSTask.id).offset((page-1)*per_page).limit(per_page).all()
+    details=work.plan_details_many(db,[(t.id,a.user_id) for t,a in rows])
     return [{"id":t.id,"pms_task_id":t.id,"project_id":t.project_id,"task_key":t.task_key,"employee_id":employee.id,"title":t.title,
         "description":t.description or "","category":t.component or "Project","priority":t.priority,"points":a.maximum_score,
         "progress_percent":a.progress_percent,"work_notes":a.work_notes,"status":"Cancelled" if a.cancelled_at else STATUS.get(a.execution_status,"Pending"),"due_date":a.due_date or t.due_date,"created_at":t.created_at,
-        "reviewer_user_id":a.reviewer_user_id,"source":"PMS"} for t,a in q.order_by(func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date),PMSTask.id).offset((page-1)*per_page).limit(per_page)]
+        "reviewer_user_id":a.reviewer_user_id,"source":"PMS","start_date":t.start_date,**details[(t.id,a.user_id)]} for t,a in rows]
 
 
 def submissions(db,employee,*,page=1,per_page=500):

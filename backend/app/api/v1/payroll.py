@@ -106,6 +106,8 @@ from app.schemas.payroll import (
 from app.schemas.payroll import SalaryComponentCreate as SalaryComponentUpdate
 
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
+from app.api.v1.payroll_guided import router as payroll_guided_router
+router.include_router(payroll_guided_router)
 
 EXPORT_TYPES = {"pf_ecr", "esi", "pt", "tds_24q", "form_16", "bank_advice", "pay_register", "accounting_journal"}
 
@@ -3086,6 +3088,19 @@ def publish_payslips(
     )
     db.add(batch)
     _audit(db, run_id, "payslips_published", current_user.id, f"{total} payslips")
+    from app.services.email_dispatch import queue_email
+    from app.services.email_events import _employee
+    from app.core.config import settings
+    if settings.EMAIL_NOTIFICATIONS_ENABLED:
+        for record in db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id):
+            contact = _employee(db, record.employee_id, getattr(run, "company_id", None))
+            if contact:
+                address, recipient_user_id, organization_id = contact
+                queue_email(db, recipient=address, user_id=recipient_user_id, organization_id=organization_id,
+                    module="payroll", event_key=f"payslip-published:{run_id}:{record.employee_id}",
+                    subject="Your payslip is available",
+                    body=f"Your payslip for {run.month}/{run.year} has been published.\n"
+                        + settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/hrms/payroll")
     db.commit()
     db.refresh(batch)
     return batch

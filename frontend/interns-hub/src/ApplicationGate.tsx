@@ -4,9 +4,12 @@ import { ApplicationPage, PublicHeader } from "./ApplicationPage";
 import { SocialSignup } from "./SocialSignup";
 import { applicationToken, setApplicationToken } from "./applicationSession";
 import { hub } from "./api";
+import { useLocation } from "react-router-dom";
+import { ReturningApplicant, type ApplicantProfile } from "./ReturningApplicant";
 
 export function ApplicationGate() {
-  const [profile,setProfile] = useState<{email:string;full_name:string;expires_at?:number} | null>(null);
+  const [profile,setProfile] = useState<ApplicantProfile | null>(null);
+  const location = useLocation();
   const [checking,setChecking] = useState(!!applicationToken());
   useEffect(()=>{
     if(!profile?.expires_at) return;
@@ -27,7 +30,11 @@ export function ApplicationGate() {
     return ()=>{active=false;};
   },[]);
   function signOut() {setApplicationToken(null);setProfile(null);}
-  if (profile) return <><div className="applicant-session-bar"><ShieldCheck size={17}/><span>Signed in with Google as <strong>{profile.email}</strong></span><button type="button" onClick={signOut}>Use another account</button></div><ApplicationPage applicant={profile}/></>;
+  if (profile) {
+    const record = profile.application;
+    const correcting = record?.status === "Correction Requested" && new URLSearchParams(location.search).get("correction") === "1";
+    return <><div className="applicant-session-bar"><ShieldCheck size={17}/><span>Signed in with Google as <strong>{profile.email}</strong></span><button type="button" onClick={signOut}>Use another account</button></div>{record && !correcting ? <ReturningApplicant record={record}/> : <ApplicationPage key={profile.email} applicant={record ? {...profile,full_name:record.full_name,details:record.details} : profile}/>}</>;
+  }
   return <div className="application-page"><PublicHeader/><main className="application-signin-layout"><section className="application-signin-card">
     <span className="application-signin-icon"><GraduationCap size={36}/></span>
     <span className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</span>

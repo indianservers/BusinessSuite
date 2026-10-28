@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -199,7 +200,7 @@ export default function LeadManagementPage() {
       variant: "destructive",
     });
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     leadsApi
       .bootstrap()
@@ -224,7 +225,7 @@ export default function LeadManagementPage() {
     );
     return () => clearTimeout(timer);
   }, [searchDraft, search]);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -1279,7 +1280,7 @@ function LeadDrawer({
   });
   const [booking, setBooking] = useState("");
   const [scheduling, setScheduling] = useState(false);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     const controller = new AbortController();
     setError("");
     leadsApi
@@ -2393,7 +2394,7 @@ function WorkflowSettings({
   const [captureOwner, setCaptureOwner] = useState(
     bootstrap.owners[0]?.id || bootstrap.userId,
   );
-  useEffect(() => {
+  useRefreshableEffect(() => {
     leadsApi
       .captureSettings()
       .then((r) => {

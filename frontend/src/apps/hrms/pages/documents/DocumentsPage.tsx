@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { assetUrl, formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { getRoleKey } from "@/lib/roles";
+import { Link } from "react-router-dom";
 
 type EmployeeOption = {
   id: number;
@@ -190,6 +191,7 @@ export default function DocumentsPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Documents</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">Employee certificates and documents</h1>
+          {canChooseEmployee && <Link className="mt-2 inline-block text-sm font-medium text-primary underline" to="/hrms/letters-certificates">Generate letters & certificates</Link>}
           <p className="mt-1 text-sm text-muted-foreground">
             Upload study certificates, class certificates, old company documents, and verification evidence.
           </p>

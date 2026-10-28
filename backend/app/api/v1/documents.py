@@ -37,6 +37,8 @@ from app.schemas.document import (
 from app.core.employee_scope import employee_tenant_scope
 from app.apps.srm.services.commercial import tenant
 router = APIRouter(prefix="/documents", tags=["Documents & Policies"], dependencies=[Depends(employee_tenant_scope)])
+from app.api.v1.document_studio import router as studio_router
+router.include_router(studio_router)
 
 
 def _validate_upload(file: UploadFile, extra_extensions: set[str] | None = None) -> str:

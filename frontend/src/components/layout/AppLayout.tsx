@@ -1,3 +1,4 @@
+import SuiteContextBar from "@/components/suite/SuiteContextBar";
 import PageContextMenu from "@/components/app/PageContextMenu";
 import PMSAssistant from "@/apps/project-management/components/PMSAssistant";
 import { useEffect, useState } from "react";
@@ -25,17 +26,20 @@ export default function AppLayout() {
     localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+
   if (location.pathname === "/power-apps" || location.pathname.startsWith("/power-apps/")) {
-    return <><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /></>;
+    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /></div>;
   }
 
   if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="h-dvh overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><PMSAssistant /></div>;
+    return <div className="flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><SuiteContextBar /><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /></div>;
   }
 
   return (
     <div className={`product-shell ${product.themeClass} flex h-screen overflow-hidden bg-background`} data-product={product.key} style={{"--pms-assistant-left":sidebarCollapsed ? "80px" : "272px"} as import("react").CSSProperties}>
 
+      <a className="suite-skip" href="#suite-main">Skip to content</a>
       <PageContextMenu />
       {/* Sidebar */}
       <Sidebar
@@ -52,7 +56,7 @@ export default function AppLayout() {
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+        <main id="suite-main" tabIndex={-1} className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
           {isPosTerminal || isMessaging ? null : <Breadcrumbs />}
           {!isMessaging && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <ErrorBoundary>

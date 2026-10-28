@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosResponse } from "axios";
 import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
 import { beginProgress } from "@/lib/async-progress";
+import { trackPageRefreshRead } from "@/lib/page-refresh";
 
 declare module "axios" {
   interface AxiosRequestConfig {
@@ -10,6 +11,7 @@ declare module "axios" {
     /** Server-reported limit for a permission-checked upload endpoint. */
     uploadLimitBytes?: number;
     _finishProgress?: (success?: boolean, error?: string) => void;
+    _finishPageRefresh?: (success?: boolean) => void;
   }
 }
 
@@ -27,6 +29,9 @@ export const api = axios.create({
 // Request interceptor: attach access token
 api.interceptors.request.use((config) => {
   const organization = sessionStorage.getItem("suite-organization");
+  if ((config.method || "get").toLowerCase() === "get" && !config._finishPageRefresh) {
+    config._finishPageRefresh = trackPageRefreshRead();
+  }
   if (organization) config.headers["X-Suite-Organization"] = organization;
   if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {
@@ -102,9 +107,11 @@ api.interceptors.response.use(
 // Run after the refresh interceptor: retries retain one operation until the
 // final response, and the idempotent finish handles nested interceptor chains.
 api.interceptors.response.use(response => {
+  response.config._finishPageRefresh?.();
   response.config._finishProgress?.();
   return response;
 }, (error: AxiosError<{ detail?: unknown }>) => {
+  error.config?._finishPageRefresh?.(false);
   const detail = error.response?.data?.detail;
   error.config?._finishProgress?.(false, typeof detail === "string" ? detail :
     error.code === "ECONNABORTED" ? "Confirmation timed out. Check whether the record was saved before retrying." :

@@ -1,572 +1,709 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, Sparkles, ClipboardCheck, Users, BarChart3, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import "./KaryaLogin.css";
+import { ArrowLeft, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { type FirebaseOptions } from "firebase/app";
 import { setRememberSession, useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
-import { toast } from "@/hooks/use-toast";
 import { getApiBaseUrl } from "@/config/runtime";
 import { loginDestination } from "@/lib/login";
+import { modules } from "@/lib/moduleCatalog";
+import SuiteBrand from "@/components/suite/SuiteBrand";
+import "./suite-login.css";
 
-const loginSchema = z.object({
-  email: z.string().email("Valid email required"),
-  password: z.string().min(1, "Password required"),
+const schema = z.object({
+  email: z.string().trim().email("Enter a valid email address."),
+  password: z.string().min(1, "Enter your password."),
 });
-
-type LoginForm = z.infer<typeof loginSchema>;
-type AuthView = "login" | "forgot" | "reset";
-
-const moduleLogins = {
-  hrms: {
-    product: "AI HRMS",
-    authModule: "hrms",
-    tagline: "Human Resource Management",
-    description: "Enter your HRMS credentials",
-    afterLogin: "/hrms",
-    accent: "blue",
-  },
-  crm: {
-    product: "VyaparaCRM",
-    authModule: "crm",
-    tagline: "Customer Relationship Management",
-    description: "Enter your CRM credentials",
-    afterLogin: "/crm",
-    accent: "emerald",
-  },
-  project_management: {
-    product: "KaryaFlow",
-    authModule: "project_management",
-    tagline: "Project Management Software",
-    description: "Enter your PMS credentials to continue",
-    afterLogin: "/pms",
-    accent: "violet",
-  },
-  srm: {
-    product: "Sales & Inventory",
-    authModule: "srm",
-    tagline: "Sales, Inventory and POS",
-    description: "Enter your Sales & Inventory credentials",
-    afterLogin: "/srm",
-    accent: "amber",
-  },
-  fam: {
-    product: "FinanceFlow FAM",
-    authModule: "fam",
-    tagline: "Finance & Accounting Management",
-    description: "Enter your FAM credentials",
-    afterLogin: "/fam",
-    accent: "cyan",
-  },
-} as const;
-
-const loginThemes = {
-  hrms: {
-    page: "from-slate-900 via-blue-950 to-slate-900",
-    glow: "from-blue-900/20",
-    logo: "bg-blue-600 shadow-blue-500/25",
-    text: "text-blue-200",
-    textSoft: "text-blue-200/70",
-    textMuted: "text-blue-200/60",
-    button: "bg-blue-600 hover:bg-blue-500 shadow-blue-500/25",
-    ring: "focus-visible:ring-blue-400",
-  },
-  crm: {
-    page: "from-emerald-950 via-teal-950 to-slate-950",
-    glow: "from-emerald-700/20",
-    logo: "bg-emerald-600 shadow-emerald-500/25",
-    text: "text-emerald-100",
-    textSoft: "text-emerald-100/70",
-    textMuted: "text-emerald-100/60",
-    button: "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/25",
-    ring: "focus-visible:ring-emerald-400",
-  },
-  project_management: {
-    page: "from-violet-950 via-indigo-950 to-slate-950",
-    glow: "from-violet-700/20",
-    logo: "bg-violet-600 shadow-violet-500/25",
-    text: "text-violet-100",
-    textSoft: "text-violet-100/70",
-    textMuted: "text-violet-100/60",
-    button: "bg-violet-600 hover:bg-violet-500 shadow-violet-500/25",
-    ring: "focus-visible:ring-violet-400",
-  },
-  srm: {
-    page: "from-slate-950 via-amber-950 to-zinc-950",
-    glow: "from-amber-700/20",
-    logo: "bg-amber-600 shadow-amber-500/25",
-    text: "text-amber-100",
-    textSoft: "text-amber-100/70",
-    textMuted: "text-amber-100/60",
-    button: "bg-amber-600 hover:bg-amber-500 shadow-amber-500/25",
-    ring: "focus-visible:ring-amber-400",
-  },
-  fam: {
-    page: "from-slate-950 via-cyan-950 to-zinc-950",
-    glow: "from-cyan-700/20",
-    logo: "bg-cyan-700 shadow-cyan-500/25",
-    text: "text-cyan-100",
-    textSoft: "text-cyan-100/70",
-    textMuted: "text-cyan-100/60",
-    button: "bg-cyan-700 hover:bg-cyan-600 shadow-cyan-500/25",
-    ring: "focus-visible:ring-cyan-400",
-  },
-} as const;
-
-function getLoginModule(_pathname: string): keyof typeof moduleLogins { return "hrms"; }
-
-function getLoginPathForModule(_module: keyof typeof moduleLogins) { return "/login"; }
+type LoginForm = z.infer<typeof schema>;
+type AuthView = "login" | "forgot" | "sent" | "reset";
+type AuthResponse = {
+  access_token: string;
+  refresh_token: string;
+  user_id: number;
+  email: string;
+  role: string | null;
+  is_superuser: boolean;
+  employee_id?: number;
+  mfa_required?: boolean;
+  mfa_token?: string;
+};
+type SsoProvider = {
+  id: number;
+  name: string;
+  domain_hint?: string;
+  button_label?: string;
+  provider_type: string;
+};
+function errorMessage(error: unknown, fallback: string) {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })
+    ?.response?.data?.detail;
+  return typeof detail === "string" ? detail : fallback;
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const loginModule = getLoginModule(location.pathname);
-  const { data: branding } = useQuery({ queryKey: ["login-branding"], queryFn: () => authApi.branding().then(r => r.data as {company_name: string | null}), staleTime: 60_000 });
-  const loginConfig = { ...moduleLogins.hrms, product: "Business Suite", tagline: branding?.company_name || "Your connected business workspace", description: "Sign in with your Business Suite account" };
-  const loginTheme = loginThemes[loginModule];
-  const { setTokens, setUser } = useAuthStore();
-  const queryClient = useQueryClient();
-  const [rememberSession, setRemember] = useState(() => localStorage.getItem("suite-remember-session") === "true");
+  const qc = useQueryClient();
+  const { setTokens, setUser, isAuthenticated, isHydrated } = useAuthStore();
+  const params = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  );
+  const destination = loginDestination(params.get("next"));
+  const resetToken = params.get("token");
+  const recoveryRequested = params.get("recover") === "1";
+  const [view, setView] = useState<AuthView>(resetToken ? "reset" : "login");
+  const [remember, setRemember] = useState(
+    () => localStorage.getItem("suite-remember-session") === "true",
+  );
   const [showPassword, setShowPassword] = useState(false);
-  const [loginPhase, setLoginPhase] = useState<"credentials" | "mfa">("credentials");
-  const [mfaToken, setMfaToken] = useState<string | null>(null);
-  const [mfaMethod, setMfaMethod] = useState<"totp" | "recovery">("totp");
-  const [mfaCode, setMfaCode] = useState("");
-  const [ssoBusy, setSsoBusy] = useState(false);
-  const [inlineError, setInlineError] = useState("");
-  const [authView, setAuthView] = useState<AuthView>("login");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [sentEmail, setSentEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [method, setMethod] = useState<"totp" | "recovery">("totp");
+  const [code, setCode] = useState("");
+  const [ssoBusy, setSsoBusy] = useState(false);
+  const handoffStarted = useRef(false);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-  const emailValue = watch("email");
-  const apiBaseUrl = getApiBaseUrl();
-  const resetToken = useMemo(() => new URLSearchParams(location.search).get("token"), [location.search]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (!params.has("next")) return;
-    params.delete("next");
-    const query = params.toString();
-    navigate(`/login${query ? `?${query}` : ""}${location.hash}`, { replace: true });
-  }, [location.search, location.hash, navigate]);
-
-  const destination = loginDestination(new URLSearchParams(location.search).get("next"));
-  const getPostLoginPath = useCallback((_role?: string | null, _isSuperuser = false) => destination, [destination]);
-
-  const { data: ssoProviders } = useQuery({
+    formState: { errors },
+  } = useForm<LoginForm>({ resolver: zodResolver(schema) });
+  const email = watch("email");
+  const branding = useQuery({
+    queryKey: ["login-branding"],
+    queryFn: () =>
+      authApi.branding().then((r) => r.data as { company_name?: string }),
+    staleTime: 60_000,
+  });
+  const providers = useQuery({
     queryKey: ["sso-providers"],
     queryFn: () => authApi.ssoProviders().then((r) => r.data as SsoProvider[]),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 600_000,
   });
-  const { data: firebaseLoginConfig, isPending: firebaseConfigLoading, isError: firebaseConfigError, refetch: refetchFirebaseConfig } = useQuery({
-    queryKey:["firebase-login-config"], queryFn:()=>authApi.firebaseConfig().then(r=>r.data),
-    staleTime:5*60*1000,
+  const firebase = useQuery({
+    queryKey: ["firebase-login-config"],
+    queryFn: () =>
+      authApi
+        .firebaseConfig()
+        .then(
+          (r) =>
+            r.data as {
+              enabled: boolean;
+              modules: string[];
+              firebase_config?: FirebaseOptions;
+            },
+        ),
+    staleTime: 300_000,
   });
-  const hintedProvider = useMemo(() => {
-    const domain = emailValue?.split("@")[1]?.toLowerCase();
-    if (!domain) return null;
-    return (ssoProviders || []).find((provider) => provider.domain_hint?.toLowerCase() === domain) || null;
-  }, [emailValue, ssoProviders]);
+  const hintedProvider = providers.data?.find(
+    (p) =>
+      !!p.domain_hint &&
+      p.domain_hint.toLowerCase() === email?.split("@")[1]?.toLowerCase(),
+  );
+  const sortedProviders = [...(providers.data || [])].sort(
+    (a, b) =>
+      Number(b.id === hintedProvider?.id) - Number(a.id === hintedProvider?.id),
+  );
+  const selectedModule = modules.find(
+    (m) =>
+      destination === m.homePath || destination.startsWith(m.homePath + "/"),
+  );
+  const continuation = `/continue?next=${encodeURIComponent(destination)}`;
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const handoff = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const code = handoff.get("sso_code");
-    const providerId = Number(handoff.get("provider"));
-    const ssoError = params.get("sso_error");
-    if (code && providerId > 0) {
-      window.history.replaceState({}, "", window.location.pathname + window.location.search);
-      setSsoBusy(true);
-      authApi.completeSso(providerId, code).then(({ data }) => {
-        queryClient.clear();
-        setTokens(data.access_token, data.refresh_token);
-        setUser({ id: data.user_id, email: data.email, role: data.role, is_superuser: data.is_superuser, employee_id: data.employee_id });
-        navigate(getPostLoginPath(data.role, data.is_superuser));
-      }).catch(() => setInlineError("SSO sign-in could not be completed. Please start again."))
-        .finally(() => setSsoBusy(false));
-    }
-    if (ssoError) {
-      window.history.replaceState({}, "", window.location.pathname);
-      setInlineError(ssoError.replace(/_/g, " "));
-    }
-  }, [getPostLoginPath, navigate, setTokens, setUser, queryClient]);
-
+    setView(resetToken ? "reset" : recoveryRequested ? "forgot" : "login");
+    setError("");
+  }, [resetToken, recoveryRequested]);
   useEffect(() => {
-    if (resetToken) {
-      setAuthView("reset");
-      setInlineError("");
-    }
-  }, [resetToken]);
+    heading.current?.focus();
+  }, [view, mfaToken]);
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
-  const onSubmit = async (data: LoginForm) => {
-    try {
-      const res = await authApi.login(data.email, data.password, undefined);
-      if (res.data.mfa_required) {
-        setMfaToken(res.data.mfa_token);
-        setLoginPhase("mfa");
-        setInlineError("");
+  const finish = useCallback(
+    (data: AuthResponse) => {
+      if (data.mfa_required && data.mfa_token) {
+        setMfaToken(data.mfa_token);
+        setError("");
         return;
       }
-      const { access_token, refresh_token, user_id, email, role, is_superuser, employee_id } = res.data;
+      setRememberSession(remember);
+      qc.clear();
+      setTokens(data.access_token, data.refresh_token);
+      setUser({
+        id: data.user_id,
+        email: data.email,
+        role: data.role,
+        is_superuser: data.is_superuser,
+        employee_id: data.employee_id,
+      });
+      navigate(continuation, { replace: true });
+    },
+    [remember, qc, setTokens, setUser, navigate, continuation],
+  );
 
-      queryClient.clear();
-      setTokens(access_token, refresh_token);
-      setUser({ id: user_id, email, role, is_superuser, employee_id });
-
-      toast({ title: "Welcome back!", variant: "default" });
-      navigate(getPostLoginPath(role, is_superuser));
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        "Invalid credentials";
-      toast({ title: "Login failed", description: message, variant: "destructive" });
+  useEffect(() => {
+    const handoff = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const ssoCode = handoff.get("sso_code");
+    const providerId = Number(handoff.get("provider"));
+    const ssoError = params.get("sso_error");
+    if (ssoError) {
+      setError(
+        "Company sign-in could not be completed. Please try again or contact your administrator.",
+      );
+      window.history.replaceState(
+        {},
+        "",
+        location.pathname +
+          (destination !== "/dashboard"
+            ? `?next=${encodeURIComponent(destination)}`
+            : ""),
+      );
     }
-  };
+    if (!ssoCode || providerId <= 0 || handoffStarted.current) return;
+    handoffStarted.current = true;
+    window.history.replaceState({}, "", location.pathname + location.search);
+    setSsoBusy(true);
+    authApi
+      .completeSso(providerId, ssoCode)
+      .then((r) => finish(r.data))
+      .catch((err) =>
+        setError(
+          errorMessage(
+            err,
+            "Company sign-in could not be completed. Please start again.",
+          ),
+        ),
+      )
+      .finally(() => setSsoBusy(false));
+  }, [
+    location.hash,
+    location.pathname,
+    location.search,
+    params,
+    destination,
+    finish,
+  ]);
 
-  const verifyMfa = useMutation({
-    mutationFn: () => authApi.mfaVerify({ mfa_token: mfaToken, code: mfaCode, method: mfaMethod }),
-    onSuccess: (res) => {
-      const { access_token, refresh_token, user_id, email, role, is_superuser, employee_id } = res.data;
-      queryClient.clear();
-      setTokens(access_token, refresh_token);
-      setUser({ id: user_id, email, role, is_superuser, employee_id });
-      navigate(getPostLoginPath(role, is_superuser));
-    },
-    onError: (err: unknown) => {
-      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Incorrect code";
-      setInlineError(message);
-    },
-  });
-
-  const forgotPassword = useMutation({
-    mutationFn: () => authApi.forgotPassword(recoveryEmail || emailValue || ""),
-    onSuccess: (res) => {
-      toast({
-        title: "Reset link sent",
-        description: res.data?.message || "If the email exists, a reset link has been sent.",
-      });
-      setAuthView("login");
-    },
-    onError: (err: unknown) => {
-      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not send reset link";
-      setInlineError(message);
-    },
-  });
-
-  const resetPassword = useMutation({
-    mutationFn: () => {
-      if (!resetToken) throw new Error("Reset token is missing");
-      if (newPassword !== confirmPassword) throw new Error("Passwords do not match");
-      return authApi.resetPassword(resetToken, newPassword);
-    },
-    onSuccess: (res) => {
-      toast({
-        title: "Password reset",
-        description: res.data?.message || "Please sign in with your new password.",
-      });
-      setNewPassword("");
-      setConfirmPassword("");
-      navigate(getLoginPathForModule(loginModule), { replace: true });
-    },
-    onError: (err: unknown) => {
-      const message =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not reset password";
-      setInlineError(message);
-    },
-  });
-
-  const ssoUrl = (provider: SsoProvider) => `${apiBaseUrl}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(location.pathname + location.search)}`;
-  async function signInWithSocialProvider(provider: "google" | "microsoft" = "google") {
-    if(!firebaseLoginConfig?.enabled || !firebaseLoginConfig.firebase_config) return;
-    setSsoBusy(true);setInlineError("");
-    try {
-      const {socialFirebaseLogin} = await import("@/services/firebaseLogin");
-      const {data} = await socialFirebaseLogin(firebaseLoginConfig.firebase_config, undefined, provider);
-      if(data.mfa_required) {setMfaToken(data.mfa_token);setLoginPhase("mfa");return;}
-      queryClient.clear();
-      setTokens(data.access_token,data.refresh_token);
-      setUser({id:data.user_id,email:data.email,role:data.role,is_superuser:data.is_superuser,employee_id:data.employee_id});
-      navigate(getPostLoginPath(data.role,data.is_superuser));
-    } catch(error:any) {
-      const messages:Record<string,string>={
-        "auth/popup-closed-by-user":"Sign-in was canceled. Please try again.",
-        "auth/operation-not-allowed":"This sign-in provider must be enabled by your administrator in Firebase Authentication.",
-        "auth/account-exists-with-different-credential":"This email already uses a different sign-in method. Please use that method or contact your administrator.",
-        "auth/popup-blocked":"Please allow the Google sign-in popup and try again.",
-        "auth/unauthorized-domain":"Google sign-in is not available on this domain. Please contact your administrator.",
-      };
-      setInlineError(messages[error.code] || error.response?.data?.detail || `${provider === "google" ? "Google" : "Microsoft"} sign-in could not be completed. Please try again.`);
-    } finally {setSsoBusy(false);}
+  function backToLogin() {
+    setView("login");
+    setError("");
+    setMfaToken(null);
+    setCode("");
+    setNewPassword("");
+    setConfirmPassword("");
+    navigate(
+      `/login${destination !== "/dashboard" ? `?next=${encodeURIComponent(destination)}` : ""}`,
+      { replace: true },
+    );
   }
-
+  const login = useMutation({
+    mutationFn: (data: LoginForm) => authApi.login(data.email, data.password),
+    onSuccess: (r) => finish(r.data),
+    onError: (err) =>
+      setError(
+        errorMessage(
+          err,
+          "Sign-in failed. Check your email and password and try again.",
+        ),
+      ),
+  });
+  const verify = useMutation({
+    mutationFn: () => authApi.mfaVerify({ mfa_token: mfaToken, code, method }),
+    onSuccess: (r) => finish(r.data),
+    onError: (err) =>
+      setError(
+        errorMessage(err, "That code could not be verified. Please try again."),
+      ),
+  });
+  const recovery = useMutation({
+    mutationFn: () => authApi.forgotPassword(recoveryEmail),
+    onSuccess: () => {
+      setSentEmail(recoveryEmail);
+      setView("sent");
+    },
+    onError: (err) =>
+      setError(
+        errorMessage(err, "Could not send a reset link. Please try again."),
+      ),
+  });
+  const reset = useMutation({
+    mutationFn: () => authApi.resetPassword(resetToken!, newPassword),
+    onSuccess: () => {
+      backToLogin();
+      setSuccess("Password reset. Sign in with your new password.");
+    },
+    onError: (err) =>
+      setError(
+        errorMessage(
+          err,
+          "Could not reset the password. Your link may have expired; request a new one.",
+        ),
+      ),
+  });
+  async function socialSignIn(provider: "google" | "microsoft") {
+    if (!firebase.data?.firebase_config) return;
+    setError("");
+    setSsoBusy(true);
+    try {
+      const { socialFirebaseLogin } = await import("@/services/firebaseLogin");
+      const response = await socialFirebaseLogin(
+        firebase.data.firebase_config,
+        undefined,
+        provider,
+      );
+      finish(response.data);
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code;
+      setError(
+        code === "auth/popup-closed-by-user"
+          ? "Sign-in was canceled. You can try again."
+          : code === "auth/popup-blocked"
+            ? "Allow the sign-in popup, then try again."
+            : errorMessage(
+                err,
+                "Social sign-in could not be completed. Try your password or contact your administrator.",
+              ),
+      );
+    } finally {
+      setSsoBusy(false);
+    }
+  }
+  const busy = login.isPending || verify.isPending || ssoBusy;
+  const title = mfaToken
+    ? "Verify your identity"
+    : view === "forgot"
+      ? "Recover access"
+      : view === "sent"
+        ? "Check your inbox"
+        : view === "reset"
+          ? "Reset password"
+          : "Sign in to Business Suite";
+  if (isHydrated && isAuthenticated && !resetToken)
+    return <Navigate to={continuation} replace />;
   return (
-    <div className={loginModule === "project_management" ? "karya-login" : `min-h-screen flex items-center justify-center bg-gradient-to-br ${loginTheme.page} p-4`}>
-      {loginModule === "project_management" && <><div className="karya-version">v1.0 <span /></div><section className="karya-hero" aria-label="KaryaFlow project management"><div className="karya-brand"><span><Sparkles /></span><div><strong>Karya<span>Flow</span></strong><p>Project Management Software</p></div></div><h2>Plan. Track. Collaborate.<br /><em>Get Results.</em></h2><div className="karya-rule" /><p className="karya-intro">A smarter way to manage your projects,<br />teams and tasks — all in one place.</p><div className="karya-benefits">{[{Icon: ClipboardCheck,title:"Task Management",copy:"Plan and track with ease",color:"purple"},{Icon:Users,title:"Team Collaboration",copy:"Work together seamlessly",color:"blue"},{Icon:BarChart3,title:"Real-time Insights",copy:"Make data-driven decisions",color:"green"},{Icon:ShieldCheck,title:"Secure & Reliable",copy:"Your data, always protected",color:"orange"}].map(({Icon,title,copy,color})=><div key={title}><span className={color}><Icon /></span><div><strong>{title}</strong><p>{copy}</p></div></div>)}</div><small className="karya-motto">From Ideas to Impact</small></section></>}
-      {/* Background pattern */}
-      <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] ${loginTheme.glow} via-transparent to-transparent`} />
-
-      <div className={loginModule === "project_management" ? "karya-signin" : "relative w-full max-w-md space-y-6"}>
-        {/* Logo */}
-        <div className="text-center space-y-2 login-brand">
-          <div className={`inline-flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg ${loginTheme.logo} mx-auto`}>
-            <Sparkles className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">{loginModule === "project_management" ? <>Karya<span className="karya-wordmark-flow">Flow</span></> : loginConfig.product}</h1>
-          <p className={`${loginTheme.textSoft} text-sm`}>{loginConfig.tagline}</p>
-        </div>
-
-        {/* Card */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-white text-xl">{authView === "reset" ? "Reset password" : authView === "forgot" ? "Recover access" : "Login to Business Suite"}</CardTitle>
-            <CardDescription className={loginTheme.textMuted}>
-              {authView === "reset" ? "Choose a new password for your account" : authView === "forgot" ? "Send a secure reset link to your email" : loginConfig.description}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loginPhase === "mfa" ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
-                  <LockKeyhole className="h-5 w-5 text-blue-200" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">Two-Factor Authentication</p>
-                    <p className="text-xs text-blue-200/60">Enter the code from your authenticator app</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant={mfaMethod === "totp" ? "default" : "outline"} onClick={() => setMfaMethod("totp")}>Authenticator App</Button>
-                  <Button type="button" variant={mfaMethod === "recovery" ? "default" : "outline"} onClick={() => setMfaMethod("recovery")}>Recovery Code</Button>
-                </div>
-                <Input
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value)}
-                  maxLength={mfaMethod === "totp" ? 6 : 14}
-                  placeholder={mfaMethod === "totp" ? "123456" : "XXXX-XXXX-XXXX"}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/30"
-                />
-                {inlineError && <p className="text-xs text-red-400">{inlineError}</p>}
-                <Button className={`h-11 w-full text-white ${loginTheme.button}`} disabled={!mfaToken || !mfaCode || verifyMfa.isPending} onClick={() => verifyMfa.mutate()}>
-                  {verifyMfa.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Verify
-                </Button>
-                <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => { setLoginPhase("credentials"); setMfaToken(null); setMfaCode(""); }}>
-                  Back to login
+    <div className="suite-login">
+      <a className="suite-skip" href="#login-main">
+        Skip to sign in
+      </a>
+      <header>
+        <SuiteBrand />
+        <Link to="/help">Help & support</Link>
+      </header>
+      <main id="login-main" className="suite-login-main">
+        <Link className="suite-back" to="/">
+          <ArrowLeft size={16} />
+          Explore applications
+        </Link>
+        <section className="suite-login-card" aria-labelledby="login-title">
+          <p className="suite-login-company">
+            {branding.data?.company_name || "Your connected business workspace"}
+          </p>
+          <h1 id="login-title" ref={heading} tabIndex={-1}>
+            {title}
+          </h1>
+          <p>
+            {mfaToken
+              ? method === "totp"
+                ? "Enter the code from your authenticator app."
+                : "Enter one of your saved recovery codes."
+              : view === "login"
+                ? "One account for all your authorized applications."
+                : view === "forgot"
+                  ? "We'll email a link to reset your password."
+                  : view === "reset"
+                    ? "Choose a new password. Your organization's password policy applies."
+                    : `If an account exists for ${sentEmail}, a reset link has been sent. Check your spam folder too.`}
+          </p>
+          {view === "login" && !mfaToken && selectedModule && (
+            <p className="suite-login-context">
+              Continue to {selectedModule.name} after signing in.
+            </p>
+          )}
+          {error && (
+            <p
+              ref={errorRef}
+              tabIndex={-1}
+              className="suite-login-error"
+              id="login-error"
+              role="alert"
+            >
+              {error}
+            </p>
+          )}
+          {success && (
+            <p className="suite-login-success" role="status">
+              {success}
+            </p>
+          )}
+          {mfaToken ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                setError("");
+                verify.mutate();
+              }}
+              className="suite-form"
+            >
+              <div className="suite-inline-actions">
+                <button
+                  type="button"
+                  className="suite-secondary"
+                  aria-pressed={method === "totp"}
+                  onClick={() => {
+                    setMethod("totp");
+                    setCode("");
+                    setError("");
+                  }}
+                >
+                  Authenticator app
+                </button>
+                <button
+                  type="button"
+                  className="suite-secondary"
+                  aria-pressed={method === "recovery"}
+                  onClick={() => {
+                    setMethod("recovery");
+                    setCode("");
+                    setError("");
+                  }}
+                >
+                  Recovery code
                 </button>
               </div>
-            ) : authView === "forgot" ? (
-              <form
-                className="space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setInlineError("");
-                  forgotPassword.mutate();
+              <label htmlFor="mfa-code">
+                {method === "totp" ? "Authentication code" : "Recovery code"}
+              </label>
+              <input
+                id="mfa-code"
+                autoComplete="one-time-code"
+                inputMode={method === "totp" ? "numeric" : "text"}
+                pattern={method === "totp" ? "[0-9]{6}" : undefined}
+                maxLength={method === "totp" ? 6 : 14}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? "login-error" : undefined}
+                required
+              />
+              <button className="suite-primary" disabled={busy}>
+                {verify.isPending ? "Verifying…" : "Verify and continue"}
+              </button>
+              <button
+                className="suite-login-link"
+                type="button"
+                onClick={backToLogin}
+              >
+                Back to login
+              </button>
+            </form>
+          ) : view === "sent" ? (
+            <div className="suite-form">
+              <button
+                className="suite-secondary"
+                onClick={() => {
+                  setError("");
+                  setView("forgot");
                 }}
               >
-                <div className="space-y-2">
-                  <Label htmlFor="recovery-email" className={loginTheme.text}>Email address</Label>
-                  <Input
-                    id="recovery-email"
-                    type="email"
-                    value={recoveryEmail || emailValue || ""}
-                    onChange={(event) => setRecoveryEmail(event.target.value)}
-                    placeholder="name@company.com"
-                    className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
-                    required
-                  />
-                </div>
-                {inlineError && <p className="text-xs text-red-400">{inlineError}</p>}
-                <Button type="submit" className={`h-11 w-full text-white ${loginTheme.button}`} disabled={forgotPassword.isPending}>
-                  {forgotPassword.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send reset link
-                </Button>
-                <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => { setAuthView("login"); setInlineError(""); }}>
-                  Back to login
-                </button>
-              </form>
-            ) : authView === "reset" ? (
-              <form
-                className="space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setInlineError("");
-                  resetPassword.mutate();
+                Try another email
+              </button>
+              <button className="suite-primary" onClick={backToLogin}>
+                Back to login
+              </button>
+            </div>
+          ) : view === "forgot" ? (
+            <form
+              className="suite-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setError("");
+                recovery.mutate();
+              }}
+            >
+              <label htmlFor="recovery-email">Email address</label>
+              <input
+                id="recovery-email"
+                type="email"
+                autoComplete="email"
+                value={recoveryEmail}
+                onChange={(e) => setRecoveryEmail(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? "login-error" : undefined}
+                required
+              />
+              <button className="suite-primary" disabled={recovery.isPending}>
+                {recovery.isPending ? "Sending…" : "Send reset link"}
+              </button>
+              <button
+                type="button"
+                className="suite-login-link"
+                onClick={backToLogin}
+              >
+                Back to login
+              </button>
+            </form>
+          ) : view === "reset" ? (
+            <form
+              className="suite-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setError("");
+                if (!resetToken) {
+                  setError(
+                    "Your reset link is missing. Please request a new link.",
+                  );
+                  return;
+                }
+                if (newPassword !== confirmPassword) {
+                  setError("Passwords do not match.");
+                  return;
+                }
+                reset.mutate();
+              }}
+            >
+              <label htmlFor="new-password">New password</label>
+              <input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? "login-error" : undefined}
+                required
+              />
+              <label htmlFor="confirm-password">Confirm new password</label>
+              <input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                aria-invalid={!!error}
+                aria-describedby={error ? "login-error" : undefined}
+                required
+              />
+              <button className="suite-primary" disabled={reset.isPending}>
+                {reset.isPending ? "Resetting…" : "Reset password"}
+              </button>
+              <button
+                type="button"
+                className="suite-login-link"
+                onClick={backToLogin}
+              >
+                Back to login
+              </button>
+              <button
+                type="button"
+                className="suite-login-link"
+                onClick={() => {
+                  navigate("/login?recover=1", { replace: true });
+                  setView("forgot");
+                  setError("");
                 }}
               >
-                <div className="space-y-2">
-                  <Label htmlFor="new-password" className={loginTheme.text}>New password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(event) => setNewPassword(event.target.value)}
-                    minLength={8}
-                    className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password" className={loginTheme.text}>Confirm password</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    minLength={8}
-                    className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
-                    required
-                  />
-                </div>
-                {inlineError && <p className="text-xs text-red-400">{inlineError}</p>}
-                <Button type="submit" className={`h-11 w-full text-white ${loginTheme.button}`} disabled={resetPassword.isPending}>
-                  {resetPassword.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Reset password
-                </Button>
-                <button type="button" className="w-full text-xs text-blue-200/70 hover:text-white" onClick={() => navigate(getLoginPathForModule(loginModule), { replace: true })}>
-                  Back to login
-                </button>
-              </form>
-            ) : (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className={loginTheme.text}>
-                  Email address
-                </Label>
-                <Input
+                Request a new reset link
+              </button>
+            </form>
+          ) : (
+            <>
+              <form
+                className="suite-form"
+                noValidate
+                onSubmit={handleSubmit((data) => {
+                  setError("");
+                  setSuccess("");
+                  login.mutate(data);
+                })}
+              >
+                <label htmlFor="email">Email address</label>
+                <input
                   id="email"
                   type="email"
                   autoComplete="username"
                   placeholder="you@company.com"
-                  className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring}`}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "email-error" : undefined}
                   {...register("email")}
                 />
                 {errors.email && (
-                  <p className="text-xs text-red-400">{errors.email.message}</p>
+                  <p
+                    id="email-error"
+                    className="suite-login-error"
+                    role="alert"
+                  >
+                    {errors.email.message}
+                  </p>
                 )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className={loginTheme.text}>
-                  Password
-                </Label>
-                <div className="relative">
-                  <Input
+                <label htmlFor="password">Password</label>
+                <div className="suite-password-field">
+                  <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
-                    placeholder="Enter your password"
-                    className={`bg-white/10 border-white/20 text-white placeholder:text-white/30 ${loginTheme.ring} pr-10`}
+                    aria-invalid={!!errors.password || !!error}
+                    aria-describedby={
+                      errors.password
+                        ? "password-error"
+                        : error
+                          ? "login-error"
+                          : undefined
+                    }
                     {...register("password")}
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((value) => !value)}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-red-400">{errors.password.message}</p>
+                  <p
+                    id="password-error"
+                    className="suite-login-error"
+                    role="alert"
+                  >
+                    {errors.password.message}
+                  </p>
                 )}
-              </div>
-
-              {loginModule === "project_management" && <div className="karya-login-options"><label><input type="checkbox" checked={rememberSession} onChange={e => { setRemember(e.target.checked); setRememberSession(e.target.checked); }} />Keep me signed in</label><button type="button" onClick={() => { setRecoveryEmail(emailValue || ""); setAuthView("forgot"); setInlineError(""); }}>Forgot password?</button></div>}
-              <Button
-                type="submit"
-                className={`w-full text-white font-semibold shadow-lg ${loginTheme.button} h-11`}
-                disabled={isSubmitting || ssoBusy}
-              >
-                {isSubmitting || ssoBusy ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : null}
-                {isSubmitting || ssoBusy ? "Signing in..." : "Sign in"}{loginModule === "project_management" && !isSubmitting && <ArrowRight className="ml-2 h-5 w-5" />}
-              </Button>
-              <button type="button" className={`w-full text-xs text-blue-200/70 hover:text-white ${loginModule === "project_management" ? "hidden" : ""}`} onClick={() => { setRecoveryEmail(emailValue || ""); setAuthView("forgot"); setInlineError(""); }}>
-                Forgot password?
-              </button>
+                <label className="suite-login-remember">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => {
+                      setRemember(e.target.checked);
+                      setRememberSession(e.target.checked);
+                    }}
+                    aria-describedby="remember-help"
+                  />
+                  Keep me signed in
+                </label>
+                <small id="remember-help">
+                  Use only on a device you trust. Leave unchecked on shared
+                  devices.
+                </small>
+                <button className="suite-primary" disabled={busy}>
+                  {busy && <Loader2 size={17} className="animate-spin" />}
+                  {busy ? "Signing in…" : "Sign in"}
+                </button>
+                <button
+                  type="button"
+                  className="suite-login-link"
+                  onClick={() => {
+                    setRecoveryEmail(email || "");
+                    setView("forgot");
+                    setError("");
+                    setSuccess("");
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </form>
               {hintedProvider && (
-                <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-100">
-                  Your organization uses SSO. Sign in with {hintedProvider.button_label || hintedProvider.name} instead.
-                  <Button type="button" variant="outline" size="sm" className="mt-2 w-full" onClick={() => { window.location.href = ssoUrl(hintedProvider); }}>Continue with SSO</Button>
+                <p className="suite-login-context">
+                  Your organization uses{" "}
+                  {hintedProvider.button_label || hintedProvider.name}.
+                </p>
+              )}
+              {(sortedProviders.length > 0 ||
+                (firebase.data?.enabled &&
+                  firebase.data.modules.length > 0)) && (
+                <div className="suite-login-providers">
+                  <p>Or continue with your organization</p>
+                  {sortedProviders.map((provider) => (
+                    <button
+                      key={provider.id}
+                      className="suite-secondary"
+                      disabled={busy}
+                      onClick={() => {
+                        setRememberSession(remember);
+                        window.location.assign(
+                          `${getApiBaseUrl()}/auth/sso/initiate/${provider.id}?next=${encodeURIComponent(`/login?next=${encodeURIComponent(destination)}`)}`,
+                        );
+                      }}
+                    >
+                      {provider.button_label ||
+                        `Continue with ${provider.name}`}
+                    </button>
+                  ))}
+                  {firebase.data?.enabled &&
+                    firebase.data.modules.length > 0 &&
+                    (["google", "microsoft"] as const)
+                      .filter(
+                        (provider) =>
+                          !sortedProviders.some(
+                            (p) =>
+                              p.provider_type === provider ||
+                              (provider === "microsoft" &&
+                                p.provider_type === "azure_ad"),
+                          ),
+                      )
+                      .map((provider) => (
+                        <button
+                          className="suite-secondary"
+                          key={provider}
+                          disabled={busy}
+                          onClick={() => void socialSignIn(provider)}
+                        >
+                          Continue with{" "}
+                          {provider === "google" ? "Google" : "Microsoft"}
+                        </button>
+                      ))}
                 </div>
               )}
-            </form>
-            )}
-
-            {loginPhase === "credentials" && authView === "login" && !!ssoProviders?.length && (
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center gap-3 text-xs text-blue-200/50"><span className="h-px flex-1 bg-white/10" />or continue with<span className="h-px flex-1 bg-white/10" /></div>
-                {ssoProviders.map((provider) => (
-                  <Button key={provider.id} type="button" variant="outline" className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => { window.location.href = ssoUrl(provider); }}>
-                    <ProviderIcon icon={provider.button_icon} />
-                    {provider.button_label || `Sign in with ${provider.name}`}
-                  </Button>
-                ))}
-              </div>
-            )}
-            {loginPhase === "credentials" && authView === "login" && (
-              <div className="mt-5 space-y-3">
-                {!ssoProviders?.length && <div className="karya-divider">OR</div>}
-                {(["google", "microsoft"] as const).filter(provider => !ssoProviders?.some(item =>
-                  item.provider_type === provider || (provider === "microsoft" && item.provider_type === "azure_ad")
-                )).map(provider => (
-                  <Button key={provider} type="button" variant="outline"
-                    className={loginModule === "project_management" ? "karya-google" : "h-12 w-full gap-3 rounded-xl border-white/20 bg-white text-slate-900 hover:bg-slate-100"}
-                    disabled={!firebaseLoginConfig?.enabled || !firebaseLoginConfig.modules?.length || ssoBusy || isSubmitting}
-                    onClick={() => { void signInWithSocialProvider(provider); }}>
-                    <ProviderIcon icon={provider} />Continue with {provider === "google" ? "Google" : "Microsoft"}
-                  </Button>
-                ))}
-                {firebaseConfigLoading && <p className="karya-sso-note" role="status">Loading sign-in options�</p>}
-                {firebaseConfigError && <p className="karya-sso-note" role="alert">Could not load sign-in options. <button type="button" className="underline" onClick={() => { void refetchFirebaseConfig(); }}>Retry</button></p>}
-                {firebaseLoginConfig && !firebaseLoginConfig.enabled && <p className="karya-sso-note">Social sign-in is not configured. Please contact your administrator or use your password.</p>}
-              </div>
-            )}
-            {inlineError && loginPhase === "credentials" && authView === "login" && <p className="mt-3 text-xs text-red-400">{inlineError}</p>}
-
-            {loginModule === "project_management" && <div className="karya-secure"><ShieldCheck /><div><strong>Secure Access</strong><p>Your data is encrypted and protected</p></div></div>}
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-blue-200/40 text-xs">
-          &copy; {new Date().getFullYear()} {loginConfig.product}. All rights reserved.
-        </p>
-      </div>
+              {(firebase.isPending || providers.isPending) && (
+                <p role="status" className="suite-login-note">
+                  Checking company sign-in options…
+                </p>
+              )}
+              {(firebase.isError || providers.isError) && (
+                <p className="suite-login-note" role="status">
+                  Some sign-in options could not be loaded. You can use your
+                  password or{" "}
+                  <button
+                    onClick={() => {
+                      void firebase.refetch();
+                      void providers.refetch();
+                    }}
+                  >
+                    retry
+                  </button>
+                  .
+                </p>
+              )}
+            </>
+          )}
+          <p className="suite-login-note">
+            <ShieldCheck size={16} />
+            Access follows your organization’s permissions.
+          </p>
+        </section>
+        <footer>
+          <Link to="/help">Help & support</Link>
+          <span>© {new Date().getFullYear()} Business Suite</span>
+        </footer>
+      </main>
     </div>
   );
-}
-
-interface SsoProvider {
-  id: number;
-  name: string;
-  provider_type: string;
-  button_label?: string;
-  button_icon?: string;
-  domain_hint?: string;
-}
-
-function ProviderIcon({ icon }: { icon?: string }) {
-  if (icon === "google") {
-    return <span className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded bg-white text-xs font-bold text-blue-600">G</span>;
-  }
-  if (icon === "microsoft") {
-    return <span className="mr-2 grid h-4 w-4 grid-cols-2 gap-0.5"><i className="bg-red-500" /><i className="bg-green-500" /><i className="bg-blue-500" /><i className="bg-yellow-500" /></span>;
-  }
-  return <ShieldCheck className="mr-2 h-4 w-4" />;
 }

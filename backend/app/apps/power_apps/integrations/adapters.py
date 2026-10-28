@@ -330,23 +330,28 @@ def provider_action(conn, action, data, transport, headers, secrets, operation_k
 
 def smtp_action(action, data):
     from app.core.config import settings
-    from app.core.email import send_smtp_message
+    from app.core.email import send_smtp_message, email_configured, email_provider
     from email.message import EmailMessage
 
     data = ProviderInput.model_validate(data)
-    if not all(
+    if not email_configured():
+        raise IntegrationFailure("configuration", "Shared email infrastructure is not configured")
+    if email_provider() != "ses" and (not all(
         [
             settings.MAIL_SERVER,
             settings.MAIL_USERNAME,
             settings.MAIL_PASSWORD,
             settings.MAIL_FROM,
         ]
-    ) or not (settings.MAIL_SSL_TLS or settings.MAIL_STARTTLS):
+    ) or not (settings.MAIL_SSL_TLS or settings.MAIL_STARTTLS)):
         raise IntegrationFailure(
             "configuration", "Authorized SMTP infrastructure is not configured with TLS"
         )
     try:
         if action == "test":
+            if email_provider() == "ses":
+                return {"configured": True, "provider": "ses", "authenticated": False, "message_sent": False,
+                    "note": "Configuration detected; use an authorized test send to verify acceptance"}
             import smtplib, ssl
 
             cls = smtplib.SMTP_SSL if settings.MAIL_SSL_TLS else smtplib.SMTP

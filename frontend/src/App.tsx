@@ -19,11 +19,18 @@ import { aiCopilotRoutes } from "@/apps/ai-copilot/routes";
 import { adminSecurityRoutes } from "@/apps/admin-security/routes";
 import { PortalPage, saasRoutes } from "@/apps/saas/routes";
 import { applicationRoutes } from "@/apps/power-apps/registry";
+import SuiteNavigationTracker from "@/components/suite/SuiteNavigationTracker";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 
 const AutomationRuntimePage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationRuntimePage"));
 const AutomationEditorPage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationEditorPage"));
 const ApprovalsPage = React.lazy(() => import("@/apps/power-apps/applications/approvals/ApprovalsPage"));
+const SuiteWelcomePage = React.lazy(() => import("@/pages/SuiteWelcomePage"));
+const SuiteNotificationsPage = React.lazy(() => import("@/pages/SuiteNotificationsPage"));
+const SuiteAccountPage = React.lazy(() => import("@/pages/SuiteAccountPage"));
+const SuiteHelpPage = React.lazy(() => import("@/pages/SuiteHelpPage"));
+const PostLoginPage = React.lazy(() => import("@/pages/PostLoginPage"));
+const SettingsHubPage = React.lazy(() => import("@/pages/SettingsHubPage"));
 const ModuleDashboardPage = React.lazy(() => import("@/pages/ModuleDashboardPage"));
 const IntegrationsPage = React.lazy(() => import("@/apps/power-apps/applications/integrations/IntegrationsPage"));
 const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
@@ -78,7 +85,6 @@ function LoadingFallback() {
 function LegacyModuleLogin() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  params.delete("next");
   const query = params.toString();
   return <Navigate to={`/login${query ? `?${query}` : ""}${location.hash}`} replace />;
 }
@@ -100,7 +106,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey]);
   if (!isHydrated) return <LoadingFallback />;
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search + location.hash)}`} replace />;
   }
   if (!user) return <LoadingFallback />;
   if (!roleAllowed) {
@@ -225,6 +231,11 @@ export default function App() {
           <Route path="/f/:slug" element={<PublicFormPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<ModuleDashboardPage />} />
+          <Route path="/settings/:section?" element={<SettingsHubPage />} />
+          <Route path="/continue" element={<PostLoginPage />} />
+          <Route path="/help" element={<SuiteHelpPage />} />
+          <Route path="/account" element={<ProtectedRoute><SuiteAccountPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><SuiteNotificationsPage /></ProtectedRoute>} />
           <Route path="/reset-password" element={<LoginPage />} />
           <Route path="/invite-access" element={<AccessInvitationPage />} />
           <Route path="/hrms/login" element={<LegacyModuleLogin />} />
@@ -243,7 +254,7 @@ export default function App() {
           <Route path="/Inventory/*" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
           <Route path="/inventory" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
           <Route path="/inventory/*" element={<Navigate to="/srm/inventory" replace />} caseSensitive />
-          <Route path="/" element={!isHydrated ? <LoadingFallback /> : <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+          <Route path="/" element={!isHydrated ? <LoadingFallback /> : isAuthenticated ? <Navigate to="/dashboard" replace /> : <SuiteWelcomePage />} />
           <Route
             path="/*"
             element={
@@ -260,6 +271,7 @@ export default function App() {
         </Routes>
       </Suspense>
       {isHydrated && isAuthenticated ? <PMSRealtimeBridge /> : null}
+      <SuiteNavigationTracker />
       <Toaster />
     </>
   );

@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import { CheckCircle2, FileText, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ export default function ClientPortalPage() {
   const [milestones, setMilestones] = useState<PMSMilestone[]>([]);
   const [files, setFiles] = useState<PMSFileAsset[]>([]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     projectsAPI.list().then(async (items) => {
       const visible = items.filter((project) => project.is_client_visible || project.status !== "Archived");
       setProjects(visible);

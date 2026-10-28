@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -74,7 +75,7 @@ export default function ReportsPage() {
     to: usesDates ? to : "",
   }), [assigneeId, from, selectedProjectId, selectedSprintId, to, usesSprint, usesAssignee, usesDates]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     projectsAPI.list().then((items) => {
       setProjects(items);
 
@@ -127,7 +128,7 @@ export default function ReportsPage() {
     } catch (err: any) { finish(false); if (sequence === requestSequence.current) setError(err?.response?.data?.detail || "Unable to load this report. Retry to refresh it."); }
     finally { if (sequence === requestSequence.current) setLoading(false); }
   };
-  useEffect(() => { void loadReports(); return () => { requestSequence.current++; }; }, [filters, activeTab]);
+  useRefreshableEffect(() => { void loadReports(); return () => { requestSequence.current++; }; }, [filters, activeTab]);
 
   const exportReport = async (format: "csv" | "pdf" | "xlsx") => {
     if (exporting) return;

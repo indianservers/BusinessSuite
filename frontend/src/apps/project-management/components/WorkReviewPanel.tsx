@@ -1,4 +1,8 @@
-import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
+import {
+  RichTextField,
+  RichTextContent,
+  richTextPlainText,
+} from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -21,6 +25,7 @@ export default function WorkReviewPanel({
   const [selected, setSelected] = useState<number>();
   const [decision, setDecision] = useState("Approved");
   const [score, setScore] = useState("");
+  const [rubricScores, setRubricScores] = useState<Record<string, string>>({});
   const [communication, setCommunication] = useState("");
   const [feedback, setFeedback] = useState("");
   const [strengths, setStrengths] = useState("");
@@ -46,6 +51,7 @@ export default function WorkReviewPanel({
   useEffect(() => {
     setInspected(false);
     setScore("");
+    setRubricScores({});
     setFeedback("");
     setStrengths("");
     setImprovements("");
@@ -62,7 +68,20 @@ export default function WorkReviewPanel({
     mutationFn: () =>
       api.post(`/project-management/work/submissions/${item!.id}/review`, {
         status: decision,
-        score: Number(score),
+        score: item?.evaluation_rubric?.length
+          ? Object.values(rubricScores).reduce(
+              (sum, value) => sum + Number(value),
+              0,
+            )
+          : Number(score),
+        rubric: item?.evaluation_rubric?.length
+          ? Object.fromEntries(
+              Object.entries(rubricScores).map(([key, value]) => [
+                key,
+                Number(value),
+              ]),
+            )
+          : {},
         communication_score:
           communication === "" ? null : Number(communication),
         feedback,
@@ -143,7 +162,9 @@ export default function WorkReviewPanel({
         </div>
         <Badge variant="outline">{item.status}</Badge>
       </div>
-      <div className="whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm"><RichTextContent value={item.notes}/></div>
+      <div className="whitespace-pre-wrap rounded-lg bg-muted/30 p-4 text-sm">
+        <RichTextContent value={item.notes} />
+      </div>
       {item.revision_note && (
         <p className="text-sm">
           <b>Revision note:</b> {item.revision_note}
@@ -195,9 +216,17 @@ export default function WorkReviewPanel({
             Recorded PMS decision: {item.status} · {item.raw_score}/
             {item.maximum_score}
           </b>
-          <div className="mt-2 whitespace-pre-wrap"><RichTextContent value={item.feedback}/></div>
+          <div className="mt-2 whitespace-pre-wrap">
+            <RichTextContent value={item.feedback} />
+          </div>
           {item.strengths && <p>Strengths: {item.strengths}</p>}
           {item.improvements && <p>Improvements: {item.improvements}</p>}
+          {item.evaluation_rubric?.map((criterion: Row) => (
+            <p key={criterion.key}>
+              {criterion.label}: {item.rubric_scores?.[criterion.key] ?? "—"}/
+              {criterion.points}
+            </p>
+          ))}
         </div>
       )}
       {item.status === "Pending Review" && item.can_review !== false ? (
@@ -223,14 +252,52 @@ export default function WorkReviewPanel({
           <Label>
             Score (maximum {item.maximum_score || 100})
             <Input
-              required
+              required={!item.evaluation_rubric?.length}
+              readOnly={!!item.evaluation_rubric?.length}
               min={0}
               max={item.maximum_score || 100}
               type="number"
-              value={score}
+              value={
+                item.evaluation_rubric?.length
+                  ? Object.values(rubricScores).reduce(
+                      (sum, value) => sum + Number(value),
+                      0,
+                    )
+                  : score
+              }
               onChange={(e) => setScore(e.target.value)}
             />
           </Label>
+          {!!item.evaluation_rubric?.length && (
+            <fieldset className="space-y-3 rounded-lg border p-3 sm:col-span-2">
+              <legend className="px-2 text-sm font-semibold">
+                Task pack evaluation rubric · {item.skill_level}
+              </legend>
+              {item.evaluation_rubric.map((criterion: Row) => (
+                <label key={criterion.key} className="grid gap-1 text-sm">
+                  {criterion.label} (maximum {criterion.points})
+                  <span className="text-xs text-muted-foreground">
+                    {criterion.description}
+                  </span>
+                  <Input
+                    aria-label={`Rubric score: ${criterion.label}`}
+                    required
+                    type="number"
+                    step={1}
+                    min={0}
+                    max={criterion.points}
+                    value={rubricScores[criterion.key] ?? ""}
+                    onChange={(e) =>
+                      setRubricScores((current) => ({
+                        ...current,
+                        [criterion.key]: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+            </fieldset>
+          )}
           <Label>
             Communication score / 100 (optional)
             <Input
@@ -243,7 +310,8 @@ export default function WorkReviewPanel({
           </Label>
           <Label className="sm:col-span-2">
             Feedback
-            <RichTextField data-legacy-format="markdown"
+            <RichTextField
+              data-legacy-format="markdown"
               required
               maxLength={5000}
               className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
@@ -275,7 +343,19 @@ export default function WorkReviewPanel({
             I have inspected this version's evidence and notes before making
             this decision.
           </label>
-          <Button disabled={mutation.isPending || !inspected || score === ""}>
+          <Button
+            disabled={
+              mutation.isPending ||
+              !inspected ||
+              (item.evaluation_rubric?.length
+                ? item.evaluation_rubric.some(
+                    (c: Row) =>
+                      rubricScores[c.key] === undefined ||
+                      rubricScores[c.key] === "",
+                  )
+                : score === "")
+            }
+          >
             Save PMS Review
           </Button>
         </form>

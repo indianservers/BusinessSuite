@@ -56,33 +56,16 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         employment_type: Optional[str] = None,
         skip: int = 0,
         limit: int = 50,
+        **filters,
     ) -> Tuple[List[Employee], int]:
         query = db.query(Employee).filter(Employee.deleted_at.is_(None))
 
-        if search:
-            term = f"%{search}%"
-            query = query.filter(
-                or_(
-                    Employee.first_name.ilike(term),
-                    Employee.last_name.ilike(term),
-                    Employee.employee_id.ilike(term),
-                    Employee.personal_email.ilike(term),
-                    Employee.phone_number.ilike(term),
-                )
-            )
-        if department_id:
-            query = query.filter(Employee.department_id == department_id)
-        if branch_id:
-            query = query.filter(Employee.branch_id == branch_id)
-        if designation_id:
-            query = query.filter(Employee.designation_id == designation_id)
-        if status:
-            query = query.filter(Employee.status == status)
-        if employment_type:
-            query = query.filter(Employee.employment_type == employment_type)
-
+        from app.core.employee_directory import apply_employee_directory_filters, order_employee_directory
+        values = dict(filters, search=search, department_id=department_id, branch_id=branch_id,
+                      designation_id=designation_id, status=status, employment_type=employment_type)
+        query = apply_employee_directory_filters(query, values)
         total = query.count()
-        items = query.order_by(Employee.first_name).offset(skip).limit(limit).all()
+        items = order_employee_directory(query, filters.get("sort_by", "name"), filters.get("sort_order", "asc")).offset(skip).limit(limit).all()
         return items, total
 
     def create_with_user(self, db: Session, *, obj_in: EmployeeCreate, created_by: int | None = None) -> Employee:

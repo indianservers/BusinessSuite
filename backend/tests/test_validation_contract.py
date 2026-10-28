@@ -66,14 +66,16 @@ def test_application_requires_and_preserves_pincode(valid_application):
 
 @pytest.mark.parametrize('year',[2026,2027])
 @pytest.mark.parametrize('status',['Graduated','3rd Year'])
-def test_passout_year_uses_current_year_for_all_applicants(monkeypatch,valid_application,year,status):
+def test_passout_year_includes_2029_for_all_applicants(monkeypatch,valid_application,year,status):
     from datetime import date
     from app.apps.interns_hub import applications
     monkeypatch.setattr(applications,'today',lambda:date(year,1,1))
     values={**valid_application,'current_year':status,'available_from':f'{year}-01-01'}
     assert ApplicationInput(**{**values,'passout_year':year}).passout_year==year
     assert ApplicationInput(**{**values,'passout_year':1970}).passout_year==1970
-    for invalid in (1969,year+1,True,float(year),str(year)):
+    for allowed in (2027,2028,2029):
+        assert ApplicationInput(**{**values,'passout_year':allowed}).passout_year==allowed
+    for invalid in (1969,2030,True,float(year),str(year)):
         with pytest.raises(ValidationError):ApplicationInput(**{**values,'passout_year':invalid})
 
 @pytest.mark.parametrize('folder,prefix',[('alembic',''),('alembic_postgresql','pg_')])

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "@/hooks/use-toast";
 import InternApplicationSettings from "./InternApplicationSettings";
 import InternQuickLinks from "./InternQuickLinks";
+import PageRefreshButton from "@/components/app/PageRefreshButton";
 type Row = Record<string, any>;
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
@@ -21,9 +22,9 @@ type OrganizationOptions = { branches: Row[]; departments: Row[]; designations: 
 const reviewable = (application: Row) => ["Pending", "Correction Requested"].includes(application.status);
 const newDecision = (): Row => ({ branch_id: "", department_id: "", designation_id: "", reporting_manager_id: "", date_of_joining: new Date().toLocaleDateString("en-CA"), review_note: "" });
 const decisionBody = (status: DecisionStatus, values: Row) => status === "Approved" ? {
-  ...Object.fromEntries(Object.entries(values).map(([key, value]) => [key, key.endsWith("_id") ? Number(value) || null : value])), status,
+  ...Object.fromEntries(Object.entries(values).filter(([key]) => key !== "correction_deadline").map(([key, value]) => [key, key.endsWith("_id") ? Number(value) || null : value])), status,
   ...(Number(values.reporting_manager_id) < 0 ? { reporting_manager_id: null, reporting_manager_user_id: -Number(values.reporting_manager_id) } : {}),
-} : { status, review_note: values.review_note };
+} : { status, review_note: values.review_note, ...(status === "Correction Requested" && values.correction_deadline ? { correction_deadline: values.correction_deadline } : {}) };
 const reviewError = (error: any) => typeof error.response?.data?.detail === "string" ? error.response.data.detail : "Could not update this application. Please refresh and retry.";
 
 function IntakeJobErrors({ jobId, total }: { jobId: number; total: number }) {
@@ -167,6 +168,11 @@ function DecisionFields({ decision, setDecision, options, prefix, approval = tru
         />
       </div>
     </>}
+      <div className="sm:col-span-2">
+        <Label htmlFor={`${prefix}-correction-deadline`}>Correction deadline (when requesting corrections)</Label>
+        <Input id={`${prefix}-correction-deadline`} type="date" min={new Date().toLocaleDateString("en-CA")} value={decision.correction_deadline || ""} onChange={e => setDecision({ ...decision, correction_deadline: e.target.value })}/>
+        <p className="text-xs text-muted-foreground">Defaults to seven days. Daily reminders start three days before the deadline and stop after resubmission.</p>
+      </div>
       <div className="sm:col-span-2">
         <Label htmlFor={`${prefix}-note`}>{requireReason ? "Reason / instructions *" : "Note to Applicant"}</Label>
         <textarea
@@ -326,7 +332,8 @@ export default function InternApplicationsPage() {
         <ArrowLeft className="h-4 w-4" />
         Interns Hub Management
       </Link>
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
         <h1 className="page-title flex items-center gap-2">
           <UserPlus />
           Signups & Approvals
@@ -334,6 +341,8 @@ export default function InternApplicationsPage() {
         <p className="page-description">
           New signups appear below. Select an applicant, check their details, then approve to activate their intern account.
         </p>
+        </div>
+        <PageRefreshButton always />
       </div>
       <InternQuickLinks />
       <details className="rounded-xl border bg-card p-4">

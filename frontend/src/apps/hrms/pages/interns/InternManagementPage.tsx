@@ -50,6 +50,7 @@ import { toast } from "@/hooks/use-toast";
 import WorkReviewPanel from "@/apps/project-management/components/WorkReviewPanel";
 import InternApplicationsPage from "./InternApplicationsPage";
 import InternQuickLinks from "./InternQuickLinks";
+import InternTaskProgramsPanel from "./InternTaskProgramsPanel";
 import InternsHubAdminPage from "./InternsHubAdminPage";
 import "./intern-management.css";
 type Row = Record<string, any>;
@@ -1111,6 +1112,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
       )}
       {page === "tasks" && (
         <>
+          <InternTaskProgramsPanel options={options} />
           <div className="im-metrics five">
             <Metric
               label="PMS Tasks in Selected Project"

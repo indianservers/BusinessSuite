@@ -1,11 +1,18 @@
-import { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { SettingsHomeEntry } from "./SettingsHubPage";
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Building2,
+  BarChart3,
+  ClipboardList,
+  Package,
+  Sparkles,
+  Star,
+  Users,
+  Zap,
   LayoutGrid,
-  LogOut,
   Search,
   ShieldCheck,
   X,
@@ -14,12 +21,32 @@ import { api, authApi } from "@/services/api";
 import { useAuthStore, type AuthUser } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import { modules, features } from "@/lib/moduleCatalog";
+import SuiteHeader from "@/components/suite/SuiteHeader";
+import { useNotificationSummary } from "@/components/suite/notifications";
+import {
+  moduleFeaturePaths,
+  safeSuiteDestination,
+  suitePageLabel,
+} from "@/lib/suiteNavigation";
+import {
+  defaultSuitePreferences,
+  suiteScope,
+  useSuitePreferences,
+} from "@/store/suitePreferences";
 import "./module-dashboard.css";
 
 export default function ModuleDashboardPage() {
-  const { user, isAuthenticated, isHydrated, setUser, logout } = useAuthStore();
+  const { user, isAuthenticated, isHydrated, setUser } = useAuthStore();
   const [query, setQuery] = useState("");
-  const [signingOut, setSigningOut] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const location = useLocation();
+  const scope = suiteScope(user?.id, user?.access?.companyId);
+  const preferences = useSuitePreferences(
+    (state) => state.contexts[scope] || defaultSuitePreferences,
+  );
+  const updatePreferences = useSuitePreferences((state) => state.update);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const notifications = useNotificationSummary();
   const access = useQuery({
     queryKey: ["dashboard-access", user?.id],
     enabled: isHydrated && isAuthenticated && !!user,
@@ -47,105 +74,186 @@ export default function ModuleDashboardPage() {
         Loading your workspace...
       </main>
     );
-  if (!isAuthenticated)
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   const allowed = user?.access
     ? modules.filter((m) =>
         canAccessRoute(m.homePath, user.role, user.is_superuser),
       )
     : [];
-  const visible = allowed.filter((m) =>
-    `${m.name} ${m.label} ${m.description} ${features[m.key].map(([, label]) => label).join(" ")}`
-      .toLowerCase()
-      .includes(query.trim().toLowerCase()),
+  const ready = access.isSuccess && !!user?.access;
+  const recent = preferences.recent.filter(
+    (path) =>
+      safeSuiteDestination(path) &&
+      canAccessRoute(path, user?.role, user?.is_superuser),
   );
+  const role = (user?.primary_role || user?.role || "").toLowerCase();
+  const recommended = user?.is_superuser
+    ? null
+    : /hr|employee/.test(role)
+      ? "hrms"
+      : /srm|inventory/.test(role)
+        ? "srm"
+        : /crm|sales_executive/.test(role)
+          ? "crm"
+          : /pms|project/.test(role)
+            ? "pms"
+            : /finance|accountant|fam/.test(role)
+              ? "fam"
+              : null;
+  const visible = allowed
+    .filter((m) => !favoritesOnly || preferences.favorites.includes(m.key))
+    .filter((m) =>
+      `${m.name} ${m.label} ${m.description} ${features[m.key].map(([, label]) => label).join(" ")}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
+    )
+    .sort(
+      (a, b) =>
+        Number(preferences.favorites.includes(b.key)) -
+        Number(preferences.favorites.includes(a.key)),
+    );
   return (
-    <div className="module-dashboard">
-      <header className="md-header">
-        <Link to="/dashboard" className="md-brand">
-          <span>
-            <LayoutGrid size={22} />
-          </span>
-          <div>
-            Business Suite<small>APPLICATION DASHBOARD</small>
-          </div>
-        </Link>
-        <div className="md-account">
-          <span>{user?.email}</span>
-          <button
-            disabled={signingOut}
-            onClick={async () => {
-              setSigningOut(true);
-              try {
-                await authApi.logout();
-              } catch {
-                // Clear the local session even when the server is unreachable.
-              } finally {
-                logout();
-              }
-            }}
-          >
-            <LogOut size={16} />
-            {signingOut ? "Signing out..." : "Sign out"}
-          </button>
-        </div>
-      </header>
-      <main className="md-main">
+    <div
+      className={`module-dashboard ${preferences.compact ? "suite-dashboard-compact" : ""}`}
+    >
+      <a className="suite-skip" href="#suite-main">
+        Skip to applications
+      </a>
+      <SuiteHeader />
+      <main className="md-main" id="suite-main" tabIndex={-1}>
+        {location.state?.notice && (
+          <p className="suite-dashboard-notice" role="status">
+            {location.state.notice}
+          </p>
+        )}
+        <SettingsHomeEntry />
         <section className="md-welcome">
           <div>
             <p className="md-eyebrow">
               <Building2 size={14} />
-              {branding.data?.company_name || "YOUR BUSINESS WORKSPACE"}
+              {user?.access?.companyName ||
+                branding.data?.company_name ||
+                "YOUR BUSINESS WORKSPACE"}
             </p>
-            <h1>Your work starts here.</h1>
+            <h1>
+              Your work <span>starts here.</span>
+            </h1>
             <p>
-              Choose an application to get started. Move between your modules
-              with one Business Suite account.
+              Choose an application to get started. Move between your roles with
+              one Business Suite account.
             </p>
+            <div className="md-benefits">
+              <div>
+                <span>
+                  <ShieldCheck />
+                </span>
+                <p>
+                  <strong>Single account</strong>
+                  <small>Access all modules</small>
+                </p>
+              </div>
+              <div>
+                <span>
+                  <Users />
+                </span>
+                <p>
+                  <strong>Role based access</strong>
+                  <small>Secure and controlled</small>
+                </p>
+              </div>
+              <div>
+                <span>
+                  <Zap />
+                </span>
+                <p>
+                  <strong>Built for productivity</strong>
+                  <small>All your tools in one place</small>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="md-hero-art" aria-hidden="true">
+            <div className="md-orbit" />
+            <span className="md-float md-float-chart">
+              <BarChart3 />
+            </span>
+            <span className="md-float md-float-users">
+              <Users />
+            </span>
+            <span className="md-float md-float-package">
+              <Package />
+            </span>
+            <span className="md-float md-float-document">
+              <ClipboardList />
+            </span>
           </div>
           <div className="md-access-note">
-            <ShieldCheck size={23} />
+            <div className="md-access-icon">
+              <ShieldCheck size={30} />
+            </div>
             <span>
               Access tailored to you
               <small>
                 Your company roles and permissions apply in every module.
               </small>
+              {canAccessRoute(
+                "/admin/access",
+                user?.role,
+                user?.is_superuser,
+              ) && (
+                <Link className="md-manage" to="/admin/access?tab=Roles">
+                  Manage permissions <ArrowRight size={16} />
+                </Link>
+              )}
             </span>
           </div>
         </section>
-        {!!user?.access && user.access.memberships.length > 1 && (
-          <label className="md-company">
-            Company
-            <select
-              aria-label="Current company"
-              value={user.access.companyId}
-              onChange={(e) => {
-                sessionStorage.setItem("suite-organization", e.target.value);
-                window.location.reload();
-              }}
-            >
-              {user.access.memberships.map((id) => (
-                <option key={id} value={id}>
-                  Company {id}
-                </option>
-              ))}
-            </select>
-          </label>
+        {ready && recent.length > 0 && (
+          <section className="suite-resume" aria-label="Continue working">
+            <div>
+              <p>Continue working</p>
+              <strong>{suitePageLabel(recent[0])}</strong>
+              {recent.length > 1 && (
+                <details className="suite-recent-list">
+                  <summary>Recent pages</summary>
+                  {recent.slice(1).map((path) => (
+                    <Link key={path} to={path}>
+                      {suitePageLabel(path)}
+                    </Link>
+                  ))}
+                </details>
+              )}
+            </div>
+            <div className="suite-inline-actions">
+              <Link className="suite-primary" to={recent[0]}>
+                Resume <ArrowRight size={16} />
+              </Link>
+              <button
+                className="suite-clear-recents"
+                onClick={() => updatePreferences(scope, { recent: [] })}
+              >
+                Clear recent pages
+              </button>
+            </div>
+          </section>
         )}
         <section aria-labelledby="md-applications">
           <div className="md-section-head">
             <div>
               <h2 id="md-applications">Your applications</h2>
-              <span>
-                {allowed.length} available{" "}
-                {allowed.length === 1 ? "module" : "modules"}
-              </span>
+              {ready && (
+                <span>
+                  {allowed.length} available{" "}
+                  {allowed.length === 1 ? "module" : "modules"}
+                </span>
+              )}
             </div>
             <label className="md-search">
               <Search size={18} />
               <input
+                ref={searchRef}
                 aria-label="Search your modules"
-                placeholder="Find a module..."
+                placeholder="Filter applications..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -159,7 +267,30 @@ export default function ModuleDashboardPage() {
               )}
             </label>
           </div>
-          {!user?.access || !access.data ? (
+          <div className="suite-dashboard-tools">
+            <label>
+              <input
+                type="checkbox"
+                checked={preferences.compact}
+                onChange={(e) =>
+                  updatePreferences(scope, { compact: e.target.checked })
+                }
+              />
+              Compact view
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={favoritesOnly}
+                onChange={(e) => setFavoritesOnly(e.target.checked)}
+              />
+              Favorites only
+            </label>
+            <span>
+              Pin an application using its star. Favorites appear first.
+            </span>
+          </div>
+          {!ready ? (
             <div
               className="md-empty"
               role={access.isError ? "alert" : "status"}
@@ -173,7 +304,14 @@ export default function ModuleDashboardPage() {
                   </button>
                 </>
               ) : (
-                <p>Loading your authorized applications...</p>
+                <>
+                  <p role="status">Loading your authorized applications...</p>
+                  <div className="md-grid" aria-hidden="true">
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <div className="suite-dashboard-skeleton" key={index} />
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           ) : (
@@ -181,47 +319,118 @@ export default function ModuleDashboardPage() {
               {visible.map((m) => {
                 const Icon = m.icon;
                 return (
-                  <Link
+                  <article
                     key={m.key}
-                    to={m.homePath}
                     className={`md-card md-${m.key}`}
-                    aria-label={`Open ${m.name}`}
+                    aria-label={m.name}
                   >
+                    <button
+                      className="suite-favorite"
+                      aria-label={`${preferences.favorites.includes(m.key) ? "Unpin" : "Pin"} ${m.name}`}
+                      aria-pressed={preferences.favorites.includes(m.key)}
+                      onClick={() =>
+                        updatePreferences(scope, {
+                          favorites: preferences.favorites.includes(m.key)
+                            ? preferences.favorites.filter(
+                                (key) => key !== m.key,
+                              )
+                            : [...preferences.favorites, m.key],
+                        })
+                      }
+                    >
+                      <Star
+                        size={18}
+                        fill={
+                          preferences.favorites.includes(m.key)
+                            ? "currentColor"
+                            : "none"
+                        }
+                      />
+                    </button>
                     <div className="md-card-top">
                       <span className="md-icon">
-                        <Icon size={28} />
+                        <Icon size={36} />
                       </span>
-                      <ArrowRight className="md-arrow" size={21} />
                     </div>
-                    <h3>{m.name}</h3>
+                    <div className="suite-card-title">
+                      <h3>
+                        <Link to={m.homePath}>{m.name}</Link>
+                      </h3>
+                      {recommended === m.key && (
+                        <span
+                          className="md-featured"
+                          title="Recommended for your role"
+                        >
+                          <Sparkles size={12} />
+                          Recommended for your role
+                        </span>
+                      )}
+                    </div>
                     <p className="md-category">{m.label}</p>
                     <p className="md-description">{m.description}</p>
                     <div className="md-features">
-                      {features[m.key].map(([Feature, label]) => (
-                        <span key={label}>
-                          <Feature size={14} />
-                          {label}
-                        </span>
-                      ))}
+                      {features[m.key].map(([Feature, label]) =>
+                        canAccessRoute(
+                          moduleFeaturePaths[m.key][label],
+                          user?.role,
+                          user?.is_superuser,
+                        ) ? (
+                          <Link
+                            key={label}
+                            to={moduleFeaturePaths[m.key][label]}
+                            aria-label={`${m.name}: ${label}`}
+                          >
+                            <Feature size={14} />
+                            {label}
+                          </Link>
+                        ) : (
+                          <span key={label}>
+                            <Feature size={14} />
+                            {label}
+                          </span>
+                        ),
+                      )}
                     </div>
-                    <div className="md-open">
+                    {!!notifications.byModule[m.key] && (
+                      <Link
+                        className="suite-module-alerts"
+                        to={`/notifications?app=${m.key}&unread=1`}
+                      >
+                        {notifications.byModule[m.key]} unread{" "}
+                        {notifications.byModule[m.key] === 1
+                          ? "update"
+                          : "updates"}{" "}
+                        <ArrowRight size={13} />
+                      </Link>
+                    )}
+                    <Link
+                      className="md-open"
+                      to={m.homePath}
+                      aria-label={`Open ${m.name}`}
+                    >
                       Open application <ArrowRight size={16} />
-                    </div>
-                  </Link>
+                    </Link>
+                  </article>
                 );
               })}
             </div>
           )}
-          {!!user?.access && !visible.length && (
+          {ready && !visible.length && (
             <div className="md-empty">
               <LayoutGrid size={30} />
               <h3>
-                {query ? "No matching modules" : "No applications assigned yet"}
+                {query
+                  ? "No matching modules"
+                  : favoritesOnly
+                    ? "No favorite applications"
+                    : "No applications assigned yet"}
               </h3>
               <p>
                 {query
                   ? "Try another name or clear your search."
-                  : "Contact your company administrator to request access."}
+                  : favoritesOnly
+                    ? "Turn off Favorites only, then pin an application using its star."
+                    : "Contact your company administrator to request access."}
               </p>
               {query && (
                 <button onClick={() => setQuery("")}>

@@ -271,11 +271,24 @@ def invite_portal_user(data: PortalInvitePayload, request: Request, db: Session 
     permissions = set(data.permissions or ["view"])
     if not permissions.issubset(allowed):
         raise HTTPException(422, "Unsupported portal permission")
-    user = _provision_portal_user(PortalUserPayload(**data.model_dump(exclude={"permissions"})), db, current_user)
+    db.info["portal_invitation_email"] = True
+    try:
+        user = _provision_portal_user(PortalUserPayload(**data.model_dump(exclude={"permissions"})), db, current_user)
+    finally:
+        db.info.pop("portal_invitation_email", None)
     db.add(PortalAccessGrant(portal_user_id=user.id, resource_type="portal_permissions", resource_id=0, permissions_json=sorted(permissions), active=True))
     token = secrets.token_urlsafe(32)
     session = PortalSession(portal_user_id=user.id, session_token_hash=_hash(token), status="active", ip_address=request.client.host if request.client else None, expires_at=datetime.now(timezone.utc) + timedelta(days=14))
     db.add(session)
+    from app.core.config import settings
+    from app.services.email_dispatch import queue_email
+    queue_email(db, recipient=user.email, module="saas", organization_id=current_user.organization_id,
+        event_key="portal-invite:" + session.session_token_hash,
+        subject="Your Business Suite portal invitation",
+        body=f"You have been invited to the {user.portal_type} portal.\n"
+            f"Open {settings.FRONTEND_PUBLIC_URL.rstrip('/')}/portal/{user.portal_type}/login\n"
+            f"Paste this portal session token: {token}\n"
+            "Keep this invitation private. It expires in 14 days.")
     user.status = "active"
     _portal_log(db, user, "portal_invite_issued", "portal_user", user.id, {"permissions": data.permissions})
     db.commit()

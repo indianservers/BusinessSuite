@@ -58,7 +58,7 @@ import {
 import { Profile, Certificates, Support } from "./AccountPages";
 import "./style.css";
 import { SocialSignup } from "./SocialSignup";
-import { ApplicationStatus } from "./ApplicationPage";
+import { ApplicationStatus, FreeProgramNotice } from "./ApplicationPage";
 import { ApplicationGate } from "./ApplicationGate";
 const nav = [
   ["/", "Dashboard", LayoutDashboard],
@@ -113,6 +113,7 @@ function Login({ onLogin }: { onLogin: () => void }) {
           <Logo />
         </div>
         <div className="login-card">
+          <FreeProgramNotice />
           <span className="icon-small">
             <GraduationCap size={26} />
           </span>
@@ -410,6 +411,7 @@ function Portal({ logout }: { logout: () => void }) {
             </Link>
           </header>
           <main className="content">
+            <FreeProgramNotice />
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/tasks" element={<Tasks />} />
@@ -465,7 +467,7 @@ function App() {
     window.addEventListener("internhub:expired", logout);
     return () => window.removeEventListener("internhub:expired", logout);
   }, []);
-  if (location.pathname === "/apply") return <ApplicationGate />;
+  if (location.pathname === "/apply") return authenticated ? <Navigate to="/" replace /> : <ApplicationGate />;
   if (location.pathname === "/application-status") return <ApplicationStatus />;
   return authenticated ? (
     <Portal logout={logout} />

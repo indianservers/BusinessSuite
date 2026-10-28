@@ -54,6 +54,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.models.email_outbox",
     "app.apps.power_apps.models",
     "app.apps.power_apps.runtime_models",
     "app.apps.power_apps.integrations.models",

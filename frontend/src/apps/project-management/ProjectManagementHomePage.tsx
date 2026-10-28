@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -31,7 +32,7 @@ const ProjectManagementHomePage: React.FC = () => {
   }, [setSidebarOpen]);
 
   // Load projects on mount
-  useEffect(() => {
+  useRefreshableEffect(() => {
     const loadProjects = async () => {
       try {
         setLoading(true);

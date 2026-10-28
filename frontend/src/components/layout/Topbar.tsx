@@ -1,12 +1,14 @@
+import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
+import PageRefreshButton from "@/components/app/PageRefreshButton";
+import RefreshPagesCatalog from "@/components/app/RefreshPagesCatalog";
 import DensityControl from "./DensityControl";
 import PMSProfileMenu from "./PMSProfileMenu";
-import { usePersonalStore } from "@/store/personalStore";
 import { useSignOut } from "@/hooks/use-sign-out";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { FormEvent, useEffect, useState } from "react";
-import { AlertTriangle, Bell, Briefcase, CheckCircle2, Clock, Eye, EyeOff, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Sun, UserCircle } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { FormEvent, useState } from "react";
+import { Briefcase, Eye, EyeOff, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Sun, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,16 +18,17 @@ import GlobalSearch from "@/components/app/GlobalSearch";
 import KeyboardShortcuts from "@/components/app/KeyboardShortcuts";
 import { useThemeStore } from "@/store/themeStore";
 import { useAuthStore } from "@/store/authStore";
-import { canAccessRoute, getRoleLabel } from "@/lib/roles";
+import { getRoleLabel } from "@/lib/roles";
 import { BUSINESS_SUITE_DISPLAY_NAME, getProductDisplayName, getProductForContext } from "@/lib/products";
-import { authApi, notificationsApi } from "@/services/api";
+import { authApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 
 interface TopbarProps {
   onMenuClick: () => void;
 }
 
-export const NOTIF_UNREAD_KEY = ["notifications-unread-count"];
+// Keep legacy approval/helpdesk invalidations connected to the shared inbox.
+export const NOTIF_UNREAD_KEY = ["suite-notifications"];
 
 export default function Topbar({ onMenuClick }: TopbarProps) {
   const navigate = useNavigate();
@@ -45,34 +48,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [newPassword, setNewPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [notificationTrayOpen, setNotificationTrayOpen] = useState(false);
-  const mutedUntil = usePersonalStore(s => s.users[user?.id || 0]?.mutedUntil || 0);
-  const [, refreshMute] = useState(0);
-  useEffect(() => {
-    const remaining = mutedUntil - Date.now();
-    if (remaining <= 0) return;
-    const timeout = window.setTimeout(() => refreshMute(value => value + 1), remaining + 10);
-    return () => window.clearTimeout(timeout);
-  }, [mutedUntil]);
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
   const initials = user?.name ? getNameInitials(user.name) : user?.email?.slice(0, 2).toUpperCase() || "?";
-  const unreadCount = useQuery({
-    queryKey: NOTIF_UNREAD_KEY,
-    queryFn: () => notificationsApi.unreadCount().then((response) => response.data.unread as number),
-    refetchInterval: 60_000,
-    staleTime: 30_000,
-    retry: false,
-  });
-
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
   const handleLogout = useSignOut(product.loginPath);
   const isHrms = location.pathname.startsWith("/hrms");
   const isCrm = location.pathname.startsWith("/crm");
   const profilePath = isHrms ? "/hrms/profile" : isCrm ? "/crm/profile" : location.pathname.startsWith("/srm") ? "/srm/profile" : location.pathname.startsWith("/fam") ? "/fam/profile" : "/pms/profile";
   const selfServicePath = isHrms ? "/hrms/ess" : profilePath;
-  const notificationsPath = isHrms ? "/hrms/notifications" : profilePath;
-  const canOpenNotifications = canAccessRoute(notificationsPath, user?.role, user?.is_superuser);
-  const notificationItems = getNotificationItems(product.key);
   const changePassword = useMutation({
     mutationFn: () => authApi.changePassword(currentPassword, newPassword),
     onSuccess: () => {
@@ -108,51 +91,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <GlobalSearch />
+      <div className="flex min-w-0 flex-1 [&>button]:min-w-0 [&>button]:max-w-full"><GlobalSearch /></div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}
+        <RefreshPagesCatalog />
         <ModuleNewMenu />
         <Button variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span className="hidden sm:inline">AI operator</span></Button>
-        <div className="hidden rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
+        <div className="hidden max-w-48 truncate rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
           {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
         </div>
-        {/* Notifications */}
-        {canOpenNotifications || notificationItems.length ? (
-          <DropdownMenu.Root open={notificationTrayOpen} onOpenChange={setNotificationTrayOpen}>
-            <DropdownMenu.Trigger asChild>
-              <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications" title="Notifications">
-                <Bell className="h-5 w-5" />
-                {!!unreadCount.data && unreadCount.data > 0 && !(location.pathname.startsWith("/pms") && mutedUntil > Date.now()) && (
-              <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-none text-white">
-                {unreadCount.data > 99 ? "99+" : unreadCount.data}
-              </span>
-                )}
-              </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content align="end" sideOffset={8} className="z-50 w-80 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-                <div className="px-3 py-2">
-                  <p className="text-sm font-medium">Notifications</p>
-                  <p className="text-xs text-muted-foreground">{product.shortName} workspace alerts</p>
-                </div>
-                <DropdownMenu.Separator className="my-1 h-px bg-border" />
-                {(notificationItems.length ? notificationItems : [{ label: "Open notifications", detail: "View your notification center", path: notificationsPath, icon: Bell }]).map((item) => (
-                  <DropdownMenu.Item
-                    key={item.path + item.label}
-                    className="flex cursor-pointer items-start gap-3 rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent"
-                    onSelect={() => navigate(item.path)}
-                  >
-                    <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span>
-                      <span className="block font-medium">{item.label}</span>
-                      <span className="block text-xs text-muted-foreground">{item.detail}</span>
-                    </span>
-                  </DropdownMenu.Item>
-                ))}
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-        ) : null}
+        <SuiteNotificationBell />
         <span className="hidden sm:contents"><KeyboardShortcuts /></span><DensityControl />
 
         {/* Theme toggle */}
@@ -283,21 +232,4 @@ function getPasswordStrength(password: string) {
   if (score <= 1) return { level: 1, label: "Weak password", color: "bg-red-500" };
   if (score === 2) return { level: 2, label: "Medium password", color: "bg-amber-500" };
   return { level: 3, label: "Strong password", color: "bg-emerald-500" };
-}
-
-function getNotificationItems(productKey: string) {
-  if (productKey === "crm") {
-    return [
-      { label: "Overdue follow-ups", detail: "Review CRM tasks that need action", path: "/crm/tasks", icon: Clock },
-      { label: "Quote approvals", detail: "Approve or reject pending quote requests", path: "/crm/quote-approvals", icon: CheckCircle2 },
-      { label: "Critical tickets", detail: "Open support and SLA risk queue", path: "/crm/tickets", icon: AlertTriangle },
-    ];
-  }
-  if (productKey === "srm") {
-    return [
-      { label: "Collection alerts", detail: "Review overdue invoices and receipts", path: "/srm/collections", icon: AlertTriangle },
-      { label: "Approvals", detail: "Open revenue approvals", path: "/srm/reports", icon: CheckCircle2 },
-    ];
-  }
-  return [];
 }

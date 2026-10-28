@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CheckCircle2, Flag, Plus, Send, XCircle } from "lucide-react";
@@ -22,7 +23,7 @@ export default function MilestonesPage() {
   const [busyMilestoneId, setBusyMilestoneId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!id) return;
     milestonesAPI.list(id).then(setMilestones).catch((err) => setError(apiError(err, "Unable to load milestones.")));
   }, [id]);

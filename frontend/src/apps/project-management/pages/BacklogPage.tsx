@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
@@ -52,7 +53,7 @@ export default function BacklogPage() {
     }).catch((err) => setError(err?.response?.data?.detail || "Unable to load projects."));
   }, []);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!projectId) {
       setLoading(false);
       return;

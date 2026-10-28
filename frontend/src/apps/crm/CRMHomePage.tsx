@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -98,7 +99,7 @@ export default function CRMHomePage() {
   const [quickMessage, setQuickMessage] = useState<string | null>(null);
   const [quickError, setQuickError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     api
       .get<CRMModuleInfo>("/crm/module-info")
       .then((response) => setModuleInfo(response.data))

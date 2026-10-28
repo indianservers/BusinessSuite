@@ -18,6 +18,7 @@ class Asset(Base):
     __tablename__ = "assets"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=False, default=1, server_default="1", index=True)
     asset_tag = Column(String(50), unique=True, nullable=False, index=True)
     name = Column(String(200), nullable=False)
     category_id = Column(Integer, ForeignKey("asset_categories.id", ondelete="SET NULL"), nullable=True)

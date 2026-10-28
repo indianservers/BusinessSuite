@@ -56,6 +56,10 @@
   "regions": [
     "iad1"
   ],
+  "crons": [
+    { "path": "/api/v1/internal/email-dispatch", "schedule": "*/5 * * * *" },
+    { "path": "/api/v1/internal/intern-correction-reminders", "schedule": "30 4 * * *" }
+  ],
   "headers": [
     {
       "source": "/release.json",

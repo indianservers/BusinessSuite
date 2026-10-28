@@ -29,7 +29,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { toast } from "@/hooks/use-toast";
 
 type Entity = Record<string, any>;
-type SettingKey = "companies" | "branches" | "departments" | "designations" | "shifts" | "holidays" | "leaveTypes" | "salaryComponents" | "roles";
+export type SettingKey = "companies" | "branches" | "departments" | "designations" | "shifts" | "holidays" | "leaveTypes" | "salaryComponents" | "roles";
 
 const sections: { key: SettingKey; title: string; description: string; icon: any }[] = [
   { key: "companies", title: "Companies", description: "Legal entities and statutory identity", icon: Building2 },
@@ -92,25 +92,25 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-export default function SettingsPage() {
+export default function SettingsPage({ section }: { section?: SettingKey }) {
   usePageTitle("Settings");
   const qc = useQueryClient();
-  const [active, setActive] = useState<SettingKey>("companies");
+  const [active, setActive] = useState<SettingKey>(section || "companies");
   const [query, setQuery] = useState("");
   const [modal, setModal] = useState<SettingKey | null>(null);
   const [editing, setEditing] = useState<Entity | null>(null);
   const [form, setForm] = useState<Entity>({});
 
-  const companies = useQuery({ queryKey: ["companies"], queryFn: () => companyApi.listCompanies().then((r) => r.data) });
-  const branches = useQuery({ queryKey: ["branches"], queryFn: () => companyApi.listBranches().then((r) => r.data) });
-  const departments = useQuery({ queryKey: ["departments"], queryFn: () => companyApi.listDepartments().then((r) => r.data) });
-  const designations = useQuery({ queryKey: ["designations"], queryFn: () => companyApi.listDesignations().then((r) => r.data) });
-  const shifts = useQuery({ queryKey: ["shifts"], queryFn: () => attendanceApi.listShifts().then((r) => r.data) });
-  const holidays = useQuery({ queryKey: ["holidays"], queryFn: () => attendanceApi.listHolidays().then((r) => r.data) });
-  const leaveTypes = useQuery({ queryKey: ["leave-types"], queryFn: () => leaveApi.types().then((r) => r.data) });
-  const salaryComponents = useQuery({ queryKey: ["salary-components"], queryFn: () => payrollApi.components().then((r) => r.data) });
-  const roles = useQuery({ queryKey: ["roles"], queryFn: () => authApi.roles().then((r) => r.data) });
-  const permissions = useQuery({ queryKey: ["permissions"], queryFn: () => authApi.permissions().then((r) => r.data) });
+  const companies = useQuery({ enabled: !section || section === "branches", queryKey: ["companies"], queryFn: () => companyApi.listCompanies().then((r) => r.data) });
+  const branches = useQuery({ enabled: !section || ["branches", "departments"].includes(section), queryKey: ["branches"], queryFn: () => companyApi.listBranches().then((r) => r.data) });
+  const departments = useQuery({ enabled: !section || ["departments", "designations"].includes(section), queryKey: ["departments"], queryFn: () => companyApi.listDepartments().then((r) => r.data) });
+  const designations = useQuery({ enabled: !section || section === "designations", queryKey: ["designations"], queryFn: () => companyApi.listDesignations().then((r) => r.data) });
+  const shifts = useQuery({ enabled: !section || section === "shifts", queryKey: ["shifts"], queryFn: () => attendanceApi.listShifts().then((r) => r.data) });
+  const holidays = useQuery({ enabled: !section || section === "holidays", queryKey: ["holidays"], queryFn: () => attendanceApi.listHolidays().then((r) => r.data) });
+  const leaveTypes = useQuery({ enabled: !section || section === "leaveTypes", queryKey: ["leave-types"], queryFn: () => leaveApi.types().then((r) => r.data) });
+  const salaryComponents = useQuery({ enabled: !section || section === "salaryComponents", queryKey: ["salary-components"], queryFn: () => payrollApi.components().then((r) => r.data) });
+  const roles = useQuery({ enabled: !section || section === "roles", queryKey: ["roles"], queryFn: () => authApi.roles().then((r) => r.data) });
+  const permissions = useQuery({ enabled: !section || section === "roles", queryKey: ["permissions"], queryFn: () => authApi.permissions().then((r) => r.data) });
 
   const dataByKey: Record<SettingKey, Entity[]> = {
     companies: companies.data || [],
@@ -206,7 +206,7 @@ export default function SettingsPage() {
 
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
         <div className="space-y-3">
-          {sections.map((section, index) => {
+          {sections.filter(item => !section || item.key === section).map((section, index) => {
             const Icon = section.icon;
             const isActive = active === section.key;
             return (

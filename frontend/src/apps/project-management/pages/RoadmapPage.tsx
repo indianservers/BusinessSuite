@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, ChevronDown, ChevronRight, GitBranch, RefreshCw } from "lucide-react";
@@ -52,7 +53,7 @@ export default function RoadmapPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     loadRoadmap();
   }, [filters.projectId, filters.ownerId, filters.status, filters.from, filters.to]);
 

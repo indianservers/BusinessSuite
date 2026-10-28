@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useRefreshableEffect, usePageRefresh } from "@/lib/page-refresh";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Columns3, Plus, Check, Pencil } from "lucide-react";
 import { api } from "@/services/api";
@@ -37,16 +38,40 @@ export function CustomFieldCell({entity,id,field,canEdit,onSaved}:{entity:"task"
 export function RecordCustomFields({entity,id}:{entity:"task"|"project";id:number}) {
  const [data,setData]=useState<FieldRecord|null>(null),[error,setError]=useState("");
  async function load(){try{setData((await api.get<FieldRecord>(fieldPath(entity,id))).data);setError("");}catch(e){setError(workspaceError(e));}}
- useEffect(()=>{let active=true;setData(null);api.get<FieldRecord>(fieldPath(entity,id)).then(r=>{if(active)setData(r.data);}).catch(e=>{if(active)setError(workspaceError(e));});return()=>{active=false;};},[entity,id]);
+ useRefreshableEffect(()=>{let active=true;setData(null);api.get<FieldRecord>(fieldPath(entity,id)).then(r=>{if(active)setData(r.data);}).catch(e=>{if(active)setError(workspaceError(e));});return()=>{active=false;};},[entity,id]);
  return <section className="space-y-4 rounded-xl border bg-card p-5" aria-label={`${entity} custom fields`}><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Columns3 className="h-4 w-4 text-primary"/><h2 className="font-semibold">Custom fields</h2><span className="text-xs text-muted-foreground">{data?.fields.length ?? ""}</span></div><Link className="text-xs text-primary hover:underline" to={`/pms/custom-fields?entity=${entity}`}>Manage fields</Link></div>{error&&<p role="alert" className="text-sm text-destructive">{error}</p>}{!data&&!error&&<p role="status" className="text-sm text-muted-foreground">Loading fields…</p>}<div className="grid gap-4 sm:grid-cols-2">{data?.fields.map(f=><div key={f.id} className="min-w-0 rounded-lg border bg-muted/10 p-3"><p className="mb-1 text-xs font-medium text-muted-foreground">{f.name}</p><CustomFieldCell entity={entity} id={id} field={f} canEdit={data.can_edit} onSaved={()=>void load()}/></div>)}</div>{data&&!data.fields.length&&<p className="text-sm text-muted-foreground">Add fields such as Financial Year, client reference or review date from the field library.</p>}</section>;
 }
 export function CustomFieldsForm({entity,projectId,workType="",values,onChange}:{entity:"task"|"project";projectId?:number;workType?:string;values:FieldDraft;onChange:(v:FieldDraft)=>void}) {
  const [fields,setFields]=useState<CustomField[]>([]),[error,setError]=useState("");
- useEffect(()=>{let active=true;setFields([]);setError("");const path=projectId?`/project-management/projects/${projectId}/custom-fields?entity=${entity}`:"/project-management/custom-fields";api.get<{fields:CustomField[]}>(path).then(({data})=>{if(active)setFields(data.fields.filter(f=>(f.entity_type===entity||f.entity_type==="both")&&(!f.project_id||f.project_id===projectId)&&(entity!=="task"||!f.task_type||f.task_type===workType)));}).catch(e=>{if(active)setError(workspaceError(e));});return()=>{active=false;};},[entity,projectId,workType]);
+ useRefreshableEffect(()=>{let active=true;setFields([]);setError("");const path=projectId?`/project-management/projects/${projectId}/custom-fields?entity=${entity}`:"/project-management/custom-fields";api.get<{fields:CustomField[]}>(path).then(({data})=>{if(active)setFields(data.fields.filter(f=>(f.entity_type===entity||f.entity_type==="both")&&(!f.project_id||f.project_id===projectId)&&(entity!=="task"||!f.task_type||f.task_type===workType)));}).catch(e=>{if(active)setError(workspaceError(e));});return()=>{active=false;};},[entity,projectId,workType]);
  return <section className="space-y-3 rounded-xl border bg-primary/[0.025] p-4"><div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-semibold"><Columns3 className="h-4 w-4 text-primary"/>Custom fields</h3><Link to={`/pms/custom-fields?entity=${entity}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary">Manage <Plus className="inline h-3 w-3"/></Link></div>{error&&<p role="alert" className="text-sm text-destructive">{error}</p>}<div className="grid gap-4 sm:grid-cols-2">{fields.map(f=><label key={f.id} className="space-y-1 text-sm"><span>{f.name}</span><FieldInput field={f} value={values[f.id]} onChange={v=>onChange({...values,[f.id]:v})}/></label>)}</div>{!error&&!fields.length&&<p className="text-xs text-muted-foreground">Your firm’s fields will appear here once added to the library.</p>}</section>;
 }
 export function useCustomFieldRecords(entity:"task"|"project",ids:number[]) {
- const [records,setRecords]=useState<Record<string,FieldRecord>>({}),[error,setError]=useState("");const [revision,setRevision]=useState(0);const key=ids.join(",");
- useEffect(()=>{let active=true;setRecords({});setError("");if(ids.length)void (async()=>{try{const result:Record<string,FieldRecord>={};for(let offset=0;offset<ids.length;offset+=100){const {data}=await api.post<{records:Record<string,FieldRecord>}>("/project-management/custom-fields/records",{entity,ids:ids.slice(offset,offset+100)});Object.assign(result,data.records);}if(active)setRecords(result);}catch(e){if(active)setError(workspaceError(e));}})();return()=>{active=false;};},[entity,key,revision]);
- return {records,error,reload:()=>setRevision(v=>v+1)};
+  const [records,setRecords]=useState<Record<string,FieldRecord>>({});
+  const [error,setError]=useState("");
+  const [revision,setRevision]=useState(0);
+  const request=useRef(0);
+  const key=ids.join(",");
+  const readRecords=async()=>{
+    const cycle=++request.current;
+    setError("");
+    try {
+      const result:Record<string,FieldRecord>={};
+      for(let offset=0;offset<ids.length;offset+=100){
+        const {data}=await api.post<{records:Record<string,FieldRecord>}>("/project-management/custom-fields/records",{entity,ids:ids.slice(offset,offset+100)});
+        Object.assign(result,data.records);
+      }
+      if(request.current===cycle)setRecords(result);
+    } catch(error) {
+      if(request.current===cycle)setError(workspaceError(error));
+      throw error;
+    }
+  };
+  useEffect(()=>{
+    setRecords({});
+    void readRecords().catch(()=>undefined);
+    return()=>{request.current++;};
+  },[entity,key,revision]);
+  usePageRefresh(readRecords);
+  return {records,error,reload:()=>setRevision(value=>value+1)};
 }

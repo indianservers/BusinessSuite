@@ -98,6 +98,17 @@ class Settings(BaseSettings):
     CELERY_TIMEZONE: str = "Asia/Kolkata"
 
     # Email
+    EMAIL_PROVIDER: str = "auto"
+    EMAIL_NOTIFICATIONS_ENABLED: bool = True
+    EMAIL_WORKER_ENABLED: bool = True
+    SES_REGION: str = ""
+    SES_FROM: str = ""
+    SES_FROM_NAME: str = "Business Suite"
+    SES_CONFIGURATION_SET: str = ""
+    SES_SMTP_SERVER: str = ""
+    SES_SMTP_PORT: int = 587
+    SES_SMTP_USERNAME: str = ""
+    SES_SMTP_PASSWORD: str = Field(default="", repr=False)
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""
     MAIL_FROM: str = "noreply@aihrms.com"
@@ -106,6 +117,14 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
+    INTERN_HUB_SES_ENABLED: bool = False
+    INTERN_HUB_SES_REGION: str = "ap-south-1"
+    INTERN_HUB_SES_FROM: str = "noreply@indianservers.com"
+    INTERN_HUB_SES_BRAND: str = "Indian Servers"
+    INTERN_HUB_SES_SMTP_SERVER: str = ""
+    INTERN_HUB_SES_SMTP_PORT: int = 587
+    INTERN_HUB_SES_SMTP_USERNAME: str = ""
+    INTERN_HUB_SES_SMTP_PASSWORD: str = ""
 
     # CRM messaging
     CRM_MESSAGE_PROVIDER: str = "mock"

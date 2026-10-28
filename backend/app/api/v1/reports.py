@@ -24,6 +24,8 @@ from app.models.performance import OneOnOneRecord, PerformanceGoal, PerformanceR
 from app.schemas.platform import ReportDefinitionCreate, ReportDefinitionSchema, ReportRunSchema, ReportScheduleCreate, ReportScheduleSchema
 
 router = APIRouter(prefix="/reports", tags=["Reports & Analytics"])
+from app.api.v1.team_workspace import router as team_workspace_router
+router.include_router(team_workspace_router)
 
 
 REPORT_FIELD_CATALOG = {
@@ -152,10 +154,37 @@ def _latest_payroll_subquery(db: Session, employee_ids: list[int]):
 
 def _run_report_rows(db: Session, definition: ReportDefinition) -> tuple[list[str], list[dict]]:
     fields = definition.selected_fields_json or REPORT_FIELD_CATALOG.get(definition.module, [])
+    if not fields or any(field not in REPORT_FIELD_CATALOG.get(definition.module, []) for field in fields):
+        raise HTTPException(422, "Report contains unsupported fields")
     limit = 500
     rows: list[dict] = []
+    def filtered(model):
+        query = db.query(model)
+        if model in {Attendance, PayrollRecord}:
+            query = query.join(Employee)
+        filters = definition.filters_json or {}
+        if not isinstance(filters, dict):
+            raise HTTPException(422, "Report filters must be an object")
+        for key, value in filters.items():
+            if value in (None, "", []):
+                continue
+            column = getattr(model, key, None) if key in {"employee_id", "department_id", "status", "payroll_run_id", "job_id"} else None
+            if column is None and key == "department_id" and model in {Attendance, PayrollRecord}:
+                column = Employee.department_id
+            if key in {"from_date", "to_date"}:
+                column = Employee.date_of_joining if model == Employee else Attendance.attendance_date if model == Attendance else None
+                if column is None:
+                    raise HTTPException(422, "Date filters are not supported for this report; use payroll_run_id")
+                query = query.filter(column >= value if key == "from_date" else column <= value)
+            elif column is not None:
+                query = query.filter(column.in_(value) if isinstance(value, list) else column == value)
+            else:
+                raise HTTPException(422, f"Unsupported report filter: {key}")
+        if query.count() > limit:
+            raise HTTPException(422, "Report exceeds 500 rows. Narrow the saved filters before exporting.")
+        return query
     if definition.module == "employees":
-        for employee in db.query(Employee).filter(Employee.deleted_at.is_(None)).limit(limit).all():
+        for employee in filtered(Employee).filter(Employee.deleted_at.is_(None)).limit(limit).all():
             source = {
                 "id": employee.id,
                 "employee_code": employee.employee_id,
@@ -168,7 +197,7 @@ def _run_report_rows(db: Session, definition: ReportDefinition) -> tuple[list[st
             }
             rows.append({field: source.get(field) for field in fields})
     elif definition.module == "attendance":
-        for item in db.query(Attendance).limit(limit).all():
+        for item in filtered(Attendance).limit(limit).all():
             source = {
                 "employee_id": item.employee_id,
                 "attendance_date": item.attendance_date.isoformat() if item.attendance_date else None,
@@ -180,7 +209,7 @@ def _run_report_rows(db: Session, definition: ReportDefinition) -> tuple[list[st
             }
             rows.append({field: source.get(field) for field in fields})
     elif definition.module == "payroll":
-        for item in db.query(PayrollRecord).limit(limit).all():
+        for item in filtered(PayrollRecord).limit(limit).all():
             source = {
                 "employee_id": item.employee_id,
                 "payroll_run_id": item.payroll_run_id,
@@ -190,7 +219,7 @@ def _run_report_rows(db: Session, definition: ReportDefinition) -> tuple[list[st
             }
             rows.append({field: source.get(field) for field in fields})
     elif definition.module == "recruitment":
-        for item in db.query(Candidate).limit(limit).all():
+        for item in filtered(Candidate).limit(limit).all():
             source = {
                 "id": item.id,
                 "job_id": item.job_id,
@@ -202,6 +231,16 @@ def _run_report_rows(db: Session, definition: ReportDefinition) -> tuple[list[st
             }
             rows.append({field: source.get(field) for field in fields})
     return fields, rows
+
+
+def _check_report_access(definition, user):
+    from app.services.email_schedules import permitted
+    roles = {name.strip().lower() for name in (definition.visible_to_roles or "").split(",") if name.strip()}
+    role = user.role.name.lower() if user.role else ""
+    if roles and role not in roles and not user.is_superuser:
+        raise HTTPException(403, "Report is restricted to configured roles")
+    if definition.module == "payroll" and not permitted(user, "payroll_view"):
+        raise HTTPException(403, "Payroll permission is required for this report")
 
 
 @router.get("/field-catalog")
@@ -253,23 +292,9 @@ def run_report_definition(
     definition = db.query(ReportDefinition).filter(ReportDefinition.id == definition_id, ReportDefinition.is_active == True).first()
     if not definition:
         raise HTTPException(status_code=404, detail="Report definition not found")
-    row_count = 0
-    if definition.module == "employees":
-        row_count = db.query(func.count(Employee.id)).scalar() or 0
-    elif definition.module == "attendance":
-        row_count = db.query(func.count(Attendance.id)).scalar() or 0
-    elif definition.module == "payroll":
-        row_count = db.query(func.count(PayrollRecord.id)).scalar() or 0
-    elif definition.module == "recruitment":
-        row_count = db.query(func.count(Candidate.id)).scalar() or 0
-    run = ReportRun(
-        report_definition_id=definition.id,
-        status="Completed",
-        row_count=row_count,
-        file_url=f"/uploads/reports/{definition.code}.{definition.export_format}",
-        requested_by=current_user.id,
-    )
-    db.add(run)
+    _check_report_access(definition, current_user)
+    from app.services.hrms_report_schedules import materialize
+    run = materialize(db, definition, current_user.id)
     db.commit()
     db.refresh(run)
     return run
@@ -284,6 +309,7 @@ def preview_report_definition(
     definition = db.query(ReportDefinition).filter(ReportDefinition.id == definition_id, ReportDefinition.is_active == True).first()
     if not definition:
         raise HTTPException(status_code=404, detail="Report definition not found")
+    _check_report_access(definition, current_user)
     columns, rows = _run_report_rows(db, definition)
     return {"definition_id": definition.id, "columns": columns, "rows": rows, "row_count": len(rows)}
 
@@ -297,7 +323,23 @@ def create_report_schedule(
     definition = db.query(ReportDefinition).filter(ReportDefinition.id == data.report_definition_id, ReportDefinition.is_active == True).first()
     if not definition:
         raise HTTPException(status_code=404, detail="Report definition not found")
-    item = ReportSchedule(**data.model_dump(), created_by=current_user.id)
+    _check_report_access(definition, current_user)
+    from app.services.hrms_report_schedules import next_run
+    from app.services.email_dispatch import user_can_receive
+    from app.services.email_schedules import permitted
+    from app.apps.srm.services.commercial import tenant
+    if data.export_format != "csv":
+        raise HTTPException(422, "Recurring reports currently support CSV")
+    addresses = data.recipients_json or [current_user.email]
+    if not isinstance(addresses, list) or len(addresses) > 50 or any(not isinstance(address, str) for address in addresses):
+        raise HTTPException(422, "Choose up to 50 authorized recipient email addresses")
+    for address in addresses:
+        recipient = db.query(User).filter(User.email == address, User.is_active.is_(True)).first()
+        if not recipient or not user_can_receive(db, recipient.id, recipient.email, tenant(current_user)) or not permitted(recipient, "reports_view"):
+            raise HTTPException(422, "Each recipient must be an authorized report user in this company")
+        _check_report_access(definition, recipient)
+    item = ReportSchedule(**data.model_dump(exclude={"recipients_json"}), recipients_json=list(dict.fromkeys(addresses)), created_by=current_user.id,
+                          next_run_at=next_run(data.cron_expression))
     definition.schedule_cron = data.cron_expression
     definition.export_format = data.export_format
     db.add(item)
@@ -330,16 +372,12 @@ def run_report_schedule(
     definition = db.query(ReportDefinition).filter(ReportDefinition.id == schedule.report_definition_id).first()
     if not definition:
         raise HTTPException(status_code=404, detail="Report definition not found")
-    _, rows = _run_report_rows(db, definition)
-    run = ReportRun(
-        report_definition_id=definition.id,
-        status="Completed",
-        row_count=len(rows),
-        file_url=f"/uploads/reports/{definition.code}.{schedule.export_format}",
-        requested_by=current_user.id,
-    )
+    _check_report_access(definition, current_user)
+    if schedule.created_by != current_user.id and not current_user.is_superuser:
+        raise HTTPException(403, "Only the schedule owner can run it manually")
+    from app.services.hrms_report_schedules import materialize
+    run = materialize(db, definition, current_user.id)
     schedule.last_run_at = datetime.now(timezone.utc)
-    db.add(run)
     db.commit()
     db.refresh(run)
     return run

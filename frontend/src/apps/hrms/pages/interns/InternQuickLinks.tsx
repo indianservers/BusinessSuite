@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ClipboardList, Users, Layers } from "lucide-react";
 
 const links = [
+  { to: "/hrms/letters-certificates", label: "Letters & Certificates", description: "Generate offers, completion and relieving documents from templates", Icon: ClipboardList },
   { to: "/hrms/interns/operations", label: "Profiles & Work", description: "Study profiles, assign work, change supervisors and send warnings", Icon: Users },
   { to: "/hrms/interns/applications", label: "Signups & Approvals", description: "Review new signups and approve or reject applications", Icon: ClipboardList },
   { to: "/hrms/interns/list", label: "All Interns", description: "Find interns, open profiles and manage batch enrollment", Icon: Users },

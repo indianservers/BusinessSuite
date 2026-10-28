@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { Fragment, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -79,7 +80,7 @@ export default function RisksPage() {
       .catch((err) => setError(riskError(err, "Unable to load risk register filters.")));
   }, [projectId]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     setLoading(true);
     setError(null);
     risksAPI.list(filters)
@@ -88,7 +89,7 @@ export default function RisksPage() {
       .finally(() => setLoading(false));
   }, [filters]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!form.project_id) {
       setTasks([]);
       return;

@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { usePMSRealtime } from "../realtime";
@@ -20,7 +21,7 @@ export default function WorkspaceActivity({ workspaceId, onOpen }: { workspaceId
     } catch (e) { setItems([]); setError(workspaceError(e)); }
     finally { setLoading(false); }
   }, [workspaceId, before, action]);
-  useEffect(() => { setLoading(true); void load(); }, [load]);
+  useRefreshableEffect(() => { setLoading(true); void load(); }, [load]);
   usePMSRealtime({ showToast: false, onEvent: () => { if (!before) void load(); }, onFallbackPoll: () => { if (!before) void load(); } });
   const csv = ["Time,Actor,Action,Summary", ...items.map(e => [e.created_at, e.actor, e.action, e.summary].map(v => `"${String(v).replace(/"/g, '""').replace(/^\s*[=+@-]/, "'$&")}"`).join(","))].join("\r\n");
   return <section className="ws-planning" aria-label="Workspace activity"><header><h2>Activity & export</h2><button className="ws-button ws-outline" onClick={() => { void load(); }}>Refresh</button></header>

@@ -128,9 +128,11 @@ def process_onboarding(db, job, chunk_size=25):
         application_id = job.recipients[job.cursor]
         result = dict(job.result or {"succeeded": 0, "failed": []})
         point = db.begin_nested()
+        approved = False
         try:
             decide_application(application_id, DecisionInput.model_validate(job.payload["decision"]), user, db, commit=False)
             point.commit()
+            approved = job.payload["decision"]["status"] == "Approved"
             result["succeeded"] = result.get("succeeded", 0) + 1
         except (HTTPException, IntegrityError) as exc:
             point.rollback()
@@ -155,4 +157,7 @@ def process_onboarding(db, job, chunk_size=25):
         job.status = "Completed" if job.cursor >= len(job.recipients) else "Pending"
         # The approval and cursor advance commit together, so retries cannot duplicate onboarding.
         db.commit()
+        if approved:
+            from .approval_email import notify_approval
+            notify_approval(db, db.get(InternApplication, application_id))
     return db.get(WorkforceJob, job_id)

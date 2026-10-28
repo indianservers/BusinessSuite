@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { leadsApi } from "./leads/api";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -910,7 +911,7 @@ const apiEntityForKind: Partial<Record<CRMPageKind, string>> = {
 function useCrmRecords<T = CRMRecord>(entity: string | undefined, fallback: T[], params?: Record<string, unknown>): CRMApiState<T[]> {
   const [state, setState] = useState<CRMApiState<T[]>>({ data: fallback, loading: Boolean(entity), error: null });
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!entity) {
       setState({ data: fallback, loading: false, error: null });
       return;
@@ -1046,7 +1047,7 @@ function CRMDashboard() {
   const loading = leadState.loading || contactState.loading || companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || forecastState.loading || calendarState.loading;
   const error = leadState.error || contactState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let cancelled = false;
     setForecastState((current) => ({ ...current, loading: true, error: null }));
     crmApi
@@ -1062,7 +1063,7 @@ function CRMDashboard() {
     };
   }, [start, end]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let cancelled = false;
     const today = new Date();
     const windowStart = new Date(today);
@@ -2871,7 +2872,7 @@ function CRMCalendarPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     loadCalendar();
   }, [range.start.toISOString(), range.end.toISOString(), filters.ownerId, filters.type]);
 
@@ -3398,7 +3399,7 @@ function CRMLeadsPage() {
     };
   }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     leadsApi.bootstrap().then(({ data }) => setOwners(data.owners.map(owner => ({ id: owner.id, userId: owner.id, full_name: owner.name, email: owner.email || "" })))).catch(() => setOwners([]));
     crmApi.territories().then((response) => setTerritories(response.data.items || [])).catch(() => setTerritories([]));
   }, []);
@@ -3687,7 +3688,7 @@ function LeadDetailDrawer({ lead, ownerNames, territoryNames, onClose, onEdit, o
   const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!lead?.id) {
       setTimeline([]);
       return;
@@ -4117,7 +4118,7 @@ function CRMContactsPage() {
     };
   }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey, companyNames, ownerNames]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
     crmApi.list<CRMApiRecord>("companies", { per_page: 100, sort_by: "name", sort_order: "asc" }).then((response) => setCompanies(response.data.items || [])).catch(() => setCompanies([]));
   }, []);
@@ -4437,7 +4438,7 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAdd
   const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!contact?.id) {
       setTimeline([]);
       return;
@@ -4794,7 +4795,7 @@ function CRMAccountsPage() {
     };
   }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey, ownerNames, territoryNames]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
     crmApi.territories().then((response) => setTerritories(response.data.items || [])).catch(() => setTerritories([]));
   }, []);
@@ -5091,7 +5092,7 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
   const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!account?.id) {
       setRelated({});
       setTimeline([]);
@@ -5389,7 +5390,7 @@ function CRMDealsPage() {
     setPage(1);
   }, [debouncedSearch, view, filters, pageSize, sort]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
     crmApi.list<CRMApiRecord>("companies", { per_page: 100, sort_by: "name", sort_order: "asc" }).then((response) => setCompanies(response.data.items.map((item) => normalizeApiRecord("companies", item)))).catch(() => setCompanies([]));
     crmApi.list<CRMApiRecord>("contacts", { per_page: 100, sort_by: "full_name", sort_order: "asc" }).then((response) => setContacts(response.data.items.map((item) => normalizeApiRecord("contacts", item)))).catch(() => setContacts([]));
@@ -5663,7 +5664,7 @@ function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDeal
   const [timeline, setTimeline] = useState<CRMRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!deal?.id) return;
     setLoading(true);
     setError(null);
@@ -6805,7 +6806,7 @@ function CalendarIntegrationsPage() {
     crmApi.calendarIntegrations().then((response) => setItems(response.data.items || [])).catch((err) => setError(err?.response?.data?.detail || "Calendar integrations could not be loaded.")).finally(() => setLoading(false));
   };
   useEffect(load, []);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     const query = new URLSearchParams(window.location.search);
     if (callbackHandled.current || !(query.has("code") || query.has("error"))) return;
     callbackHandled.current = true;
@@ -6914,7 +6915,7 @@ function WebhookSettingsPage() {
     crmApi.webhooks().then((response) => { setWebhooks(response.data.items || []); setEvents(response.data.events || []); }).catch((err) => setError(err?.response?.data?.detail || "Webhooks could not be loaded.")).finally(() => setLoading(false));
   };
   useEffect(load, []);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!selected?.id) {
       setDeliveries([]);
       return;
@@ -7241,7 +7242,7 @@ function CRMReports() {
     return params;
   }, [filters]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     setLoading(true);
     setError(null);
     Promise.all([
@@ -7665,7 +7666,7 @@ function SalesPerformancePage() {
   const [rows, setRows] = useState<CRMApiRecord[]>([]);
   const [summary, setSummary] = useState<CRMApiRecord>({});
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.salesPerformance().then((response) => {
       setRows(response.data.items || []);
       setSummary(response.data.summary || {});
@@ -7689,7 +7690,7 @@ function SalesPerformancePage() {
 function FunnelAnalyticsPage() {
   const [rows, setRows] = useState<CRMApiRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.funnel().then((response) => setRows(response.data.items || [])).catch((err) => setError(err?.response?.data?.detail || "Funnel could not be loaded."));
   }, []);
   return (
@@ -7718,7 +7719,7 @@ function FunnelAnalyticsPage() {
 function LostAnalysisPage() {
   const [report, setReport] = useState<CRMApiRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.lostAnalysis().then((response) => setReport(response.data)).catch((err) => setError(err?.response?.data?.detail || "Lost analysis could not be loaded."));
   }, []);
   const summary = (report?.summary as CRMApiRecord) || {};

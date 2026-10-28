@@ -119,3 +119,18 @@ export async function download(path: string, filename: string) {
   try { await performDownload(path, filename); finish(); }
   catch (error) { finish(false, "Download unavailable. Please try again."); throw error; }
 }
+
+export async function downloadApplicationReceipt(accessToken: string, reference: string) {
+  const response = await fetch(`${API}/interns-hub/applications/receipt`, {
+    headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store",
+  });
+  if (!response.ok) throw new Error("Receipt unavailable. Check your application status again and retry.");
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${reference}-receipt.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

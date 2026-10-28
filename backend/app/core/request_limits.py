@@ -5,7 +5,7 @@ import hmac
 import secrets
 import time
 from fastapi import HTTPException
-from sqlalchemy import delete
+from sqlalchemy import delete, tuple_
 from app.core.config import settings
 from app.models.security_boundary import SecurityRateBucket, SecurityWorkLease
 
@@ -48,10 +48,10 @@ def consume(db, specifications, now=None):
         .limit(100)
         .all()
     )
-    for key, window in keys:
+    if keys:
         db.execute(
             delete(SecurityRateBucket).where(
-                SecurityRateBucket.key == key, SecurityRateBucket.window == window
+                tuple_(SecurityRateBucket.key, SecurityRateBucket.window).in_(keys)
             )
         )
     return 0

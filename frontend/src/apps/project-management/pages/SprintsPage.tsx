@@ -1,3 +1,4 @@
+import { usePageRefresh } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import type React from "react";
 import { FormEvent, useEffect, useState } from "react";
@@ -74,6 +75,11 @@ export default function SprintsPage() {
       setError(apiError(err, "Unable to load sprint planning data."));
     }
   };
+
+  usePageRefresh(async () => {
+    setProjects(await projectsAPI.list());
+    await (projectId ? loadProject(Number(projectId)) : Promise.resolve());
+  });
 
   const switchProject = (value: string) => {
     setProjectId(value);

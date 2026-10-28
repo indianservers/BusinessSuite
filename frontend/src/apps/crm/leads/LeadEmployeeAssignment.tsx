@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Bootstrap, errorMessage, leadsApi } from "./api";
@@ -16,7 +17,7 @@ export default function LeadEmployeeAssignment({
   const [selected, setSelected] = useState(String(ownerId || ""));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     leadsApi
       .bootstrap()

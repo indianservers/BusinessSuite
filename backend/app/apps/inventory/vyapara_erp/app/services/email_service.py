@@ -14,7 +14,8 @@ def send_email(to, subject, body_html, attachment_bytes=None, attachment_name=No
     user = config.get("user")
     password = config.get("password")
     sender = config.get("sender") or user
-    if not host or not sender:
+    ses_enabled = os.environ.get("EMAIL_PROVIDER") == "ses" or os.environ.get("INTERN_HUB_SES_ENABLED", "false").lower() == "true"
+    if not ses_enabled and (not host or not sender):
         logging.info("Email not configured")
         return False
 
@@ -29,11 +30,27 @@ def send_email(to, subject, body_html, attachment_bytes=None, attachment_name=No
         maintype, subtype = ("application", "pdf") if attachment_name.lower().endswith(".pdf") else ("application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         message.add_attachment(payload, maintype=maintype, subtype=subtype, filename=attachment_name)
 
-    with smtplib.SMTP(host, port) as smtp:
-        smtp.starttls()
-        if user and password:
-            smtp.login(user, password)
-        smtp.send_message(message)
+    # The standalone legacy app loads the same dependency-free suite transport.
+    from pathlib import Path
+    from importlib.util import spec_from_file_location, module_from_spec
+    from types import SimpleNamespace
+    module_path = Path(__file__).resolve().parents[6] / "suite_email_transport.py"
+    spec = spec_from_file_location("businesssuite_email_transport", module_path)
+    transport = module_from_spec(spec)
+    spec.loader.exec_module(transport)
+    values = dict(MAIL_SERVER=host, MAIL_PORT=port, MAIL_USERNAME=user or "", MAIL_PASSWORD=password or "",
+        MAIL_FROM=sender, MAIL_FROM_NAME="Business Suite", MAIL_STARTTLS=True, MAIL_SSL_TLS=False,
+        EMAIL_PROVIDER=os.environ.get("EMAIL_PROVIDER", "auto"),
+        INTERN_HUB_SES_ENABLED=os.environ.get("INTERN_HUB_SES_ENABLED", "false").lower() == "true")
+    for key, default in {"SES_REGION":"", "SES_FROM":"", "SES_FROM_NAME":"Business Suite",
+        "SES_CONFIGURATION_SET":"", "SES_SMTP_SERVER":"", "SES_SMTP_USERNAME":"", "SES_SMTP_PASSWORD":"",
+        "INTERN_HUB_SES_REGION":"ap-south-1", "INTERN_HUB_SES_FROM":"noreply@indianservers.com",
+        "INTERN_HUB_SES_SMTP_SERVER":"", "INTERN_HUB_SES_SMTP_USERNAME":"", "INTERN_HUB_SES_SMTP_PASSWORD":""}.items():
+        values[key] = os.environ.get(key, default)
+    for key in ("SES_SMTP_PORT", "INTERN_HUB_SES_SMTP_PORT"):
+        values[key] = int(os.environ.get(key, "587"))
+    transport.send_message(message, settings=SimpleNamespace(**values))
+
     return True
 
 

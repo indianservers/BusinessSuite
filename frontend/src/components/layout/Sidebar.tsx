@@ -1,221 +1,390 @@
-import {useCompanyBranding} from "@/features/access/useCompanyBranding";
-import NavigationShortcuts from "./NavigationShortcuts";
-import ModuleSwitcher from "./ModuleSwitcher";
-import MessagingNavLink from "./MessagingNavLink";
-import PMSMoreMenu from "./PMSMoreMenu";
-import { useSignOut } from "@/hooks/use-sign-out";
-import { Fragment, useEffect, useState } from "react";
+import { Settings as SettingsIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  LogOut,
+  Search,
+  Sparkles,
+  UserCircle,
+  X,
+} from "lucide-react";
+import { useCompanyBranding } from "@/features/access/useCompanyBranding";
+import ModuleSwitcher from "./ModuleSwitcher";
+import { useSignOut } from "@/hooks/use-sign-out";
 import { assetUrl, cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Sparkles, UserCircle, X, LogOut, Search, MoreHorizontal } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { Button } from "@/components/ui/button";
-import { getRoleLabel, getRoleNav } from "@/lib/roles";
-import { BUSINESS_SUITE_DISPLAY_NAME, getProductDisplayName, getProductForContext } from "@/lib/products";
+import { canAccessRoute, getRoleLabel, getRoleNav } from "@/lib/roles";
+import { getProductDisplayName, getProductForContext } from "@/lib/products";
+import {
+  defaultSuitePreferences,
+  suiteScope,
+  useSuitePreferences,
+} from "@/store/suitePreferences";
+import "@/components/suite/suite.css";
 
-interface SidebarProps {
+type Props = {
   open: boolean;
   collapsed: boolean;
   onClose: () => void;
   onToggleCollapse: () => void;
-}
-
-export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
+};
+export default function Sidebar({
+  open,
+  collapsed,
+  onClose,
+  onToggleCollapse,
+}: Props) {
   const location = useLocation();
-  const companyBrand=useCompanyBranding(location.pathname);
-  const { user } = useAuthStore();
-  const isControlCenter = location.pathname.startsWith("/admin/control") || location.pathname.startsWith("/admin/access");
-  const roleNav = getRoleNav(user?.role, user?.is_superuser, location.pathname);
-  const primaryPaths: Record<string, string[]> = {
-    hrms: ["/hrms", "/hrms/employees", "/hrms/interns", "/hrms/attendance", "/hrms/leave", "/hrms/payroll", "/hrms/recruitment"],
-    crm: ["/crm", "/crm/leads", "/crm/contacts", "/crm/deals", "/crm/pipeline", "/crm/tasks"],
-    pms: ["/pms", "/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/notes", "/pms/calendar", "/pms/timesheets"],
-    srm: ["/srm", "/srm/sales-orders", "/srm/invoices", "/srm/collections", "/srm/inventory", "/srm/pos"],
-    fam: ["/fam", "/fam/vouchers", "/fam/ar", "/fam/ap", "/fam/bank-reconciliation", "/fam/ledgers"],
-  };
-  const priorities = primaryPaths[location.pathname.split("/")[1]] || [];
-  const rank = (path: string) => priorities.includes(path) ? priorities.indexOf(path) : priorities.length;
-  const allNavItems = [...roleNav].sort((a, b) => rank(a.to) - rank(b.to));
-  const [internsOpen, setInternsOpen] = useState(true);
-  const [showAll, setShowAll] = useState(false);
-  const [query, setQuery] = useState("");
-  const moduleKey = location.pathname.split("/")[1];
-  useEffect(() => { setShowAll(false); setQuery(""); }, [moduleKey]);
-  const matchingItems = allNavItems.filter(item => !query || `${item.label} ${item.group || ""}`.toLowerCase().includes(query.toLowerCase()));
-  const navItems = isControlCenter || showAll || query ? matchingItems : matchingItems.filter((item, index) => index < 6 || (item.to !== "/" && (location.pathname === item.to || (!item.exact && item.to.split("/").length > 2 && location.pathname.startsWith(`${item.to}/`)))));
+  const user = useAuthStore((s) => s.user);
+  const companyBrand = useCompanyBranding(location.pathname);
+  const product = getProductForContext(
+    location.pathname,
+    user?.role,
+    user?.is_superuser,
+  );
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
-  const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
-  const profilePath = location.pathname.startsWith("/hrms")
-    ? "/hrms/profile"
-    : location.pathname.startsWith("/crm")
-      ? "/crm/profile"
-      : location.pathname.startsWith("/pms")
-        ? "/pms/profile"
-        : location.pathname.startsWith("/srm")
-          ? "/srm/profile"
-          : location.pathname.startsWith("/fam") ? "/fam/profile" : "/";
-  const handleLogout = useSignOut(product.loginPath);
-
+  const scope = suiteScope(user?.id, user?.access?.companyId);
+  const preferences = useSuitePreferences(
+    (s) => s.contexts[scope] || defaultSuitePreferences,
+  );
+  const update = useSuitePreferences((s) => s.update);
+  const [query, setQuery] = useState("");
+  const aside = useRef<HTMLElement>(null);
+  const signOut = useSignOut("/login");
+  const moduleKey = location.pathname.split("/")[1];
+  const allItems = getRoleNav(
+    user?.role,
+    user?.is_superuser,
+    location.pathname,
+  ).filter((item) =>
+    canAccessRoute(item.to.split("?")[0], user?.role, user?.is_superuser),
+  );
+  const items = allItems.filter(
+    (item) =>
+      !query.trim() ||
+      `${item.label} ${item.group || ""}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
+  );
+  const groups = Array.from(
+    new Set(items.map((item) => item.group || "Workspace")),
+  );
+  const active = allItems
+    .filter(
+      (item) =>
+        location.pathname === item.to.split("?")[0] ||
+        location.pathname.startsWith(item.to.split("?")[0] + "/"),
+    )
+    .sort((a, b) => b.to.length - a.to.length)[0];
+  const activeGroup = active?.group || "Workspace";
+  const previousPath = useRef(location.pathname);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    setQuery("");
+  }, [moduleKey]);
+  useEffect(() => {
+    if (previousPath.current === location.pathname) return;
+    previousPath.current = location.pathname;
+    const current =
+      useSuitePreferences.getState().contexts[scope] || defaultSuitePreferences;
+    const key = `${moduleKey}:${activeGroup}`;
+    if (current.groups[key] === false)
+      update(scope, { groups: { ...current.groups, [key]: true } });
+  }, [location.pathname, moduleKey, activeGroup, scope, update]);
+  useEffect(() => {
+    if (!open || !aside.current) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const focusable = () =>
+      Array.from(
+        aside.current!.querySelectorAll<HTMLElement>(
+          "a[href],button:not([disabled]),input,select",
+        ),
+      ).filter((el) => el.getClientRects().length > 0);
+    focusable()[0]?.focus();
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close.current();
+      }
+      if (event.key === "Tab") {
+        const elements = focusable();
+        const first = elements[0],
+          last = elements[elements.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+      previous?.focus();
+    };
+  }, [open]);
   return (
-    <>
-      <aside
+    <aside
+      ref={aside}
+      aria-label="Application navigation"
+      role={open ? "dialog" : undefined}
+      aria-modal={open ? true : undefined}
+      className={cn(
+        "suite-sidebar fixed inset-y-0 left-0 z-30 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+        collapsed ? "w-16" : "w-64",
+        open ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        !open && "invisible lg:visible",
+      )}
+    >
+      <div
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300",
-          "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-          collapsed ? "w-16" : "w-64",
-          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          "flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border px-3",
+          collapsed ? "justify-center" : "justify-between",
         )}
       >
-        {/* Header */}
-        <div className={cn(
-          "flex h-16 items-center border-b border-sidebar-border px-4",
-          collapsed ? "justify-center" : "justify-between"
-        )}>
-          {!collapsed && (
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                {companyBrand.logo ? <img src={assetUrl(companyBrand.logo)} alt={companyBrand.name || "Company logo"} className="h-8 w-8 rounded-lg object-contain bg-white" /> : <Sparkles className="h-4 w-4 text-white" />}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-sidebar-foreground">{companyBrand.name || product.name}</p>
-                <p className="text-[10px] text-sidebar-foreground/50">{getProductDisplayName(product)} / {roleLabel}</p>
-              </div>
-            </div>
-          )}
-          {collapsed && (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-              {companyBrand.logo ? <img src={assetUrl(companyBrand.logo)} alt={companyBrand.name || "Company logo"} className="h-8 w-8 rounded-lg object-contain bg-white" /> : <Sparkles className="h-4 w-4 text-white" />}
-            </div>
-          )}
-          <div className="flex items-center gap-1">
-            {!collapsed && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent lg:flex hidden"
-                onClick={onToggleCollapse}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
+        <Link
+          to="/dashboard"
+          onClick={onClose}
+          className="flex min-w-0 items-center gap-2"
+          aria-label="Business Suite home"
+        >
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sidebar-primary">
+            {companyBrand.logo ? (
+              <img
+                src={assetUrl(companyBrand.logo)}
+                alt=""
+                className="h-8 w-8 rounded-lg bg-white object-contain"
+              />
+            ) : (
+              <Sparkles size={17} className="text-white" />
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent lg:hidden"
+          </span>
+          {!collapsed && (
+            <span className="min-w-0">
+              <strong className="block truncate text-sm">
+                {user?.access?.companyName || companyBrand.name || product.name}
+              </strong>
+              <small className="block truncate text-[10px] opacity-70">
+                {getProductDisplayName(product)} · {roleLabel}
+              </small>
+            </span>
+          )}
+        </Link>
+        {!collapsed && (
+          <>
+            <button
+              className="hidden h-11 w-8 shrink-0 items-center justify-center lg:flex"
+              aria-label="Collapse navigation"
+              onClick={onToggleCollapse}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              className="grid h-11 w-8 shrink-0 place-items-center lg:hidden"
+              aria-label="Close navigation"
               onClick={onClose}
             >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {!collapsed && <ModuleSwitcher />}
-        {!isControlCenter && (user?.is_superuser || user?.access?.isAccessAdmin) && <Link to="/admin/access" onClick={onClose} className="mx-3 my-2 rounded-lg border border-sidebar-border px-3 py-2 text-xs font-medium hover:bg-sidebar-accent">Users & Access</Link>}
-        {/* Collapse toggle when collapsed */}
-        {collapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mx-auto mt-2 h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent hidden lg:flex"
-            onClick={onToggleCollapse}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+              <X size={19} />
+            </button>
+          </>
         )}
-
-        {/* Navigation */}
-        <nav aria-label="Module navigation" className="flex-1 overflow-y-auto py-4">
-          {!collapsed && <label className="mx-3 mb-3 flex items-center gap-2 rounded-md border border-sidebar-border px-2 py-2"><Search className="h-3.5 w-3.5 shrink-0 opacity-50" /><input aria-label="Find a page" placeholder="Find a page…" value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 w-full bg-transparent text-xs outline-none" /></label>}
-          <ul className={cn("px-2", collapsed ? "space-y-0.5" : "space-y-1")}>
-            {navItems.map((item, index) => {
-              const showGroup = !collapsed && (isControlCenter || showAll || Boolean(query)) && item.group && item.group !== navItems[index - 1]?.group;
-              return (
-                <Fragment key={`${item.to}:${item.label}`}>
-                  {showGroup && (
-                    <li className={cn(index > 0 && "pt-3")}>
-                      {index > 0 && <hr className="mb-3 border-sidebar-border" />}
-                      <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-sidebar-foreground/45">
-                        {item.group}
-                      </p>
-                    </li>
-                  )}
-                  <li>
-                    {item.to === "/hrms/interns" ? <><button className="nav-link nav-link-inactive w-full" aria-expanded={internsOpen} onClick={()=>setInternsOpen(!internsOpen)}><item.icon className="h-4 w-4"/>{!collapsed && <span>Intern Management {internsOpen ? '-' : '+'}</span>}</button>{internsOpen && <ul className={collapsed ? '' : 'ml-4 border-l pl-2'}>{[['operations','Profiles & Work'],['dashboard','Dashboard'],['applications','Signups & Approvals'],['list','All Interns'],['batches','Batches'],['tasks','Task Assignment'],['reviews','Daily Reports & Reviews'],['performance','Performance & Completion']].map(([path,label])=><li key={path}><NavLink to={'/hrms/interns/'+path} onClick={onClose} title={label} className={({isActive})=>'nav-link text-xs '+(isActive?'nav-link-active':'nav-link-inactive')}>{collapsed ? label[0] : label}</NavLink></li>)}</ul>}</> : <NavLink
-                      to={item.to}
-                      end={item.exact}
-                      className={({ isActive }) =>
-                        cn(
-                          "nav-link",
-                          (isActive && (!isControlCenter || !item.to.startsWith("/admin/access") || (item.to.includes("?") ? location.search.includes("tab=Roles") : !location.search.includes("tab=Roles")))) ? "nav-link-active" : "nav-link-inactive",
-                          collapsed && "justify-center px-2"
-                        )
-                      }
-                      title={collapsed ? item.label : undefined}
-                      onClick={onClose}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && (
-                        <span className="flex-1">{item.label}</span>
-                      )}
-                      {!collapsed && item.badge && (
-                        <span className="rounded-full bg-sidebar-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
-                          {item.badge}
-                        </span>
-                      )}
-                    </NavLink>}
-                  </li>
-                </Fragment>
-              );
-            })}
-          </ul>
-          {!navItems.length && <p className="px-5 py-3 text-xs text-sidebar-foreground/60">No matching pages.</p>}
-          {["pms","crm","hrms","srm","fam"].includes(moduleKey) && !navItems.some(item=>item.to===`/${moduleKey}/messages`) && <MessagingNavLink collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
-          {!isControlCenter && !query && !showAll && <NavigationShortcuts excludedPaths={navItems.map(item => item.to)} collapsed={collapsed} onNavigate={onClose} />}
-          {moduleKey === "pms" && <PMSMoreMenu collapsed={collapsed} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs" />}
-          {!isControlCenter && moduleKey !== "pms" && allNavItems.length > 6 && !query && <button type="button" aria-label={showAll ? "Show fewer pages" : "Show all pages"} aria-expanded={showAll} onClick={() => setShowAll(value => !value)} className="nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2 text-xs"><MoreHorizontal className="h-4 w-4" />{!collapsed && (showAll ? "Show fewer" : `More pages (${allNavItems.length - navItems.length})`)}</button>}
-        </nav>
-
-        {/* User section */}
-        <div className="border-t border-sidebar-border p-4">
-          {!collapsed && (
-            <div className="mb-3 rounded-md border border-sidebar-border/70 px-3 py-2 text-[10px] font-medium text-sidebar-foreground/55">
-              {companyBrand.name || BUSINESS_SUITE_DISPLAY_NAME}
-            </div>
-          )}
-          <NavLink
-            to={profilePath}
-            end
-            className={({ isActive }) =>
-              cn(
-                "nav-link",
-                isActive ? "nav-link-active" : "nav-link-inactive",
-                collapsed && "justify-center px-2"
-              )
-            }
-            onClick={onClose}
-          >
-            <UserCircle className="h-4 w-4 shrink-0" />
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{user?.email}</p>
-                <p className="text-[10px] text-sidebar-foreground/50 capitalize">
-                  {roleLabel}
-                </p>
-              </div>
-            )}
-          </NavLink>
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "nav-link nav-link-inactive mt-1 w-full text-red-500 hover:bg-red-100 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300",
-              collapsed && "justify-center px-2"
-            )}
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Logout</span>}
-          </button>
+      </div>
+      {collapsed && (
+        <button
+          className="mx-auto mt-1 grid h-11 w-11 place-items-center"
+          aria-label="Expand navigation"
+          onClick={onToggleCollapse}
+        >
+          <ChevronRight size={18} />
+        </button>
+      )}
+      <Link
+        to="/dashboard"
+        className="suite-shell-home"
+        onClick={onClose}
+        aria-label="All applications"
+        title="All applications"
+      >
+        <LayoutGrid size={18} />
+        {!collapsed && "All applications"}
+      </Link>
+      {!collapsed && (
+        <div className="px-3">
+          <ModuleSwitcher />
         </div>
-      </aside>
-    </>
+      )}
+      {!collapsed && (user?.is_superuser || user?.access?.isAccessAdmin) && (
+        <Link
+          to="/admin/access"
+          onClick={onClose}
+          className="mx-3 mt-2 rounded-lg border border-sidebar-border px-3 py-3 text-xs"
+        >
+          Users & access
+        </Link>
+      )}
+      <nav
+        aria-label="Module navigation"
+        className="min-h-0 flex-1 overflow-y-auto py-3"
+      >
+        {!collapsed && (
+          <label className="mx-3 mb-3 flex min-h-11 items-center gap-2 rounded-md border border-sidebar-border px-2">
+            <Search size={15} className="shrink-0 opacity-70" />
+            <input
+              aria-label="Find a page in this application"
+              placeholder="Find a page…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setQuery("");
+              }}
+              className="min-w-0 w-full bg-transparent py-3 text-xs outline-none"
+            />
+          </label>
+        )}
+        <ul className="px-2">
+          {groups.map((group, groupIndex) => {
+            const key = `${moduleKey}:${group}`;
+            const expanded =
+              !!query ||
+              collapsed ||
+              (preferences.groups[key] ??
+                (group === activeGroup || groupIndex === 0));
+            return (
+              <li key={group}>
+                {!collapsed && (
+                  <button
+                    className="suite-nav-group"
+                    aria-expanded={expanded}
+                    aria-controls={`nav-group-${groupIndex}`}
+                    onClick={() =>
+                      update(scope, {
+                        groups: { ...preferences.groups, [key]: !expanded },
+                      })
+                    }
+                  >
+                    <span>{group}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                )}
+                {expanded && (
+                  <ul
+                    id={`nav-group-${groupIndex}`}
+                    className="suite-nav-sublist"
+                  >
+                    {items
+                      .filter((item) => (item.group || "Workspace") === group)
+                      .map((item) => (
+                        <li key={item.to + item.label}>
+                          <NavLink
+                            to={item.to}
+                            end={item.exact || item.to.split("/").length === 2}
+                            title={collapsed ? item.label : undefined}
+                            aria-label={item.label}
+                            onClick={onClose}
+                            className={({ isActive }) =>
+                              cn(
+                                "nav-link min-h-11",
+                                isActive &&
+                                  (!item.to.includes("?") ||
+                                    location.search ===
+                                      "?" + item.to.split("?")[1])
+                                  ? "nav-link-active"
+                                  : "nav-link-inactive",
+                                collapsed && "justify-center px-2",
+                              )
+                            }
+                          >
+                            <item.icon size={17} className="shrink-0" />
+                            {!collapsed && <span>{item.label}</span>}
+                          </NavLink>
+                          {item.to === "/hrms/interns" && !collapsed && (
+                            <details className="ml-5">
+                              <summary className="cursor-pointer py-3 text-xs">
+                                Intern management pages
+                              </summary>
+                              <ul>
+                                {[
+                                  ["operations", "Profiles & work"],
+                                  ["dashboard", "Dashboard"],
+                                  ["applications", "Signups & approvals"],
+                                  ["list", "All interns"],
+                                  ["batches", "Batches"],
+                                  ["tasks", "Task assignment"],
+                                  ["reviews", "Daily reports & reviews"],
+                                  ["performance", "Performance & completion"],
+                                ].map(([path, label]) => (
+                                  <li key={path}>
+                                    <NavLink
+                                      to={`/hrms/interns/${path}`}
+                                      onClick={onClose}
+                                      className="nav-link min-h-11 text-xs"
+                                    >
+                                      {label}
+                                    </NavLink>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {!items.length && (
+          <p className="px-4 py-3 text-xs opacity-70" role="status">
+            No matching pages. Try another name.
+          </p>
+        )}
+      <Link to="/settings" className={cn("nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2", collapsed && "justify-center")} title="Settings" onClick={onClose}><SettingsIcon className="h-4 w-4" />{!collapsed && "Settings"}</Link>
+      </nav>
+      <div className="shrink-0 border-t border-sidebar-border p-2">
+        <Link
+          to="/account"
+          className={cn("nav-link min-h-11", collapsed && "justify-center")}
+          aria-label="My account"
+          title="My account"
+          onClick={onClose}
+        >
+          <UserCircle size={18} />
+          {!collapsed && (
+            <span className="truncate text-xs">{user?.email}</span>
+          )}
+        </Link>
+        <Link
+          to="/help"
+          className={cn(
+            "nav-link min-h-11 text-xs",
+            collapsed && "justify-center",
+          )}
+          onClick={onClose}
+          aria-label="Help and support"
+        >
+          {collapsed ? "?" : "Help & support"}
+        </Link>
+        <button
+          onClick={() => void signOut()}
+          className={cn(
+            "nav-link min-h-11 w-full text-red-400",
+            collapsed && "justify-center",
+          )}
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut size={17} />
+          {!collapsed && "Sign out"}
+        </button>
+      </div>
+    </aside>
   );
 }

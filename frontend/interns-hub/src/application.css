@@ -1024,3 +1024,9 @@
 @media (max-height: 600px) and (orientation: landscape) {
   .application-signin-layout { place-items: start center; padding-block: 20px; }
 }
+
+.free-program-notice { display:flex; align-items:flex-start; gap:12px; margin:0 auto; padding:16px 5%; background:#eff8f3; color:#174b34; border-bottom:1px solid #cae6d4; font-size:14px; line-height:1.6; }
+.free-program-notice svg { flex-shrink:0; margin-top:3px; }
+.free-program-notice p { margin:0; }
+.free-program-notice a { color:inherit; font-weight:700; text-decoration:underline; }
+.receipt-download { margin: 16px 0; }

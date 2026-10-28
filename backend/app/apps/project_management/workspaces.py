@@ -210,10 +210,17 @@ def invite(workspace_id: int, data: InviteInput, db: Session = Depends(get_db), 
     token = secrets.token_urlsafe(32)
     invitation = PMSWorkspaceInvitation(workspace_id=workspace_id, email=email, role=data.role, token_hash=hashlib.sha256(token.encode()).hexdigest(), expires_at=datetime.utcnow() + timedelta(days=7))
     db.add(invitation)
+    from app.services.email_dispatch import queue_email
+    from app.core.config import settings
+    queue_email(db, recipient=email, module="pms", organization_id=workspace.organization_id,
+        subject="You are invited to a Business Suite workspace",
+        body="You have been invited to a workspace. Open this single-use invitation to accept:\n"
+            + settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/pms/workspaces?invite=" + token,
+        event_key="workspace-invite:" + invitation.token_hash)
     if recipient:
-        db.add(Notification(user_id=recipient.id, title="Workspace invitation", message=f"You were invited to {workspace.name} as {data.role}.", module="project_management", action_url="/pms/workspaces?invite=" + token))
+        db.add(Notification(user_id=recipient.id, title="Workspace invitation", message=f"You were invited to {workspace.name} as {data.role}.", module="project_management", event_type="email.workspace_invitation", action_url="/pms/workspaces?invite=" + token))
     db.commit()
-    return {"id": invitation.id, "email": email, "role": data.role, "token": token, "status": "pending", "expires_at": invitation.expires_at, "delivery": "in_app_and_share_link" if recipient else "share_link"}
+    return {"id": invitation.id, "email": email, "role": data.role, "token": token, "status": "pending", "expires_at": invitation.expires_at, "delivery": "email_queued_and_share_link"}
 
 
 @router.get("/workspaces/{workspace_id}/invitations")

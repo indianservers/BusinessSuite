@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_vali
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
+from app.core.reporting_managers import eligible_reporting_manager, eligible_manager_account
 from app.core.config import settings
 from app.core.deps import get_current_user, get_db
 from app.core.security import get_password_hash, verify_password
@@ -127,14 +128,17 @@ class ApplicationInput(BaseModel):
     @field_validator('passout_year')
     @classmethod
     def valid_passout(cls,value,info: ValidationInfo):
-        if value>today().year:raise ValueError(f'Pass-out year must be between 1970 and {today().year}')
+        maximum = max(2029, today().year)
+        if value>maximum:raise ValueError(f'Pass-out year must be between 1970 and {maximum}')
         return value
 
 
 
 def receipt(item, db):
+    from .application_receipts import receipt_token
+    from .correction_reminders import correction_deadline
     employee = db.get(Employee, item.employee_id) if item.employee_id else None
-    return {"lifecycle":item.lifecycle,"history":[{"state":e.state,"note":e.note,"created_at":e.created_at} for e in db.query(ApplicationEvent).filter_by(application_id=item.id).order_by(ApplicationEvent.id)],"reference": item.reference, "status": item.status, "intern_id": employee.employee_id if employee else None,
+    return {"receipt_token": receipt_token(item), "correction_deadline": correction_deadline(db, item), "lifecycle":item.lifecycle,"history":[{"state":e.state,"note":e.note,"created_at":e.created_at} for e in db.query(ApplicationEvent).filter_by(application_id=item.id).order_by(ApplicationEvent.id) if not e.state.startswith("Correction Reminder")],"reference": item.reference, "status": item.status, "intern_id": employee.employee_id if employee else None,
             "review_note": item.review_note, "can_login": item.status == "Approved" and employee is not None and employee.status in {"Active", "Probation"} and employee.deleted_at is None and bool(employee.user and employee.user.is_active)}
 
 
@@ -204,7 +208,7 @@ def apply(data: ApplicationInput, request: Request, db: Session = Depends(get_db
     _check_ip_policy(db, request)
     _validate_password_policy(db, data.password)
     email = str(data.email).lower()
-    if db.query(InternApplication.id).filter_by(email=email).first() or db.query(User.id).filter(func.lower(User.email) == email).first():
+    if db.query(InternApplication.id).filter(func.lower(InternApplication.email) == email).first() or db.query(User.id).filter(func.lower(User.email) == email).first():
         raise HTTPException(409, "An application or account already exists for this email. Check your application status or sign in.")
     digest = hashlib.sha256(("intern-application:" + settings.SECRET_KEY).encode()).digest()
     cipher = Fernet(base64.urlsafe_b64encode(digest))
@@ -221,12 +225,46 @@ def apply(data: ApplicationInput, request: Request, db: Session = Depends(get_db
     except IntegrityError:
         db.rollback()
         raise HTTPException(409, "An application already exists for this email")
+    from .confirmation_email import send_confirmation
+    try:
+        send_confirmation(db, item)
+    except Exception:
+        db.rollback()
+        import logging
+        logging.getLogger(__name__).warning("intern_application_confirmation_audit_failed")
     return receipt(item, db)
 
 
 class StatusInput(BaseModel):
     email: EmailAddress
     password: str = Field(min_length=1, max_length=72)
+
+
+@router.get("/applications/receipt")
+def download_receipt(request: Request, db: Session = Depends(get_db)):
+    import jwt
+    from fastapi.responses import Response
+    from .application_receipts import receipt_pdf
+    from .correction_reminders import correction_deadline
+    try:
+        scheme, token = request.headers.get("Authorization", "").split(" ", 1)
+        if scheme.lower() != "bearer":
+            raise ValueError("Invalid authorization")
+        claims = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
+            audience="intern-receipt", issuer="interns-hub",
+            options={"require": ["exp", "sub", "reference", "organization"]})
+        if claims["organization"] != settings.INTERN_HUB_ORGANIZATION_ID:
+            raise ValueError("Invalid organization")
+        application_id = int(claims["sub"])
+    except (ValueError, KeyError, jwt.PyJWTError):
+        raise HTTPException(401, "Check your application status again to download a receipt") from None
+    item = db.query(InternApplication).filter_by(id=application_id,
+        organization_id=claims["organization"], reference=claims["reference"]).first()
+    if not item:
+        raise HTTPException(404, "Application not found")
+    return Response(receipt_pdf(item, correction_deadline(db, item)), media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{item.reference}-receipt.pdf"',
+                 "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.post("/applications/status")
@@ -258,13 +296,14 @@ def applications(page:int=Query(1,ge=1),per_page:int=Query(100,ge=1,le=200),user
 def reporting_managers(user=Depends(application_admin), db: Session = Depends(get_db)):
     organization = tenant(user)
     employees = db.query(Employee).outerjoin(Branch, Employee.branch_id == Branch.id).options(
-        joinedload(Employee.branch), joinedload(Employee.user).joinedload(User.person)).filter(
+        joinedload(Employee.branch), joinedload(Employee.user).joinedload(User.person),
+        joinedload(Employee.user).joinedload(User.role)).filter(
         Employee.deleted_at.is_(None), Employee.status.in_(["Active", "Probation"]),
         func.lower(func.coalesce(Employee.employment_type, "")).notin_(["intern"]),
         (Branch.company_id == organization) | Employee.branch_id.is_(None)).all()
     result = []
     for employee in employees:
-        if (employee.employment_type or "").lower() == "intern":
+        if not eligible_reporting_manager(employee):
             continue
         if employee.branch and employee.branch.company_id != organization:
             continue
@@ -273,7 +312,7 @@ def reporting_managers(user=Depends(application_admin), db: Session = Depends(ge
         result.append({"id": employee.id, "name": f"{employee.first_name} {employee.last_name} ({employee.employee_id})"})
     # Negative option IDs distinguish accounts from employee IDs in the selector only.
     for account in db.query(User).options(joinedload(User.person), joinedload(User.employee).joinedload(Employee.branch)).filter(User.is_active.is_(True), User.is_superuser.is_(True)).all():
-        if tenant(account) != organization:
+        if tenant(account) != organization or not eligible_manager_account(account):
             continue
         employee = account.employee
         if employee:
@@ -294,6 +333,7 @@ class DecisionInput(BaseModel):
     reporting_manager_user_id: int | None = Field(default=None, gt=0)
     date_of_joining: date | None = None
     review_note: str = Field("", max_length=2000)
+    correction_deadline: date | None = None
 
 
 @router.post("/admin/applications/{application_id}/decision")
@@ -308,6 +348,8 @@ def decide_application(application_id, data, user, db, *, commit=True):
     if item.status not in {"Pending","Correction Requested"}:
         raise HTTPException(409, "This application has already been reviewed")
     if data.status != "Approved" and not data.review_note.strip():raise HTTPException(422,"A rejection/correction reason is required")
+    if data.status == "Correction Requested" and data.correction_deadline and data.correction_deadline < today():
+        raise HTTPException(422, "Correction deadline must be today or later")
     if data.status == "Approved":
         if not all([data.branch_id, data.department_id, data.designation_id, data.reporting_manager_id or data.reporting_manager_user_id, data.date_of_joining]):
             raise HTTPException(422, "Assign a branch, department, designation, manager and joining date")
@@ -331,8 +373,8 @@ def decide_application(application_id, data, user, db, *, commit=True):
                 db.add(manager)
                 db.flush()
         if manager and manager.branch and manager.branch.company_id!=tenant(user):raise HTTPException(403,"Manager is outside this organization")
-        if not manager or manager.deleted_at or manager.status not in {"Active", "Probation"} or (manager.employment_type or "").lower() == "intern":
-            raise HTTPException(422, "Choose an active employee as reporting manager")
+        if not eligible_reporting_manager(manager):
+            raise HTTPException(422, "Choose a Super Admin, CEO, HR or Project Manager as reporting manager")
         if db.query(User.id).filter(func.lower(User.email) == item.email).first():
             raise HTTPException(409, "An account with this email already exists. Resolve it before approval.")
         is_intern=item.details.get("employment_type","Intern")=="Intern"
@@ -370,6 +412,9 @@ def decide_application(application_id, data, user, db, *, commit=True):
     item.lifecycle='Active' if data.status=='Approved' else data.status
     states=['Approved','Onboarded','Active'] if data.status=='Approved' else [data.status]
     for state in states:db.add(ApplicationEvent(application_id=item.id,actor_user_id=user.id,state=state,note=data.review_note))
+    if data.status == "Correction Requested":
+        db.add(ApplicationEvent(application_id=item.id, actor_user_id=user.id, state="Correction Deadline",
+            note=str(data.correction_deadline or today() + timedelta(days=7))))
     item.status = data.status
     if data.status == "Approved":
         from app.common.services.profiles import seed_application_profile
@@ -383,6 +428,9 @@ def decide_application(application_id, data, user, db, *, commit=True):
         if commit:
             db.rollback()
         raise HTTPException(409, "The application was updated concurrently. Refresh and try again.")
+    if commit and data.status == "Approved":
+        from .approval_email import notify_approval
+        notify_approval(db, item)
     return receipt(item, db)
 
 

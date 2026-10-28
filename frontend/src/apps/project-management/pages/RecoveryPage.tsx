@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { DatabaseBackup, Download, ShieldCheck } from "lucide-react";
@@ -105,14 +106,14 @@ export default function RecoveryPage() {
       active = false;
     };
   }, []);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     setRestore(null);
     setPoints([]);
     setHistory([]);
     setError("");
     void load().catch((e: any) => setError(workspaceError(e)));
   }, [selected, workspace?.role]);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (user?.is_superuser)
       void loadFull().catch((e: any) => setError(workspaceError(e)));
   }, [user?.is_superuser]);

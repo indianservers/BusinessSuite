@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CalendarDays, Gauge, RefreshCw, Users } from "lucide-react";
@@ -47,7 +48,7 @@ export default function WorkloadPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     load();
   }, [filters.projectId, filters.sprintId, filters.teamId, filters.from, filters.to, filters.basis]);
 

@@ -29,6 +29,8 @@ from app.models.company import Company
 from app.common.services.identity import SharedIdentityService
 
 router = APIRouter(prefix="/access", tags=["Master Suite Users & Access"])
+from app.access.settings_hub import router as settings_router
+router.include_router(settings_router)
 
 
 class Strict(BaseModel):
@@ -180,6 +182,14 @@ def my_access(
 ):
     company = actor.organization_id
     policy = service.policy_for(db, actor, company)
+    from sqlalchemy import select
+    from app.core.tenant_boundary import company_ids
+    memberships = sorted((company_ids(db, actor) if service.schema_ready(db) else set()) | {service.primary_company(actor)})
+    # Only membership names cross the active-company ORM boundary; no business
+    # records or unassigned companies are read by this switcher metadata query.
+    organizations = db.connection().execute(
+        select(Company.id, Company.name).where(Company.id.in_(memberships)).order_by(Company.name)
+    ).all()
     return {
         "managed": bool(policy and not actor.is_superuser),
         "companyId": company,
@@ -203,7 +213,9 @@ def my_access(
         ),
         "companyDisabledModules": [key for key, enabled in entitlements.states(db, company).items() if not enabled],
         "modules": catalog(db),
-        "memberships": sorted(service.companies_for(db, actor)),
+        "memberships": memberships,
+        "companyName": next((org.name for org in organizations if org.id == company), None),
+        "organizations": [{"id": org.id, "name": org.name} for org in organizations],
     }
 
 

@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useState } from "react";
 import {
@@ -629,7 +630,7 @@ export function LeadTeamPanel({
     window.addEventListener("beforeunload", protect);
     return () => window.removeEventListener("beforeunload", protect);
   }, [body, mentions]);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     leadsApi
       .team(lead.id)

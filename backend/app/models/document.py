@@ -1,7 +1,88 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Date, DateTime, Text
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Date, DateTime, Text, JSON, LargeBinary, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
+
+
+class StudioAsset(Base):
+    __tablename__ = "document_studio_assets"
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    kind = Column(String(20), nullable=False)
+    name = Column(String(200), nullable=False)
+    content_type = Column(String(80), nullable=False)
+    content = Column(LargeBinary, nullable=False)
+    sha256 = Column(String(64), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class StudioLetterhead(Base):
+    __tablename__ = "document_studio_letterheads"
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    header_text = Column(Text, nullable=False, default="")
+    footer_text = Column(Text, nullable=False, default="")
+    accent_color = Column(String(7), nullable=False, default="#173b56")
+    show_company_header = Column(Boolean, nullable=False, default=True)
+    logo_asset_id = Column(Integer, ForeignKey("document_studio_assets.id"))
+    background_asset_id = Column(Integer, ForeignKey("document_studio_assets.id"))
+    signature_asset_id = Column(Integer, ForeignKey("document_studio_assets.id"))
+    signatory_name = Column(String(150), nullable=False, default="")
+    signatory_title = Column(String(150), nullable=False, default="Authorized Signatory")
+    top_margin_mm = Column(Integer, nullable=False, default=44)
+    bottom_margin_mm = Column(Integer, nullable=False, default=25)
+    version = Column(Integer, nullable=False, default=1)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class StudioTemplate(Base):
+    __tablename__ = "document_studio_templates"
+    __table_args__ = (UniqueConstraint("organization_id", "starter_key", name="uq_studio_template_starter"),)
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    document_type = Column(String(80), nullable=False)
+    kind = Column(String(20), nullable=False)
+    orientation = Column(String(20), nullable=False, default="portrait")
+    recipient_scope = Column(String(20), nullable=False, default="both")
+    title = Column(Text, nullable=False)
+    body = Column(Text, nullable=False)
+    custom_fields = Column(JSON, nullable=False, default=list)
+    letterhead_id = Column(Integer, ForeignKey("document_studio_letterheads.id"))
+    starter_key = Column(String(60))
+    version = Column(Integer, nullable=False, default=1)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class StudioDocument(Base):
+    __tablename__ = "document_studio_documents"
+    __table_args__ = (UniqueConstraint("organization_id", "request_key", name="uq_studio_document_request"),)
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    reference = Column(String(60), nullable=False, unique=True)
+    template_id = Column(Integer, ForeignKey("document_studio_templates.id", ondelete="SET NULL"))
+    template_version = Column(Integer, nullable=False)
+    recipient_type = Column(String(20), nullable=False)
+    recipient_id = Column(Integer, nullable=False, index=True)
+    recipient_name = Column(String(250), nullable=False)
+    title = Column(String(250), nullable=False)
+    document_type = Column(String(80), nullable=False)
+    status = Column(String(20), nullable=False, default="Issued")
+    issue_date = Column(Date, nullable=False)
+    snapshot = Column(JSON, nullable=False)
+    request_key = Column(String(100), nullable=False)
+    request_hash = Column(String(64), nullable=False)
+    issued_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    issued_at = Column(DateTime(timezone=True), server_default=func.now())
+    revoked_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    revoked_at = Column(DateTime(timezone=True))
+    revoke_reason = Column(Text)
 
 
 class DocumentTemplate(Base):

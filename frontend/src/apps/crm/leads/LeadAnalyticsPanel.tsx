@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import { LeadAnalytics, errorMessage, leadsApi } from "./api";
 
@@ -10,7 +11,7 @@ export function LeadAnalyticsPanel({
 }) {
   const [data, setData] = useState<LeadAnalytics>();
   const [error, setError] = useState("");
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     leadsApi
       .analytics()

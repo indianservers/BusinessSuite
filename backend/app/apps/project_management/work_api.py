@@ -95,7 +95,9 @@ def my_assignments(page:int=Query(1,ge=1),per_page:int=Query(50,ge=1,le=200),use
     from sqlalchemy import func
     from app.apps.srm.services.commercial import tenant
     q=db.query(PMSTaskAssignee,PMSTask).join(PMSTask,PMSTask.id==PMSTaskAssignee.task_id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(PMSTaskAssignee.user_id==user.id,PMSTask.deleted_at.is_(None),PMSProject.deleted_at.is_(None),func.coalesce(PMSProject.organization_id,1)==tenant(user))
-    return {'items':[{'id':t.id,'title':t.title,'description':t.description,'project_id':t.project_id,'status':'Cancelled' if a.cancelled_at else a.execution_status,'due_date':a.due_date or t.due_date,'progress':a.progress_percent,'notes':a.work_notes,'reviewer_user_id':a.reviewer_user_id,'maximum_score':a.maximum_score} for a,t in q.order_by(PMSTask.id.desc()).offset((page-1)*per_page).limit(per_page)],'total':q.count()}
+    rows=q.order_by(PMSTask.id.desc()).offset((page-1)*per_page).limit(per_page).all()
+    details=work.plan_details_many(db,[(t.id,a.user_id) for a,t in rows])
+    return {'items':[{'id':t.id,'title':t.title,'description':t.description,'project_id':t.project_id,'status':'Cancelled' if a.cancelled_at else a.execution_status,'due_date':a.due_date or t.due_date,'start_date':t.start_date,'progress':a.progress_percent,'notes':a.work_notes,'reviewer_user_id':a.reviewer_user_id,'maximum_score':a.maximum_score,**details[(t.id,a.user_id)]} for a,t in rows],'total':q.count()}
 
 class ProgressInput(BaseModel):
     progress_percent:int=Field(ge=0,le=99)
@@ -138,6 +140,9 @@ def control(task_id:int,assignee_id:int,data:AssignmentControl,user=Depends(get_
     elif data.action=='cancel':a.cancelled_at=datetime.now(timezone.utc)
     elif data.action=='restore':a.cancelled_at=None
     else:
+        from .models import PMSInternAssignmentPlan
+        if db.get(PMSInternAssignmentPlan, (task_id, assignee_id)):
+            raise HTTPException(409, 'Publish a new task pack for reassignment so dependencies and rubric remain consistent')
         target=db.get(User,data.new_user_id) if data.new_user_id else None
         if not target or not target.is_active or not target.employee:raise HTTPException(422,'Choose an active approved account')
         get_employee(db,user,target.employee.id)
@@ -157,6 +162,13 @@ def reviewer(task_id:int,user_id:int,data:ReviewerInput,user=Depends(get_current
     project=get_project_for_action(db,task.project_id,user,"manage_tasks")
     actor=db.get(User,data.reviewer_user_id)
     if not actor or not actor.is_active or not can_access_project(db,project,actor,"approve"):raise HTTPException(403,"Reviewer lacks PMS approval permission")
+    from .models import PMSInternAssignmentPlan
+    if db.get(PMSInternAssignmentPlan, (task_id, user_id)):
+        from app.apps.interns_hub.management_access import require_admin
+        from app.apps.srm.services.commercial import tenant
+        require_admin(actor)
+        if tenant(actor) != tenant(user):
+            raise HTTPException(403, "Reviewer must belong to your company")
     row=db.query(PMSTaskAssignee).filter_by(task_id=task_id,user_id=user_id).first()
     if not row:raise HTTPException(404,"Assignee not found")
     row.reviewer_user_id=actor.id;work.activity(db,task,user,"work.reviewer_changed",metadata={"user_id":user_id,"reviewer_user_id":actor.id});db.commit();return {"reviewer_user_id":actor.id}

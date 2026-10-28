@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export default function WorkspaceAdminPage() {
     setRows(data.items);
     setPreviewHash(data.preview_hash);
   };
-  useEffect(() => {
+  useRefreshableEffect(() => {
     void load().catch((e) => setError(workspaceError(e)));
   }, []);
   const act = async (work: () => Promise<void>) => {

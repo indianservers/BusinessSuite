@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/services/api";
@@ -16,7 +17,7 @@ export default function PeopleDirectoryPage() {
   const [team, setTeam] = useState("");
   const [role, setRole] = useState("");
   const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let cancelled = false;
     setData(undefined); setError("");
     async function load() {

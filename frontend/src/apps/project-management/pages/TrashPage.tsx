@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
@@ -15,7 +16,7 @@ export default function TrashPage() {
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [restored, setRestored] = useState<number | null>(null);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     setLoading(true); setError(""); setItems([]); setRestored(null);
     api.get<DeletedRecord[]>(`/project-management/trash/${kind}`).then(({ data }) => { if (active) setItems(data); })

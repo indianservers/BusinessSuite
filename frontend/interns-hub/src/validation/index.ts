@@ -4,7 +4,7 @@ export { contract };
 export const PHONE_ERROR=contract.phone_error;
 export const NATIONAL_PHONE_LENGTH=contract.national_phone_length;
 export function passoutYears(today:string) {
-  return Array.from({length:Math.max(0,Number(today.slice(0,4))-1970+1)},(_,index)=>String(1970+index));
+  return Array.from({length:Math.max(2029,Number(today.slice(0,4)))-1970+1},(_,index)=>String(1970+index));
 }
 export const phoneFields=new Set(['mobile','mobile_number','phone','phone_number','alternate_phone','whatsapp_number','emergency_contact','emergency_contact_number','contact_phone','contact_number','business_phone_number','primary_phone','secondary_phone']);
 export function phoneError(number:unknown,code:unknown,required=false) {
@@ -54,7 +54,7 @@ export function applicationErrors(form:Record<string,string>,roles:string[],toda
   const validDate=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
   if(!validDate(form.date_of_birth)||form.date_of_birth>=today)errors.date_of_birth='Enter a real date of birth in the past.';
   if(!validDate(form.available_from)||form.available_from<today)errors.available_from='Availability must be today or later.';
-  if(!passoutYears(today).includes(form.passout_year))errors.passout_year=`Select a pass-out year from 1970 to ${today.slice(0,4)}.`;
+  if(!passoutYears(today).includes(form.passout_year))errors.passout_year=`Select a pass-out year from 1970 to ${Math.max(2029,Number(today.slice(0,4)))}.`;
   for(const key of ['linkedin','portfolio','github'])if(form[key]){try{const u=new URL(form[key]);if(!['http:','https:'].includes(u.protocol)||/\s/.test(form[key]))throw Error();}catch{errors[key]='Enter a complete HTTP or HTTPS URL.';}}
   const skills=form.skills.split(',').map(value=>value.trim());
   if(skills.length>30||skills.some(value=>!value||value.length>80))errors.skills='Enter up to 30 comma-separated skills, each 1–80 characters.';

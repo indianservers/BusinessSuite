@@ -16,6 +16,7 @@ import { assetUrl, formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuthStore } from "@/store/authStore";
+import GuidedPayroll from "./GuidedPayroll";
 
 interface PayrollRun {
   id: number;
@@ -218,7 +219,7 @@ const MONTHS = [
 
 const normalizeRunStatus = (status?: string) => (status || "draft").toLowerCase().replace(/\s+/g, "_");
 
-type PayrollTab = "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
+type PayrollTab = "guided" | "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
 
 export default function PayrollPage() {
   usePageTitle("Payroll");
@@ -226,7 +227,7 @@ export default function PayrollPage() {
   const { user } = useAuthStore();
   const isEmployee = user?.role === "employee" && !user?.is_superuser;
   const today = new Date();
-  const [activeTab, setActiveTab] = useState<PayrollTab>(isEmployee ? "viewer" : "wizard");
+  const [activeTab, setActiveTab] = useState<PayrollTab>(isEmployee ? "viewer" : "guided");
   const [wizardStep, setWizardStep] = useState(0);
   const [slipMonth, setSlipMonth] = useState(today.getMonth() + 1);
   const [slipYear, setSlipYear] = useState(today.getFullYear());
@@ -301,7 +302,7 @@ export default function PayrollPage() {
   const [slipEmployeeId, setSlipEmployeeId] = useState("");
   const visibleTabs: PayrollTab[] = isEmployee
     ? ["viewer"]
-    : ["wizard", "run", "viewer", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
+    : ["guided", "wizard", "run", "viewer", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
 
   useEffect(() => {
     if (isEmployee && activeTab !== "viewer") setActiveTab("viewer");
@@ -1104,11 +1105,12 @@ export default function PayrollPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
+            {tab === "guided" ? "Guided Payroll" : tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
           </button>
         ))}
       </div>
 
+      {activeTab === "guided" && !isEmployee && <GuidedPayroll onOpenTool={setActiveTab} />}
       {activeTab === "viewer" && (
         <div className="space-y-4">
           {/* Month navigator */}

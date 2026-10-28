@@ -25,6 +25,8 @@ from .performance import filtered_employees, performance, task_aggregates, WEIGH
 from .distribution import recipients, publish, process_job
 
 router=APIRouter(prefix="/management",tags=["HRMS Intern Management"])
+from .task_programs import router as task_programs_router
+router.include_router(task_programs_router)
 
 
 def today():

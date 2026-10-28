@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { appendRichMarkdown } from "@/components/rich-text/content";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { Link } from "react-router-dom";
@@ -21,7 +22,7 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
   const mounted = useRef(true);
   const end = useRef<HTMLDivElement>(null);
   const url = `${workspaceBase}/workspaces/${workspaceId}/entries`;
-  useEffect(() => {
+  useRefreshableEffect(() => {
     mounted.current = true;
     if (!enabled) return;
     let active = true;

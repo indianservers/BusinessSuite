@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 from fastapi import HTTPException
-from sqlalchemy import func
-from .models import PMSTask, PMSTaskAssignee, PMSProject, PMSWorkSubmission, PMSWorkReview, PMSActivity, PMSFileAsset
+from sqlalchemy import func, tuple_
+from .models import PMSTask, PMSTaskAssignee, PMSProject, PMSWorkSubmission, PMSWorkReview, PMSActivity, PMSFileAsset, PMSInternAssignmentPlan
 from .access import get_project_for_action, same_organization, can_access_project
 
 
@@ -29,6 +29,17 @@ def own_assignment(db, task_id, user, lock=False):
         if is_archived(db, project.workspace_id):
             raise HTTPException(409, "Workspace is archived")
     if lock and row.cancelled_at:raise HTTPException(409,"This assignment was cancelled; its history is retained")
+    if lock:
+        plan = db.get(PMSInternAssignmentPlan, (task.id, user.id))
+        if plan:
+            from app.apps.interns_hub.router import today
+            if task.start_date and task.start_date > today():
+                raise HTTPException(409, "This task pack assignment has not opened yet")
+            approved = {r[0] for r in db.query(PMSTaskAssignee.task_id).join(PMSTask, PMSTask.id == PMSTaskAssignee.task_id).filter(
+                PMSTaskAssignee.user_id == user.id, PMSTaskAssignee.task_id.in_(plan.prerequisites),
+                PMSTaskAssignee.execution_status == "Done", PMSTaskAssignee.cancelled_at.is_(None), PMSTask.deleted_at.is_(None))}
+            if set(plan.prerequisites) - approved:
+                raise HTTPException(409, "Complete and obtain approval for your prerequisite assignments first")
     return row, task
 
 
@@ -94,6 +105,21 @@ def review(db, submission_id, user, data):
     if not data.inspected:
         raise HTTPException(422, "Inspect the submission evidence before recording a review")
     maximum = assignment.maximum_score or 100
+    plan = db.get(PMSInternAssignmentPlan, (task.id, item.user_id))
+    if plan:
+        from app.apps.interns_hub.management_access import require_admin, get_employee
+        from app.models.employee import Employee
+        require_admin(user)
+        owner = db.query(Employee).filter(Employee.user_id == item.user_id).first()
+        if not owner:
+            raise HTTPException(404, "Intern record not found")
+        get_employee(db, user, owner.id)
+        expected = {criterion["key"]: criterion for criterion in plan.rubric}
+        scores = getattr(data, "rubric", {})
+        if set(scores) != set(expected) or any(type(value) is not int or value < 0 or value > expected[key]["points"] for key, value in scores.items()):
+            raise HTTPException(422, "Score every rubric criterion within its allowed points")
+        if sum(scores.values()) != data.score:
+            raise HTTPException(422, "Overall score must equal the sum of rubric scores")
     if data.score > maximum:
         raise HTTPException(422, "Score exceeds this assignment's maximum")
     record = PMSWorkReview(submission_id=item.id, reviewer_user_id=user.id, decision=data.status,
@@ -126,6 +152,7 @@ def payload(db, submissions):
     from app.models.user import User
     users={u.id:u.email for u in db.query(User).filter(User.id.in_({s.user_id for s in submissions}))} if ids else {}
     result=[]
+    details = plan_details_many(db, [(s.task_id, s.user_id) for s in submissions])
     for s in submissions:
         r=reviews.get(s.id)
         result.append({"id":s.id,"task_id":s.task_id,"user_id":s.user_id,"version":s.version,"notes":s.notes,
@@ -134,7 +161,28 @@ def payload(db, submissions):
             "task_title":tasks[s.task_id].title,"user_name":users.get(s.user_id),
             "maximum_score":r.maximum_score if r else getattr(assignments.get((s.task_id,s.user_id)),"maximum_score",100),"feedback":r.feedback if r else None,
             "strengths":r.strengths if r else None,"improvements":r.improvements if r else None,
-            "reviewed_by":r.reviewer_user_id if r else None,"reviewed_at":r.created_at if r else None})
+            "reviewed_by":r.reviewer_user_id if r else None,"reviewed_at":r.created_at if r else None,
+            "rubric_scores": r.rubric if r else {}, **details[(s.task_id, s.user_id)]})
+    return result
+
+
+def plan_details(db, task_id, user_id):
+    return plan_details_many(db, [(task_id, user_id)])[(task_id, user_id)]
+
+
+def plan_details_many(db, pairs):
+    result = {pair: {"evaluation_rubric": [], "skill_level": None, "blocked_by": []} for pair in pairs}
+    if not pairs:
+        return result
+    plans = db.query(PMSInternAssignmentPlan).filter(tuple_(PMSInternAssignmentPlan.task_id, PMSInternAssignmentPlan.user_id).in_(pairs)).all()
+    dependencies = {(identity, plan.user_id) for plan in plans for identity in plan.prerequisites}
+    prerequisites = db.query(PMSTask, PMSTaskAssignee).join(PMSTaskAssignee, PMSTaskAssignee.task_id == PMSTask.id).filter(
+        tuple_(PMSTaskAssignee.task_id, PMSTaskAssignee.user_id).in_(dependencies)).all() if dependencies else []
+    approved = {(task.id, assignment.user_id) for task, assignment in prerequisites if assignment.execution_status == "Done" and not assignment.cancelled_at and not task.deleted_at}
+    titles = {task.id: task.title for task, _ in prerequisites}
+    for plan in plans:
+        result[(plan.task_id, plan.user_id)] = {"evaluation_rubric": plan.rubric, "skill_level": plan.skill_level, "pack_run_id": plan.run_id,
+            "blocked_by": [{"task_id": identity, "title": titles.get(identity, "Prerequisite assignment")} for identity in plan.prerequisites if (identity, plan.user_id) not in approved]}
     return result
 
 

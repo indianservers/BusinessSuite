@@ -1,0 +1,265 @@
+.suite-login {
+  min-height: 100svh;
+  background:
+    radial-gradient(ellipse at 85% 10%, #e2deff80, transparent 45%),
+    linear-gradient(120deg, #f2f6ff, #fafbff 55%, #f0f7ff);
+  color: #090f32;
+  font-family: Inter, Arial, sans-serif;
+}
+.suite-login * {
+  box-sizing: border-box;
+}
+.suite-login > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 16px 5.4%;
+  min-height: 79px;
+  background: #ffffffdb;
+  border-bottom: 1px solid #e5eaf4;
+}
+.suite-login > header > a:last-child {
+  font-size: 13px;
+  color: #5832e1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+.suite-login-main {
+  width: calc(100% - 32px);
+  max-width: 465px;
+  margin: 25px auto 0;
+  padding-bottom: 25px;
+}
+.suite-login-main > .suite-back {
+  gap: 8px;
+}
+.suite-login-card {
+  padding: 30px;
+  border: 1px solid #e0e7f5;
+  border-radius: 20px;
+  background: #ffffffde;
+  box-shadow: 0 15px 45px #7a8dcb10;
+}
+.suite-login-card h1 {
+  font-size: 25px;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+  margin: 10px 0 12px;
+  line-height: 1.25;
+}
+.suite-login-card > p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #526786;
+}
+.suite-login-card .suite-login-company {
+  font-size: 12px;
+  color: #5935df;
+  font-weight: 600;
+  margin: 0;
+}
+.suite-login .suite-form {
+  gap: 10px;
+  margin-top: 23px;
+  max-width: none;
+}
+.suite-login .suite-form > label {
+  margin-top: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.suite-login input {
+  width: 100%;
+  font-size: 15px !important;
+  min-height: 46px;
+}
+.suite-login .suite-form button {
+  font:
+    600 13px Inter,
+    Arial,
+    sans-serif;
+}
+.suite-login .suite-login-remember {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.suite-login-remember input {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  accent-color: #623bff;
+}
+.suite-login .suite-form > small {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #526786;
+  margin: -5px 0 7px;
+}
+.suite-password-field {
+  position: relative;
+}
+.suite-password-field input {
+  padding-right: 48px;
+}
+.suite-password-field button {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #526786;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.suite-login-link {
+  background: none;
+  border: 0;
+  color: #5832e1;
+  min-height: 44px;
+  padding: 9px;
+  cursor: pointer;
+  text-align: center;
+  font:
+    600 13px Inter,
+    Arial,
+    sans-serif;
+}
+.suite-login .suite-login-error {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #b42336;
+  background: #fff1f3;
+  border-radius: 8px;
+  padding: 11px;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.suite-login-success {
+  font-size: 13px;
+  color: #08745d !important;
+  background: #e0f6f2;
+  padding: 12px;
+  border-radius: 8px;
+}
+.suite-login .suite-login-context {
+  font-size: 12px;
+  background: #ece9ff;
+  border-radius: 8px;
+  padding: 11px;
+  color: #5030c6;
+}
+.suite-login-providers {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+.suite-login-providers > p {
+  font-size: 12px;
+  color: #526786;
+  text-align: center;
+}
+.suite-login .suite-login-note {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #526786;
+  margin: 18px 0 0;
+  line-height: 1.5;
+}
+.suite-login-note svg {
+  flex-shrink: 0;
+}
+.suite-login-note button {
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  color: #5832e1;
+  padding: 8px;
+  cursor: pointer;
+}
+.suite-login-main footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 20px 2px;
+  font-size: 11px;
+  color: #526786;
+}
+.suite-login-main footer a {
+  color: #5832e1;
+  text-decoration: none;
+}
+.suite-login :focus-visible {
+  outline: 3px solid #6943f6;
+  outline-offset: 3px;
+}
+.suite-login h1:focus {
+  outline: none;
+}
+.suite-login input[aria-invalid="true"] {
+  border-color: #b42336;
+}
+.suite-login .suite-inline-actions {
+  margin: 0;
+}
+.suite-login .suite-inline-actions [aria-pressed="true"] {
+  background: #ece9ff;
+  color: #5030c6 !important;
+  border-color: #b5a5f7;
+}
+.suite-login button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.suite-login a {
+  min-height: 32px;
+}
+.suite-login .suite-primary {
+  min-height: 46px;
+}
+@media (max-width: 620px) {
+  .suite-login > header {
+    padding: 13px 5%;
+    gap: 10px;
+  }
+  .suite-login > header > a:last-child {
+    font-size: 11px;
+  }
+  .suite-login-main {
+    margin-top: 14px;
+  }
+  .suite-login-card {
+    padding: 24px 20px;
+  }
+  .suite-login-card h1 {
+    font-size: 23px;
+  }
+  .suite-login > header .suite-identity small {
+    letter-spacing: 1.1px;
+  }
+  .suite-login .suite-inline-actions {
+    gap: 8px;
+  }
+  .suite-login .suite-inline-actions button {
+    flex: 1;
+    padding-inline: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .suite-login .animate-spin {
+    animation: none;
+  }
+}

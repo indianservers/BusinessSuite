@@ -112,6 +112,9 @@ def complete_exit_record(record_id: int, db: Session = Depends(get_db), current_
     record = db.get(ExitRecord, record_id)
     if not record:
         raise HTTPException(status_code=404, detail="Exit record not found")
+    from app.models.asset import AssetAssignment
+    if db.query(AssetAssignment.id).filter(AssetAssignment.employee_id == record.employee_id, AssetAssignment.is_active.is_(True)).first():
+        raise HTTPException(409, "Company assets are still assigned. Complete asset returns before closing the exit.")
     pending = db.query(ExitChecklistItem).filter(ExitChecklistItem.exit_record_id == record_id, ExitChecklistItem.is_completed == False).count()
     if pending:
         raise HTTPException(status_code=400, detail="All exit checklist items must be completed before closing")

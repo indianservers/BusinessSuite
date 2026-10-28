@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
-import { employeeApi, payrollApi, companyApi } from "@/services/api";
+import { employeeApi, payrollApi, companyApi, authApi } from "@/services/api";
 import { assetUrl, formatCurrency, formatDate, getInitials, statusColor } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,13 @@ import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 import { loadManagerOptions } from "./employeeJobOptions";
+import { useAuthStore } from "@/store/authStore";
 import SharedProfilePage from "@/features/profiles/ProfilePage";
+import Employee360Panel from "./Employee360Panel";
 
 const TABS = [
   { id: "profile", label: "Complete Profile", icon: User },
-  { id: "360", label: "360 Timeline", icon: Activity },
+  { id: "360", label: "Employee 360", icon: Activity },
   { id: "personal", label: "Personal", icon: User },
   { id: "job", label: "Job", icon: Briefcase },
   { id: "education", label: "Education", icon: GraduationCap },
@@ -57,7 +59,8 @@ const EDIT_FIELDS: Record<string, Array<[string, string, string?]>> = {
     ["department_id", "Department", "select"],
     ["designation_id", "Designation / Job Role", "select"],
     ["reporting_manager_id", "Reporting Manager / Intern Supervisor", "select"],
-    ["employment_type", "Employment Type"],
+    ["employment_type", "Employment Type", "select"],
+    ["role_id", "Account Role", "select"],
     ["status", "Status"],
     ["work_location", "Work Location"],
     ["date_of_joining", "Date of Joining", "date"],
@@ -99,22 +102,42 @@ function getApiErrorMessage(error: unknown): string {
   return (error as { message?: string })?.message || "Please check the required fields and try again.";
 }
 
-export default function EmployeeDetailPage() {
-  const { id } = useParams<{ id: string }>();
+interface EmployeeDetailPageProps {
+  employeeId?: number;
+  initialEditing?: boolean;
+  onClose?: () => void;
+}
+
+export default function EmployeeDetailPage({ employeeId, initialEditing = false, onClose }: EmployeeDetailPageProps = {}) {
+  const { id: routeId } = useParams<{ id: string }>();
+  const id = employeeId == null ? routeId : String(employeeId);
+  const [popupEditing, setPopupEditing] = useState(initialEditing);
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params, setRouteParams] = useSearchParams();
+  const setParams = (values: Record<string, string>) => {
+    if (employeeId != null) setPopupEditing(values.edit === "true");
+    else setRouteParams(values);
+  };
+  const closeDetails = () => onClose ? onClose() : navigate("/hrms/employees");
   const qc = useQueryClient();
+  const canChangeRole = useAuthStore((state) => !!state.user?.is_superuser);
+  const { data: accountRoles = [] } = useQuery({
+    queryKey: ["employee-account-roles"],
+    queryFn: () => authApi.roles().then((r) => r.data as Array<{ id: number; name: string; branch_id?: number; department_id?: number }>),
+    enabled: canChangeRole,
+  });
   const { data: jobOptions } = useQuery({
     queryKey: ["employee-job-options"],
     queryFn: async () => {
       const [branches, departments, designations, managers] = await Promise.all([
         companyApi.listBranches(), companyApi.listDepartments(), companyApi.listDesignations(), loadManagerOptions(),
       ]);
-      return { branch_id: branches.data, department_id: departments.data, designation_id: designations.data, reporting_manager_id: managers } as Record<string, Array<{ id: number; name: string; branch_id?: number; department_id?: number }>>;
+      return { employment_type: ["Full-time", "Part-time", "Contract", "Intern", "Visiting", "Deputation"].map((name) => ({ id: name, name })), branch_id: branches.data, department_id: departments.data, designation_id: designations.data, reporting_manager_id: managers } as Record<string, Array<{ id: number | string; name: string; branch_id?: number; department_id?: number }>>;
     },
 
   });
-  const [activeTab, setActiveTab] = useState("personal");
+  const [activeTab, setActiveTab] = useState(initialEditing || params.get("edit") === "true" ? "personal" : "360");
+  const ownEmployeeId = useAuthStore(state => state.user?.employee_id);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
   const [editErrors,setEditErrors]=useState<Record<string,string>>({});
   const [educationForm, setEducationForm] = useState<Record<string, any>>({});
@@ -129,7 +152,7 @@ export default function EmployeeDetailPage() {
   });
   const [selectedUserId, setSelectedUserId] = useState("");
   const [accountForm, setAccountForm] = useState({ email: "", password: "" });
-  const editing = params.get("edit") === "true";
+  const editing = employeeId != null ? popupEditing : params.get("edit") === "true";
   usePageTitle("Employee Details");
 
   const { data: emp, isLoading, error: employeeError } = useQuery({
@@ -143,7 +166,7 @@ export default function EmployeeDetailPage() {
     queryFn: () =>
       employeeApi
         .userOptions({ include_employee_id: Number(id) })
-        .then((r) => r.data as Array<{ id: number; email: string; role?: string | null; employee_id?: number | null; employee_code?: string | null; employee_name?: string | null }>),
+        .then((r) => r.data as Array<{ id: number; email: string; role?: string | null; role_id?: number | null; employee_id?: number | null; employee_code?: string | null; employee_name?: string | null }>),
     enabled: !!id,
   });
 
@@ -172,6 +195,10 @@ export default function EmployeeDetailPage() {
     onSuccess: () => {
       toast({ title: "Employee updated" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
+      qc.invalidateQueries({ queryKey: ["employee-user-options", id] });
+      qc.invalidateQueries({ queryKey: ["employee-job-options"] });
+      qc.invalidateQueries({ queryKey: ["employee-manager-options"] });
+      qc.invalidateQueries({ queryKey: ["employees"] });
       setParams({});
     },
     onError: (err:unknown) => {
@@ -347,7 +374,7 @@ export default function EmployeeDetailPage() {
     return (
       <Card>
         <CardContent className="flex flex-col items-start gap-3 p-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
+          <Button variant="ghost" size="sm" onClick={closeDetails}>
             <ChevronLeft className="h-4 w-4 mr-1" />
             Employees
           </Button>
@@ -364,7 +391,7 @@ export default function EmployeeDetailPage() {
     return (
       <Card>
         <CardContent className="flex flex-col items-start gap-3 p-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
+          <Button variant="ghost" size="sm" onClick={closeDetails}>
             <ChevronLeft className="h-4 w-4 mr-1" />
             Employees
           </Button>
@@ -379,9 +406,6 @@ export default function EmployeeDetailPage() {
 
   const initials = getInitials(`${emp.first_name} ${emp.last_name}`);
   const linkedUser = (userOptions.data || []).find((user) => user.id === emp.user_id);
-  const employee360Events = buildEmployee360Events(emp);
-  const skillCount = emp.skills?.length || 0;
-  const documentCount = emp.documents?.length || 0;
 
   const loginAccountCard = (
     <Card>
@@ -501,7 +525,7 @@ export default function EmployeeDetailPage() {
     <div className="space-y-6">
       <ConversationLauncher module="HRMS" context={{type:"employee",id:Number(id)}}/>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/hrms/employees")}>
+        <Button variant="ghost" size="sm" onClick={closeDetails}>
           <ChevronLeft className="h-4 w-4 mr-1" />
           Employees
         </Button>
@@ -560,7 +584,10 @@ export default function EmployeeDetailPage() {
                 defaultAgentCode="hrms_letter_drafting"
                 defaultPrompt="Help me prepare HR action or summary for this employee."
               />
-              {activeTab !== "profile" && <Button variant="outline" size="sm" onClick={() => setParams(editing ? {} : { edit: "true" })}>
+              {activeTab !== "profile" && <Button variant="outline" size="sm" onClick={() => {
+                if (!editing && activeTab === "360") setActiveTab("personal");
+                setParams(editing ? {} : { edit: "true" });
+              }}>
                 {editing ? "Cancel Edit" : "Edit"}
               </Button>}
               <Badge variant="outline">{emp.employment_type}</Badge>
@@ -596,7 +623,7 @@ export default function EmployeeDetailPage() {
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  const allowedFields = EDIT_FIELDS[activeTab].map(([key]) => key);
+                  const allowedFields = EDIT_FIELDS[activeTab].map(([key]) => key).filter((key) => key !== "role_id" || (canChangeRole && !!emp.user_id));
                   const issues:Record<string,string>={};
                   for(const key of allowedFields){
                     const message=key.endsWith('email')?emailError(editForm[key]):key==='first_name'||key==='last_name'?textError(editForm[key],160,key==='first_name'):'';
@@ -605,6 +632,7 @@ export default function EmployeeDetailPage() {
                   setEditErrors(issues);
                   if(Object.keys(issues).length){document.getElementById('edit-'+Object.keys(issues)[0])?.focus();return;}
                   const payload = allowedFields.reduce<Record<string, any>>((acc, key) => {
+                    if (key === "role_id" && !editForm[key]) return acc;
                     if(phoneFields.has(key)){const codeKey=key+'_country_code';if(editForm[key]===emp[key]&&editForm[codeKey]===(emp[codeKey]||''))return acc;acc[codeKey]=editForm[codeKey]||null;}
                     acc[key] = editForm[key] === "" ? (key === "last_name" ? "" : null) : key.endsWith("_id") ? Number(editForm[key]) : editForm[key];
                     return acc;
@@ -612,13 +640,13 @@ export default function EmployeeDetailPage() {
                   updateMutation.mutate(payload);
                 }}
               >
-                {EDIT_FIELDS[activeTab].map(([key, label, type]) => (
+                {EDIT_FIELDS[activeTab].filter(([key]) => key !== "role_id" || (canChangeRole && !!emp.user_id)).map(([key, label, type]) => (
                   <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
                     <Label htmlFor={`edit-${key}`}>{label}</Label>
                     {phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "select" ? (
-                      <select id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined} aria-label={label} value={editForm[key] ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value, ...(key === "branch_id" ? { department_id: "", designation_id: "" } : key === "department_id" ? { designation_id: "" } : {}) }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <select id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined} aria-label={label} value={editForm[key] ?? (key === "role_id" ? userOptions.data?.find((user) => user.id === emp.user_id)?.role_id : "") ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value, ...(key === "branch_id" ? { department_id: "", designation_id: "" } : key === "department_id" ? { designation_id: "" } : {}) }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                         <option value="">Unassigned</option>
-                        {(jobOptions?.[key] || []).filter((option) => key === "reporting_manager_id" ? option.id !== Number(id) : key === "department_id" ? !editForm.branch_id || option.branch_id === Number(editForm.branch_id) : key === "designation_id" ? !editForm.department_id || option.department_id === Number(editForm.department_id) : true).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+                        {(key === "role_id" ? accountRoles : jobOptions?.[key] || []).filter((option) => key === "reporting_manager_id" ? option.id !== Number(id) : key === "department_id" ? !editForm.branch_id || option.branch_id === Number(editForm.branch_id) : key === "designation_id" ? !editForm.department_id || option.department_id === Number(editForm.department_id) : true).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
                       </select>
                     ) : type === "textarea" ? (
                       <textarea id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined}
@@ -722,55 +750,7 @@ export default function EmployeeDetailPage() {
 
       {/* Tab content */}
       {activeTab === "profile" && (emp.user_id ? <SharedProfilePage key={emp.user_id} employeeId={Number(id)} accountActions={loginAccountCard} /> : loginAccountCard)}
-      {activeTab === "360" && (
-        <div className="space-y-5">
-          <div className="grid gap-3 md:grid-cols-4">
-            <InsightTile icon={Star} label="Skills" value={skillCount} detail={skillCount ? "Mapped to proficiency" : "No skills yet"} />
-            <InsightTile icon={FileText} label="Documents" value={documentCount} detail={documentCount ? "Profile documents" : "No documents yet"} />
-            <InsightTile icon={Package} label="Assets" value={emp.asset_count || emp.assets?.length || 0} detail="Assigned and recoverable" />
-            <InsightTile icon={Target} label="Performance" value={emp.performance_score || "Ready"} detail="Goals, reviews, and feedback" />
-          </div>
-
-          <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
-            <Card>
-              <CardHeader>
-                <CardTitle>Employee 360 Timeline</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {employee360Events.map((event, index) => (
-                  <div key={`${event.title}-${index}`} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[2.5rem_1fr_auto] sm:items-start">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <event.icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">{event.title}</p>
-                        <Badge variant="outline">{event.area}</Badge>
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{event.detail}</p>
-                    </div>
-                    <p className="text-xs font-medium text-muted-foreground">{event.date}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>360 Snapshot</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <SnapshotRow label="Attendance" value={emp.attendance_status || "Stable"} />
-                <SnapshotRow label="Leave" value={emp.leave_balance ? `${emp.leave_balance} days balance` : "Balance ready"} />
-                <SnapshotRow label="Payroll" value={emp.last_payroll_status || "Paid as per cycle"} />
-                <SnapshotRow label="Tickets" value={emp.open_ticket_count ? `${emp.open_ticket_count} open` : "No open tickets"} />
-                <SnapshotRow label="Assets" value={emp.asset_count ? `${emp.asset_count} assigned` : "No asset alerts"} />
-                <SnapshotRow label="Documents" value={`${documentCount} records`} />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
+      {activeTab === "360" && <Employee360Panel key={id} employeeId={Number(id)} onOpenTab={setActiveTab} isOwnProfile={ownEmployeeId === Number(id)} />}
 
       {activeTab === "personal" && (
         <Card>
@@ -1119,107 +1099,6 @@ type SalaryStructureOption = {
   name: string;
   version?: string | null;
 };
-
-type Employee360Event = {
-  area: string;
-  title: string;
-  detail: string;
-  date: string;
-  icon: React.ElementType;
-};
-
-function buildEmployee360Events(emp: Record<string, any>): Employee360Event[] {
-  const events: Employee360Event[] = [
-    {
-      area: "Job",
-      title: "Joined organization",
-      detail: `${emp.employment_type || "Employee"} at ${emp.work_location || "assigned work location"}`,
-      date: formatDate(emp.date_of_joining),
-      icon: Briefcase,
-    },
-    {
-      area: "Payroll",
-      title: "Payroll history",
-      detail: emp.last_payroll_status || "Monthly payroll history and payslip status available from Payroll",
-      date: emp.last_payroll_date ? formatDate(emp.last_payroll_date) : "Current cycle",
-      icon: Banknote,
-    },
-    {
-      area: "Attendance",
-      title: "Attendance signal",
-      detail: emp.attendance_status || "Attendance, late marks, and regularization signals tracked",
-      date: "Live",
-      icon: Clock,
-    },
-    {
-      area: "Leave",
-      title: "Leave position",
-      detail: emp.leave_balance ? `${emp.leave_balance} days available` : "Leave balance and approvals connected",
-      date: "Live",
-      icon: CalendarDays,
-    },
-    {
-      area: "Performance",
-      title: "Performance profile",
-      detail: emp.performance_score ? `Latest score ${emp.performance_score}` : "Goals, review cycles, and 360 feedback visible",
-      date: "Latest cycle",
-      icon: Target,
-    },
-    {
-      area: "Helpdesk",
-      title: "Support tickets",
-      detail: emp.open_ticket_count ? `${emp.open_ticket_count} open tickets require attention` : "No open support blockers",
-      date: "Live",
-      icon: HelpCircle,
-    },
-  ];
-
-  (emp.skills || []).slice(0, 3).forEach((skill: { skill_name?: string; proficiency?: string }) => {
-    events.push({
-      area: "Skills",
-      title: skill.skill_name || "Skill",
-      detail: skill.proficiency ? `${skill.proficiency} proficiency` : "Skill mapped to employee profile",
-      date: "Profile",
-      icon: Star,
-    });
-  });
-
-  (emp.documents || []).slice(0, 3).forEach((doc: { document_name?: string; document_type?: string; is_verified?: boolean }) => {
-    events.push({
-      area: "Documents",
-      title: doc.document_name || doc.document_type || "Document",
-      detail: doc.is_verified ? "Verified document" : "Pending verification",
-      date: "Profile",
-      icon: FileText,
-    });
-  });
-
-  return events;
-}
-
-function InsightTile({ icon: Icon, label, value, detail }: { icon: React.ElementType; label: string; value: string | number; detail: string }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className="rounded-lg bg-primary/10 p-2 text-primary"><Icon className="h-4 w-4" /></div>
-        <div>
-          <p className="text-xl font-semibold">{value}</p>
-          <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="text-xs text-muted-foreground">{detail}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SnapshotRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md border p-3">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
-    </div>
-  );
-}
 
 function AddRecordForm({
   fields,

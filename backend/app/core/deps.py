@@ -63,7 +63,7 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
     employee=getattr(user,'employee',None)
     is_intern=(user.role and user.role.name.lower()=='intern') or (employee and (employee.employment_type or '').lower()=='intern')
-    if is_intern and not request.url.path.startswith('/api/v1/interns-hub/'):
+    if is_intern and not request.url.path.startswith(('/api/v1/interns-hub/', '/api/v1/access/settings')) and request.url.path not in {'/api/v1/auth/sessions/me', '/api/v1/auth/sessions/me/revoke-others', '/api/v1/auth/change-password'}:
         from app.access.service import policy_for, primary_company, resolved_grants
         from app.access.catalog import request_module
         intern_policy = policy_for(db, user, primary_company(user))

@@ -24,6 +24,7 @@ def create_notification(db: Session, data: NotificationCreate) -> Notification:
 def list_notifications(
     unread_only: bool = Query(False),
     module: Optional[str] = Query(None),
+    app: Optional[str] = Query(None, pattern="^(power_apps|hrms|crm|pms|srm|fam)$"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -41,6 +42,14 @@ def list_notifications(
         query = query.filter(Notification.is_read == False)
     if module:
         query = query.filter(Notification.module == module)
+    if app:
+        aliases = {
+            "hrms": ["hrms", "engagement", "employees", "attendance", "leave", "payroll", "recruitment"],
+            "pms": ["pms", "project_management"], "srm": ["srm", "inventory"],
+            "fam": ["fam", "finance"], "crm": ["crm"], "power_apps": ["power_apps"],
+        }
+        prefix = "/power-apps" if app == "power_apps" else f"/{app}"
+        query = query.filter(or_(Notification.module.in_(aliases[app]), Notification.action_url == prefix, Notification.action_url.like(prefix + "/%")))
 
     total = query.count()
     items = (
@@ -75,6 +84,29 @@ def unread_count(
         query = query.filter(or_(Notification.company_id == current_company_id, Notification.company_id.is_(None)))
     count = query.scalar()
     return {"unread": count or 0}
+
+
+@router.get("/summary")
+def notification_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Personal unread counts grouped by destination, scoped to the active company.
+
+    The client applies the current route grants to these groups before showing
+    badges. This avoids downloading notification bodies for the dashboard.
+    """
+    query = db.query(
+        Notification.module, Notification.action_url, func.count(Notification.id)
+    ).filter(Notification.user_id == current_user.id, Notification.is_read == False)
+    company = getattr(current_user, "organization_id", None) or (
+        current_user.employee.branch.company_id
+        if current_user.employee and current_user.employee.branch else None
+    )
+    if company:
+        query = query.filter(or_(Notification.company_id == company, Notification.company_id.is_(None)))
+    groups = query.group_by(Notification.module, Notification.action_url).all()
+    return {"groups": [{"module": module, "action_url": action_url, "count": count} for module, action_url, count in groups]}
 
 
 @router.post("/", response_model=NotificationSchema, status_code=status.HTTP_201_CREATED)

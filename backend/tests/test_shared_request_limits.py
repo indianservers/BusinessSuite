@@ -66,6 +66,28 @@ def test_expired_work_lease_cannot_be_released_by_old_request(shared_store):
         assert db.query(SecurityWorkLease).one().token == second[2]
 
 
+def test_expired_counter_cleanup_is_bounded_and_uses_one_delete(shared_store):
+    from sqlalchemy import event
+    with shared_store() as db:
+        db.add_all([SecurityRateBucket(key=f"{i:064x}", window=1, count=1, expires=99) for i in range(150)])
+        db.add(SecurityRateBucket(key="f" * 64, window=2, count=1, expires=2000))
+        db.commit()
+        statements = []
+        engine = db.get_bind()
+        def record(conn, cursor, statement, parameters, context, executemany):
+            if statement.lstrip().upper().startswith("DELETE FROM SECURITY_RATE_BUCKETS"):
+                statements.append(statement)
+        event.listen(engine, "before_cursor_execute", record)
+        try:
+            assert consume(db, [("new-active-request", 10, 60)], now=1000) == 0
+            db.commit()
+        finally:
+            event.remove(engine, "before_cursor_execute", record)
+        assert len(statements) == 1
+        assert db.query(SecurityRateBucket).filter(SecurityRateBucket.expires < 1000).count() == 50
+        assert db.query(SecurityRateBucket).filter(SecurityRateBucket.key == "f" * 64).count() == 1
+
+
 def test_login_throttle_cannot_be_bypassed_with_forwarded_header(limited):
     for index in range(8):
         response = limited.post(

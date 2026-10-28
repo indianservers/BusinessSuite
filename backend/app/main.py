@@ -99,12 +99,18 @@ async def lifespan(app: FastAPI):
         db.close()
 
     backup_worker = None
+    email_worker = None
+    if settings.EMAIL_WORKER_ENABLED:
+        from app.services.email_dispatch import start_email_worker
+        email_worker = start_email_worker()
     if settings.BUSINESSSUITE_BACKUP_SCHEDULER:
         from app.services.backup_scheduler import start_scheduler
         backup_worker = start_scheduler()
     try:
         yield
     finally:
+        if email_worker:
+            email_worker[0].set()
         if backup_worker:
             backup_worker[0].set()
     # Shutdown

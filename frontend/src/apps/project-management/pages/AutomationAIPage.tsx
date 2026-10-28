@@ -1,3 +1,4 @@
+import { usePageRefresh } from "@/lib/page-refresh";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
@@ -37,6 +38,7 @@ export default function AutomationAIPage() {
     return { rules: r.data, runs: log.data, projects: overview.data.projects, people: members.data };
   }, [selected, manages]);
   const apply = (data: Awaited<ReturnType<typeof load>>) => { if (data) { setRules(data.rules); setRuns(data.runs); setProjects(data.projects); setPeople(data.people); } };
+  usePageRefresh(async () => { apply(await load()); });
   useEffect(() => { let active = true; setRules([]); setRuns([]); setProjects([]); setPeople([]); setDraft(initial); setEditingRule(null); setError(""); setLoading(true); load().then(data => { if (active) apply(data); }).catch(e => { if (active) setError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [load]);
   async function act(label: string, action: () => Promise<unknown>) { if (busy) return; setBusy(true); setError(""); setNotice(""); const finish = beginProgress(label); try { await action(); apply(await load()); finish(); setNotice("Workspace updated"); } catch (e) { finish(false); setError(workspaceError(e)); } finally { setBusy(false); } }
   const visibleRules = rules.filter(rule => (ruleState === "all" || rule.enabled === (ruleState === "active"))

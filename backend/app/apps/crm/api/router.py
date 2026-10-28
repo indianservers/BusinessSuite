@@ -729,7 +729,8 @@ def _normalize_phone_number(value: str | None) -> str:
 
 
 def _smtp_configured() -> bool:
-    return bool(settings.MAIL_SERVER and settings.MAIL_PORT and settings.MAIL_FROM and settings.MAIL_USERNAME and settings.MAIL_PASSWORD)
+    from app.core.email import email_configured
+    return email_configured()
 
 
 def _send_smtp_email(*, to: list[str], cc: list[str], bcc: list[str], subject: str, body: str) -> str:
@@ -746,13 +747,9 @@ def _send_smtp_email(*, to: list[str], cc: list[str], bcc: list[str], subject: s
     message.set_content(plain)
     message.add_alternative(formatted, subtype="html")
     recipients = to + cc + bcc
-    smtp_cls = smtplib.SMTP_SSL if settings.MAIL_SSL_TLS else smtplib.SMTP
-    with smtp_cls(settings.MAIL_SERVER, settings.MAIL_PORT, timeout=15) as smtp:
-        if settings.MAIL_STARTTLS and not settings.MAIL_SSL_TLS:
-            smtp.starttls()
-        smtp.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
-        response = smtp.send_message(message, to_addrs=recipients)
-    return f"smtp:{datetime.now(timezone.utc).timestamp()}" if not response else f"smtp-partial:{datetime.now(timezone.utc).timestamp()}"
+    from app.core.email import send_message
+    return send_message(message, recipients)
+
 
 
 def _send_smtp_email_with_attachment(*, to: list[str], cc: list[str], bcc: list[str], subject: str, body: str, attachment_path: str, attachment_name: str) -> str:
@@ -771,13 +768,9 @@ def _send_smtp_email_with_attachment(*, to: list[str], cc: list[str], bcc: list[
     with open(attachment_path, "rb") as handle:
         message.add_attachment(handle.read(), maintype="application", subtype="pdf", filename=attachment_name)
     recipients = to + cc + bcc
-    smtp_cls = smtplib.SMTP_SSL if settings.MAIL_SSL_TLS else smtplib.SMTP
-    with smtp_cls(settings.MAIL_SERVER, settings.MAIL_PORT, timeout=15) as smtp:
-        if settings.MAIL_STARTTLS and not settings.MAIL_SSL_TLS:
-            smtp.starttls()
-        smtp.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
-    response = smtp.send_message(message, to_addrs=recipients)
-    return f"smtp:{datetime.now(timezone.utc).timestamp()}" if not response else f"smtp-partial:{datetime.now(timezone.utc).timestamp()}"
+    from app.core.email import send_message
+    return send_message(message, recipients)
+
 
 
 class CRMMessageProvider:

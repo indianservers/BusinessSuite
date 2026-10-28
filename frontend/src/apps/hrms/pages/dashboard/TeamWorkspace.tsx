@@ -1,0 +1,45 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import { usePageTitle } from "@/hooks/use-page-title";
+
+type Decision = { id: number; kind: string; employee_id: number; employee_name: string; title: string; created_at: string; can_decide: boolean };
+type Team = { team: { id: number; name: string; employee_code: string; status: string }[]; decisions: Decision[]; followups: { id: number; employee_name: string; title: string; due_date: string; status: string }[] };
+const message = (e: unknown) => { const d = (e as { response?: { data?: { detail?: unknown } } }).response?.data?.detail; return typeof d === "string" ? d : "Please retry or check your permissions."; };
+
+export default function TeamWorkspace() {
+  usePageTitle("My Team");
+  const userId = useAuthStore(s => s.user?.id);
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ["my-team", userId], queryFn: () => api.get<Team>("/reports/my-team").then(r => r.data) });
+  const [kind, setKind] = useState("all"), [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Decision | null>(null);
+  const [decision, setDecision] = useState("approve"), [remarks, setRemarks] = useState("");
+  const [followup, setFollowup] = useState({ employee_id: "", title: "", due_date: "" });
+  const refresh = () => Promise.all(["my-team", "expense-statement", "employee-360"].map(key => qc.invalidateQueries({ queryKey: [key] })));
+  const review = useMutation({ mutationFn: () => api.put(`/reports/my-team/decisions/${selected!.kind}/${selected!.id}`, { decision, remarks: remarks.trim() }), onSuccess: () => { setSelected(null); setRemarks(""); refresh(); toast({ title: "Decision saved" }); }, onError: e => toast({ title: "Could not save decision", description: message(e), variant: "destructive" }) });
+  const followupMutation = useMutation({ mutationFn: (id?: number) => id ? api.put(`/reports/my-team/followups/${id}/complete`) : api.post("/reports/my-team/followups", { ...followup, title: followup.title.trim(), employee_id: Number(followup.employee_id) }), onSuccess: (_, id) => { if (!id) setFollowup({ employee_id: "", title: "", due_date: "" }); refresh(); }, onError: e => toast({ title: "Could not update follow-up", description: message(e), variant: "destructive" }) });
+  if (query.isPending) return <p role="status">Loading your team workspace…</p>;
+  if (query.isError) return <div role="alert"><p>Your team workspace could not load.</p><Button onClick={() => query.refetch()}>Retry</Button></div>;
+  const data = query.data;
+  const decisions = data.decisions.filter(row => (kind === "all" || row.kind === kind) && `${row.employee_name} ${row.title}`.toLowerCase().includes(search.toLowerCase()));
+  const open = data.followups.filter(row => row.status !== "Completed");
+  return <div className="space-y-5"><header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">My Team</h1><p className="text-sm text-muted-foreground">{data.team.length} direct reports · {data.decisions.length} decisions · {open.length} follow-ups</p></div><Button variant="outline" disabled={query.isFetching} onClick={refresh}>Refresh workspace</Button></header>
+    {query.isRefetchError && <p role="alert" className="text-destructive">Refresh failed. Displayed information may be out of date.</p>}
+    <div className="grid items-start gap-5 xl:grid-cols-[1.3fr_1fr]"><Card><CardHeader><CardTitle className="text-base">Decisions waiting on you</CardTitle></CardHeader><CardContent className="space-y-3"><Input aria-label="Search team requests" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search employee or request" /><label className="block text-sm">Request type<select className="ml-2 rounded-md border bg-background p-2" value={kind} onChange={e => setKind(e.target.value)}>{[["all", "All requests"], ["leave", "Leave"], ["attendance", "Attendance"], ["expense", "Expenses"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      {decisions.map(row => <article key={`${row.kind}-${row.id}`} className="rounded-lg border p-4"><div className="flex flex-wrap justify-between gap-2"><Link to={`/hrms/employees/${row.employee_id}`} className="font-medium underline">{row.employee_name}</Link><Badge variant="outline">{row.kind}</Badge></div><p className="my-2 break-words text-sm">{row.title}</p><p className="text-xs text-muted-foreground">Requested {formatDate(row.created_at)}</p>{row.can_decide ? <Button className="mt-3" size="sm" variant="outline" onClick={() => { setSelected(row); setDecision("approve"); setRemarks(""); }}>Review request</Button> : <p className="mt-2 text-xs text-muted-foreground">An authorized approver must decide this request.</p>}</article>)}
+      {!decisions.length && <p className="text-sm text-muted-foreground">No matching pending requests.</p>}
+      {selected && <form className="space-y-3 rounded-lg border bg-muted/30 p-4" onSubmit={e => { e.preventDefault(); review.mutate(); }} aria-label="Review team request"><p className="font-medium">Review: {selected.employee_name} · {selected.kind}</p><p className="text-sm">{selected.title}</p><label className="block text-sm">Decision<select className="ml-2 rounded border bg-background p-2" value={decision} onChange={e => setDecision(e.target.value)}><option value="approve">Approve</option><option value="reject">Reject</option></select></label><label className="block space-y-1 text-sm">Decision reason<Input value={remarks} onChange={e => setRemarks(e.target.value)} required minLength={3} maxLength={1000} /></label><div className="flex gap-2"><Button disabled={review.isPending || remarks.trim().length < 3}>Save decision</Button><Button type="button" variant="outline" disabled={review.isPending} onClick={() => setSelected(null)}>Cancel</Button></div></form>}
+    </CardContent></Card><div className="space-y-5"><Card><CardHeader><CardTitle className="text-base">Follow-ups</CardTitle></CardHeader><CardContent className="space-y-4"><form className="space-y-2" onSubmit={e => { e.preventDefault(); followupMutation.mutate(undefined); }}><label className="block text-sm">Team member<select className="mt-1 h-10 w-full rounded-md border bg-background px-3" required value={followup.employee_id} onChange={e => setFollowup({ ...followup, employee_id: e.target.value })}><option value="">Select direct report</option>{data.team.map(row => <option key={row.id} value={row.id}>{row.name} ({row.employee_code})</option>)}</select></label><label className="block text-sm">Follow-up task<Input required minLength={3} maxLength={200} value={followup.title} onChange={e => setFollowup({ ...followup, title: e.target.value })} /></label><label className="block text-sm">Due date<Input required type="date" value={followup.due_date} onChange={e => setFollowup({ ...followup, due_date: e.target.value })} /></label><Button disabled={!followup.employee_id || followupMutation.isPending}>Add follow-up</Button></form>
+      {open.map(row => <article className="space-y-2 border-t pt-3" key={row.id}><p className="break-words text-sm font-medium">{row.title}</p><p className="text-xs text-muted-foreground">{row.employee_name} · Due {formatDate(row.due_date)}</p>{row.due_date < new Date().toLocaleDateString("en-CA") && <Badge variant="warning">Overdue</Badge>}<Button className="ml-2" size="sm" variant="outline" disabled={followupMutation.isPending} onClick={() => followupMutation.mutate(row.id)}>Mark complete</Button></article>)}{!open.length && <p className="text-sm text-muted-foreground">No open follow-ups.</p>}<details><summary className="cursor-pointer text-sm">Completed follow-ups ({data.followups.length - open.length})</summary>{data.followups.filter(row => row.status === "Completed").map(row => <p key={row.id} className="mt-2 text-sm">{row.employee_name}: {row.title}</p>)}</details>
+    </CardContent></Card><Card><CardHeader><CardTitle className="text-base">Team members</CardTitle></CardHeader><CardContent className="space-y-2">{data.team.map(row => <Link key={row.id} to={`/hrms/employees/${row.id}`} className="flex flex-wrap justify-between gap-2 rounded border p-3 text-sm"><span>{row.name} · {row.employee_code}</span><Badge variant="outline">{row.status}</Badge></Link>)}{!data.team.length && <p className="text-sm text-muted-foreground">No direct reports are assigned to your employee profile.</p>}<Link className="block text-sm underline" to="/hrms/expenses">Open employee expense statements</Link></CardContent></Card></div></div>
+  </div>;
+}

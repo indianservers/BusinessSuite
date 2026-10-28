@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertTriangle, Link2, RefreshCw, Trash2, ZoomIn } from "lucide-react";
@@ -102,12 +103,12 @@ export default function GanttPage() {
     setFilters((current) => ({ ...current, projectId: projectId || current.projectId }));
   }, [projectId]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     void load();
     return () => { requestSequence.current++; };
   }, [filters.projectId, filters.sprintId, filters.assigneeId, filters.epicId, filters.status]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!drag) return undefined;
     const onMove = (event: MouseEvent) => {
       const dayDelta = Math.round((event.clientX - drag.startX) / pixelsPerDay(zoom));

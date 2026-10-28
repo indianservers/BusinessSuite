@@ -6,9 +6,11 @@ test("one company-branded login URL for every module", async ({
 }) => {
   test.setTimeout(120_000);
   await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Explore applications", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(
-    page.getByRole("heading", { name: "Business Suite", exact: true }),
+    page.getByRole("heading", { name: "Sign in to Business Suite", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText("QA Alpha", { exact: false }).first(),
@@ -23,17 +25,17 @@ test("one company-branded login URL for every module", async ({
     await page.goto(`/${home}/login`);
     await expect(page).toHaveURL(/\/login$/);
     await expect(
-      page.getByRole("heading", { name: "Business Suite", exact: true }),
+      page.getByRole("heading", { name: "Sign in to Business Suite", exact: true }),
     ).toBeVisible();
   }
   await page.goto("/power-apps/approvals?environment=development");
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login\?next=/);
   await page.goto("/login?next=%2Fhrms");
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Fhrms$/);
   const payload = page.waitForRequest(
     (r) => r.url().endsWith("/auth/login") && r.method() === "POST",
   );
-  await page.getByLabel("Email address").fill("missing@qa.invalid");
+  await page.getByLabel("Email address").fill("missing@suiteqa.example.com");
   await page.getByLabel("Password", { exact: true }).fill("Incorrect@123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   expect((await payload).postDataJSON()).not.toHaveProperty("module");
@@ -51,7 +53,9 @@ test("login redirects reject external hosts and normalized login loops", () => {
     expect(loginDestination(path)).toBe("/dashboard");
   expect(
     loginDestination("/power-apps/approvals?environment=development"),
-  ).toBe("/dashboard");
+  ).toBe("/power-apps/approvals?environment=development");
+  for (const destination of ["/crm/contacts?view=all#top", "/pms/tasks/42", "/hrms/profile", "/notifications"]) expect(loginDestination(destination)).toBe(destination);
+  for (const destination of ["/crm/%5cevil.invalid", "/crm/%00", "/login", "/crm/%2e%2e/login"]) expect(loginDestination(destination)).toBe("/dashboard");
 });
 
 test("authorized application dashboard supports search, navigation and mobile", async ({

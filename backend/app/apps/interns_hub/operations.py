@@ -20,6 +20,7 @@ from app.models.audit import AuditLog
 from app.apps.srm.services.commercial import tenant
 from app.apps.project_management.models import PMSTask, PMSTaskAssignee, PMSProject
 from app.apps.project_management.access import accessible_project_query
+from app.core.reporting_managers import eligible_reporting_manager
 from .management_access import require_admin, employee_query, get_employee
 from .management_models import InternBatchMembership
 from .operations_models import WorkforceJob, WorkforceMessage
@@ -192,8 +193,8 @@ def manager_for(db, user, value):
                 first_name=account.email.split("@")[0], last_name="", work_email=account.email,
                 branch_id=branch.id, date_of_joining=day(), employment_type="Full-time", status="Active")
             db.add(manager); db.flush()
-    if manager.deleted_at or manager.status not in {"Active", "Probation"} or (manager.employment_type or "").lower() == "intern":
-        raise HTTPException(422, "Select an active non-intern supervisor")
+    if not eligible_reporting_manager(manager):
+        raise HTTPException(422, "Select a Super Admin, CEO, HR or Project Manager as supervisor")
     return manager
 
 

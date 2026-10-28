@@ -578,12 +578,12 @@ def forgot_password(data: PasswordResetRequest, db: Session = Depends(get_db)):
         user.password_reset_token = _hash_reset_token(raw_token)
         user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
         reset_link = f"{settings.FRONTEND_PUBLIC_URL.rstrip('/')}/reset-password?token={raw_token}"
+        db.commit()
         send_email(
             to=user.email,
             subject="Reset your password",
             body=f"Use this link to reset your password: {reset_link}\nThis link expires in 1 hour.",
         )
-        db.commit()
     return {"message": "If this email exists, a reset link has been sent."}
 
 

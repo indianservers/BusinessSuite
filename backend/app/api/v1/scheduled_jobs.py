@@ -5,7 +5,44 @@ from app.core.deps import get_db, RequirePermission
 from app.models.deployment import ScheduledJobRun
 from app.services.scheduled_jobs import run_cron_batch
 
+
+def scoped_email_query(db, user):
+    from app.models.email_outbox import EmailOutbox
+    from app.core.tenant_boundary import company_ids
+    query = db.query(EmailOutbox)
+    return query if user.is_superuser else query.filter(EmailOutbox.organization_id.in_(company_ids(db, user)))
+
 router = APIRouter(tags=["Scheduled jobs"])
+
+
+@router.get("/internal/email-status")
+def email_status(db=Depends(get_db), user=Depends(RequirePermission("settings_manage"))):
+    from sqlalchemy import func
+    from app.models.email_outbox import EmailOutbox
+    query = scoped_email_query(db, user)
+    return {"counts": [{"module": module, "status": status, "count": count}
+        for module, status, count in query.with_entities(EmailOutbox.module, EmailOutbox.status, func.count(EmailOutbox.id))
+            .group_by(EmailOutbox.module, EmailOutbox.status)],
+        "failures": [{"id": row.id, "module": row.module, "status": row.status, "error": row.error, "created_at": row.created_at}
+            for row in query.filter(EmailOutbox.status.in_(["failed", "reconciliation_required"])).order_by(EmailOutbox.id.desc()).limit(50)]}
+
+
+@router.get("/internal/email-dispatch")
+def email_dispatch(response: Response, authorization: str = Header(""), db=Depends(get_db)):
+    if not settings.CRON_SECRET or not secrets.compare_digest(authorization, f"Bearer {settings.CRON_SECRET}"):
+        raise HTTPException(401, "Invalid scheduler credentials")
+    response.headers["Cache-Control"] = "no-store"
+    from app.services.email_dispatch import process_email
+    return process_email(db, limit=25)
+
+
+@router.get("/internal/intern-correction-reminders")
+def intern_correction_reminders(response: Response, authorization: str = Header(""), db=Depends(get_db)):
+    if not settings.CRON_SECRET or not secrets.compare_digest(authorization, f"Bearer {settings.CRON_SECRET}"):
+        raise HTTPException(401, "Invalid scheduler credentials")
+    response.headers["Cache-Control"] = "no-store"
+    from app.apps.interns_hub.correction_reminders import run_correction_reminders
+    return run_correction_reminders(db, limit=50)
 
 
 @router.get("/internal/cron")
@@ -14,6 +51,8 @@ def cron(response: Response, authorization: str = Header(""), db=Depends(get_db)
         raise HTTPException(401, "Invalid scheduler credentials")
     response.headers["Cache-Control"] = "no-store"
     result = run_cron_batch(db)
+    from app.services.email_dispatch import process_email
+    result["email"] = process_email(db, limit=25)
     from app.module_registry import is_app_enabled
     if is_app_enabled("crm"):
         from app.apps.crm.lead_management import scheduled_lead_alerts

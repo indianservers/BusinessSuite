@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { CustomFieldCell, FieldValue, useCustomFieldRecords, type CustomField } from "../components/CustomFields";
 import { api } from "@/services/api";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -22,13 +23,13 @@ export default function ProjectsList() {
   const [table,setTable]=useState(false),[columnsOpen,setColumnsOpen]=useState(false);
   const [hiddenFields,setHiddenFields]=useState<number[]>(()=>{try{return JSON.parse(localStorage.getItem("pms.project-hidden-fields.v1")||"[]");}catch{return [];}});
   useEffect(()=>{try{localStorage.setItem("pms.project-hidden-fields.v1",JSON.stringify(hiddenFields));}catch{/* optional browser preference */}},[hiddenFields]);
-  useEffect(()=>{let active=true;api.get<{fields:CustomField[]}>("/project-management/custom-fields").then(({data})=>{if(active)setCustomFields(data.fields.filter(f=>f.entity_type!=="task"));}).catch(()=>undefined);return()=>{active=false;};},[]);
+  useRefreshableEffect(()=>{let active=true;api.get<{fields:CustomField[]}>("/project-management/custom-fields").then(({data})=>{if(active)setCustomFields(data.fields.filter(f=>f.entity_type!=="task"));}).catch(()=>undefined);return()=>{active=false;};},[]);
   const shownFields=customFields.filter(f=>!hiddenFields.includes(f.id));
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     projectsAPI
       .list()
       .then(setProjects)

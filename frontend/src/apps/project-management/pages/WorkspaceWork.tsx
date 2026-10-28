@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { CustomFieldCell, useCustomFieldRecords } from "../components/CustomFields";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { StatusSelect } from "@/design-system/components";
@@ -120,7 +121,7 @@ export function TaskDrawer({ task, members, canEdit, onClose, onUpdate, onRefres
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     setComments([]); setComment(""); if (!task) return;
     let active = true; setLoading(true);
     commentsAPI.listForTask(task.id).then(data => { if (active) setComments(data); }).catch(e => { if (active) onError(workspaceError(e)); }).finally(() => { if (active) setLoading(false); });

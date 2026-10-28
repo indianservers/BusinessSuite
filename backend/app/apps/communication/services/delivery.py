@@ -53,7 +53,9 @@ def is_opted_out(db: Session, email: str, channel: str = "email") -> bool:
 
 def configured_email_provider() -> str:
     provider = getattr(settings, "COMMUNICATION_EMAIL_PROVIDER", "") or ""
-    return provider.strip().lower()
+    from app.core.email import email_provider
+    value = provider.strip().lower()
+    return email_provider() if value in {"", "smtp", "ses"} else value
 
 
 def deliver_email(db: Session, message: CommunicationEmailMessage, current_user: User | None = None, *, attachments=None) -> CommunicationEmailMessage:
@@ -78,12 +80,18 @@ def deliver_email(db: Session, message: CommunicationEmailMessage, current_user:
         _timeline(db, message, "sent", current_user)
         return message
 
-    if provider == "smtp" and settings.MAIL_USERNAME and settings.MAIL_PASSWORD and settings.MAIL_FROM:
-        import smtplib
+    from app.core.email import email_configured, send_message
+    if provider in {"smtp", "ses"} and email_configured():
         from email.message import EmailMessage
         validate_email(message.to_email)
         mail = EmailMessage()
-        mail["From"], mail["To"], mail["Subject"] = settings.MAIL_FROM, message.to_email, message.subject
+        mail["To"], mail["Subject"] = message.to_email, message.subject
+        from email.utils import getaddresses
+        recipients = [message.to_email]
+        for header, value in (("Cc", message.cc), ("Bcc", message.bcc)):
+            if value:
+                mail[header] = value
+                recipients.extend(address for _, address in getaddresses([value]))
         mail["Message-ID"] = f"<businesssuite-{message.id}@{settings.MAIL_FROM.split('@')[-1]}>"
         from app.core.rich_text import email_body_parts
         plain, formatted = email_body_parts(message.body)
@@ -92,19 +100,10 @@ def deliver_email(db: Session, message: CommunicationEmailMessage, current_user:
         for name, content, mime in attachments or []:
             main, sub = mime.split("/", 1)
             mail.add_attachment(content, maintype=main, subtype=sub, filename=name)
-        smtp_class = smtplib.SMTP_SSL if settings.MAIL_SSL_TLS else smtplib.SMTP
-        with smtp_class(settings.MAIL_SERVER, settings.MAIL_PORT, timeout=20) as connection:
-            if settings.MAIL_STARTTLS and not settings.MAIL_SSL_TLS:
-                connection.starttls()
-            connection.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
-            refused = connection.send_message(mail, to_addrs=[message.to_email])
-        if refused:
-            message.status, message.error_message = "failed", "Provider rejected the billing recipient"
-        else:
-            message.status, message.error_message = "sent", None
-            message.provider_message_id = mail["Message-ID"]
-            message.sent_at = datetime.now(timezone.utc)
-        _delivery_log(db, message, "smtp", message.status, request_json, response_json={"provider_message_id": message.provider_message_id}, error_message=message.error_message)
+        message.provider_message_id = send_message(mail, recipients)
+        message.status, message.error_message = "sent", None
+        message.sent_at = datetime.now(timezone.utc)
+        _delivery_log(db, message, provider, message.status, request_json, response_json={"provider_message_id": message.provider_message_id})
         _timeline(db, message, message.status, current_user)
         return message
 

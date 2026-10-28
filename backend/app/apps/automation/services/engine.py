@@ -223,6 +223,26 @@ def _action_result(db: Session, action: AutomationAction, context: dict[str, Any
         db.add(request)
         db.flush()
         return {"type": action_type, "status": "approval_requested", "approval_request_id": request.id}
+    if action_type == "send_email":
+        from app.apps.communication.models import CommunicationEmailTemplate
+        from app.apps.communication.services.delivery import merge_template
+        from app.services.email_dispatch import queue_email, user_can_receive
+        from app.access.catalog import permission_objects
+        company = organization_id_for(user)
+        if not user.is_superuser and "communication_email_send" not in {p.name for p in permission_objects(user)}:
+            raise HTTPException(403, "Email sending permission is required")
+        template = db.query(CommunicationEmailTemplate).filter_by(
+            id=payload["template_id"], organization_id=company, active=True).first()
+        if not template:
+            raise HTTPException(422, "Choose an active email template in your organization")
+        recipient = db.get(User, payload.get("user_id") or user.id)
+        if not recipient or not user_can_receive(db, recipient.id, recipient.email, company):
+            raise HTTPException(422, "Choose an active recipient in your organization")
+        values = context.get("record") or {}
+        row = queue_email(db, recipient=recipient.email, user_id=recipient.id, organization_id=company,
+            module=context.get("module_name") or "automation", subject=merge_template(template.subject, values),
+            body=merge_template(template.body_html or template.body_text, values), is_html=bool(template.body_html))
+        return {"type": action_type, "status": "email_queued"}
     if action_type == "call_webhook":
         raise HTTPException(503,"Publish a shared workflow with an approved connection to execute webhooks")
     raise HTTPException(501,"This legacy action has no execution adapter; use an approved shared workflow action")
@@ -252,7 +272,9 @@ def execute_workflow(db: Session, workflow: AutomationWorkflow, context: dict[st
             log.status = "skipped"
             log.result_json = {"conditions_matched": False, "actions": []}
             return log
-        results = [_action_result(db, action, context, user) for action in actions]
+        # A later failed action must not leave an email queued from this run.
+        with db.begin_nested():
+            results = [_action_result(db, action, context, user) for action in actions]
         log.result_json = {"conditions_matched": True, "actions": results}
         return log
     except HTTPException as exc:

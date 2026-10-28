@@ -48,6 +48,7 @@ export default function NotificationsPage() {
     mutationFn: (id: number) => notificationsApi.markRead(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] });
+      qc.invalidateQueries({ queryKey: ["suite-notifications"] });
     },
   });
 
@@ -56,6 +57,7 @@ export default function NotificationsPage() {
     onSuccess: () => {
       toast({ title: "Notifications marked as read" });
       qc.invalidateQueries({ queryKey: ["notifications"] });
+      qc.invalidateQueries({ queryKey: ["suite-notifications"] });
     },
   });
 

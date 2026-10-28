@@ -1,5 +1,5 @@
 from app.access.catalog import permission_objects
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -7,12 +7,61 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
+from app.core.employee_scope import employee_tenant_scope
 from app.models.employee import Employee
 from app.models.expense import ExpenseClaim
 from app.models.user import User
 from app.schemas.expense import ExpenseClaimCreate, ExpenseClaimReview, ExpenseClaimSchema, ExpenseReimbursementUpdate
 
-router = APIRouter(prefix="/expenses", tags=["Expense Claims"])
+router = APIRouter(prefix="/expenses", tags=["Expense Claims"], dependencies=[Depends(employee_tenant_scope)])
+
+
+@router.get("/employees")
+def expense_employees(search: str = "", db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+    if not _can_hr_or_finance(current_user):
+        if not current_user.employee:
+            return []
+        query = query.filter((Employee.id == current_user.employee.id) | (Employee.reporting_manager_id == current_user.employee.id))
+    if search:
+        query = query.filter((Employee.first_name + " " + Employee.last_name).ilike(f"%{search}%") | Employee.employee_id.ilike(f"%{search}%"))
+    return [{"id": row.id, "name": f"{row.first_name} {row.last_name}", "employee_code": row.employee_id}
+            for row in query.order_by(Employee.first_name, Employee.id).limit(50).all()]
+
+
+@router.get("/statements/{employee_id}")
+def expense_statement(employee_id: int, from_date: Optional[date] = None,
+                      to_date: Optional[date] = None,
+                      db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    employee = _employee_or_404(db, employee_id)
+    own = current_user.employee
+    if not (_can_hr_or_finance(current_user) or (own and (own.id == employee_id or employee.reporting_manager_id == own.id))):
+        raise HTTPException(403, "Cannot view this employee's expense statement")
+    if from_date and to_date and from_date > to_date:
+        raise HTTPException(422, "Start date must not be after end date")
+    query = db.query(ExpenseClaim).filter(ExpenseClaim.employee_id == employee_id)
+    if from_date:
+        query = query.filter(ExpenseClaim.expense_date >= from_date)
+    if to_date:
+        query = query.filter(ExpenseClaim.expense_date <= to_date)
+    rows = query.order_by(ExpenseClaim.expense_date.desc(), ExpenseClaim.id.desc()).all()
+    totals = {}
+    for row in rows:
+        total = totals.setdefault(row.currency or "INR", {key: Decimal("0") for key in ["claimed", "approved", "outstanding", "paid", "pending_review", "rejected"]})
+        total["claimed"] += row.amount
+        if row.status in {"finance_approved", "reimbursed"}:
+            amount = row.approved_amount or Decimal("0")
+            total["approved"] += amount
+            total["paid" if row.status == "reimbursed" else "outstanding"] += amount
+        elif row.status == "rejected":
+            total["rejected"] += row.amount
+        else:
+            total["pending_review"] += row.amount
+    return {"employee_id": employee_id, "employee_name": f"{employee.first_name} {employee.last_name}",
+            "totals": [{"currency": currency, **{key: str(value) for key, value in total.items()}} for currency, total in sorted(totals.items())],
+            "claims": [ExpenseClaimSchema.model_validate(row).model_dump(mode="json") for row in rows],
+            "can_manager_review": bool(_can_hr_or_finance(current_user) or (own and employee.reporting_manager_id == own.id)),
+            "can_finance_review": _can_finance(current_user)}
 
 
 def _permissions(user: User) -> set[str]:
@@ -79,7 +128,7 @@ def list_claims(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = db.query(ExpenseClaim)
+    query = db.query(ExpenseClaim).join(Employee)
     if not _can_hr_or_finance(current_user):
         if not current_user.employee:
             raise HTTPException(status_code=400, detail="Employee profile is required")
@@ -106,17 +155,22 @@ def manager_review_claim(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    claim = db.query(ExpenseClaim).filter(ExpenseClaim.id == claim_id).first()
+    claim = db.query(ExpenseClaim).join(Employee).filter(ExpenseClaim.id == claim_id).with_for_update().first()
     if not claim:
         raise HTTPException(status_code=404, detail="Expense claim not found")
+    if claim.status != "submitted":
+        raise HTTPException(409, "This claim has already left manager review")
     employee = _employee_or_404(db, claim.employee_id)
     if not (_can_hr_or_finance(current_user) or (current_user.employee and employee.reporting_manager_id == current_user.employee.id)):
         raise HTTPException(status_code=403, detail="Only manager/HR can review this claim")
     status = data.status.lower()
     if status not in {"manager_approved", "rejected"}:
         raise HTTPException(status_code=400, detail="status must be manager_approved or rejected")
+    amount = data.approved_amount if data.approved_amount is not None else claim.amount
+    if amount < 0 or amount > claim.amount:
+        raise HTTPException(422, "Approved amount must be between zero and the claimed amount")
     claim.status = status
-    claim.approved_amount = data.approved_amount if data.approved_amount is not None else claim.amount
+    claim.approved_amount = amount if status != "rejected" else Decimal("0")
     claim.manager_approved_by = current_user.id
     claim.manager_approved_at = datetime.now(timezone.utc)
     claim.remarks = data.remarks
@@ -134,17 +188,19 @@ def finance_review_claim(
 ):
     if not _can_finance(current_user):
         raise HTTPException(status_code=403, detail="Finance permission required")
-    claim = db.query(ExpenseClaim).filter(ExpenseClaim.id == claim_id).first()
+    claim = db.query(ExpenseClaim).join(Employee).filter(ExpenseClaim.id == claim_id).with_for_update().first()
     if not claim:
         raise HTTPException(status_code=404, detail="Expense claim not found")
+    if claim.status != "manager_approved":
+        raise HTTPException(409, "Manager approval is required before finance review")
     status = data.status.lower()
     if status not in {"finance_approved", "rejected"}:
         raise HTTPException(status_code=400, detail="status must be finance_approved or rejected")
-    amount = data.approved_amount if data.approved_amount is not None else claim.approved_amount or claim.amount
-    if Decimal(amount) > claim.amount:
+    amount = data.approved_amount if data.approved_amount is not None else claim.approved_amount
+    if Decimal(amount) < 0 or Decimal(amount) > claim.amount:
         raise HTTPException(status_code=400, detail="Approved amount cannot exceed claim amount")
     claim.status = status
-    claim.approved_amount = amount
+    claim.approved_amount = amount if status != "rejected" else Decimal("0")
     claim.finance_approved_by = current_user.id
     claim.finance_approved_at = datetime.now(timezone.utc)
     claim.remarks = data.remarks
@@ -162,11 +218,15 @@ def reimburse_claim(
 ):
     if not _can_finance(current_user):
         raise HTTPException(status_code=403, detail="Finance permission required")
-    claim = db.query(ExpenseClaim).filter(ExpenseClaim.id == claim_id).first()
+    claim = db.query(ExpenseClaim).join(Employee).filter(ExpenseClaim.id == claim_id).with_for_update().first()
     if not claim:
         raise HTTPException(status_code=404, detail="Expense claim not found")
     if claim.status != "finance_approved":
         raise HTTPException(status_code=400, detail="Only finance approved claims can be reimbursed")
+    if claim.payroll_run_id or claim.payroll_reimbursement_id:
+        raise HTTPException(409, "This claim is linked to payroll. Reconcile payment through its payroll run.")
+    if not data.reimbursement_reference or not data.reimbursement_reference.strip():
+        raise HTTPException(422, "A payment reference is required")
     claim.status = "reimbursed"
     claim.reimbursed_at = datetime.now(timezone.utc)
     claim.reimbursement_reference = data.reimbursement_reference

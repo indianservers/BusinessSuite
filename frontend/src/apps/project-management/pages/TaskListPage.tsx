@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { CustomFieldCell, useCustomFieldRecords, type CustomField } from "../components/CustomFields";
 import { api } from "@/services/api";
 import { StatusSelect } from "@/design-system/components";
@@ -174,7 +175,7 @@ export default function TaskListPage() {
   const [data, setData] = useState<PMSTaskListResponse | null>(null);
   const [customFields,setCustomFields]=useState<CustomField[]>([]);
   const custom=useCustomFieldRecords("task",data?.items.map(t=>t.id)||[]);
-  useEffect(()=>{let active=true;api.get<{fields:CustomField[]}>("/project-management/custom-fields").then(({data})=>{if(active)setCustomFields(data.fields.filter(f=>f.entity_type!=="project"));}).catch(()=>undefined);return()=>{active=false;};},[]);
+  useRefreshableEffect(()=>{let active=true;api.get<{fields:CustomField[]}>("/project-management/custom-fields").then(({data})=>{if(active)setCustomFields(data.fields.filter(f=>f.entity_type!=="project"));}).catch(()=>undefined);return()=>{active=false;};},[]);
   const [filters, setFilters] = useState<FilterState>({ ...defaultFilters, projectId: searchParams.get("projectId") || "" });
   const [sortBy, setSortBy] = useState("updatedDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
@@ -237,7 +238,7 @@ export default function TaskListPage() {
       });
   }, [filters, page, pageSize, sortBy, sortOrder]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     loadTasks(active);
     return () => {
@@ -255,7 +256,7 @@ export default function TaskListPage() {
     showToast: false,
   });
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     savedViewsAPI
       .list("task")

@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock, FolderKanban, Milestone, TrendingUp, Users } from "lucide-react";
@@ -35,7 +36,7 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     setLoading(true);
     setError(null);
     const commonFilters = {

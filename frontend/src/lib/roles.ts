@@ -695,7 +695,9 @@ const hrNav: RoleNavItem[] = [
   { label: "Org Chart", icon: GitBranch, to: "/org-chart", group: "Platform" },
   { label: "Onboarding", icon: ClipboardCheck, to: "/onboarding", group: "Platform" },
   { label: "Documents", icon: FileText, to: "/documents", group: "Platform" },
+  { label: "Letters & Certificates", icon: FileText, to: "/letters-certificates", group: "Platform" },
   { label: "Assets", icon: Package, to: "/assets", group: "Platform" },
+  { label: "Employee expenses", icon: Receipt, to: "/expenses", group: "Platform" },
   { label: "Exit", icon: LogOut, to: "/exit", group: "Platform" },
   { label: "WhatsApp ESS", icon: MessageCircle, to: "/whatsapp-ess", group: "Platform" },
   { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Platform" },
@@ -745,7 +747,9 @@ const adminNav: RoleNavItem[] = [
   { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Platform" },
   { label: "Onboarding", icon: ClipboardCheck, to: "/onboarding", group: "Platform" },
   { label: "Documents", icon: FileText, to: "/documents", group: "Platform" },
+  { label: "Letters & Certificates", icon: FileText, to: "/letters-certificates", group: "Platform" },
   { label: "Assets", icon: Package, to: "/assets", group: "Platform" },
+  { label: "Employee expenses", icon: Receipt, to: "/expenses", group: "Platform" },
   { label: "Exit", icon: LogOut, to: "/exit", group: "Platform" },
   { label: "AI Assistant", icon: Sparkles, to: "/ai-assistant", badge: "AI", group: "Platform" },
 ];
@@ -778,7 +782,7 @@ const ceoNav: RoleNavItem[] = [
 const managerNav: RoleNavItem[] = [
   { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
   { label: "Team Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
-  { label: "Manager Hub", icon: Users, to: "/manager-dashboard", group: "Core HR", exact: true },
+  { label: "My Team", icon: Users, to: "/manager-dashboard", group: "Core HR", exact: true },
   { label: "Approval OS", icon: FileCheck2, to: "/approval-os", group: "Core HR" },
   { label: "Inbox", icon: Inbox, to: "/workflow", group: "Core HR" },
   { label: "Notifications", icon: Bell, to: "/notifications", group: "Core HR" },
@@ -792,6 +796,7 @@ const managerNav: RoleNavItem[] = [
   { label: "Leave Gantt", icon: CalendarDays, to: "/hrms/leave/gantt", group: "Core HR" },
   { label: "Recruitment", icon: Briefcase, to: "/recruitment", group: "Core HR" },
   { label: "Assets", icon: Package, to: "/assets", group: "Core HR" },
+  { label: "Employee expenses", icon: Receipt, to: "/expenses", group: "Core HR" },
   { label: "Performance", icon: Target, to: "/performance", group: "Talent" },
   { label: "LMS", icon: GraduationCap, to: "/lms", group: "Talent" },
   { label: "Engagement", icon: Megaphone, to: "/engagement", group: "Talent" },
@@ -1096,9 +1101,9 @@ const adminSecurityNav: RoleNavItem[] = [
 ];
 
 function withPrefix(items: RoleNavItem[], prefix: string) {
-  return items.map((item) => ({
+  return items.filter(item => item.to !== "/settings").map((item) => ({
     ...item,
-    to: item.to.startsWith("/ai-agents") ? item.to : `${prefix}${item.to}`,
+    to: item.to === "/company" ? "/settings/company-profile" : item.to.startsWith("/ai-agents") ? item.to : `${prefix}${item.to}`,
   }));
 }
 
@@ -1288,6 +1293,7 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/engagement": ["admin", "ceo", "hr", "manager"],
   "/helpdesk": ["admin", "hr", "manager"],
   "/documents": ["admin", "hr", "employee"],
+  "/letters-certificates": ["admin", "hr"],
   "/employee-directory": ["admin", "ceo", "hr", "manager"],
   "/employees/new": ["admin", "hr"],
   "/employees": ["admin", "ceo", "hr", "manager"],
@@ -1300,6 +1306,7 @@ const routeAccess: Record<string, RoleKey[]> = {
   "/org-chart": ["admin", "ceo", "hr", "manager"],
   "/settings": ["admin"],
   "/assets": ["admin", "hr", "manager"],
+  "/expenses": ["admin", "ceo", "hr", "manager", "employee"],
   "/onboarding": ["admin", "hr"],
   "/exit": ["admin", "hr"],
   "/ai-assistant": ["admin", "ceo", "hr", "manager"],
@@ -1311,6 +1318,8 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) return true;
+  if (["/dashboard", "/account", "/notifications", "/help"].includes(pathname.split(/[?#]/)[0])) return true;
   const access = useAuthStore.getState().user?.access;
   if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return isSuperuser || Boolean(access?.isAccessAdmin);
   if (pathname === "/power-apps" || pathname.startsWith("/power-apps/")) {

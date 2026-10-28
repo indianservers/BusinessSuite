@@ -2,7 +2,7 @@ from datetime import timedelta
 import pytest
 from app.apps.interns_hub.router import today
 from app.apps.interns_hub.models import InternApplication
-from app.models.user import User
+from app.models.user import User, Role
 from app.models.employee import Employee
 
 
@@ -17,7 +17,11 @@ def application_payload():
         emergency_contact="9123456789", emergency_contact_country_code="+91", password="Applicant@123456", consent=True)
 
 
-def test_application_requires_approval_before_login(client, db, superuser_headers, application_payload):
+@pytest.mark.parametrize("bulk", [False, True])
+def test_application_requires_approval_before_login(client, db, superuser_headers, application_payload, monkeypatch, bulk):
+    from unittest.mock import Mock
+    notification = Mock()
+    monkeypatch.setattr("app.apps.interns_hub.approval_email.notify_approval", notification)
     from app.models.company import Company, Branch, Department, Designation
     base="/api/v1/interns-hub"
     result=client.post(f"{base}/applications",json=application_payload)
@@ -37,10 +41,18 @@ def test_application_requires_approval_before_login(client, db, superuser_header
     branch=Branch(name="HQ",company_id=company.id);db.add(branch);db.flush()
     department=Department(name="Engineering",branch_id=branch.id);db.add(department);db.flush()
     designation=Designation(name="Development Intern",department_id=department.id);db.add(designation)
-    manager=Employee(employee_id="APP-MANAGER",first_name="Team",last_name="Manager",date_of_joining=today());db.add(manager);db.commit()
+    manager=Employee(user_id=db.query(User).filter_by(email="testadmin@test.com").one().id,employee_id="APP-MANAGER",first_name="Team",last_name="Manager",date_of_joining=today());db.add(manager);db.commit()
     decision=dict(status="Approved",branch_id=branch.id,department_id=department.id,designation_id=designation.id,reporting_manager_id=manager.id,date_of_joining=str(today()))
-    approved=client.post(f"{base}/admin/applications/{application.id}/decision",headers=superuser_headers,json=decision)
+    if bulk:
+        job = client.post(f"{base}/admin/application-jobs", headers=superuser_headers,
+            json={"application_ids": [application.id], "decision": decision, "request_key": "approval-email-test"})
+        assert job.status_code == 201, job.text
+        approved = client.post(f"{base}/applications/status", json={"email": application_payload["email"], "password": application_payload["password"]})
+    else:
+        approved=client.post(f"{base}/admin/applications/{application.id}/decision",headers=superuser_headers,json=decision)
     assert approved.status_code==200, approved.text
+    notification.assert_called_once()
+    assert notification.call_args.args[1].status == "Approved"
     assert approved.json()["can_login"] and approved.json()["intern_id"].startswith("IH-")
     assert client.post(f"{base}/admin/applications/{application.id}/decision",headers=superuser_headers,json=decision).status_code==409
     account=db.query(User).filter_by(email=application_payload["email"]).one()
@@ -112,6 +124,17 @@ def _google_application_access(google_applicant):
     google_applicant('applicant@example.com')
 
 
+def test_duplicate_application_matches_mixed_case_saved_email(client, db, application_payload):
+    result = client.post('/api/v1/interns-hub/applications', json=application_payload)
+    assert result.status_code == 201, result.text
+    item = db.query(InternApplication).one()
+    item.email = 'Applicant@Example.com'
+    db.commit()
+    result = client.post('/api/v1/interns-hub/applications', json=application_payload)
+    assert result.status_code == 409, result.text
+    assert db.query(InternApplication).count() == 1
+
+
 
 def test_application_email_is_bound_to_google_identity(client,application_payload,google_applicant):
     google_applicant('another@example.com')
@@ -133,7 +156,11 @@ def test_superadmin_can_be_selected_as_reporting_manager(client, db, superuser_h
     department = Department(name="Engineering", branch_id=branch.id)
     db.add(department); db.flush()
     designation = Designation(name="Intern", department_id=department.id)
-    probation = Employee(employee_id="PROB-MGR", first_name="Probation", last_name="Manager", branch_id=branch.id,
+    supervisor_role = Role(name="pms_project_manager")
+    db.add(supervisor_role); db.flush()
+    supervisor = User(email="supervisor@example.com", hashed_password="unused", role_id=supervisor_role.id, is_active=True)
+    db.add(supervisor); db.flush()
+    probation = Employee(user_id=supervisor.id, employee_id="PROB-MGR", first_name="Probation", last_name="Manager", branch_id=branch.id,
                          status="Probation", employment_type="Full-time", date_of_joining=today())
     db.add_all([designation, probation]); db.commit()
     assert client.get(base + "/admin/reporting-managers").status_code == 403

@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import RunningTimer from "../components/RunningTimer";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -54,7 +55,7 @@ export default function TimeTrackingPage() {
     loadLogs();
   }, []);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!form.projectId) {
       setTasks([]);
       return;

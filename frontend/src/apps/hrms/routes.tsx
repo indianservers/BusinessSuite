@@ -42,8 +42,10 @@ const SharedProfilePage = React.lazy(() => import("@/features/profiles/ProfilePa
 const SharedProfileManagementPage = React.lazy(() => import("@/features/profiles/ProfilePage").then(module => ({ default: module.SharedProfileManagementPage })));
 const ESSPortalPage = React.lazy(() => import("@/apps/hrms/pages/profile/ESSPortalPage"));
 const AssetsPage = React.lazy(() => import("@/apps/hrms/pages/assets/AssetsPage"));
+const ExpensesPage = React.lazy(() => import("@/apps/hrms/pages/expenses/ExpensesPage"));
 const OnboardingPage = React.lazy(() => import("@/apps/hrms/pages/onboarding/OnboardingPage"));
 const DocumentsPage = React.lazy(() => import("@/apps/hrms/pages/documents/DocumentsPage"));
+const DocumentStudioPage = React.lazy(() => import("@/apps/hrms/pages/documents/DocumentStudioPage"));
 const ExitPage = React.lazy(() => import("@/apps/hrms/pages/exit/ExitPage"));
 const SettingsPage = React.lazy(() => import("@/apps/hrms/pages/settings/SettingsPage"));
 const EngagementPage = React.lazy(() => import("@/apps/hrms/pages/engagement/EngagementPage"));
@@ -115,10 +117,12 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "logs", element: <AdminLogsPage /> },
   { path: "company", element: <CompanyPage /> },
   { path: "org-chart", element: <OrgChartPage /> },
-  { path: "settings", element: <SettingsPage /> },
+  { path: "settings", element: <Navigate to="/settings" replace /> },
   { path: "assets", element: <AssetsPage /> },
+  { path: "expenses", element: <ExpensesPage /> },
   { path: "onboarding", element: <OnboardingPage /> },
   { path: "documents", element: <DocumentsPage /> },
+  { path: "letters-certificates", element: <DocumentStudioPage /> },
   { path: "exit", element: <ExitPage /> },
   { path: "ai-assistant", element: <AIAssistantPage /> },
   { path: "profile", element: <SharedProfilePage /> },

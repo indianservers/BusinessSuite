@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Clock, Send, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +47,7 @@ export default function TimesheetsPage() {
   const days = useMemo(() => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)), [weekStart]);
   const editable = !sheet || sheet.status === "draft" || sheet.status === "rejected";
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     projectsAPI.list().then((items) => {
       setProjects(items);
       items.slice(0, 5).forEach((project) => loadTasks(project.id));
@@ -54,11 +55,11 @@ export default function TimesheetsPage() {
     pmsUsersAPI.search({ limit: 25 }).then(setUsers).catch(() => setUsers([]));
   }, []);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     loadSheet();
   }, [weekStart]);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     loadApprovals();
   }, [approvalStatus, approvalUserId, weekStart]);
 

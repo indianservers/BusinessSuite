@@ -1,3 +1,4 @@
+import { usePageRefresh } from "@/lib/page-refresh";
 import { RecordCustomFields } from "../components/CustomFields";
 import { ConversationLauncher } from "@/shared/communication";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -35,6 +36,8 @@ export default function ProjectDashboard() {
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[id,setSelectedProject,setTasks,retryVersion]);
+
+  usePageRefresh(() => setRetryVersion(value => value + 1));
 
   const project = selectedProject || dashboard?.project;
   const taskChart = ["Backlog", "To Do", "In Progress", "In Review", "Done"].map((status) => ({

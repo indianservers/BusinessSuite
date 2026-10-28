@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 /**
  * KaryaFlow - Kanban Board with Drag & Drop
  * Interactive Kanban board using DnD Kit for task management
@@ -110,7 +111,7 @@ const KanbanBoard: React.FC = () => {
     }, [projectIdNum, selectedProject, setBoard, setLoading, setSelectedProject, setTasks]);
 
   // Load board and tasks
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     loadBoard(active);
     return () => {

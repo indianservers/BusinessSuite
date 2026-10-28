@@ -35,6 +35,7 @@ from app.schemas.common import PaginatedResponse
 import os, shutil
 from app.core.config import settings
 
+from app.core.employee_directory import EmployeeDirectoryFilters, apply_employee_directory_filters, order_employee_directory
 from app.core.employee_scope import employee_tenant_scope, validate_employee_links
 router = APIRouter(prefix="/employees", tags=["Employees"], dependencies=[Depends(employee_tenant_scope)])
 _DIRECTORY_SEARCH_BUCKETS: dict[int, list[float]] = {}
@@ -54,6 +55,7 @@ class EmployeeUserOption(BaseModel):
     id: int
     email: str
     role: Optional[str] = None
+    role_id: Optional[int] = None
     employee_id: Optional[int] = None
     employee_code: Optional[str] = None
     employee_name: Optional[str] = None
@@ -798,14 +800,43 @@ def report_directory_correction(
     return {"message": "Correction report submitted"}
 
 
+@router.get("/filter-options")
+def employee_filter_options(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("employee_view")),
+):
+    from app.models.employee import EmployeeEducation
+    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+    result = {}
+    for key, column in {"city": Employee.present_city, "state": Employee.present_state,
+                        "employment_type": Employee.employment_type, "worker_type": Employee.worker_type,
+                        "work_location": Employee.work_location, "gender": Employee.gender, "status": Employee.status}.items():
+        result[key] = sorted({value.strip() for (value,) in query.with_entities(column).distinct() if value and value.strip()}, key=str.casefold)
+    education = db.query(EmployeeEducation).join(Employee).filter(Employee.deleted_at.is_(None))
+    for key, column in {"passout_year": EmployeeEducation.pass_year, "college": EmployeeEducation.institution,
+                        "degree": EmployeeEducation.degree, "specialization": EmployeeEducation.specialization}.items():
+        result[key] = sorted({value for (value,) in education.with_entities(column).distinct() if value is not None and str(value).strip()}, reverse=key == "passout_year")
+    return result
+
+
+@router.get("/reporting-managers")
+def employee_reporting_managers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("employee_view")),
+):
+    from app.core.reporting_managers import eligible_reporting_manager
+    employees = db.query(Employee).options(joinedload(Employee.user).joinedload(User.role)).filter(
+        Employee.deleted_at.is_(None), Employee.status.in_(["Active", "Probation"])
+    ).all()
+    return sorted([
+        {"id": employee.id, "name": f"{employee.first_name} {employee.last_name} ({employee.employee_id})"}
+        for employee in employees if eligible_reporting_manager(employee)
+    ], key=lambda option: option["name"].casefold())
+
+
 @router.get("/", response_model=PaginatedResponse[EmployeeListSchema])
 def list_employees(
-    search: Optional[str] = Query(None),
-    department_id: Optional[int] = Query(None),
-    branch_id: Optional[int] = Query(None),
-    designation_id: Optional[int] = Query(None),
-    status: Optional[str] = Query(None),
-    employment_type: Optional[str] = Query(None),
+    filters: EmployeeDirectoryFilters = Depends(),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -814,12 +845,7 @@ def list_employees(
     skip = (page - 1) * per_page
     items, total = crud_employee.search(
         db,
-        search=search,
-        department_id=department_id,
-        branch_id=branch_id,
-        designation_id=designation_id,
-        status=status,
-        employment_type=employment_type,
+        **filters.model_dump(exclude_none=True),
         skip=skip,
         limit=per_page,
     )
@@ -891,7 +917,7 @@ def list_expiring_employee_documents(
 
 @router.get("/export")
 def export_employees(
-    status_filter: Optional[str] = Query(None, alias="status"),
+    filters: EmployeeDirectoryFilters = Depends(),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_export")),
 ):
@@ -904,9 +930,9 @@ def export_employees(
     ])
 
     query = db.query(Employee).filter(Employee.deleted_at.is_(None))
-    if status_filter:
-        query = query.filter(Employee.status == status_filter)
-    for emp in query.order_by(Employee.employee_id).all():
+    values = filters.model_dump(exclude_none=True)
+    query = apply_employee_directory_filters(query, values)
+    for emp in order_employee_directory(query, filters.sort_by, filters.sort_order).all():
         writer.writerow([
             emp.employee_id,
             emp.first_name,
@@ -1223,6 +1249,7 @@ def list_employee_user_options(
                 "id": user.id,
                 "email": user.email,
                 "role": user.role.name if user.role else None,
+                "role_id": user.role_id,
                 "employee_id": employee.id if employee else None,
                 "employee_code": employee.employee_id if employee else None,
                 "employee_name": f"{employee.first_name} {employee.last_name}" if employee else None,
@@ -1393,6 +1420,19 @@ def get_employee(
     return mask_employee_detail(emp, current_user)
 
 
+@router.get("/{employee_id}/360")
+def employee_operational_overview(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("employee_view")),
+):
+    from app.services.employee360 import build_employee360
+    employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
+    if not employee:
+        raise HTTPException(404, "Employee not found")
+    return build_employee360(db, employee, current_user)
+
+
 @router.put("/{employee_id}", response_model=EmployeeSchema)
 def update_employee(
     employee_id: int,
@@ -1403,9 +1443,22 @@ def update_employee(
     emp = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
-    validate_employee_links(db, current_user, data.model_dump(exclude_unset=True), emp)
-    record_employee_field_changes(db, emp, data.model_dump(exclude_unset=True), current_user.id)
-    return crud_employee.update(db, db_obj=emp, obj_in=data)
+    values = data.model_dump(exclude_unset=True)
+    role_id = values.pop("role_id", None)
+    if "role_id" in data.model_fields_set:
+        if not current_user.is_superuser:
+            raise HTTPException(403, "Only an administrator can change an account role")
+        if role_id is None or not db.query(Role.id).filter(Role.id == role_id).first():
+            raise HTTPException(422, "Select an existing account role")
+        if not emp.user:
+            raise HTTPException(422, "Link a login account before changing its role")
+    validate_employee_links(db, current_user, values, emp)
+    if role_id is not None and emp.user.role_id != role_id:
+        db.add(AuditLog(user_id=current_user.id, action="update", module="employees",
+                        method="PUT", entity_type="employee", entity_id=emp.id, description=f"Changed account role from {emp.user.role_id} to {role_id}"))
+        emp.user.role_id = role_id
+    record_employee_field_changes(db, emp, values, current_user.id)
+    return crud_employee.update(db, db_obj=emp, obj_in=values)
 
 
 @router.get("/{employee_id}/lifecycle", response_model=List[EmployeeLifecycleEventSchema])

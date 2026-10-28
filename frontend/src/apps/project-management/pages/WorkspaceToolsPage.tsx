@@ -1,3 +1,5 @@
+import { usePageRefresh } from "@/lib/page-refresh";
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
@@ -52,7 +54,7 @@ export default function WorkspaceToolsPage() {
     const { data } = await api.get<Workspace[]>(base + "/workspaces");
     setWorkspaces(data); setSelected(current => data.some(w => w.id === current) ? current : data.some(w => w.id === Number(params.get("workspace"))) ? Number(params.get("workspace")) : data[0]?.id || 0);
   }, [params]);
-  useEffect(() => { setWorkspaceLoading(true); void loadWorkspaces().catch(e => setError(workspaceError(e))).finally(() => setWorkspaceLoading(false)); }, [loadWorkspaces]);
+  useRefreshableEffect(() => { setWorkspaceLoading(true); void loadWorkspaces().catch(e => setError(workspaceError(e))).finally(() => setWorkspaceLoading(false)); }, [loadWorkspaces]);
   const load = useCallback(async () => {
     if (!selected) return;
     const [library, overview] = await Promise.all([api.get<Tool[]>(`${base}/workspaces/${selected}/tools`), api.get<{ projects: WorkspaceProject[]; tasks: WorkTask[] }>(`${base}/workspaces/${selected}/overview`)]);
@@ -60,6 +62,7 @@ export default function WorkspaceToolsPage() {
   }, [selected]);
   const applyData = (data: Awaited<ReturnType<typeof load>>) => { if (data) { setTools(data.tools); setProjects(data.projects); setTasks(data.tasks); } };
   const refresh = () => { const current = selected; void load().then(data => { if (selectedRef.current === current) applyData(data); }).catch(() => undefined); };
+  usePageRefresh(refresh);
   usePMSRealtime({ onEvent: event => { if (/^(task\.|project\.)/.test(event.type)) refresh(); }, onFallbackPoll: refresh, showToast: false });
   useEffect(() => {
     let active = true; setLoading(true); setTools([]); setProjects([]); setTasks([]); setDraft(initial); setTemplateFormOpen(false); setApplying(null); setEditingBlueprint(null); setCreated([]); setNotice("");

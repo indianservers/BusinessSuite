@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { Link } from "react-router-dom";
@@ -23,7 +24,7 @@ export default function TagManagerPage() {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#7c3aed");
   async function load() { const { data } = await api.get<{ tags: Tag[]; can_manage: boolean }>("/project-management/tag-manager"); setTags(data.tags); setManage(data.can_manage); }
-  useEffect(() => { let active = true; api.get<{ tags: Tag[]; can_manage: boolean }>("/project-management/tag-manager").then(({ data }) => { if (active) { setTags(data.tags); setManage(data.can_manage); } }).catch(error => { if (active) setError(workspaceError(error)); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  useRefreshableEffect(() => { let active = true; api.get<{ tags: Tag[]; can_manage: boolean }>("/project-management/tag-manager").then(({ data }) => { if (active) { setTags(data.tags); setManage(data.can_manage); } }).catch(error => { if (active) setError(workspaceError(error)); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
   const projects = [...new Map(tags.flatMap(tag => tag.projects).map(project => [project.id, project])).values()];
   const visible = tags.filter(tag => tag.name.toLowerCase().includes(search.trim().toLowerCase()) && (!project || tag.projects.some(item => item.id === Number(project))) && (!unused || tag.usage === 0)).sort((a, b) => sort === "usage" ? b.usage - a.usage || a.name.localeCompare(b.name) : sort === "newest" ? b.id - a.id : a.name.localeCompare(b.name));
   const styleColor = (value: string | null) => value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#7c3aed";

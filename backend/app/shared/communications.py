@@ -113,29 +113,30 @@ def notify(
     return row
 
 
-def drain_email(db, limit=10):
+def drain_email(db, limit=10, *, deadline=float("inf")):
     from app.apps.communication.services.delivery import deliver_email
     from app.shared.contracts import service_identity
 
     processed = 0
-    rows = (
-        db.query(NotificationDeliveryLog, Notification)
-        .join(Notification, Notification.id == NotificationDeliveryLog.notification_id)
-        .filter(
-            NotificationDeliveryLog.channel == "email",
-            NotificationDeliveryLog.status == "queued",
-            NotificationDeliveryLog.provider_message_id.startswith("queue:"),
-        )
-        .with_for_update(skip_locked=True)
-        .limit(limit)
-        .all()
-    )
-    for log, notification in rows:
+    from sqlalchemy import update
+    import time
+    for _ in range(limit):
+        if time.monotonic() >= deadline:
+            break
+        pair = (db.query(NotificationDeliveryLog, Notification)
+            .join(Notification, Notification.id == NotificationDeliveryLog.notification_id)
+            .filter(NotificationDeliveryLog.channel == "email", NotificationDeliveryLog.status == "queued",
+                NotificationDeliveryLog.provider_message_id.startswith("queue:"))
+            .order_by(NotificationDeliveryLog.id).with_for_update(skip_locked=True).first())
+        if not pair:
+            break
+        log, notification = pair
         message = db.get(
             CommunicationEmailMessage, int(log.provider_message_id.split(":", 1)[1])
         )
         if not message:
             log.status, log.error_message = "failed", "Queued email no longer exists"
+            db.commit()
             continue
         actor = db.get(User, message.sent_by)
         try:
@@ -149,6 +150,11 @@ def drain_email(db, limit=10):
                 notification.related_entity_id,
             )
             recipient = db.get(User, notification.user_id)
+            if not recipient or not recipient.is_active or recipient.email.casefold() != message.to_email.casefold():
+                log.status, log.error_message = "suppressed", "Recipient account changed"
+                db.commit()
+                processed += 1
+                continue
             read_record(
                 db,
                 recipient,
@@ -158,8 +164,13 @@ def drain_email(db, limit=10):
                 notification.related_entity_id,
             )
             # Reserve an unknown-outcome state before crossing the provider boundary.
-            log.status = "reconciliation_required"
+            claimed = db.execute(update(NotificationDeliveryLog).where(
+                NotificationDeliveryLog.id == log.id, NotificationDeliveryLog.status == "queued"
+            ).values(status="reconciliation_required"), execution_options={"synchronize_session": False}).rowcount
             db.commit()
+            if not claimed:
+                continue
+            db.refresh(log)
             deliver_email(db, message, actor)
             log.status = "accepted" if message.status == "sent" else "failed"
             log.provider_message_id = message.provider_message_id
@@ -180,9 +191,8 @@ def provider_status():
     from app.core.config import settings
 
     provider = configured_email_provider()
-    configured = provider == "smtp" and bool(
-        settings.MAIL_USERNAME and settings.MAIL_PASSWORD and settings.MAIL_FROM
-    )
+    from app.core.email import email_configured
+    configured = provider in {"smtp", "ses"} and email_configured()
     return [
         {
             "channel": "in_app",

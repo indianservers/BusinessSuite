@@ -1,3 +1,4 @@
+import { usePageRefresh } from "@/lib/page-refresh";
 import type React from "react";
 import { FormEvent, useEffect, useState } from "react";
 import { FileText, Upload } from "lucide-react";
@@ -25,6 +26,11 @@ export default function FilesPage() {
       filesAPI.list(firstId ? { project_id: Number(firstId) } : undefined).then(setFiles);
     });
   }, []);
+
+  usePageRefresh(async () => {
+    setProjects(await projectsAPI.list());
+    await filesAPI.list(projectId ? { project_id: Number(projectId) } : undefined).then(setFiles);
+  });
 
   const switchProject = (value: string) => {
     setProjectId(value);

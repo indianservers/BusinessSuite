@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -52,7 +53,7 @@ export default function OrgChartPage() {
     top: number;
   } | null>(null);
   const base = `/project-management/workspaces/${wid}/org-chart`;
-  useEffect(() => {
+  useRefreshableEffect(() => {
     let active = true;
     void api
       .get("/project-management/workspaces")

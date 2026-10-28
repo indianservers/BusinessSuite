@@ -1,3 +1,4 @@
+import { useRefreshableEffect } from "@/lib/page-refresh";
 import { ConversationLauncher } from "@/shared/communication";
 import { insertRichMention } from "@/components/rich-text/content";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -195,7 +196,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     loadRecord();
   }, [config.entity, recordId]);
 
@@ -610,7 +611,7 @@ function ApprovalTimeline({ approval }: { approval?: CRMApprovalRequest | null }
 
 function CommunicationTimeline({ recordType, recordId }: { recordType: string; recordId: number }) {
   const [events, setEvents] = useState<CRMApiRecord[]>([]);
-  useEffect(() => {
+  useRefreshableEffect(() => {
     communicationApi.timeline(recordType, recordId).then((data) => setEvents((data.items || []) as CRMApiRecord[])).catch(() => setEvents([]));
   }, [recordType, recordId]);
   return (
@@ -832,7 +833,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.enrichmentHistory({ entityType, entityId: recordId }).then((response) => setHistory(response.data.items || [])).catch(() => setHistory([]));
   }, [entityType, recordId]);
 
@@ -975,7 +976,7 @@ function MentionTextarea({ value, onChange, mentions, onMentionsChange }: { valu
   const [options, setOptions] = useState<MentionUser[]>([]);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     if (!open) return;
     const handle = window.setTimeout(() => {
       crmApi.searchUsers({ q: query, limit: 8 }).then((response) => setOptions((response.data.items || []) as MentionUser[])).catch(() => setOptions([]));
@@ -1042,7 +1043,7 @@ function EmailComposeModal({ kind, record, disabled = false, approvalStatus = ""
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     communicationApi.templates().then((response) => setTemplates((response.items || []) as CRMApiRecord[])).catch(() => setTemplates([]));
   }, [entityType]);
 
@@ -1157,7 +1158,7 @@ function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKi
   const channel = valueText(draft.channel) || "sms";
   const body = valueText(draft.body);
 
-  useEffect(() => {
+  useRefreshableEffect(() => {
     crmApi.messageTemplates({ entityType, channel }).then((response) => setTemplates(response.data.items || [])).catch(() => setTemplates([]));
     crmApi.messages({ entityType, entityId: Number(record.id) }).then((response) => setHistory(response.data.items || [])).catch(() => setHistory([]));
   }, [entityType, channel, record.id]);

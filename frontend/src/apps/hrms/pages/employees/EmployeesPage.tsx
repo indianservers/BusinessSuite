@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   useReactTable,
   getCoreRowModel,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -26,9 +27,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { employeeApi } from "@/services/api";
+import { api, companyApi, employeeApi } from "@/services/api";
 import { assetUrl, formatDate, statusColor, getInitials } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { loadManagerOptions } from "./employeeJobOptions";
 import { toast } from "@/hooks/use-toast";
 
 interface Employee {
@@ -46,6 +48,8 @@ interface Employee {
   date_of_joining: string;
   profile_photo_url: string | null;
 }
+const EmployeeDetailPage = lazy(() => import("./EmployeeDetailPage"));
+
 const columnHelper = createColumnHelper<Employee>();
 
 function useDebouncedValue(value: string, delay = 300) {
@@ -59,19 +63,51 @@ function useDebouncedValue(value: string, delay = 300) {
 
 export default function EmployeesPage() {
   usePageTitle("Employees");
-  const navigate = useNavigate();
+  const [employeePopup, setEmployeePopup] = useState<{ employee: Employee; editing: boolean } | null>(null);
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [perPage, setPerPage] = useState(20);
+  const { data: filterOptions, isError: optionsError, refetch: reloadOptions } = useQuery({
+    queryKey: ["employee-filter-options"],
+    queryFn: async () => {
+      const [facets, branches, departments, designations, managers] = await Promise.all([
+        api.get("/employees/filter-options"), companyApi.listBranches(), companyApi.listDepartments(),
+        companyApi.listDesignations(), loadManagerOptions(),
+      ]);
+      const result: Record<string, Array<{ value: string; label: string }>> = {};
+      for (const [key, values] of Object.entries(facets.data)) {
+        result[key] = (values as Array<string | number>).map((value) => ({ value: String(value), label: String(value) }));
+      }
+      for (const [key, values] of [["branch_id", branches.data], ["department_id", departments.data], ["designation_id", designations.data], ["reporting_manager_id", managers]] as const) {
+        result[key] = values.map((row: { id: number; name: string }) => ({ value: String(row.id), label: row.name }));
+      }
+      result.account_status = [{ value: "active", label: "Active login" }, { value: "inactive", label: "Inactive login" }, { value: "unlinked", label: "No login account" }];
+      return result;
+    },
+  });
+  const filterFields = [
+    ["city", "City"], ["passout_year", "Passout year"], ["designation_id", "Designation"],
+    ["department_id", "Department"], ["branch_id", "Branch"], ["employment_type", "Employment type"],
+    ["state", "State"], ["college", "College"], ["degree", "Qualification"], ["specialization", "Specialization"],
+    ["reporting_manager_id", "Reporting manager"], ["gender", "Gender"], ["work_location", "Work location"],
+    ["worker_type", "Worker type"], ["account_status", "Login account"],
+  ];
+  const changeFilter = (key: string, value: string) => { setFilters((current) => ({ ...current, [key]: value })); setPage(1); };
+  const queryFilters = { ...Object.fromEntries(Object.entries(filters).filter(([, value]) => value)), search: debouncedSearch || undefined, status: statusFilter || undefined, sort_by: sortBy, sort_order: sortOrder };
+  const activeCount = Object.values(filters).filter(Boolean).length + Number(!!statusFilter);
   const [pendingTermination, setPendingTermination] = useState<Employee | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["employees", debouncedSearch, page, statusFilter],
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["employees", queryFilters, page, perPage],
     queryFn: () =>
       employeeApi
-        .list({ search: debouncedSearch || undefined, page, per_page: 20, status: statusFilter || undefined })
+        .list({ ...queryFilters, page, per_page: perPage })
         .then((r) => r.data),
   });
 
@@ -115,7 +151,7 @@ export default function EmployeesPage() {
   });
 
   async function exportEmployees() {
-    const response = await employeeApi.exportCsv({ status: statusFilter || undefined });
+    const response = await employeeApi.exportCsv(queryFilters);
     const url = URL.createObjectURL(response.data);
     const link = document.createElement("a");
     link.href = url;
@@ -192,16 +228,12 @@ export default function EmployeesPage() {
       header: "Actions",
       cell: (info) => (
         <div className="flex items-center gap-1">
-          <Link to={`/hrms/employees/${info.row.original.id}`} onClick={(event) => event.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Eye className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
-          <Link to={`/hrms/employees/${info.row.original.id}?edit=true`} onClick={(event) => event.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Edit className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Preview employee" aria-label={`Preview ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: false }); }}>
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit employee" aria-label={`Edit ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: true }); }}>
+            <Edit className="h-3.5 w-3.5" />
+          </Button>
           <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md hover:bg-muted" onClick={(event) => event.stopPropagation()}>
             <Camera className="h-3.5 w-3.5" />
             <input
@@ -245,14 +277,14 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Employees</h1>
           <p className="page-description">
-            {data?.total ?? 0} total employees
+            {data?.total ?? 0} {activeCount || search ? "matching" : "total"} employees
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -300,15 +332,39 @@ export default function EmployeesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">All Status</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Probation">Probation</SelectItem>
-              <SelectItem value="On Leave">On Leave</SelectItem>
-              <SelectItem value="Resigned">Resigned</SelectItem>
-              <SelectItem value="Terminated">Terminated</SelectItem>
+              {(filterOptions?.status?.length ? filterOptions.status : ["Active", "Probation", "On Leave", "Resigned", "Terminated", "Suspended", "Absconding"].map((value) => ({ value, label: value }))).map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
+        <details open className="mt-4 border-t pt-3">
+          <summary className="cursor-pointer text-sm font-medium">Filters {activeCount > 0 ? `(${activeCount} active)` : "— city, education, job and account"}</summary>
+          {optionsError && <p role="alert" className="mt-2 text-sm text-destructive">Could not load filter choices. <button className="underline" onClick={() => void reloadOptions()}>Retry</button></p>}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {filterFields.map(([key, label]) => (
+              <label key={key} className="space-y-1 text-xs font-medium">
+                <span>{label}</span>
+                <select aria-label={label} value={filters[key] || ""} onChange={(event) => changeFilter(key, event.target.value)} className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm font-normal">
+                  <option value="">All {label.toLowerCase()}</option>
+                  {(filterOptions?.[key] || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+            ))}
+            {[["joined_from", "Joined from"], ["joined_to", "Joined to"]].map(([key, label]) => (
+              <label key={key} className="space-y-1 text-xs font-medium"><span>{label}</span><Input aria-label={label} type="date" value={filters[key] || ""} onChange={(event) => changeFilter(key, event.target.value)} /></label>
+            ))}
+          </div>
+        </details>
+        <div className="mt-4 flex flex-wrap items-end gap-3 border-t pt-3">
+          <label className="space-y-1 text-xs font-medium"><span>Sort by</span><select aria-label="Sort by" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">
+            {[["name", "Name"], ["employee_id", "Employee ID"], ["date_of_joining", "Joining date"], ["city", "City"], ["passout_year", "Passout year"], ["status", "Status"], ["employment_type", "Employment type"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select></label>
+          <label className="space-y-1 text-xs font-medium"><span>Order</span><select aria-label="Sort order" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm"><option value="asc">Ascending</option><option value="desc">Descending</option></select></label>
+          <label className="space-y-1 text-xs font-medium"><span>Rows per page</span><select aria-label="Rows per page" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">{[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
+          <Button variant="ghost" onClick={() => { setFilters({}); setStatusFilter(""); setSearch(""); setSortBy("name"); setSortOrder("asc"); setPage(1); }}>Clear filters</Button>
+          <span className="pb-2 text-sm text-muted-foreground" aria-live="polite">{data?.total ?? 0} matching employees</span>
+        </div>
       </Card>
+      {isError && <div role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail && typeof (error as any).response.data.detail === "string" ? (error as any).response.data.detail : "Could not load employees. Check filters and try again."} <button className="underline" onClick={() => void refetch()}>Retry</button></div>}
 
       {/* Table */}
       <Card className="overflow-hidden">
@@ -353,10 +409,10 @@ export default function EmployeesPage() {
                 <tr>
                   <td colSpan={colSpan} className="px-4 py-12 text-center text-muted-foreground">
                     <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                    <p>No employees found</p>
-                    <Link to="/hrms/employees/new">
-                      <Button variant="link" size="sm">Add your first employee</Button>
-                    </Link>
+                    <p>{activeCount || search ? "No employees match these filters" : "No employees found"}</p>
+                    {activeCount || search ? (
+                      <Button variant="link" size="sm" onClick={() => { setFilters({}); setStatusFilter(""); setSearch(""); setPage(1); }}>Clear filters</Button>
+                    ) : <Link to="/hrms/employees/new"><Button variant="link" size="sm">Add your first employee</Button></Link>}
                   </td>
                 </tr>
               ) : (
@@ -364,7 +420,7 @@ export default function EmployeesPage() {
                   <tr
                     key={row.id}
                     className="cursor-pointer border-b transition-colors hover:bg-muted/30"
-                    onClick={() => navigate(`/hrms/employees/${row.original.id}`)}
+                    onClick={() => setEmployeePopup({ employee: row.original, editing: false })}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className="px-4 py-3">
@@ -382,7 +438,7 @@ export default function EmployeesPage() {
         {data && data.pages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <p className="text-xs text-muted-foreground">
-              Showing {(page - 1) * 20 + 1}&ndash;{Math.min(page * 20, data.total)} of {data.total}
+              Showing {(page - 1) * perPage + 1}&ndash;{Math.min(page * perPage, data.total)} of {data.total}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -408,6 +464,19 @@ export default function EmployeesPage() {
           </div>
         )}
       </Card>
+
+      <Dialog open={!!employeePopup} onOpenChange={(open) => { if (!open) setEmployeePopup(null); }}>
+        <DialogContent className="flex max-h-[94dvh] w-[calc(100%-1rem)] max-w-7xl flex-col overflow-hidden p-0 sm:w-[calc(100%-3rem)]">
+          <div className="border-b px-5 py-4 pr-12">
+            <DialogTitle className="text-lg font-semibold">{employeePopup?.editing ? "Edit employee" : "Employee preview"}: {employeePopup?.employee.first_name} {employeePopup?.employee.last_name}</DialogTitle>
+          </div>
+          <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-6">
+            {employeePopup && <Suspense fallback={<p role="status" className="p-6 text-muted-foreground">Loading employee details…</p>}>
+              <EmployeeDetailPage key={`${employeePopup.employee.id}-${employeePopup.editing}`} employeeId={employeePopup.employee.id} initialEditing={employeePopup.editing} onClose={() => setEmployeePopup(null)} />
+            </Suspense>}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={Boolean(pendingTermination)} onOpenChange={(open) => { if (!open) setPendingTermination(null); }}>
         <AlertDialogContent>
