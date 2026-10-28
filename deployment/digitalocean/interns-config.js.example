@@ -1,0 +1,7 @@
+// Public browser configuration only. Never put server secrets in this file.
+window.__INTERNHUB_CONFIG__ = {
+  apiBaseUrl: "/api/v1",
+  hrmsLoginUrl: "https://suite.example.com/",
+  // Set to your existing Firebase web app settings to enable Google signup.
+  // firebaseConfig: {apiKey: "...", authDomain: "...", projectId: "...", appId: "..."},
+};

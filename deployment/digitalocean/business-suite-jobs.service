@@ -1,0 +1,13 @@
+[Unit]
+Description=Business Suite scheduled work
+After=business-suite.service
+
+[Service]
+Type=oneshot
+User=businesssuite
+Group=businesssuite
+WorkingDirectory=/srv/business-suite/current/backend
+ExecStart=/srv/business-suite/current/.venv/bin/python ../deployment/digitalocean/operations.py jobs
+TimeoutStartSec=600
+UMask=0027
+NoNewPrivileges=true

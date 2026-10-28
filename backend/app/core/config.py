@@ -3,7 +3,6 @@ from pydantic import AnyHttpUrl, EmailStr, Field, field_validator, model_validat
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import json
 import secrets
-import os
 from sqlalchemy.engine import URL, make_url
 
 
@@ -34,11 +33,11 @@ class Settings(BaseSettings):
     FIREBASE_WEB_CONFIG: dict[str, str] = Field(default_factory=dict)
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
-    SERVERLESS: bool = bool(os.environ.get("VERCEL"))
+    SERVERLESS: bool = False
     BUSINESSSUITE_BACKUP_SCHEDULER: bool = False
     BUSINESSSUITE_BACKUP_DIR: str = ""
     CRON_SECRET: str = ""
-    REALTIME_TRANSPORT: str = "database" if os.environ.get("VERCEL") else "websocket"
+    REALTIME_TRANSPORT: str = "websocket"
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(48)
@@ -58,7 +57,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "business_suite"
     POSTGRES_SSLMODE: str = "prefer"
     POSTGRES_SSLROOTCERT: Optional[str] = None
-    DATABASE_AUTO_MIGRATE: bool = not bool(os.environ.get("VERCEL"))
+    DATABASE_AUTO_MIGRATE: bool = False
     SEED_DEMO_DATA: bool = False
     BOOTSTRAP_ADMIN_EMAIL: str = ""
     BOOTSTRAP_ADMIN_PASSWORD: str = ""
@@ -147,8 +146,8 @@ class Settings(BaseSettings):
     COMMUNICATION_EMAIL_RATE_LIMIT_PER_REQUEST: int = 50
 
     # File storage
-    UPLOAD_DIR: str = "/tmp/business-suite-uploads" if os.environ.get("VERCEL") else "./uploads"
-    STORAGE_BACKEND: str = "s3" if os.environ.get("VERCEL") else "local"
+    UPLOAD_DIR: str = "./uploads"
+    STORAGE_BACKEND: str = "local"
     BLOB_READ_WRITE_TOKEN: str = ""
     S3_BUCKET: str = ""
     S3_ENDPOINT_URL: Optional[str] = None
@@ -157,7 +156,7 @@ class Settings(BaseSettings):
     S3_SECRET_ACCESS_KEY: str = ""
     S3_SIGNED_URL_SECONDS: int = Field(900, ge=60, le=3600)
     S3_PREFIX: str = "business-suite"
-    MAX_UPLOAD_SIZE_MB: int = 3 if os.environ.get("VERCEL") else 10
+    MAX_UPLOAD_SIZE_MB: int = 10
     ALLOWED_EXTENSIONS: str = "pdf,doc,docx,jpg,jpeg,png"
 
     # AI

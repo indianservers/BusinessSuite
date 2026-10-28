@@ -1,6 +1,6 @@
-"""Run migrations and bootstrap once, before enabling serverless traffic.
+"""Run migrations and bootstrap once, before enabling application traffic.
 
-Set DATABASE_URL to the direct Neon URL in a secure shell. This command does not
+Set DATABASE_URL to the PostgreSQL URL in a secure shell. This command does not
 create/drop a database. Repeating it uses the existing idempotent bootstrap.
 """
 import asyncio

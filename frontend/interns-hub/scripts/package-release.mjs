@@ -29,24 +29,13 @@ if (values["firebase-config-file"]) {
   }
 }
 await readFile(resolve(dist, "index.html"));
-const output = resolve(values.output, ".vercel/output");
+const output = resolve(values.output);
 // Refuse to overwrite a previous release or a source tree.
 await mkdir(dirname(output), { recursive: true });
 await mkdir(output);
-await cp(dist, resolve(output, "static"), { recursive: true });
-await writeFile(resolve(output, "static/config.js"),
+await cp(dist, output, { recursive: true });
+await writeFile(resolve(output, "config.js"),
   `window.__INTERNHUB_CONFIG__ = ${JSON.stringify({
     apiBaseUrl: values["api-base-url"], hrmsLoginUrl: values["hrms-login-url"], firebaseConfig,
   }, null, 2)};\n`);
-await writeFile(resolve(output, "config.json"), JSON.stringify({
-  version: 3,
-  routes: [
-    { src: "/(.*)", headers: { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" }, continue: true },
-    { src: "/config\\.js", headers: { "Cache-Control": "no-store" }, continue: true },
-    { src: "/release\\.json", headers: { "Cache-Control": "no-store" }, continue: true },
-    { handle: "filesystem" },
-    { src: "/api(?:/.*)?", status: 404 },
-    { src: "/.*", dest: "/index.html" },
-  ],
-}, null, 2) + "\n");
-console.log(`Interns Hub release packaged at ${resolve(values.output)}. Serve .vercel/output/static on any static host, or deploy with vercel --prebuilt.`);
+console.log(`Interns Hub release packaged at ${output}. Serve this directory with Nginx and configure the API proxy and SPA fallback; see deployment/README.md.`);

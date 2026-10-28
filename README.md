@@ -2,6 +2,8 @@
 
 Database setup: [PostgreSQL local and remote instructions](POSTGRESQL_SETUP.md).
 
+Production hosting: [DigitalOcean Ubuntu Droplet deployment and recovery](deployment/README.md).
+
 Business Suite is a modular ERP platform for HRMS, Project Management, CRM, and future business apps. The current HRMS app combines core HR, employee self-service, payroll, attendance, leave, documents, compliance, talent, analytics, and AI-assisted workflows in one platform.
 
 ## Highlights

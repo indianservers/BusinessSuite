@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Business Suite recovery copy
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=120
+Unit=business-suite-backup.service
+
+[Install]
+WantedBy=timers.target

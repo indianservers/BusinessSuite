@@ -1,0 +1,25 @@
+[Unit]
+Description=Business Suite API
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=businesssuite
+Group=businesssuite
+WorkingDirectory=/srv/business-suite/current/backend
+ExecStart=/srv/business-suite/current/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --no-proxy-headers
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=180
+TimeoutStopSec=90
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/business-suite/shared
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+[Install]
+WantedBy=multi-user.target

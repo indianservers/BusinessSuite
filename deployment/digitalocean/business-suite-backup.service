@@ -1,0 +1,13 @@
+[Unit]
+Description=Business Suite PostgreSQL and uploads backup to Spaces
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=businesssuite
+Group=businesssuite
+WorkingDirectory=/srv/business-suite/current/backend
+ExecStart=/srv/business-suite/current/.venv/bin/python ../deployment/digitalocean/operations.py backup
+TimeoutStartSec=3600
+UMask=0077
+NoNewPrivileges=true
