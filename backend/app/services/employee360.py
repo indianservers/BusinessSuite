@@ -23,6 +23,7 @@ def build_employee360(db, employee, user):
         "profile_changes": own or allowed("employee_update"),
     }
     result = {"employee_id": employee.id, "as_of": date.today(), "currency": employee.salary_currency or "INR",
+              "actions": {"propose_revision": allowed("payroll_run"), "approve_revision": allowed("payroll_approve"), "actor_id": user.id, "is_superuser": user.is_superuser},
               "access": access, "salary": None, "salary_history": [], "increments": [],
               "assets": [], "expenses": [], "pending_actions": []}
 
@@ -30,6 +31,8 @@ def build_employee360(db, employee, user):
         result["pending_actions"].append({"id": key, "title": title, "section": section, "owner": owner})
 
     if access["payroll"]:
+        if not employee.account_number or not employee.ifsc_code:
+            action("bank-incomplete", "Complete bank account and IFSC before salary payment", "bank", "HR / employee")
         salaries = db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == employee.id).order_by(
             EmployeeSalary.effective_from.desc(), EmployeeSalary.id.desc()).all()
         for row in salaries:
@@ -47,7 +50,7 @@ def build_employee360(db, employee, user):
         for row in revisions:
             result["increments"].append({"id": row.id, "current_ctc": str(row.current_ctc or 0),
                 "proposed_ctc": str(row.proposed_ctc), "effective_from": row.effective_from,
-                "reason": row.reason, "status": row.status})
+                "reason": row.reason, "status": row.status, "requested_by": row.requested_by})
             if row.status.lower() == "pending":
                 action(f"revision-{row.id}", f"Salary revision #{row.id} awaiting review", "increments", "Payroll approver")
     if access["assets"]:

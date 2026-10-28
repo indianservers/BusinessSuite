@@ -517,6 +517,15 @@ def review_salary_advance(advance_id: int, data: SalaryAdvanceReview, db: Sessio
 
 @router.post("/salary-revisions/bulk", status_code=201)
 def create_bulk_salary_revision(data: SalaryRevisionBatchCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("payroll_run"))):
+    from app.api.v1.payroll import _ensure_not_locked_for_date
+    _ensure_not_locked_for_date(db, data.effective_from, "prepare bulk salary revisions")
+    ids = [line.employee_id for line in data.lines]
+    if not ids or len(ids) != len(set(ids)):
+        raise HTTPException(422, "Choose at least one employee and include each employee once")
+    for line in data.lines:
+        existing = _active_employee_salary(db, line.employee_id)
+        if not existing or data.effective_from <= existing.effective_from:
+            raise HTTPException(422, "Every employee needs a salary that starts before the revision date")
     batch = SalaryRevisionBatch(name=data.name, effective_from=data.effective_from, total_rows=len(data.lines), created_by=current_user.id)
     db.add(batch)
     db.flush()
@@ -530,9 +539,19 @@ def create_bulk_salary_revision(data: SalaryRevisionBatchCreate, db: Session = D
 
 @router.put("/salary-revisions/bulk/{batch_id}/apply")
 def apply_bulk_salary_revision(batch_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("payroll_approve"))):
-    batch = db.query(SalaryRevisionBatch).filter(SalaryRevisionBatch.id == batch_id).first()
+    batch = db.query(SalaryRevisionBatch).filter(SalaryRevisionBatch.id == batch_id).with_for_update().first()
     if not batch:
         raise HTTPException(status_code=404, detail="Salary revision batch not found")
+    from app.api.v1.payroll import _ensure_not_locked_for_date
+    _ensure_not_locked_for_date(db, batch.effective_from, "apply bulk salary revisions")
+    if batch.status != "Draft":
+        raise HTTPException(409, "This revision batch has already been applied")
+    if batch.created_by == current_user.id and not current_user.is_superuser:
+        raise HTTPException(403, "A different approver must apply this revision batch")
+    for line in batch.lines:
+        existing = _active_employee_salary(db, line.employee_id)
+        if not existing or existing.ctc != line.current_ctc or batch.effective_from <= existing.effective_from:
+            raise HTTPException(409, "A salary changed after this batch was prepared. Rebuild the batch before applying.")
     applied = 0
     for line in batch.lines:
         existing = _active_employee_salary(db, line.employee_id)

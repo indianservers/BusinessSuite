@@ -315,6 +315,15 @@ def preview_report_definition(
     return {"definition_id": definition.id, "columns": columns, "rows": rows, "row_count": len(rows)}
 
 
+@router.get("/definitions/{definition_id}/runs", response_model=List[ReportRunSchema])
+def report_runs(definition_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("reports_view"))):
+    definition = db.query(ReportDefinition).filter(ReportDefinition.id == definition_id, ReportDefinition.is_active.is_(True)).first()
+    if not definition:
+        raise HTTPException(404, "Report not found")
+    _check_report_access(definition, current_user)
+    return db.query(ReportRun).filter(ReportRun.report_definition_id == definition_id).order_by(ReportRun.id.desc()).limit(30).all()
+
+
 @router.post("/schedules", response_model=ReportScheduleSchema, status_code=201)
 def create_report_schedule(
     data: ReportScheduleCreate,

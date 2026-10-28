@@ -1,7 +1,8 @@
 """Manager decisions are restricted to current direct reports, including on writes."""
-from datetime import date
+from datetime import date, timedelta
+import calendar
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.access.catalog import permission_objects
@@ -24,6 +25,34 @@ def members(db, user):
 
 def permitted(user, name):
     return user.is_superuser or name in {p.name for p in permission_objects(user)}
+
+
+@router.get("/availability")
+def availability(month: int = Query(default=date.today().month, ge=1, le=12), year: int = Query(default=date.today().year, ge=2000, le=2200), db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.models.attendance import Holiday, Attendance
+    team = members(db, user)
+    people = {row.id: row for row in team}
+    start, end = date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1])
+    leaves = db.query(LeaveRequest).filter(LeaveRequest.employee_id.in_(list(people)), LeaveRequest.deleted_at.is_(None), LeaveRequest.status.in_(["Pending", "Approved"]), LeaveRequest.from_date <= end, LeaveRequest.to_date >= start).all()
+    holidays = db.query(Holiday).filter(Holiday.is_active.is_(True), Holiday.holiday_date >= start, Holiday.holiday_date <= end).all()
+    today = date.today()
+    attendance = db.query(Attendance).filter(Attendance.employee_id.in_(list(people)), Attendance.attendance_date == today).all()
+    days = []
+    for i in range((end - start).days + 1):
+        current = start + timedelta(days=i)
+        days.append({"date": current, "leaves": [{"employee_name": f"{people[row.employee_id].first_name} {people[row.employee_id].last_name}", "status": row.status} for row in leaves if row.from_date <= current <= row.to_date], "holidays": [row.name for row in holidays if row.holiday_date == current]})
+    moments = []
+    for row in team:
+        for kind, original in [("Birthday", row.date_of_birth), ("Work anniversary", row.date_of_joining)]:
+            if not original:
+                continue
+            for moment_year in [today.year, today.year + 1]:
+                candidate = date(moment_year, original.month, min(original.day, calendar.monthrange(moment_year, original.month)[1]))
+                if today <= candidate <= today + timedelta(days=7):
+                    moments.append({"employee_id": row.id, "name": f"{row.first_name} {row.last_name}", "kind": kind, "date": candidate})
+    return {"offset": start.weekday(), "days": days, "moments": moments,
+            "today": [{"employee_id": row.employee_id, "name": f"{people[row.employee_id].first_name} {people[row.employee_id].last_name}", "status": row.status} for row in attendance],
+            "probation_due": [{"employee_id": row.id, "name": f"{row.first_name} {row.last_name}", "due_date": row.probation_end_date} for row in team if row.probation_end_date and row.probation_status in {"on_probation", "extended"} and row.probation_end_date <= today + timedelta(days=30)]}
 
 
 @router.get("")

@@ -2067,7 +2067,15 @@ def create_salary_revision_request(
     current_user: User = Depends(RequirePermission("payroll_run")),
 ):
     _ensure_not_locked_for_date(db, data.effective_from, "request salary revision")
+    if data.proposed_ctc <= 0:
+        raise HTTPException(422, "Proposed annual CTC must be positive")
     current_salary = crud_payroll.get_active_salary(db, data.employee_id)
+    if not current_salary:
+        raise HTTPException(422, "Assign an initial salary before requesting an increment")
+    if data.effective_from <= current_salary.effective_from:
+        raise HTTPException(422, "Revision must take effect after the current salary start date")
+    if db.query(SalaryRevisionRequest.id).filter(SalaryRevisionRequest.employee_id == data.employee_id, SalaryRevisionRequest.status == "Pending").first():
+        raise HTTPException(409, "Review the employee's pending salary revision before adding another")
     request = SalaryRevisionRequest(
         employee_id=data.employee_id,
         current_salary_id=current_salary.id if current_salary else None,
@@ -2116,17 +2124,22 @@ def review_salary_revision_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("payroll_approve")),
 ):
-    request = db.query(SalaryRevisionRequest).filter(SalaryRevisionRequest.id == revision_id).first()
+    request = db.query(SalaryRevisionRequest).filter(SalaryRevisionRequest.id == revision_id).with_for_update().first()
     if not request:
         raise HTTPException(status_code=404, detail="Salary revision request not found")
     if request.status != "Pending":
         raise HTTPException(status_code=400, detail="Salary revision request is already reviewed")
+    _ensure_not_locked_for_date(db, request.effective_from, "review salary revision")
+    if request.requested_by == current_user.id and not current_user.is_superuser:
+        raise HTTPException(403, "A different payroll approver must review this salary revision")
     action = data.action.lower()
     request.checked_by = current_user.id
     request.checked_at = datetime.now(timezone.utc)
     request.checker_remarks = data.remarks
     if action == "approve":
         existing = crud_payroll.get_active_salary(db, request.employee_id)
+        if not existing or existing.id != request.current_salary_id or existing.ctc != request.current_ctc:
+            raise HTTPException(409, "Salary has changed since this proposal. Create a fresh revision for review.")
         if existing:
             record_salary_field_changes(
                 db,
@@ -2725,6 +2738,13 @@ def import_payment_status(
     batch = db.query(PayrollPaymentBatch).filter(PayrollPaymentBatch.id == batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Payment batch not found")
+    if not data.lines:
+        raise HTTPException(422, "Provide at least one bank payment result")
+    for row in data.lines:
+        if row.payment_status.lower() not in {"paid", "success", "completed", "failed", "rejected", "pending", "processing"}:
+            raise HTTPException(422, "Unsupported bank payment status")
+        if row.payment_status.lower() in {"paid", "success", "completed"} and not (row.utr_number or "").strip():
+            raise HTTPException(422, "A bank transaction reference is required for paid lines")
     updated = 0
     failed = 0
     for row in data.lines:
@@ -2740,6 +2760,8 @@ def import_payment_status(
         if not line:
             failed += 1
             continue
+        if line.payment_status == "Paid" and (row.payment_status.lower() not in {"paid", "success", "completed"} or row.utr_number != line.utr_number):
+            raise HTTPException(409, "Confirmed payments cannot be overwritten; use a reviewed bank correction")
         line.payment_status = row.payment_status
         line.utr_number = row.utr_number
         line.failure_reason = row.failure_reason

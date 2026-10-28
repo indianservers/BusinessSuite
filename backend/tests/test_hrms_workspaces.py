@@ -99,3 +99,20 @@ def test_guided_payroll_requires_paid_references_and_no_duplicate_batch(client, 
     closed = action("reconcile")
     assert closed.status_code == 200, closed.text
     db.refresh(run); assert run.status == "paid"
+
+
+def test_receipts_are_validated_and_duplicates_visible_to_reviewers(client, db, superuser_headers):
+    report, _ = people(db)
+    claims = [ExpenseClaim(employee_id=report.id, claim_number=f"RECEIPT-{i}", claim_type="Travel", expense_date=date.today(), amount=100) for i in [1, 2]]
+    db.add_all(claims); db.commit()
+    headers = superuser_headers
+    invalid = client.post(f"/api/v1/expenses/claims/{claims[0].id}/receipt", headers=headers, files={"file": ("receipt.pdf", b"<html>not a PDF</html>", "application/pdf")})
+    assert invalid.status_code == 422
+    content = b"%PDF-1.4\nSynthetic receipt content\n%%EOF"
+    first = client.post(f"/api/v1/expenses/claims/{claims[0].id}/receipt", headers=headers, files={"file": ("receipt.pdf", content, "application/pdf")})
+    assert first.status_code == 200, first.text
+    second = client.post(f"/api/v1/expenses/claims/{claims[1].id}/receipt", headers=headers, files={"file": ("receipt.pdf", content, "application/pdf")})
+    assert second.status_code == 200, second.text
+    assert second.json()["duplicate_claim_ids"] == [claims[0].id]
+    statement = client.get(f"/api/v1/expenses/statements/{report.id}", headers=headers).json()
+    assert all(row["duplicate_receipt_claim_ids"] for row in statement["claims"])

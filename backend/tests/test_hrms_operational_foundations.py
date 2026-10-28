@@ -2,12 +2,21 @@ from datetime import date, time, timedelta
 
 
 def _create_employee_user(client, headers, code="OPS001"):
+    # Authenticated employees need a verified company/branch context.
+    companies = client.get("/api/v1/company/", headers=headers).json()
+    company = companies[0] if companies else client.post("/api/v1/company/", headers=headers, json={"name": "Operations test company"}).json()
+    branches = client.get("/api/v1/company/branches/", headers=headers, params={"company_id": company["id"]}).json()
+    branch = branches[0] if branches else client.post("/api/v1/company/branches/", headers=headers, json={"company_id": company["id"], "name": "Operations HQ", "code": "OPS"}).json()
+    departments = client.get("/api/v1/company/departments/", headers=headers, params={"branch_id": branch["id"]}).json()
+    department = departments[0] if departments else client.post("/api/v1/company/departments/", headers=headers, json={"branch_id": branch["id"], "name": "Operations", "code": "OPS"}).json()
     email = f"{code.lower()}@example.com"
     response = client.post(
         "/api/v1/employees/",
         headers=headers,
         json={
             "employee_id": code,
+            "branch_id": branch["id"],
+            "department_id": department["id"],
             "first_name": "Ops",
             "last_name": "User",
             "work_email": email,
@@ -122,9 +131,7 @@ def test_exit_asset_helpdesk_and_announcements(client, superuser_headers):
     for item in checklist.json():
         completed = client.put(f"/api/v1/exit/checklist/{item['id']}/complete?remarks=Done", headers=superuser_headers)
         assert completed.status_code == 200, completed.text
-    closed = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers)
-    assert closed.status_code == 200, closed.text
-    assert closed.json()["status"] == "Completed"
+
 
     category = client.post("/api/v1/assets/categories", headers=superuser_headers, json={"name": "Laptop"})
     assert category.status_code == 201, category.text
@@ -143,6 +150,14 @@ def test_exit_asset_helpdesk_and_announcements(client, superuser_headers):
     acknowledged = client.put(f"/api/v1/assets/assignments/{assignment.json()['id']}/acknowledge", headers=employee_headers)
     assert acknowledged.status_code == 200, acknowledged.text
     assert acknowledged.json()["acknowledgement_signed"] is True
+    assert acknowledged.json()["acknowledged_at"] is not None
+    blocked = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers)
+    assert blocked.status_code == 409
+    returned = client.put(f"/api/v1/assets/assignments/{assignment.json()['id']}/return", headers=superuser_headers, params={"condition_at_return": "Good"})
+    assert returned.status_code == 200, returned.text
+    closed = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers)
+    assert closed.status_code == 200, closed.text
+    assert closed.json()["status"] == "Completed"
 
     ticket = client.post(
         "/api/v1/helpdesk/tickets/json",
@@ -155,7 +170,7 @@ def test_exit_asset_helpdesk_and_announcements(client, superuser_headers):
     announcement = client.post(
         "/api/v1/engagement/announcements",
         headers=superuser_headers,
-        json={"title": "Holiday Notice", "body": "Office closed tomorrow.", "audience": "All", "is_published": True, "requires_acknowledgement": True},
+        json={"title": "Holiday Notice", "body": "Office closed tomorrow.", "audience": "All", "target_department_id": employee["department_id"], "is_published": True, "requires_acknowledgement": True},
     )
     assert announcement.status_code == 201, announcement.text
     ack = client.post(f"/api/v1/engagement/announcements/{announcement.json()['id']}/acknowledge", headers=employee_headers)

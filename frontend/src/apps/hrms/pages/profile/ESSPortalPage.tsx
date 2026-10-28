@@ -7,6 +7,7 @@ import { employeeApi, leaveApi, reportsApi } from "@/services/api";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { assetUrl, formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
+import MyAssetsPanel from "../assets/MyAssetsPanel";
 
 export default function ESSPortalPage() {
   usePageTitle("ESS Portal");
@@ -21,6 +22,7 @@ export default function ESSPortalPage() {
     ["My Attendance", "Monthly view, status, hours, and overtime", Clock, "/hrms/my-attendance"],
     ["My Leave", "Request leave and track approvals", CalendarDays, "/hrms/leave"],
     ["My Requests", "Track submitted HR and payroll requests", Inbox, "/hrms/workflow"],
+    ["My Expenses", "Claims, approvals and outstanding reimbursements", FileText, "/hrms/expenses"],
   ];
 
   return (
@@ -64,6 +66,7 @@ export default function ESSPortalPage() {
         ))}
       </div>
 
+      {hasEmployeeProfile && <MyAssetsPanel />}
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base">My Payslips</CardTitle></CardHeader>

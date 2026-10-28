@@ -21,6 +21,11 @@ export function formatCurrency(amount: number, currency = "INR"): string {
   }).format(amount);
 }
 
+/** Preserve currency minor units on payroll and expense statements. */
+export function formatCurrencyPrecise(amount: number, currency = "INR"): string {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(amount);
+}
+
 export function formatDate(date: string | Date | null): string {
   if (!date) return "-";
   return new Intl.DateTimeFormat("en-IN", {

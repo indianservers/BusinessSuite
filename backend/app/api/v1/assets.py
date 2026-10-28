@@ -72,7 +72,8 @@ def list_assignments(employee_id: Optional[int] = None, active: bool = True,
              "employee_id": row.employee_id, "employee_name": f"{row.employee.first_name} {row.employee.last_name}",
              "assigned_date": row.assigned_date, "returned_date": row.returned_date,
              "condition": row.condition_at_assignment, "condition_at_return": row.condition_at_return,
-             "acknowledged": row.acknowledgement_signed, "remarks": row.remarks}
+             "acknowledged": row.acknowledgement_signed, "acknowledged_at": row.acknowledged_at,
+             "acknowledged_by": row.acknowledged_by, "returned_by": row.returned_by, "remarks": row.remarks}
             for row in query.order_by(AssetAssignment.assigned_date.desc(), AssetAssignment.id.desc()).all()]
 
 
@@ -128,10 +129,12 @@ def list_assets(
 def my_asset_assignments(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not current_user.employee:
         raise HTTPException(status_code=400, detail="Employee profile is required")
-    return db.query(AssetAssignment).filter(
+    rows = db.query(AssetAssignment).options(joinedload(AssetAssignment.asset)).filter(
         AssetAssignment.employee_id == current_user.employee.id,
         AssetAssignment.is_active == True,
     ).order_by(AssetAssignment.assigned_date.desc()).all()
+    return [{**AssetAssignmentSchema.model_validate(row).model_dump(), "asset_name": row.asset.name,
+             "asset_tag": row.asset.asset_tag, "serial_number": row.asset.serial_number} for row in rows]
 
 
 @router.post("/", response_model=AssetSchema, status_code=status.HTTP_201_CREATED)
@@ -146,6 +149,13 @@ def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user:
 @router.put("/{asset_id}", response_model=AssetSchema)
 def update_asset(asset_id: int, data: AssetUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("asset_manage"))):
     asset = _asset(db, asset_id, current_user)
+    if data.status is not None and data.status not in {"Available", "Assigned", "Under Repair", "Retired"}:
+        raise HTTPException(422, "Choose a valid inventory status")
+    active_assignment = db.query(AssetAssignment.id).filter(AssetAssignment.asset_id == asset.id, AssetAssignment.is_active.is_(True)).first()
+    if data.status in {"Available", "Retired", "Under Repair"} and active_assignment:
+        raise HTTPException(409, "Record the employee's return before changing inventory availability")
+    if data.status == "Assigned" and not active_assignment:
+        raise HTTPException(409, "Assign this asset through an employee handover")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(asset, key, value)
     db.commit()
@@ -163,11 +173,11 @@ def assign_asset(data: AssetAssignmentCreate, db: Session = Depends(get_db), cur
     if employee.status != "Active":
         raise HTTPException(409, "Only active employees can receive assets")
     exiting = db.query(ExitRecord).filter(ExitRecord.employee_id == employee.id, ExitRecord.status.notin_(["Cancelled"])).first()
-    if exiting:
-        raise HTTPException(409, "Resolve the employee's exit before assigning equipment")
+    if exiting and exiting.status == "Completed":
+        raise HTTPException(409, "Assets cannot be assigned after the employee's exit is completed")
     if asset.status != "Available" or db.query(AssetAssignment.id).filter(AssetAssignment.asset_id == asset.id, AssetAssignment.is_active.is_(True)).first():
         raise HTTPException(409, "This asset is not available for assignment")
-    assignment = AssetAssignment(**data.model_dump(), assigned_by=current_user.id)
+    assignment = AssetAssignment(**data.model_dump(exclude={"remarks"}), remarks=data.remarks or asset.description, assigned_by=current_user.id)
     asset.status = "Assigned"
     db.add(assignment)
     db.commit()
@@ -185,7 +195,11 @@ def acknowledge_asset_assignment(assignment_id: int, db: Session = Depends(get_d
         raise HTTPException(409, "Returned assets cannot be acknowledged")
     if not current_user.is_superuser and (not current_user.employee or assignment.employee_id != current_user.employee.id):
         raise HTTPException(status_code=403, detail="Only the assigned employee can acknowledge this asset")
-    assignment.acknowledgement_signed = True
+    from datetime import datetime, timezone
+    if not assignment.acknowledgement_signed:
+        assignment.acknowledgement_signed = True
+        assignment.acknowledged_at = datetime.now(timezone.utc)
+        assignment.acknowledged_by = current_user.id
     db.commit()
     db.refresh(assignment)
     return assignment
@@ -204,6 +218,7 @@ def return_asset(assignment_id: int, condition_at_return: Optional[str] = None, 
     if condition_at_return not in {"New", "Good", "Fair", "Poor", "Damaged"}:
         raise HTTPException(422, "Record the condition at return")
     assignment.returned_date = date.today()
+    assignment.returned_by = current_user.id
     assignment.condition_at_return = condition_at_return
     assignment.is_active = False
     asset.status = "Under Repair" if condition_at_return in {"Poor", "Damaged"} else "Available"

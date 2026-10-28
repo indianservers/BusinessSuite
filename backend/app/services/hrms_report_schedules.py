@@ -52,7 +52,7 @@ def materialize(db, definition, actor_id):
     persist_file(str(target))
     run.file_url = f"/uploads/reports/{target.name}"
     from app.models.audit import AuditLog
-    db.add(AuditLog(user_id=actor_id, action="report_export_generated", module="reports", entity_type="report_run", entity_id=run.id, description=f"Generated {len(rows)} rows for report {definition.id}"))
+    db.add(AuditLog(user_id=actor_id, method="SYSTEM", endpoint="/reports/exports", status_code=200, action="report_export_generated", module="reports", entity_type="report_run", entity_id=run.id, description=f"Generated {len(rows)} rows for report {definition.id}"))
     return run
 
 
@@ -70,11 +70,11 @@ def run_scheduled_report(db, schedule, now):
             recipient = db.query(User).filter(User.email == address, User.is_active.is_(True)).first()
             role = recipient.role.name.lower() if recipient and recipient.role else ""
             if not recipient or not user_can_receive(db, recipient.id, recipient.email, company) or not permitted(recipient, "reports_view") or (definition.module == "payroll" and not permitted(recipient, "payroll_view")) or (allowed_roles and role not in allowed_roles and not recipient.is_superuser):
-                db.add(AuditLog(user_id=owner.id, action="report_recipient_skipped", module="reports", entity_type="report_schedule", entity_id=schedule.id, description="Recipient no longer authorized for scheduled report"))
+                db.add(AuditLog(user_id=owner.id, method="SYSTEM", endpoint="/reports/schedules", status_code=403, action="report_recipient_skipped", module="reports", entity_type="report_schedule", entity_id=schedule.id, description="Recipient no longer authorized for scheduled report"))
                 continue
             queue_email(db, recipient=recipient.email, user_id=recipient.id, organization_id=company, module="hrms_reports",
                         subject=f"Scheduled report ready: {definition.name}",
-                        body=f"Your scheduled report has completed ({run.row_count} rows). Sign in to view the authorized report:\n{settings.FRONTEND_PUBLIC_URL.rstrip('/')}/hrms/reports",
+                        body=f"Your scheduled report has completed ({run.row_count} rows). Sign in to view the authorized report:\n{settings.FRONTEND_PUBLIC_URL.rstrip('/')}/hrms/reports?report_id={definition.id}",
                         event_key=f"hrms-report:{schedule.id}:{run.id}:{recipient.id}")
         schedule.last_run_at = now
         schedule.next_run_at = next_run(schedule.cron_expression, now)

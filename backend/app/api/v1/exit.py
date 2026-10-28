@@ -26,6 +26,16 @@ DEFAULT_EXIT_CHECKLIST = [
 ]
 
 
+@router.get("/employees")
+def employee_options(search: str = "", db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("exit_manage"))):
+    from app.models.employee import Employee
+    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+    if search:
+        query = query.filter((Employee.first_name + " " + Employee.last_name).ilike(f"%{search}%") | Employee.employee_id.ilike(f"%{search}%"))
+    return [{"id": row.id, "name": f"{row.first_name} {row.last_name}", "employee_code": row.employee_id}
+            for row in query.order_by(Employee.first_name, Employee.id).limit(50).all()]
+
+
 @router.get("/records", response_model=list[ExitRecordSchema])
 def list_exit_records(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("exit_view"))):
     return db.query(ExitRecord).order_by(ExitRecord.created_at.desc()).limit(200).all()

@@ -17,6 +17,8 @@ import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuthStore } from "@/store/authStore";
 import GuidedPayroll from "./GuidedPayroll";
+import EmployeeSearchSelect from "../../components/EmployeeSearchSelect";
+import PayrollDepartmentSelect from "./PayrollDepartmentSelect";
 
 interface PayrollRun {
   id: number;
@@ -253,7 +255,6 @@ export default function PayrollPage() {
   const [ptAmount, setPtAmount] = useState("200");
   const [lwfEmployeeAmount, setLwfEmployeeAmount] = useState("10");
   const [lwfEmployerAmount, setLwfEmployerAmount] = useState("20");
-  const [paymentBatchId, setPaymentBatchId] = useState("");
   const [bankAdviceBankName, setBankAdviceBankName] = useState("Payroll Bank");
   const [templateName, setTemplateName] = useState("Default Salary Template");
   const [templateCode, setTemplateCode] = useState("DEFAULT-SALARY");
@@ -851,14 +852,6 @@ export default function PayrollPage() {
     onError: (e: unknown) => {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not generate payment batch";
       toast({ title: "Payment batch failed", description: msg, variant: "destructive" });
-    },
-  });
-
-  const paymentStatusMutation = useMutation({
-    mutationFn: () => payrollApi.importPaymentStatus(Number(paymentBatchId), { lines: [] }),
-    onSuccess: () => {
-      toast({ title: "Payment status import checked" });
-      qc.invalidateQueries({ queryKey: ["payment-batches"] });
     },
   });
 
@@ -1898,9 +1891,8 @@ export default function PayrollPage() {
                     </div>
                   ))}
                   <div className="flex gap-2">
-                    <Input placeholder="Batch ID for status import" value={paymentBatchId} onChange={(event) => setPaymentBatchId(event.target.value)} />
-                    <Button variant="outline" onClick={() => paymentStatusMutation.mutate()} disabled={!paymentBatchId}>
-                      Check import
+                    <Button variant="outline" onClick={() => setActiveTab("guided")}>
+                      Reconcile bank results
                     </Button>
                   </div>
                 </CardContent>
@@ -2266,7 +2258,7 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">LOP Adjustment</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Input placeholder="Employee ID" value={lopEmployeeId} onChange={(event) => setLopEmployeeId(event.target.value)} />
+                <EmployeeSearchSelect endpoint="/payroll/employee-options" value={lopEmployeeId} onChange={setLopEmployeeId} />
                 <Input placeholder="Days" value={lopDays} onChange={(event) => setLopDays(event.target.value)} />
                 <Button onClick={() => lopMutation.mutate()} disabled={!selectedInputPeriod || !lopEmployeeId}>
                   Add LOP
@@ -2279,7 +2271,7 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">Overtime Pay</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Input placeholder="Employee ID" value={otEmployeeId} onChange={(event) => setOtEmployeeId(event.target.value)} />
+                <EmployeeSearchSelect endpoint="/payroll/employee-options" value={otEmployeeId} onChange={setOtEmployeeId} />
                 <Input placeholder="Hours" value={otHours} onChange={(event) => setOtHours(event.target.value)} />
                 <Button onClick={() => otMutation.mutate()} disabled={!selectedInputPeriod || !otEmployeeId}>
                   Add OT
@@ -2292,7 +2284,7 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">Leave Encashment</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Input placeholder="Employee ID" value={encashEmployeeId} onChange={(event) => setEncashEmployeeId(event.target.value)} />
+                <EmployeeSearchSelect endpoint="/payroll/employee-options" value={encashEmployeeId} onChange={setEncashEmployeeId} />
                 <Input placeholder="Days" value={encashDays} onChange={(event) => setEncashDays(event.target.value)} />
                 <Button onClick={() => encashMutation.mutate()} disabled={!selectedInputPeriod || !encashEmployeeId}>
                   Add Encashment
@@ -2399,7 +2391,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-1.5"><Label>Employee ID</Label><Input value={toolsEmployeeId} onChange={(event) => setToolsEmployeeId(event.target.value)} /></div>
+                  <EmployeeSearchSelect endpoint="/payroll/employee-options" value={toolsEmployeeId} onChange={setToolsEmployeeId} />
                   <div className="space-y-1.5"><Label>Month</Label><Input type="number" min={1} max={12} value={toolsMonth} onChange={(event) => setToolsMonth(Number(event.target.value))} /></div>
                   <div className="space-y-1.5"><Label>Year</Label><Input type="number" value={toolsYear} onChange={(event) => setToolsYear(Number(event.target.value))} /></div>
                 </div>
@@ -2477,7 +2469,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-4">
-                  <Input placeholder="Employee ID" value={advanceEmployeeId} onChange={(event) => setAdvanceEmployeeId(event.target.value)} />
+                  <EmployeeSearchSelect endpoint="/payroll/employee-options" value={advanceEmployeeId} onChange={setAdvanceEmployeeId} />
                   <Input placeholder="Amount" value={advanceAmount} onChange={(event) => setAdvanceAmount(event.target.value)} />
                   <Input placeholder="Reason" value={advanceReason} onChange={(event) => setAdvanceReason(event.target.value)} />
                   <Button onClick={() => createSalaryAdvanceMutation.mutate()} disabled={createSalaryAdvanceMutation.isPending}>Request Advance</Button>
@@ -2514,7 +2506,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-4">
-                  <Input placeholder="Employee ID" value={taxEmployeeId} onChange={(event) => setTaxEmployeeId(event.target.value)} />
+                  <EmployeeSearchSelect endpoint="/payroll/employee-options" value={taxEmployeeId} onChange={setTaxEmployeeId} />
                   <Input placeholder="FY" value={taxFinancialYear} onChange={(event) => setTaxFinancialYear(event.target.value)} />
                   <Input placeholder="Income" value={taxIncome} onChange={(event) => setTaxIncome(event.target.value)} />
                   <Input placeholder="Deductions" value={taxDeductions} onChange={(event) => setTaxDeductions(event.target.value)} />
@@ -2527,10 +2519,10 @@ export default function PayrollPage() {
                   </div>
                 )}
                 <div className="grid gap-3 md:grid-cols-3">
-                  <Input placeholder="26AS employee ID" value={tds26EmployeeId} onChange={(event) => setTds26EmployeeId(event.target.value)} />
+                  <EmployeeSearchSelect endpoint="/payroll/employee-options" value={tds26EmployeeId} onChange={setTds26EmployeeId} />
                   <Input placeholder="Reported TDS" value={tds26Amount} onChange={(event) => setTds26Amount(event.target.value)} />
                   <Button variant="outline" onClick={() => complianceToolMutation.mutate("tds26")} disabled={complianceToolMutation.isPending}>Reconcile 26AS</Button>
-                  <Input placeholder="12BA employee ID" value={form12EmployeeId} onChange={(event) => setForm12EmployeeId(event.target.value)} />
+                  <EmployeeSearchSelect endpoint="/payroll/employee-options" value={form12EmployeeId} onChange={setForm12EmployeeId} />
                   <Input placeholder="Perquisite value" value={form12Value} onChange={(event) => setForm12Value(event.target.value)} />
                   <Button variant="outline" onClick={() => complianceToolMutation.mutate("form12ba")} disabled={complianceToolMutation.isPending}>Generate 12BA</Button>
                   <Input placeholder="Portal file type" value={portalFileType} onChange={(event) => setPortalFileType(event.target.value)} />
@@ -2550,7 +2542,7 @@ export default function PayrollPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-6">
                 <Input placeholder="Budget amount" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} />
-                <Input placeholder="Dept ID" value={budgetDepartmentId} onChange={(event) => setBudgetDepartmentId(event.target.value)} />
+                <PayrollDepartmentSelect value={budgetDepartmentId} onChange={setBudgetDepartmentId} />
                 <Input placeholder="From currency" value={exchangeFrom} onChange={(event) => setExchangeFrom(event.target.value.toUpperCase())} />
                 <Input placeholder="Rate" value={exchangeRate} onChange={(event) => setExchangeRate(event.target.value)} />
                 <Input placeholder="Convert amount" value={convertAmount} onChange={(event) => setConvertAmount(event.target.value)} />

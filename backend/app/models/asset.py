@@ -53,6 +53,9 @@ class AssetAssignment(Base):
     condition_at_return = Column(String(30))
     remarks = Column(Text)
     acknowledgement_signed = Column(Boolean, default=False)
+    acknowledged_at = Column(DateTime(timezone=True))
+    acknowledged_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    returned_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     is_active = Column(Boolean, default=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

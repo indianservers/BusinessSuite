@@ -1,6 +1,7 @@
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { ReactNode, useMemo, useState } from "react";
 import ReportSchedules from "./ReportSchedules";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bar,
@@ -67,7 +68,8 @@ type ReportResult = {
 
 export default function ReportsPage() {
   usePageTitle("Reports & Analytics");
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Overview Dashboard");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>(searchParams.has("report_id") ? "Saved Reports" : "Overview Dashboard");
 
   return (
     <div className="space-y-6">

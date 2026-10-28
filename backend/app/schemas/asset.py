@@ -61,9 +61,15 @@ class AssetAssignmentCreate(BaseModel):
 
 
 class AssetAssignmentSchema(AssetAssignmentCreate):
+    asset_name: Optional[str] = None
+    asset_tag: Optional[str] = None
+    serial_number: Optional[str] = None
     id: int
     returned_date: Optional[date] = None
     acknowledgement_signed: bool = False
+    acknowledged_at: Optional[datetime] = None
+    acknowledged_by: Optional[int] = None
+    returned_by: Optional[int] = None
     is_active: bool = True
     created_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)

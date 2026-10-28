@@ -6,15 +6,17 @@ import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrencyPrecise as formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import EmployeeIncrements from "./EmployeeIncrements";
 
 type Salary = { id: number; ctc: string; effective_from: string; effective_to: string | null; payroll_type: string };
 type Overview = {
   employee_id: number; as_of: string; currency: string;
+  actions?: { propose_revision: boolean; approve_revision: boolean; actor_id: number; is_superuser: boolean };
   access: { payroll: boolean; assets: boolean; expenses: boolean; profile_changes: boolean };
   salary: Salary | null; salary_history: Salary[];
-  increments: { id: number; current_ctc: string; proposed_ctc: string; effective_from: string; reason: string | null; status: string }[];
+  increments: { id: number; current_ctc: string; proposed_ctc: string; effective_from: string; reason: string | null; status: string; requested_by?: number | null }[];
   assets: { id: number; name: string; asset_tag: string; serial_number: string | null; assigned_date: string; condition: string | null; acknowledged: boolean }[];
   expenses: { id: number; claim_number: string; claim_type: string; expense_date: string; amount: string; approved_amount: string; currency: string; status: string; reimbursed_at: string | null; payment_reference: string | null; payroll_run_id: number | null }[];
   pending_actions: { id: string; title: string; section: string; owner: string }[];
@@ -34,7 +36,7 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
     onError: () => toast({ title: "Could not acknowledge asset. Please try again.", variant: "destructive" }),
   });
   const jump = (section: string) => {
-    if (section === "profile") { onOpenTab("personal"); return; }
+    if (section === "profile" || section === "bank") { onOpenTab(section === "bank" ? "bank" : "personal"); return; }
     document.getElementById(`employee-${employeeId}-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     document.getElementById(`employee-${employeeId}-${section}`)?.focus({ preventScroll: true });
   };
@@ -54,6 +56,12 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
     expenseTotals.set(currency, total);
   }
   const visibleClaims = data.expenses.filter(c => expenseStatus === "all" || c.status === expenseStatus);
+  const activity = [
+    ...data.salary_history.map(r => ({ key: `salary-${r.id}`, date: r.effective_from, title: r.effective_from > data.as_of ? "Scheduled salary assignment" : "Salary effective", detail: formatCurrency(Number(r.ctc), data.currency) })),
+    ...data.increments.map(r => ({ key: `increment-${r.id}`, date: r.effective_from, title: `Salary revision · ${r.status}`, detail: r.reason || formatCurrency(Number(r.proposed_ctc), data.currency) })),
+    ...data.assets.map(r => ({ key: `asset-${r.id}`, date: r.assigned_date, title: "Company asset assigned", detail: `${r.name} · ${r.asset_tag}` })),
+    ...data.expenses.map(r => ({ key: `expense-${r.id}`, date: r.expense_date, title: `Expense dated · ${r.status.replace(/_/g, " ")}`, detail: `${r.claim_number} · ${formatCurrency(Number(r.amount), r.currency || data.currency)}` })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
   const sectionProps = (name: string) => ({ id: `employee-${employeeId}-${name}`, tabIndex: -1, className: "scroll-mt-6" });
   const restricted = <p className="text-sm text-muted-foreground">This section is restricted by your access permissions.</p>;
   return <div className="space-y-5">
@@ -77,10 +85,7 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
       </Card></section>
       <section {...sectionProps("increments")}><Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-5 w-5" />Increments & revisions</CardTitle></CardHeader>
-        <CardContent>{!data.access.payroll ? restricted : data.increments.length ? <ul className="divide-y">{data.increments.map(row => {
-          const old = Number(row.current_ctc), proposed = Number(row.proposed_ctc);
-          return <li key={row.id} className="space-y-1 py-3 text-sm"><div className="flex flex-wrap items-center justify-between gap-2"><span className="font-medium">{formatCurrency(old, data.currency)} → {formatCurrency(proposed, data.currency)}</span><Badge variant="outline">{row.status}</Badge></div><p className="text-xs text-muted-foreground">Effective {formatDate(row.effective_from)} · {old > 0 ? `${((proposed - old) / old * 100).toFixed(1)}% change` : "Initial compensation"}</p>{row.reason && <p className="break-words">{row.reason}</p>}</li>;
-        })}</ul> : <p className="text-sm text-muted-foreground">No increment requests recorded. Salary assignments are listed separately in salary history.</p>}</CardContent>
+        <CardContent>{!data.access.payroll ? restricted : <EmployeeIncrements employeeId={employeeId} currentCtc={data.salary?.ctc || null} currency={data.currency} revisions={data.increments} actions={data.actions} />}</CardContent>
       </Card></section>
       <section {...sectionProps("assets")}><Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5" />Assigned assets</CardTitle></CardHeader>
@@ -96,5 +101,6 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
         </>}</CardContent>
       </Card></section>
     </div>
+    {activity.length > 0 && <Card><CardHeader><CardTitle className="text-base">Recorded employee activity</CardTitle></CardHeader><CardContent><p className="mb-3 text-xs text-muted-foreground">Salary dates are effective dates; expense dates are the dates incurred. Statuses reflect the current record.</p><details><summary className="cursor-pointer text-sm">View {activity.length} dated records</summary><ol className="mt-3 divide-y">{activity.map(row => <li key={row.key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><div><p className="font-medium">{row.title}</p><p className="break-words text-muted-foreground">{row.detail}</p></div><time dateTime={row.date} className="text-xs text-muted-foreground">{formatDate(row.date)}</time></li>)}</ol></details></CardContent></Card>}
   </div>;
 }

@@ -4,12 +4,19 @@ import { Link } from "react-router-dom";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuthStore } from "@/store/authStore";
 
 type Person = { id: number; email: string; name: string; role: string; is_active: boolean; workspace_ids: number[] };
 type Group = { id: number; name: string };
 type Team = Group & { workspace_id: number; member_ids: number[] };
 type Directory = { items: Person[]; total: number; workspaces: Group[]; teams: Team[] };
 export default function PeopleDirectoryPage() {
+  const userId = useAuthStore(s => s.user?.id);
+  const viewKey = `people-directory-views:${userId}`;
+  type SavedView = { name: string; query: string; workspace: string; team: string; role: string };
+  const [savedViews, setSavedViews] = useState<SavedView[]>(() => { try { const value = JSON.parse(localStorage.getItem(viewKey) || "[]"); return Array.isArray(value) ? value.filter(v => typeof v.name === "string") : []; } catch { return []; } });
+  const [viewName, setViewName] = useState("");
+  const [viewMessage, setViewMessage] = useState("");
   const [data, setData] = useState<Directory>();
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -52,6 +59,7 @@ export default function PeopleDirectoryPage() {
         <Button variant="outline" onClick={() => { setQuery(""); setWorkspace(""); setTeam(""); setRole(""); }}>Clear filters</Button>
       </div>
       <p role="status">{people.length} of {data.total} users</p>
+      <div className="space-y-2 rounded-lg border p-3"><div className="flex flex-wrap items-center gap-2"><label className="text-sm">Load saved directory view<select className="ml-2 rounded border bg-background p-2" value="" onChange={e => { const view = savedViews.find(v => v.name === e.target.value); if (view) { setQuery(view.query); setWorkspace(view.workspace); setTeam(view.team); setRole(view.role); } }}><option value="">Choose a saved view</option>{savedViews.map(v => <option key={v.name}>{v.name}</option>)}</select></label><form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); const next = [...savedViews.filter(v => v.name !== viewName.trim()), { name: viewName.trim(), query, workspace, team, role }].slice(-20); try { localStorage.setItem(viewKey, JSON.stringify(next)); setSavedViews(next); setViewName(""); setViewMessage("Directory view saved on this browser."); } catch { setViewMessage("This browser could not save the view. Your filters are unchanged."); } }}><Input aria-label="Directory view name" placeholder="Save current filters as…" required maxLength={60} value={viewName} onChange={e => setViewName(e.target.value)} /><Button variant="outline" disabled={!viewName.trim()}>Save directory view</Button></form></div>{viewMessage && <p role="status" className="text-xs text-muted-foreground">{viewMessage}</p>}{savedViews.length > 0 && <details><summary className="cursor-pointer text-xs">Manage saved views</summary>{savedViews.map(v => <div key={v.name} className="mt-2 flex gap-3 text-sm"><span>{v.name}</span><button className="underline" onClick={() => { const next = savedViews.filter(item => item.name !== v.name); try { localStorage.setItem(viewKey, JSON.stringify(next)); setSavedViews(next); } catch { setViewMessage("Could not remove saved view."); } }}>Remove</button></div>)}</details>}</div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{people.map(p => <article data-context-record={p.name} key={p.id} className="space-y-2 rounded-xl border bg-card p-5"><h2 className="font-semibold">{p.name}</h2><a data-context-action={`Email ${p.name}`} className="break-all text-primary" href={`mailto:${p.email}`}>{p.email}</a><p className="text-sm">{p.role} · {p.is_active ? "Active" : "Inactive"}</p><div className="flex flex-wrap gap-2">{p.workspace_ids.map(id => <button data-context-action={`Explore workspace ${data.workspaces.find(w => w.id === id)?.name}`} className="rounded border px-2 py-1 text-sm" key={id} onClick={() => { setWorkspace(String(id)); setTeam(""); }}>{data.workspaces.find(w => w.id === id)?.name}</button>)}{!p.workspace_ids.length && <span className="text-sm text-muted-foreground">No workspace membership</span>}</div><div className="flex flex-wrap gap-2">{data.teams.filter(t => t.member_ids.includes(p.id)).map(t => <button data-context-action={`Explore team ${t.name}`} className="rounded bg-muted px-2 py-1 text-sm" key={t.id} onClick={() => { setWorkspace(String(t.workspace_id)); setTeam(String(t.id)); }}>{t.name}</button>)}</div></article>)}</div>
       {!people.length && <p>No users match these filters.</p>}
     </>}

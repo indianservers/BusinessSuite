@@ -44,7 +44,7 @@ def test_employee360_connects_only_employee_records_and_uses_effective_salary(cl
     assert data["assets"][0]["asset_tag"] == "360-LAPTOP"
     assert {row["currency"] for row in data["expenses"]} == {"INR", "USD"}
     assert "FOREIGN" not in response.text and "9999999" not in response.text
-    assert {row["section"] for row in data["pending_actions"]} == {"increments", "assets", "expenses"}
+    assert {row["section"] for row in data["pending_actions"]} == {"increments", "assets", "expenses", "bank"}
     assert client.get("/api/v1/employees/2147483647/360", headers=superuser_headers).status_code == 404
 
 

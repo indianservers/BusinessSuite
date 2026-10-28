@@ -122,6 +122,9 @@ def prepare_scheduled_email(db, limit=5):
                 logging.getLogger(__name__).warning("scheduled_email_preparation_failed table=%s id=%s", model.__tablename__, identity)
                 db.rollback()
                 row = db.get(model, identity)
+                if row is None:
+                    processed += 1
+                    continue
                 if model is CommunicationCampaign:
                     row.status = "blocked"
                 else:

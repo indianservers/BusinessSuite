@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
@@ -45,6 +45,9 @@ def expense_statement(employee_id: int, from_date: Optional[date] = None,
     if to_date:
         query = query.filter(ExpenseClaim.expense_date <= to_date)
     rows = query.order_by(ExpenseClaim.expense_date.desc(), ExpenseClaim.id.desc()).all()
+    receipts = {}
+    for identity, receipt in db.query(ExpenseClaim.id, ExpenseClaim.receipt_url).filter(ExpenseClaim.employee_id == employee_id, ExpenseClaim.receipt_url.isnot(None)).all():
+        receipts.setdefault(receipt, []).append(identity)
     totals = {}
     for row in rows:
         total = totals.setdefault(row.currency or "INR", {key: Decimal("0") for key in ["claimed", "approved", "outstanding", "paid", "pending_review", "rejected"]})
@@ -59,7 +62,8 @@ def expense_statement(employee_id: int, from_date: Optional[date] = None,
             total["pending_review"] += row.amount
     return {"employee_id": employee_id, "employee_name": f"{employee.first_name} {employee.last_name}",
             "totals": [{"currency": currency, **{key: str(value) for key, value in total.items()}} for currency, total in sorted(totals.items())],
-            "claims": [ExpenseClaimSchema.model_validate(row).model_dump(mode="json") for row in rows],
+            "claims": [{**ExpenseClaimSchema.model_validate(row).model_dump(mode="json"), "duplicate_receipt_claim_ids": [identity for identity in receipts.get(row.receipt_url, []) if identity != row.id]} for row in rows],
+            "can_submit": bool(_can_hr_or_finance(current_user) or (own and own.id == employee_id)),
             "can_manager_review": bool(_can_hr_or_finance(current_user) or (own and employee.reporting_manager_id == own.id)),
             "can_finance_review": _can_finance(current_user)}
 
@@ -108,6 +112,10 @@ def create_claim(
     if data.employee_id and (not current_user.employee or data.employee_id != current_user.employee.id) and not _can_hr_or_finance(current_user):
         raise HTTPException(status_code=403, detail="Cannot submit claim for another employee")
     _employee_or_404(db, employee_id)
+    if data.expense_date > date.today():
+        raise HTTPException(422, "Expense date cannot be in the future")
+    if not data.claim_type.strip():
+        raise HTTPException(422, "Choose an expense category")
     claim = ExpenseClaim(
         **data.model_dump(exclude={"employee_id"}),
         employee_id=employee_id,
@@ -146,6 +154,39 @@ def my_claims(db: Session = Depends(get_db), current_user: User = Depends(get_cu
     if not current_user.employee:
         raise HTTPException(status_code=400, detail="Employee profile is required")
     return db.query(ExpenseClaim).filter(ExpenseClaim.employee_id == current_user.employee.id).order_by(ExpenseClaim.id.desc()).all()
+
+
+@router.post("/claims/{claim_id}/receipt")
+async def attach_receipt(claim_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from pathlib import Path
+    from hashlib import sha256
+    from app.core.config import settings
+    from app.core.storage import persist_file
+    claim = db.query(ExpenseClaim).join(Employee).filter(ExpenseClaim.id == claim_id).with_for_update().first()
+    if not claim or not _can_view_claim(current_user, claim):
+        raise HTTPException(404, "Expense claim not found")
+    if not _can_hr_or_finance(current_user) and (not current_user.employee or claim.employee_id != current_user.employee.id):
+        raise HTTPException(403, "Only the submitting employee or HR can attach a receipt")
+    if claim.status != "submitted":
+        raise HTTPException(409, "Receipts cannot change after manager review")
+    extension = Path(file.filename or "").suffix.lower()
+    if extension not in {".pdf", ".png", ".jpg", ".jpeg"}:
+        raise HTTPException(422, "Use a PDF, PNG or JPEG receipt")
+    body = await file.read(5 * 1024 * 1024 + 1)
+    if not body or len(body) > 5 * 1024 * 1024:
+        raise HTTPException(413, "Receipts must be between 1 byte and 5 MB")
+    valid = body.startswith(b"%PDF-") if extension == ".pdf" else body.startswith(b"\x89PNG\r\n\x1a\n") if extension == ".png" else body.startswith(b"\xff\xd8\xff")
+    if not valid:
+        raise HTTPException(422, "Receipt content does not match its file type")
+    digest = sha256(body).hexdigest()
+    duplicate_ids = [row.id for row in db.query(ExpenseClaim.id).filter(ExpenseClaim.employee_id == claim.employee_id, ExpenseClaim.id != claim.id, ExpenseClaim.receipt_url.like(f"%/{digest}.%"))]
+    directory = Path(settings.UPLOAD_DIR) / "expenses" / str(claim.employee_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / f"{digest}{extension}"
+    target.write_bytes(body); persist_file(str(target))
+    claim.receipt_url = f"/uploads/expenses/{claim.employee_id}/{target.name}"
+    db.commit()
+    return {"receipt_url": claim.receipt_url, "duplicate_claim_ids": duplicate_ids}
 
 
 @router.put("/claims/{claim_id}/manager-review", response_model=ExpenseClaimSchema)

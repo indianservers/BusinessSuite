@@ -16,12 +16,29 @@ from app.crud import crud_payroll
 router = APIRouter()
 
 
+@router.get("/employee-options")
+def employee_options(search: str = "", db: Session = Depends(get_db), user=Depends(RequirePermission("payroll_view"))):
+    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+    if search:
+        query = query.filter((Employee.first_name + " " + Employee.last_name).ilike(f"%{search}%") | Employee.employee_id.ilike(f"%{search}%"))
+    return [{"id": row.id, "name": f"{row.first_name} {row.last_name}", "employee_code": row.employee_id}
+            for row in query.order_by(Employee.first_name, Employee.id).limit(50).all()]
+
+
+@router.get("/department-options")
+def department_options(db: Session = Depends(get_db), user=Depends(RequirePermission("payroll_view"))):
+    from app.models.company import Department
+    return [{"id": row.id, "name": row.name} for row in db.query(Department).order_by(Department.name).all()]
+
+
 def context(db, run_id, user):
     run = db.query(PayrollRun).filter(PayrollRun.id == run_id, PayrollRun.deleted_at.is_(None)).with_for_update().first()
     if not run or (not user.is_superuser and (run.company_id or 1) != tenant(user)):
         raise HTTPException(404, "Payroll run not found")
     records = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id).order_by(PayrollRecord.id).all()
-    fingerprint = hashlib.sha256(json.dumps([[r.id, str(r.gross_salary), str(r.net_salary), str(r.total_deductions)] for r in records]).encode()).hexdigest()
+    fingerprint = hashlib.sha256(json.dumps([[r.id, r.employee_id, r.salary_currency, str(r.gross_salary), str(r.net_salary), str(r.total_deductions),
+        str(r.updated_at), [(c.id, str(c.amount)) for c in sorted(r.components, key=lambda c: c.id)],
+        r.employee.account_number if r.employee else None, r.employee.ifsc_code if r.employee else None] for r in records]).encode()).hexdigest()
     reviewed = db.query(PayrollRunAuditLog.id).filter(PayrollRunAuditLog.payroll_run_id == run_id,
         PayrollRunAuditLog.action == "guided_changes_reviewed", PayrollRunAuditLog.details == fingerprint).first() is not None
     return run, records, fingerprint, reviewed
@@ -40,6 +57,8 @@ def blockers(db, run, records):
         extra.append("No calculated employee records. Calculate payroll first.")
     if any((row.net_salary or 0) < 0 for row in records):
         extra.append("Negative net pay must be resolved.")
+    if len({row.salary_currency or "INR" for row in records}) > 1:
+        extra.append("This run contains multiple salary currencies. Split payment processing into single-currency payroll groups.")
     return issues, extra, readiness["critical_issue_count"] > 0 or bool(extra)
 
 
@@ -50,13 +69,13 @@ def overview(run_id: int, db: Session = Depends(get_db), user=Depends(RequirePer
     batches = db.query(PayrollPaymentBatch).filter(PayrollPaymentBatch.payroll_run_id == run_id).order_by(PayrollPaymentBatch.id.desc()).all()
     people = {row.id: row for row in db.query(Employee).filter(Employee.id.in_([r.employee_id for r in records])).all()}
     permissions = {p.name for p in permission_objects(user)}
-    return {"id": run.id, "status": crud_payroll.normalize_payroll_run_status(run.status), "reviewed": reviewed,
+    return {"id": run.id, "currency": records[0].salary_currency or "INR" if records else "INR", "status": crud_payroll.normalize_payroll_run_status(run.status), "reviewed": reviewed,
             "blocked": blocked, "issues": issues, "blockers": extra,
             "can_process": user.is_superuser or "payroll_run" in permissions,
             "can_approve": user.is_superuser or "payroll_approve" in permissions,
             "records": [{"id": r.id, "employee_id": r.employee_id,
                          "employee_name": f"{people[r.employee_id].first_name} {people[r.employee_id].last_name}" if r.employee_id in people else str(r.employee_id),
-                         "gross": str(r.gross_salary), "deductions": str(r.total_deductions), "net": str(r.net_salary)} for r in records],
+                         "gross": str(r.gross_salary), "deductions": str(r.total_deductions), "net": str(r.net_salary), "currency": r.salary_currency or "INR"} for r in records],
             "batches": [{"id": b.id, "status": b.status, "total": str(b.total_amount), "file_url": b.generated_file_url,
                          "lines": [{"employee_id": l.employee_id, "payroll_record_id": l.payroll_record_id, "status": l.payment_status,
                                     "utr": l.utr_number, "failure_reason": l.failure_reason} for l in b.lines]} for b in batches]}

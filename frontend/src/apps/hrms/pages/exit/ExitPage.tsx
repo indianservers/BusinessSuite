@@ -1,4 +1,6 @@
 import { useState } from "react";
+import EmployeeSearchSelect from "../../components/EmployeeSearchSelect";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, DoorOpen, Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +64,7 @@ export default function ExitPage() {
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">Exit management</h1>
           <p className="mt-1 text-sm text-muted-foreground">Track resignations, approvals, checklist tasks, and final settlement status.</p>
         </div>
-        <Button variant="outline" onClick={() => records.refetch()}><RefreshCw className="h-4 w-4" />Refresh</Button>
+        <div className="flex flex-wrap gap-2"><Button variant="outline" asChild><Link to="/hrms/assets?view=clearance">Asset clearance</Link></Button><Button variant="outline" onClick={() => records.refetch()}><RefreshCw className="h-4 w-4" />Refresh</Button></div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
@@ -70,7 +72,7 @@ export default function ExitPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Initiate exit</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2"><Label>Employee</Label><select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">Select employee</option>{employees.data?.map((e: any) => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}</select></div>
+              <EmployeeSearchSelect endpoint="/exit/employees" value={employeeId} onChange={setEmployeeId} />
               <div className="space-y-2"><Label>Last working date</Label><Input type="date" value={lastWorkingDate} onChange={(e) => setLastWorkingDate(e.target.value)} /></div>
               <div className="space-y-2"><Label>Reason</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} /></div>
               <Button onClick={() => create.mutate()} disabled={!employeeId || create.isPending}><Plus className="h-4 w-4" />Create exit</Button>
