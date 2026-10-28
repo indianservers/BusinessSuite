@@ -1,0 +1,32 @@
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
+type Schedule = { id: number; name: string; status: string; recipients_json: string[]; next_run_at: string | null; last_run_at: string | null; created_by: number };
+export default function ReportSchedules() {
+  const user = useAuthStore(s => s.user), qc = useQueryClient();
+  const [form, setForm] = useState({ report: "", name: "", frequency: "weekly", time: "09:00", recipients: user?.email || "" });
+  const [auditId, setAuditId] = useState<number | null>(null);
+  const defs = useQuery({ queryKey: ["report-definitions"], queryFn: () => api.get<{ id: number; name: string }[]>("/reports/definitions").then(r => r.data) });
+  const capabilities = useQuery({ queryKey: ["report-schedule-capabilities", user?.id], queryFn: () => api.get<{ can_manage: boolean }>("/reports/schedule-capabilities").then(r => r.data) });
+  const schedules = useQuery({ queryKey: ["report-schedules"], queryFn: () => api.get<Schedule[]>("/reports/schedules").then(r => r.data) });
+  const deliveries = useQuery({ queryKey: ["report-deliveries", auditId], queryFn: () => api.get<{ id: number; recipient: string; status: string; attempts: number; error: string | null }[]>(`/reports/schedules/${auditId}/deliveries`).then(r => r.data), enabled: !!auditId });
+  const mutation = useMutation({ mutationFn: ({ id, status }: { id?: number; status?: string }) => {
+    if (id) return api.put(`/reports/schedules/${id}/status`, { status });
+    const [hour, minute] = form.time.split(":").map(Number);
+    return api.post("/reports/schedules", { report_definition_id: Number(form.report), name: form.name, cron_expression: `${minute} ${hour} ${form.frequency === "monthly" ? "1" : "*"} * ${form.frequency === "weekly" ? "1" : "*"}`, recipients_json: form.recipients.split(",").map(v => v.trim()).filter(Boolean), export_format: "csv" });
+  }, onSuccess: () => { qc.invalidateQueries({ queryKey: ["report-schedules"] }); toast({ title: "Report schedule saved" }); }, onError: (error: unknown) => { const d = (error as { response?: { data?: { detail?: unknown } } }).response?.data?.detail; toast({ title: "Schedule update failed", description: typeof d === "string" ? d : "Check recipients, report access and schedule details.", variant: "destructive" }); } });
+  const when = (s: string | null) => s ? new Date(s).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST" : "Not scheduled";
+  return <Card><CardHeader><CardTitle className="text-base">Recurring report delivery</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">Schedules use India time. Weekly: Monday. Monthly: first day. The configured email dispatcher checks recipients' current company and report permissions on every run.</p>
+    {capabilities.data?.can_manage && <form className="grid gap-3 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); mutation.mutate({}); }}><label className="text-sm">Saved report<select className="mt-1 h-10 w-full rounded border bg-background px-2" required value={form.report} onChange={e => setForm({ ...form, report: e.target.value })}><option value="">Select saved report</option>{defs.data?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label><label className="text-sm">Schedule name<Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label><label className="text-sm">Frequency<select className="mt-1 h-10 w-full rounded border bg-background px-2" value={form.frequency} onChange={e => setForm({ ...form, frequency: e.target.value })}>{["daily", "weekly", "monthly"].map(f => <option key={f}>{f}</option>)}</select></label><label className="text-sm">Time (Asia/Kolkata)<Input required type="time" value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} /></label><label className="text-sm sm:col-span-2">Authorized recipients (comma-separated emails)<Input required value={form.recipients} onChange={e => setForm({ ...form, recipients: e.target.value })} /></label><Button disabled={mutation.isPending || !form.report}>Create report schedule</Button></form>}
+    {schedules.isPending && <p role="status">Loading schedules…</p>}{schedules.isError && <p role="alert">Schedules could not load. <button className="underline" onClick={() => schedules.refetch()}>Retry schedules</button></p>}
+    {schedules.data?.map(s => <article className="space-y-2 rounded-lg border p-3" key={s.id}><div className="flex flex-wrap justify-between gap-2"><p className="font-medium">{s.name}</p><Badge variant="outline">{s.status}</Badge></div><p className="text-xs text-muted-foreground">Next: {when(s.next_run_at)} · Last: {when(s.last_run_at)}</p><p className="break-words text-xs">Recipients: {s.recipients_json?.join(", ") || "Schedule owner"}</p><div className="flex flex-wrap gap-2">{capabilities.data?.can_manage && (user?.is_superuser || s.created_by === user?.id) && <Button size="sm" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate({ id: s.id, status: s.status === "Active" ? "Paused" : "Active" })}>{s.status === "Active" ? "Pause schedule" : "Resume schedule"}</Button>}<Button size="sm" variant="outline" onClick={() => setAuditId(s.id)}>View delivery audit</Button></div></article>)}
+    {schedules.data?.length === 0 && <p className="text-sm text-muted-foreground">No recurring reports configured.</p>}
+    {auditId && <div className="rounded border p-3"><h3 className="text-sm font-medium">Recent report deliveries</h3>{deliveries.isPending && <p>Loading delivery audit…</p>}{deliveries.isError && <p role="alert">Delivery audit could not load or is restricted to the owner.</p>}{deliveries.data?.map(d => <p key={d.id} className="break-words text-xs">{d.recipient} · {d.status} · {d.attempts} attempts{d.error ? ` · ${d.error}` : ""}</p>)}{deliveries.data?.length === 0 && <p className="text-sm text-muted-foreground">No email deliveries recorded yet.</p>}</div>}
+  </CardContent></Card>;
+}

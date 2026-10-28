@@ -51,6 +51,8 @@ def materialize(db, definition, actor_id):
     target.write_text(output.getvalue(), encoding="utf-8-sig")
     persist_file(str(target))
     run.file_url = f"/uploads/reports/{target.name}"
+    from app.models.audit import AuditLog
+    db.add(AuditLog(user_id=actor_id, action="report_export_generated", module="reports", entity_type="report_run", entity_id=run.id, description=f"Generated {len(rows)} rows for report {definition.id}"))
     return run
 
 

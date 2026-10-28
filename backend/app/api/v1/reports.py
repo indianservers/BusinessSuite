@@ -1,4 +1,5 @@
 from typing import List, Optional
+from pydantic import BaseModel
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -381,6 +382,40 @@ def run_report_schedule(
     db.commit()
     db.refresh(run)
     return run
+
+
+@router.get("/schedule-capabilities")
+def schedule_capabilities(current_user: User = Depends(RequirePermission("reports_view"))):
+    from app.services.email_schedules import permitted
+    return {"can_manage": permitted(current_user, "reports_manage")}
+
+
+class ScheduleStatusUpdate(BaseModel):
+    status: str
+
+
+@router.put("/schedules/{schedule_id}/status")
+def update_schedule_status(schedule_id: int, data: ScheduleStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("reports_manage"))):
+    schedule = db.query(ReportSchedule).filter(ReportSchedule.id == schedule_id).first()
+    if not schedule or (schedule.created_by != current_user.id and not current_user.is_superuser):
+        raise HTTPException(404, "Schedule not found")
+    if data.status not in {"Active", "Paused"}:
+        raise HTTPException(422, "Choose Active or Paused")
+    from app.services.hrms_report_schedules import next_run
+    schedule.status = data.status
+    schedule.next_run_at = next_run(schedule.cron_expression) if data.status == "Active" else None
+    db.commit()
+    return {"id": schedule.id, "status": schedule.status}
+
+
+@router.get("/schedules/{schedule_id}/deliveries")
+def schedule_deliveries(schedule_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("reports_view"))):
+    from app.models.email_outbox import EmailOutbox
+    schedule = db.query(ReportSchedule).filter(ReportSchedule.id == schedule_id).first()
+    if not schedule or (schedule.created_by != current_user.id and not current_user.is_superuser):
+        raise HTTPException(404, "Schedule not found")
+    rows = db.query(EmailOutbox).filter(EmailOutbox.event_key.like(f"hrms-report:{schedule_id}:%")).order_by(EmailOutbox.id.desc()).limit(50).all()
+    return [{"id": row.id, "recipient": row.recipient, "status": row.status, "attempts": row.attempts, "created_at": row.created_at, "error": row.error} for row in rows]
 
 
 @router.get("/analytics/metric-definitions")

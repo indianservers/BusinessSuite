@@ -1,5 +1,6 @@
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { ReactNode, useMemo, useState } from "react";
+import ReportSchedules from "./ReportSchedules";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bar,
@@ -96,6 +97,7 @@ export default function ReportsPage() {
       {activeTab === "Overview Dashboard" && <OverviewDashboard />}
       {activeTab === "Workforce Analytics" && <WorkforceAnalytics />}
       {activeTab === "Saved Reports" && <SavedReports />}
+      {activeTab === "Saved Reports" && <ReportSchedules />}
     </div>
   );
 }
