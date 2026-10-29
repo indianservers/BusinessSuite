@@ -1,0 +1,74 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": {
+      "root": "backend",
+      "framework": "fastapi",
+      "entrypoint": "main:app",
+      "functions": {
+        "main.py": {
+          "maxDuration": 300,
+          "excludeFiles": "{venv/**,.venv/**,.local/**,tests/**,backups/**,uploads/**,alembic/**,app/apps/inventory/vyapara_erp/**,**/__pycache__/**,**/tests/**}"
+        }
+      },
+      "buildCommand": "python scripts/migrate_deployment.py"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite",
+      "installCommand": "npm ci",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist",
+      "rewrites": [
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/health",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ],
+  "regions": [
+    "iad1"
+  ],
+  "crons": [
+    { "path": "/api/v1/internal/email-dispatch", "schedule": "*/5 * * * *" },
+    { "path": "/api/v1/internal/intern-correction-reminders", "schedule": "30 4 * * *" }
+  ],
+  "headers": [
+    {
+      "source": "/release.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ]
+}
