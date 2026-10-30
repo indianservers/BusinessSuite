@@ -5,7 +5,7 @@ const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/
 const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
 
 const MemberManagementPage = React.lazy(() => import("./pages/MemberManagementPage"));
-const PeopleDirectoryPage = React.lazy(() => import("@/components/PeopleDirectoryPage"));
+const PeopleDirectoryPage = React.lazy(() => import("./pages/PeopleManagementDirectory"));
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
 const AIOperatorPage = React.lazy(() => import("./pages/AIOperatorPage"));
 const AssistantStudio = React.lazy(() => import("./pages/AssistantStudio"));

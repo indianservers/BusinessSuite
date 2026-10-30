@@ -1,3 +1,4 @@
+import { ManagePersonButton } from "../components/people/PersonIdentity";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { ConversationLauncher, TaskConversationSource } from "@/shared/communication";
 import TaskLinkedNotes from "../components/TaskLinkedNotes";
@@ -721,6 +722,7 @@ export default function TaskDetail() {
                   <Avatar label={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} />
                   {(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")}
                 </span>
+                {taskAssignees(task).map(uid => <ManagePersonButton key={uid} userId={uid} projectId={task.project_id} label={`Manage ${userLabel(uid, `Member ${uid}`)}`} />)}
                 <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" />Due {formatDate(task.due_date || null)}</span>
                 <span>{task.story_points ?? 0} pts</span>
               </div>
@@ -920,7 +922,7 @@ export default function TaskDetail() {
                 </div>
                 <div className="mt-3 space-y-2">
                   <Label>Subtask assignees</Label>
-                  <AssigneePicker people={subtaskPeople} value={newSubtaskAssignees} onChange={setNewSubtaskAssignees} label="New subtask assignees" />
+                  <AssigneePicker projectId={task.project_id} people={subtaskPeople} value={newSubtaskAssignees} onChange={setNewSubtaskAssignees} label="New subtask assignees" />
                   <Button type="button" size="sm" variant="ghost" onClick={() => setNewSubtaskAssignees(taskAssignees(task))}>Inherit parent assignees</Button>
                   <RichTextField data-legacy-format="markdown" aria-label="Subtask description" placeholder="Description or acceptance criteria" value={newSubtaskDescription} onChange={e => setNewSubtaskDescription(e.target.value)} className="w-full rounded-md border bg-background p-2" />
                 </div>
@@ -1011,7 +1013,7 @@ export default function TaskDetail() {
           <Card>
             <CardHeader><CardTitle>People</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <PersonRow label="Assignee" value={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} />
+              <PersonRow label="Assignee" value={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} /><div className="flex flex-wrap gap-2">{taskAssignees(task).map(uid => <ManagePersonButton key={uid} userId={uid} projectId={task.project_id} label={`Manage ${userLabel(uid, `Member ${uid}`)}`} />)}</div>
               <PersonRow label="Reporter" value={userLabel(task.reporter_user_id, "No reporter")} />
               <Property label="Watchers" value="Not configured" />
             </CardContent>
@@ -1164,7 +1166,7 @@ function SubtaskRow({
           <Input type="date" value={draft.due_date || ""} onChange={(event) => setDraft({ ...draft, due_date: event.target.value || (null as any) })} />
           <Input type="number" min="0" step="1" value={draft.story_points ?? ""} onChange={(event) => setDraft({ ...draft, story_points: event.target.value === "" ? undefined : Number(event.target.value) })} />
         </div>
-        <AssigneePicker people={people} value={draft.assignee_user_ids || []} onChange={ids => setDraft({ ...draft, assignee_user_ids: ids })} label="Edit subtask assignees" />
+        <AssigneePicker projectId={draft.project_id} people={people} value={draft.assignee_user_ids || []} onChange={ids => setDraft({ ...draft, assignee_user_ids: ids })} label="Edit subtask assignees" />
         <RichTextField data-legacy-format="markdown"
           value={draft.description || ""}
           onChange={(event) => setDraft({ ...draft, description: event.target.value })}

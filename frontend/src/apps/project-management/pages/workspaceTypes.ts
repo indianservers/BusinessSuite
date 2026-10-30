@@ -1,4 +1,4 @@
-export type WorkspaceMember = { id: number; user_id: number; email: string; role: string };
+export type WorkspaceMember = { id: number; user_id: number; email: string; role: string; name?: string; photo_url?: string; availability?: string };
 export type WorkspaceProject = { id: number; name: string; project_key: string };
 export type WorkTask = { id: number; project_id: number; task_key: string; title: string; description?: string; status: string; priority: string; assignee_user_id?: number | null; assignee_user_ids?: number[]; estimated_hours?: number; start_date?: string; due_date?: string; position: number; comments_count: number };
 export const workspaceBase = "/project-management";

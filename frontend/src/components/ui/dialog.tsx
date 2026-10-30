@@ -14,10 +14,10 @@ export function DialogHeader(props: React.HTMLAttributes<HTMLDivElement>) {
 }
 export const DialogContent = React.forwardRef<
   React.ElementRef<typeof Primitive.Content>,
-  React.ComponentPropsWithoutRef<typeof Primitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof Primitive.Content> & { overlayClassName?: string }
+>(({ className, children, overlayClassName, ...props }, ref) => (
   <Primitive.Portal>
-    <Primitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
+    <Primitive.Overlay className={cn("fixed inset-0 z-50 bg-black/40", overlayClassName)} />
     <Primitive.Content
       ref={ref}
       aria-describedby={undefined}

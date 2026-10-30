@@ -43,6 +43,7 @@ export interface CreateClientInput {
 // ============= PROJECT TYPES =============
 export interface PMSProject {
   can_edit_project?: boolean;
+  can_manage_members?: boolean;
   can_manage_tasks?: boolean;
   workspace_id?: number;
   id: number;
@@ -409,6 +410,9 @@ export interface CreateCommentInput {
 }
 
 export interface PMSMentionUser {
+  photo_url?: string | null;
+  role?: string;
+  availability?: string;
   id: number;
   email: string;
   name: string;

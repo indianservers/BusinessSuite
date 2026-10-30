@@ -128,17 +128,17 @@ def activate_invitation(data: ActivateInput, db: Session = Depends(get_db)):
 
 
 def workspace_member(db, workspace_id, user, manage=False):
-    workspace = db.get(PMSWorkspace, workspace_id)
-    member = db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id, user_id=user.id).first()
-    if not workspace or not member or is_archived(db, workspace_id):
-        raise HTTPException(404, "Workspace not found")
-    if manage and member.role not in {"Owner", "Admin"}:
-        raise HTTPException(403, "Workspace administrator required")
-    return workspace, member
+    from .people_management import scoped_workspace
+    return scoped_workspace(db, workspace_id, user, manage)
 
 
 @router.get("/workspaces")
 def list_workspaces(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from .people_management import organization_admin
+    if organization_admin(user):
+        workspaces = db.query(PMSWorkspace).filter(PMSWorkspace.organization_id == organization_id_for(user), PMSWorkspace.id.notin_(archived_ids())).all()
+        memberships = {m.workspace_id: m.role for m in db.query(PMSWorkspaceMember).filter_by(user_id=user.id)}
+        return [{"id": w.id, "name": w.name, "role": memberships.get(w.id, "Admin"), "access_source": "Workspace membership" if w.id in memberships else "Organization role"} for w in workspaces]
     rows = db.query(PMSWorkspace, PMSWorkspaceMember.role).join(PMSWorkspaceMember, PMSWorkspaceMember.workspace_id == PMSWorkspace.id).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspace.id.notin_(archived_ids())).all()
     return [{"id": w.id, "name": w.name, "role": role} for w, role in rows]
 
@@ -178,7 +178,8 @@ def create_workspace(data: WorkspaceInput, db: Session = Depends(get_db), user: 
 def members(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     workspace_member(db, workspace_id, user)
     rows = db.query(PMSWorkspaceMember, User.email).join(User, User.id == PMSWorkspaceMember.user_id).filter(PMSWorkspaceMember.workspace_id == workspace_id).all()
-    return [{"id": m.id, "user_id": m.user_id, "email": email, "role": m.role} for m, email in rows]
+    from .people_management import public_person
+    return [{**public_person(db, db.get(User, m.user_id)), "id": m.id, "user_id": m.user_id, "email": email, "role": m.role} for m, email in rows]
 
 
 @router.get("/workspaces/{workspace_id}/eligible-people")
@@ -188,7 +189,8 @@ def eligible_people(workspace_id: int, q: str = Query("", max_length=150), db: S
     if q.strip():
         query = query.filter(User.email.ilike("%" + q.strip() + "%"))
     # Evaluate persisted tenancy, even for installation-wide superusers.
-    return [{"id": u.id, "email": u.email, "name": u.person.display_name if u.person else u.email.split("@")[0]} for u in query.all() if organization_id_for(u) == workspace.organization_id]
+    from .people_management import public_person
+    return [public_person(db, u) for u in query.all() if organization_id_for(u) == workspace.organization_id]
 
 
 @router.post("/workspaces/{workspace_id}/members", status_code=201)
@@ -203,6 +205,8 @@ def add_workspace_member(workspace_id: int, data: AddMemberInput, db: Session = 
         raise HTTPException(409, "User is already a workspace member")
     member = PMSWorkspaceMember(workspace_id=workspace_id, user_id=target.id, role=data.role)
     db.add(member)
+    from .people_management import record
+    record(db, user, target.id, "PMS_WORKSPACE_ADDED", "Added existing person directly", after={"role": data.role}, workspace_id=workspace_id)
     db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=target.email.lower(), status="pending").update({"status": "accepted"})
     db.add(Notification(user_id=target.id, title="Added to workspace", message=f"You were added to {workspace.name} as {data.role}.", module="project_management", event_type="workspace.member_added", action_url=f"/pms/workspaces?workspace={workspace_id}"))
     db.commit()
@@ -214,7 +218,7 @@ def editable_member(db, workspace_id, member_id, user):
     target = db.query(PMSWorkspaceMember).filter_by(id=member_id, workspace_id=workspace_id).first()
     if not target:
         raise HTTPException(404, "Member not found")
-    if target.role == "Owner" or (actor.role != "Owner" and target.role == "Admin"):
+    if target.role == "Owner" or (actor.role != "Owner" and target.role == "Admin" and not user.is_superuser):
         raise HTTPException(403, "Only the owner can manage administrators; the owner cannot be removed")
     return target, actor
 
@@ -224,6 +228,13 @@ def change_role(workspace_id: int, member_id: int, data: MemberInput, db: Sessio
     target, actor = editable_member(db, workspace_id, member_id, user)
     if data.role == "Admin" and actor.role != "Owner":
         raise HTTPException(403, "Only the owner can appoint administrators")
+    from .people_management import record
+    record(db, user, target.user_id, "PMS_WORKSPACE_ROLE", "Workspace role updated", before={"role": target.role}, after={"role": data.role}, workspace_id=workspace_id)
+    if data.role == "Guest":
+        from .people_management import preview_data
+        impact = preview_data(db, user, db.get(User, target.user_id), workspace_id)
+        if impact["tasks"] or impact["projects"] or impact["approvals"] or impact["workflow_approvals"]:
+            raise HTTPException(409, "Preview and transfer open assignments in Manage person before changing this collaborator to Guest")
     target.role = data.role
     if data.role == "Guest":
         _unassign_workspace_member(db, workspace_id, target.user_id)
@@ -234,8 +245,16 @@ def change_role(workspace_id: int, member_id: int, data: MemberInput, db: Sessio
 @router.delete("/workspaces/{workspace_id}/members/{member_id}")
 def remove_member(workspace_id: int, member_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     target, _ = editable_member(db, workspace_id, member_id, user)
+    from .people_management import preview_data, record
+    impact = preview_data(db, user, db.get(User, target.user_id), workspace_id)
+    if impact["tasks"] or impact["projects"] or impact["approvals"] or impact["workflow_approvals"]:
+        raise HTTPException(409, "Open Manage person to preview affected assignments and reassign them before removal")
+    record(db, user, target.user_id, "PMS_REMOVE_WORKSPACE", "Removed from workspace", workspace_id=workspace_id)
     removed_user_id = target.user_id
     _unassign_workspace_member(db, workspace_id, removed_user_id)
+    from .models import PMSProjectMember
+    project_ids = db.query(PMSProject.id).filter_by(workspace_id=workspace_id)
+    db.query(PMSProjectMember).filter(PMSProjectMember.user_id == removed_user_id, PMSProjectMember.project_id.in_(project_ids)).delete(synchronize_session=False)
     db.delete(target)
     db.commit()
     from .realtime import pms_realtime_manager

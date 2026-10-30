@@ -77,6 +77,8 @@ from ..workspaces import router as workspace_router, workspace_member
 
 router = APIRouter(prefix="/project-management", tags=["Project Management"])
 router.include_router(workspace_router)
+from ..people_management import router as people_management_router
+router.include_router(people_management_router)
 from ..recovery import router as recovery_router
 router.include_router(recovery_router)
 from ..workspace_lifecycle import router as workspace_lifecycle_router
@@ -1346,10 +1348,15 @@ def _project_user_query(db: Session, project: PMSProject):
 
 
 def _pms_user_payload(user: User) -> dict:
+    person = user.person
+    profile = person.profile if person else None
     return {
         "id": user.id,
         "email": user.email,
         "name": _user_display_name(user) or user.email,
+        "photo_url": profile.profile_photo_url if profile and profile.directory_visibility == "public" else None,
+        "role": user.role.name if user.role else "User",
+        "availability": "On leave" if getattr(user, "employee", None) and user.employee.status == "On Leave" else "Available",
     }
 
 
@@ -2371,6 +2378,8 @@ def add_project_member(
     member = PMSProjectMember(project_id=project_id, **member_in.dict(exclude={"add_to_workspace"}))
     db.add(member)
     from app.models.notification import Notification
+    from ..people_management import record
+    record(db, current_user, target.id, "PMS_PROJECT_ADDED", "Added existing person to project team", after={"role": member.role}, project_id=project.id, workspace_id=project.workspace_id)
     db.add(Notification(user_id=target.id, title="Added to project", message=f"You were added to {project.name} as {member.role}.", module="project_management", event_type="project.member_added", action_url=f"/pms/projects/{project.id}"))
     db.commit()
     db.refresh(member)
@@ -2405,6 +2414,8 @@ def update_project_member(
     ).first()
     if not member:
         raise HTTPException(status_code=404, detail="Project member not found")
+    from ..people_management import record
+    record(db, current_user, member.user_id, "PMS_PROJECT_ROLE", "Project role updated", before={"role": member.role}, after=member_in.dict(exclude_unset=True), project_id=project_id)
     for field, value in member_in.dict(exclude_unset=True).items():
         setattr(member, field, value)
     db.add(member)
@@ -2429,6 +2440,11 @@ def remove_project_member(
     if not member:
         raise HTTPException(status_code=404, detail="Project member not found")
     removed_user_id = member.user_id
+    from ..people_management import preview_data, record
+    impact = preview_data(db, current_user, db.get(User, removed_user_id), project_id=project_id)
+    if impact["tasks"] or impact["projects"] or impact["approvals"] or impact["workflow_approvals"]:
+        raise HTTPException(409, "Open Manage person to preview affected assignments and transfer work before removal")
+    record(db, current_user, removed_user_id, "PMS_REMOVE_PROJECT", "Removed from project team", project_id=project_id)
     db.delete(member)
     db.commit()
     from app.apps.project_management.realtime import pms_realtime_manager

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, Search } from "lucide-react";
 import { getRoleNav, canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
+import PMSPersonalNavigation from "./PMSPersonalNavigation";
 
 export default function PMSNavigationMenu({ workspaceId, collapsed, onNavigate }: { workspaceId?: number; collapsed: boolean; onNavigate: () => void }) {
   const user = useAuthStore(s => s.user);
@@ -12,6 +13,7 @@ export default function PMSNavigationMenu({ workspaceId, collapsed, onNavigate }
   const items = getRoleNav(user?.role, user?.is_superuser, "/pms").filter(i => i.to.startsWith("/pms") && canAccessRoute(i.to, user?.role, user?.is_superuser));
   const groups = [...new Set(items.map(i => i.group || "Other"))];
   return <div className="pms-navigation-menu">
+    {!query && <PMSPersonalNavigation collapsed={collapsed} onNavigate={onNavigate} />}
     {!collapsed && <label className="pms-menu-search"><Search size={15} /><input aria-label="Search PMS menu" placeholder="Find a page…" value={query} onChange={e => setQuery(e.target.value)} /></label>}
     {groups.map(group => {
       const children = items.filter(i => i.group === group && `${group} ${i.label}`.toLowerCase().includes(query.toLowerCase()));

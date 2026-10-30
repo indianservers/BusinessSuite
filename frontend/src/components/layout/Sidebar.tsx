@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useCompanyBranding } from "@/features/access/useCompanyBranding";
 import ModuleSwitcher from "./ModuleSwitcher";
+import PMSPersonalNavigation from "./PMSPersonalNavigation";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { assetUrl, cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -248,6 +249,7 @@ export default function Sidebar({
             />
           </label>
         )}
+        {moduleKey === "pms" && !query && <div className="px-2"><PMSPersonalNavigation collapsed={collapsed} onNavigate={onClose} /></div>}
         <ul className="px-2">
           {groups.map((group, groupIndex) => {
             const key = `${moduleKey}:${group}`;

@@ -82,8 +82,8 @@ def test_activation_cannot_reset_an_existing_account(client, db):
 def test_workspace_collaboration_end_to_end(client, db):
     owner, oh = account(db, "workspace-owner@test.com", True)
     teammate, th = account(db, "workspace-member@test.com")
-    guest, gh = account(db, "workspace-guest@test.com", True)
-    outsider, xh = account(db, "workspace-outsider@test.com", True)
+    guest, gh = account(db, "workspace-guest@test.com")
+    outsider, xh = account(db, "workspace-outsider@test.com")
     wid = client.post(BASE + "/workspaces", json={"name": "Delivery"}, headers=oh).json()["id"]
     url = f"{BASE}/workspaces/{wid}"
     assert client.get(url + "/members", headers=xh).status_code == 404
@@ -136,6 +136,8 @@ def test_workspace_collaboration_end_to_end(client, db):
     assert client.post(project_url + "/clone", json={"name": "No", "project_key": "NOC"}, headers=gh).status_code == 403
     membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=teammate.id).one()
     mid = membership.id
+    assert client.patch(url + f"/members/{mid}", json={"role": "Guest"}, headers=oh).status_code == 409
+    assert client.patch(f"{BASE}/tasks/{tid}", json={"assignee_user_ids": [owner.id]}, headers=oh).status_code == 200
     assert client.patch(url + f"/members/{mid}", json={"role": "Guest"}, headers=oh).status_code == 200
     assert client.patch(f"{BASE}/tasks/{tid}", json={"title": "No"}, headers=th).status_code == 403
     assert client.get(project_url, headers=th).status_code == 200
@@ -144,7 +146,10 @@ def test_workspace_collaboration_end_to_end(client, db):
     owner_mid = db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=owner.id).one().id
     assert client.delete(url + f"/members/{owner_mid}", headers=th).status_code == 403
     assert client.post(url + "/invitations", json={"email": outsider.email, "role": "Admin"}, headers=th).status_code == 403
-    assert client.delete(url + f"/members/{mid}", headers=oh).status_code == 200
+    assert client.delete(url + f"/members/{mid}", headers=oh).status_code == 409
+    impact = client.get(f"{BASE}/people-management/{teammate.id}/preview", params={"workspace_id":wid}, headers=oh).json()
+    handover = client.post(f"{BASE}/people-management/{teammate.id}/actions", json={"action":"remove_workspace", "workspace_id":wid, "reason":"Transfer responsibilities before removal", "replacement_user_id":owner.id, "preview_version":impact["version"]}, headers=oh)
+    assert handover.status_code == 200, handover.text
     assert client.get(project_url, headers=th).status_code == 403
     assert client.get(overview_url, headers=th).status_code == 404
     assert client.get(f"{BASE}/tasks/{tid}", headers=th).status_code == 403
@@ -172,7 +177,7 @@ def test_invitation_revocation_expiry_and_reissue(client, db):
 
 def test_workspace_notes_and_chat_permissions(client, db):
     owner, headers = account(db, "notes-owner@test.com", True)
-    outsider, other = account(db, "notes-outsider@test.com", True)
+    outsider, other = account(db, "notes-outsider@test.com")
     guest, guest_headers = account(db, "notes-guest@test.com")
     wid = client.post(BASE + "/workspaces", json={"name": "Team"}, headers=headers).json()["id"]
     db.add(PMSWorkspaceMember(workspace_id=wid, user_id=guest.id, role="Guest"))

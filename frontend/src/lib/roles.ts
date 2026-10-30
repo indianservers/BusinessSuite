@@ -417,6 +417,7 @@ function getCrmNavForRole(role?: string | null, isSuperuser = false) {
 function isProjectManagementRole(role?: string | null, isSuperuser = false) {
   if (isSuperuser) return true;
   return [
+    "admin", "super_admin", "hr", "hr_admin", "hr_manager", "hr_company_admin",
     "pms_super_admin",
     "pms_org_admin",
     "pms_project_manager",
@@ -503,6 +504,7 @@ const pmsDeliveryOnlyPaths = [
 ];
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (["/pms/projects", "/pms/tasks"].includes(pathname) || /^\/pms\/projects\/\d+(?:\/(?:board|members))?$/.test(pathname)) return true;
   if (pathname === "/pms/members" || /^\/pms\/projects\/\d+\/members\/?$/.test(pathname)) return true;
   if (["/pms/people-work", "/pms/my-notices"].includes(pathname.replace(/\/$/, ""))) return true;
   if (pathname.replace(/\/$/, "") === "/pms/notes" || /^\/pms\/projects\/\d+\/notes\/?$/.test(pathname)) return true;
@@ -1211,7 +1213,7 @@ function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname
 
   if (activeModule === "project_management") {
     if (!installedApps.includes("project_management")) return [];
-    return isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : projectManagementNav.filter(item => item.to === "/pms/workspaces");
+    return isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : projectManagementNav.filter(item => ["/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/notes", "/pms/members", "/pms/people"].includes(item.to) && canAccessRoute(item.to, role, isSuperuser));
   }
 
   if (activeModule === "srm") {

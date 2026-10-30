@@ -155,6 +155,9 @@ async def oidc_callback(provider_id: int, request: Request, code: str | None = N
             return RedirectResponse(f"{frontend}/login?sso_error=domain_not_allowed")
         user = db.query(User).filter(User.email == attrs["email"]).first()
         if user and not user.is_active:
+            from app.apps.project_management.people_management import restore_due_suspension
+            restore_due_suspension(db, user)
+        if user and not user.is_active:
             return RedirectResponse(f"{frontend}/login?sso_error=account_disabled")
         from app.api.v1.auth import _check_ip_policy
         _check_ip_policy(db, request)

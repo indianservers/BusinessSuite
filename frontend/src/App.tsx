@@ -1,5 +1,6 @@
 import { PendingPageProgress } from "./components/app/RouteProgress";
 import React, { Suspense, useEffect, useState } from "react";
+const PersonManagementHost = React.lazy(() => import("@/apps/project-management/components/people/PersonManagementHost"));
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
@@ -273,6 +274,7 @@ export default function App() {
       {isHydrated && isAuthenticated ? <PMSRealtimeBridge /> : null}
       <SuiteNavigationTracker />
       <Toaster />
+      {isAuthenticated && <Suspense fallback={null}><PersonManagementHost /></Suspense>}
     </>
   );
 }

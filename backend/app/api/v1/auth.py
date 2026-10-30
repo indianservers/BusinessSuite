@@ -69,6 +69,7 @@ MODULE_ROLE_MAP = {
         "crm_viewer",
     },
     "project_management": {
+        "admin", "super_admin", "hr", "hr_admin", "hr_manager", "hr_company_admin",
         "pms_super_admin",
         "pms_org_admin",
         "pms_project_manager",
@@ -126,6 +127,16 @@ def _ensure_module_login_allowed(user: User, module: str | None) -> None:
         if policy.status != "active" or not resolved_grants(session, policy).get(module_key, {}).get("enabled"):
             raise HTTPException(403, "Module access is not enabled for this account")
         return
+    if module_key == "project_management" and session:
+        # Membership grants legacy accounts their own PMS workspace/project access;
+        # an explicit managed policy above still controls module eligibility.
+        from app.apps.project_management.models import PMSWorkspaceMember, PMSWorkspace, PMSProjectMember, PMSProject
+        from app.apps.project_management.workspace_lifecycle import archived_ids
+        company = primary_company(user)
+        member = session.query(PMSWorkspaceMember.id).join(PMSWorkspace, PMSWorkspace.id == PMSWorkspaceMember.workspace_id).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspace.organization_id == company, PMSWorkspace.id.notin_(archived_ids())).first()
+        project_member = session.query(PMSProjectMember.id).join(PMSProject, PMSProject.id == PMSProjectMember.project_id).filter(PMSProjectMember.user_id == user.id, PMSProject.organization_id == company, PMSProject.deleted_at.is_(None)).first()
+        if member or project_member:
+            return
     if module_key == "hrms" and getattr(user, "employee", None) and (user.employee.employment_type or "").lower() == "intern":
         raise HTTPException(status_code=403, detail="Please use the dedicated Interns Hub login")
     role_name = user.role.name if user.role else None
@@ -380,6 +391,9 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
             detail="Incorrect email or password",
         )
     if not user.is_active:
+        from app.apps.project_management.people_management import restore_due_suspension
+        restore_due_suspension(db, user)
+    if not user.is_active:
         _log_attempt(db, user, request_data.email, False, "Account disabled", request)
         db.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
@@ -453,6 +467,9 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
     except Exception:
         raise HTTPException(401, "Sign-in identity could not be verified") from None
     user = db.query(User).filter(func.lower(User.email) == identity['email'].lower()).first()
+    if user and not user.is_active:
+        from app.apps.project_management.people_management import restore_due_suspension
+        restore_due_suspension(db, user)
     if not user or not user.is_active:
         raise HTTPException(403, "Your sign-in email needs an active account with access to this module")
     if user.sso_provider_id:

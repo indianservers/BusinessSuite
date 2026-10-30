@@ -1,3 +1,4 @@
+import AddExistingPeopleDialog from "../components/people/AddExistingPeopleDialog";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { RecordCustomFields } from "../components/CustomFields";
 import { ConversationLauncher } from "@/shared/communication";
@@ -22,6 +23,7 @@ export default function ProjectDashboard() {
   const { selectedProject, setSelectedProject } = useProjectStore();
   const { tasks, setTasks } = useTaskStore();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [addingPeople, setAddingPeople] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error,setError] = useState("");
   const [retryVersion,setRetryVersion] = useState(0);
@@ -51,6 +53,7 @@ export default function ProjectDashboard() {
 
   return (
     <div className="space-y-6">
+      <AddExistingPeopleDialog open={addingPeople} onClose={() => setAddingPeople(false)} projectId={id} workspaceId={project.workspace_id} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -60,7 +63,7 @@ export default function ProjectDashboard() {
           <div className="page-description"><RichTextContent value={project.description || "Project workspace overview"}/></div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline"><Link to={`/pms/projects/${id}/members`}>Manage project members</Link></Button>
+          <Button disabled={!project.can_manage_members && !project.can_edit_project} onClick={() => setAddingPeople(true)}>Add existing person</Button><Button asChild variant="outline"><Link to={`/pms/projects/${id}/members`}>Manage project members</Link></Button>
           {project.can_edit_project && <Button asChild variant="outline"><Link to={`/pms/projects/${id}/edit`}>Edit project</Link></Button>}
           <AskAiButton
             module="PMS"
