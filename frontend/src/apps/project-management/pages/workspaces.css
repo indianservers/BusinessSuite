@@ -37,3 +37,18 @@
 @media(min-width:641px){.ws-task-table{table-layout:fixed;white-space:normal}.ws-task-table th:nth-child(1){width:26%}.ws-task-table th:nth-child(2){width:20%}.ws-task-table th:nth-child(3){width:12%}.ws-task-table th:nth-child(4){width:22%}.ws-task-table th:nth-child(5){width:11%}.ws-task-table th:nth-child(6){width:9%}.ws-task-table td{overflow-wrap:anywhere}.ws-task-table .pms-assignee-picker{min-width:0;width:100%}.ws-list-title{width:100%;min-width:0;max-width:none}.ws-task-table select{width:100%}}
 .ws-task-table .pms-assignee-picker{min-width:0;width:100%}.ws-task-table .pms-assignee-picker>fieldset{min-width:0;width:100%;max-width:100%;box-sizing:border-box}.ws-task-table .pms-assignee-picker legend{white-space:normal;overflow-wrap:anywhere;max-width:100%}.ws-task-table .pms-assignee-picker fieldset>label{white-space:normal;overflow-wrap:anywhere;min-width:0}
 @media(max-width:640px){.ws-task-table td[data-label=Status]{grid-row:3;grid-column:1}.ws-task-table td[data-label=Priority]{grid-row:3;grid-column:2}.ws-task-table td[data-label=Assignees]{grid-column:1/-1}.ws-task-table td[data-label="Due date"]{grid-column:1/-1}}
+
+/* The workspace shell uses the same menu categories as other PMS pages. */
+.pms-navigation-menu { width:100%; min-width:0; }
+.pms-menu-search { display:flex;align-items:center;gap:8px;margin:6px 8px 12px;padding:9px;border:1px solid var(--ws-border,#e2e8f0);border-radius:8px; }
+.pms-menu-search input { width:100%;min-width:0;border:0;background:transparent;font:inherit;font-size:12px;outline:none;color:inherit; }
+.pms-menu-group { margin:3px 0; }
+.pms-menu-group summary { display:flex;align-items:center;justify-content:space-between;gap:6px;padding:12px;cursor:pointer;font-size:12px;font-weight:650;list-style:none; }
+.pms-menu-group summary::-webkit-details-marker { display:none; }
+.pms-menu-group[open] summary > svg { transform:rotate(180deg); }
+.pms-menu-group .pms-menu-current { color:#7c3aed;background:rgba(124,58,237,.06);border-radius:8px; }
+.kf-workspace-global .pms-menu-group a { min-height:40px;margin-left:10px;width:calc(100% - 10px);font-size:12px;padding:8px 12px; }
+.kf-workspace-global .pms-menu-group a[aria-current="page"] { color:#7c3aed;background:rgba(124,58,237,.10);border-radius:8px; }
+.pms-menu-group a span { white-space:normal; }
+
+.kf-workspace-global .pms-menu-group a { display:flex;align-items:center;gap:10px;border-radius:8px; }

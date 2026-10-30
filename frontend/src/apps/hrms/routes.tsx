@@ -1,6 +1,6 @@
+import React from "react";
 const UserAccountsPage = React.lazy(() => import("@/apps/hrms/pages/employees/UserAccountsPage"));
 import { CommunicationWorkspace } from "@/shared/communication";
-import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import { Navigate, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";

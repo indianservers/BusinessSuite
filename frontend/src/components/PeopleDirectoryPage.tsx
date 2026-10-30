@@ -75,7 +75,7 @@ export default function PeopleDirectoryPage() {
             ...memberTeams.slice(0, 2).map(t => ({ label: t.name, onClick: () => { setWorkspace(String(t.workspace_id)); setTeam(String(t.id)); } })),
             ...(workspaces.length + memberTeams.length > 4 ? [{ label: "More memberships", onClick: () => setSelectedPerson(p) }] : []),
           ]}
-          actions={<><ProfileAction onClick={() => setSelectedPerson(p)} label={`View profile of ${p.name}`}>View profile</ProfileAction><ProfileAction href={`mailto:${p.email}`} label={`Email ${p.name}`}>Email</ProfileAction></>} />;
+          actions={<>{p.is_active && <ProfileAction href={`/pms/members?email=${encodeURIComponent(p.email)}`} label={`Add ${p.name} to workspace or project`}>Add to workspace / project</ProfileAction>}<ProfileAction onClick={() => setSelectedPerson(p)} label={`View profile of ${p.name}`}>View profile</ProfileAction><ProfileAction href={`mailto:${p.email}`} label={`Email ${p.name}`}>Email</ProfileAction></>} />;
       })}</div>
       <Dialog open={!!selectedPerson} onOpenChange={open => { if (!open) setSelectedPerson(null); }}><DialogContent>
         <DialogTitle>Profile overview</DialogTitle>

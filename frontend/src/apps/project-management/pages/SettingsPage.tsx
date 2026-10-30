@@ -23,7 +23,7 @@ const settings = [
   { label: "Direct messages", href: "/pms/messages", description: "Private conversations with workspace collaborators." },
   { label: "Audit logs", href: "/pms/audit-logs", description: "Admin-only user, task, role and request diagnostics." },
   { label: "Teams", href: "/pms/teams", description: "Create named collaborator groups and manage team membership." },
-  { label: "Workspace people and invitations", href: "/pms/workspaces", description: "Open People in your workspace to manage members and invitation links." },
+  { label: "Workspace people and invitations", href: "/pms/members", description: "Add people from the directory, change roles, copy invitation links and resend invites." },
   { label: "Task views", href: "/pms/tasks", description: "Save filters and choose visible columns." },
   { label: "Templates and intake", href: "/pms/workspace-tools", description: "Manage saved templates, goals and authenticated intake." },
   { label: "Task automation", href: "/pms/automation", description: "Create and manage workspace automation rules." },

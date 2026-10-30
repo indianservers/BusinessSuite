@@ -185,3 +185,68 @@ def test_workspace_notes_and_chat_permissions(client, db):
     assert client.post(url, json={"kind": "chat", "body": "Denied"}, headers=guest_headers).status_code == 403
     assert client.post(url, json={"kind": "note", "body": "   "}, headers=headers).status_code == 422
     assert client.post(url, json={"kind": "chat", "body": "Invalid link", "task_id": 999999}, headers=headers).status_code == 422
+
+
+def test_direct_membership_directory_and_one_step_project_add(client, db):
+    from app.models.notification import Notification
+    owner, oh = account(db, "direct-owner@test.com", True)
+    person, ph = account(db, "direct-person@test.com")
+    extra, eh = account(db, "direct-extra@test.com")
+    wid = client.post(BASE + "/workspaces", json={"name": "Direct membership"}, headers=oh).json()["id"]
+    root = f"{BASE}/workspaces/{wid}"
+    assert client.get(root + "/eligible-people", headers=ph).status_code == 404
+    assert person.id in [p["id"] for p in client.get(root + "/eligible-people", headers=oh).json()]
+    result = client.post(root + "/members", json={"user_id": person.id, "role": "Member"}, headers=oh)
+    assert result.status_code == 201, result.text
+    assert client.get(root + "/members", headers=ph).status_code == 200
+    assert client.post(root + "/members", json={"user_id": person.id, "role": "Member"}, headers=oh).status_code == 409
+    assert client.post(root + "/members", json={"user_id": extra.id, "role": "Member"}, headers=ph).status_code == 403
+    assert client.get(root + "/eligible-people", headers=ph).status_code == 403
+    pid = client.post(BASE + "/projects", json={"name": "Direct project", "project_key": "DIR", "workspace_id": wid}, headers=oh).json()["id"]
+    project_members = f"{BASE}/projects/{pid}/members"
+    assert client.post(project_members, json={"user_id": extra.id}, headers=oh).status_code == 404
+    invitation = client.post(root + "/invitations", json={"email": extra.email}, headers=oh).json()
+    result = client.post(project_members, json={"user_id": extra.id, "role": "Member", "add_to_workspace": True}, headers=oh)
+    assert result.status_code == 201, result.text
+    assert db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=extra.id).one().role == "Member"
+    db.refresh(db.get(PMSWorkspaceInvitation, invitation["id"]))
+    assert db.get(PMSWorkspaceInvitation, invitation["id"]).status == "accepted"
+    assert extra.email in [m["email"] for m in client.get(project_members, headers=eh).json()]
+    assert db.query(Notification).filter_by(user_id=extra.id, event_type="project.member_added").count() == 1
+    person.is_active = False
+    db.commit()
+    inactive, _ = account(db, "direct-inactive@test.com")
+    inactive.is_active = False
+    db.commit()
+    assert client.post(root + "/members", json={"user_id": inactive.id, "role": "Member"}, headers=oh).status_code == 404
+    foreign, _ = account(db, "direct-other-company@test.com")
+    foreign.person.organization_id = 2
+    db.commit()
+    assert client.post(root + "/members", json={"user_id": foreign.id, "role": "Member"}, headers=oh).status_code == 404
+    assert client.post(project_members, json={"user_id": foreign.id, "add_to_workspace": True}, headers=oh).status_code == 404
+
+
+def test_persistent_invite_resend_notification_and_recipient_inbox(client, db):
+    from app.models.notification import Notification
+    owner, oh = account(db, "persistent-owner@test.com", True)
+    recipient, rh = account(db, "persistent-recipient@test.com")
+    outsider, xh = account(db, "persistent-outsider@test.com")
+    wid = client.post(BASE + "/workspaces", json={"name": "Invitation center"}, headers=oh).json()["id"]
+    root = f"{BASE}/workspaces/{wid}/invitations"
+    first = client.post(root, json={"email": recipient.email}, headers=oh).json()
+    assert client.get(root, headers=oh).json()[0]["token"] == first["token"]
+    assert client.get(root, headers=rh).status_code == 404
+    notification = db.query(Notification).filter_by(user_id=recipient.id, event_type="email.workspace_invitation").one()
+    assert notification.action_url == "/pms/invitation?token=" + first["token"]
+    assert client.get(BASE + "/workspace-invitations/mine", headers=xh).json() == []
+    mine = client.get(BASE + "/workspace-invitations/mine", headers=rh).json()
+    assert mine[0]["id"] == first["id"]
+    assert client.post(f"{BASE}/workspace-invitations/{first['id']}/accept", headers=xh).status_code == 404
+    second = client.post(root + f"/{first['id']}/resend", headers=oh)
+    assert second.status_code == 201, second.text
+    assert second.json()["token"] != first["token"]
+    assert client.get(BASE + "/workspace-invitations/preview", params={"token":first["token"]}).status_code == 400
+    assert client.post(f"{BASE}/workspace-invitations/{second.json()['id']}/accept", headers=rh).status_code == 200
+    assert client.get(BASE + "/workspace-invitations/mine", headers=rh).json() == []
+    assert client.post(f"{BASE}/workspace-invitations/{second.json()['id']}/accept", headers=rh).status_code == 400
+    assert all(i["token"] is None for i in client.get(root, headers=oh).json())

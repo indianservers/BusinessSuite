@@ -1,6 +1,7 @@
 from app.core.rich_text import rich_text_type
 """Workspace collaboration, with email-bound, single-use invitations."""
 import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta
 from typing import Literal
@@ -46,6 +47,34 @@ class InviteInput(BaseModel):
 
 class MemberInput(BaseModel):
     role: Role
+
+
+class AddMemberInput(MemberInput):
+    user_id: int = Field(gt=0)
+
+
+def share_token(invitation):
+    """Reconstruct new invitation links without storing bearer tokens in plaintext."""
+    from app.core.config import settings
+    payload = f"pms-workspace-invitation:v1:{invitation.id}:{invitation.workspace_id}:{invitation.email}"
+    return hmac.new(settings.SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+
+
+@router.get("/workspace-invitations/mine")
+def my_invitations(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    rows = db.query(PMSWorkspaceInvitation, PMSWorkspace.name).join(PMSWorkspace, PMSWorkspace.id == PMSWorkspaceInvitation.workspace_id).filter(
+        PMSWorkspaceInvitation.email == user.email.strip().lower(), PMSWorkspaceInvitation.status == "pending",
+        PMSWorkspaceInvitation.expires_at > datetime.utcnow(), PMSWorkspace.organization_id == organization_id_for(user),
+        PMSWorkspace.id.notin_(archived_ids())).all()
+    return [{"id": i.id, "workspace": name, "role": i.role, "expires_at": i.expires_at} for i, name in rows]
+
+
+@router.post("/workspace-invitations/{invitation_id}/accept")
+def accept_my_invitation(invitation_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    invitation = db.query(PMSWorkspaceInvitation).filter_by(id=invitation_id, email=user.email.strip().lower()).with_for_update().first()
+    if not invitation:
+        raise HTTPException(404, "Invitation not found")
+    return _accept_invitation(db, invitation, user)
 
 
 class AcceptInput(BaseModel):
@@ -152,6 +181,34 @@ def members(workspace_id: int, db: Session = Depends(get_db), user: User = Depen
     return [{"id": m.id, "user_id": m.user_id, "email": email, "role": m.role} for m, email in rows]
 
 
+@router.get("/workspaces/{workspace_id}/eligible-people")
+def eligible_people(workspace_id: int, q: str = Query("", max_length=150), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    workspace, _ = workspace_member(db, workspace_id, user, True)
+    query = db.query(User).filter(User.is_active.is_(True)).order_by(User.email)
+    if q.strip():
+        query = query.filter(User.email.ilike("%" + q.strip() + "%"))
+    # Evaluate persisted tenancy, even for installation-wide superusers.
+    return [{"id": u.id, "email": u.email, "name": u.person.display_name if u.person else u.email.split("@")[0]} for u in query.all() if organization_id_for(u) == workspace.organization_id]
+
+
+@router.post("/workspaces/{workspace_id}/members", status_code=201)
+def add_workspace_member(workspace_id: int, data: AddMemberInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    workspace, actor = workspace_member(db, workspace_id, user, True)
+    if data.role == "Admin" and actor.role != "Owner":
+        raise HTTPException(403, "Only the owner can appoint administrators")
+    target = db.get(User, data.user_id)
+    if not target or not target.is_active or organization_id_for(target) != workspace.organization_id:
+        raise HTTPException(404, "Eligible workspace user not found")
+    if db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id, user_id=target.id).first():
+        raise HTTPException(409, "User is already a workspace member")
+    member = PMSWorkspaceMember(workspace_id=workspace_id, user_id=target.id, role=data.role)
+    db.add(member)
+    db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=target.email.lower(), status="pending").update({"status": "accepted"})
+    db.add(Notification(user_id=target.id, title="Added to workspace", message=f"You were added to {workspace.name} as {data.role}.", module="project_management", event_type="workspace.member_added", action_url=f"/pms/workspaces?workspace={workspace_id}"))
+    db.commit()
+    return {"id": member.id, "user_id": target.id, "email": target.email, "role": member.role}
+
+
 def editable_member(db, workspace_id, member_id, user):
     _, actor = workspace_member(db, workspace_id, user, True)
     target = db.query(PMSWorkspaceMember).filter_by(id=member_id, workspace_id=workspace_id).first()
@@ -210,15 +267,18 @@ def invite(workspace_id: int, data: InviteInput, db: Session = Depends(get_db), 
     token = secrets.token_urlsafe(32)
     invitation = PMSWorkspaceInvitation(workspace_id=workspace_id, email=email, role=data.role, token_hash=hashlib.sha256(token.encode()).hexdigest(), expires_at=datetime.utcnow() + timedelta(days=7))
     db.add(invitation)
+    db.flush()
+    token = share_token(invitation)
+    invitation.token_hash = hashlib.sha256(token.encode()).hexdigest()
     from app.services.email_dispatch import queue_email
     from app.core.config import settings
     queue_email(db, recipient=email, module="pms", organization_id=workspace.organization_id,
         subject="You are invited to a Business Suite workspace",
         body="You have been invited to a workspace. Open this single-use invitation to accept:\n"
-            + settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/pms/workspaces?invite=" + token,
+            + settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/pms/invitation?token=" + token,
         event_key="workspace-invite:" + invitation.token_hash)
     if recipient:
-        db.add(Notification(user_id=recipient.id, title="Workspace invitation", message=f"You were invited to {workspace.name} as {data.role}.", module="project_management", event_type="email.workspace_invitation", action_url="/pms/workspaces?invite=" + token))
+        db.add(Notification(user_id=recipient.id, title="Workspace invitation", message=f"You were invited to {workspace.name} as {data.role}. Open to accept your invitation.", module="project_management", event_type="email.workspace_invitation", action_url="/pms/invitation?token=" + token))
     db.commit()
     return {"id": invitation.id, "email": email, "role": data.role, "token": token, "status": "pending", "expires_at": invitation.expires_at, "delivery": "email_queued_and_share_link"}
 
@@ -228,7 +288,19 @@ def invitations(workspace_id: int, db: Session = Depends(get_db), user: User = D
     workspace_member(db, workspace_id, user, True)
     rows = db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id).order_by(PMSWorkspaceInvitation.id.desc()).all()
     existing_emails = {e[0].lower() for e in db.query(User.email).filter(func.lower(User.email).in_([i.email for i in rows])).all()}
-    return [{"id": i.id, "email": i.email, "role": i.role, "account_exists": i.email in existing_emails, "status": "expired" if i.status == "pending" and i.expires_at <= datetime.utcnow() else i.status, "expires_at": i.expires_at} for i in rows]
+    return [{"id": i.id, "email": i.email, "role": i.role, "account_exists": i.email in existing_emails, "status": "expired" if i.status == "pending" and i.expires_at <= datetime.utcnow() else i.status, "expires_at": i.expires_at,
+             "token": share_token(i) if i.status == "pending" and i.expires_at > datetime.utcnow() and hmac.compare_digest(hashlib.sha256(share_token(i).encode()).hexdigest(), i.token_hash) else None} for i in rows]
+
+
+@router.post("/workspaces/{workspace_id}/invitations/{invitation_id}/resend", status_code=201)
+def resend_invitation(workspace_id: int, invitation_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    workspace_member(db, workspace_id, user, True)
+    invitation = db.query(PMSWorkspaceInvitation).filter_by(id=invitation_id, workspace_id=workspace_id).first()
+    if not invitation:
+        raise HTTPException(404, "Invitation not found")
+    if invitation.status == "accepted":
+        raise HTTPException(409, "This invitation has already been accepted")
+    return invite(workspace_id, InviteInput(email=invitation.email, role=invitation.role), db, user)
 
 
 @router.delete("/workspaces/{workspace_id}/invitations/{invitation_id}")
@@ -245,6 +317,12 @@ def revoke(workspace_id: int, invitation_id: int, db: Session = Depends(get_db),
 @router.post("/workspace-invitations/accept")
 def accept(data: AcceptInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     invitation = pending_invitation(db, data.token, lock=True)
+    return _accept_invitation(db, invitation, user)
+
+
+def _accept_invitation(db, invitation, user):
+    if invitation.status != "pending" or invitation.expires_at <= datetime.utcnow() or is_archived(db, invitation.workspace_id):
+        raise HTTPException(400, "Invitation is invalid, expired, or already used")
     if invitation.email != user.email.strip().lower():
         raise HTTPException(403, "Sign in with the invited email address")
     workspace = db.get(PMSWorkspace, invitation.workspace_id)

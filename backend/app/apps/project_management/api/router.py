@@ -2115,6 +2115,7 @@ def get_project(
     payload = _model_payload(project)
     payload["can_manage_tasks"] = can_access_project(db, project, current_user, "manage_tasks")
     payload["can_edit_project"] = can_access_project(db, project, current_user, "edit_project")
+    payload["can_manage_members"] = can_access_project(db, project, current_user, "manage_members")
     try:
         from app.apps.srm.models import SRMBillingPlan, SRMContract, SRMEngagement, SRMSalesOrder
 
@@ -2352,7 +2353,13 @@ def add_project_member(
     if project.workspace_id:
         membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=target.id).first()
         if not membership:
-            raise HTTPException(404, "Eligible project user not found")
+            if not member_in.add_to_workspace or organization_id_for(target) != project.organization_id:
+                raise HTTPException(404, "Add this person to the workspace first, or choose Add to workspace too")
+            from ..workspaces import workspace_member
+            workspace_member(db, project.workspace_id, current_user, True)
+            db.add(PMSWorkspaceMember(workspace_id=project.workspace_id, user_id=target.id, role="Member"))
+            from ..models import PMSWorkspaceInvitation
+            db.query(PMSWorkspaceInvitation).filter_by(workspace_id=project.workspace_id, email=target.email.lower(), status="pending").update({"status": "accepted"})
     elif tenant(target) != (project.organization_id or 1):
         raise HTTPException(404, "Eligible project user not found")
     existing = db.query(PMSProjectMember).filter(
@@ -2361,8 +2368,10 @@ def add_project_member(
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Project member already exists")
-    member = PMSProjectMember(project_id=project_id, **member_in.dict())
+    member = PMSProjectMember(project_id=project_id, **member_in.dict(exclude={"add_to_workspace"}))
     db.add(member)
+    from app.models.notification import Notification
+    db.add(Notification(user_id=target.id, title="Added to project", message=f"You were added to {project.name} as {member.role}.", module="project_management", event_type="project.member_added", action_url=f"/pms/projects/{project.id}"))
     db.commit()
     db.refresh(member)
     return member
@@ -2376,7 +2385,8 @@ def list_project_members(
 ):
     """List project members visible to project users."""
     get_project_for_action(db, project_id, current_user, "browse")
-    return db.query(PMSProjectMember).filter(PMSProjectMember.project_id == project_id).all()
+    rows = db.query(PMSProjectMember, User.email).join(User, User.id == PMSProjectMember.user_id).filter(PMSProjectMember.project_id == project_id).all()
+    return [{"id": m.id, "project_id": m.project_id, "user_id": m.user_id, "role": m.role, "allocation_percent": m.allocation_percent, "created_at": m.created_at, "email": email} for m, email in rows]
 
 
 @router.patch("/projects/{project_id}/members/{member_id}", response_model=PMSProjectMemberResponse)

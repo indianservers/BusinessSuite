@@ -4,6 +4,7 @@ import type { FrontendRoute } from "@/appRegistry";
 const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/WorkforceOperationsPage"));
 const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
 
+const MemberManagementPage = React.lazy(() => import("./pages/MemberManagementPage"));
 const PeopleDirectoryPage = React.lazy(() => import("@/components/PeopleDirectoryPage"));
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
 const AIOperatorPage = React.lazy(() => import("./pages/AIOperatorPage"));
@@ -71,6 +72,8 @@ const MyAssignmentsPage=React.lazy(()=>import("./pages/MyAssignmentsPage"));
 const AssignmentControlsPage=React.lazy(()=>import("./pages/AssignmentControlsPage"));
 const WorkReviewsPage = React.lazy(() => import("./pages/WorkReviewsPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
+ {path:"pms/members",element:<MemberManagementPage/>},
+ {path:"pms/projects/:projectId/members",element:<MemberManagementPage/>},
  {path:"pms/people",element:<PeopleDirectoryPage/>},
  {path:"pms/directory",element:<PeopleDirectoryPage/>},
  {path:"pms/people-work",element:<WorkforceOperationsPage/>},

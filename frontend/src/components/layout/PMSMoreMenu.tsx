@@ -8,29 +8,31 @@ import "./PMSMoreMenu.css";
 
 // Keep aliases searchable through the existing navigation labels; only show one link per URL.
 const additionalPages = [
-  ["People & work management", "/pms/people-work", "People & collaboration"],
-  ["My notices & warnings", "/pms/my-notices", "People & collaboration"],
-  ["Create project", "/pms/projects/new", "Work & delivery"],
-  ["OpenAI settings", "/pms/settings/ai/openai", "Manage & customize"],
-  ["Gemini settings", "/pms/settings/ai/gemini", "Manage & customize"],
-  ["Claude settings", "/pms/settings/ai/claude", "Manage & customize"],
-  ["Overview", "/pms/overview", "Insights"],
-  ["Portfolio", "/pms/portfolio", "Insights"],
-  ["Timesheets", "/pms/timesheets", "People & collaboration"],
-  ["Teams", "/pms/teams", "People & collaboration"],
-  ["Messages", "/pms/messages", "People & collaboration"],
-  ["Docs", "/pms/docs", "People & collaboration"],
-  ["My Notes", "/pms/notes", "Work & delivery"],
-  ["Workload", "/pms/workload", "Planning"],
-  ["Custom fields", "/pms/custom-fields", "Manage & customize"],
-  ["Task types", "/pms/task-types", "Manage & customize"],
-  ["Tags", "/pms/tags", "Manage & customize"],
-  ["Workspace reset & restore", "/pms/admin/workspaces", "Manage & customize"],
-  ["Backup & recovery", "/pms/recovery", "Manage & customize"],
-  ["Trash", "/pms/trash", "Manage & customize"],
-  ["AI Operator", "/pms/operator", "Work & delivery"],
-  ["Workspace tools", "/pms/workspace-tools", "Work & delivery"],
-  ["My profile", "/pms/profile", "Manage & customize"],
+  ["Members & invitations", "/pms/members", "People & access"],
+  ["People directory", "/pms/people", "People & access"],
+  ["People & work management", "/pms/people-work", "People & access"],
+  ["My notices & warnings", "/pms/my-notices", "People & access"],
+  ["Create project", "/pms/projects/new", "Projects & tasks"],
+  ["OpenAI settings", "/pms/settings/ai/openai", "Settings & administration"],
+  ["Gemini settings", "/pms/settings/ai/gemini", "Settings & administration"],
+  ["Claude settings", "/pms/settings/ai/claude", "Settings & administration"],
+  ["Overview", "/pms/overview", "Reports & finances"],
+  ["Portfolio", "/pms/portfolio", "Reports & finances"],
+  ["Timesheets", "/pms/timesheets", "People & access"],
+  ["Teams", "/pms/teams", "People & access"],
+  ["Messages", "/pms/messages", "People & access"],
+  ["Docs", "/pms/docs", "People & access"],
+  ["My Notes", "/pms/notes", "Projects & tasks"],
+  ["Workload", "/pms/workload", "Planning & delivery"],
+  ["Custom fields", "/pms/custom-fields", "Settings & administration"],
+  ["Task types", "/pms/task-types", "Settings & administration"],
+  ["Tags", "/pms/tags", "Settings & administration"],
+  ["Workspace reset & restore", "/pms/admin/workspaces", "Settings & administration"],
+  ["Backup & recovery", "/pms/recovery", "Settings & administration"],
+  ["Trash", "/pms/trash", "Settings & administration"],
+  ["AI Operator", "/pms/operator", "Projects & tasks"],
+  ["Workspace tools", "/pms/workspace-tools", "Projects & tasks"],
+  ["My profile", "/pms/profile", "Settings & administration"],
 ] as const;
 
 export default function PMSMoreMenu({
@@ -62,14 +64,7 @@ export default function PMSMoreMenu({
     const nav = getRoleNav(user?.role, user?.is_superuser, "/pms").filter((i) =>
       i.to.startsWith("/pms"),
     );
-    const group = (s?: string) =>
-      s === "Project Planning"
-        ? "Planning"
-        : s === "Project Admin"
-          ? "Manage & customize"
-          : s === "Project Collaboration"
-            ? "People & collaboration"
-            : "Work & delivery";
+    const group = (s?: string) => s || "Projects & tasks";
     const pages = nav.map((i) => ({
       label: i.label,
       to: i.to,
@@ -82,6 +77,7 @@ export default function PMSMoreMenu({
     if (projectId)
       for (const [suffix, label] of [
         ["", "Project dashboard"],
+        ["members", "Project members"],
         ["board", "Project board"],
         ["gantt", "Project Gantt"],
         ["milestones", "Milestones"],

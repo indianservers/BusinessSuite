@@ -112,6 +112,7 @@ class PMSProjectUpdate(BaseModel):
 
 
 class PMSProjectResponse(PMSProjectBase):
+    can_manage_members: bool = False
     can_edit_project: bool = False
     id: int
     organization_id: Optional[int] = None
@@ -171,7 +172,7 @@ class PMSProjectMemberBase(BaseModel):
 
 
 class PMSProjectMemberCreate(PMSProjectMemberBase):
-    pass
+    add_to_workspace: bool = False
 
 
 class PMSProjectMemberUpdate(BaseModel):
@@ -180,6 +181,7 @@ class PMSProjectMemberUpdate(BaseModel):
 
 
 class PMSProjectMemberResponse(PMSProjectMemberBase):
+    email: Optional[str] = None
     id: int
     project_id: int
     created_at: datetime
