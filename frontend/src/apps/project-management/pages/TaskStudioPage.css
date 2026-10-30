@@ -1,0 +1,1277 @@
+.pms-task-reference.has-task-studio .tr-sidebar {
+  width: 222px;
+}
+.pms-task-reference.has-task-studio .tr-topbar {
+  height: 54px;
+  padding: 7px 25px 7px 27px;
+  gap: 14px;
+}
+.has-task-studio .tr-brand {
+  height: 54px;
+  padding: 8px 11px;
+  gap: 7px;
+}
+.has-task-studio .tr-brand > span {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+.has-task-studio .tr-brand strong {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.has-task-studio .tr-brand small {
+  font-size: 8px;
+}
+.has-task-studio .tr-nav {
+  font-size: 12px;
+  gap: 11px;
+  min-height: 37px;
+}
+.has-task-studio .tr-sidebar nav {
+  padding: 8px 10px;
+}
+.has-task-studio .tr-product a {
+  font-size: 10px;
+}
+.has-task-studio .tr-product {
+  margin: 8px 0 13px;
+}
+.has-task-studio .tr-header-actions {
+  gap: 10px;
+}
+.has-task-studio .tr-ai {
+  padding: 6px 10px;
+  min-height: 31px;
+  font-size: 11px;
+}
+.has-task-studio .tr-suite summary {
+  min-height: 26px;
+  padding: 5px 9px;
+}
+.has-task-studio .tr-topbar > button[aria-label="Open command palette"] {
+  max-width: none;
+}
+.has-task-studio .tr-topbar > button[aria-label="Open command palette"] > span {
+  height: 36px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.has-task-studio .tr-title {
+  margin-bottom: 0;
+}
+.task-studio {
+  padding: 16px 25px 30px 23px;
+  max-width: 1740px;
+  margin: auto;
+  color: #151635;
+  min-width: 0;
+}
+.task-studio input,
+.task-studio select,
+.task-studio textarea {
+  font-family: inherit;
+}
+.ts-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #68719b;
+  margin: 0 4px 15px;
+}
+.ts-breadcrumb svg {
+  width: 12px;
+  height: 12px;
+}
+.ts-breadcrumb b {
+  color: #21224a;
+}
+.ts-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin: 0 4px 15px;
+}
+.ts-title h1 {
+  font-size: 28px;
+  line-height: 1.3;
+  letter-spacing: -0.7px;
+  font-weight: 700;
+  margin: 0 0 3px;
+}
+.ts-title p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  color: #6d759f;
+}
+.ts-back {
+  height: 45px;
+  width: 45px;
+  flex-shrink: 0;
+}
+.ts-title-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 11px;
+}
+.ts-title-actions .tr-button,
+.ts-title-actions .tr-primary {
+  height: 45px;
+  padding: 10px 21px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ts-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.84fr) minmax(350px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.ts-fields {
+  min-width: 0;
+}
+.ts-fields > fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.ts-section {
+  border: 1px solid #e7e9f6;
+  border-radius: 12px;
+  padding: 14px 15px 17px;
+  background: #ffffffeb;
+  box-shadow: 0 3px 8px #34376d04;
+  margin-bottom: 0;
+  min-width: 0;
+}
+.ts-section > header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding-bottom: 13px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #eff0fa;
+  min-height: 49px;
+}
+.ts-section-icon {
+  width: 39px;
+  height: 39px;
+  background: linear-gradient(135deg, #f7f3ff, #f0e9ff);
+  display: grid;
+  place-items: center;
+  color: #7c2aff;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.ts-section-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.task-studio h2 {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  margin: 0;
+}
+.ts-section header p {
+  font-size: 12px;
+  color: #828aaf;
+  margin: 2px 0 0;
+}
+.task-studio label {
+  font-size: 11px;
+  color: #34395e;
+  font-weight: 500;
+}
+.task-studio label b {
+  color: #e6244c;
+}
+.task-studio label small {
+  font-weight: 400;
+  color: #8c94b3;
+}
+.ts-basic-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 0 0 19px;
+}
+.ts-field {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.ts-field > svg {
+  color: #26274b;
+  width: 31px;
+  height: 31px;
+  padding: 7px;
+  background: #f8f9fd;
+  box-shadow: 0 3px 9px #20244b04;
+  border-radius: 9px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.ts-field > span,
+.ts-field > div {
+  flex: 1;
+  min-width: 0;
+}
+.task-studio input:not([type="checkbox"]):not([type="file"]),
+.task-studio select {
+  display: block;
+  width: 100%;
+  border: 1px solid #dfe3f3;
+  border-radius: 7px;
+  padding: 9px 12px;
+  background: #fff;
+  color: #343b66;
+  font-size: 11px;
+  font-weight: 400;
+  min-height: 36px;
+  outline: none;
+}
+.task-studio input:focus,
+.task-studio select:focus {
+  border-color: #a572ff;
+  box-shadow: 0 0 0 3px #813aff0b;
+}
+.ts-field input,
+.ts-field select {
+  margin-top: 6px;
+}
+.ts-field small {
+  display: block;
+  font-size: 10px;
+  color: #858eaf;
+  margin-top: 4px;
+}
+.ts-worktype {
+  margin-bottom: 16px;
+}
+.ts-worktype [role="group"] {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.ts-worktype button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid #dfe4f4;
+  border-radius: 6px;
+  color: #34385e;
+  font-size: 11px;
+  background: #fff;
+  min-height: 38px;
+}
+.ts-worktype button:nth-child(2) svg {
+  color: #ff335b;
+}
+.ts-worktype button:nth-child(3) svg {
+  color: #0093ff;
+}
+.ts-worktype button:nth-child(4) svg {
+  color: #12c181;
+}
+.ts-worktype button.selected {
+  border-color: #a16aff;
+  color: #792aff;
+  background: linear-gradient(125deg, #fff, #f4edff);
+  box-shadow: inset 0 0 0 3px #f4ecff;
+}
+.ts-description .rte-shell {
+  margin-top: 8px;
+  border-color: #e1e6f5;
+  border-radius: 8px;
+  min-height: 119px;
+}
+.ts-description .rte-toolbar {
+  padding: 2px 7px;
+  background: #f9faff;
+  border-color: #eaedf8;
+  min-height: 36px;
+}
+.ts-description .tiptap {
+  min-height: 76px !important;
+  font-size: 12px !important;
+  padding: 10px 13px !important;
+}
+.ts-description .rte-toolbar button {
+  height: 27px;
+  min-width: 25px;
+  padding: 4px;
+}
+.ts-description .rte-toolbar button svg {
+  width: 13px;
+  height: 13px;
+}
+.ts-description .rte-toolbar select {
+  min-height: 24px;
+  width: auto;
+  padding: 2px;
+  font-size: 10px;
+}
+.ts-assignment-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+  margin-bottom: 12px;
+}
+.ts-assignment-cards > button {
+  border: 1px solid #e1e5f5;
+  border-radius: 10px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  position: relative;
+  padding: 12px 15px;
+  text-align: left;
+  min-height: 70px;
+  background: linear-gradient(140deg, white, #fdfcff);
+}
+.ts-assignment-cards > button > span {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #f2edff;
+  color: #782cff;
+  flex-shrink: 0;
+}
+.ts-assignment-cards > button:nth-child(2) > span {
+  background: #eaf4ff;
+  color: #0094ff;
+}
+.ts-assignment-cards strong {
+  font-size: 12px;
+  font-weight: 650;
+  display: block;
+}
+.ts-assignment-cards small {
+  font-size: 10px;
+  color: #838bab;
+  display: block;
+  margin-top: 5px;
+  font-weight: 400;
+}
+.ts-assignment-cards .selected {
+  border-color: #a16aff;
+  background: linear-gradient(120deg, #fff, #f7f2ff);
+  box-shadow: 0 1px 5px #903dff09;
+}
+.ts-assignment-cards > button > svg:last-child {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  border-radius: 50%;
+  background: #8232ff;
+  color: white;
+  padding: 2px;
+}
+.ts-assignment-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(170px, 1fr);
+  gap: 24px;
+}
+.ts-assignment-body > div > label,
+.ts-owner > label {
+  display: block;
+  margin-bottom: 5px;
+}
+.ts-picker details {
+  position: relative;
+}
+.ts-picker summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 33px;
+  border: 1px solid #dfe3f3;
+  border-radius: 7px;
+  background: #fff;
+  padding: 7px 11px;
+  color: #8c94b6;
+  font-size: 10px;
+  cursor: pointer;
+}
+.ts-picker summary > span {
+  flex: 1;
+}
+.ts-picker summary > svg:last-child {
+  transform: rotate(90deg);
+  color: #303b66;
+}
+.ts-picker-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 5px);
+  border: 1px solid #e1dcf6;
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 330px;
+  overflow: auto;
+  z-index: 80;
+  background: white;
+  box-shadow: 0 14px 40px #2a1b5d24;
+  min-width: min(400px, 80vw);
+}
+.ts-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-bottom: 1px solid #f1eff8;
+  padding: 7px 0;
+}
+.ts-picker-row > label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+.ts-picker-row strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+}
+.ts-picker-row small {
+  display: block;
+  font-size: 9px;
+  color: #7d86aa;
+  overflow-wrap: anywhere;
+}
+.ts-picker-row > button {
+  font-size: 9px;
+}
+.ts-photo {
+  width: 26px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid #eeebf6;
+  flex-shrink: 0;
+}
+.ts-initials {
+  display: inline-grid;
+  place-items: center;
+  color: #7726e9;
+  background: linear-gradient(140deg, #ece4ff, #dfd7ff);
+  font-size: 9px;
+  font-weight: 600;
+}
+.ts-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.ts-chips > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 20px;
+  background: #f1f2f9;
+  padding: 2px 7px 2px 3px;
+  color: #3c446e;
+  font-size: 9px;
+  font-weight: 400;
+}
+.ts-chips .ts-photo {
+  width: 21px;
+  height: 21px;
+}
+.ts-chips button {
+  color: #7a83a7;
+  display: grid;
+  place-items: center;
+}
+.ts-owner {
+  max-width: 50%;
+  margin-top: 9px;
+}
+.ts-snapshot-note {
+  display: block;
+  font-size: 9px;
+  color: #8a92ad;
+  line-height: 1.5;
+  margin-top: 5px;
+}
+.ts-add-person {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  color: #7e2afa;
+  font-size: 10px;
+  margin-top: 7px;
+}
+.ts-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+.ts-group-chips > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 15px;
+  background: #f0e9ff;
+  color: #7935d4;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+.ts-group-picker {
+  border: 1px solid #e3e5f3;
+  padding: 8px;
+  border-radius: 8px;
+  max-height: 230px;
+  overflow: auto;
+}
+.ts-group-search {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.ts-group-search input {
+  border: 0 !important;
+  min-height: 25px !important;
+  padding: 4px !important;
+}
+.ts-group-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 2px;
+  border-top: 1px solid #f0eef8;
+}
+.ts-group-row strong {
+  display: block;
+  font-size: 11px;
+}
+.ts-group-row small {
+  display: block;
+  font-size: 9px;
+  color: #8790ae;
+  margin-top: 3px;
+}
+.ts-group-picker > p {
+  font-size: 11px;
+  color: #7e88ab;
+  padding: 10px;
+}
+.ts-exclusion {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #9c5f09 !important;
+  font-size: 10px !important;
+  margin-top: 8px;
+}
+.task-studio input[type="checkbox"] {
+  accent-color: #8233fa;
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+}
+.ts-schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+.ts-schedule input,
+.ts-schedule select {
+  margin-top: 6px;
+}
+.ts-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 12px;
+  min-width: 0;
+}
+.ts-right > section {
+  border: 1px solid #e7e8f6;
+  background: #ffffffdb;
+  border-radius: 12px;
+  padding: 9px;
+}
+.ts-summary header {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  background: linear-gradient(110deg, #f7f2ff, #f4efff);
+  border-radius: 12px;
+  padding: 13px 12px 14px;
+  margin-bottom: 8px;
+}
+.ts-summary h2 {
+  font-size: 13px;
+  font-weight: 650;
+}
+.ts-summary header small {
+  display: block;
+  font-size: 10px;
+  color: #7b82a7;
+  margin: 3px 0 11px;
+}
+.ts-summary-photos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ts-summary-photos .ts-photo {
+  width: 32px;
+  height: 32px;
+}
+.ts-summary-photos > button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e3d9ff;
+  border-radius: 8px;
+  color: #8a40ff;
+  background: #ffffff60;
+  padding: 6px 9px;
+  margin-left: 5px;
+  font-size: 10px;
+}
+.ts-summary-row {
+  display: grid;
+  grid-template-columns: 18px 1fr 1.1fr;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid #eef0f9;
+  min-height: 36px;
+  margin: 0 8px;
+  padding: 6px;
+  font-size: 10px;
+  color: #7580a7;
+}
+.ts-summary-row > svg {
+  color: #2b315a;
+}
+.ts-summary-row strong {
+  font-weight: 400;
+  font-size: 10px;
+  color: #65739d;
+  overflow-wrap: anywhere;
+}
+.ts-summary-row:last-child {
+  border-bottom: 0;
+}
+.ts-summary-row .ts-priority {
+  border-radius: 14px;
+  background: #fff3de;
+  color: #ee8a00;
+  padding: 4px 8px;
+  width: fit-content;
+}
+.ts-ai {
+  position: relative;
+  padding: 15px 17px !important;
+  background: linear-gradient(125deg, #fff, #e9dbff) !important;
+  min-height: 105px;
+  box-shadow: inset 0 0 0 7px white;
+}
+.ts-ai > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #7d2aff;
+}
+.ts-ai strong {
+  font-size: 13px;
+}
+.ts-ai small {
+  font-size: 9px;
+  border-radius: 10px;
+  background: #e8dcff;
+  color: #9a6be8;
+  padding: 2px 6px;
+}
+.ts-ai h3 {
+  font-size: 11px;
+  font-weight: 600;
+  margin: 8px 0 3px 32px;
+}
+.ts-ai p {
+  font-size: 10px;
+  color: #8790b0;
+  max-width: 58%;
+  margin-left: 32px;
+  line-height: 1.5;
+}
+.ts-ai > div:last-child {
+  position: absolute;
+  right: 16px;
+  top: 34px;
+}
+.ts-ai button {
+  border: 1px solid #b381ff;
+  color: #8a3afa;
+  border-radius: 11px;
+  background: #ffffffd9;
+  box-shadow: 0 3px 6px #7c2bff0d;
+  font-size: 10px;
+  padding: 10px 15px;
+}
+.ts-quick {
+  padding: 13px 10px !important;
+}
+.ts-quick header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 9px 13px;
+}
+.ts-quick header small {
+  font-size: 9px;
+  color: #8991ad;
+}
+.ts-quick header button {
+  font-size: 10px;
+  color: #8b38ff;
+}
+.ts-quick > div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.ts-quick > div > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px solid #e7e7f5;
+  border-radius: 11px;
+  background: #fff;
+  padding: 9px 8px;
+  font-size: 9px;
+  font-weight: 500;
+  text-align: left;
+  min-height: 67px;
+}
+.ts-quick > div > button svg {
+  width: 16px;
+  height: 16px;
+  color: #8641ff;
+}
+.ts-quick > div > button small {
+  font-size: 8px;
+  color: #838dab;
+  font-weight: 400;
+}
+.ts-tips {
+  padding: 13px 18px !important;
+}
+.ts-tips h2 {
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+.ts-tips p {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #7784a6;
+  font-size: 10px;
+  margin: 4px 0 0 33px;
+}
+.ts-tips p svg {
+  color: #8d6bff;
+  background: #f4f0ff;
+  border-radius: 50%;
+}
+.ts-bottom {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e9e7f5;
+  border-radius: 10px;
+}
+.ts-bottom > span {
+  margin-right: auto;
+  font-size: 11px;
+  color: #828cae;
+}
+.ts-bottom label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ts-file-row,
+.ts-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eeedf7;
+}
+.ts-file-row button:first-of-type {
+  margin-left: auto;
+}
+.ts-check-row {
+  font-size: 11px;
+}
+.ts-check-row input[type="text"] {
+  flex: 1;
+}
+.ts-fields > section,
+.ts-fields > .ts-danger,
+.ts-fields > .space-y-4 {
+  margin-top: 12px;
+}
+.ts-danger {
+  border: 1px solid #f4d7de;
+  background: #fff9fb;
+  padding: 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ts-danger strong {
+  color: #a32950;
+  font-size: 12px;
+}
+.ts-danger p {
+  color: #9b7b88;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.ts-danger button {
+  margin-left: auto;
+  color: #bf2952;
+}
+.ts-classic-link {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #7932eb !important;
+  padding: 15px;
+  font-size: 11px;
+}
+.ts-draft-banner {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: #f0ebff;
+  border: 1px solid #e2d7ff;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: #6c4aab;
+}
+.ts-draft-banner button {
+  text-decoration: underline;
+}
+.ts-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: #1c173b66;
+  backdrop-filter: blur(3px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ts-modal {
+  width: min(540px, 95vw);
+  max-height: 80dvh;
+  overflow: auto;
+  padding: 24px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 20px 90px #21113d40;
+}
+.ts-modal h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+.ts-modal p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7b83a5;
+  margin-bottom: 15px;
+}
+.ts-modal > button {
+  margin: 5px;
+  font-size: 11px;
+}
+.ts-modal > button:not(.tr-button):not(.tr-primary) {
+  display: block;
+  border-bottom: 1px solid #e9e7f5;
+  padding: 10px;
+  width: 100%;
+  text-align: left;
+}
+.ts-loading {
+  padding: 50px;
+}
+@media (min-width: 1450px) {
+  .ts-fields > fieldset > .ts-section:first-child {
+    min-height: 411px;
+  }
+  .ts-fields > fieldset > div > .ts-section {
+    min-height: 302px;
+  }
+}
+@media (max-width: 1300px) {
+  .ts-layout {
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+  }
+  .ts-assignment-cards > button {
+    padding: 10px;
+    gap: 8px;
+  }
+  .ts-assignment-cards > button > span {
+    width: 33px;
+    height: 37px;
+  }
+  .ts-assignment-cards small {
+    font-size: 9px;
+  }
+  .ts-basic-pair {
+    gap: 15px;
+  }
+  .ts-assignment-body {
+    gap: 12px;
+  }
+  .ts-ai > div:last-child {
+    position: static;
+    margin: 10px 0 0 32px;
+  }
+  .ts-ai p {
+    max-width: none;
+  }
+  .ts-quick > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ts-title-actions .tr-button,
+  .ts-title-actions .tr-primary {
+    padding: 10px 14px;
+  }
+  .ts-title p {
+    font-size: 11px;
+  }
+  .ts-worktype button {
+    padding: 8px 10px;
+  }
+}
+@media (max-width: 1050px) {
+  .ts-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ts-right {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .ts-summary {
+    grid-row: span 2;
+  }
+  .ts-title {
+    flex-wrap: wrap;
+  }
+  .ts-title-actions {
+    margin-left: auto;
+  }
+  .task-studio {
+    padding: 16px;
+  }
+  .ts-title h1 {
+    font-size: 25px;
+  }
+}
+@media (max-width: 900px) {
+  .pms-task-reference.has-task-studio .tr-sidebar {
+    width: 222px;
+  }
+  .ts-title-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .ts-title-actions .tr-button,
+  .ts-title-actions .tr-primary {
+    height: 39px;
+  }
+  .ts-section {
+    padding: 13px;
+  }
+  .ts-right {
+    gap: 10px;
+  }
+  .has-task-studio .tr-topbar {
+    padding: 9px 12px;
+  }
+  .ts-basic-pair {
+    gap: 13px;
+  }
+  .ts-field {
+    gap: 7px;
+  }
+}
+@media (max-width: 560px) {
+  .task-studio {
+    padding: 14px 10px;
+  }
+  .ts-breadcrumb {
+    gap: 4px;
+    font-size: 9px;
+    flex-wrap: wrap;
+  }
+  .ts-title {
+    gap: 10px;
+  }
+  .ts-title h1 {
+    font-size: 23px;
+  }
+  .ts-title p {
+    font-size: 11px;
+    max-width: 250px;
+  }
+  .ts-back {
+    width: 37px;
+    height: 37px;
+  }
+  .ts-layout {
+    gap: 10px;
+  }
+  .ts-basic-pair {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .ts-field > svg {
+    width: 25px;
+    height: 28px;
+    padding: 5px;
+  }
+  .ts-assignment-cards {
+    gap: 5px;
+  }
+  .ts-assignment-cards > button {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+    gap: 6px;
+    min-height: 103px;
+  }
+  .ts-assignment-cards strong {
+    font-size: 11px;
+  }
+  .ts-assignment-cards small {
+    font-size: 8px;
+    line-height: 1.5;
+  }
+  .ts-assignment-cards > button > span {
+    width: 30px;
+    height: 30px;
+  }
+  .ts-assignment-cards > button > span svg {
+    width: 19px;
+  }
+  .ts-assignment-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .ts-owner {
+    max-width: 100%;
+    margin-top: 14px;
+  }
+  .ts-right {
+    grid-template-columns: 1fr;
+  }
+  .ts-summary {
+    grid-row: auto;
+  }
+  .ts-worktype button {
+    font-size: 10px;
+    padding: 7px 9px;
+  }
+  .ts-worktype [role="group"] {
+    gap: 5px;
+  }
+  .ts-bottom {
+    flex-wrap: wrap;
+  }
+  .ts-bottom > span {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+  .ts-section > header {
+    gap: 10px;
+  }
+  .ts-section header p {
+    font-size: 10px;
+  }
+  .ts-danger {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .ts-danger button {
+    margin-left: 0;
+  }
+  .ts-draft-banner {
+    flex-wrap: wrap;
+  }
+  .ts-picker-list {
+    min-width: 0;
+    width: 100%;
+  }
+  .ts-photo {
+    width: 24px;
+    height: 24px;
+  }
+  .ts-summary-row {
+    grid-template-columns: 18px 1fr 1.3fr;
+  }
+  .ts-ai > div:last-child {
+    position: absolute;
+    right: 14px;
+    top: 40px;
+    margin: 0;
+  }
+  .ts-ai p {
+    max-width: 52%;
+  }
+  .ts-quick > div {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .ts-schedule {
+    gap: 12px;
+  }
+  .ts-title-actions {
+    gap: 8px;
+  }
+  .ts-title-actions .tr-button,
+  .ts-title-actions .tr-primary {
+    font-size: 11px;
+  }
+  .ts-description .rte-toolbar {
+    flex-wrap: wrap;
+  }
+}
+
+.ts-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2001;
+}
+.task-studio button:focus-visible,
+.ts-modal button:focus-visible {
+  outline: 2px solid #9a60ff;
+  outline-offset: 3px;
+}
+.task-studio button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-studio .ts-worktype select {
+  width: 95px;
+  min-width: 85px;
+  min-height: 38px;
+  margin: 0;
+  font-size: 10px;
+  padding: 7px;
+}
+.ts-summary-row strong {
+  line-height: 1.5;
+}
+
+.ts-assignment-body > div:first-child {
+  position: relative;
+}
+.ts-add-person {
+  position: absolute;
+  right: 0;
+  top: 0;
+  margin-top: 0;
+}
+.ts-description .suite-rte-toolbar select[aria-label="Font family"],
+.ts-description .suite-rte-toolbar select[aria-label="Font size"] {
+  display: none;
+}
+.ts-description .suite-rte {
+  margin-top: 8px;
+}
+.ts-description .suite-rte-toolbar {
+  min-height: 36px;
+  padding: 3px 7px;
+}
+.ts-description .suite-rte-toolbar button {
+  height: 26px;
+  min-height: 26px;
+  min-width: 25px;
+}
+.ts-description .suite-rte-toolbar button svg {
+  height: 13px;
+  width: 13px;
+}
+
+.ts-upload {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  padding: 24px 16px;
+  border: 1px dashed #cbb8f3;
+  border-radius: 10px;
+  background: #fbf9ff;
+  cursor: pointer;
+  margin-top: 15px;
+}
+.ts-upload > svg {
+  color: #8543e8;
+}
+.ts-upload strong {
+  display: block;
+  color: #554374;
+  font-size: 12px;
+}
+.ts-upload small {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  color: #8b82a4;
+}
+.ts-upload input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.tr-studio-new {
+  height: 31px;
+  min-width: 88px;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 11px;
+}
+.ts-modal[role="dialog"] {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}

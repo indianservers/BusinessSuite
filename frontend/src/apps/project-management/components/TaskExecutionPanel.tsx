@@ -10,10 +10,11 @@ import { type Person } from "./people/peopleTypes";
 export const managementBase = "/project-management/management";
 type Execution = {revision:number;blocked_reason:string;responsible_user_id:number|null;review_date:string|null;evidence_required:boolean;evidence:string};
 type Detail = {id:number;title:string;project_id:number;status:string;can_edit:boolean;execution:Execution;completion:{checklist:{id:number;title:string;done:boolean}[];subtasks:{id:number;title:string;done:boolean}[];blockers:string[]};note_sources:{id:number;title:string;href:string}[]};
-export default function TaskExecutionPanel({taskId,people=[],onChanged,onDirtyChange}:{taskId:number;people?:Person[];onChanged?:()=>void;onDirtyChange?:(dirty:boolean)=>void}) {
+export default function TaskExecutionPanel({taskId,people=[],onChanged,onDirtyChange,refreshKey}:{taskId:number;people?:Person[];onChanged?:()=>void;onDirtyChange?:(dirty:boolean)=>void;refreshKey?:string}) {
  const [data,setData]=useState<Detail>();const [draft,setDraft]=useState<Execution>();const [error,setError]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
  const load=async()=>{const {data}=await api.get<Detail>(`${managementBase}/tasks/${taskId}`);setData(data);setDraft(data.execution);setError("");};
  useEffect(()=>{setData(undefined);setDraft(undefined);void load().catch(e=>setError(workspaceError(e)));},[taskId]);
+ useEffect(()=>{if(data&&JSON.stringify(draft)===JSON.stringify(data.execution))void load().catch(e=>setError(workspaceError(e)));},[refreshKey]);
  const dirty=!!draft&&JSON.stringify(draft)!==JSON.stringify(data?.execution);
  useEffect(()=>{onDirtyChange?.(dirty);},[dirty,onDirtyChange]);
  useEffect(()=>{const guard=(e:BeforeUnloadEvent)=>{if(dirty){e.preventDefault();e.returnValue="";}};window.addEventListener("beforeunload",guard);return()=>window.removeEventListener("beforeunload",guard);},[dirty]);
@@ -28,13 +29,13 @@ export default function TaskExecutionPanel({taskId,people=[],onChanged,onDirtyCh
  <label className="flex gap-2 text-sm"><input type="checkbox" checked={draft.evidence_required} onChange={e=>setDraft({...draft,evidence_required:e.target.checked})}/>Require completion evidence</label>
  <label className="block text-sm">Completion evidence<textarea className="block w-full rounded border p-2" placeholder="Evidence link or delivery details" value={draft.evidence||""} onChange={e=>setDraft({...draft,evidence:e.target.value})}/></label>
  <p role="status" className="text-sm text-muted-foreground">{dirty?"Unsaved changes":"All execution details saved"}</p>
- <div className="flex flex-wrap gap-2"><Button disabled={!dirty} onClick={()=>void save()}>Save details</Button><Button variant="outline" disabled={!draft.blocked_reason?.trim()||!draft.responsible_user_id||!draft.review_date} onClick={()=>void save(true)}>Save & mark Blocked</Button></div>
+ <div className="flex flex-wrap gap-2"><Button type="button" disabled={!dirty} onClick={()=>void save()}>Save details</Button><Button type="button" variant="outline" disabled={!draft.blocked_reason?.trim()||!draft.responsible_user_id||!draft.review_date} onClick={()=>void save(true)}>Save & mark Blocked</Button></div>
  </fieldset>{!data.can_edit&&<p className="text-sm">Your project role does not allow task updates.</p>}
  <h3 className="font-medium">Before completing</h3>{data.completion.checklist.map(c=><label className="flex gap-2 text-sm" key={c.id}><input type="checkbox" checked={c.done} disabled={!data.can_edit||busy} onChange={e=>{setBusy(true);void api.patch(`/project-management/checklist/${c.id}`,{is_completed:e.target.checked}).then(load).catch(e=>setError(workspaceError(e))).finally(()=>setBusy(false));}}/>{c.title}</label>)}
  {data.completion.subtasks.map(t=><p key={t.id} className="text-sm">{t.done?"✓":"○"} <Link className="underline" to={`/pms/tasks/${t.id}`}>{t.title}</Link></p>)}
  {!data.completion.checklist.length&&!data.completion.subtasks.length&&<p className="text-sm text-muted-foreground">No checklist items or subtasks.</p>}
  {data.completion.blockers.map(b=><p className="text-sm text-amber-700" key={b}>{b}</p>)}
- <Button disabled={!data.can_edit||busy||dirty||!!data.completion.blockers.length||data.status==="Done"} onClick={()=>void complete()}>Complete task</Button>
+ <Button type="button" disabled={!data.can_edit||busy||dirty||!!data.completion.blockers.length||data.status==="Done"} onClick={()=>void complete()}>Complete task</Button>
  {data.note_sources.map(n=><p key={n.id} className="text-sm">Original note: <Link className="underline" to={n.href}>{n.title}</Link> · visible to authorized note readers</p>)}
  </>:!error&&<p role="status">Loading execution details…</p>}</section>;
 }

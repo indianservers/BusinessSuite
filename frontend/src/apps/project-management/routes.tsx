@@ -134,7 +134,9 @@ export const projectManagementRoutes: FrontendRoute[] = [
   // Tasks
   { path: "pms/tasks", element: <TasksReferencePage /> },
   { path: "pms/tasks/advanced", element: <TaskListPage /> },
-  { path: "pms/tasks/:taskId", element: <TaskDetail /> },
+  { path: "pms/tasks/new", element: <TasksReferencePage /> },
+  { path: "pms/tasks/:taskId", element: <TasksReferencePage /> },
+  { path: "pms/tasks/:taskId/classic", element: <TaskDetail /> },
   { path: "pms/projects/:projectId/tasks/:taskId", element: <TaskDetail /> },
 
   // KaryaFlow software delivery workspaces

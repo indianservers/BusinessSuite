@@ -32,7 +32,7 @@ export default function AppLayout() {
     return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /></div>;
   }
 
-  if (location.pathname === "/pms/tasks") {
+  if (location.pathname === "/pms/tasks" || location.pathname === "/pms/tasks/new" || /^\/pms\/tasks\/\d+$/.test(location.pathname)) {
     return <><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /></>;
   }
 

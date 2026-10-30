@@ -7253,3 +7253,6 @@ from app.module_registry import is_app_enabled
 if is_app_enabled("hrms"):
     from app.apps.interns_hub.operations import router as operations_router
     router.include_router(operations_router)
+
+from ..task_studio import router as task_studio_router
+router.include_router(task_studio_router)

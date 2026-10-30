@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useSearchParams,
+  useParams,
+  useLocation,
+} from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   Flame,
@@ -57,6 +63,7 @@ import { usePMSRealtime } from "../realtime";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { workspaceError } from "./workspaceTypes";
 import "./TasksReferencePage.css";
+import TaskStudioPage from "./TaskStudioPage";
 const statuses = [
   "Backlog",
   "To Do",
@@ -119,6 +126,9 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
 }
 export default function TasksReferencePage() {
   const { user } = useAuthStore();
+  const route = useParams();
+  const routeLocation = useLocation();
+  const studio = routeLocation.pathname === "/pms/tasks/new" || !!route.taskId;
   const signOut = useSignOut("/login");
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -171,6 +181,10 @@ export default function TasksReferencePage() {
     setSearch(params.get("search") || "");
   }, [params.get("search")]);
   useEffect(() => {
+    if (studio) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     setLoading(true);
     setError("");
@@ -195,8 +209,9 @@ export default function TasksReferencePage() {
     return () => {
       active = false;
     };
-  }, [params.toString(), revision]);
+  }, [params.toString(), revision, studio]);
   useEffect(() => {
+    if (studio) return;
     savedViewsAPI
       .list("task")
       .then(setViews)
@@ -334,7 +349,7 @@ export default function TasksReferencePage() {
     );
   };
   return (
-    <div className="pms-task-reference">
+    <div className={`pms-task-reference ${studio ? "has-task-studio" : ""}`}>
       <a className="suite-skip" href="#suite-main">
         Skip to content
       </a>
@@ -422,6 +437,13 @@ export default function TasksReferencePage() {
           </button>
           <GlobalSearch />
           <div className="tr-header-actions">
+            {studio && (
+              <Link className="tr-primary tr-studio-new" to="/pms/tasks/new">
+                <Plus size={14} />
+                New
+                <ChevronDown size={12} />
+              </Link>
+            )}
             <Link className="tr-button tr-ai" to="/pms/operator">
               <Sparkles size={17} />
               AI Operator
@@ -454,733 +476,745 @@ export default function TasksReferencePage() {
             >
               <RefreshCw size={20} />
             </button>
-            <PMSProfileMenu onCreateTask={() => add()} />
+            <PMSProfileMenu
+              onCreateTask={() => (studio ? navigate("/pms/tasks/new") : add())}
+            />
           </div>
         </header>
-        <div className="tr-content">
-          <main id="suite-main" tabIndex={-1}>
-            <div className="tr-breadcrumb">
-              <Link to="/dashboard">All applications</Link>
-              <ChevronRight />
-              <Link to="/pms">KaryaFlow PMS</Link>
-              <ChevronRight />
-              <b>Tasks</b>
-            </div>
-            <div className="tr-title">
-              <div>
-                <h1>Tasks</h1>
-                <p>
-                  Plan, track, and manage work across all your projects in
-                  Indian Servers.
-                </p>
+        {studio ? (
+          <TaskStudioPage key={route.taskId || "new"} />
+        ) : (
+          <div className="tr-content">
+            <main id="suite-main" tabIndex={-1}>
+              <div className="tr-breadcrumb">
+                <Link to="/dashboard">All applications</Link>
+                <ChevronRight />
+                <Link to="/pms">KaryaFlow PMS</Link>
+                <ChevronRight />
+                <b>Tasks</b>
               </div>
-              <button className="tr-primary tr-add" onClick={() => add()}>
-                <Plus />
-                Add Task
-                <ChevronDown size={18} />
-              </button>
-            </div>
-            <section
-              className="tr-metrics"
-              aria-label="Task overview for current filters"
-              title="Counts reflect your current filters and permitted projects"
-            >
-              {metrics.map((m) => (
-                <button
-                  key={m.label}
-                  className={`tr-metric ${m.color}`}
-                  onClick={() => {
-                    const next = new URLSearchParams();
-                    if (m.filter === "today") {
-                      next.set("dueFrom", localDay());
-                      next.set("dueTo", localDay());
-                      next.set("openOnly", "true");
-                    } else if (m.filter === "overdue")
-                      next.set("overdue", "true");
-                    else if (m.filter) next.set("status", m.filter);
-                    setParams(next);
-                  }}
-                >
-                  <span className="tr-metric-icon">
-                    <m.icon />
-                  </span>
-                  <div>
-                    <span>{m.label}</span>
-                    <strong>{loading ? "—" : m.value}</strong>
-                    <small>{m.caption}</small>
-                  </div>
-                  <BarChart3 className="tr-chart" size={18} />
-                </button>
-              ))}
-            </section>
-            {(notice || error) && (
-              <div
-                className={`tr-feedback ${error ? "error" : ""}`}
-                role={error ? "alert" : "status"}
-              >
-                {error || notice}
-                {error && <button onClick={reload}>Retry</button>}
-                <button
-                  aria-label="Dismiss message"
-                  onClick={() => {
-                    setError("");
-                    setNotice("");
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            )}
-            <section className="tr-work">
-              <div className="tr-viewbar">
-                <div className="tr-tabs" role="group" aria-label="Task view">
-                  {[
-                    { label: "List", icon: List, value: "list" },
-                    { label: "Table", icon: LayoutGrid, value: "table" },
-                  ].map((v) => (
-                    <button
-                      key={v.value}
-                      className={layout === v.value ? "active" : ""}
-                      onClick={() => change("layout", v.value)}
-                    >
-                      <v.icon size={17} />
-                      {v.label}
-                    </button>
-                  ))}
-                  <Link
-                    to={
-                      projects.length
-                        ? `/pms/projects/${Number(params.get("projectId")) || projects[0].id}/board`
-                        : "/pms/projects"
-                    }
-                  >
-                    <Box size={17} />
-                    Board
-                  </Link>
-                  <Link to="/pms/calendar">
-                    <CalendarDays size={17} />
-                    Calendar
-                  </Link>
-                  <Link to="/pms/gantt">
-                    <Activity size={17} />
-                    Timeline
-                  </Link>
+              <div className="tr-title">
+                <div>
+                  <h1>Tasks</h1>
+                  <p>
+                    Plan, track, and manage work across all your projects in
+                    Indian Servers.
+                  </p>
                 </div>
-                <div className="tr-tools">
-                  <select
-                    aria-label="Saved views"
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value === "save") setSaveOpen(true);
-                      else {
-                        const v = views.find(
-                          (v) => v.id === Number(e.target.value),
-                        );
-                        if (v) {
-                          const next = new URLSearchParams();
-                          Object.entries(v.filters || {}).forEach(
-                            ([k, val]) => {
-                              if (
-                                val !== null &&
-                                val !== undefined &&
-                                val !== ""
-                              )
-                                next.set(k, String(val));
-                            },
-                          );
-                          Object.entries(v.sort || {}).forEach(
-                            ([key, value]) => {
-                              if (value) next.set(key, String(value));
-                            },
-                          );
-                          setParams(next);
-                        }
-                      }
+                <button className="tr-primary tr-add" onClick={() => add()}>
+                  <Plus />
+                  Add Task
+                  <ChevronDown size={18} />
+                </button>
+              </div>
+              <section
+                className="tr-metrics"
+                aria-label="Task overview for current filters"
+                title="Counts reflect your current filters and permitted projects"
+              >
+                {metrics.map((m) => (
+                  <button
+                    key={m.label}
+                    className={`tr-metric ${m.color}`}
+                    onClick={() => {
+                      const next = new URLSearchParams();
+                      if (m.filter === "today") {
+                        next.set("dueFrom", localDay());
+                        next.set("dueTo", localDay());
+                        next.set("openOnly", "true");
+                      } else if (m.filter === "overdue")
+                        next.set("overdue", "true");
+                      else if (m.filter) next.set("status", m.filter);
+                      setParams(next);
                     }}
                   >
-                    <option value="">☷　Saved views</option>
-                    {views.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                      </option>
-                    ))}
-                    <option value="save">+ Save current view</option>
-                  </select>
-                  <button
-                    className={`tr-button ${layout === "gallery" ? "active" : ""}`}
-                    aria-label="Cards"
-                    aria-pressed={layout === "gallery"}
-                    onClick={() =>
-                      change(
-                        "layout",
-                        layout === "gallery" ? "list" : "gallery",
-                      )
-                    }
-                  >
-                    <Columns3 size={16} />
+                    <span className="tr-metric-icon">
+                      <m.icon />
+                    </span>
+                    <div>
+                      <span>{m.label}</span>
+                      <strong>{loading ? "—" : m.value}</strong>
+                      <small>{m.caption}</small>
+                    </div>
+                    <BarChart3 className="tr-chart" size={18} />
                   </button>
+                ))}
+              </section>
+              {(notice || error) && (
+                <div
+                  className={`tr-feedback ${error ? "error" : ""}`}
+                  role={error ? "alert" : "status"}
+                >
+                  {error || notice}
+                  {error && <button onClick={reload}>Retry</button>}
                   <button
-                    className="tr-button"
-                    aria-label="Reload task list"
-                    onClick={reload}
+                    aria-label="Dismiss message"
+                    onClick={() => {
+                      setError("");
+                      setNotice("");
+                    }}
                   >
-                    <RefreshCw size={17} />
+                    <X size={16} />
                   </button>
-                </div>
-              </div>
-              <div className="tr-filters">
-                <label className="tr-search">
-                  <Search size={17} />
-                  <input
-                    aria-label="Search tasks"
-                    placeholder="Search tasks by title, project, assignee, or keyword…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </label>
-                <select
-                  aria-label="Project"
-                  value={params.get("projectId") || ""}
-                  onChange={(e) => change("projectId", e.target.value)}
-                >
-                  <option value="">⚑ Project</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Assignee"
-                  value={params.get("assigneeId") || ""}
-                  onChange={(e) => change("assigneeId", e.target.value)}
-                >
-                  <option value="">♙ Assignee</option>
-                  {data?.filters.assignees.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Priority"
-                  value={params.get("priority") || ""}
-                  onChange={(e) => change("priority", e.target.value)}
-                >
-                  <option value="">⚑ Priority</option>
-                  {["Urgent", "High", "Medium", "Low"].map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Status"
-                  value={params.get("status") || ""}
-                  onChange={(e) => change("status", e.target.value)}
-                >
-                  <option value="">◯ Status</option>
-                  {statuses.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-                <button className="tr-button" onClick={() => setExtra(!extra)}>
-                  <CalendarDays size={15} />
-                  Due Date
-                  <ChevronDown size={12} />
-                </button>
-                <select
-                  aria-label="Sort tasks"
-                  value={params.get("sortBy") || "updatedDate"}
-                  onChange={(e) => change("sortBy", e.target.value)}
-                >
-                  <option value="updatedDate">⇄ Sort</option>
-                  <option value="dueDate">Due date</option>
-                  <option value="priority">Priority</option>
-                  <option value="createdDate">Created</option>
-                </select>
-                <button
-                  className="tr-button tr-filter-button"
-                  aria-expanded={extra}
-                  onClick={() => setExtra(!extra)}
-                >
-                  <SlidersHorizontal size={15} />
-                  Filters{params.size > 0 && <span>{params.size}</span>}
-                </button>
-              </div>
-              {extra && (
-                <div className="tr-extra">
-                  <label>
-                    Due from{" "}
-                    <input
-                      type="date"
-                      value={params.get("dueFrom") || ""}
-                      onChange={(e) => change("dueFrom", e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Due to{" "}
-                    <input
-                      type="date"
-                      value={params.get("dueTo") || ""}
-                      onChange={(e) => change("dueTo", e.target.value)}
-                    />
-                  </label>
-                  <button
-                    className="tr-button"
-                    onClick={() =>
-                      change(
-                        "sortOrder",
-                        params.get("sortOrder") === "asc" ? "desc" : "asc",
-                      )
-                    }
-                  >
-                    Order: {params.get("sortOrder") || "desc"}
-                  </button>
-                  <button
-                    className="tr-button"
-                    onClick={() => setParams(new URLSearchParams())}
-                  >
-                    Clear filters
-                  </button>
-                  <Link to="/pms/tasks/advanced">Advanced navigator ↗</Link>
                 </div>
               )}
-              {!!selected.length && (
-                <div className="tr-extra">
-                  <strong>{selected.length} selected</strong>
+              <section className="tr-work">
+                <div className="tr-viewbar">
+                  <div className="tr-tabs" role="group" aria-label="Task view">
+                    {[
+                      { label: "List", icon: List, value: "list" },
+                      { label: "Table", icon: LayoutGrid, value: "table" },
+                    ].map((v) => (
+                      <button
+                        key={v.value}
+                        className={layout === v.value ? "active" : ""}
+                        onClick={() => change("layout", v.value)}
+                      >
+                        <v.icon size={17} />
+                        {v.label}
+                      </button>
+                    ))}
+                    <Link
+                      to={
+                        projects.length
+                          ? `/pms/projects/${Number(params.get("projectId")) || projects[0].id}/board`
+                          : "/pms/projects"
+                      }
+                    >
+                      <Box size={17} />
+                      Board
+                    </Link>
+                    <Link to="/pms/calendar">
+                      <CalendarDays size={17} />
+                      Calendar
+                    </Link>
+                    <Link to="/pms/gantt">
+                      <Activity size={17} />
+                      Timeline
+                    </Link>
+                  </div>
+                  <div className="tr-tools">
+                    <select
+                      aria-label="Saved views"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value === "save") setSaveOpen(true);
+                        else {
+                          const v = views.find(
+                            (v) => v.id === Number(e.target.value),
+                          );
+                          if (v) {
+                            const next = new URLSearchParams();
+                            Object.entries(v.filters || {}).forEach(
+                              ([k, val]) => {
+                                if (
+                                  val !== null &&
+                                  val !== undefined &&
+                                  val !== ""
+                                )
+                                  next.set(k, String(val));
+                              },
+                            );
+                            Object.entries(v.sort || {}).forEach(
+                              ([key, value]) => {
+                                if (value) next.set(key, String(value));
+                              },
+                            );
+                            setParams(next);
+                          }
+                        }
+                      }}
+                    >
+                      <option value="">☷　Saved views</option>
+                      {views.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                      <option value="save">+ Save current view</option>
+                    </select>
+                    <button
+                      className={`tr-button ${layout === "gallery" ? "active" : ""}`}
+                      aria-label="Cards"
+                      aria-pressed={layout === "gallery"}
+                      onClick={() =>
+                        change(
+                          "layout",
+                          layout === "gallery" ? "list" : "gallery",
+                        )
+                      }
+                    >
+                      <Columns3 size={16} />
+                    </button>
+                    <button
+                      className="tr-button"
+                      aria-label="Reload task list"
+                      onClick={reload}
+                    >
+                      <RefreshCw size={17} />
+                    </button>
+                  </div>
+                </div>
+                <div className="tr-filters">
+                  <label className="tr-search">
+                    <Search size={17} />
+                    <input
+                      aria-label="Search tasks"
+                      placeholder="Search tasks by title, project, assignee, or keyword…"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </label>
                   <select
-                    aria-label="Bulk status"
-                    disabled={busy}
-                    value=""
-                    onChange={(e) => void bulk("status", e.target.value)}
+                    aria-label="Project"
+                    value={params.get("projectId") || ""}
+                    onChange={(e) => change("projectId", e.target.value)}
                   >
-                    <option value="">Change status</option>
-                    {statuses.map((s) => (
-                      <option key={s}>{s}</option>
+                    <option value="">⚑ Project</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
                     ))}
                   </select>
                   <select
-                    aria-label="Bulk priority"
-                    disabled={busy}
-                    value=""
-                    onChange={(e) => void bulk("priority", e.target.value)}
+                    aria-label="Assignee"
+                    value={params.get("assigneeId") || ""}
+                    onChange={(e) => change("assigneeId", e.target.value)}
                   >
-                    <option value="">Change priority</option>
+                    <option value="">♙ Assignee</option>
+                    {data?.filters.assignees.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Priority"
+                    value={params.get("priority") || ""}
+                    onChange={(e) => change("priority", e.target.value)}
+                  >
+                    <option value="">⚑ Priority</option>
                     {["Urgent", "High", "Medium", "Low"].map((s) => (
                       <option key={s}>{s}</option>
                     ))}
                   </select>
-                </div>
-              )}
-              <div
-                className={
-                  layout === "gallery"
-                    ? "tr-gallery"
-                    : layout === "table"
-                      ? "tr-table-wrap tr-compact"
-                      : "tr-table-wrap"
-                }
-                aria-busy={loading}
-              >
-                {layout !== "gallery" ? (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>
-                          <input
-                            type="checkbox"
-                            aria-label="Select editable tasks on this page"
-                            checked={
-                              !!selected.length &&
-                              selected.length ===
-                                (data?.items.filter((t) =>
-                                  editable.some((p) => p.id === t.project_id),
-                                ).length || 0)
-                            }
-                            onChange={(e) =>
-                              setSelected(
-                                e.target.checked
-                                  ? data?.items
-                                      .filter((t) =>
-                                        editable.some(
-                                          (p) => p.id === t.project_id,
-                                        ),
-                                      )
-                                      .map((t) => t.id) || []
-                                  : [],
-                              )
-                            }
-                          />
-                        </th>
-                        {[
-                          "Task",
-                          "Project",
-                          "Priority",
-                          "Assignee",
-                          "Due Date",
-                          "Status",
-                          "Actions",
-                        ].map((h) => (
-                          <th key={h}>
-                            {["Priority", "Due Date", "Status"].includes(h) ? (
-                              <button
-                                onClick={() => {
-                                  const sort =
-                                    h === "Priority"
-                                      ? "priority"
-                                      : h === "Due Date"
-                                        ? "dueDate"
-                                        : "status";
-                                  setParams((prev) => {
-                                    const next = new URLSearchParams(prev);
-                                    next.set("sortBy", sort);
-                                    next.set(
-                                      "sortOrder",
-                                      prev.get("sortBy") === sort &&
-                                        prev.get("sortOrder") === "asc"
-                                        ? "desc"
-                                        : "asc",
-                                    );
-                                    next.delete("page");
-                                    return next;
-                                  });
-                                }}
-                              >
-                                {h}
-                              </button>
-                            ) : (
-                              h
-                            )}
-                            {h !== "Actions" && (
-                              <span className="tr-sort-mark">⌃⌄</span>
-                            )}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data?.items.map((task) => (
-                        <RecordActions
-                          key={task.id}
-                          record={{ ...task, key: task.task_key }}
-                          canEdit={editable.some(
-                            (p) => p.id === task.project_id,
-                          )}
-                          onOpen={() => open(task)}
-                          onChanged={reload}
-                        >
-                          {(more) => (
-                            <tr>
-                              <td>
-                                <input
-                                  type="checkbox"
-                                  aria-label={`Select ${task.title}`}
-                                  disabled={
-                                    !editable.some(
-                                      (p) => p.id === task.project_id,
-                                    )
-                                  }
-                                  checked={selected.includes(task.id)}
-                                  onChange={(e) =>
-                                    setSelected(
-                                      e.target.checked
-                                        ? [...selected, task.id]
-                                        : selected.filter(
-                                            (id) => id !== task.id,
-                                          ),
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <button
-                                  className="tr-task-title"
-                                  onClick={() => open(task)}
-                                >
-                                  {task.title}
-                                </button>
-                                <small>#{task.task_key || task.id}</small>
-                              </td>
-                              <td>
-                                <span className="tr-project-name">
-                                  <i
-                                    style={{
-                                      background: [
-                                        "#8239ff",
-                                        "#ed4fcb",
-                                        "#09a0f4",
-                                        "#20bc7d",
-                                      ][task.project_id % 4],
-                                    }}
-                                  />
-                                  {task.project_name}
-                                </span>
-                                <small>{task.project_key || "Project"}</small>
-                              </td>
-                              <td>
-                                <PriorityBadge priority={task.priority} />
-                              </td>
-                              <td>
-                                <span className="tr-person">
-                                  <Avatar
-                                    name={task.assignee_name || "Unassigned"}
-                                    url={task.assignee_photo_url}
-                                  />
-                                  {task.assignee_name || "Unassigned"}
-                                </span>
-                              </td>
-                              <td
-                                className={
-                                  task.due_date &&
-                                  task.due_date < localDay() &&
-                                  !finished(task.status)
-                                    ? "tr-overdue"
-                                    : ""
-                                }
-                              >
-                                {task.due_date
-                                  ? new Date(
-                                      task.due_date + "T00:00:00",
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })
-                                  : "No due date"}
-                              </td>
-                              <td>{pill(task)}</td>
-                              <td>{more}</td>
-                            </tr>
-                          )}
-                        </RecordActions>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  data?.items.map((task) => (
-                    <RecordActions
-                      key={task.id}
-                      record={{ ...task, key: task.task_key }}
-                      canEdit={editable.some((p) => p.id === task.project_id)}
-                      onOpen={() => open(task)}
-                      onChanged={reload}
-                    >
-                      {(more) => (
-                        <article className="tr-task-card">
-                          <div className="tr-card-top">
-                            <span>{task.task_key}</span>
-                            {more}
-                          </div>
-                          <button
-                            className="tr-task-title"
-                            onClick={() => open(task)}
-                          >
-                            {task.title}
-                          </button>
-                          <p>{task.project_name}</p>
-                          <div>
-                            {pill(task)}
-                            <PriorityBadge priority={task.priority} />
-                          </div>
-                          <footer>
-                            <span className="tr-person">
-                              <Avatar
-                                name={task.assignee_name || "Unassigned"}
-                                url={task.assignee_photo_url}
-                              />
-                              {task.assignee_name || "Unassigned"}
-                            </span>
-                            <span>{task.due_date || "No due date"}</span>
-                          </footer>
-                        </article>
-                      )}
-                    </RecordActions>
-                  ))
-                )}
-                {!loading && !data?.items.length && (
-                  <div className="tr-empty">
-                    <ClipboardList />
-                    <h2>
-                      {error
-                        ? "Tasks could not be loaded"
-                        : "No tasks in this view"}
-                    </h2>
-                    <p>
-                      {error
-                        ? "Retry to load your work."
-                        : "Adjust your filters or add a task to get started."}
-                    </p>
-                    <button
-                      className="tr-primary"
-                      onClick={() => (error ? reload() : add())}
-                    >
-                      {error ? "Retry" : "Add Task"}
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="tr-pagination">
-                <span>
-                  {loading
-                    ? "Loading tasks…"
-                    : `Showing ${data?.total ? (page - 1) * pageSize + 1 : 0} to ${Math.min(page * pageSize, data?.total || 0)} of ${data?.total || 0} tasks`}
-                </span>
-                <label>
-                  Rows{" "}
                   <select
-                    aria-label="Rows per page"
-                    value={pageSize}
-                    onChange={(e) => change("pageSize", e.target.value)}
+                    aria-label="Status"
+                    value={params.get("status") || ""}
+                    onChange={(e) => change("status", e.target.value)}
                   >
-                    {[8, 16, 24, 48].map((n) => (
-                      <option key={n}>{n}</option>
+                    <option value="">◯ Status</option>
+                    {statuses.map((s) => (
+                      <option key={s}>{s}</option>
                     ))}
                   </select>
-                </label>
-                <button
-                  className="tr-button"
-                  disabled={page <= 1 || loading}
-                  onClick={() => change("page", String(page - 1))}
-                >
-                  <ChevronLeft size={15} />
-                  Previous
-                </button>
-                {Array.from(
-                  { length: Math.min(3, data?.pages || 1) },
-                  (_, i) =>
-                    Math.max(1, Math.min(page - 1, (data?.pages || 1) - 2)) + i,
-                )
-                  .filter((n) => n <= (data?.pages || 1))
-                  .map((n) => (
-                    <button
-                      className={n === page ? "tr-primary" : "tr-button"}
-                      key={n}
-                      onClick={() => change("page", String(n))}
-                      aria-label={`Page ${n}`}
-                      aria-current={n === page ? "page" : undefined}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                <button
-                  className="tr-button"
-                  disabled={page >= (data?.pages || 1) || loading}
-                  onClick={() => change("page", String(page + 1))}
-                >
-                  Next
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </section>
-          </main>
-          <aside className="tr-right">
-            <section>
-              <h2>
-                <Sparkles size={19} />
-                Quick Actions
-              </h2>
-              <div className="tr-quick">
-                <button className="tr-primary" onClick={() => add()}>
-                  <Plus />
-                  Add Task
-                </button>
-                <Link to="/pms/workspaces">
-                  <FileText />
-                  Task Templates
-                </Link>
-                <Link to="/pms/automation">
-                  <Zap />
-                  Automation
-                </Link>
-                <button
-                  title="Use the project import tools"
-                  onClick={() => {
-                    setImportProject(String(projectId || ""));
-                    setImportOpen(true);
-                  }}
-                >
-                  <Upload />
-                  Import Tasks
-                </button>
-              </div>
-            </section>
-            <section>
-              <h2>
-                Popular Templates<Link to="/pms/workspaces">View all</Link>
-              </h2>
-              {[
-                {
-                  name: "Bug Report",
-                  sub: "For issue tracking",
-                  icon: Bug,
-                  color: "red",
-                  type: "Bug" as const,
-                },
-                {
-                  name: "Feature Request",
-                  sub: "For new features",
-                  icon: Shield,
-                  color: "blue",
-                  type: "Story" as const,
-                },
-                {
-                  name: "Server Maintenance",
-                  sub: "For infrastructure tasks",
-                  icon: CalendarDays,
-                  color: "purple",
-                  type: "Task" as const,
-                },
-                {
-                  name: "Client Onboarding",
-                  sub: "For new clients",
-                  icon: ClipboardList,
-                  color: "orange",
-                  type: "Task" as const,
-                },
-              ].map((t) => (
-                <button
-                  className="tr-template"
-                  key={t.name}
-                  onClick={() => add(t.type, t.name)}
-                >
-                  <span className={`tr-template-icon ${t.color}`}>
-                    <t.icon size={18} />
-                  </span>
-                  <span>
-                    <strong>{t.name}</strong>
-                    <small>{t.sub}</small>
-                  </span>
-                </button>
-              ))}
-            </section>
-            <section>
-              <h2>
-                <Clock3 size={15} />
-                Recent Activity<Link to="/pms/tasks/advanced">View all</Link>
-              </h2>
-              <div className="tr-activity">
-                {data?.activity?.map((a) => (
                   <button
-                    key={a.id}
-                    onClick={() =>
-                      a.task_id && navigate(`/pms/tasks/${a.task_id}`)
-                    }
+                    className="tr-button"
+                    onClick={() => setExtra(!extra)}
                   >
-                    <i />
-                    <Avatar name={a.actor_name} url={a.photo_url} />
+                    <CalendarDays size={15} />
+                    Due Date
+                    <ChevronDown size={12} />
+                  </button>
+                  <select
+                    aria-label="Sort tasks"
+                    value={params.get("sortBy") || "updatedDate"}
+                    onChange={(e) => change("sortBy", e.target.value)}
+                  >
+                    <option value="updatedDate">⇄ Sort</option>
+                    <option value="dueDate">Due date</option>
+                    <option value="priority">Priority</option>
+                    <option value="createdDate">Created</option>
+                  </select>
+                  <button
+                    className="tr-button tr-filter-button"
+                    aria-expanded={extra}
+                    onClick={() => setExtra(!extra)}
+                  >
+                    <SlidersHorizontal size={15} />
+                    Filters{params.size > 0 && <span>{params.size}</span>}
+                  </button>
+                </div>
+                {extra && (
+                  <div className="tr-extra">
+                    <label>
+                      Due from{" "}
+                      <input
+                        type="date"
+                        value={params.get("dueFrom") || ""}
+                        onChange={(e) => change("dueFrom", e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Due to{" "}
+                      <input
+                        type="date"
+                        value={params.get("dueTo") || ""}
+                        onChange={(e) => change("dueTo", e.target.value)}
+                      />
+                    </label>
+                    <button
+                      className="tr-button"
+                      onClick={() =>
+                        change(
+                          "sortOrder",
+                          params.get("sortOrder") === "asc" ? "desc" : "asc",
+                        )
+                      }
+                    >
+                      Order: {params.get("sortOrder") || "desc"}
+                    </button>
+                    <button
+                      className="tr-button"
+                      onClick={() => setParams(new URLSearchParams())}
+                    >
+                      Clear filters
+                    </button>
+                    <Link to="/pms/tasks/advanced">Advanced navigator ↗</Link>
+                  </div>
+                )}
+                {!!selected.length && (
+                  <div className="tr-extra">
+                    <strong>{selected.length} selected</strong>
+                    <select
+                      aria-label="Bulk status"
+                      disabled={busy}
+                      value=""
+                      onChange={(e) => void bulk("status", e.target.value)}
+                    >
+                      <option value="">Change status</option>
+                      {statuses.map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Bulk priority"
+                      disabled={busy}
+                      value=""
+                      onChange={(e) => void bulk("priority", e.target.value)}
+                    >
+                      <option value="">Change priority</option>
+                      {["Urgent", "High", "Medium", "Low"].map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div
+                  className={
+                    layout === "gallery"
+                      ? "tr-gallery"
+                      : layout === "table"
+                        ? "tr-table-wrap tr-compact"
+                        : "tr-table-wrap"
+                  }
+                  aria-busy={loading}
+                >
+                  {layout !== "gallery" ? (
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>
+                            <input
+                              type="checkbox"
+                              aria-label="Select editable tasks on this page"
+                              checked={
+                                !!selected.length &&
+                                selected.length ===
+                                  (data?.items.filter((t) =>
+                                    editable.some((p) => p.id === t.project_id),
+                                  ).length || 0)
+                              }
+                              onChange={(e) =>
+                                setSelected(
+                                  e.target.checked
+                                    ? data?.items
+                                        .filter((t) =>
+                                          editable.some(
+                                            (p) => p.id === t.project_id,
+                                          ),
+                                        )
+                                        .map((t) => t.id) || []
+                                    : [],
+                                )
+                              }
+                            />
+                          </th>
+                          {[
+                            "Task",
+                            "Project",
+                            "Priority",
+                            "Assignee",
+                            "Due Date",
+                            "Status",
+                            "Actions",
+                          ].map((h) => (
+                            <th key={h}>
+                              {["Priority", "Due Date", "Status"].includes(
+                                h,
+                              ) ? (
+                                <button
+                                  onClick={() => {
+                                    const sort =
+                                      h === "Priority"
+                                        ? "priority"
+                                        : h === "Due Date"
+                                          ? "dueDate"
+                                          : "status";
+                                    setParams((prev) => {
+                                      const next = new URLSearchParams(prev);
+                                      next.set("sortBy", sort);
+                                      next.set(
+                                        "sortOrder",
+                                        prev.get("sortBy") === sort &&
+                                          prev.get("sortOrder") === "asc"
+                                          ? "desc"
+                                          : "asc",
+                                      );
+                                      next.delete("page");
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  {h}
+                                </button>
+                              ) : (
+                                h
+                              )}
+                              {h !== "Actions" && (
+                                <span className="tr-sort-mark">⌃⌄</span>
+                              )}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data?.items.map((task) => (
+                          <RecordActions
+                            key={task.id}
+                            record={{ ...task, key: task.task_key }}
+                            canEdit={editable.some(
+                              (p) => p.id === task.project_id,
+                            )}
+                            onOpen={() => open(task)}
+                            onChanged={reload}
+                          >
+                            {(more) => (
+                              <tr>
+                                <td>
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Select ${task.title}`}
+                                    disabled={
+                                      !editable.some(
+                                        (p) => p.id === task.project_id,
+                                      )
+                                    }
+                                    checked={selected.includes(task.id)}
+                                    onChange={(e) =>
+                                      setSelected(
+                                        e.target.checked
+                                          ? [...selected, task.id]
+                                          : selected.filter(
+                                              (id) => id !== task.id,
+                                            ),
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td>
+                                  <button
+                                    className="tr-task-title"
+                                    onClick={() => open(task)}
+                                  >
+                                    {task.title}
+                                  </button>
+                                  <small>#{task.task_key || task.id}</small>
+                                </td>
+                                <td>
+                                  <span className="tr-project-name">
+                                    <i
+                                      style={{
+                                        background: [
+                                          "#8239ff",
+                                          "#ed4fcb",
+                                          "#09a0f4",
+                                          "#20bc7d",
+                                        ][task.project_id % 4],
+                                      }}
+                                    />
+                                    {task.project_name}
+                                  </span>
+                                  <small>{task.project_key || "Project"}</small>
+                                </td>
+                                <td>
+                                  <PriorityBadge priority={task.priority} />
+                                </td>
+                                <td>
+                                  <span className="tr-person">
+                                    <Avatar
+                                      name={task.assignee_name || "Unassigned"}
+                                      url={task.assignee_photo_url}
+                                    />
+                                    {task.assignee_name || "Unassigned"}
+                                  </span>
+                                </td>
+                                <td
+                                  className={
+                                    task.due_date &&
+                                    task.due_date < localDay() &&
+                                    !finished(task.status)
+                                      ? "tr-overdue"
+                                      : ""
+                                  }
+                                >
+                                  {task.due_date
+                                    ? new Date(
+                                        task.due_date + "T00:00:00",
+                                      ).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })
+                                    : "No due date"}
+                                </td>
+                                <td>{pill(task)}</td>
+                                <td>{more}</td>
+                              </tr>
+                            )}
+                          </RecordActions>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    data?.items.map((task) => (
+                      <RecordActions
+                        key={task.id}
+                        record={{ ...task, key: task.task_key }}
+                        canEdit={editable.some((p) => p.id === task.project_id)}
+                        onOpen={() => open(task)}
+                        onChanged={reload}
+                      >
+                        {(more) => (
+                          <article className="tr-task-card">
+                            <div className="tr-card-top">
+                              <span>{task.task_key}</span>
+                              {more}
+                            </div>
+                            <button
+                              className="tr-task-title"
+                              onClick={() => open(task)}
+                            >
+                              {task.title}
+                            </button>
+                            <p>{task.project_name}</p>
+                            <div>
+                              {pill(task)}
+                              <PriorityBadge priority={task.priority} />
+                            </div>
+                            <footer>
+                              <span className="tr-person">
+                                <Avatar
+                                  name={task.assignee_name || "Unassigned"}
+                                  url={task.assignee_photo_url}
+                                />
+                                {task.assignee_name || "Unassigned"}
+                              </span>
+                              <span>{task.due_date || "No due date"}</span>
+                            </footer>
+                          </article>
+                        )}
+                      </RecordActions>
+                    ))
+                  )}
+                  {!loading && !data?.items.length && (
+                    <div className="tr-empty">
+                      <ClipboardList />
+                      <h2>
+                        {error
+                          ? "Tasks could not be loaded"
+                          : "No tasks in this view"}
+                      </h2>
+                      <p>
+                        {error
+                          ? "Retry to load your work."
+                          : "Adjust your filters or add a task to get started."}
+                      </p>
+                      <button
+                        className="tr-primary"
+                        onClick={() => (error ? reload() : add())}
+                      >
+                        {error ? "Retry" : "Add Task"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="tr-pagination">
+                  <span>
+                    {loading
+                      ? "Loading tasks…"
+                      : `Showing ${data?.total ? (page - 1) * pageSize + 1 : 0} to ${Math.min(page * pageSize, data?.total || 0)} of ${data?.total || 0} tasks`}
+                  </span>
+                  <label>
+                    Rows{" "}
+                    <select
+                      aria-label="Rows per page"
+                      value={pageSize}
+                      onChange={(e) => change("pageSize", e.target.value)}
+                    >
+                      {[8, 16, 24, 48].map((n) => (
+                        <option key={n}>{n}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="tr-button"
+                    disabled={page <= 1 || loading}
+                    onClick={() => change("page", String(page - 1))}
+                  >
+                    <ChevronLeft size={15} />
+                    Previous
+                  </button>
+                  {Array.from(
+                    { length: Math.min(3, data?.pages || 1) },
+                    (_, i) =>
+                      Math.max(1, Math.min(page - 1, (data?.pages || 1) - 2)) +
+                      i,
+                  )
+                    .filter((n) => n <= (data?.pages || 1))
+                    .map((n) => (
+                      <button
+                        className={n === page ? "tr-primary" : "tr-button"}
+                        key={n}
+                        onClick={() => change("page", String(n))}
+                        aria-label={`Page ${n}`}
+                        aria-current={n === page ? "page" : undefined}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  <button
+                    className="tr-button"
+                    disabled={page >= (data?.pages || 1) || loading}
+                    onClick={() => change("page", String(page + 1))}
+                  >
+                    Next
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              </section>
+            </main>
+            <aside className="tr-right">
+              <section>
+                <h2>
+                  <Sparkles size={19} />
+                  Quick Actions
+                </h2>
+                <div className="tr-quick">
+                  <button className="tr-primary" onClick={() => add()}>
+                    <Plus />
+                    Add Task
+                  </button>
+                  <Link to="/pms/workspaces">
+                    <FileText />
+                    Task Templates
+                  </Link>
+                  <Link to="/pms/automation">
+                    <Zap />
+                    Automation
+                  </Link>
+                  <button
+                    title="Use the project import tools"
+                    onClick={() => {
+                      setImportProject(String(projectId || ""));
+                      setImportOpen(true);
+                    }}
+                  >
+                    <Upload />
+                    Import Tasks
+                  </button>
+                </div>
+              </section>
+              <section>
+                <h2>
+                  Popular Templates<Link to="/pms/workspaces">View all</Link>
+                </h2>
+                {[
+                  {
+                    name: "Bug Report",
+                    sub: "For issue tracking",
+                    icon: Bug,
+                    color: "red",
+                    type: "Bug" as const,
+                  },
+                  {
+                    name: "Feature Request",
+                    sub: "For new features",
+                    icon: Shield,
+                    color: "blue",
+                    type: "Story" as const,
+                  },
+                  {
+                    name: "Server Maintenance",
+                    sub: "For infrastructure tasks",
+                    icon: CalendarDays,
+                    color: "purple",
+                    type: "Task" as const,
+                  },
+                  {
+                    name: "Client Onboarding",
+                    sub: "For new clients",
+                    icon: ClipboardList,
+                    color: "orange",
+                    type: "Task" as const,
+                  },
+                ].map((t) => (
+                  <button
+                    className="tr-template"
+                    key={t.name}
+                    onClick={() => add(t.type, t.name)}
+                  >
+                    <span className={`tr-template-icon ${t.color}`}>
+                      <t.icon size={18} />
+                    </span>
                     <span>
-                      <strong>{a.actor_name}</strong>
-                      <span>{a.summary}</span>
-                      <small>{relativeTime(a.created_at)}</small>
+                      <strong>{t.name}</strong>
+                      <small>{t.sub}</small>
                     </span>
                   </button>
                 ))}
-                {!data?.activity?.length && (
-                  <p>Task activity will appear here as your team works.</p>
-                )}
-              </div>
-            </section>
-          </aside>
-        </div>
+              </section>
+              <section>
+                <h2>
+                  <Clock3 size={15} />
+                  Recent Activity<Link to="/pms/tasks/advanced">View all</Link>
+                </h2>
+                <div className="tr-activity">
+                  {data?.activity?.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() =>
+                        a.task_id && navigate(`/pms/tasks/${a.task_id}`)
+                      }
+                    >
+                      <i />
+                      <Avatar name={a.actor_name} url={a.photo_url} />
+                      <span>
+                        <strong>{a.actor_name}</strong>
+                        <span>{a.summary}</span>
+                        <small>{relativeTime(a.created_at)}</small>
+                      </span>
+                    </button>
+                  ))}
+                  {!data?.activity?.length && (
+                    <p>Task activity will appear here as your team works.</p>
+                  )}
+                </div>
+              </section>
+            </aside>
+          </div>
+        )}
       </div>
       <Dialog.Root
         open={importOpen}

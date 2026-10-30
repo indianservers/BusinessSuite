@@ -12,7 +12,7 @@ from .access import accessible_project_query, organization_id_for, has_any_permi
 from .models import PMSTaskType, PMSTask, PMSProject
 
 router = APIRouter()
-BUILTINS = ["Task", "Story", "Bug", "Feature", "Improvement", "Epic", "Sub-task"]
+BUILTINS = ["Task", "Story", "Bug", "Feature", "Improvement", "Research", "Documentation", "Epic", "Sub-task"]
 
 
 class TypeInput(BaseModel):
