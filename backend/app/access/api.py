@@ -93,7 +93,8 @@ def authority(actor, grants):
 
 
 class StepUp(Strict):
-    password: str = Field(min_length=1, max_length=500)
+    password: str | None = Field(default=None, min_length=1, max_length=500)
+    identity_token: str | None = Field(default=None, min_length=20, max_length=16384)
 
 
 def session_fingerprint(request):
@@ -123,7 +124,21 @@ def step_up(
         raise HTTPException(
             429, "Too many reauthentication attempts; try again in ten minutes"
         )
-    if not verify_password(data.password, actor.hashed_password):
+    verified = False
+    if data.identity_token:
+        from app.core.firebase import verify_google_identity
+        try:
+            identity = verify_google_identity(data.identity_token, settings.FIREBASE_PROJECT_ID,
+                allowed_providers={"google.com", "microsoft.com"})
+            now = datetime.now(timezone.utc).timestamp()
+            verified = (identity["email"].casefold() == actor.email.casefold()
+                        and 0 <= now - identity["auth_time"] <= 300
+                        and not actor.sso_provider_id)
+        except Exception:
+            verified = False
+    elif data.password:
+        verified = verify_password(data.password, actor.hashed_password)
+    if not verified:
         db.add(
             LoginAttempt(
                 user_id=actor.id,
@@ -143,7 +158,7 @@ def step_up(
             outcome="denied",
         )
         db.commit()
-        raise HTTPException(403, "Current password is incorrect")
+        raise HTTPException(403, "Identity verification failed; use your administrator account" if data.identity_token else "Current password is incorrect")
     token = jwt.encode(
         {
             "sub": str(actor.id),

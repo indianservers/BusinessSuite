@@ -1,3 +1,4 @@
+import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, RefreshCw, LockKeyhole } from "lucide-react";
@@ -84,7 +85,7 @@ export default function AiSecurityPage() {
   }
   async function save() {
     try {
-      const token = (await api.post("/access/step-up", { password })).data
+      const token = (await administratorStepUp(password)).data
         .token;
       setPassword("");
       await api.put(
@@ -376,18 +377,9 @@ export default function AiSecurityPage() {
               onChange={(e) => setReason(e.target.value)}
             />
           </label>
-          <label>
-            Administrator password
-            <input
-              aria-label="AI policy password"
-              type="password"
-              className="block border rounded p-2 w-full"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
+          <AdminVerification value={password} onChange={setPassword} />
           {failure && <p role="alert">{failure}</p>}
-          <Button disabled={reason.length < 3 || !password} onClick={save}>
+          <Button disabled={reason.length < 3 || (!password && !usesSocialVerification(password))} onClick={save}>
             Verify and save AI policy
           </Button>
         </DialogContent>

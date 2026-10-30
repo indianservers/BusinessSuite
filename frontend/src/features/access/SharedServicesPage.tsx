@@ -1,3 +1,4 @@
+import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { DndContext, useDraggable, DragEndEvent } from "@dnd-kit/core";
@@ -217,7 +218,7 @@ export default function SharedServicesPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const token = (await api.post("/access/step-up", { password })).data
+      const token = (await administratorStepUp(password)).data
         .token;
       const body = command.body ? command.body() : {};
       const result = await api.request({
@@ -1394,16 +1395,7 @@ export default function SharedServicesPage() {
                 onChange={(e) => setReason(e.target.value)}
               />
             </label>
-            <label className="cc-field">
-              Current administrator password
-              <input
-                required
-                autoComplete="current-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
+            <AdminVerification value={password} onChange={setPassword} />
             {error && <p role="alert">{error}</p>}
             <Button disabled={busy} type="submit">
               {busy ? "Saving…" : "Verify & Apply"}

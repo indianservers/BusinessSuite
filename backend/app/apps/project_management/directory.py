@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
+from app.common.models import CommonPerson
 from .models import PMSWorkspace, PMSWorkspaceMember, PMSWorkspaceTeam
 
 router = APIRouter()
@@ -22,7 +23,7 @@ def people_directory(db: Session = Depends(get_db), user: User = Depends(get_cur
         raise HTTPException(403, "Organization directory requires an administrator, HR or executive role")
     # The authenticated session's company boundary applies to every ORM query.
     # Superusers retain their existing installation-wide visibility.
-    query = db.query(User).options(joinedload(User.role), joinedload(User.person)).order_by(User.email, User.id)
+    query = db.query(User).options(joinedload(User.role), joinedload(User.person).joinedload(CommonPerson.profile)).order_by(User.email, User.id)
     total = query.count()
     users = query.offset((page - 1) * page_size).limit(page_size).all()
     ids = [item.id for item in users]
@@ -36,6 +37,7 @@ def people_directory(db: Session = Depends(get_db), user: User = Depends(get_cur
                        "name": item.person.display_name if item.person else item.email.split("@")[0],
                        "role": "Super Admin" if item.is_superuser else item.role.name if item.role else "User",
                        "is_active": item.is_active,
+                       "profile_photo_url": (item.person.profile.profile_photo_url if item.person and item.person.profile and item.person.profile.directory_visibility == "public" else None),
                        "workspace_ids": [m.workspace_id for m in memberships if m.user_id == item.id and m.workspace_id in workspace_ids]}
                       for item in users],
             "workspaces": [{"id": item.id, "name": item.name} for item in workspaces],

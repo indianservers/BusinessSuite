@@ -1,3 +1,4 @@
+import { Link as AccountAdminLink } from "react-router-dom";
 import { ConversationLauncher } from "@/shared/communication";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields, emailError, textError } from "@/lib/validation";
@@ -411,6 +412,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
     <Card>
       <CardHeader><CardTitle>Set up employee login</CardTitle><p className="text-sm text-muted-foreground">Create a login or link an existing account here to unlock the complete profile.</p></CardHeader>
       <CardContent className="space-y-4">
+        {canChangeRole && <AccountAdminLink className="inline-flex rounded border px-3 py-2 text-sm" to={`/hrms/users?search=${encodeURIComponent(linkedUser?.email || emp.employee_id)}`}>Manage login, password and access</AccountAdminLink>}
         <div className="rounded-lg border bg-muted/30 p-4 text-sm">
           <p className="font-medium">Current login</p>
           <p className="mt-1 text-muted-foreground">
@@ -420,7 +422,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
           </p>
         </div>
 
-        {!emp.user_id && (
+        {canChangeRole && !emp.user_id && (
           <form
             className="rounded-lg border p-4"
             onSubmit={(event) => {
@@ -471,6 +473,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         )}
 
         {userOptions.isError && <p role="alert" className="text-sm text-destructive">Could not load login accounts. <button type="button" className="underline" onClick={() => { void userOptions.refetch(); }}>Retry accounts</button></p>}
+        {canChangeRole && (
         <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
           <div className="space-y-2">
             <Label htmlFor="employee-login-user">Link an existing login account</Label>
@@ -517,6 +520,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
             </Button>
           </div>
         </div>
+        )}
       </CardContent>
     </Card>
   );

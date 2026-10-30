@@ -155,7 +155,7 @@ def _device_name(request: Request | None, explicit: str | None = None) -> str:
     return (agent or "Unknown device")[:150]
 
 
-def _token_response(db: Session, user: User, request: Request | None = None, trusted_device: bool = False, device_name: str | None = None, portal: str | None = None) -> TokenResponse:
+def _token_response(db: Session, user: User, request: Request | None = None, trusted_device: bool = False, device_name: str | None = None, portal: str | None = None, auth_provider: str | None = None) -> TokenResponse:
     from app.core.audit_context import set_audit_actor
     set_audit_actor(user)
     session = UserSession(
@@ -171,8 +171,8 @@ def _token_response(db: Session, user: User, request: Request | None = None, tru
     )
     db.add(session)
     db.flush()
-    access_token = create_access_token(user.id, session_id=session.id, portal=portal)
-    refresh_token = create_refresh_token(user.id, session_id=session.id, portal=portal)
+    access_token = create_access_token(user.id, session_id=session.id, portal=portal, auth_provider=auth_provider)
+    refresh_token = create_refresh_token(user.id, session_id=session.id, portal=portal, auth_provider=auth_provider)
     session.session_token_hash = _hash_token(access_token)
     db.flush()
     employee = getattr(user, "employee", None)
@@ -265,9 +265,9 @@ def _bearer_token(request: Request | None) -> str | None:
     return authorization.split(" ", 1)[1].strip()
 
 
-def _create_mfa_token(user: User, module: str | None = None) -> str:
+def _create_mfa_token(user: User, module: str | None = None, auth_provider: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=5)
-    return jwt.encode({"sub": str(user.id), "scope": "mfa", "module": module, "exp": expire}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return jwt.encode({"sub": str(user.id), "scope": "mfa", "module": module, "auth_provider": auth_provider, "exp": expire}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def _decode_mfa_token(token: str) -> dict:
@@ -468,8 +468,8 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
     _log_attempt(db, user, user.email, True, request=request)
     db.commit()
     if user.mfa_enabled or _active_policy_mfa_required(db):
-        return {"mfa_required":True, "mfa_token":_create_mfa_token(user, data.module), "mfa_methods":["totp", "recovery"]}
-    response = _token_response(db, user, request)
+        return {"mfa_required":True, "mfa_token":_create_mfa_token(user, data.module, data.provider), "mfa_methods":["totp", "recovery"]}
+    response = _token_response(db, user, request, auth_provider=data.provider)
     db.commit()
     return response
 
@@ -508,7 +508,7 @@ def verify_mfa_login(data: MFAVerifyRequest, request: Request, db: Session = Dep
     user.last_login = datetime.now(timezone.utc)
     _log_attempt(db, user, user.email, True, request=request, mfa_attempted=True, mfa_success=True)
     trusted_device_token = _create_trusted_device(db, user, request, data.device_name) if data.trust_device else None
-    token_response = _token_response(db, user, request, trusted_device=bool(data.trust_device), device_name=data.device_name, portal="interns_hub" if payload.get("module") == "interns_hub" else None)
+    token_response = _token_response(db, user, request, trusted_device=bool(data.trust_device), device_name=data.device_name, portal="interns_hub" if payload.get("module") == "interns_hub" else None, auth_provider=payload.get("auth_provider"))
     db.commit()
     body = token_response.model_dump()
     if trusted_device_token:
@@ -538,8 +538,8 @@ def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)):
     else:
         session = None
 
-    access_token = create_access_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"))
-    refresh_token_new = create_refresh_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"))
+    access_token = create_access_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"), auth_provider=payload.get("auth_provider"))
+    refresh_token_new = create_refresh_token(user.id, session_id=session.id if session else None, portal=payload.get("portal"), auth_provider=payload.get("auth_provider"))
     if session:
         session.session_token_hash = _hash_token(access_token)
         session.last_seen_at = datetime.now(timezone.utc)

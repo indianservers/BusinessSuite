@@ -1,3 +1,4 @@
+import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import {
   useDeferredValue,
@@ -50,6 +51,7 @@ import { toast } from "@/hooks/use-toast";
 import WorkReviewPanel from "@/apps/project-management/components/WorkReviewPanel";
 import InternApplicationsPage from "./InternApplicationsPage";
 import InternQuickLinks from "./InternQuickLinks";
+import FullDetailsExport from "../../components/FullDetailsExport";
 import InternTaskProgramsPanel from "./InternTaskProgramsPanel";
 import InternsHubAdminPage from "./InternsHubAdminPage";
 import "./intern-management.css";
@@ -629,6 +631,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
               Create Batch
             </Button>
           )}
+          {!isPms && <FullDetailsExport endpoint={root + "/export/full"} params={params} filename="interns_full_details.xlsx" />}
           {page === "reviews" || page === "performance" ? (
             <Button onClick={exportPage} variant="outline">
               <Download size={15} />
@@ -991,12 +994,10 @@ export default function InternManagementPage({ page }: { page: Page }) {
                   [
                     "Intern",
                     (r) => (
-                      <div>
-                        <b>{r.name}</b>
-                        <small>
-                          {r.intern_id} · {r.email}
-                        </small>
-                      </div>
+                      <div className="min-w-[280px] max-w-md"><ProfileListCard name={r.name} photoUrl={r.profile_photo_url}
+                        subtitle={<><strong>{r.degree || "Intern"}</strong>{r.department && ` · ${r.department}`}</>}
+                        tags={[r.intern_id,...(r.skills || []).slice(0,2)]}
+                        actions={<><ProfileAction href={`/hrms/employees/${r.id}`}>View profile</ProfileAction>{r.email && <ProfileAction href={`mailto:${r.email}`}>Email</ProfileAction>}</>} /></div>
                     ),
                   ],
                   ["Department", (r) => r.department || "—"],

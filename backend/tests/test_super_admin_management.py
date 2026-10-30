@@ -49,3 +49,37 @@ def test_logo_validation(client, db, access_account, superuser_headers, tmp_path
     assert branding.status_code==200
     assert branding.json()["values"]["appName"]=="Indian Servers Pvt Limited"
     assert normalize_upload_references(branding.json())["values"]["logoPath"].startswith("/uploads/branding/")
+
+
+from tests.test_intern_signup_settings import firebase_identity
+import pytest
+import time
+
+
+@pytest.mark.parametrize("provider", ["google.com", "microsoft.com"])
+def test_social_step_up_can_promote(client, db, access_account, superuser_headers, firebase_identity, monkeypatch, provider):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "FIREBASE_PROJECT_ID", "test-project")
+    identity = firebase_identity(email="testadmin@test.com", firebase={"sign_in_provider": provider})
+    result = client.post("/api/v1/access/step-up", json={"identity_token": identity}, headers=superuser_headers)
+    assert result.status_code == 200, result.text
+    headers = {**superuser_headers, "X-Access-Step-Up": result.json()["token"]}
+    result = client.post(ROOT, json={"email": access_account.email, "reason": "Requested administrator access"}, headers=headers)
+    assert result.status_code == 200, result.text
+    db.refresh(access_account)
+    assert access_account.is_superuser
+
+
+@pytest.mark.parametrize("changes", [
+    {"email": "someone-else@example.com"},
+    {"auth_time": int(time.time()) - 600},
+    {"email_verified": False},
+    {"firebase": {"sign_in_provider": "password"}},
+    {"aud": "another-project"},
+])
+def test_social_step_up_rejects_invalid_identity(client, superuser_headers, firebase_identity, monkeypatch, changes):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "FIREBASE_PROJECT_ID", "test-project")
+    token = firebase_identity(email="testadmin@test.com", **changes) if "email" not in changes else firebase_identity(**changes)
+    result = client.post("/api/v1/access/step-up", json={"identity_token": token}, headers=superuser_headers)
+    assert result.status_code == 403, result.text

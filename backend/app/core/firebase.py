@@ -46,5 +46,5 @@ def verify_google_identity(token, project, allowed_providers=None):
     name = claims.get('name') or ''
     if not isinstance(name, str):
         raise ValueError('Invalid display name')
-    return {'email':email, 'full_name':name.strip()[:160], 'provider':'google' if provider == 'google.com' else 'microsoft', 'subject':claims['sub']}
+    return {'email':email, 'full_name':name.strip()[:160], 'provider':'google' if provider == 'google.com' else 'microsoft', 'subject':claims['sub'], 'auth_time':claims['auth_time']}
 

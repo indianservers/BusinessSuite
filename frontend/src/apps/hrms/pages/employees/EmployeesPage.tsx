@@ -1,3 +1,6 @@
+import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
+import { useAuthStore as useAccountAdminStore } from "@/store/authStore";
+import FullDetailsExport from "../../components/FullDetailsExport";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -47,6 +50,8 @@ interface Employee {
   status: string;
   date_of_joining: string;
   profile_photo_url: string | null;
+  skills_tags?: string | null;
+  branch_id?: number | null;
 }
 const EmployeeDetailPage = lazy(() => import("./EmployeeDetailPage"));
 
@@ -63,6 +68,7 @@ function useDebouncedValue(value: string, delay = 300) {
 
 export default function EmployeesPage() {
   usePageTitle("Employees");
+  const canManageAccounts = useAccountAdminStore(state => state.user?.is_superuser === true);
   const [employeePopup, setEmployeePopup] = useState<{ employee: Employee; editing: boolean } | null>(null);
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -73,6 +79,7 @@ export default function EmployeesPage() {
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   const [perPage, setPerPage] = useState(20);
+  const [layout, setLayout] = useState<"cards" | "table">("cards");
   const { data: filterOptions, isError: optionsError, refetch: reloadOptions } = useQuery({
     queryKey: ["employee-filter-options"],
     queryFn: async () => {
@@ -285,6 +292,8 @@ export default function EmployeesPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant={layout === "cards" ? "default" : "outline"} size="sm" aria-pressed={layout === "cards"} onClick={() => setLayout("cards")}>Profile cards</Button>
+          <Button variant={layout === "table" ? "default" : "outline"} size="sm" aria-pressed={layout === "table"} onClick={() => setLayout("table")}>Table</Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -305,6 +314,8 @@ export default function EmployeesPage() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
+          {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
           <Link to="/hrms/employees/new">
             <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
@@ -337,7 +348,7 @@ export default function EmployeesPage() {
           </Select>
         </div>
         <details open className="mt-4 border-t pt-3">
-          <summary className="cursor-pointer text-sm font-medium">Filters {activeCount > 0 ? `(${activeCount} active)` : "— city, education, job and account"}</summary>
+          <summary className="cursor-pointer text-sm font-medium">Filters {activeCount > 0 ? `(${activeCount} active)` : "â€” city, education, job and account"}</summary>
           {optionsError && <p role="alert" className="mt-2 text-sm text-destructive">Could not load filter choices. <button className="underline" onClick={() => void reloadOptions()}>Retry</button></p>}
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {filterFields.map(([key, label]) => (
@@ -367,8 +378,23 @@ export default function EmployeesPage() {
       {isError && <div role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail && typeof (error as any).response.data.detail === "string" ? (error as any).response.data.detail : "Could not load employees. Check filters and try again."} <button className="underline" onClick={() => void refetch()}>Retry</button></div>}
 
       {/* Table */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card className={layout === "cards" ? "overflow-hidden border-0 bg-transparent shadow-none" : "overflow-hidden"}>
+        {layout === "cards" && <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+          {isLoading ? Array.from({length:6},(_,i) => <div key={i} className="h-28 rounded-lg border bg-card p-4"><div className="h-10 w-10 rounded-full skeleton" /><div className="mt-2 h-3 w-2/3 skeleton" /></div>) : (data?.items || []).map((employee: Employee) => {
+            const name = `${employee.first_name} ${employee.last_name}`;
+            const designation = filterOptions?.designation_id?.find(option => option.value === String(employee.designation_id))?.label;
+            const department = filterOptions?.department_id?.find(option => option.value === String(employee.department_id))?.label;
+            const branch = filterOptions?.branch_id?.find(option => option.value === String(employee.branch_id))?.label;
+            return <ProfileListCard key={employee.id} name={name} photoUrl={employee.profile_photo_url} location={branch}
+              subtitle={<><strong>{designation || employee.employment_type}</strong>{department && ` Â· ${department}`}</>}
+              status={{label:employee.status,tone:employee.status.toLowerCase() === "active" ? "positive" : "muted"}}
+              tags={[employee.employee_id,...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,2)]}
+              onOpen={() => setEmployeePopup({employee,editing:false})}
+              actions={<><ProfileAction onClick={() => setEmployeePopup({employee,editing:false})}>View profile</ProfileAction><ProfileAction onClick={() => setEmployeePopup({employee,editing:true})}>Edit</ProfileAction>{employee.personal_email && <ProfileAction href={`mailto:${employee.personal_email}`}>Email</ProfileAction>}</>} />;
+          })}
+          {!isLoading && !data?.items?.length && <div className="col-span-full rounded-lg border bg-card p-10 text-center text-muted-foreground">No profiles match these filters.</div>}
+        </div>}
+        {layout === "table" && <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -432,7 +458,7 @@ export default function EmployeesPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </div>}
 
         {/* Pagination */}
         {data && data.pages > 1 && (
@@ -471,7 +497,7 @@ export default function EmployeesPage() {
             <DialogTitle className="text-lg font-semibold">{employeePopup?.editing ? "Edit employee" : "Employee preview"}: {employeePopup?.employee.first_name} {employeePopup?.employee.last_name}</DialogTitle>
           </div>
           <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-6">
-            {employeePopup && <Suspense fallback={<p role="status" className="p-6 text-muted-foreground">Loading employee details…</p>}>
+            {employeePopup && <Suspense fallback={<p role="status" className="p-6 text-muted-foreground">Loading employee detailsâ€¦</p>}>
               <EmployeeDetailPage key={`${employeePopup.employee.id}-${employeePopup.editing}`} employeeId={employeePopup.employee.id} initialEditing={employeePopup.editing} onClose={() => setEmployeePopup(null)} />
             </Suspense>}
           </div>

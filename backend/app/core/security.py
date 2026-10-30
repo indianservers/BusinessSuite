@@ -10,13 +10,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 logger = logging.getLogger(__name__)
 
 
-def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None, session_id: int | None = None, portal: str | None = None, ai_origin: dict | None = None) -> str:
+def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None, session_id: int | None = None, portal: str | None = None, ai_origin: dict | None = None, auth_provider: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
     if ai_origin is not None:
         to_encode["ai_origin"]=ai_origin
+    if auth_provider in {"google", "microsoft"}:
+        to_encode["auth_provider"] = auth_provider
     if portal:
         to_encode["portal"] = portal
     if session_id is not None:
@@ -24,9 +26,11 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_refresh_token(subject: Union[str, Any], session_id: int | None = None, portal: str | None = None) -> str:
+def create_refresh_token(subject: Union[str, Any], session_id: int | None = None, portal: str | None = None, auth_provider: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    if auth_provider in {"google", "microsoft"}:
+        to_encode["auth_provider"] = auth_provider
     if portal:
         to_encode["portal"] = portal
     if session_id is not None:

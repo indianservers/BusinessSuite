@@ -105,7 +105,7 @@ def performance(db,user,filters,day,*,page=1,per_page=50):
         if expected-count>=3:risks.append("Missing eligible-day reports (approved leave excluded)")
         if parts["quality"] is not None and parts["quality"]<50:risks.append("Reviewed work quality below 50")
         edu=educations.get(e.id)
-        output.append({"id":e.id,"user_id":e.user_id,"intern_id":e.employee_id,"name":f"{e.first_name} {e.last_name}","email":e.work_email or e.personal_email,
+        output.append({"id":e.id,"user_id":e.user_id,"intern_id":e.employee_id,"name":f"{e.first_name} {e.last_name}","email":e.work_email or e.personal_email,"profile_photo_url":e.profile_photo_url,
             "department_id":e.department_id,"department":departments.get(e.department_id),"manager_id":e.reporting_manager_id,
             "college":edu.institution if edu else None,"degree":edu.degree if edu else None,"skills":skills.get(e.id,[]),"status":e.status,
             "batches":[{"id":b.id,"name":b.name,"code":b.code,"mentor_id":b.mentor_user_id} for b in batches],"assigned":assigned,"accepted":accepted,"overdue":int(s.overdue or 0) if s else 0,

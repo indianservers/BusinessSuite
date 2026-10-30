@@ -1,3 +1,4 @@
+import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -236,7 +237,7 @@ export default function ControlCenter() {
     setBusy(true);
     setError("");
     try {
-      const { data: step } = await api.post("/access/step-up", { password });
+      const { data: step } = await administratorStepUp(password);
       const body = dialog.body ? dialog.body(values) : values;
       await api.request({
         url: dialog.url,
@@ -1014,16 +1015,7 @@ export default function ControlCenter() {
                 onChange={(e) => setReason(e.target.value)}
               />
             </label>
-            <label className="cc-field">
-              Current administrator password
-              <input
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
+            <AdminVerification value={password} onChange={setPassword} />
             {error && <p role="alert">{error}</p>}
             <Button disabled={busy} type="submit">
               {busy ? "Saving…" : "Verify & Save"}
@@ -1090,7 +1082,7 @@ export function UserAccess360() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const step = await api.post("/access/step-up", { password });
+      const step = await administratorStepUp(password);
       await api.put(
         `${root}/users/${userId}/identity`,
         {
@@ -1278,15 +1270,7 @@ export function UserAccess360() {
                 onChange={(e) => setReason(e.target.value)}
               />
             </label>
-            <label className="cc-field">
-              Current administrator password
-              <input
-                required
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </label>
+            <AdminVerification value={password} onChange={setPassword} />
             <p>
               Identity changes revoke active sessions. Employee records remain
               distinct.

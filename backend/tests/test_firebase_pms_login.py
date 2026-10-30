@@ -155,3 +155,16 @@ def test_suite_google_login_without_module(client, pms_account, firebase_identit
     response = client.post('/api/v1/auth/firebase/login', json={'token': firebase_identity(email=pms_account.email)})
     assert response.status_code == 200, response.text
     assert response.json()['email'] == pms_account.email
+
+
+@pytest.mark.parametrize("provider", ["google", "microsoft"])
+def test_social_provider_survives_refresh(client, superuser_headers, firebase_identity, provider):
+    from app.core.security import verify_access_token, verify_refresh_token
+    result = login(client, firebase_identity(email="testadmin@test.com", firebase={"sign_in_provider": provider + ".com"}), provider=provider)
+    assert result.status_code == 200, result.text
+    body = result.json()
+    assert verify_access_token(body["access_token"])["auth_provider"] == provider
+    assert verify_refresh_token(body["refresh_token"])["auth_provider"] == provider
+    refreshed = client.post("/api/v1/auth/refresh", json={"refresh_token": body["refresh_token"]})
+    assert refreshed.status_code == 200, refreshed.text
+    assert verify_access_token(refreshed.json()["access_token"])["auth_provider"] == provider

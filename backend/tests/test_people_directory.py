@@ -26,6 +26,23 @@ def test_accounts_without_employee_or_workspace_are_included_and_paginated(db):
     assert first["items"][0]["id"] != second["items"][0]["id"]
 
 
+def test_directory_photos_respect_profile_visibility(db):
+    from app.common.models import CommonPerson, CommonProfile
+    admin = User(email="photo.admin@directory.test", hashed_password="unused", is_superuser=True)
+    public = User(email="public@directory.test", hashed_password="unused")
+    private = User(email="private@directory.test", hashed_password="unused")
+    db.add_all([admin, public, private]); db.flush()
+    for user, visibility in [(public, "public"), (private, "hidden")]:
+        person = CommonPerson(user_id=user.id, organization_id=1, display_name=user.email)
+        db.add(person); db.flush()
+        db.add(CommonProfile(person_id=person.id, profile_photo_url="/uploads/portrait.png", directory_visibility=visibility))
+    db.commit()
+    result = people_directory(db, admin, page=1, page_size=100)
+    people = {row["id"]: row for row in result["items"]}
+    assert people[public.id]["profile_photo_url"] == "/uploads/portrait.png"
+    assert people[private.id]["profile_photo_url"] is None
+
+
 @pytest.mark.parametrize("role", ["Admin", "HR", "hr_admin", "hr_manager", "CEO", "pms_org_admin"])
 def test_senior_roles_can_explore(db, role):
     r = Role(name=role); db.add(r); db.flush()

@@ -1,3 +1,5 @@
+import ProfileListCard, { ProfileAction } from "./ProfileListCard";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -6,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
 
-type Person = { id: number; email: string; name: string; role: string; is_active: boolean; workspace_ids: number[] };
+type Person = { id: number; email: string; name: string; role: string; is_active: boolean; workspace_ids: number[]; profile_photo_url?: string | null };
 type Group = { id: number; name: string };
 type Team = Group & { workspace_id: number; member_ids: number[] };
 type Directory = { items: Person[]; total: number; workspaces: Group[]; teams: Team[] };
@@ -24,6 +26,7 @@ export default function PeopleDirectoryPage() {
   const [team, setTeam] = useState("");
   const [role, setRole] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   useRefreshableEffect(() => {
     let cancelled = false;
     setData(undefined); setError("");
@@ -60,7 +63,32 @@ export default function PeopleDirectoryPage() {
       </div>
       <p role="status">{people.length} of {data.total} users</p>
       <div className="space-y-2 rounded-lg border p-3"><div className="flex flex-wrap items-center gap-2"><label className="text-sm">Load saved directory view<select className="ml-2 rounded border bg-background p-2" value="" onChange={e => { const view = savedViews.find(v => v.name === e.target.value); if (view) { setQuery(view.query); setWorkspace(view.workspace); setTeam(view.team); setRole(view.role); } }}><option value="">Choose a saved view</option>{savedViews.map(v => <option key={v.name}>{v.name}</option>)}</select></label><form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); const next = [...savedViews.filter(v => v.name !== viewName.trim()), { name: viewName.trim(), query, workspace, team, role }].slice(-20); try { localStorage.setItem(viewKey, JSON.stringify(next)); setSavedViews(next); setViewName(""); setViewMessage("Directory view saved on this browser."); } catch { setViewMessage("This browser could not save the view. Your filters are unchanged."); } }}><Input aria-label="Directory view name" placeholder="Save current filters as…" required maxLength={60} value={viewName} onChange={e => setViewName(e.target.value)} /><Button variant="outline" disabled={!viewName.trim()}>Save directory view</Button></form></div>{viewMessage && <p role="status" className="text-xs text-muted-foreground">{viewMessage}</p>}{savedViews.length > 0 && <details><summary className="cursor-pointer text-xs">Manage saved views</summary>{savedViews.map(v => <div key={v.name} className="mt-2 flex gap-3 text-sm"><span>{v.name}</span><button className="underline" onClick={() => { const next = savedViews.filter(item => item.name !== v.name); try { localStorage.setItem(viewKey, JSON.stringify(next)); setSavedViews(next); } catch { setViewMessage("Could not remove saved view."); } }}>Remove</button></div>)}</details>}</div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{people.map(p => <article data-context-record={p.name} key={p.id} className="space-y-2 rounded-xl border bg-card p-5"><h2 className="font-semibold">{p.name}</h2><a data-context-action={`Email ${p.name}`} className="break-all text-primary" href={`mailto:${p.email}`}>{p.email}</a><p className="text-sm">{p.role} · {p.is_active ? "Active" : "Inactive"}</p><div className="flex flex-wrap gap-2">{p.workspace_ids.map(id => <button data-context-action={`Explore workspace ${data.workspaces.find(w => w.id === id)?.name}`} className="rounded border px-2 py-1 text-sm" key={id} onClick={() => { setWorkspace(String(id)); setTeam(""); }}>{data.workspaces.find(w => w.id === id)?.name}</button>)}{!p.workspace_ids.length && <span className="text-sm text-muted-foreground">No workspace membership</span>}</div><div className="flex flex-wrap gap-2">{data.teams.filter(t => t.member_ids.includes(p.id)).map(t => <button data-context-action={`Explore team ${t.name}`} className="rounded bg-muted px-2 py-1 text-sm" key={t.id} onClick={() => { setWorkspace(String(t.workspace_id)); setTeam(String(t.id)); }}>{t.name}</button>)}</div></article>)}</div>
+      <div className="grid gap-2.5 lg:grid-cols-2 xl:grid-cols-3">{people.map(p => {
+        const workspaces = p.workspace_ids.map(id => ({ id, name: data.workspaces.find(w => w.id === id)?.name })).filter(w => !!w.name);
+        const memberTeams = data.teams.filter(t => t.member_ids.includes(p.id));
+        return <ProfileListCard key={p.id} name={p.name} photoUrl={p.profile_photo_url}
+          location={workspaces[0]?.name} subtitle={<><strong>{p.role.replace(/_/g, " ")}</strong> · {p.email}</>}
+          status={{ label: p.is_active ? "Active" : "Inactive", tone: p.is_active ? "positive" : "muted" }}
+          onOpen={() => setSelectedPerson(p)}
+          tags={[
+            ...workspaces.slice(0, 2).map(w => ({ label: w.name!, onClick: () => { setWorkspace(String(w.id)); setTeam(""); } })),
+            ...memberTeams.slice(0, 2).map(t => ({ label: t.name, onClick: () => { setWorkspace(String(t.workspace_id)); setTeam(String(t.id)); } })),
+            ...(workspaces.length + memberTeams.length > 4 ? [{ label: "More memberships", onClick: () => setSelectedPerson(p) }] : []),
+          ]}
+          actions={<><ProfileAction onClick={() => setSelectedPerson(p)} label={`View profile of ${p.name}`}>View profile</ProfileAction><ProfileAction href={`mailto:${p.email}`} label={`Email ${p.name}`}>Email</ProfileAction></>} />;
+      })}</div>
+      <Dialog open={!!selectedPerson} onOpenChange={open => { if (!open) setSelectedPerson(null); }}><DialogContent>
+        <DialogTitle>Profile overview</DialogTitle>
+        {selectedPerson && <><ProfileListCard name={selectedPerson.name} photoUrl={selectedPerson.profile_photo_url}
+          subtitle={selectedPerson.role.replace(/_/g, " ")} status={{label:selectedPerson.is_active ? "Active" : "Inactive",tone:selectedPerson.is_active ? "positive" : "muted"}}
+          actions={<ProfileAction href={`mailto:${selectedPerson.email}`}>Email {selectedPerson.name}</ProfileAction>} />
+          <p className="break-all text-sm text-muted-foreground">{selectedPerson.email}</p>
+          <div><h3 className="mb-2 text-sm font-medium">Workspaces &amp; teams</h3><div className="flex flex-wrap gap-2">
+            {selectedPerson.workspace_ids.map(id => <ProfileAction key={id} onClick={() => {setWorkspace(String(id));setTeam("");setSelectedPerson(null);}}>{data.workspaces.find(w => w.id === id)?.name || "Workspace"}</ProfileAction>)}
+            {data.teams.filter(t => t.member_ids.includes(selectedPerson.id)).map(t => <ProfileAction key={`team-${t.id}`} onClick={() => {setWorkspace(String(t.workspace_id));setTeam(String(t.id));setSelectedPerson(null);}}>{t.name}</ProfileAction>)}
+            {!selectedPerson.workspace_ids.length && <p className="text-sm text-muted-foreground">No workspace membership</p>}
+          </div></div></>}
+      </DialogContent></Dialog>
       {!people.length && <p>No users match these filters.</p>}
     </>}
   </main>;

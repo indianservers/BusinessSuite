@@ -1,3 +1,4 @@
+import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
 import SuperAdminManager from "./SuperAdminManager";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -1657,8 +1658,7 @@ export default function UsersAccessPage() {
           <DialogContent className="ua-root ua-step">
             <DialogTitle>Verify your administrator identity</DialogTitle>
             <p>
-              Re-enter your current password to apply this administrative
-              change.
+              Verify your administrator identity to apply this change.
             </p>
             <form
               onSubmit={async (e) => {
@@ -1666,7 +1666,7 @@ export default function UsersAccessPage() {
                 setBusy(true);
                 setError("");
                 try {
-                  const r = await api.post("/access/step-up", { password });
+                  const r = await administratorStepUp(password);
                   await operation(r.data.token);
                   setOperation(undefined);
                   setPassword("");
@@ -1677,23 +1677,13 @@ export default function UsersAccessPage() {
                 }
               }}
             >
-              <label>
-                Current password
-                <input
-                  aria-label="Current administrator password"
-                  autoComplete="current-password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </label>
+              <AdminVerification value={password} onChange={setPassword} />
               {error && (
                 <p role="alert" className="ua-error">
                   {error}
                 </p>
               )}
-              <Button disabled={busy || !password}>Verify & continue</Button>
+              <Button disabled={busy || (!password && !usesSocialVerification(password))}>Verify & continue</Button>
             </form>
           </DialogContent>
         </Dialog>

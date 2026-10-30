@@ -1,3 +1,4 @@
+const UserAccountsPage = React.lazy(() => import("@/apps/hrms/pages/employees/UserAccountsPage"));
 import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
@@ -83,6 +84,7 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "interns/reviews", element: <InternManagementPage page="reviews" /> },
   { path: "interns/performance", element: <InternManagementPage page="performance" /> },
 
+  { path: "users", element: <UserAccountsPage /> },
   { path: "employees", element: <EmployeesPage /> },
   { path: "employees/new", element: <AddEmployeePage /> },
   { path: "employees/:id", element: <EmployeeDetailPage /> },

@@ -1,3 +1,5 @@
+import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
+import FullDetailsExport from "../../components/FullDetailsExport";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -243,58 +245,19 @@ export default function EmployeeDirectoryPage() {
   );
 
   const renderEmployee = (employee: DirectoryEmployee) => (
-    <Card key={employee.id} className={employee.is_direct_report ? "border-primary" : undefined}>
-      <CardContent className="p-4">
-        <div className={viewMode === "list" ? "flex items-center gap-4" : "flex gap-3"}>
-          {employee.profile_photo_url ? (
-            <img src={assetUrl(employee.profile_photo_url)} alt={employee.full_name} className="h-12 w-12 rounded-full object-cover" />
-          ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {getInitials(employee.full_name)}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate font-medium">{employee.full_name}</p>
-                <p className="text-xs text-muted-foreground">{employee.employee_id}</p>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {employee.is_direct_report && <Badge>Direct report</Badge>}
-                {employee.work_location && <Badge variant="outline">{employee.work_location}</Badge>}
-                {employee.contact_masked && <Badge variant="secondary">Privacy</Badge>}
-              </div>
-            </div>
-            <div className="mt-3 space-y-1 text-sm">
-              <p className="text-muted-foreground">
-                {employee.designation || "No designation"}{employee.department ? `, ${employee.department}` : ""}
-              </p>
-              {employee.branch && <p className="text-xs text-muted-foreground">{employee.branch}</p>}
-              {(employee.desk_code || employee.office_extension) && (
-                <p className="text-xs text-muted-foreground">
-                  {employee.desk_code ? `Desk ${employee.desk_code}` : ""}
-                  {employee.desk_code && employee.office_extension ? " | " : ""}
-                  {employee.office_extension ? `Ext ${employee.office_extension}` : ""}
-                </p>
-              )}
-              {employee.reporting_manager && <p className="text-xs text-muted-foreground">Manager: {employee.reporting_manager}</p>}
-              {employee.skills_tags && <p className="line-clamp-1 text-xs text-muted-foreground">Skills: {employee.skills_tags}</p>}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {employee.email && employee.email !== "Hidden by privacy setting" && (
-                <a href={`mailto:${employee.email}`}><Button variant="outline" size="sm" className="h-8"><Mail className="mr-2 h-3.5 w-3.5" />Email</Button></a>
-              )}
-              {employee.phone_number && employee.phone_number !== "Hidden by privacy setting" && (
-                <a href={`tel:${employee.phone_number_country_code || ""}${employee.phone_number}`}><Button variant="outline" size="sm" className="h-8"><Phone className="mr-2 h-3.5 w-3.5" />Call</Button></a>
-              )}
-              <Button variant="outline" size="sm" className="h-8" onClick={() => setSelectedId(employee.id)}><Eye className="mr-2 h-3.5 w-3.5" />Card</Button>
-              <Button variant="ghost" size="sm" className="h-8" onClick={() => setReportEmployee(employee)}>Report</Button>
-              {canManage && <Link to={`/hrms/employees/${employee.id}`}><Button variant="ghost" size="sm" className="h-8">Open</Button></Link>}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <ProfileListCard key={employee.id} name={employee.full_name} photoUrl={employee.profile_photo_url}
+      location={employee.branch || employee.work_location} onOpen={() => setSelectedId(employee.id)}
+      subtitle={<><strong>{employee.designation || employee.employee_id}</strong>{employee.department && ` · ${employee.department}`}</>}
+      tags={[...(employee.is_direct_report ? ["Direct report"] : []), ...(employee.contact_masked ? ["Privacy protected"] : []),
+        ...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,3)]}
+      actions={<>
+        <ProfileAction onClick={() => setSelectedId(employee.id)}>View profile</ProfileAction>
+        {employee.email && employee.email !== "Hidden by privacy setting" && <ProfileAction href={`mailto:${employee.email}`}>Email</ProfileAction>}
+        {employee.phone_number && employee.phone_number !== "Hidden by privacy setting" && <ProfileAction href={`tel:${employee.phone_number_country_code || ""}${employee.phone_number}`}>Call</ProfileAction>}
+        <ProfileAction onClick={() => setReportEmployee(employee)}>Report</ProfileAction>
+        {canManage && <ProfileAction href={`/hrms/employees/${employee.id}`}>Full profile</ProfileAction>}
+      </>}
+    />
   );
 
   return (
@@ -324,6 +287,7 @@ export default function EmployeeDirectoryPage() {
             {viewMode === "grid" ? "List" : "Grid"}
           </Button>
           {canManage && <Button variant="outline" onClick={exportDirectory}><Download className="mr-2 h-4 w-4" />Export</Button>}
+          <FullDetailsExport endpoint="/employees/directory/export/full" params={params} filename="employees_full_details.xlsx" />
         </div>
       </div>
 

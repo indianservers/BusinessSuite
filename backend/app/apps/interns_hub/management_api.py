@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 from sqlalchemy import func, or_, case
 from sqlalchemy.orm import Session, joinedload
-from app.core.deps import get_db
+from app.core.deps import get_db, get_current_active_superuser
 from app.models.user import User
 from app.models.employee import Employee
 from app.models.company import Branch, Department
@@ -442,6 +442,13 @@ def export(f=Depends(filters),page:int=Query(1,ge=1),user=Depends(require_admin)
     def safe(v):return "'"+v if isinstance(v,str) and v.startswith(("=","+","-","@")) else v
     for r in records["items"]:writer.writerow([safe(r["intern_id"]),safe(r["name"]),safe(r["department"] or ""),r["assigned"],r["accepted"],r["overdue"],r["score"],r["parts"]["reports"],r["attendance"]])
     return Response(stream.getvalue(),media_type="text/csv",headers={"Content-Disposition":f'attachment; filename="intern-performance-page-{page}.csv"',"X-Total-Records":str(records["total"])})
+
+
+@router.get("/export/full")
+def export_full_profiles(f=Depends(filters), user=Depends(get_current_active_superuser), db:Session=Depends(get_db)):
+    from app.services.employee_export import full_profile_workbook
+    return full_profile_workbook(db, user, filtered_employees(db, user, f),
+        filename="interns_full_details.xlsx", endpoint="/api/v1/interns-hub/management/export/full")
 
 
 @router.get("/legacy")

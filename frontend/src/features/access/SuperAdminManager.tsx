@@ -1,3 +1,4 @@
+import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import { useState } from "react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ export default function SuperAdminManager({ companyId }: { companyId: number }) 
         <form className="space-y-4" onSubmit={async event => {
           event.preventDefault(); setBusy(true); setError(""); setMessage("");
           try {
-            const token = (await api.post("/access/step-up", { password })).data.token;
+            const token = (await administratorStepUp(password)).data.token;
             await api.post("/access/control/super-admins", { companyId, email: email.trim(), password: newPassword || null, reason }, { headers: { "X-Access-Step-Up": token } });
             setMessage(`Super Admin access granted to ${email.trim()}.`); setEmail(""); setReason("");
           } catch (e: any) { setError(typeof e?.response?.data?.detail === "string" ? e.response.data.detail : "Could not grant access. Check the details and try again."); }
@@ -28,7 +29,7 @@ export default function SuperAdminManager({ companyId }: { companyId: number }) 
           <label className="block">Email<input className="w-full rounded border p-2" type="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
           <label className="block">New account password (leave empty for existing users)<input className="w-full rounded border p-2" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></label>
           <label className="block">Reason<input className="w-full rounded border p-2" required minLength={3} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} /></label>
-          <label className="block">Your current password<input className="w-full rounded border p-2" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>
+          <AdminVerification value={password} onChange={setPassword} />
           {error && <p role="alert" className="text-destructive">{error}</p>}{message && <p role="status">{message}</p>}
           <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Grant full Super Admin access"}</Button>
         </form>

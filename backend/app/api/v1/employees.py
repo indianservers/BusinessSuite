@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
-from app.core.deps import get_db, get_current_user, RequirePermission
+from app.core.deps import get_db, get_current_user, get_current_active_superuser, RequirePermission
 from app.core.hr_audit import record_employee_field_changes
 from app.core.masking import mask_employee_detail, mask_employee_list_item
 from app.core.security import get_password_hash
@@ -38,6 +38,8 @@ from app.core.config import settings
 from app.core.employee_directory import EmployeeDirectoryFilters, apply_employee_directory_filters, order_employee_directory
 from app.core.employee_scope import employee_tenant_scope, validate_employee_links
 router = APIRouter(prefix="/employees", tags=["Employees"], dependencies=[Depends(employee_tenant_scope)])
+from app.api.v1.employee_accounts import router as accounts_router
+router.include_router(accounts_router)
 _DIRECTORY_SEARCH_BUCKETS: dict[int, list[float]] = {}
 
 
@@ -958,6 +960,38 @@ def export_employees(
     )
 
 
+@router.get("/directory/export/full")
+def export_full_directory_profiles(
+    search: Optional[str] = None, department_id: Optional[int] = None,
+    designation_id: Optional[int] = None, branch_id: Optional[int] = None,
+    location_id: Optional[int] = None, skills: Optional[str] = None, team_only: bool = False,
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_active_superuser),
+):
+    from app.services.employee_export import full_profile_workbook
+    query = _apply_directory_filters(_directory_query(db), search=search, department_id=department_id,
+        designation_id=designation_id, branch_id=branch_id, location_id=location_id, skills=skills)
+    if team_only:
+        if not current_user.employee:
+            raise HTTPException(400, "No employee profile is linked to this user")
+        query = query.filter(Employee.reporting_manager_id == current_user.employee.id)
+    return full_profile_workbook(db, current_user, query, filename="employees_full_details.xlsx",
+                                 endpoint="/api/v1/employees/directory/export/full")
+
+
+@router.get("/export/full")
+def export_full_employee_profiles(
+    filters: EmployeeDirectoryFilters = Depends(),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    from app.services.employee_export import full_profile_workbook
+    query = apply_employee_directory_filters(
+        db.query(Employee).filter(Employee.deleted_at.is_(None)), filters.model_dump(exclude_none=True)
+    )
+    return full_profile_workbook(db, current_user, query, filename="employees_full_details.xlsx",
+                                 endpoint="/api/v1/employees/export/full")
+
+
 @router.post("/import", status_code=201)
 async def import_employees(
     file: UploadFile = File(...),
@@ -1310,7 +1344,7 @@ def update_employee_user_link(
     employee_id: int,
     data: EmployeeUserLinkUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("employee_update")),
+    current_user: User = Depends(get_current_active_superuser),
 ):
     emp = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     if not emp:
@@ -1348,7 +1382,7 @@ def create_employee_user_account(
     employee_id: int,
     data: EmployeeUserAccountCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("employee_update")),
+    current_user: User = Depends(get_current_active_superuser),
 ):
     emp = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     if not emp:

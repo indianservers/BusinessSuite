@@ -1,3 +1,4 @@
+import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import { assetUrl } from "@/lib/utils";
 import DashboardStudio from "./DashboardStudio";
 import React, { useEffect, useState, useRef } from "react";
@@ -1491,17 +1492,12 @@ export default function EnterprisePage() {
       <Dialog open={step} onOpenChange={setStep}>
         <DialogContent>
           <DialogTitle>Confirm your administrator session</DialogTitle>
-          <p>Administrative changes require the existing password step-up.</p>
-          <input
-            aria-label="Administrator password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <p>Verify your administrator identity to save changes.</p>
+          <AdminVerification value={password} onChange={setPassword} />
           <Button
             onClick={async () => {
               try {
-                const token = (await api.post("/access/step-up", { password }))
+                const token = (await administratorStepUp(password))
                   .data.token;
                 api.defaults.headers.common["X-Access-Step-Up"] = token;
                 setPassword("");
