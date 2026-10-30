@@ -1,3 +1,4 @@
+import TaskExecutionPanel from "../components/TaskExecutionPanel";
 import { ManagePersonButton } from "../components/people/PersonIdentity";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { ConversationLauncher, TaskConversationSource } from "@/shared/communication";
@@ -699,6 +700,7 @@ export default function TaskDetail() {
         <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
       </Button>
 
+      <TaskExecutionPanel taskId={task.id} onChanged={()=>void loadTaskData(true)} />
       <RecordActions preview={false} record={{...task,key:task.task_key,project_name:project?.name}} canEdit={project?.can_manage_tasks===true} onChanged={deleted=>{if(deleted)navigate("/pms/tasks");else loadTaskData(true);}}>{menu=><Card>
         <CardContent className="p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">

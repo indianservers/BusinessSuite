@@ -504,6 +504,7 @@ const pmsDeliveryOnlyPaths = [
 ];
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (["/pms/management", "/pms/my-work"].includes(pathname)) return true;
   if (["/pms/projects", "/pms/tasks"].includes(pathname) || /^\/pms\/projects\/\d+(?:\/(?:board|members))?$/.test(pathname)) return true;
   if (pathname === "/pms/members" || /^\/pms\/projects\/\d+\/members\/?$/.test(pathname)) return true;
   if (["/pms/people-work", "/pms/my-notices"].includes(pathname.replace(/\/$/, ""))) return true;

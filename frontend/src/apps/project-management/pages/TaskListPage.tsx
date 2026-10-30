@@ -547,7 +547,7 @@ export default function TaskListPage() {
       {inlineNotice && <p role="status" className="rounded-md border p-3 text-sm">{inlineNotice}</p>}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="page-title">Tasks</h1>
+          <h1 className="page-title">Tasks</h1><Link className="text-sm underline" to="/pms/management?view=tasks">Bulk actions, queues & task side panels</Link>
           <p className="page-description">Search, filter, sort, and update work across every project you can access.</p>
         </div>
         <div className="flex flex-wrap gap-2">

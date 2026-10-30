@@ -4,6 +4,7 @@ import type { FrontendRoute } from "@/appRegistry";
 const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/WorkforceOperationsPage"));
 const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
 
+const ManagementHomePage = React.lazy(() => import("./pages/ManagementHomePage"));
 const MemberManagementPage = React.lazy(() => import("./pages/MemberManagementPage"));
 const PeopleDirectoryPage = React.lazy(() => import("./pages/PeopleManagementDirectory"));
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
@@ -72,6 +73,9 @@ const MyAssignmentsPage=React.lazy(()=>import("./pages/MyAssignmentsPage"));
 const AssignmentControlsPage=React.lazy(()=>import("./pages/AssignmentControlsPage"));
 const WorkReviewsPage = React.lazy(() => import("./pages/WorkReviewsPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
+ {path:"pms/management",element:<ManagementHomePage/>},
+ {path:"pms/admin/configuration",element:<AdminPage/>},
+ {path:"pms/my-work",element:<ManagementHomePage mine/>},
  {path:"pms/members",element:<MemberManagementPage/>},
  {path:"pms/projects/:projectId/members",element:<MemberManagementPage/>},
  {path:"pms/people",element:<PeopleDirectoryPage/>},
@@ -110,7 +114,8 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/risks", element: <RisksPage /> },
   
   // Projects
-  { path: "pms/projects", element: <ProjectsList /> },
+  { path: "pms/projects", element: <ManagementHomePage initialView="projects" /> },
+  { path: "pms/projects/classic", element: <ProjectsList /> },
   { path: "pms/projects/new", element: <CreateProjectPage /> },
   { path: "pms/projects/:projectId/edit", element: <CreateProjectPage /> },
   
@@ -185,6 +190,6 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/reports", element: <ReportsPage /> },
   { path: "pms/client-portal", element: <ClientPortalPage /> },
   { path: "pms/settings", element: <SettingsPage /> },
-  { path: "pms/admin", element: <AdminPage /> },
+  { path: "pms/admin", element: <ManagementHomePage /> },
 ];
 

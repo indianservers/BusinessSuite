@@ -39,6 +39,7 @@ class PMSNote(Base):
     favorite = Column(Boolean, nullable=False, default=False)
     title = Column(String(180), nullable=False, default="Untitled note")
     content = Column(Text, nullable=False, default="")
+    visibility_scope = Column(String(20), nullable=False, default="private", server_default="private")
     project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="SET NULL"), nullable=True)
     task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="SET NULL"), nullable=True)
     tags = Column(JSON, nullable=False, default=list)

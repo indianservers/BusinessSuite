@@ -134,6 +134,7 @@ class TaskFromNote(BaseModel):
     description: rich_text_type(10000, 0) = Field(default="")
     due_date: date | None = None
     priority: Literal["Low", "Medium", "High", "Urgent"] = "Medium"
+    assignee_user_id: int | None = None
     publish_to_project: Literal[True]
     request_key: UUID
 
@@ -178,7 +179,7 @@ def create_note_task(note_id: int, data: TaskFromNote, db: Session = Depends(get
     from .api.router import create_task_operation, _broadcast_realtime
     from .schemas import PMSTaskCreate
     task = create_task_operation(project.id, PMSTaskCreate(
-        title=data.title, description=data.description, priority=data.priority, due_date=data.due_date,
+        title=data.title, description=data.description, priority=data.priority, due_date=data.due_date, assignee_user_id=data.assignee_user_id,
         task_key=f"{project.project_key[:10]}-{uuid4().hex[:12].upper()}", reporter_user_id=user.id), db, user, commit=False)
     db.add(PMSNoteTaskLink(note_id=note_id, task_id=task.id, request_key=key, request_hash=digest))
     try:
@@ -192,3 +193,14 @@ def create_note_task(note_id: int, data: TaskFromNote, db: Session = Depends(get
         return task_result(task)
     _broadcast_realtime(user, "task.created", project_id=project.id, task_id=task.id, message=f"Created task {task.task_key}")
     return task_result(task)
+
+
+def linked_note_source_payload(db, task_id, user):
+    # The backlink never reveals a private note to another task collaborator.
+    sources=[]
+    for link in db.query(PMSNoteTaskLink).filter_by(task_id=task_id):
+        try: note=readable(db,link.note_id,user)
+        except HTTPException: continue
+        if not note.deleted_at:
+            sources.append({"id":note.id,"title":note.title,"href":f"/pms/notes?note={note.id}"})
+    return sources

@@ -53,6 +53,7 @@ export default function ProjectsList() {
         <div>
           <h1 className="page-title">Projects</h1>
           <p className="page-description">Track active work, ownership, progress, budgets, and delivery risk.</p>
+          <Link className="text-sm underline" to="/pms/management?view=projects">Manage projects: filters, owners, milestones, bulk actions & duplication</Link>
         </div>
         <div className="flex gap-2"><Button variant="outline" asChild><Link to="/pms/trash?type=projects"><Trash2 className="h-4 w-4" />Trash</Link></Button><Button asChild>
           <Link to="/pms/projects/new"><Plus className="h-4 w-4" />New project</Link>

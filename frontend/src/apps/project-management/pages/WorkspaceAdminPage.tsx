@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
@@ -44,7 +45,8 @@ export default function WorkspaceAdminPage() {
   const count = rows.filter((row) => !row.deleted_at).length;
   return (
     <main className="mx-auto max-w-4xl space-y-5 p-4 sm:p-6">
-      <h1 className="text-2xl font-semibold">Workspace reset & restore</h1>
+      <Link className="text-sm underline" to="/pms/management">Return to routine workspace management</Link>
+      <h1 className="text-2xl font-semibold text-destructive">Danger area: Workspace reset & restore</h1>
       <p className="text-sm text-muted-foreground">
         Admin only. Includes workspaces created by admins and users in your
         organization. Reset soft-deletes the workspace from active views and

@@ -51,6 +51,27 @@ class VersionInput(BaseModel):
     version: int = Field(gt=0)
 
 
+class VisibilityInput(VersionInput):
+    scope: Literal["private", "project", "workspace"]
+    confirm_audience: bool = False
+
+
+@router.put("/notes/{note_id}/visibility")
+def set_visibility(note_id: int, data: VisibilityInput, db: Session=Depends(get_db), user: User=Depends(get_current_user)):
+    note = owned(db, note_id, user)
+    if note.deleted_at: raise HTTPException(409, "Restore this note before sharing")
+    if data.scope != "private":
+        if not data.confirm_audience: raise HTTPException(422, "Confirm that the note and its attachments will be visible to the selected audience")
+        if not note.project_id: raise HTTPException(422, "Choose a project location before Project or Workspace visibility")
+        project = get_project_for_action(db, note.project_id, user, "manage_tasks")
+        if data.scope == "workspace" and not project.workspace_id: raise HTTPException(422, "This project has no workspace")
+    changed = db.execute(update(PMSNote).where(PMSNote.id==note.id, PMSNote.version==data.version).values(visibility_scope=data.scope, version=data.version+1, updated_at=datetime.now(timezone.utc)).execution_options(synchronize_session=False)).rowcount
+    if not changed: raise HTTPException(409, "Note changed. Reload before changing visibility")
+    db.add(PMSNoteEvent(note_id=note.id, actor_id=user.id, action="visibility_changed"))
+    db.commit();db.refresh(note)
+    return result(db,note,user)
+
+
 def owned(db, note_id, user):
     note = db.query(PMSNote).filter_by(id=note_id, owner_id=user.id).first()
     if note is None:
@@ -62,6 +83,17 @@ def readable(db, note_id, user):
     note = db.get(PMSNote, note_id)
     if note and note.owner_id == user.id:
         return note
+    if note and not note.deleted_at and note.visibility_scope in {"project", "workspace"} and note.project_id:
+        project = db.get(PMSProject, note.project_id)
+        from .access import same_organization
+        if project and not project.deleted_at and same_organization(project, user) and can_access_project(db, project, user, "browse"):
+            if note.visibility_scope == "project": return note
+            if project.workspace_id:
+                from .people_management import scoped_workspace
+                try:
+                    scoped_workspace(db, project.workspace_id, user, manage=False)
+                    return note
+                except HTTPException: pass
     if note and not note.deleted_at and db.query(PMSNoteShare.id).filter_by(note_id=note_id, user_id=user.id).first():
         from .access import organization_id_for
         owner = db.get(User, note.owner_id)
@@ -78,6 +110,8 @@ def folder_owned(db, folder_id, user):
 
 
 def validate_links(db, data, user, previous=None):
+    if previous and previous.visibility_scope != "private" and data.project_id != previous.project_id:
+        raise HTTPException(409, "Set visibility to Private before changing the location of a shared note")
     if getattr(data, "folder_id", None):
         db.query(User).filter_by(id=user.id).with_for_update().first()
         folder = folder_owned(db, data.folder_id, user)
@@ -101,6 +135,7 @@ def result(db, note, user, full=True):
     task = db.get(PMSTask, note.task_id) if note.task_id and accessible else None
     payload = {key: getattr(note, key) for key in ("id", "title", "tags", "pinned", "archived", "version", "created_at", "updated_at", "deleted_at", "folder_id", "favorite")}
     payload.update(project_id=note.project_id, task_id=note.task_id,
+                   visibility_scope=note.visibility_scope or "private",
                    project_name=project.name if accessible else "Personal" if note.project_id is None else "Unavailable project",
                    project_kind="personal" if note.project_id is None else "project",
                    project_key=f"personal:{note.owner_id}" if note.project_id is None else f"project:{note.project_id}",
@@ -134,7 +169,9 @@ def list_notes(q: str = Query(default="", max_length=200), view: Literal["all", 
                db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     query = db.query(PMSNote)
     if view == "shared":
-        query = query.filter(PMSNote.id.in_(db.query(PMSNoteShare.note_id).filter(PMSNoteShare.user_id == user.id)))
+        from .access import accessible_project_query
+        projects = accessible_project_query(db, user).with_entities(PMSProject.id)
+        query = query.filter(or_(PMSNote.id.in_(db.query(PMSNoteShare.note_id).filter(PMSNoteShare.user_id == user.id)), (PMSNote.visibility_scope != "private") & PMSNote.project_id.in_(projects)))
     else:
         query = query.filter(PMSNote.owner_id == user.id)
     if folder_id is not None:
@@ -425,6 +462,7 @@ def bulk_notes(data: BulkInput, db: Session = Depends(get_db), user: User = Depe
     rows = [(owned(db, item.id, user), item.version) for item in data.items]
     if data.action == "move": validate_links(db, data, user)
     for note, version in rows:
+        if data.action == "move": validate_links(db, data, user, note)
         if note.version != version: db.rollback(); raise HTTPException(409, "A selected note changed. Reload; no notes were updated.")
         if note.deleted_at and data.action != "restore": raise HTTPException(409, "Restore trashed notes before moving or archiving them")
     for note, version in rows:
@@ -462,7 +500,7 @@ def undo_note_action(data: NoteUndoInput, db: Session = Depends(get_db), user: U
     for note, item in rows:
         if note.version != item.version:
             raise HTTPException(409, "A note changed since that action. Undo made no changes; reload the latest notes.")
-        validate_links(db, item, user)
+        validate_links(db, item, user, note)
     for note, item in rows:
         values = item.model_dump(exclude={"id", "version", "trashed"})
         values.update(version=item.version + 1, updated_at=datetime.now(timezone.utc),

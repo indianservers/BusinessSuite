@@ -13,7 +13,7 @@ import AssigneePicker from "./AssigneePicker";
 import "./CreateTaskModal.css";
 import SmartTagsInput, { splitTags, uniqueTags } from "./SmartTagsInput";
 
-const statuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done"];
+const statuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", "Done"];
 const priorities: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
 const typeIcons: Record<string, typeof ClipboardList> = { Task: ClipboardList, Bug, Feature: Lightbulb, Improvement: BarChart3, Epic: Layers3 };
 
@@ -151,7 +151,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
               <div className="compose-pair">
                 <div className="compose-field"><CalendarDays /><div><label htmlFor="task-start">Start date</label><Input id="task-start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div></div>
                 <div className="compose-field"><CalendarDays /><div><label htmlFor="task-due">Due date</label><Input id="task-due" type="date" min={startDate || undefined} value={dueDate} onChange={e => setDueDate(e.target.value)} /></div></div>
-                <div className="compose-field"><Users /><div><label>Assignees</label><AssigneePicker projectId={selectedProjectId} people={people} value={assignees} onChange={setAssignees} /></div></div>
+                <div className="compose-field"><Users /><div><label>Assignees</label><AssigneePicker onDate={dueDate} projectId={selectedProjectId} people={people} value={assignees} onChange={setAssignees} /></div></div>
                 <div className="compose-field"><Flag /><div><label>Priority</label><div className="compose-priorities" role="group" aria-label="Priority">{priorities.map(p => <button key={p} type="button" className={`priority-${p.toLowerCase()} ${priority === p ? "selected" : ""}`} aria-pressed={priority === p} onClick={() => setPriority(p)}><span />{p}</button>)}</div></div></div>
                 <div className="compose-field"><Circle /><div><label htmlFor="task-status">Status</label><select id="task-status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>{statuses.map(s => <option key={s}>{s}</option>)}</select></div></div>
                 <div className="compose-field"><Tag /><div><label htmlFor="task-tags">Tags</label><SmartTagsInput value={selectedTags} draft={newTagName} onChange={setSelectedTags} onDraftChange={setNewTagName} suggestions={availableTags.map(tag => tag.name)} disabled={locked} /></div></div>

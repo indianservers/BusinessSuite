@@ -79,6 +79,8 @@ router = APIRouter(prefix="/project-management", tags=["Project Management"])
 router.include_router(workspace_router)
 from ..people_management import router as people_management_router
 router.include_router(people_management_router)
+from ..management import router as management_router
+router.include_router(management_router)
 from ..recovery import router as recovery_router
 router.include_router(recovery_router)
 from ..workspace_lifecycle import router as workspace_lifecycle_router
@@ -222,12 +224,14 @@ class DevIntegrationCreateRequest(BaseModel):
 
 
 class ProjectCloneRequest(BaseModel):
-    name: str
-    project_key: str
+    name: str = Field(min_length=1, max_length=180)
+    project_key: str = Field(min_length=2, max_length=20, pattern=r"^[A-Za-z0-9_-]+$")
     include_milestones: bool = True
     include_tasks: bool = True
     include_dependencies: bool = True
     include_team: bool = False
+    include_dates: bool = True
+    include_attachments: bool = False
     as_template: bool = False
     status: str = "Planned"
 
@@ -2320,6 +2324,25 @@ def clone_project(
                     dependency_type=dependency.dependency_type,
                     lag_days=dependency.lag_days,
                 ))
+    if not clone_in.include_dates:
+        for item in [cloned, *db.query(PMSMilestone).filter_by(project_id=cloned.id), *db.query(PMSTask).filter_by(project_id=cloned.id)]:
+            for field in ("start_date", "due_date", "planned_start_date", "planned_end_date", "recurrence_until"):
+                if hasattr(item, field): setattr(item, field, None)
+            if hasattr(item, "recurrence_rule"): item.recurrence_rule = None
+    for old_id, new_id in task_map.items():
+        old_task = db.get(PMSTask, old_id); new_task = db.get(PMSTask, new_id)
+        new_task.assignee_user_id = old_task.assignee_user_id if clone_in.include_team else None
+        new_task.assignee_user_ids = old_task.assignee_user_ids if clone_in.include_team else []
+        for check in db.query(PMSChecklistItem).filter_by(task_id=old_id):
+            db.add(PMSChecklistItem(task_id=new_id, title=check.title, position=check.position, is_completed=False))
+    if clone_in.include_attachments:
+        # Immutable storage content is reused; each project receives its own asset record.
+        for asset in db.query(PMSFileAsset).filter_by(project_id=source.id, deleted_at=None):
+            if asset.task_id and asset.task_id not in task_map: continue
+            db.add(PMSFileAsset(project_id=cloned.id, task_id=task_map.get(asset.task_id),
+                uploaded_by_user_id=current_user.id, file_name=asset.file_name, original_name=asset.original_name,
+                mime_type=asset.mime_type, size_bytes=asset.size_bytes, storage_path=asset.storage_path,
+                visibility=asset.visibility, version_number=1))
     from ..custom_fields import copy_project_fields
     copy_project_fields(db, source, cloned, task_map)
     team_user_ids: set[int] = set()
@@ -2850,6 +2873,8 @@ def create_task_operation(
     # Verify project exists
     project = get_project_for_action(db, project_id, current_user, "manage_tasks")
     
+    if task_in.status == "Blocked":
+        raise HTTPException(422, "Create the task in To Do, then set a blocked reason, responsible person and next review date in Execution & completion")
     # Check unique constraint on task_key
     existing = db.query(PMSTask).filter(
         PMSTask.project_id == project_id,
@@ -3379,6 +3404,9 @@ def bulk_update_tasks(
             if sprint.status == "Active":
                 sprint.scope_change_count = (sprint.scope_change_count or 0) + len(project_tasks)
         for task in project_tasks:
+            if update_data.get("status") and update_data["status"] != task.status:
+                from ..management import guard_transition
+                guard_transition(db, task, update_data["status"])
             if update_data.get("status") in DONE_STATUSES and db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id == task.id, PMSTaskAssignee.source_key.isnot(None), PMSTaskAssignee.execution_status != "Done").first():
                 raise HTTPException(409, "Approve each PMS work submission before closing this task")
             for field, value in update_data.items():
@@ -3676,6 +3704,9 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
     recovery_before = task_state(task)
 
     update_data = task_in.dict(exclude_unset=True)
+    if update_data.get("status") and update_data["status"] != task.status:
+        from ..management import guard_transition
+        guard_transition(db, task, update_data["status"])
     custom_values = update_data.pop("custom_fields", None)
     from types import SimpleNamespace
     from ..custom_fields import apply_record_fields
@@ -6579,13 +6610,19 @@ def get_workload_heatmap(
     rows = []
     for user_id in sorted(user_ids, key=lambda uid: (_user_display_name(users_by_id.get(uid)) or "").lower()):
         row_cells = []
+        availability_days = []
+        if basis == "hours" and users_by_id.get(user_id):
+            from ..management import effective_capacity
+            availability_days = effective_capacity(db, users_by_id[user_id], range_start, range_end, organization_id_for(current_user))["days"]
         totals = {"planned_hours": 0.0, "story_points": 0.0, "task_count": 0, "capacity_hours": 0.0}
         for week in weeks:
             cell = cells[(user_id, week)]
+            if basis == "hours" and users_by_id.get(user_id):
+                cell["capacity_hours"] = sum(day["hours"] for day in availability_days if week <= day["date"] <= week + timedelta(days=6))
             load_value = cell["planned_hours"] if basis == "hours" else cell["story_points"] if basis == "story_points" else cell["task_count"]
             capacity = cell["capacity_hours"] or 0
             utilization = round((load_value / capacity) * 100, 1) if capacity else 0
-            status_value = "over" if utilization > 100 else "near" if utilization >= 85 else "under"
+            status_value = "over" if (load_value > 0 and not capacity) or utilization > 100 else "near" if utilization >= 85 else "under"
             cell.update({
                 "planned_hours": round(cell["planned_hours"], 2),
                 "story_points": round(cell["story_points"], 2),

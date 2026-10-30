@@ -73,7 +73,7 @@ export default function PersonManagementHost() {
     } catch (e) { setError(workspaceError(e)); } finally { setBusy(false); }
   };
   const hasImpact = !!preview && !!(preview.tasks.length || preview.projects.length || preview.approvals.length || preview.workflow_approvals.length);
-  return <><Dialog open={!!context} onOpenChange={open => { if (!open && !busy) close(); }}><DialogContent overlayClassName="z-[100]" className="z-[101] max-h-[92dvh] max-w-4xl overflow-y-auto"><DialogTitle className="text-xl font-semibold">Manage person</DialogTitle>
+  return <><Dialog open={!!context} onOpenChange={open => { if (!open && !busy) close(); }}><DialogContent overlayClassName="z-[100]" style={{left:"auto",right:0,top:0,transform:"none",height:"100dvh"}} className="z-[101] max-w-3xl overflow-y-auto rounded-none"><DialogTitle className="text-xl font-semibold">Manage person</DialogTitle>
     {error && <p role="alert" className="rounded border border-destructive p-3 text-sm text-destructive">{error}</p>}{notice && <p role="status" className="rounded border border-emerald-300 p-3 text-sm">{notice}</p>}
     {loading ? <p role="status">Loading person and effective access…</p> : person && <>
       <div className="flex flex-wrap items-center justify-between gap-3"><PersonIdentity person={person} /><span className="rounded-full border px-3 py-1 text-xs capitalize">{person.status}</span></div>

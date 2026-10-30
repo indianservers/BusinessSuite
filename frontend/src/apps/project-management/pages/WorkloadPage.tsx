@@ -1,6 +1,6 @@
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, CalendarDays, Gauge, RefreshCw, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,8 +66,9 @@ export default function WorkloadPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="page-title">Workload</h1>
-          <p className="page-description">Compare weekly assignment load against person-level capacity across accessible PMS projects.</p>
+          <p className="page-description">Compare weekly assignment load against working hours, dated capacity, holidays and approved leave.</p>
         </div>
+        <Button variant="outline" asChild><Link to="/pms/management">Manage dated capacity & working schedules</Link></Button>
         <Button variant="outline" onClick={load}>
           <RefreshCw className="h-4 w-4" />Refresh
         </Button>
