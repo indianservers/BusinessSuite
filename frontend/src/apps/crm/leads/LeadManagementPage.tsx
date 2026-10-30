@@ -1,3 +1,5 @@
+import {CRMInteractionDialog} from "../SalesActions";
+import { api } from "@/services/api";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useRef, useState } from "react";
@@ -76,7 +78,7 @@ const queues = [
   ["untouched", "Untouched"],
   ["overdue", "Overdue"],
   ["stale", "Inactive"],
-  ["unassigned", "Enquiry inbox"],
+  ["unassigned", "Unassigned / enquiry inbox"],
   ["reactivation", "Review due"],
   ["archived", "Archived"],
 ];
@@ -154,6 +156,8 @@ export default function LeadManagementPage() {
   const [followUp, setFollowUp] = useState<{ lead: Lead; date?: string }>();
   const [bulk, setBulk] = useState<{
     patch: LeadPatch;
+    workload?:{owner_id:number;visible_active_leads:number;selected_leads:number;pending_followups:number}|null;
+    organization_id?:number;
     items: { id: number; name: string; stage: string }[];
   }>();
   const [bulkAction, setBulkAction] = useState("");
@@ -164,6 +168,8 @@ export default function LeadManagementPage() {
       return [];
     }
   });
+  const [sharedViews,setSharedViews]=useState<SavedView[]>([]);
+  useEffect(()=>{void api.get<{items:SavedView[]}>("/crm/productivity/shared-views").then(r=>setSharedViews(r.data.items)).catch(()=>{});},[]);
   const [viewName, setViewName] = useState("");
   const [showViewSave, setShowViewSave] = useState(false);
   const [columns, setColumns] = useState(() => {
@@ -311,8 +317,10 @@ export default function LeadManagementPage() {
   };
   const previewBulk = async () => {
     let patch: LeadPatch;
-    if (bulkAction.startsWith("owner:"))
-      patch = { values: { owner_user_id: Number(bulkAction.slice(6)) } };
+    if (bulkAction.startsWith("owner:")) {
+      const reason=window.prompt("Reason for reassigning these leads and their pending follow-ups");if(!reason?.trim())return;
+      patch = { values: { owner_user_id: Number(bulkAction.slice(6)) },details:{assignmentReason:reason} };
+    }
     else if (bulkAction.startsWith("stage:"))
       patch = { values: { status: bulkAction.slice(6) } };
     else if (bulkAction === "archive") {
@@ -325,7 +333,7 @@ export default function LeadManagementPage() {
     setBusy(true);
     try {
       const response = await leadsApi.bulkPreview(selected, patch);
-      setBulk({ patch, items: response.data.items });
+      setBulk({ patch, items: response.data.items,workload:response.data.workload,organization_id:response.data.organization_id });
     } catch (err) {
       report(err);
     } finally {
@@ -575,7 +583,7 @@ export default function LeadManagementPage() {
             aria-label="Saved views"
             value=""
             onChange={(e) => {
-              const saved = savedViews.find((v) => v.name === e.target.value);
+              const saved = e.target.value.startsWith("shared:")?sharedViews.find(v=>v.name===e.target.value.slice(7)):savedViews.find((v) => v.name === e.target.value);
               if (saved) {
                 const { name: _, ...values } = saved;
                 updateParams({ ...values, page: "1" });
@@ -584,8 +592,8 @@ export default function LeadManagementPage() {
           >
             <option value="">Saved views</option>
             {savedViews.map((v) => (
-              <option key={v.name}>{v.name}</option>
-            ))}
+              <option key={v.name} value={v.name}>Personal: {v.name}</option>
+            ))}{sharedViews.map(v=><option key={`shared:${v.name}`} value={`shared:${v.name}`}>Shared: {v.name}</option>)}
           </select>
           <button onClick={() => setShowViewSave((v) => !v)}>
             Save current view
@@ -599,7 +607,7 @@ export default function LeadManagementPage() {
                 value={viewName}
                 onChange={(e) => setViewName(e.target.value)}
               />
-              <button onClick={saveView}>Save view</button>
+              <button onClick={saveView}>Save personal view</button>{bootstrap?.canAssign&&<button onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button>}
             </>
           )}
           <details>
@@ -978,6 +986,8 @@ export default function LeadManagementPage() {
           bootstrap={bootstrap}
           close={closeLead}
           changed={refresh}
+          previous={result&&result.items.findIndex(l=>l.id===opened)>0?()=>openLead(result.items[result.items.findIndex(l=>l.id===opened)-1].id):undefined}
+          next={result&&result.items.findIndex(l=>l.id===opened)>=0&&result.items.findIndex(l=>l.id===opened)<result.items.length-1?()=>openLead(result.items[result.items.findIndex(l=>l.id===opened)+1].id):undefined}
         />
       )}
       {importOpen && (
@@ -1020,6 +1030,7 @@ export default function LeadManagementPage() {
                   ? `Archive: ${bulk.patch.details.archiveReason}`
                   : "Restore archived leads"}
           </pre>
+          {bulk?.workload&&<p className="rounded border p-3 text-sm">Organization #{bulk.organization_id} · Replacement currently owns {bulk.workload.visible_active_leads} visible active leads. This operation affects {bulk.workload.selected_leads} selected leads and {bulk.workload.pending_followups} pending follow-ups.</p>}
           <ul className="lm-preview-list">
             {bulk?.items.map((item) => (
               <li key={item.id}>
@@ -1057,7 +1068,7 @@ export default function LeadManagementPage() {
   );
 }
 
-function CaptureDialog({
+export function CaptureDialog({
   bootstrap,
   close,
   saved,
@@ -1085,6 +1096,8 @@ function CaptureDialog({
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [duplicate,setDuplicate]=useState<{matched:boolean;items:{id:number;name:string}[];message:string}>();
+  useEffect(()=>{const controller=new AbortController();const timer=setTimeout(()=>{if(!values.email&&!values.phone){setDuplicate(undefined);return;}void api.get("/crm/productivity/duplicate-check",{params:{email:values.email||"",phone:values.phone||"",phone_country_code:values.phone_country_code||""},signal:controller.signal}).then(r=>setDuplicate(r.data)).catch(()=>{});},350);return()=>{clearTimeout(timer);controller.abort();};},[values.email,values.phone,values.phone_country_code]);
   useEffect(() => {
     sessionStorage.setItem(key, JSON.stringify(values));
   }, [values, key]);
@@ -1220,12 +1233,13 @@ function CaptureDialog({
               </p>
             </details>
           )}
+          {duplicate?.matched&&<div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item=><p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}{!duplicate.items.length&&<p>The matching record is outside your scope. Ask your sales manager to review it.</p>}</div>}
           {error && <ErrorNotice message={error} />}
           <div className="lm-dialog-actions">
             <span>
               {saving ? "Saving…" : "Draft saved in this browser session"}
             </span>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving||!!duplicate?.matched&&bootstrap.settings.preventDuplicates}>
               {saving ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
@@ -1240,18 +1254,22 @@ function CaptureDialog({
   );
 }
 
-function LeadDrawer({
+export function LeadDrawer({
   id,
   targetStage,
   bootstrap,
   close,
   changed,
+  previous,
+  next,
 }: {
   id: number;
   targetStage: string;
   bootstrap: Bootstrap;
   close: () => void;
   changed: () => void;
+  previous?: () => void;
+  next?: () => void;
 }) {
   const { toast } = useToast();
   const [lead, setLead] = useState<Lead>();
@@ -1277,9 +1295,12 @@ function LeadDrawer({
   const [conversionIds, setConversionIds] = useState({
     existingContactId: "",
     existingCompanyId: "",
+    dealName: "",
+    createDeal: true,
   });
   const [booking, setBooking] = useState("");
   const [scheduling, setScheduling] = useState(false);
+  const [loggingInteraction,setLoggingInteraction]=useState(false);
   useRefreshableEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -1342,6 +1363,8 @@ function LeadDrawer({
       "archived",
       "archiveReason",
       "reviewAt",
+      "assignmentReason",
+      "customerTimezone",
     ];
     const patch = Object.fromEntries(
       Object.entries(details).filter(([key]) => writable.includes(key)),
@@ -1367,6 +1390,7 @@ function LeadDrawer({
       }}
     >
       <DialogContent className="lm-drawer">
+        {loggingInteraction&&lead&&<CRMInteractionDialog record={{entity:"leads",id:lead.id,name:lead.full_name,timezone:lead.details.customerTimezone}} activities={lead.activities||[]} close={()=>setLoggingInteraction(false)} saved={()=>{setLoggingInteraction(false);changed();setReload(v=>v+1);}} next={next?()=>{setLoggingInteraction(false);changed();next();}:undefined}/>}
         {scheduling && lead && (
           <FollowUpDialog
             lead={lead}
@@ -1381,6 +1405,7 @@ function LeadDrawer({
         <DialogTitle className="lm-drawer-title">
           {lead?.full_name || "Lead details"}
         </DialogTitle>
+        <div className="flex gap-2"><Button variant="outline" disabled={!previous||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the previous record?"))previous?.();}}>Previous</Button><Button variant="outline" disabled={!next||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the next record?"))next?.();}}>Next</Button></div>
         {!lead ? (
           error ? (
             <ErrorNotice
@@ -1394,13 +1419,14 @@ function LeadDrawer({
           )
         ) : (
           <>
+            {lead.permissions&&<p className="text-xs text-muted-foreground">{["edit","assign","export","convert"].filter(k=>!lead.permissions?.[k]).map(k=>String(lead.permissions?.[`${k}_reason`]||"")).filter(Boolean).join(" · ")}</p>}
             <header className="lm-record-header">
               <div>
                 <StageBadge stage={lead.status} />
                 <span>{lead.company_name || "Individual enquiry"}</span>
               </div>
-              <p>{lead.signals.nextAction}</p>
-              <div className="lm-contact-actions">
+              <p>{lead.signals.nextAction}</p>{!lead.next_follow_up_at&&!lead.is_converted&&lead.status!=="Lost"&&<p className="text-amber-700">No next action — schedule a follow-up or record a decision.</p>}
+              <div className="lm-contact-actions">{bootstrap.canManage&&<Button size="sm" disabled={dirty||busy} onClick={()=>setLoggingInteraction(true)}>Log call or meeting outcome</Button>}
                 {lead.phone && (
                   <a href={`tel:${lead.phone_country_code || ""}${lead.phone}`}>
                     <Phone size={15} />
@@ -1468,6 +1494,7 @@ function LeadDrawer({
                           ))}
                       </select>
                     </Field>
+                    <Field label="Reassignment reason"><input value={details.assignmentReason||""} onChange={e=>setDetail({assignmentReason:e.target.value})} placeholder="Explain ownership changes for the timeline"/></Field><Field label="Customer time zone"><input value={details.customerTimezone||""} onChange={e=>setDetail({customerTimezone:e.target.value})} placeholder="Asia/Kolkata"/></Field>
                     <Field label="Assigned employee">
                       <select
                         value={value("owner_user_id")}
@@ -1878,6 +1905,7 @@ function LeadDrawer({
                       </Field>
                     )}
                   </div>
+                  <div className="flex flex-wrap gap-2" aria-label="Quick call outcomes">{["Connected","No Answer","Callback Requested","Not Interested"].map(outcome=><Button size="sm" variant="outline" key={outcome} onClick={()=>setActivity(v=>({...v,outcome}))}>{outcome}</Button>)}</div>
                   <Field label="Outcome or meeting purpose">
                     <RichTextField
                       rows={3}
@@ -2092,6 +2120,7 @@ function LeadDrawer({
                       const response = await leadsApi.previewConversion(id);
                       setConversion(response.data);
                       setConversionIds({
+                        dealName:"",createDeal:true,
                         existingContactId: String(
                           response.data.matches.contacts[0]?.id || "",
                         ),
@@ -2181,6 +2210,7 @@ function LeadDrawer({
                     ))}
                   </select>
                 </Field>
+                <Field label="New deal name"><input value={conversionIds.dealName} placeholder={`${lead.full_name} opportunity`} onChange={e=>setConversionIds(v=>({...v,dealName:e.target.value}))}/></Field><label className="lm-check"><input type="checkbox" checked={conversionIds.createDeal} onChange={e=>setConversionIds(v=>({...v,createDeal:e.target.checked}))}/>Create a linked deal</label><div className="rounded border p-3 text-sm"><strong>Survivor / destination preview</strong><p>Contact: {conversionIds.existingContactId?`Reuse #${conversionIds.existingContactId}`:"Create a new contact"}</p><p>Company: {conversionIds.existingCompanyId?`Reuse #${conversionIds.existingCompanyId}`:lead.company_name?`Create or reuse ${lead.company_name}`:"No company"}</p><p>Deal: {conversionIds.createDeal?conversionIds.dealName||`${lead.full_name} opportunity`:"No new deal"}</p><p>Lead ownership, communication history, notes and follow-ups remain linked to the conversion.</p></div>
                 <Button
                   disabled={busy || !conversion?.ready}
                   onClick={async () => {
@@ -2188,6 +2218,7 @@ function LeadDrawer({
                       await act(
                         () =>
                           leadsApi.convert(id, {
+                            dealName:conversionIds.dealName||null,createDeal:conversionIds.createDeal,
                             existingContactId: conversionIds.existingContactId
                               ? Number(conversionIds.existingContactId)
                               : null,
@@ -2224,6 +2255,7 @@ function ExcelDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  const [file,setFile]=useState<File>();const [columns,setColumns]=useState<{headers:string[];supported_fields:string[]}>();const [mapping,setMapping]=useState<Record<string,string>>({});
   return (
     <Dialog
       open
@@ -2273,7 +2305,7 @@ function ExcelDialog({
               }
               setBusy(true);
               try {
-                setPreview((await leadsApi.previewImport(file)).data);
+                setFile(file);const form=new FormData();form.append("file",file);const {data}=await api.post<{headers:string[];supported_fields:string[]}>("/crm/lead-management/excel/columns",form);setColumns(data);setMapping(Object.fromEntries(data.headers.map(h=>[h,data.supported_fields.includes(h)?h:""])));
               } catch (err) {
                 setError(errorMessage(err));
               } finally {
@@ -2282,8 +2314,10 @@ function ExcelDialog({
             }}
           />
         </label>
+        {columns&&<section className="space-y-3 rounded border p-3"><h3 className="font-semibold">Map source columns to lead fields</h3>{columns.headers.map((h,i)=><label className="block text-sm" key={`${h}-${i}`}>{h.replace(/_/g," ")}<select className="block w-full rounded border p-2" value={mapping[h]||""} onChange={e=>{setMapping(v=>({...v,[h]:e.target.value}));setPreview(undefined);}}><option value="">Ignore this column</option>{columns.supported_fields.map(f=><option key={f} value={f}>{f.replace(/_/g," ")}</option>)}</select></label>)}<Button disabled={busy||!file} onClick={()=>{if(!file)return;setBusy(true);setError("");void leadsApi.previewImport(file,mapping).then(r=>setPreview(r.data)).catch(e=>setError(errorMessage(e))).finally(()=>setBusy(false));}}>Preview mapped rows</Button><p className="text-xs">Duplicates are skipped by matching email or phone. Preview and errors include only mapped data; import does not begin until you confirm.</p></section>}
         {busy && <p role="status">Processing workbook…</p>}
         {error && <ErrorNotice message={error} />}
+        {preview&&!!preview.errors.length&&<Button variant="outline" onClick={()=>{const lines=[["row","error"],...preview.errors.map(e=>[e.row,typeof e.error==="string"?e.error:JSON.stringify(e.error)])];const csv=lines.map(row=>row.map(cell=>'"'+String(cell).replace(/"/g,'""')+'"').join(",")).join("\r\n");download(new Blob([csv],{type:"text/csv;charset=utf-8"}),"lead-import-row-errors.csv");}}>Download row errors</Button>}
         {preview && (
           <>
             <div className="lm-import-summary">

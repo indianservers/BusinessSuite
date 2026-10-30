@@ -1,3 +1,4 @@
+import CRMPersonalNavigation from "./CRMPersonalNavigation";
 import { consolidateNavigation, activeWorkspace, workspacePageHref } from "@/lib/navigation-workspaces";
 import { Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -251,6 +252,7 @@ export default function Sidebar({
             />
           </label>
         )}
+        {moduleKey === "crm" && !query && <div className="px-2"><CRMPersonalNavigation collapsed={collapsed} onNavigate={onClose} /></div>}
         {moduleKey === "pms" && !query && <div className="px-2"><PMSPersonalNavigation collapsed={collapsed} onNavigate={onClose} /></div>}
         <ul className="px-2">
           {groups.map((group, groupIndex) => {

@@ -1,3 +1,5 @@
+import {lazy,Suspense,useState} from "react";
+const CRMQuickCreate=lazy(()=>import("@/apps/crm/SalesActions").then(m=>({default:m.CRMQuickCreate})));
 import { Building2, CalendarDays, CheckCircle2, FileText, LifeBuoy, Receipt, ShoppingBag, UserPlus, Users, Wallet } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -7,6 +9,7 @@ import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMen
 
 export default function ModuleNewMenu() {
   const { pathname } = useLocation();
+  const [crmQuick,setCRMQuick]=useState("");
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   const role = String(user?.role || "").toLowerCase();
@@ -18,11 +21,8 @@ export default function ModuleNewMenu() {
   };
   if (pathname.startsWith("/crm")) {
     const manages = privileged || ["crm_super_admin", "crm_org_admin", "crm_sales_manager", "crm_sales_executive"].includes(role);
-    add("Lead", "Capture a new opportunity", UserPlus, "/crm?new=leads", manages);
-    add("Contact", "Add a person to your network", Users, "/crm?new=contacts", manages);
-    add("Account", "Create a customer company", Building2, "/crm?new=companies", manages);
-    add("Deal", "Start a sales opportunity", Wallet, "/crm?new=deals", manages);
-    add("Task", "Plan your next follow-up", CheckCircle2, "/crm?new=tasks", manages);
+    const quick=(label:string,type:string,icon:NewAction["icon"],path:string)=>{if(manages&&canAccessRoute(path,user?.role,user?.is_superuser))actions.push({label,description:`Quick capture ${label.toLowerCase()}`,icon,onSelect:()=>setCRMQuick(type)});};
+    quick("Lead","lead",UserPlus,"/crm/leads");quick("Contact","contact",Users,"/crm/contacts");quick("Customer company","company",Building2,"/crm/companies");quick("Deal","deal",Wallet,"/crm/deals");quick("Task","task",CheckCircle2,"/crm/tasks");quick("Activity","activity",CalendarDays,"/crm/activities");
     add("Support ticket", "Record a customer support request", LifeBuoy, "/crm/tickets?new=tickets", manages || role === "crm_support_agent");
     add("Campaign", "Plan a marketing campaign", CalendarDays, "/crm/campaigns?new=campaigns", privileged || ["crm_super_admin", "crm_org_admin", "crm_marketing_user"].includes(role));
   } else if (pathname.startsWith("/srm")) {
@@ -44,5 +44,5 @@ export default function ModuleNewMenu() {
     add("Leave request", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
     add("Support ticket", user?.employee_id ? "Ask your support team for help" : "Link an employee profile to raise tickets", LifeBuoy, "/hrms/helpdesk?new=ticket", true, !user?.employee_id);
   }
-  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <NewMenu actions={actions} />;
+  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <><NewMenu actions={actions} />{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>window.dispatchEvent(new CustomEvent("crm:records-changed"))}/></Suspense>}</>;
 }

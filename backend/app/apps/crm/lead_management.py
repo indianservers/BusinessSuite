@@ -25,7 +25,7 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.responses import Response, HTMLResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
@@ -681,6 +681,17 @@ class DetailsPatch(Strict):
     archived: bool | None = None
     archiveReason: str | None = Field(default=None, max_length=1000)
     reviewAt: datetime | None = None
+    assignmentReason: str | None = Field(default=None,max_length=1000)
+    customerTimezone: str | None = Field(default=None,max_length=60)
+
+    @field_validator("customerTimezone")
+    @classmethod
+    def valid_customer_zone(cls,value):
+        if not value:return None
+        from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
+        try:ZoneInfo(value)
+        except (ValueError,ZoneInfoNotFoundError):raise ValueError("Choose a valid IANA customer time zone")
+        return value
 
 
 class LeadPayload(Strict):
@@ -833,6 +844,8 @@ def get_settings(
     settings = config(db, org)
     settings.pop("assignmentCursor", None)
     settings.pop("capture", None)
+    settings.pop("productivityViews",None)
+    settings.pop("dealStageGuidance",None)
     can_manage = bool(
         user.is_superuser or core()._crm_permission_names(user).intersection(WRITE)
     )
@@ -910,7 +923,7 @@ def save_settings(
         **{
             key: value
             for key, value in (row.settings_json or {}).items()
-            if key in {"capture", "assignmentCursor"}
+            if key in {"capture", "assignmentCursor", "productivityViews", "dealStageGuidance"}
         },
         **values,
     }
@@ -1262,6 +1275,14 @@ def detail(
         .all()
     )
     result["timeline"] = [core()._serialize(e) for e in events]
+    from .productivity import communication_history
+    result["timeline"] += [{"id":-e.id,"event_type":f"{e.channel}_{e.event_type}","title":e.subject or f"{e.channel}: {e.event_type}","description":e.summary,"occurred_at":e.created_at,"actor_user_id":e.actor_user_id,"metadata_json":e.metadata_json} for e in communication_history(db,user,"leads",lead.id,lead.organization_id)]
+    result["timeline"].sort(key=lambda e:str(e.get("occurred_at") or e.get("occurredAt") or ""),reverse=True)
+    crm=core()
+    manages=bool(user.is_superuser or crm._crm_permission_names(user).intersection(WRITE))
+    grant=(getattr(user,"_suite_grants",None) or {}).get("crm")
+    exports=grant is None or "export" in grant.get("actions",[])
+    result["permissions"]={"edit":manages,"assign":crm._crm_can_assign_beyond_self(user),"export":exports,"convert":manages and lead.status=="Qualified" and not lead.is_converted,"edit_reason":"" if manages else "CRM lead management permission is required","assign_reason":"" if crm._crm_can_assign_beyond_self(user) else "Only permitted sales managers and administrators can assign another salesperson","export_reason":"" if exports else "Your organization access policy does not permit export","convert_reason":"" if manages and lead.status=="Qualified" and not lead.is_converted else "Qualify this lead and obtain CRM lead management access before converting; already converted leads cannot be converted again"}
     result["activities"] = [
         core()._serialize(a)
         for a in db.query(CRMActivity)
@@ -1373,7 +1394,7 @@ def apply_patch(db, user, lead, payload, settings):
     row.version += 1
     from app.apps.crm.lead_assignment import assignment_changed
 
-    assignment_changed(db, lead, user, previous_owner)
+    assignment_changed(db, lead, user, previous_owner, reason=payload.details.assignmentReason)
     return lead
 
 
@@ -1397,6 +1418,7 @@ class FollowUpPayload(Strict):
     type: Literal["call", "email", "meeting", "task"] = "task"
     ownerId: int | None = Field(None, gt=0)
     activityId: int | None = Field(None, gt=0)
+    rescheduleReason: str | None = Field(default=None,max_length=1000)
     version: int = Field(ge=0)
 
 
@@ -1488,12 +1510,15 @@ def schedule_follow_up(
         )
         if not item or item.status != "Pending":
             raise HTTPException(409, "This follow-up is no longer pending")
+        if not payload.rescheduleReason or len(payload.rescheduleReason.strip())<3:raise HTTPException(422,"Explain why this follow-up is being rescheduled")
+        previous_due=item.due_date
         item.subject = item.title = payload.title.strip()
         item.due_date = item.activity_date = due
         item.activity_type = payload.type
         item.owner_user_id = owner_id
         metadata = copy.deepcopy(item.metadata_json or {})
         metadata.pop("followUpReminderAt", None)
+        metadata["commitmentHistory"]=[*metadata.get("commitmentHistory",[]),{"previous":str(previous_due),"new":due.isoformat(),"reason":payload.rescheduleReason,"actor":user.id}]
         item.metadata_json = metadata
     else:
         item = task(
@@ -1516,7 +1541,7 @@ def schedule_follow_up(
         user,
         "follow_up_scheduled",
         "Follow-up rescheduled" if payload.activityId else "Follow-up scheduled",
-        {"activityId": item.id, "ownerId": owner_id, "dueAt": due.isoformat()},
+        {"activityId": item.id, "ownerId": owner_id, "dueAt": due.isoformat(),"previousCommitment":str(previous_due) if payload.activityId else None,"reason":payload.rescheduleReason},
         payload.title.strip(),
     )
     if owner_id != user.id:
@@ -2073,7 +2098,12 @@ def bulk_preview(
     user: User = Depends(RequirePermission(*WRITE)),
 ):
     leads = [lead_record(db, user, ident, True) for ident in set(payload.ids)]
-    return {
+    owner_id=payload.patch.values.get("owner_user_id")
+    workload=None
+    if owner_id:
+        check_owner(db,user,int(owner_id))
+        workload={"owner_id":int(owner_id),"visible_active_leads":visible_query(db,user).filter(CRMLead.owner_user_id==int(owner_id),CRMLead.is_converted.is_(False),CRMLead.status!="Lost").count(),"selected_leads":len(leads),"pending_followups":db.query(CRMActivity).filter(CRMActivity.organization_id==core()._organization_id(db,user),CRMActivity.lead_id.in_([l.id for l in leads]),CRMActivity.status.in_(["Pending","To Do","Open"])).count()}
+    return {"workload":workload,"organization_id":core()._organization_id(db,user),
         "count": len(leads),
         "items": [{"id": l.id, "name": l.full_name, "stage": l.status} for l in leads],
         "patch": payload.patch.model_dump(mode="json"),
@@ -2397,7 +2427,7 @@ def analytics(
     }
 
 
-def transfer_rows(content, filename):
+def transfer_rows(content, filename, mapping=None, headers_only=False):
     extension = filename.lower().rsplit(".", 1)[-1]
     if extension == "csv":
         try:
@@ -2465,18 +2495,22 @@ def transfer_rows(content, filename):
     }
     headers = [
         aliases.get(
-            core()._snake(str(h or "").strip().replace(" ", "_")),
-            core()._snake(str(h or "").strip().replace(" ", "_")),
+            re.sub(r"_+","_",core()._snake(str(h or "").strip().replace(" ", "_"))).strip("_"),
+            re.sub(r"_+","_",core()._snake(str(h or "").strip().replace(" ", "_"))).strip("_"),
         )
         for h in rows[0]
     ]
+    if headers_only:
+        return headers
+    if mapping:
+        headers=[mapping.get(h,h) for h in headers]
     # Ignore trailing empty cells but reject ambiguous or unsupported data columns.
     while headers and not headers[-1]:
         headers.pop()
     if (
         not headers
-        or len(headers) != len(set(headers))
-        or set(headers) - set(TRANSFER_FIELDS)
+        or len([h for h in headers if h]) != len(set(h for h in headers if h))
+        or set(h for h in headers if h) - set(TRANSFER_FIELDS)
     ):
         raise HTTPException(
             422,
@@ -2492,7 +2526,7 @@ def transfer_rows(content, filename):
         values = {
             key: value.isoformat() if isinstance(value, datetime) else value
             for key, value in zip(headers, row)
-            if value is not None and value != ""
+            if key and value is not None and value != ""
         }
         # Excel commonly stores national phone numbers as numeric cells. Validate their
         # exact decimal representation; a lost leading zero must be corrected by the user.
@@ -2603,9 +2637,18 @@ def validate_import(db, user, rows, settings, skip_duplicates=True):
     }
 
 
+@router.post("/excel/columns")
+async def import_columns(file:UploadFile=File(...),db:Session=Depends(get_db),user:User=Depends(RequirePermission(*WRITE))):
+    core()._assert_entity_permission("leads",user,"manage")
+    content=await file.read(MAX_FILE+1)
+    if len(content)>MAX_FILE:raise HTTPException(413,"Import file exceeds 3 MB")
+    return {"headers":transfer_rows(content,file.filename or "",headers_only=True),"supported_fields":TRANSFER_FIELDS}
+
+
 @router.post("/excel/preview")
 async def import_preview(
     file: UploadFile = File(...),
+    field_mapping: str = Form(default=""),
     db: Session = Depends(get_db),
     user: User = Depends(RequirePermission(*WRITE)),
 ):
@@ -2613,7 +2656,13 @@ async def import_preview(
     content = await file.read(MAX_FILE + 1)
     if len(content) > MAX_FILE:
         raise HTTPException(413, "Import file exceeds 3 MB")
-    rows = transfer_rows(content, file.filename or "")
+    mapping=None
+    if field_mapping:
+        import json
+        try: mapping=json.loads(field_mapping)
+        except ValueError: raise HTTPException(422,"Field mapping must be a JSON object")
+        if not isinstance(mapping,dict) or not all(isinstance(k,str) and v in [*TRANSFER_FIELDS,""] for k,v in mapping.items()): raise HTTPException(422,"Map each source column to a supported lead field")
+    rows = transfer_rows(content, file.filename or "", mapping)
     result = validate_import(
         db, user, rows, config(db, core()._organization_id(db, user))
     )

@@ -27,6 +27,8 @@ export type Settings = {
   workflows: Workflow[];
 };
 export type LeadDetails = {
+  assignmentReason?:string;
+  customerTimezone?:string;
   qualification?: {
     need: string;
     budget: string;
@@ -44,6 +46,7 @@ export type LeadDetails = {
   sequence?: { name: string; active: boolean; stopReason?: string };
 };
 export type Lead = {
+  permissions?:Record<string,boolean|string>;
   id: number;
   full_name: string;
   email?: string;
@@ -193,6 +196,7 @@ export const leadsApi = {
       type: string;
       ownerId?: number;
       activityId?: number;
+      rescheduleReason?:string;
       version: number;
     },
   ) => api.post<Lead>(`${root}/leads/${id}/follow-up`, data),
@@ -224,6 +228,8 @@ export const leadsApi = {
   bulkPreview: (ids: number[], patch: LeadPatch) =>
     api.post<{
       count: number;
+      workload?:{owner_id:number;visible_active_leads:number;selected_leads:number;pending_followups:number}|null;
+      organization_id?:number;
       items: { id: number; name: string; stage: string }[];
     }>(`${root}/bulk/preview`, { ids, patch }),
   bulkApply: (ids: number[], patch: LeadPatch) =>
@@ -244,9 +250,10 @@ export const leadsApi = {
       `${root}/leads/${id}/booking-link`,
       {},
     ),
-  previewImport: (file: File) => {
+  previewImport: (file: File,mapping?:Record<string,string>) => {
     const data = new FormData();
     data.append("file", file);
+    if(mapping)data.append("field_mapping",JSON.stringify(mapping));
     return api.post<ImportPreview>(`${root}/excel/preview`, data);
   },
   import: (rows: Record<string, unknown>[]) =>

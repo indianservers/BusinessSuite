@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, Mail, Megaphone, MessageCircle, ScrollText, Send, ShieldCheck, TableProperties, Users } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -26,7 +26,7 @@ const sections: Array<{ key: SectionKey; label: string; path: string; icon: type
   { key: "consents", label: "Consent", path: "/crm/consents", icon: ShieldCheck },
   { key: "whatsapp", label: "WhatsApp", path: "/crm/whatsapp", icon: MessageCircle },
   { key: "auto-responses", label: "Auto Responses", path: "/crm/auto-responses", icon: Send },
-  { key: "delivery-logs", label: "Logs", path: "/crm/delivery-logs", icon: ScrollText },
+  { key: "delivery-logs", label: "Delivery Logs", path: "/crm/delivery-logs", icon: ScrollText },
   { key: "timeline", label: "Timeline", path: "/crm/communication-timeline", icon: TableProperties },
 ];
 
@@ -53,7 +53,10 @@ export default function CommunicationHubPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
-  const active = activeSection(location.pathname);
+  const query = new URLSearchParams(location.search);
+  const requested=query.get("section")||query.get("tab")||query.get("operation")||"";
+  const alias:Record<string,SectionKey>={templates:"templates","email-templates":"templates",emails:"emails",campaigns:"campaigns",logs:"delivery-logs","delivery-logs":"delivery-logs",timeline:"timeline"};
+  const active = requested?(sections.find(s=>s.path===requested)?.key||alias[requested]||activeSection(location.pathname)):activeSection(location.pathname);
   return (
     <div className="space-y-6">
       <div className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
@@ -129,22 +132,15 @@ function Templates() {
 }
 
 function Emails() {
-  const { toast } = useToast();
-  const query = useQuery({ queryKey: ["communication-timeline"], queryFn: () => communicationApi.timeline("lead", 1) });
-  const send = useMutation({
-    mutationFn: () => communicationApi.sendEmail({ related_record_type: "lead", related_record_id: 1, to_email: "lead@example.com", subject: "Follow up", body: "Following up from CRM." }),
-    onSuccess: (data: CommunicationRecord) => {
-      toast({ title: `Email ${String(data.status)}` });
-      query.refetch();
-    },
-    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
-  });
-  const draft = useMutation({
-    mutationFn: () => communicationApi.draftEmail({ related_record_type: "lead", related_record_id: 1, to_email: "lead@example.com", subject: "Draft follow up", body: "Draft only." }),
-    onSuccess: (data: CommunicationRecord) => toast({ title: `Draft ${data.id}` }),
-    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
-  });
-  return <SectionFrame title="Individual Emails" description="Send or draft one-to-one CRM emails with provider availability and opt-out enforcement." action="Send Email" onAction={() => send.mutate()} query={query}><Button variant="outline" onClick={() => draft.mutate()}>Create Draft</Button></SectionFrame>;
+ const [search,setSearch]=useState("");const [matches,setMatches]=useState<any[]>([]);const [record,setRecord]=useState<any>();const [to,setTo]=useState("");const [subject,setSubject]=useState("");const [body,setBody]=useState("");const [variables,setVariables]=useState<Record<string,string>>({});const [review,setReview]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
+ const templates=useQuery({queryKey:["communication-templates"],queryFn:communicationApi.templates});const consents=useQuery({queryKey:["communication-consents"],queryFn:communicationApi.consents});
+ const timeline=useQuery({queryKey:["communication-compose-timeline",record?.entity,record?.id],enabled:!!record,queryFn:()=>communicationApi.timeline(record.entity==="companies"?"company":record.entity.replace(/s$/,""),record.id)});
+ useEffect(()=>{if(search.length<2){setMatches([]);return;}const controller=new AbortController();const t=setTimeout(()=>{void api.get("/crm/productivity/search",{params:{q:search},signal:controller.signal}).then(r=>setMatches(r.data.items.filter((i:any)=>["leads","contacts","companies"].includes(i.entity)))).catch(()=>{});},300);return()=>{clearTimeout(t);controller.abort();};},[search]);
+ const names=[...new Set((subject+" "+body).match(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g)||[])].map(v=>v.replace(/[{}\s]/g,""));const missing=names.filter(n=>!variables[n]?.trim());const render=(text:string)=>text.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g,(_,key)=>variables[key]||"");
+ const preferences=(consents.data?.items||[]).filter(c=>String(c.email||"").toLowerCase()===to.toLowerCase());const blocked=preferences.some(c=>["opted_out","denied","revoked"].includes(String(c.status)));
+ async function send(draft=false){if(!record)return;setBusy(true);setError("");try{const payload={related_record_type:record.entity==="companies"?"company":record.entity.replace(/s$/,""),related_record_id:record.id,to_email:to,subject:render(subject),body:render(body)};const response=await(draft?communicationApi.draftEmail(payload):communicationApi.sendEmail(payload));setNotice(`${draft?"Draft saved":"Provider result"}: ${String(response.status||"recorded")}. Delivered and Replied require provider evidence.`);setReview(false);void timeline.refetch();}catch(e:any){setError(typeof e.response?.data?.detail==="string"?e.response.data.detail:actionError(e));}finally{setBusy(false);}}
+ const changed=()=>setReview(false);
+ return <div className="space-y-4"><h2 className="text-xl font-semibold">Individual Emails</h2><p className="text-sm text-muted-foreground">Choose a real CRM recipient, compose, then review before sending. Draft → Queued → Sent → Delivered → Replied are distinct states; Failed requires correction or retry.</p><Input aria-label="Find email recipient" placeholder="Find a lead, contact or company…" value={search} onChange={e=>setSearch(e.target.value)}/>{matches.map(i=><button key={`${i.entity}-${i.id}`} className="block w-full rounded border p-2 text-left text-sm" onClick={()=>{setRecord(i);setTo(i.email||"");setVariables(v=>({...v,name:i.name,email:i.email||""}));setMatches([]);setSearch("");changed();}}>{i.name} · {i.email||"No email"} · {i.entity}</button>)}<p className="text-sm">Linked record: {record?`${record.name} (#${record.id})`:"Choose a recipient record"}</p><label className="block text-sm">Recipient email<Input type="email" value={to} onChange={e=>{setTo(e.target.value);changed();}}/></label><label className="block text-sm">Template<select className="block w-full rounded border p-2" onChange={e=>{const t=templates.data?.items.find(t=>Number(t.id)===Number(e.target.value));if(t){setSubject(String(t.subject||""));setBody(String(t.body_text||richTextPlainText(String(t.body_html||""))));changed();}}}><option value="">Write without a template</option>{templates.data?.items.map(t=><option value={t.id} key={t.id}>{t.name}</option>)}</select></label><label className="block text-sm">Subject<Input value={subject} onChange={e=>{setSubject(e.target.value);changed();}}/></label><label className="block text-sm">Message<textarea className="block min-h-36 w-full rounded border p-3" value={body} onChange={e=>{setBody(e.target.value);changed();}}/></label>{names.map(n=><label key={n} className="block text-sm">Template variable: {n}<Input value={variables[n]||""} onChange={e=>{setVariables(v=>({...v,[n]:e.target.value}));changed();}}/></label>)}<p className="text-sm">Email eligibility: {blocked?"Opted out — sending disabled":preferences.length?preferences.map(c=>String(c.status)).join(", "):"No preference record visible; the server checks opt-outs and provider availability when sending."}</p><p className="text-xs">Attachments: none in this composer. Quotations and invoices use their document delivery actions to validate the document version and attachments.</p>{error&&<p role="alert" className="text-destructive">{error} Your draft is preserved.</p>}{notice&&<p role="status">{notice}</p>}<div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy||!record||!to||!subject||missing.length>0} onClick={()=>void send(true)}>Save draft</Button><Button disabled={busy||blocked||!record||!to||!subject||!body||missing.length>0} onClick={()=>setReview(true)}>Preview before sending</Button></div>{review&&<section className="space-y-2 rounded border p-4"><h3 className="font-semibold">Review email</h3><p>To: {to} · Channel: Email · Attachments: none</p><p>Subject: {render(subject)}</p><pre className="whitespace-pre-wrap text-sm">{render(body)}</pre><p className="text-xs">Variables: {names.map(n=>`${n} = ${variables[n]}`).join("; ")||"None"}</p><Button disabled={busy||blocked} onClick={()=>void send()}>Confirm send to reviewed recipient</Button></section>}<h3 className="font-semibold">Communication timeline</h3>{timeline.data?.items.map((i,index)=><article key={String(i.id||index)} className="rounded border p-3 text-sm"><strong>{String(i.subject||i.title||i.channel||"Message")}</strong><p>Status: {String(i.status||"Recorded")}</p></article>)}</div>;
 }
 
 function Webforms({ selectedId }: { selectedId?: string }) {

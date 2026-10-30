@@ -382,6 +382,7 @@ export function FollowUpDialog({
   );
   const [detail, setDetail] = useState<Lead>();
   const [activityId, setActivityId] = useState("");
+  const [rescheduleReason,setRescheduleReason]=useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -446,6 +447,7 @@ export function FollowUpDialog({
                 type,
                 ownerId: Number(owner),
                 activityId: activityId ? Number(activityId) : undefined,
+                rescheduleReason:activityId?rescheduleReason:undefined,
                 version: detail.version,
               });
               saved();
@@ -479,6 +481,7 @@ export function FollowUpDialog({
               </Button>
             </div>
           )}
+          {!!activityId&&<label className="lm-work-field">Reason for rescheduling<input required minLength={3} value={rescheduleReason} onChange={e=>setRescheduleReason(e.target.value)}/></label>}
           <label className="lm-work-field">
             Follow-up action
             <select

@@ -1,3 +1,6 @@
+import {useAuthStore} from "@/store/authStore";
+import {crmScope,useCRMProductivity} from "./productivityStore";
+import CRMStageDialog from "./CRMStageDialog";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { ConversationLauncher } from "@/shared/communication";
 import { insertRichMention } from "@/components/rich-text/content";
@@ -170,6 +173,7 @@ const detailInlineEditConfig: Record<DetailKind, Record<string, DetailInlineConf
 };
 
 export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
+  const actingUser=useAuthStore(s=>s.user);const {pin}=useCRMProductivity();const [stageOpen,setStageOpen]=useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const config = detailConfig[kind];
@@ -362,7 +366,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-semibold">{title}</h1>
+                  <h1 className="truncate text-2xl font-semibold">{title}</h1><Button variant="outline" size="sm" onClick={()=>pin(crmScope(actingUser?.id,actingUser?.access?.companyId),{path:`/crm/${kind==="accounts"?"companies":kind}/${recordId}`,label:title})}>Pin record</Button>{kind==="deals"&&<Button variant="outline" size="sm" onClick={()=>setStageOpen(true)}>Review stage move</Button>}{stageOpen&&<CRMStageDialog id={recordId} close={()=>setStageOpen(false)} saved={loadRecord}/>}
                   {["leads","deals","accounts"].includes(kind) && <ConversationLauncher module="CRM" context={{type:kind === "leads" ? "lead" : kind === "deals" ? "deal" : "account", id:recordId}}/>}
                   {statusBadges.map((status) => <Badge key={status} className={statusColor(status)}>{status}</Badge>)}
                   {approvalStatus ? <Badge className={statusColor(approvalStatus)}>Approval {labelFor(approvalStatus)}</Badge> : null}

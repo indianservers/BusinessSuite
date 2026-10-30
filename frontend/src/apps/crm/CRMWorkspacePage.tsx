@@ -1,3 +1,4 @@
+import CRMStageDialog from "./CRMStageDialog";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { leadsApi } from "./leads/api";
@@ -146,6 +147,9 @@ type CRMDeal = {
   stageId: number;
   stage: string;
   amount: number;
+  currency?:string;
+  lastInteraction?:string;
+  nextAction?:string;
   probability: number;
   closeDate: string;
   nextStep: string;
@@ -1814,6 +1818,7 @@ function RefreshIcon() {
   return <Clock className="h-4 w-4" />;
 }
 
+function dealCurrencyTotals(deals:CRMDeal[],weighted=false){const totals=new Map<string,number>();for(const d of deals){const c=d.currency||"INR";totals.set(c,(totals.get(c)||0)+d.amount*(weighted?d.probability/100:1));}return [...totals].map(([c,v])=>`${c} ${v.toLocaleString(undefined,{maximumFractionDigits:2})}`).join(" · ")||"No value";}
 function isWonDeal(stage: string) {
   return ["won", "closed won", "service active", "delivered", "paid"].includes(stage.trim().toLowerCase());
 }
@@ -1876,6 +1881,7 @@ function PipelinePage() {
   const [filter, setFilter] = useState("");
   const [transitioningDealId, setTransitioningDealId] = useState<number | null>(null);
   const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
+  const [stageReview,setStageReview]=useState<{id:number;stage:number}>();
   const isTemplateLibrary = location.pathname.includes("/crm/templates");
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activeDeal = deals.find((deal) => deal.id === activeId);
@@ -1964,25 +1970,7 @@ function PipelinePage() {
   };
 
   const onDragStart = (event: DragStartEvent) => setActiveId(event.active.id as number);
-  const transitionDealToStage = (dealId: number, targetStageRecord: CRMRecord) => {
-    const targetStage = String(targetStageRecord.name || "");
-    if (!targetStage || !activePipelineId) return;
-    const probability = Number(targetStageRecord.probability ?? stageProbability(targetStage));
-    const { status } = stageStatusFor(targetStageRecord);
-    const previousDeals = deals;
-    const dealName = deals.find((deal) => deal.id === dealId)?.name || "Deal";
-    setTransitioningDealId(dealId);
-    setTransitionMessage(null);
-    setDeals((items) => items.map((deal) => (deal.id === dealId ? { ...deal, stage: targetStage, stageId: Number(targetStageRecord.id), pipelineId: activePipelineId, probability, status } : deal)));
-    crmApi
-      .update("deals", dealId, { pipeline_id: activePipelineId, stage_id: Number(targetStageRecord.id), probability, status })
-      .then(() => setTransitionMessage(`${dealName} moved to ${targetStage}.`))
-      .catch((error) => {
-        setDeals(previousDeals);
-        setTransitionMessage(error?.response?.data?.detail || `Could not move ${dealName}.`);
-      })
-      .finally(() => setTransitioningDealId(null));
-  };
+  const transitionDealToStage = (dealId:number,targetStageRecord:CRMRecord)=>{if(activePipelineId&&targetStageRecord.id)setStageReview({id:dealId,stage:Number(targetStageRecord.id)});};
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
@@ -1995,7 +1983,7 @@ function PipelinePage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">{stageReview&&<CRMStageDialog id={stageReview.id} targetStage={stageReview.stage} close={()=>setStageReview(undefined)} saved={()=>{void crmApi.list("deals",{per_page:100,pipeline_id:activePipelineId}).then(r=>setDeals(r.data.items.map(i=>recordToDeal(i,pipelineStages))));setTransitionMessage("Deal stage saved");}}/>}
       <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -2320,11 +2308,11 @@ function PipelineColumn({
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
           <div className="rounded bg-slate-50 p-2">
             <p className="text-muted-foreground">Value</p>
-            <p className="font-semibold text-slate-950">{formatCurrency(value)}</p>
+            <p className="font-semibold text-slate-950">{dealCurrencyTotals(deals)}</p>
           </div>
           <div className="rounded bg-slate-50 p-2">
             <p className="text-muted-foreground">Weighted</p>
-            <p className="font-semibold text-slate-950">{formatCurrency(weighted)}</p>
+            <p className="font-semibold text-slate-950">{dealCurrencyTotals(deals,true)}</p>
           </div>
         </div>
       </header>
@@ -2380,14 +2368,15 @@ function DealCard({
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between text-xs">
-        <span className="font-semibold text-slate-950">{formatCurrency(deal.amount)}</span>
+        <span className="font-semibold text-slate-950">{deal.currency||"INR"} {deal.amount.toLocaleString()}</span>
         <Badge variant="outline">{deal.probability}%</Badge>
       </div>
       <div className="mt-3 flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-600">
         <span>Close {formatDate(deal.closeDate)}</span>
         <span>{deal.owner || "Unassigned"}</span>
       </div>
-      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">Next: {deal.nextStep || "No next step captured"}</p>
+      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">Next: {deal.nextAction?new Date(deal.nextAction).toLocaleString():"No next action"} · {deal.nextStep||""}</p>
+      <p className="mt-2 text-xs text-muted-foreground">Last interaction: {deal.lastInteraction?new Date(deal.lastInteraction).toLocaleString():"None recorded"}</p>
       {!overlay && onTransition && sortedStages.length ? (
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs" disabled={!previousStage || transitioning} onClick={() => move(previousStage)}>
@@ -7212,6 +7201,7 @@ function MergeWizardModal({ group, onClose, onMerged }: { group: CRMDuplicateGro
               </tbody>
             </table>
           </div>
+          <section className="rounded-md border bg-card p-3"><h3 className="font-semibold">Survivor preview · record #{winnerId}</h3><p className="text-sm">The selected field values above become the surviving record. Other selected records move to archive after their related work is linked.</p></section>
           <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">Merge will relink activities, notes, tasks, deals, and quotations to the winning record, then soft-delete the losing record(s).</div>
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving || records.length < 2}>{saving ? "Merging..." : "Merge records"}</Button></div>
         </CardContent>
@@ -9138,6 +9128,9 @@ function recordToDeal(record: CRMRecord, stages: CRMRecord[], companyNames = new
     stageId,
     stage: String(record.stage || stage?.name || record.status || "Open"),
     amount: Number(record.amount || 0),
+    currency:String(record.currency||"INR"),
+    lastInteraction:String(record.lastActivityAt||record.last_activity_at||""),
+    nextAction:String(record.nextFollowUpAt||record.next_follow_up_at||""),
     probability: Number(record.probability || 0),
     closeDate: String(record.closeDate || record.expected_close_date || ""),
     nextStep: String(record.nextStep || record.description || ""),

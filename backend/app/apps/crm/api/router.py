@@ -100,6 +100,8 @@ from app.models.user import User
 router = APIRouter(prefix="/crm", tags=["CRM"])
 from app.apps.crm.lead_management import router as lead_management_router
 router.include_router(lead_management_router)
+from app.apps.crm.productivity import router as productivity_router
+router.include_router(productivity_router)
 
 
 class CRMRecordPayload(BaseModel):
@@ -1492,6 +1494,10 @@ def _crm_user_organization_id(db: Session, user: User) -> int:
 def _crm_role_key(user: User) -> str:
     role_name = str(user.role.name if user.role else "").strip().lower().replace("-", "_").replace(" ", "_")
     aliases = {
+        "crm_super_admin":"super_admin",
+        "crm_org_admin":"admin",
+        "crm_sales_manager":"manager",
+        "crm_sales_executive":"executive",
         "crm_admin": "admin",
         "sales_admin": "admin",
         "sales_manager": "manager",
@@ -3111,7 +3117,7 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int, us
             }
         )
     if entity in {"leads", "contacts", "companies"}:
-        related["duplicates"] = _duplicate_summary_for(db, organization_id, entity, record.id)
+        related["duplicates"] = _duplicate_summary_for(db, organization_id, entity, record.id,current_user=user)
     if entity == "leads":
         related["conversion"] = {
             "isConverted": bool(record.is_converted),
@@ -3633,6 +3639,10 @@ def _quote_payload(db: Session, quotation: CRMQuotation) -> dict[str, Any]:
     payload["lines"] = [_serialize(line) for line in _quote_lines(db, quotation.id)]
     payload["versions"] = [_serialize(row) for row in db.query(CRMQuoteVersion).filter(CRMQuoteVersion.quote_id == quotation.id).order_by(CRMQuoteVersion.version_number.desc()).all()]
     payload["approvals"] = [_serialize(row) for row in db.query(CRMQuoteApproval).filter(CRMQuoteApproval.quote_id == quotation.id).order_by(CRMQuoteApproval.id.desc()).all()]
+    send_events=db.query(CRMTimelineEvent).filter_by(organization_id=quotation.organization_id,record_type="quotation",record_id=quotation.id,event_type="email").order_by(CRMTimelineEvent.id.desc()).limit(100).all()
+    sent_version=next(((e.metadata_json or {}).get("versionNumber") for e in send_events if (e.metadata_json or {}).get("status")=="sent" and (e.metadata_json or {}).get("versionNumber")),None)
+    payload["sentVersionNumber"]=sent_version
+    payload["sentVersionEvidence"]="Provider accepted the quotation email" if sent_version else "No version-specific sending evidence recorded"
     payload["srmConversionLogs"] = [_serialize(row) for row in db.query(CRMQuoteSRMConversionLog).filter(CRMQuoteSRMConversionLog.quote_id == quotation.id).order_by(CRMQuoteSRMConversionLog.id.desc()).all()]
     return payload
 
@@ -3749,6 +3759,9 @@ def _detail_payload(db: Session, entity: str, record: Any, organization_id: int,
     payload["entity"] = canonical
     payload["customFields"] = _custom_fields_for(db, canonical, record.id, organization_id)
     payload["timeline"] = _timeline_for(db, canonical, record, organization_id)
+    from app.apps.crm.productivity import communication_history
+    payload["timeline"] += [{"type":f"{e.channel}_{e.event_type}","title":e.subject or e.event_type,"occurredAt":str(e.created_at),"record":{"status":e.event_type,"description":e.summary}} for e in communication_history(db,user,canonical,record.id,organization_id)]
+    payload["timeline"].sort(key=lambda e:str(e.get("occurredAt") or ""),reverse=True)
     payload["related"] = _related_for(db, canonical, record, organization_id, user)
     if canonical == "quotations":
         payload.update({key: value for key, value in _quote_payload(db, record).items() if key not in payload or key in {"lines", "versions", "approvals", "srmConversionLogs"}})
@@ -4114,6 +4127,7 @@ def _apply_deal_close_fields(record: CRMDeal, data: dict[str, Any]) -> None:
         record.closed_at = record.closed_at or record.won_at
         record.lost_at = None
     elif status_key == "lost":
+        if len(str(data.get("lost_reason",record.lost_reason or record.loss_reason or "")).strip())<5:raise HTTPException(422,"Enter a meaningful lost reason of at least five characters")
         record.lost_at = record.lost_at or now
         record.closed_at = record.closed_at or record.lost_at
         record.won_at = None
@@ -4275,9 +4289,11 @@ def _duplicate_pair_reasons(left: Any, right: Any, resource_name: str, custom_va
     return score, sorted(set(reasons)), sorted(set(fields))
 
 
-def _duplicate_groups(db: Session, organization_id: int, resource_name: str, target_id: int | None = None) -> list[dict[str, Any]]:
+def _duplicate_groups(db: Session, organization_id: int, resource_name: str, target_id: int | None = None, current_user:User|None=None) -> list[dict[str, Any]]:
     resource = _get_resource(resource_name)
-    records = _base_query(db, resource, organization_id).order_by(asc(resource.model.id)).all()
+    query=_base_query(db,resource,organization_id)
+    if current_user is not None: query=_apply_record_visibility(query,resource,current_user,db)
+    records = query.order_by(asc(resource.model.id)).all()
     if len(records) < 2:
         return []
     records_by_id = {record.id: record for record in records}
@@ -4348,8 +4364,8 @@ def _duplicate_groups(db: Session, organization_id: int, resource_name: str, tar
     return sorted(groups, key=lambda group: (-int(group["score"]), group["recordIds"][0]))
 
 
-def _duplicate_summary_for(db: Session, organization_id: int, resource_name: str, record_id: int) -> dict[str, Any]:
-    groups = _duplicate_groups(db, organization_id, resource_name, target_id=record_id)
+def _duplicate_summary_for(db: Session, organization_id: int, resource_name: str, record_id: int, current_user:User|None=None) -> dict[str, Any]:
+    groups = _duplicate_groups(db, organization_id, resource_name, target_id=record_id,current_user=current_user)
     return {"count": sum(len(group["recordIds"]) - 1 for group in groups), "groups": groups[:5]}
 
 
@@ -5445,7 +5461,7 @@ def list_duplicates(
 ):
     organization_id = _organization_id(db, current_user)
     resource_name = _duplicate_resource_name(entityType)
-    groups = _duplicate_groups(db, organization_id, resource_name)
+    groups = _duplicate_groups(db, organization_id, resource_name,current_user=current_user)
     return {"items": groups, "total": len(groups), "entityType": _duplicate_entity_type(resource_name)}
 
 
@@ -5459,7 +5475,7 @@ def scan_duplicates(
     resource_names = [_duplicate_resource_name(payload.entityType)] if payload.entityType else ["leads", "contacts", "companies"]
     groups: list[dict[str, Any]] = []
     for resource_name in resource_names:
-        groups.extend(_duplicate_groups(db, organization_id, resource_name))
+        groups.extend(_duplicate_groups(db, organization_id, resource_name,current_user=current_user))
     return {"items": groups, "total": len(groups)}
 
 
@@ -5475,9 +5491,12 @@ def merge_duplicates(
     loser_ids = sorted({int(record_id) for record_id in payload.loserIds if int(record_id) != int(payload.winnerId)})
     if not loser_ids:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="At least one losing record is required")
+    _assert_entity_permission(resource_name,current_user,"manage")
+    for record_id in [payload.winnerId,*loser_ids]:
+        _assert_record_visible(db,resource,record_id,organization_id,current_user)
     winner = _get_record(db, resource, payload.winnerId, organization_id)
     losers = [_get_record(db, resource, loser_id, organization_id) for loser_id in loser_ids]
-    detected_groups = _duplicate_groups(db, organization_id, resource_name, target_id=winner.id)
+    detected_groups = _duplicate_groups(db, organization_id, resource_name, target_id=winner.id,current_user=current_user)
     detected_ids = {record_id for group in detected_groups for record_id in group["recordIds"]}
     if not set(loser_ids).issubset(detected_ids):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Selected records are not in a detected duplicate group")
@@ -6268,7 +6287,7 @@ def send_quotation_pdf_email(
         title=f"Quotation PDF email {status_value}",
         body=body,
         user_id=current_user.id,
-        metadata={"pdfUrl": file_url, "fileName": file_name, "to": ", ".join(to_emails), "status": status_value},
+        metadata={"pdfUrl": file_url, "fileName": file_name, "to": ", ".join(to_emails), "status": status_value,"versionNumber":quotation.version_number},
     )
     db.commit()
     db.refresh(email_log)
@@ -8319,6 +8338,13 @@ def update_record(
     _validate_related_records(db, data, organization_id)
     if resource.model is CRMDeal:
         _validate_deal_pipeline_stage(db, data.get("pipeline_id", record.pipeline_id), data.get("stage_id", record.stage_id), organization_id)
+        from app.apps.crm.productivity import stage_requirements
+        stage = db.get(CRMPipelineStage,data.get("stage_id",record.stage_id))
+        if stage and ("stage_id" in data or "status" in data):
+            plan=stage_requirements(db,record,stage,data)
+            if plan["missing"]:raise HTTPException(422,{"message":"Resolve deal stage requirements","missingFields":plan["missing"]})
+        if str(data.get("status",record.status)).lower()=="lost" and len(str(data.get("lost_reason",record.lost_reason or record.loss_reason or "")).strip())<5:
+            raise HTTPException(422,"Enter a meaningful lost reason of at least five characters")
     _assert_write_scope(resource, {**_serialize(record), **data}, current_user, db)
     _assert_final_action_allowed(db, organization_id, resource, record, data)
     for key, value in data.items():

@@ -165,7 +165,7 @@ def directory(db, actor, can_assign):
     return sorted(available, key=lambda item: item["name"].casefold()), unavailable
 
 
-def assignment_changed(db, lead, actor, previous_owner):
+def assignment_changed(db, lead, actor, previous_owner, reason=None):
     if lead.owner_user_id == previous_owner:
         return
     candidate = db.get(User, lead.owner_user_id) if lead.owner_user_id else None
@@ -193,6 +193,7 @@ def assignment_changed(db, lead, actor, previous_owner):
             actor_user_id=actor.id,
             occurred_at=datetime.now(timezone.utc),
             metadata_json={
+                "reason": reason or "Manual assignment",
                 "previousOwnerId": previous_owner,
                 "ownerId": lead.owner_user_id,
             },

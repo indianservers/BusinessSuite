@@ -43,6 +43,7 @@ def test_due_reminders_are_scoped_deduplicated_and_reset_on_reschedule(
             "title": "Call tomorrow",
             "dueAt": future(),
             "activityId": item.id,
+            "rescheduleReason":"Customer requested a later time",
             "version": response.json()["version"],
         },
     )
@@ -113,6 +114,7 @@ def test_reschedule_updates_existing_task_and_earliest_next_step(
             "title": "First moved",
             "dueAt": future(3),
             "activityId": task.id,
+            "rescheduleReason":"Customer requested a later time",
             "version": second.json()["version"],
         },
     )
