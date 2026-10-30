@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Upl
 from fastapi.responses import Response, StreamingResponse
 from app.core.storage import persist_file, upload_exists, FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import asc, case, desc, func, or_
+from sqlalchemy import and_, asc, case, desc, func, or_
 from sqlalchemy.orm import Session
 from cryptography.fernet import Fernet
 
@@ -295,6 +295,12 @@ def _decrypt_dev_secret(value: str | None) -> str | None:
     return _pms_fernet().decrypt(value.encode("utf-8")).decode("utf-8")
 
 
+def _user_photo_url(user: User | None) -> str | None:
+    person = getattr(user, "person", None)
+    profile = getattr(person, "profile", None)
+    return getattr(profile, "profile_photo_url", None)
+
+
 def _user_display_name(user: User | None) -> str | None:
     if not user:
         return None
@@ -420,6 +426,7 @@ def _task_list_payload(
         "epic_name": epic.name if epic else task.initiative,
         "sprint_name": sprint.name if sprint else None,
         "assignee_name": _user_display_name(assignee),
+        "assignee_photo_url": _user_photo_url(assignee),
         "reporter_name": _user_display_name(reporter),
         "tags": tags_by_task_id.get(task.id, []),
         "subtask_count": subtask_total,
@@ -3070,6 +3077,9 @@ def list_all_tasks(
     sortOrder: str = Query("desc"),
     page: int = Query(1, ge=1),
     pageSize: int = Query(25, ge=1, le=200),
+    referenceDate: date | None = None,
+    overdue: bool = False,
+    openOnly: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -3082,6 +3092,13 @@ def list_all_tasks(
 
     if projectId:
         query = query.filter(PMSTask.project_id == projectId)
+    if overdue:
+        query = query.filter(
+            PMSTask.due_date < (referenceDate or date.today()),
+            PMSTask.status.notin_(["Done", "Completed", "Closed", "Cancelled"]),
+        )
+    if openOnly:
+        query = query.filter(PMSTask.status.notin_(["Done", "Completed", "Closed", "Cancelled"]))
     if sprintId:
         query = query.filter(PMSTask.sprint_id == sprintId)
     if epicId:
@@ -3195,12 +3212,46 @@ def list_all_tasks(
 
     subtask_counts_by_task_id = _load_subtask_counts(db, task_ids)
 
+    reference_day = referenceDate or date.today()
+    open_task = PMSTask.status.notin_(["Done", "Completed", "Closed", "Cancelled"])
+    filtered_task_ids = query.order_by(None).with_entities(PMSTask.id)
+    stats = db.query(PMSTask).filter(PMSTask.id.in_(filtered_task_ids)).with_entities(
+        func.sum(case((PMSTask.status == "In Progress", 1), else_=0)),
+        func.sum(case((and_(PMSTask.due_date == reference_day, open_task), 1), else_=0)),
+        func.sum(case((PMSTask.status.in_(["Done", "Completed", "Closed"]), 1), else_=0)),
+        func.sum(case((and_(PMSTask.due_date < reference_day, open_task), 1), else_=0)),
+        func.sum(case((and_(
+            func.date(PMSTask.created_at) >= reference_day - timedelta(days=6),
+            func.date(PMSTask.created_at) <= reference_day,
+        ), 1), else_=0)),
+    ).first()
+    recent = (
+        db.query(PMSActivity).filter(PMSActivity.task_id.in_(filtered_task_ids))
+        .order_by(PMSActivity.created_at.desc(), PMSActivity.id.desc()).limit(4).all()
+    )
+    actor_ids = {activity.actor_user_id for activity in recent if activity.actor_user_id}
+    actors = {actor.id: actor for actor in db.query(User).filter(User.id.in_(actor_ids)).all()} if actor_ids else {}
+
     return {
         "items": [_task_list_payload(task, projects_by_id, epics_by_id, sprints_by_id, users_by_id, tags_by_task_id, subtask_counts_by_task_id) for task in tasks],
         "total": total,
         "page": page,
         "pageSize": pageSize,
         "pages": (total + pageSize - 1) // pageSize,
+        "summary": {
+            "total": total, "in_progress": int(stats[0] or 0),
+            "due_today": int(stats[1] or 0), "completed": int(stats[2] or 0),
+            "overdue": int(stats[3] or 0), "created_last_week": int(stats[4] or 0),
+        },
+        "activity": [
+            {
+                "id": activity.id, "task_id": activity.task_id,
+                "summary": activity.summary, "created_at": activity.created_at,
+                "actor_name": _user_display_name(actors.get(activity.actor_user_id)) or "System",
+                "photo_url": _user_photo_url(actors.get(activity.actor_user_id)),
+            }
+            for activity in recent
+        ],
         "filters": {
             "projects": [
                 {"id": project.id, "name": project.name, "project_key": project.project_key,

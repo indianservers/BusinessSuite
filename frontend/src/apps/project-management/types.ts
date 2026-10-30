@@ -197,6 +197,7 @@ export interface PMSTask {
 }
 
 export interface PMSTaskListItem extends PMSTask {
+  assignee_photo_url?:string|null;
   project_name?: string;
   project_key?: string;
   epic_name?: string;
@@ -226,6 +227,8 @@ export interface PMSTaskListFilters {
 }
 
 export interface PMSTaskListResponse {
+  summary?:{total:number;in_progress:number;due_today:number;completed:number;overdue:number;created_last_week:number};
+  activity?:{id:number;task_id?:number;summary:string;created_at:string;actor_name:string;photo_url?:string|null}[];
   items: PMSTaskListItem[];
   total: number;
   page: number;
@@ -245,6 +248,7 @@ export interface PMSBacklogResponse {
 }
 
 export interface PMSTaskListQuery {
+  referenceDate?:string;overdue?:boolean;openOnly?:boolean;
   projectId?: number | string;
   sprintId?: number | string;
   epicId?: number | string;

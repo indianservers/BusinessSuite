@@ -34,6 +34,7 @@ const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
 const KanbanBoard = React.lazy(() => import("./pages/KanbanBoard"));
 const ProjectsList = React.lazy(() => import("./pages/ProjectsList"));
 const CreateProjectPage = React.lazy(() => import("./pages/CreateProjectPage"));
+const TasksReferencePage = React.lazy(() => import("./pages/TasksReferencePage"));
 const TaskListPage = React.lazy(() => import("./pages/TaskListPage"));
 const TaskDetail = React.lazy(() => import("./pages/TaskDetail"));
 const MilestonesPage = React.lazy(() => import("./pages/MilestonesPage"));
@@ -131,7 +132,8 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/projects/:projectId/risks", element: <RisksPage /> },
   
   // Tasks
-  { path: "pms/tasks", element: <TaskListPage /> },
+  { path: "pms/tasks", element: <TasksReferencePage /> },
+  { path: "pms/tasks/advanced", element: <TaskListPage /> },
   { path: "pms/tasks/:taskId", element: <TaskDetail /> },
   { path: "pms/projects/:projectId/tasks/:taskId", element: <TaskDetail /> },
 

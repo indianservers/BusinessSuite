@@ -17,11 +17,12 @@ const statuses: TaskStatus[] = ["Backlog", "To Do", "In Progress", "In Review", 
 const priorities: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
 const typeIcons: Record<string, typeof ClipboardList> = { Task: ClipboardList, Bug, Feature: Lightbulb, Improvement: BarChart3, Epic: Layers3 };
 
-export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCreated, workspacePeople, projects, initialDueDate = "", initialWorkType = "Task" }: {
+export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCreated, workspacePeople, projects, initialDueDate = "", initialWorkType = "Task", initialTitle = "" }: {
   isOpen: boolean; onClose: () => void; projectId: number;
   onTaskCreated: (task: PMSTask, createAnother?: boolean) => void;
   workspacePeople?: PMSMentionUser[]; projects?: { id: number; name: string }[];
   initialDueDate?: string;
+  initialTitle?: string;
   initialWorkType?: "Task" | "Story" | "Bug";
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
@@ -29,6 +30,7 @@ export default function CreateTaskModal({ isOpen, onClose, projectId, onTaskCrea
   const [projectOptions, setProjectOptions] = useState(projects || []);
   const [customValues,setCustomValues]=useState<FieldDraft>({});
   const [title, setTitle] = useState("");
+  useEffect(() => { if (isOpen && initialTitle) setTitle(initialTitle); }, [isOpen, initialTitle]);
   const [workType, setWorkType] = useState<string>(initialWorkType);
   useEffect(()=>setCustomValues({}),[selectedProjectId,workType,isOpen]);
   const [workTypes, setWorkTypes] = useState(["Task", "Bug", "Feature", "Improvement", "Epic"]);
