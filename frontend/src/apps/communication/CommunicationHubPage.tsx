@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { canAccessRoute } from "@/lib/roles";
 
 type SectionKey = "hub" | "templates" | "emails" | "webforms" | "campaigns" | "consents" | "whatsapp" | "auto-responses" | "delivery-logs" | "timeline";
 
@@ -48,6 +49,7 @@ function actionError(error: unknown) {
 }
 
 export default function CommunicationHubPage() {
+  const user = useAuthStore(state => state.user);
   const location = useLocation();
   const navigate = useNavigate();
   const params = useParams();
@@ -58,12 +60,12 @@ export default function CommunicationHubPage() {
         <p className="text-sm font-medium uppercase text-muted-foreground">CRM</p>
         <h1 className="text-2xl font-semibold">Communication Hub</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">Templates, individual emails, public webforms, auto-responses, campaigns, consent, WhatsApp placeholders, timeline, and delivery analytics.</p>
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-          {sections.map((item) => {
+        <nav aria-label="Communication sections" className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          {sections.filter(item => canAccessRoute(item.path, user?.role, user?.is_superuser)).map((item) => {
             const Icon = item.icon;
-            return <Button key={item.key} variant={active === item.key ? "default" : "outline"} size="sm" onClick={() => navigate(item.path)}><Icon className="h-4 w-4" />{item.label}</Button>;
+            return <Button key={item.key} aria-current={active === item.key ? "page" : undefined} variant={active === item.key ? "default" : "outline"} size="sm" onClick={() => navigate(item.path)}><Icon className="h-4 w-4" />{item.label}</Button>;
           })}
-        </div>
+        </nav>
       </div>
       <div className="px-4 pb-8 sm:px-6 lg:px-8">
         {active === "hub" ? <Hub /> : null}

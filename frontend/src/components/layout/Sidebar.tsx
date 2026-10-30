@@ -1,3 +1,4 @@
+import { consolidateNavigation, activeWorkspace, workspacePageHref } from "@/lib/navigation-workspaces";
 import { Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -64,7 +65,8 @@ export default function Sidebar({
   ).filter((item) =>
     canAccessRoute(item.to.split("?")[0], user?.role, user?.is_superuser),
   );
-  const items = allItems.filter(
+  const consolidated = consolidateNavigation(allItems);
+  const items = (query.trim() ? allItems : consolidated).filter(
     (item) =>
       !query.trim() ||
       `${item.label} ${item.group || ""}`
@@ -81,7 +83,7 @@ export default function Sidebar({
         location.pathname.startsWith(item.to.split("?")[0] + "/"),
     )
     .sort((a, b) => b.to.length - a.to.length)[0];
-  const activeGroup = active?.group || "Workspace";
+  const activeGroup = activeWorkspace(consolidated, location.pathname)?.group || active?.group || "Workspace";
   const previousPath = useRef(location.pathname);
   const close = useRef(onClose);
   close.current = onClose;
@@ -285,7 +287,7 @@ export default function Sidebar({
                       .map((item) => (
                         <li key={item.to + item.label}>
                           <NavLink
-                            to={item.to}
+                            to={workspacePageHref(item.to, location.search)}
                             end={item.exact || item.to.split("/").length === 2}
                             title={collapsed ? item.label : undefined}
                             aria-label={item.label}
@@ -293,7 +295,7 @@ export default function Sidebar({
                             className={({ isActive }) =>
                               cn(
                                 "nav-link min-h-11",
-                                isActive &&
+                                (isActive || (!query && activeWorkspace(consolidated, location.pathname)?.to === item.to)) &&
                                   (!item.to.includes("?") ||
                                     location.search ===
                                       "?" + item.to.split("?")[1])

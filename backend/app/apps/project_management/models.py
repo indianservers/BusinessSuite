@@ -5,6 +5,17 @@ from sqlalchemy.orm import deferred, relationship
 from app.db.base_class import Base
 
 
+class PMSTaskExecution(Base):
+    __tablename__ = "pms_task_execution"
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    blocked_reason = Column(Text)
+    responsible_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    review_date = Column(Date)
+    evidence_required = Column(Boolean, nullable=False, default=False, server_default="false")
+    evidence = Column(Text)
+    revision = Column(Integer, nullable=False, default=1, server_default="1")
+
+
 class PMSNoteFolder(Base):
     __tablename__ = "pms_note_folders"
     id = Column(Integer, primary_key=True)

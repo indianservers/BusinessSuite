@@ -1,3 +1,5 @@
+import OperationsWorkspace from "@/components/layout/OperationsWorkspace";
+import { getOperationWorkspace } from "@/lib/navigation-workspaces";
 import { PendingPageProgress } from "./components/app/RouteProgress";
 import React, { Suspense, useEffect, useState } from "react";
 const PersonManagementHost = React.lazy(() => import("@/apps/project-management/components/people/PersonManagementHost"));
@@ -265,7 +267,7 @@ export default function App() {
             }
           >
             {routes.map((route) => (
-              <Route key={route.path} path={route.path} element={route.element} caseSensitive={route.caseSensitive} />
+              <Route key={route.path} path={route.path} element={getOperationWorkspace(`/${route.path}`) ? <OperationsWorkspace key={route.path} route={route} routes={routes} /> : route.element} caseSensitive={route.caseSensitive} />
             ))}
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
