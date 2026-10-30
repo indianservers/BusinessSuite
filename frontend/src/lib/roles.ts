@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/store/authStore";
+import { categorizeNavigation } from "./navigation-categories";
 import {
   AlertTriangle,
   BarChart3,
@@ -1128,7 +1129,7 @@ const adminSecurityNav: RoleNavItem[] = [
 function withPrefix(items: RoleNavItem[], prefix: string) {
   return items.filter(item => item.to !== "/settings").map((item) => ({
     ...item,
-    to: item.to === "/company" ? "/settings/company-profile" : item.to.startsWith("/ai-agents") ? item.to : `${prefix}${item.to}`,
+    to: item.to === "/company" ? "/settings/company-profile" : item.to === prefix || item.to.startsWith(prefix + "/") || item.to.startsWith("/ai-agents") || item.to.startsWith("/admin/") || item.to === "/analytics" ? item.to : `${prefix}${item.to}`,
   }));
 }
 
@@ -1169,6 +1170,10 @@ function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
 }
 
 export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
+  return categorizeNavigation(getAvailableRoleNav(role, isSuperuser, pathname), getActiveModule(pathname));
+}
+
+function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
   if (pathname.startsWith("/admin/access") || pathname.startsWith("/admin/control")) return [
     {label:"Dashboard",to:"/admin/control/dashboard",icon:Building2},
     {label:"Organizations",to:"/admin/control/organizations",icon:Building2},
@@ -1193,7 +1198,7 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
     if (module) {
       if (!access.grants[module.key]?.enabled) return [];
       const nav = module.key === "crm" ? crmNav : module.key === "project_management" ? projectManagementNav : module.key === "srm" ? srmNav : module.key === "fam" ? famNav : module.key === "hrms" ? adminNav : module.key === "ai" ? [...aiCopilotNav,...aiAgentsNav] : module.key === "security" ? adminSecurityNav : module.key === "saas" ? saasNav : [];
-      return nav.filter(item => canAccessRoute(item.to, role, isSuperuser));
+      return (module.key === "hrms" ? withPrefix(nav, "/hrms") : nav).filter(item => canAccessRoute(item.to, role, isSuperuser));
     }
   }
   const installedApps = getInstalledAppKeys();

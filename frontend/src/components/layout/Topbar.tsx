@@ -85,7 +85,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden"
+        className="shrink-0 lg:hidden"
         aria-label="Open navigation" onClick={onMenuClick}
       >
         <Menu className="h-5 w-5" />
@@ -94,15 +94,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex min-w-0 flex-1 [&>button]:min-w-0 [&>button]:max-w-full"><GlobalSearch /></div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        {location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}
-        <RefreshPagesCatalog />
+        <span className="hidden sm:contents">{location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}<RefreshPagesCatalog /></span>
         <ModuleNewMenu />
-        <Button variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span className="hidden sm:inline">AI operator</span></Button>
+        <Button className="hidden sm:inline-flex" variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span>AI operator</span></Button>
         <div className="hidden max-w-48 truncate rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
           {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
         </div>
         <SuiteNotificationBell />
-        <span className="hidden sm:contents"><KeyboardShortcuts /></span><DensityControl />
+        <span className="hidden sm:contents"><KeyboardShortcuts /><DensityControl /></span>
 
         {/* Theme toggle */}
         <Button
