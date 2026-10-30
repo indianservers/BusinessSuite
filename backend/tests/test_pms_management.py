@@ -106,6 +106,7 @@ def test_note_visibility_requires_explicit_audience_and_respects_scope(client,db
     note=client.post(BASE+"/notes",headers=oh,json={"title":"Team decisions","content":"Reviewed for sharing","project_id":pid}).json()
     assert note["visibility_scope"]=="private"
     assert client.get(BASE+f"/notes/{note['id']}",headers=th).status_code==404
+
     route=BASE+f"/notes/{note['id']}/visibility"
     assert client.put(route,headers=oh,json={"version":note["version"],"scope":"project"}).status_code==422
     published=client.put(route,headers=oh,json={"version":note["version"],"scope":"project","confirm_audience":True})
@@ -123,3 +124,13 @@ def test_note_visibility_requires_explicit_audience_and_respects_scope(client,db
     private=client.put(route,headers=oh,json={"version":workspace.json()["version"],"scope":"private"})
     assert private.status_code==200,private.text
     assert client.get(BASE+f"/notes/{note['id']}",headers=th).status_code==404
+
+
+def test_legacy_project_manager_can_check_collaborator_availability(client,db):
+    manager,mh=account(db,"legacy-manager@test.com")
+    member,_=account(db,"legacy-member@test.com")
+    project=PMSProject(organization_id=1,name="Legacy delivery",project_key="LEGACY")
+    db.add(project);db.flush()
+    db.add_all([PMSProjectMember(project_id=project.id,user_id=manager.id,role="Project Manager"),PMSProjectMember(project_id=project.id,user_id=member.id,role="Member")]);db.commit()
+    response=client.get(ROOT+"/assignment-warnings",headers=mh,params={"project_id":project.id,"user_id":member.id})
+    assert response.status_code==200,response.text

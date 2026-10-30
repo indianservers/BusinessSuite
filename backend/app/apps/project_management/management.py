@@ -225,7 +225,12 @@ def change_project(project_id: int, data: ProjectChange, db: Session = Depends(g
 @router.get("/assignment-warnings")
 def assignment_warnings(project_id: int, user_id: int, on: date | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     project = get_project_for_action(db, project_id, user, "manage_tasks")
-    target = scoped_person(db, user, user_id)
+    target = db.get(User, user_id)
+    from .people_management import same_company
+    from .models import PMSWorkspaceMember
+    linked = db.query(PMSWorkspaceMember.id).filter_by(workspace_id=project.workspace_id, user_id=user_id).first() if project.workspace_id else db.query(PMSProjectMember.id).filter_by(project_id=project.id, user_id=user_id).first()
+    if not target or not same_company(db,user,target) or not (linked or user_id in {project.owner_user_id,project.manager_user_id} or organization_admin(user)):
+        raise HTTPException(404, "Person not found in this project scope")
     from .api.router import _project_user_query
     warnings = []
     if not target.is_active: warnings.append("This account is suspended or inactive")
