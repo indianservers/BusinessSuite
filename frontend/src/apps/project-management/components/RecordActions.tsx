@@ -286,6 +286,7 @@ export default function RecordActions({
       run: () => navigate(`/pms/projects/${record.project_id}`),
     });
   if (kind === "task" && canEdit) {
+    actions.push({label:"Edit task",icon:<ArrowUpRight size={15}/>,run:()=>navigate(`/pms/tasks/${record.id}`)});
     actions.push(
       {
         label: done(record.status) ? "Reopen task" : "Mark complete",

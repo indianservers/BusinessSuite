@@ -137,7 +137,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/tasks/new", element: <TasksReferencePage /> },
   { path: "pms/tasks/:taskId", element: <TasksReferencePage /> },
   { path: "pms/tasks/:taskId/classic", element: <TaskDetail /> },
-  { path: "pms/projects/:projectId/tasks/:taskId", element: <TaskDetail /> },
+  { path: "pms/projects/:projectId/tasks/:taskId", element: <TasksReferencePage /> },
 
   // KaryaFlow software delivery workspaces
   { path: "pms/work-hub", element: <ImpactWorkHubPage /> },
