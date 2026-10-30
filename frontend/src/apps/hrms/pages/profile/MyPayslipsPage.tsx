@@ -143,6 +143,7 @@ export default function MyPayslipsPage() {
               </div>
             ) : null}
 
+            <details className="rounded border p-4 md:col-span-2"><summary className="cursor-pointer font-semibold">Understand this payslip</summary><p className="mt-2 text-sm">Earnings are salary components before deductions. Deductions reduce take-home pay and may include tax, statutory contributions, unpaid leave or recoveries. Reimbursements repay approved business expenses. Adjustments appear as their own calculation lines; employer contributions are shown separately from take-home pay.</p><p className="mt-2 text-sm">Compare the listed earnings, deductions and reimbursements with the net amount below. Working days and unpaid leave can change monthly amounts. Ask Payroll through Helpdesk if a component or adjustment needs an explanation.</p></details>
             <PayslipSection title="Earnings" lines={payslip.earnings || []} totalLabel="Gross Salary" total={payslip.gross_salary || 0} />
             <PayslipSection title="Deductions" lines={payslip.deductions || []} totalLabel="Total Deductions" total={payslip.total_deductions || 0} danger />
             {(payslip.reimbursements || []).length ? <PayslipSection title="Reimbursements" lines={payslip.reimbursements || []} totalLabel="Total Reimbursements" total={(payslip.reimbursements || []).reduce((sum, line) => sum + Number(line.amount || 0), 0)} /> : null}

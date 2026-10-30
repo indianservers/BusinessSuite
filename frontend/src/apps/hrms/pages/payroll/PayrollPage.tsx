@@ -1,3 +1,4 @@
+import {useHRSession} from "../../workbench/useHRSession";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -229,7 +230,7 @@ export default function PayrollPage() {
   const { user } = useAuthStore();
   const isEmployee = user?.role === "employee" && !user?.is_superuser;
   const today = new Date();
-  const [activeTab, setActiveTab] = useState<PayrollTab>(isEmployee ? "viewer" : "guided");
+  const [activeTab, setActiveTab] = useHRSession<PayrollTab>("payroll-active-tab",isEmployee ? "viewer" : "guided");
   const [wizardStep, setWizardStep] = useState(0);
   const [slipMonth, setSlipMonth] = useState(today.getMonth() + 1);
   const [slipYear, setSlipYear] = useState(today.getFullYear());

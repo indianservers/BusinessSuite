@@ -1,4 +1,6 @@
-import { useState } from "react";
+import {useHRSession} from "../../workbench/useHRSession";
+import {useSearchParams} from "react-router-dom";
+import { useState,useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -67,12 +69,14 @@ export default function AttendancePage() {
   const { user } = useAuthStore();
   const hasEmployeeProfile = Boolean(user?.employee_id);
   const today = new Date();
-  const [viewMonth, setViewMonth] = useState(today.getMonth() + 1);
-  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [selectionParams]=useSearchParams();
+  const [viewMonth, setViewMonth] = useHRSession("attendance-month",Number(selectionParams.get("month"))||today.getMonth()+1);
+  const [viewYear, setViewYear] = useHRSession("attendance-year",Number(selectionParams.get("year"))||today.getFullYear());
+  useEffect(()=>{const m=Number(selectionParams.get("month")),y=Number(selectionParams.get("year"));if(m>=1&&m<=12)setViewMonth(m);if(y>=2000&&y<=2100)setViewYear(y);},[selectionParams.get("month"),selectionParams.get("year")]);
   const [lockReason, setLockReason] = useState("Payroll cutoff");
   const [unlockReason, setUnlockReason] = useState("Approved correction");
   const [registerDate, setRegisterDate] = useState(today.toISOString().slice(0, 10));
-  const [registerSearch, setRegisterSearch] = useState("");
+  const [registerSearch, setRegisterSearch] = useHRSession("attendance-register-search","");
   const [bulkStatus, setBulkStatus] = useState("Present");
   const [registerEdits, setRegisterEdits] = useState<Record<number, RegisterEdit>>({});
 
@@ -249,6 +253,7 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {selectionParams.get("returnTo")==="/hrms/payroll"&&<Link className="block rounded border p-3 text-sm underline" to="/hrms/payroll">Return to saved payroll run and review step</Link>}
       <div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>

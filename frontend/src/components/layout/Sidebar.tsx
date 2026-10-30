@@ -1,3 +1,4 @@
+import HRPersonalNavigation from "./HRPersonalNavigation";
 import CRMPersonalNavigation from "./CRMPersonalNavigation";
 import { consolidateNavigation, activeWorkspace, workspacePageHref } from "@/lib/navigation-workspaces";
 import { Settings as SettingsIcon } from "lucide-react";
@@ -252,6 +253,7 @@ export default function Sidebar({
             />
           </label>
         )}
+        {moduleKey === "hrms" && !query && <div className="px-2"><HRPersonalNavigation collapsed={collapsed} onNavigate={onClose} /></div>}
         {moduleKey === "crm" && !query && <div className="px-2"><CRMPersonalNavigation collapsed={collapsed} onNavigate={onClose} /></div>}
         {moduleKey === "pms" && !query && <div className="px-2"><PMSPersonalNavigation collapsed={collapsed} onNavigate={onClose} /></div>}
         <ul className="px-2">

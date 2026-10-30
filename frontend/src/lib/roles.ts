@@ -1291,6 +1291,7 @@ function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname
 const routeAccess: Record<string, RoleKey[]> = {
  "/my-assignments":["admin","hr","manager","employee"],
   "/interns": ["admin", "hr", "manager"],
+  "/daily-work": ["admin", "ceo", "hr", "manager", "employee"],
   "/role-home": ["admin", "ceo", "hr", "manager"],
   "/admin-home": ["admin"],
   "/hr-home": ["admin", "hr"],

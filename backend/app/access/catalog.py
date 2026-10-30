@@ -242,6 +242,13 @@ def action_for(request):
         return "export"
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return "view"
+    if path.startswith("/api/v1/employees/workbench/"):
+        if path.endswith("/approvals/decide"):
+            return "approve"
+        if path.endswith("/preview"):
+            return "view"
+        if path.endswith(("/actions", "/correct", "/complete", "/onboarding-template", "/apply")):
+            return "edit"
     if path in {"/api/v1/power-apps/automations/intelligence/analyze", "/api/v1/power-apps/automations/intelligence/review", "/api/v1/power-apps/automations/portable/prepare"}:
         return "view"
     if path.startswith('/api/v1/power-apps/approvals/'):

@@ -380,6 +380,7 @@ class EmployeeListSchema(BaseModel):
 
 
 class EmployeeSchema(EmployeeBase):
+    restricted_fields: list[str] = Field(default_factory=list)
     phone_validation_issues: dict[str,str] = {}
     id: int
     employee_id: str

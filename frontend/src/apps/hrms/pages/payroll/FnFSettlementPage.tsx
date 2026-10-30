@@ -1,3 +1,4 @@
+import {useSearchParams,Link} from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Download, FileText, IndianRupee, Plus, RefreshCw, Send, XCircle } from "lucide-react";
@@ -65,7 +66,8 @@ const emptyComponent: FnFComponent = {
 export default function FnFSettlementPage() {
   usePageTitle("Full & Final Settlement");
   const qc = useQueryClient();
-  const [employeeId, setEmployeeId] = useState("");
+  const [contextParams]=useSearchParams();
+  const [employeeId, setEmployeeId] = useState(contextParams.get("employee_id")||"");
   const [exitId, setExitId] = useState("");
   const [lastWorkingDate, setLastWorkingDate] = useState("");
   const [exitReason, setExitReason] = useState("");
@@ -79,8 +81,8 @@ export default function FnFSettlementPage() {
   });
   const exits = useQuery({ queryKey: ["fnf-exits"], queryFn: () => exitApi.records().then((r) => r.data) });
   const settlements = useQuery({
-    queryKey: ["fnf-settlements"],
-    queryFn: () => fnfApi.list().then((r) => r.data as FnFSettlement[]),
+    queryKey: ["fnf-settlements",employeeId],
+    queryFn: () => fnfApi.list(employeeId?{employee_id:Number(employeeId)}:undefined).then((r) => r.data as FnFSettlement[]),
   });
 
   const selected = useMemo(

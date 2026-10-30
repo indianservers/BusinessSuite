@@ -7,6 +7,7 @@ import type { FrontendRoute } from "@/appRegistry";
 const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/WorkforceOperationsPage"));
 
 const InternApplicationsPage = React.lazy(() => import("@/apps/hrms/pages/interns/InternApplicationsPage"));
+const HRDailyWork = React.lazy(() => import("./workbench/HRDailyWork"));
 const DashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/DashboardPage"));
 const RoleWorkspacePage = React.lazy(() => import("@/apps/hrms/pages/dashboard/RoleWorkspacePage"));
 const ManagerDashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/ManagerDashboardPage"));
@@ -62,11 +63,12 @@ const InternManagementPage = React.lazy(() => import("./pages/interns/InternMana
 
 const MyAssignmentsPage=React.lazy(()=>import("@/apps/project-management/pages/MyAssignmentsPage"));
 const moduleRoutes: FrontendRoute[] = [
+  {path:"daily-work",element:<HRDailyWork/>},
   {path:"my-assignments",element:<React.Suspense><MyAssignmentsPage/></React.Suspense>},
   { path: "dashboard", element: <DashboardPage /> },
-  { path: "role-home", element: <RoleWorkspacePage /> },
-  { path: "admin-home", element: <RoleWorkspacePage /> },
-  { path: "hr-home", element: <RoleWorkspacePage /> },
+  { path: "role-home", element: <HRDailyWork /> },
+  { path: "admin-home", element: <HRDailyWork /> },
+  { path: "hr-home", element: <HRDailyWork /> },
   { path: "executive-home", element: <RoleWorkspacePage /> },
   { path: "manager-dashboard", element: <ManagerDashboardPage /> },
   { path: "ess", element: <ESSPortalPage /> },
@@ -141,7 +143,7 @@ function LegacyHrmsRedirect() {
 export const hrmsRoutes: FrontendRoute[] = [
  { path: "hrms/messages", element: <CommunicationWorkspace module="HRMS" /> },
   { path: "hrms/leave/gantt", element: <ModuleGanttPage key="hrms" module="hrms" /> },
-  { path: "hrms", element: <DashboardPage /> },
+  { path: "hrms", element: <HRDailyWork /> },
   ...moduleRoutes.map((route) => ({
     ...route,
     path: `hrms/${route.path}`,

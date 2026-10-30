@@ -109,6 +109,7 @@ def mask_employee_detail(employee: Any, user: User) -> dict[str, Any]:
         return data
     # Document URLs and metadata reveal restricted identity and HR records.
     data['documents'] = []
+    data['restricted_fields'] = sorted(SENSITIVE_EMPLOYEE_FIELDS | {'documents'})
     for field in SENSITIVE_EMPLOYEE_FIELDS:
         if field in data:
             data[field] = _mask_value(field, data[field])

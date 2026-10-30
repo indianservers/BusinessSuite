@@ -40,6 +40,8 @@ from app.core.employee_scope import employee_tenant_scope, validate_employee_lin
 router = APIRouter(prefix="/employees", tags=["Employees"], dependencies=[Depends(employee_tenant_scope)])
 from app.api.v1.employee_accounts import router as accounts_router
 router.include_router(accounts_router)
+from app.api.v1.hr_workbench import router as workbench_router
+router.include_router(workbench_router)
 _DIRECTORY_SEARCH_BUCKETS: dict[int, list[float]] = {}
 
 
@@ -1478,6 +1480,9 @@ def update_employee(
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
     values = data.model_dump(exclude_unset=True)
+    from app.core.masking import can_view_sensitive_employee, SENSITIVE_EMPLOYEE_FIELDS
+    if SENSITIVE_EMPLOYEE_FIELDS.intersection(values) and not can_view_sensitive_employee(current_user, emp.id):
+        raise HTTPException(403, "Sensitive employee fields require employee_sensitive_view within your assigned scope")
     role_id = values.pop("role_id", None)
     if "role_id" in data.model_fields_set:
         if not current_user.is_superuser:
@@ -1492,7 +1497,14 @@ def update_employee(
                         method="PUT", entity_type="employee", entity_id=emp.id, description=f"Changed account role from {emp.user.role_id} to {role_id}"))
         emp.user.role_id = role_id
     record_employee_field_changes(db, emp, values, current_user.id)
-    return crud_employee.update(db, db_obj=emp, obj_in=values)
+    changed_fields = sorted(key for key, value in values.items() if getattr(emp, key, None) != value)
+    if changed_fields:
+        db.add(AuditLog(user_id=current_user.id, actor_email=current_user.email, actor_authenticated=True,
+            method="PUT", endpoint=f"/employees/{emp.id}", entity_type="employee", entity_id=emp.id,
+            action="PROFILE_EDIT", description="Changed " + ", ".join(changed_fields),
+            new_values=json.dumps({"fields": changed_fields})))
+    updated = crud_employee.update(db, db_obj=emp, obj_in=values)
+    return mask_employee_detail(updated, current_user)
 
 
 @router.get("/{employee_id}/lifecycle", response_model=List[EmployeeLifecycleEventSchema])

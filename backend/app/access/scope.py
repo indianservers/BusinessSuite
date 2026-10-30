@@ -184,7 +184,16 @@ def install_scope(db, user, company, grants):
         columns = model.__table__.c
         tenant = None
         from app.core.tenant_boundary import legacy_root
-        if legacy_root(model):
+        if model is Employee:
+            from app.models.company import Branch
+            # Employee.employee_id is a human-readable code, not a parent FK.
+            # Treating it as an ownership anchor made organization-scoped HR
+            # grants resolve to false, including valid employees without logins.
+            tenant = or_(
+                Employee.branch_id.in_(select(Branch.id).where(Branch.company_id == company)),
+                and_(Employee.branch_id.is_(None), Employee.user_id.in_(tenant_users)),
+            )
+        elif legacy_root(model):
             from app.models.security_boundary import SecurityResourceOwnership
             ownership = SecurityResourceOwnership.__table__
             tenant = model.id.in_(select(ownership.c.resource_id).where(ownership.c.resource_table == model.__tablename__, ownership.c.company_id == company))
@@ -240,6 +249,8 @@ def install_scope(db, user, company, grants):
                     owner.append(getattr(model, name).in_(ids))
             if model is Employee:
                 owner.append(Employee.user_id.in_(ids))
+                if scope == "team" and employee:
+                    owner.append(Employee.reporting_manager_id == employee.id)
             if key == "project_management" and model.__tablename__ == "pms_tasks":
                 from app.apps.project_management.models import PMSTaskAssignee
 
@@ -419,6 +430,10 @@ def install_scope(db, user, company, grants):
             grant = grants.get(key, {})
             if not grant.get("enabled"):
                 raise HTTPException(403, f"Writes to disabled module {key} are blocked")
+            if isinstance(item, Employee):
+                scope_field = {"branch": "branch_id", "department": "department_id"}.get(grant.get("scope"))
+                if scope_field and (employee is None or getattr(item, scope_field) != getattr(employee, scope_field)):
+                    raise HTTPException(403, "Employee destination is outside the assigned organizational scope")
             columns = type(item).__table__.c
             if (
                 item in session.new

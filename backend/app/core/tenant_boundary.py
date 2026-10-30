@@ -582,6 +582,18 @@ def install(db, user, company, *, verified_portal=False):
                 denied("company_write", model)
             if model is User:
                 protected = {"is_superuser", "role_id", "is_active"}
+                # A scoped employee lifecycle action may toggle only this
+                # already-validated employee's login. Role and Super Admin
+                # changes retain the global privilege-write guard.
+                if (
+                    item.id == session.info.get("hr_employee_access_target")
+                    and item.id != user.id
+                    and not item.is_superuser
+                    and getattr(user, "_suite_current_module", None) == "hrms"
+                ):
+                    from app.core.masking import user_has_permission
+                    if user_has_permission(user, "employee_update"):
+                        protected.remove("is_active")
                 if (item in session.new and item.is_superuser) or (
                     item not in session.new
                     and any(

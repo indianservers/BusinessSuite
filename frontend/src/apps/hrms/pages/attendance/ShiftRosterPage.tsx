@@ -1,3 +1,5 @@
+import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
+import {HR,errorText} from "../../workbench/shared";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarDays, Copy, Loader2, Send } from "lucide-react";
@@ -6,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { attendanceApi, companyApi, employeeApi, shiftRosterApi } from "@/services/api";
+import { api, attendanceApi, companyApi, employeeApi, shiftRosterApi } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { cn } from "@/lib/utils";
@@ -66,6 +68,8 @@ function employeeName(employee: EmployeeRow) {
 export default function ShiftRosterPage() {
   usePageTitle("Shift Roster");
   const qc = useQueryClient();
+  const [rosterReview,setRosterReview]=useState<any>();
+  const [reviewError,setReviewError]=useState("");
   const [weekStart, setWeekStart] = useState(toIsoDate(startOfWeek(new Date())));
   const [departmentId, setDepartmentId] = useState("");
   const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
@@ -112,33 +116,16 @@ export default function ShiftRosterPage() {
     return map;
   }, [roster.data]);
 
+  const reviewRoster=async(payload:any)=>{const r=await api.post(`${HR}/roster/preview`,payload);return {payload,preview:r.data};};
   const assign = useMutation({
-    mutationFn: ({ employeeId, shiftId, date }: { employeeId: number; shiftId: number; date: string }) =>
-      shiftRosterApi.assign({ employeeId, shiftId, rosterDate: date, status: "draft" }),
-    onSuccess: (response) => {
-      const conflicts = response.data.conflicts || [];
-      setLastConflicts(conflicts.length ? [{ messages: conflicts }] : []);
-      toast({ title: conflicts.length ? "Shift assigned with warnings" : "Shift assigned" });
-      qc.invalidateQueries({ queryKey: ["shift-roster"] });
-    },
-    onError: () => toast({ title: "Could not assign shift", variant: "destructive" }),
+    mutationFn: ({employeeId,shiftId,date}:{employeeId:number;shiftId:number;date:string})=>reviewRoster({shift_id:shiftId,employee_ids:[employeeId],from_date:date,to_date:date}),
+    onSuccess:review=>{setRosterReview(review);setReviewError("");},onError:error=>toast({title:"Roster preview unavailable",description:errorText(error),variant:"destructive"})
   });
-
   const bulkAssign = useMutation({
-    mutationFn: () => shiftRosterApi.bulkAssign({
-      shiftId: Number(bulkShiftId),
-      fromDate: weekDays[0].date,
-      toDate: weekDays[6].date,
-      departmentId: departmentId ? Number(departmentId) : undefined,
-      status: "draft",
-    }),
-    onSuccess: (response) => {
-      setLastConflicts(response.data.conflicts || []);
-      toast({ title: "Bulk roster assigned", description: `${response.data.assigned} cells updated.` });
-      qc.invalidateQueries({ queryKey: ["shift-roster"] });
-    },
-    onError: () => toast({ title: "Bulk assignment failed", variant: "destructive" }),
+    mutationFn:()=>reviewRoster({shift_id:Number(bulkShiftId),from_date:weekDays[0].date,to_date:weekDays[6].date,department_id:departmentId?Number(departmentId):null}),
+    onSuccess:review=>{setRosterReview(review);setReviewError("");},onError:error=>toast({title:"Roster preview unavailable",description:errorText(error),variant:"destructive"})
   });
+  const applyReview=useMutation({mutationFn:()=>api.post(`${HR}/roster/apply`,{...rosterReview.payload,preview_version:rosterReview.preview.version}),onSuccess:response=>{setRosterReview(undefined);qc.invalidateQueries({queryKey:["shift-roster"]});toast({title:"Reviewed draft roster saved",description:`${response.data.assigned} employee-days saved; ${response.data.exceptions.length} blocked days unchanged`});},onError:error=>setReviewError(errorText(error))});
 
   const copyWeek = useMutation({
     mutationFn: () => {
@@ -221,7 +208,7 @@ export default function ShiftRosterPage() {
           </div>
           <div className="space-y-1">
             <Label>Bulk shift</Label>
-            <select className="h-10 rounded-md border bg-background px-3 text-sm" value={bulkShiftId} onChange={(event) => setBulkShiftId(event.target.value)}>
+            <select aria-label="Bulk shift" className="h-10 rounded-md border bg-background px-3 text-sm" value={bulkShiftId} onChange={(event) => setBulkShiftId(event.target.value)}>
               <option value="">Select shift</option>
               {(shifts.data || []).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}
             </select>
@@ -373,6 +360,7 @@ export default function ShiftRosterPage() {
           </CardContent>
         </Card>
       )}
+      {rosterReview&&<Dialog open onOpenChange={open=>{if(!open&&!applyReview.isPending)setRosterReview(undefined);}}><DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogTitle>Review roster calendar</DialogTitle><p className="text-sm">{rosterReview.preview.scope}</p><p className="text-sm">{rosterReview.preview.affected} employee-days will change · {rosterReview.preview.exceptions} blocked days stay unchanged</p><div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr><th className="p-2">Employee</th>{[...new Set<string>(rosterReview.preview.items.map((i:any)=>i.date))].map(day=><th className="p-2" key={day}>{day}</th>)}</tr></thead><tbody>{[...new Map<number,any>(rosterReview.preview.items.map((i:any)=>[i.employee.id,i.employee])).values()].map(person=><tr className="border-t" key={person.id}><th className="p-2">{person.name}<p>{person.employee_code} · {person.department}</p></th>{rosterReview.preview.items.filter((i:any)=>i.employee.id===person.id).map((i:any)=><td key={i.date} className={`min-w-36 p-2 align-top ${i.blocked?"bg-red-50 text-red-800":i.warnings.length?"bg-amber-50 text-amber-900":""}`}><strong>{i.blocked?"Unchanged":i.shift}</strong>{i.warnings.map((w:string)=><p key={w}>{w}</p>)}</td>)}</tr>)}</tbody></table></div>{reviewError&&<p role="alert">{reviewError} <button className="underline" onClick={()=>void reviewRoster(rosterReview.payload).then(setRosterReview).catch(e=>setReviewError(errorText(e)))}>Refresh preview</button></p>}<Button disabled={applyReview.isPending||!rosterReview.preview.affected} onClick={()=>applyReview.mutate()}>Apply reviewed draft roster</Button></DialogContent></Dialog>}
     </div>
   );
 }

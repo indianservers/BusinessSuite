@@ -1,4 +1,5 @@
 import {lazy,Suspense,useState} from "react";
+const HRQuickAdd=lazy(()=>import("@/apps/hrms/workbench/shared").then(m=>({default:m.HRQuickAdd})));
 const CRMQuickCreate=lazy(()=>import("@/apps/crm/SalesActions").then(m=>({default:m.CRMQuickCreate})));
 import { Building2, CalendarDays, CheckCircle2, FileText, LifeBuoy, Receipt, ShoppingBag, UserPlus, Users, Wallet } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -10,6 +11,7 @@ import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMen
 export default function ModuleNewMenu() {
   const { pathname } = useLocation();
   const [crmQuick,setCRMQuick]=useState("");
+  const [hrQuick,setHRQuick]=useState(false);
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   const role = String(user?.role || "").toLowerCase();
@@ -40,9 +42,11 @@ export default function ModuleNewMenu() {
     add("Purchase bill", "Capture a vendor bill draft", FileText, "/fam/purchase-bills/new", manages);
     add("Expense claim", "Record an expense for review", Wallet, "/fam/expenses/new", manages);
   } else if (pathname.startsWith("/hrms")) {
-    add("Employee", "Start an employee profile", UserPlus, "/hrms/employees/new", ["admin", "hr"].includes(hrRole));
-    add("Leave request", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
+    if(["admin","hr"].includes(hrRole)&&canAccessRoute("/hrms/employees/new",user?.role,user?.is_superuser))actions.push({label:"Add Employee",description:"Quick employee capture; finish details later",icon:UserPlus,onSelect:()=>setHRQuick(true)});
+    add("Correct Attendance", "Review missing punches and incomplete shifts", CalendarDays, "/hrms/daily-work?view=attendance", ["admin","hr","manager"].includes(hrRole));
+    add("Generate Letter", "Open employee letters and certificates", FileText, "/hrms/letters-certificates", ["admin","hr"].includes(hrRole));
+    add("Apply Leave", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
     add("Support ticket", user?.employee_id ? "Ask your support team for help" : "Link an employee profile to raise tickets", LifeBuoy, "/hrms/helpdesk?new=ticket", true, !user?.employee_id);
   }
-  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <><NewMenu actions={actions} />{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>window.dispatchEvent(new CustomEvent("crm:records-changed"))}/></Suspense>}</>;
+  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <><NewMenu actions={actions} />{hrQuick&&<Suspense fallback={<p role="status">Loading employee capture…</p>}><HRQuickAdd close={()=>setHRQuick(false)} saved={id=>{setHRQuick(false);navigate(`/hrms/employees/${id}`);}}/></Suspense>}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>window.dispatchEvent(new CustomEvent("crm:records-changed"))}/></Suspense>}</>;
 }

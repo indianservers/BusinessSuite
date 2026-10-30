@@ -1217,6 +1217,26 @@ def calculate_payroll_variance(db: Session, payroll_run_id: int) -> List[Payroll
         severity = "Info"
         if not previous_record:
             reasons.append("No previous month payroll record")
+        else:
+            currency = record.salary_currency or "INR"
+            previous_currency = previous_record.salary_currency or "INR"
+            if previous_currency != currency:
+                reasons.append(f"Currency changed from {previous_currency} to {currency}; percentage comparisons are not exchange-rate adjusted")
+            for field, label in (("basic", "Basic-pay earnings"), ("hra", "Housing allowance"),
+                                 ("other_allowances", "Other allowances"), ("other_deductions", "Other deductions / adjustments"),
+                                 ("reimbursements", "Expense reimbursements"), ("tds", "Income tax deduction")):
+                before = getattr(previous_record, field) or Decimal("0")
+                after = getattr(record, field) or Decimal("0")
+                if before != after:
+                    reasons.append(f"{label}: {previous_currency} {before:.2f} to {currency} {after:.2f}")
+            if (previous_record.lop_days or 0) != (record.lop_days or 0):
+                reasons.append(f"Unpaid leave / loss-of-pay days: {previous_record.lop_days or 0} to {record.lop_days or 0}")
+            for label, predicate in (("Overtime", lambda c: "overtime" in str(c.source_type or c.component_name or "").lower()),
+                                     ("Manual adjustments", lambda c: c.is_manual)):
+                before = sum((c.amount or Decimal("0") for c in previous_record.components if predicate(c)), Decimal("0"))
+                after = sum((c.amount or Decimal("0") for c in record.components if predicate(c)), Decimal("0"))
+                if before != after:
+                    reasons.append(f"{label}: {previous_currency} {before:.2f} to {currency} {after:.2f}")
         if current_net < 0:
             severity = "Critical"
             reasons.append("Net salary is negative")
@@ -1242,6 +1262,8 @@ def calculate_payroll_variance(db: Session, payroll_run_id: int) -> List[Payroll
             severity=severity,
             reason="; ".join(reasons) if reasons else "Within configured variance threshold",
         )
+        item.previous_currency = (previous_record.salary_currency or "INR") if previous_record else (record.salary_currency or "INR")
+        item.current_currency = record.salary_currency or "INR"
         db.add(item)
         items.append(item)
 

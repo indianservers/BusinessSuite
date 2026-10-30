@@ -1,3 +1,4 @@
+import EmployeeActions from "../../workbench/EmployeeActions";
 import { Link as AccountAdminLink } from "react-router-dom";
 import { ConversationLauncher } from "@/shared/communication";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -62,7 +63,6 @@ const EDIT_FIELDS: Record<string, Array<[string, string, string?]>> = {
     ["reporting_manager_id", "Reporting Manager / Intern Supervisor", "select"],
     ["employment_type", "Employment Type", "select"],
     ["role_id", "Account Role", "select"],
-    ["status", "Status"],
     ["work_location", "Work Location"],
     ["date_of_joining", "Date of Joining", "date"],
     ["date_of_confirmation", "Date of Confirmation", "date"],
@@ -119,7 +119,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
     if (employeeId != null) setPopupEditing(values.edit === "true");
     else setRouteParams(values);
   };
-  const closeDetails = () => onClose ? onClose() : navigate("/hrms/employees");
+  const closeDetails = () => onClose ? onClose() : navigate(params.get("returnTo")?.startsWith("/hrms/") ? params.get("returnTo")! : "/hrms/employees");
   const qc = useQueryClient();
   const canChangeRole = useAuthStore((state) => !!state.user?.is_superuser);
   const { data: accountRoles = [] } = useQuery({
@@ -137,7 +137,8 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
     },
 
   });
-  const [activeTab, setActiveTab] = useState(initialEditing || params.get("edit") === "true" ? "personal" : "360");
+  const [activeTab, setActiveTab] = useState(params.get("tab") || (initialEditing || params.get("edit") === "true" ? "personal" : "360"));
+  useEffect(()=>{const requested=params.get("tab");if(requested&&TABS.some(t=>t.id===requested))setActiveTab(requested);},[params.get("tab")]);
   const ownEmployeeId = useAuthStore(state => state.user?.employee_id);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
   const [editErrors,setEditErrors]=useState<Record<string,string>>({});
@@ -535,6 +536,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         </Button>
       </div>
 
+      <EmployeeActions id={Number(id)} changed={()=>qc.invalidateQueries({queryKey:["employee",Number(id)]})}/>
       {/* Profile header */}
       <Card>
         <CardContent className="p-6">
@@ -627,7 +629,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  const allowedFields = EDIT_FIELDS[activeTab].map(([key]) => key).filter((key) => key !== "role_id" || (canChangeRole && !!emp.user_id));
+                  const allowedFields = EDIT_FIELDS[activeTab].map(([key]) => key).filter((key) => !emp.restricted_fields?.includes(key) && (key !== "role_id" || (canChangeRole && !!emp.user_id)));
                   const issues:Record<string,string>={};
                   for(const key of allowedFields){
                     const message=key.endsWith('email')?emailError(editForm[key]):key==='first_name'||key==='last_name'?textError(editForm[key],160,key==='first_name'):'';
@@ -647,7 +649,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 {EDIT_FIELDS[activeTab].filter(([key]) => key !== "role_id" || (canChangeRole && !!emp.user_id)).map(([key, label, type]) => (
                   <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
                     <Label htmlFor={`edit-${key}`}>{label}</Label>
-                    {phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "select" ? (
+                    {emp.restricted_fields?.includes(key)?<div className="rounded border bg-muted/30 p-3 text-sm"><p>{editForm[key]||"Restricted"}</p><p className="mt-1 text-xs">Sensitive field access is required to view or edit this information. Ask your access administrator.</p></div>:phoneFields.has(key) ? <PhoneInput id={`edit-${key}`} error={editErrors[key]} label={label} value={editForm[key] || ""} countryCode={editForm[key+"_country_code"] || ""} onChange={value=>changeEdit(key,value)} onCountryCodeChange={value=>changeEdit(key+"_country_code",value)} /> : type === "select" ? (
                       <select id={`edit-${key}`} aria-invalid={!!editErrors[key]} aria-describedby={editErrors[key]?`edit-${key}-error`:undefined} aria-label={label} value={editForm[key] ?? (key === "role_id" ? userOptions.data?.find((user) => user.id === emp.user_id)?.role_id : "") ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value, ...(key === "branch_id" ? { department_id: "", designation_id: "" } : key === "department_id" ? { designation_id: "" } : {}) }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                         <option value="">Unassigned</option>
                         {(key === "role_id" ? accountRoles : jobOptions?.[key] || []).filter((option) => key === "reporting_manager_id" ? option.id !== Number(id) : key === "department_id" ? !editForm.branch_id || option.branch_id === Number(editForm.branch_id) : key === "designation_id" ? !editForm.department_id || option.department_id === Number(editForm.department_id) : true).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}

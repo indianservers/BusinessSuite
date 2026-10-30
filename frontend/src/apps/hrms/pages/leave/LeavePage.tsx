@@ -197,8 +197,11 @@ export default function LeavePage() {
       }).then((r) => r.data as { days: LeaveCalendarDay[]; total_leave_days: number; scope: string }),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ApplyForm>();
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ApplyForm>();
 
+  const requestedFrom=watch("from_date"),requestedTo=watch("to_date"),requestedType=watch("leave_type_id"),requestedMode=watch("leave_mode");
+  const requestedDays=requestedFrom&&requestedTo&&requestedTo>=requestedFrom?(requestedMode==="Half-day"?0.5:Math.round((Date.parse(requestedTo)-Date.parse(requestedFrom))/86400000)+1):0;
+  const selectedBalance=balances?.find(b=>b.leave_type_id===Number(requestedType));
   const applyMutation = useMutation({
     mutationFn: (data: ApplyForm) =>
       leaveApi.apply({ ...data, leave_type_id: Number(data.leave_type_id) }),
@@ -474,6 +477,7 @@ export default function LeavePage() {
                 {errors.to_date && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.to_date.message}/></div>}
               </div>
 
+              <div className="rounded border bg-muted/30 p-3 text-sm sm:col-span-2" role="status"><p>Estimated request: {requestedDays} day(s) · Available: {selectedBalance?Number(selectedBalance.available).toFixed(1):"Select leave type"} · Estimated balance after request: {selectedBalance?(Number(selectedBalance.available)-requestedDays).toFixed(1):"—"}</p><p className="mt-1 text-xs">Current leave policy counts all calendar days in the inclusive date range, including weekends and holidays. Half-day requests count as 0.5 day. The server validates overlap and available balance before saving.</p></div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Reason *</Label>
                 <textarea

@@ -519,6 +519,8 @@ class PayrollRecordSchema(BaseModel):
 
 
 class PayrollVarianceItemSchema(BaseModel):
+    previous_currency: Optional[str] = None
+    current_currency: Optional[str] = None
     id: int
     payroll_run_id: int
     employee_id: int

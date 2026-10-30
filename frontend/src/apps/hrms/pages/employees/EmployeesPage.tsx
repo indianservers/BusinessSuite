@@ -1,3 +1,5 @@
+import {useHRSession} from "../../workbench/useHRSession";
+import {HRQuickAdd} from "../../workbench/shared";
 import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
 import { useAuthStore as useAccountAdminStore } from "@/store/authStore";
 import FullDetailsExport from "../../components/FullDetailsExport";
@@ -71,11 +73,12 @@ export default function EmployeesPage() {
   const canManageAccounts = useAccountAdminStore(state => state.user?.is_superuser === true);
   const [employeePopup, setEmployeePopup] = useState<{ employee: Employee; editing: boolean } | null>(null);
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [quickAdd,setQuickAdd]=useState(false);
+  const [search, setSearch] = useHRSession("employee-list-search","");
   const debouncedSearch = useDebouncedValue(search);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [statusFilter, setStatusFilter] = useHRSession("employee-list-status","");
+  const [filters, setFilters] = useHRSession<Record<string,string>>("employee-list-filters",{});
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   const [perPage, setPerPage] = useState(20);
@@ -108,7 +111,7 @@ export default function EmployeesPage() {
   const changeFilter = (key: string, value: string) => { setFilters((current) => ({ ...current, [key]: value })); setPage(1); };
   const queryFilters = { ...Object.fromEntries(Object.entries(filters).filter(([, value]) => value)), search: debouncedSearch || undefined, status: statusFilter || undefined, sort_by: sortBy, sort_order: sortOrder };
   const activeCount = Object.values(filters).filter(Boolean).length + Number(!!statusFilter);
-  const [pendingTermination, setPendingTermination] = useState<Employee | null>(null);
+
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["employees", queryFilters, page, perPage],
@@ -129,15 +132,6 @@ export default function EmployeesPage() {
       qc.invalidateQueries({ queryKey: ["employees"] });
     },
     onError: () => toast({ title: "Could not upload photo", variant: "destructive" }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => employeeApi.delete(id),
-    onSuccess: () => {
-      toast({ title: "Employee terminated" });
-      qc.invalidateQueries({ queryKey: ["employees"] });
-    },
-    onError: () => toast({ title: "Could not update employee", variant: "destructive" }),
   });
 
   const importMutation = useMutation({
@@ -259,11 +253,11 @@ export default function EmployeesPage() {
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-destructive"
-            title="Terminate employee"
-            aria-label="Terminate employee"
+            title="Manage employee access and exit"
+            aria-label="Manage employee access and exit"
             onClick={(event) => {
               event.stopPropagation();
-              setPendingTermination(info.row.original);
+              setEmployeePopup({employee:info.row.original,editing:false});
             }}
           >
             <UserX className="h-3.5 w-3.5" />
@@ -316,12 +310,7 @@ export default function EmployeesPage() {
           </Button>
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
-          <Link to="/hrms/employees/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Employee
-            </Button>
-          </Link>
+          <Button size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Quick Add Employee</Button><Link className="p-2 text-sm underline" to="/hrms/employees/new">Full employee form</Link>
         </div>
       </div>
 
@@ -491,44 +480,21 @@ export default function EmployeesPage() {
         )}
       </Card>
 
+      {quickAdd&&<HRQuickAdd close={()=>setQuickAdd(false)} saved={async id=>{setQuickAdd(false);void qc.invalidateQueries({queryKey:["employees"]});const r=await employeeApi.get(id);setEmployeePopup({employee:r.data,editing:false});}}/>}
       <Dialog open={!!employeePopup} onOpenChange={(open) => { if (!open) setEmployeePopup(null); }}>
         <DialogContent className="flex max-h-[94dvh] w-[calc(100%-1rem)] max-w-7xl flex-col overflow-hidden p-0 sm:w-[calc(100%-3rem)]">
           <div className="border-b px-5 py-4 pr-12">
             <DialogTitle className="text-lg font-semibold">{employeePopup?.editing ? "Edit employee" : "Employee preview"}: {employeePopup?.employee.first_name} {employeePopup?.employee.last_name}</DialogTitle>
           </div>
           <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-6">
-            {employeePopup && <Suspense fallback={<p role="status" className="p-6 text-muted-foreground">Loading employee details…</p>}>
+      {employeePopup && <Suspense fallback={<p role="status" className="p-6 text-muted-foreground">Loading employee details…</p>}>
               <EmployeeDetailPage key={`${employeePopup.employee.id}-${employeePopup.editing}`} employeeId={employeePopup.employee.id} initialEditing={employeePopup.editing} onClose={() => setEmployeePopup(null)} />
             </Suspense>}
           </div>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={Boolean(pendingTermination)} onOpenChange={(open) => { if (!open) setPendingTermination(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Terminate employee?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingTermination ? `This will mark ${pendingTermination.first_name} ${pendingTermination.last_name} as terminated.` : "This action will terminate the selected employee."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={!pendingTermination || deleteMutation.isPending}
-              onClick={() => {
-                if (!pendingTermination) return;
-                deleteMutation.mutate(pendingTermination.id, {
-                  onSettled: () => setPendingTermination(null),
-                });
-              }}
-            >
-              Terminate
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </div>
   );
 }
