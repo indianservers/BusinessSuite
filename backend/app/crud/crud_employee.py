@@ -180,13 +180,9 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         db.refresh(event)
         return event
 
-    def get_headcount_stats(self, db: Session) -> dict:
-        active_query = db.query(func.count(Employee.id)).filter(Employee.deleted_at.is_(None))
-        total = active_query.scalar()
-        active = active_query.filter(Employee.status == "Active").scalar()
-        on_leave = active_query.filter(Employee.status == "On Leave").scalar()
-        resigned = active_query.filter(Employee.status == "Resigned").scalar()
-        return {"total": total, "active": active, "on_leave": on_leave, "resigned": resigned}
+    def get_headcount_stats(self, db: Session, user=None) -> dict:
+        from app.services.metrics.queries import employee_counts
+        return employee_counts(db,user)
 
 
 crud_employee = CRUDEmployee(Employee)

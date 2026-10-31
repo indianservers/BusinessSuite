@@ -26,7 +26,11 @@ from .models import (
 from app.models.user import User
 from .dashboard_config import WIDGETS, Configuration, Filters
 
-DONE = {"done", "completed", "closed", "resolved"}
+from app.services.metrics.queries import COMPLETED,TERMINAL
+DONE = {s.lower() for s in COMPLETED}
+
+def terminal(status):
+    return str(status or "").lower() in {s.lower() for s in TERMINAL}
 
 
 def complete(status):
@@ -237,7 +241,7 @@ class Engine:
                         or (
                             complete(p.status)
                             if kind == "completed_projects"
-                            else not complete(p.status)
+                            else p.status not in {"Completed","Archived","Cancelled"}
                         )
                     ]
                 ),
@@ -252,7 +256,7 @@ class Engine:
             )
         tasks = self.rows("tasks", filters)
         closed = [t for t in tasks if complete(t.status)]
-        open_tasks = [t for t in tasks if not complete(t.status)]
+        open_tasks = [t for t in tasks if not terminal(t.status)]
         eligible = [t for t in closed if t.completed_at and t.created_at]
         if kind == "average_completion":
             return (
@@ -335,7 +339,7 @@ class Engine:
         rows = self.rows("tasks", filters)
         today = datetime.now(ZoneInfo(filters.timezone)).date()
         if kind in {"task_list", "deadlines", "calendar"}:
-            rows = [r for r in rows if not complete(r.status)]
+            rows = [r for r in rows if not terminal(r.status)]
         if kind == "my_tasks":
             rows = [r for r in rows if self.user.id in r.assignee_user_ids]
         if kind == "unassigned":
@@ -350,7 +354,7 @@ class Engine:
             rows = [
                 r
                 for r in rows
-                if not complete(r.status) and r.due_date and r.due_date < today
+                if not terminal(r.status) and r.due_date and r.due_date < today
             ]
         if kind in {"deadlines", "calendar"}:
             rows = sorted([r for r in rows if r.due_date], key=lambda r: r.due_date)
@@ -517,7 +521,7 @@ class Engine:
                     "name": label,
                     "value": round(value, 4),
                     "count": len(items),
-                    "open": sum(not complete(getattr(r, "status", "")) for r in items),
+                    "open": sum(not terminal(getattr(r, "status", "")) for r in items),
                     "completed": sum(complete(getattr(r, "status", "")) for r in items),
                 }
             )
@@ -588,7 +592,7 @@ class Engine:
                 "due_today",
                 "due_this_week",
             }:
-                rows = [r for r in rows if not complete(r.status)]
+                rows = [r for r in rows if not terminal(r.status)]
             if target == "overdue_tasks":
                 rows = [r for r in rows if r.due_date and r.due_date < today]
             if target == "due_today":
@@ -704,13 +708,13 @@ class Engine:
             rows = [
                 r
                 for r in rows
-                if r.due_date and r.due_date < date.today() and not complete(r.status)
+                if r.due_date and r.due_date < datetime.now(ZoneInfo(filters.timezone)).date() and not terminal(r.status)
             ]
         if kind == "pivot":
             result["series"] = self.aggregate(rows, widget, filters)
             return result
         if kind in {"team_workload", "assignee_workload", "workload_heatmap"}:
-            rows = [r for r in rows if not complete(r.status)]
+            rows = [r for r in rows if not terminal(r.status)]
         if spec["view"] == "histogram" and kind != "aging":
             if widget.metric == "count":
                 return {

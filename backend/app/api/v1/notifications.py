@@ -30,14 +30,8 @@ def list_notifications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = (
-        db.query(Notification)
-        .options(joinedload(Notification.delivery_logs))
-        .filter(Notification.user_id == current_user.id)
-    )
-    current_company_id = getattr(current_user, "organization_id", None) or (current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None)
-    if current_company_id:
-        query = query.filter(or_(Notification.company_id == current_company_id, Notification.company_id.is_(None)))
+    from app.services.metrics.queries import personal_notifications
+    query=personal_notifications(db,current_user).options(joinedload(Notification.delivery_logs))
     if unread_only:
         query = query.filter(Notification.is_read == False)
     if module:
@@ -75,15 +69,8 @@ def unread_count(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = db.query(func.count(Notification.id)).filter(
-        Notification.user_id == current_user.id,
-        Notification.is_read == False,
-    )
-    current_company_id = getattr(current_user, "organization_id", None) or (current_user.employee.branch.company_id if current_user.employee and current_user.employee.branch else None)
-    if current_company_id:
-        query = query.filter(or_(Notification.company_id == current_company_id, Notification.company_id.is_(None)))
-    count = query.scalar()
-    return {"unread": count or 0}
+    from app.services.metrics.queries import personal_notifications
+    return {"unread":personal_notifications(db,current_user).filter(Notification.is_read.is_(False)).count()}
 
 
 @router.get("/summary")
@@ -96,15 +83,8 @@ def notification_summary(
     The client applies the current route grants to these groups before showing
     badges. This avoids downloading notification bodies for the dashboard.
     """
-    query = db.query(
-        Notification.module, Notification.action_url, func.count(Notification.id)
-    ).filter(Notification.user_id == current_user.id, Notification.is_read == False)
-    company = getattr(current_user, "organization_id", None) or (
-        current_user.employee.branch.company_id
-        if current_user.employee and current_user.employee.branch else None
-    )
-    if company:
-        query = query.filter(or_(Notification.company_id == company, Notification.company_id.is_(None)))
+    from app.services.metrics.queries import personal_notifications
+    query=personal_notifications(db,current_user).filter(Notification.is_read.is_(False)).with_entities(Notification.module,Notification.action_url,func.count(Notification.id))
     groups = query.group_by(Notification.module, Notification.action_url).all()
     return {"groups": [{"module": module, "action_url": action_url, "count": count} for module, action_url, count in groups]}
 

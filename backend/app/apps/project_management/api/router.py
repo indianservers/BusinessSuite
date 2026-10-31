@@ -132,7 +132,9 @@ from ..workflow_events import router as workflow_events_router
 router.include_router(workflow_events_router)
 
 
-DONE_STATUSES = {"Done", "Completed", "Closed", "Resolved"}
+from app.services.metrics.queries import COMPLETED,TERMINAL,business_day
+DONE_STATUSES = set(COMPLETED)
+CLOSED_STATUSES = set(TERMINAL)
 PMS_UPLOAD_ROOT = Path(os.getenv("PMS_UPLOAD_ROOT", str(Path(settings.UPLOAD_DIR) / "pms"))).resolve()
 PMS_MAX_ATTACHMENT_BYTES = int(os.getenv("PMS_MAX_ATTACHMENT_BYTES", str((3 if settings.SERVERLESS else 25) * 1024 * 1024)))
 PMS_ALLOWED_ATTACHMENT_TYPES = {
@@ -924,7 +926,7 @@ def _upsert_dev_link(
         task_id=task.id,
         metadata={"provider": provider, "link_type": link_type, "external_id": external_id, "status": status_value},
     )
-    if link_type in {"pr", "mr"} and status_value == "merged" and task.status not in DONE_STATUSES:
+    if link_type in {"pr", "mr"} and status_value == "merged" and task.status not in CLOSED_STATUSES:
         task.status = "Done"
         db.add(task)
         _record_activity(
@@ -1031,8 +1033,8 @@ def _open_high_risks(risks: list[PMSRisk] | None) -> list[PMSRisk]:
 
 
 def _portfolio_health(project: PMSProject, tasks: list[PMSTask], sprints: list[PMSSprint], risks: list[PMSRisk] | None = None) -> str:
-    today = date.today()
-    open_tasks = [task for task in tasks if task.status not in DONE_STATUSES]
+    today = business_day()
+    open_tasks = [task for task in tasks if task.status not in CLOSED_STATUSES]
     overdue_tasks = [task for task in open_tasks if task.due_date and task.due_date < today]
     blocked_tasks = [task for task in open_tasks if task.is_blocking or task.status == "Blocked"]
     high_risks = _open_high_risks(risks)
@@ -1057,8 +1059,8 @@ def _portfolio_health(project: PMSProject, tasks: list[PMSTask], sprints: list[P
 
 
 def _portfolio_project_payload(project: PMSProject, owner: User | None, client: PMSClient | None, tasks: list[PMSTask], sprints: list[PMSSprint], milestones: list[PMSMilestone], risks: list[PMSRisk] | None = None) -> dict:
-    today = date.today()
-    open_tasks = [task for task in tasks if task.status not in DONE_STATUSES]
+    today = business_day()
+    open_tasks = [task for task in tasks if task.status not in CLOSED_STATUSES]
     overdue_tasks = [task for task in open_tasks if task.due_date and task.due_date < today]
     blocked_tasks = [task for task in open_tasks if task.is_blocking or task.status == "Blocked"]
     open_risks = [risk for risk in (risks or []) if risk.status in {"open", "mitigating"} and risk.deleted_at is None]
@@ -2836,9 +2838,9 @@ def get_release_readiness(
     ).all()
     total = len(tasks)
     done = len([task for task in tasks if task.status in DONE_STATUSES])
-    today = date.today()
-    open_blockers = len([task for task in tasks if task.is_blocking and task.status not in DONE_STATUSES])
-    overdue = len([task for task in tasks if task.due_date and task.due_date < today and task.status not in DONE_STATUSES])
+    today = business_day(db,current_user)
+    open_blockers = len([task for task in tasks if task.is_blocking and task.status not in CLOSED_STATUSES])
+    overdue = len([task for task in tasks if task.due_date and task.due_date < today and task.status not in CLOSED_STATUSES])
     severity_counts: dict[str, int] = {}
     for task in tasks:
         if task.severity:
@@ -3094,11 +3096,11 @@ def list_all_tasks(
         query = query.filter(PMSTask.project_id == projectId)
     if overdue:
         query = query.filter(
-            PMSTask.due_date < (referenceDate or date.today()),
-            PMSTask.status.notin_(["Done", "Completed", "Closed", "Cancelled"]),
+            PMSTask.due_date < (referenceDate or business_day(db,current_user)),
+            PMSTask.status.notin_(CLOSED_STATUSES),
         )
     if openOnly:
-        query = query.filter(PMSTask.status.notin_(["Done", "Completed", "Closed", "Cancelled"]))
+        query = query.filter(PMSTask.status.notin_(CLOSED_STATUSES))
     if sprintId:
         query = query.filter(PMSTask.sprint_id == sprintId)
     if epicId:
@@ -3212,13 +3214,13 @@ def list_all_tasks(
 
     subtask_counts_by_task_id = _load_subtask_counts(db, task_ids)
 
-    reference_day = referenceDate or date.today()
-    open_task = PMSTask.status.notin_(["Done", "Completed", "Closed", "Cancelled"])
+    reference_day = referenceDate or business_day(db,current_user)
+    open_task = PMSTask.status.notin_(CLOSED_STATUSES)
     filtered_task_ids = query.order_by(None).with_entities(PMSTask.id)
     stats = db.query(PMSTask).filter(PMSTask.id.in_(filtered_task_ids)).with_entities(
         func.sum(case((PMSTask.status == "In Progress", 1), else_=0)),
         func.sum(case((and_(PMSTask.due_date == reference_day, open_task), 1), else_=0)),
-        func.sum(case((PMSTask.status.in_(["Done", "Completed", "Closed"]), 1), else_=0)),
+        func.sum(case((PMSTask.status.in_(DONE_STATUSES), 1), else_=0)),
         func.sum(case((and_(PMSTask.due_date < reference_day, open_task), 1), else_=0)),
         func.sum(case((and_(
             func.date(PMSTask.created_at) >= reference_day - timedelta(days=6),
@@ -5111,7 +5113,7 @@ def get_sprint_review(
         "sprint": sprint,
         "action_items": action_items,
         "completed_tasks": [_sprint_task_summary(task) for task in tasks if task.status in DONE_STATUSES],
-        "incomplete_tasks": [_sprint_task_summary(task) for task in tasks if task.status not in DONE_STATUSES],
+        "incomplete_tasks": [_sprint_task_summary(task) for task in tasks if task.status not in CLOSED_STATUSES],
     }
 
 
@@ -5203,7 +5205,7 @@ def complete_sprint(
             raise HTTPException(status_code=400, detail="Cannot carry unfinished tasks into a completed sprint")
     tasks = db.query(PMSTask).filter(PMSTask.sprint_id == sprint.id, PMSTask.deleted_at == None).all()
     completed = [task for task in tasks if task.status in DONE_STATUSES]
-    unfinished = [task for task in tasks if task.status not in DONE_STATUSES]
+    unfinished = [task for task in tasks if task.status not in CLOSED_STATUSES]
     incomplete_action = complete_in.incomplete_action
     if incomplete_action == "move_to_next_sprint" and not carry_forward_sprint:
         incomplete_action = "keep_in_sprint"
@@ -5491,7 +5493,7 @@ def report_project_health(
     projects, tasks_by_project, sprints_by_project, _milestones_by_project, risks_by_project, _owners, _clients = _portfolio_context(db, current_user)
     if projectId:
         projects = [project for project in projects if project.id == projectId]
-    row = {"date": date.today().isoformat(), "Good": 0, "At Risk": 0, "Blocked": 0, "Completed": 0}
+    row = {"date": business_day(db,current_user).isoformat(), "Good": 0, "At Risk": 0, "Blocked": 0, "Completed": 0}
     for project in projects:
         health = _portfolio_health(project, tasks_by_project.get(project.id, []), sprints_by_project.get(project.id, []), risks_by_project.get(project.id, []))
         row[health] = row.get(health, 0) + 1
@@ -5575,9 +5577,9 @@ def report_overdue_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    today = date.today()
+    today = business_day(db,current_user)
     tasks = _report_task_query(db, current_user, projectId, assigneeId).filter(
-        PMSTask.status.notin_(DONE_STATUSES),
+        PMSTask.status.notin_(CLOSED_STATUSES),
         PMSTask.due_date != None,
         PMSTask.due_date < today,
     ).order_by(PMSTask.due_date.asc()).all()
@@ -6491,7 +6493,7 @@ def get_project_workload(
 ):
     """Return capacity/workload grouped by user or sprint."""
     get_project_for_action(db, project_id, current_user, "browse")
-    query = db.query(PMSTask).filter(PMSTask.project_id == project_id, PMSTask.deleted_at == None, PMSTask.status.notin_(DONE_STATUSES))
+    query = db.query(PMSTask).filter(PMSTask.project_id == project_id, PMSTask.deleted_at == None, PMSTask.status.notin_(CLOSED_STATUSES))
     if sprint_id:
         query = query.filter(PMSTask.sprint_id == sprint_id)
     tasks = query.all()
@@ -7016,13 +7018,13 @@ def get_portfolio_summary(
 ):
     """Return executive portfolio summary for projects visible to the user."""
     projects, tasks_by_project, sprints_by_project, milestones_by_project, risks_by_project, owners, clients = _portfolio_context(db, current_user, ownerId, clientId, status)
-    today = date.today()
+    today = business_day(db,current_user)
     project_payloads = [
         _portfolio_project_payload(project, owners.get(project.manager_user_id), clients.get(project.client_id), tasks_by_project.get(project.id, []), sprints_by_project.get(project.id, []), milestones_by_project.get(project.id, []), risks_by_project.get(project.id, []))
         for project in projects
     ]
     all_tasks = [task for tasks in tasks_by_project.values() for task in tasks]
-    open_tasks = [task for task in all_tasks if task.status not in DONE_STATUSES]
+    open_tasks = [task for task in all_tasks if task.status not in CLOSED_STATUSES]
     open_estimated_hours = sum(float(task.estimated_hours or task.remaining_estimate_hours or task.original_estimate_hours or 0) for task in open_tasks)
     active_assignees = {task.assignee_user_id for task in open_tasks if task.assignee_user_id}
     upcoming_milestones = [
@@ -7042,7 +7044,7 @@ def get_portfolio_summary(
         "active_projects": len([project for project in projects if project.status not in {"Completed", "Archived", "Cancelled"}]),
         "overdue_projects": len([item for item in project_payloads if item["due_date"] and date.fromisoformat(item["due_date"]) < today and item["progress_percent"] < 100]),
         "at_risk_projects": len([item for item in project_payloads if item["health"] in {"At Risk", "Blocked"}]),
-        "completed_projects": len([project for project in projects if project.status == "Completed" or int(project.progress_percent or 0) >= 100]),
+        "completed_projects": len([project for project in projects if project.status == "Completed"]),
         "total_open_tasks": len(open_tasks),
         "team_workload_summary": {
             "open_estimated_hours": round(open_estimated_hours, 2),
@@ -7091,7 +7093,7 @@ def get_portfolio_health_trend(
 ):
     """Return lightweight portfolio trend data from current accessible project state."""
     projects, tasks_by_project, sprints_by_project, milestones_by_project, risks_by_project, owners, clients = _portfolio_context(db, current_user, ownerId, clientId, status)
-    today = date.today()
+    today = business_day(db,current_user)
     month_starts = []
     cursor = date(today.year, today.month, 1)
     for index in range(5, -1, -1):
@@ -7124,8 +7126,8 @@ def get_portfolio_health_trend(
             "project_count": len(active_rows),
             "at_risk": len([row for row in active_rows if row["health"] in {"At Risk", "Blocked"}]),
             "avg_progress": round(sum(row["progress_percent"] for row in active_rows) / len(active_rows), 1) if active_rows else 0,
-            "open_tasks": len([task for task in month_tasks if task.status not in DONE_STATUSES]),
-            "overdue_tasks": len([task for task in month_tasks if task.status not in DONE_STATUSES and task.due_date and task.due_date < today]),
+            "open_tasks": len([task for task in month_tasks if task.status not in CLOSED_STATUSES]),
+            "overdue_tasks": len([task for task in month_tasks if task.status not in CLOSED_STATUSES and task.due_date and task.due_date < today]),
         })
     return {"items": trend}
 
@@ -7140,25 +7142,12 @@ def get_project_dashboard(
     """Get project dashboard metrics."""
     project = get_project_for_action(db, project_id, current_user, "browse")
     
-    # Calculate metrics
-    total_tasks = db.query(PMSTask).filter(
-        PMSTask.project_id == project_id,
-        PMSTask.deleted_at == None
-    ).count()
-    
-    completed_tasks = db.query(PMSTask).filter(
-        PMSTask.project_id == project_id,
-        PMSTask.status == "Done",
-        PMSTask.deleted_at == None
-    ).count()
-    
-    overdue_tasks = db.query(PMSTask).filter(
-        PMSTask.project_id == project_id,
-        PMSTask.status != "Done",
-        PMSTask.due_date < __import__('datetime').date.today(),
-        PMSTask.deleted_at == None
-    ).count()
-
+    from app.services.metrics.queries import task_counts,business_context,TERMINAL
+    counts=task_counts(db,current_user,project_id=project_id)
+    today=date.fromisoformat(business_context(db,current_user)["business_date"])
+    total_tasks,completed_tasks,overdue_tasks=counts["total"],counts["completed"],counts["overdue"]
+    from app.services.metrics.queries import task_query
+    status_counts=dict(task_query(db,current_user,project_id=project_id).with_entities(PMSTask.status,func.count(PMSTask.id)).group_by(PMSTask.status).all())
     open_high_risks = db.query(PMSRisk).filter(
         PMSRisk.project_id == project_id,
         PMSRisk.deleted_at == None,
@@ -7170,7 +7159,7 @@ def get_project_dashboard(
         "total_projects": 1,
         "active_projects": 1 if project.status == "Active" else 0,
         "completed_projects": 1 if project.status == "Completed" else 0,
-        "overdue_projects": 1 if project.due_date and project.due_date < __import__('datetime').date.today() else 0,
+        "overdue_projects": 1 if project.due_date and project.due_date < today and project.status not in {"Completed","Archived","Cancelled"} else 0,
         "total_tasks": total_tasks,
         "completed_tasks": completed_tasks,
         "overdue_tasks": overdue_tasks,
@@ -7179,18 +7168,18 @@ def get_project_dashboard(
             PMSClientApproval.project_id == project_id,
             PMSClientApproval.status == "Pending"
         ).count(),
-        "team_utilization": 0.0,
-        "hours_logged_this_week": 0,
+        "team_utilization": None,
+        "hours_logged_this_week": None,
         "upcoming_milestones": db.query(PMSMilestone).filter(
             PMSMilestone.project_id == project_id,
             PMSMilestone.status != "Completed"
         ).count(),
-        "recent_activities": 0,
+        "recent_activities": None,
     }
     
     return {
         "project": get_project(project_id, db, current_user),
-        "metrics": metrics
+        "metrics": metrics, "context":business_context(db,current_user), "metric_notes":{"total_tasks":"Unique live task records, including subtasks; assignments are counted separately", "unavailable":["team_utilization","hours_logged_this_week","recent_activities"]}, "assignment_count":counts["assignments"], "status_counts":status_counts
     }
 
 

@@ -297,26 +297,8 @@ def today_attendance_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("attendance_view")),
 ):
-    today = date.today()
-    total_employees = db.query(func.count(Employee.id)).filter(
-        Employee.deleted_at.is_(None),
-        Employee.status.in_(["Active", "Probation"]),
-    ).scalar() or 0
-    present = db.query(func.count(Attendance.id)).filter(
-        Attendance.attendance_date == today,
-        Attendance.status.in_(["Present", "WFH", "Half-day"]),
-    ).scalar() or 0
-    on_leave = db.query(func.count(Attendance.id)).filter(
-        Attendance.attendance_date == today,
-        Attendance.status == "On Leave",
-    ).scalar() or 0
-    return {
-        "date": today.isoformat(),
-        "present": present,
-        "on_leave": on_leave,
-        "absent": max(total_employees - present - on_leave, 0),
-        "total_employees": total_employees,
-    }
+    from app.services.metrics.queries import attendance_counts,business_context
+    return {**attendance_counts(db,current_user),"context":business_context(db,current_user)}
 
 
 # ── Shifts ───────────────────────────────────────────────────────────────────

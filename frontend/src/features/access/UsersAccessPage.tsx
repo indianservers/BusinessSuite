@@ -1,3 +1,4 @@
+import {useQuery} from "@tanstack/react-query";
 import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
 import SuperAdminManager from "./SuperAdminManager";
 import React, { useEffect, useMemo, useState } from "react";
@@ -293,6 +294,7 @@ export default function UsersAccessPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [tab, setTab] = useState("Matrix");
+  const identityStatistics=useQuery({queryKey:["suite-metrics","access-statistics",actor?.id,company],staleTime:0,queryFn:()=>api.get<Record<string,number>>("/access/statistics",{params:{companyId:company}}).then(r=>r.data)});
   const [filters, setFilters] = useState({
     search: "",
     sort: "name",
@@ -681,8 +683,8 @@ export default function UsersAccessPage() {
       )}
       <div className="ua-summary">
         {[
-          ["Total users", "total"],
-          ["Active users", "active"],
+          ["Registered users", "registered"],
+          ["Login-enabled users", "loginEnabled"],
           ["Pending invitations", "invited"],
           ["Suspended users", "suspended"],
           ["Active modules", "modules"],

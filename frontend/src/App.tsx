@@ -2,6 +2,7 @@ import OperationsWorkspace from "@/components/layout/OperationsWorkspace";
 import { getOperationWorkspace } from "@/lib/navigation-workspaces";
 import { PendingPageProgress } from "./components/app/RouteProgress";
 import React, { Suspense, useEffect, useState } from "react";
+const StatisticsAuditPage=React.lazy(()=>import("@/features/access/StatisticsAuditPage"));
 const PersonManagementHost = React.lazy(() => import("@/apps/project-management/components/people/PersonManagementHost"));
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
@@ -171,6 +172,7 @@ export default function App() {
     { path: "power-apps/automations/:resourceId", element: <AutomationEditorPage /> },
     ...applicationRoutes.filter(id => id !== "connectors").map(id => ({ path: `power-apps/${id}`, element: <PowerAppsPage /> })),
     { path: "admin/access", element: <UsersAccessPage /> },
+    { path: "admin/control/statistics", element: <StatisticsAuditPage /> },
     { path: "admin/control/ai-security", element: <AiSecurityPage /> },
     { path: "admin/control/enterprise/:section", element: <EnterprisePage /> },
     { path: "admin/control/services/:section", element: <SharedServicesPage /> },

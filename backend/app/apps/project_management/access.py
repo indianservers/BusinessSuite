@@ -124,7 +124,11 @@ def can_access_project(db: Session, project: PMSProject, user: User, action: str
 
 def accessible_project_query(db: Session, user: User, *, deleted: bool = False):
     query = db.query(PMSProject).filter(PMSProject.deleted_at.isnot(None) if deleted else PMSProject.deleted_at.is_(None))
+    from app.apps.srm.services.commercial import tenant
+    query=query.filter(func.coalesce(PMSProject.organization_id,1)==tenant(user))
     from .workspace_lifecycle import archived_ids
+    if not deleted:
+        query=query.filter(PMSProject.workspace_id.is_(None) | PMSProject.workspace_id.notin_(archived_ids()))
     workspace_ids = db.query(PMSWorkspaceMember.workspace_id).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspaceMember.workspace_id.notin_(archived_ids()))
     workspace_access = PMSProject.workspace_id.in_(workspace_ids)
     from .people_management import organization_admin
@@ -150,7 +154,7 @@ def accessible_project_query(db: Session, user: User, *, deleted: bool = False):
 
 
 def get_project_for_action(db: Session, project_id: int, user: User, action: str = "browse") -> PMSProject:
-    query = db.query(PMSProject).filter(PMSProject.id == project_id, PMSProject.deleted_at == None)
+    query = db.query(PMSProject).filter(PMSProject.id == project_id, PMSProject.deleted_at == None,func.coalesce(PMSProject.organization_id,1)==organization_id_for(user))
     if db.info.get("security_write_request"):
         query = query.with_for_update(of=PMSProject)
     project = query.first()

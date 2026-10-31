@@ -882,7 +882,7 @@ def employee_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_view")),
 ):
-    return crud_employee.get_headcount_stats(db)
+    return crud_employee.get_headcount_stats(db,current_user)
 
 
 @router.get("/count")
@@ -890,12 +890,8 @@ def employee_count(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_view")),
 ):
-    total = db.query(func.count(Employee.id)).filter(Employee.deleted_at.is_(None)).scalar() or 0
-    active = db.query(func.count(Employee.id)).filter(
-        Employee.deleted_at.is_(None),
-        Employee.status.in_(["Active", "Probation"]),
-    ).scalar() or 0
-    return {"total": total, "active": active}
+    from app.services.metrics.queries import employee_counts,business_context
+    return {**employee_counts(db,current_user),"context":business_context(db,current_user)}
 
 
 @router.get("/documents/expiring", response_model=List[EmployeeDocumentSchema])

@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
+  Handshake,
   Building2,
   BarChart3,
   ClipboardList,
@@ -317,7 +318,7 @@ export default function ModuleDashboardPage() {
           ) : (
             <div className="md-grid">
               {visible.map((m) => {
-                const Icon = m.icon;
+                const Icon = m.key === "crm" ? Handshake : m.icon;
                 return (
                   <article
                     key={m.key}
@@ -347,6 +348,7 @@ export default function ModuleDashboardPage() {
                         }
                       />
                     </button>
+                    <div className="md-module-art" aria-hidden="true"><img src={`/module-art/${m.key}.webp`} alt="" width="160" height="160" decoding="async" /></div>
                     <div className="md-card-top">
                       <span className="md-icon">
                         <Icon size={36} />

@@ -258,17 +258,18 @@ function State({ label, isLoading, isError }: { label: string; isLoading?: boole
 function DashboardView() {
   const query = useQuery({ queryKey: ["fam", "dashboard"], queryFn: famApi.dashboard });
   const data = (query.data || {}) as FAMRecord;
+  const baseMoney=(value:unknown)=>value==null?"Not available":data.baseCurrency?`${String(data.baseCurrency)} ${Number(value).toLocaleString(undefined,{maximumFractionDigits:2})}`:"Base currency not configured";
   const kpis: Array<[string, React.ReactNode]> = [
     ["Current FY", text((data.currentFinancialYear as FAMRecord | undefined)?.name)],
-    ["Total assets", money(data.totalAssets)],
-    ["Total liabilities", money(data.totalLiabilities)],
-    ["Total income", money(data.totalIncome)],
-    ["Total expenses", money(data.totalExpenses)],
-    ["Cash and bank", money(data.cashAndBankBalance)],
-    ["Receivables", money(data.receivablesOutstanding)],
-    ["Payables", money(data.payablesOutstanding)],
-    ["Overdue AR", money(data.overdueReceivables)],
-    ["Overdue AP", money(data.overduePayables)],
+    ["Total assets", baseMoney(data.totalAssets)],
+    ["Total liabilities", baseMoney(data.totalLiabilities)],
+    ["Total income", baseMoney(data.totalIncome)],
+    ["Total expenses", baseMoney(data.totalExpenses)],
+    ["Cash and bank", baseMoney(data.cashAndBankBalance)],
+    ["Receivables", baseMoney(data.receivablesOutstanding)],
+    ["Payables", baseMoney(data.payablesOutstanding)],
+    ["Overdue AR", baseMoney(data.overdueReceivables)],
+    ["Overdue AP", baseMoney(data.overduePayables)],
   ];
   return (
     <div className="space-y-5">

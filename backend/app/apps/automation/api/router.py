@@ -1,9 +1,11 @@
 from __future__ import annotations
+from app.services.metrics.queries import count_rows_before_page
 
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.apps.automation.models import (
@@ -213,8 +215,9 @@ def test_workflow(workflow_id: int, data: WorkflowTestRequest, db: Session = Dep
 
 @router.get("/logs")
 def list_logs(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("automation_logs_view", "automation_manage"))):
-    items = db.query(AutomationExecutionLog).order_by(AutomationExecutionLog.created_at.desc()).limit(200).all()
-    return {"items": [serialize_log(item) for item in items], "total": len(items)}
+    items = db.query(AutomationExecutionLog).filter(func.coalesce(AutomationExecutionLog.organization_id,1)==organization_id_for(current_user)).order_by(AutomationExecutionLog.created_at.desc()).limit(200).all()
+    items_statistics_total = count_rows_before_page(db.query(AutomationExecutionLog).filter(func.coalesce(AutomationExecutionLog.organization_id,1)==organization_id_for(current_user)).order_by(AutomationExecutionLog.created_at.desc()).limit(200))
+    return {"items": [serialize_log(item) for item in items], "total": items_statistics_total}
 
 
 @router.get("/logs/{log_id}")
@@ -352,8 +355,9 @@ def validate_transition(blueprint_id: int, data: BlueprintTransitionValidate, db
 
 @router.get("/approvals")
 def list_approvals(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("automation_approval_view", "automation_approval_manage", "automation_approval_decide"))):
-    items = db.query(AutomationApprovalRequest).order_by(AutomationApprovalRequest.created_at.desc()).limit(200).all()
-    return {"items": [_serialize(item) for item in items], "total": len(items)}
+    items = db.query(AutomationApprovalRequest).filter(func.coalesce(AutomationApprovalRequest.organization_id,1)==organization_id_for(current_user)).order_by(AutomationApprovalRequest.created_at.desc()).limit(200).all()
+    items_statistics_total = count_rows_before_page(db.query(AutomationApprovalRequest).filter(func.coalesce(AutomationApprovalRequest.organization_id,1)==organization_id_for(current_user)).order_by(AutomationApprovalRequest.created_at.desc()).limit(200))
+    return {"items": [_serialize(item) for item in items], "total": items_statistics_total}
 
 
 @router.post("/approvals/rules", status_code=201)

@@ -1,0 +1,647 @@
+{
+  "findings": [
+    {
+      "id": "identity-invitations",
+      "problem": "PMS account totals included provisioned invitations",
+      "fix": "Exclude invited AccessPolicy identities; retain provisioned account metric separately",
+      "sources": [
+        "backend/app/access/api.py:account_statistics",
+        "backend/app/apps/project_management/people_workspace.py:stats"
+      ]
+    },
+    {
+      "id": "employee-definitions",
+      "problem": "Active definitions differed; on-leave was inferred as total minus active",
+      "fix": "Share distinct employee IDs and explicit Active/Probation/On Leave statuses",
+      "sources": [
+        "backend/app/api/v1/employees.py:employee_count",
+        "backend/app/api/v1/employees.py:employee_stats",
+        "backend/app/api/v1/reports.py:dashboard_stats"
+      ]
+    },
+    {
+      "id": "hr-tenant-deletion",
+      "problem": "HR report counts included deleted or other-organization records for global administrators",
+      "fix": "Explicit organization and employee grant predicates; legacy reporting dependency",
+      "sources": [
+        "backend/app/api/v1/reports.py:dashboard_stats"
+      ]
+    },
+    {
+      "id": "unique-global-users",
+      "problem": "Multi-organization membership totals could count the same user more than once",
+      "fix": "Unique identity sets across administrable organizations; label global scope",
+      "sources": [
+        "backend/app/access/control.py:dashboard"
+      ]
+    },
+    {
+      "id": "pms-project-scope",
+      "problem": "Cross-organization workspace memberships or archived workspaces could affect project totals",
+      "fix": "Intersect project permission query with current organization and live workspace",
+      "sources": [
+        "backend/app/apps/project_management/api/router.py:get_project_dashboard"
+      ]
+    },
+    {
+      "id": "pms-task-states",
+      "problem": "Done-only completion and incomplete terminal states produced inconsistent overdue counts",
+      "fix": "Shared completed/terminal states; full-query status chart; recipient rows counted separately",
+      "sources": [
+        "backend/app/apps/project_management/api/router.py:get_project_dashboard"
+      ]
+    },
+    {
+      "id": "intern-project-context",
+      "problem": "Selected batches only used a primary project; cancelled recipients affected totals",
+      "fix": "Use all assigned batch project IDs and uncancelled recipient executions; label assignments",
+      "sources": [
+        "backend/app/apps/interns_hub/management_api.py:dashboard"
+      ]
+    },
+    {
+      "id": "approval-pagination",
+      "problem": "Approval summary was derived after per-source 200-row limits",
+      "fix": "SQL union aggregates before paginating selected IDs",
+      "sources": [
+        "backend/app/api/v1/approval_os.py:inbox",
+        "backend/app/api/v1/approval_os.py:summary"
+      ]
+    },
+    {
+      "id": "hr-workbench-caps",
+      "problem": "HR home and pending counts used capped employee/request previews",
+      "fix": "Full-query counts and explicitly bounded joiner/exit previews",
+      "sources": [
+        "backend/app/api/v1/hr_workbench.py:home",
+        "backend/app/api/v1/hr_workbench.py:approvals"
+      ]
+    },
+    {
+      "id": "crm-loaded-page",
+      "problem": "CRM cards counted or summed the first 100 fetched rows",
+      "fix": "Full-query period statistics plus matching paginated worklists",
+      "sources": [
+        "backend/app/apps/crm/api/router.py:crm_dashboard",
+        "backend/app/apps/crm/api/router.py:statistics_records"
+      ]
+    },
+    {
+      "id": "crm-archive",
+      "problem": "CRM dashboard included lead archive operating-state records",
+      "fix": "Canonical scoped query excludes archived lead operating state",
+      "sources": [
+        "backend/app/apps/crm/api/router.py:crm_dashboard"
+      ]
+    },
+    {
+      "id": "financial-units",
+      "problem": "CRM/Sales/Analytics summed unlike currencies",
+      "fix": "Group by explicit currency; scalar unavailable for mixed/unknown units; no conversion invented",
+      "sources": [
+        "backend/app/apps/srm/api/router.py:srm_dashboard",
+        "backend/app/apps/analytics/api/router.py:forecast"
+      ]
+    },
+    {
+      "id": "profit-history",
+      "problem": "Historical profitability snapshots were summed as current profit",
+      "fix": "Latest stored snapshot per authorized engagement; disclose missing currency history",
+      "sources": [
+        "backend/app/apps/srm/api/router.py:reports",
+        "backend/app/apps/analytics/api/router.py:profitability"
+      ]
+    },
+    {
+      "id": "report-export-cap",
+      "problem": "Export reused the preview page clamp and could mark an incomplete file completed",
+      "fix": "Export full matching rows up to explicit synchronous limit; fail clearly beyond it",
+      "sources": [
+        "backend/app/apps/analytics/api/router.py:export_report"
+      ]
+    },
+    {
+      "id": "lead-cash-links",
+      "problem": "Cross-module reports capped deals at 100 and inferred profit via customer",
+      "fix": "Count/page all visible deals, batch real order/invoice links, decline inferred margin",
+      "sources": [
+        "backend/app/apps/analytics/api/router.py:run_saved_report"
+      ]
+    },
+    {
+      "id": "notifications",
+      "problem": "Personal notification APIs had divergent tenant filters",
+      "fix": "Shared personal/organization predicate for unread, list and group summary",
+      "sources": [
+        "backend/app/api/v1/notifications.py:unread_count",
+        "backend/app/api/v1/notifications.py:notification_summary"
+      ]
+    },
+    {
+      "id": "statistics-cache",
+      "problem": "Tenant changes and mutations could retain unrelated statistics cache entries",
+      "fix": "Cancel/clear on identity/organization/grant changes and invalidate statistics on successful mutations",
+      "sources": []
+    },
+    {
+      "id": "unavailable-values",
+      "problem": "Unimplemented project metrics used numeric zero",
+      "fix": "Return explicit unavailable values and metadata instead of fabricated zero",
+      "sources": [
+        "backend/app/apps/project_management/api/router.py:get_project_dashboard"
+      ]
+    },
+    {
+      "id": "inventory-payment-preview",
+      "problem": "Integrated Inventory payment total was the combined 100+100 preview length",
+      "fix": "Count complete source queries and expose returned_count independently",
+      "sources": [
+        "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py:v1_payments"
+      ]
+    },
+    {
+      "id": "automation-organization",
+      "problem": "Automation organization helper ignored canonical request/persisted tenant context",
+      "fix": "Reuse tenant resolver and explicitly scope log/approval totals",
+      "sources": [
+        "backend/app/apps/automation/api/router.py:list_logs",
+        "backend/app/apps/automation/api/router.py:list_approvals"
+      ]
+    },
+    {
+      "id": "aging-side-effects",
+      "problem": "A GET aging report overwrote a currency-less customer aging cache",
+      "fix": "Calculate read-only customer/currency groups and business-date age buckets",
+      "sources": [
+        "backend/app/apps/srm/api/router.py:collections_aging"
+      ]
+    }
+  ],
+  "pagination_corrections": [
+    {
+      "file": "backend/app/apps/ai_copilot/api/router.py",
+      "function": "action_log",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/analytics/api/router.py",
+      "function": "profitability",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/analytics/api/router.py",
+      "function": "campaigns",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/automation/api/router.py",
+      "function": "list_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/automation/api/router.py",
+      "function": "list_approvals",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "list_webhook_deliveries",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "list_approvals",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "enrichment_history",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "crm_audit_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/customization/api/router.py",
+      "function": "audit_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "audit_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "list_vouchers",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "ledger_entries",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "day_book",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "list_posting_jobs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "inventory_report_stock_movement_audit",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_inventory_batches",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_serial_numbers",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_boms",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_production_orders",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_purchase_orders",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_goods_receipts",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_price_lists",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_pos_held_bills",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_pos_returns",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    }
+  ],
+  "annotations": {
+    "backend/app/apps/ai_copilot/api/router.py:action_log": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/analytics/api/router.py:profitability": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Historical profitability snapshots were summed as current profit",
+      "fix": "Latest stored snapshot per authorized engagement; disclose missing currency history",
+      "finding_id": "profit-history"
+    },
+    "backend/app/apps/analytics/api/router.py:campaigns": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/automation/api/router.py:list_logs": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Automation organization helper ignored canonical request/persisted tenant context",
+      "fix": "Reuse tenant resolver and explicitly scope log/approval totals",
+      "finding_id": "automation-organization"
+    },
+    "backend/app/apps/automation/api/router.py:list_approvals": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Automation organization helper ignored canonical request/persisted tenant context",
+      "fix": "Reuse tenant resolver and explicitly scope log/approval totals",
+      "finding_id": "automation-organization"
+    },
+    "backend/app/apps/crm/api/router.py:list_webhook_deliveries": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/crm/api/router.py:list_approvals": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/crm/api/router.py:enrichment_history": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/crm/api/router.py:crm_audit_logs": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/customization/api/router.py:audit_logs": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/fam/api/router.py:audit_logs": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/fam/api/router.py:list_vouchers": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/fam/api/router.py:ledger_entries": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/fam/api/router.py:day_book": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/fam/api/router.py:list_posting_jobs": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/fam/api/router.py:inventory_report_stock_movement_audit": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_inventory_batches": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_serial_numbers": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_boms": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_production_orders": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_purchase_orders": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_goods_receipts": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_price_lists": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_pos_held_bills": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/apps/srm/api/router.py:list_pos_returns": {
+      "verification": "source-reviewed pagination correction",
+      "problem": "Total was len(limited result), not full matching population",
+      "fix": "COUNT full existing scoped query before LIMIT/OFFSET",
+      "validation": "Generic regression + representative Automation integration; individual legacy endpoints not all fixture-tested"
+    },
+    "backend/app/access/api.py:account_statistics": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "PMS account totals included provisioned invitations",
+      "fix": "Exclude invited AccessPolicy identities; retain provisioned account metric separately",
+      "finding_id": "identity-invitations"
+    },
+    "backend/app/apps/project_management/people_workspace.py:stats": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "PMS account totals included provisioned invitations",
+      "fix": "Exclude invited AccessPolicy identities; retain provisioned account metric separately",
+      "finding_id": "identity-invitations"
+    },
+    "backend/app/api/v1/employees.py:employee_count": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Active definitions differed; on-leave was inferred as total minus active",
+      "fix": "Share distinct employee IDs and explicit Active/Probation/On Leave statuses",
+      "finding_id": "employee-definitions"
+    },
+    "backend/app/api/v1/employees.py:employee_stats": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Active definitions differed; on-leave was inferred as total minus active",
+      "fix": "Share distinct employee IDs and explicit Active/Probation/On Leave statuses",
+      "finding_id": "employee-definitions"
+    },
+    "backend/app/api/v1/reports.py:dashboard_stats": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "HR report counts included deleted or other-organization records for global administrators",
+      "fix": "Explicit organization and employee grant predicates; legacy reporting dependency",
+      "finding_id": "hr-tenant-deletion"
+    },
+    "backend/app/access/control.py:dashboard": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Multi-organization membership totals could count the same user more than once",
+      "fix": "Unique identity sets across administrable organizations; label global scope",
+      "finding_id": "unique-global-users"
+    },
+    "backend/app/apps/project_management/api/router.py:get_project_dashboard": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Unimplemented project metrics used numeric zero",
+      "fix": "Return explicit unavailable values and metadata instead of fabricated zero",
+      "finding_id": "unavailable-values"
+    },
+    "backend/app/apps/interns_hub/management_api.py:dashboard": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Selected batches only used a primary project; cancelled recipients affected totals",
+      "fix": "Use all assigned batch project IDs and uncancelled recipient executions; label assignments",
+      "finding_id": "intern-project-context"
+    },
+    "backend/app/api/v1/approval_os.py:inbox": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Approval summary was derived after per-source 200-row limits",
+      "fix": "SQL union aggregates before paginating selected IDs",
+      "finding_id": "approval-pagination"
+    },
+    "backend/app/api/v1/approval_os.py:summary": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Approval summary was derived after per-source 200-row limits",
+      "fix": "SQL union aggregates before paginating selected IDs",
+      "finding_id": "approval-pagination"
+    },
+    "backend/app/api/v1/hr_workbench.py:home": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "HR home and pending counts used capped employee/request previews",
+      "fix": "Full-query counts and explicitly bounded joiner/exit previews",
+      "finding_id": "hr-workbench-caps"
+    },
+    "backend/app/api/v1/hr_workbench.py:approvals": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "HR home and pending counts used capped employee/request previews",
+      "fix": "Full-query counts and explicitly bounded joiner/exit previews",
+      "finding_id": "hr-workbench-caps"
+    },
+    "backend/app/apps/crm/api/router.py:crm_dashboard": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "CRM dashboard included lead archive operating-state records",
+      "fix": "Canonical scoped query excludes archived lead operating state",
+      "finding_id": "crm-archive"
+    },
+    "backend/app/apps/crm/api/router.py:statistics_records": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "CRM cards counted or summed the first 100 fetched rows",
+      "fix": "Full-query period statistics plus matching paginated worklists",
+      "finding_id": "crm-loaded-page"
+    },
+    "backend/app/apps/srm/api/router.py:srm_dashboard": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "CRM/Sales/Analytics summed unlike currencies",
+      "fix": "Group by explicit currency; scalar unavailable for mixed/unknown units; no conversion invented",
+      "finding_id": "financial-units"
+    },
+    "backend/app/apps/analytics/api/router.py:forecast": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "CRM/Sales/Analytics summed unlike currencies",
+      "fix": "Group by explicit currency; scalar unavailable for mixed/unknown units; no conversion invented",
+      "finding_id": "financial-units"
+    },
+    "backend/app/apps/srm/api/router.py:reports": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Historical profitability snapshots were summed as current profit",
+      "fix": "Latest stored snapshot per authorized engagement; disclose missing currency history",
+      "finding_id": "profit-history"
+    },
+    "backend/app/apps/analytics/api/router.py:export_report": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Export reused the preview page clamp and could mark an incomplete file completed",
+      "fix": "Export full matching rows up to explicit synchronous limit; fail clearly beyond it",
+      "finding_id": "report-export-cap"
+    },
+    "backend/app/apps/analytics/api/router.py:run_saved_report": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Cross-module reports capped deals at 100 and inferred profit via customer",
+      "fix": "Count/page all visible deals, batch real order/invoice links, decline inferred margin",
+      "finding_id": "lead-cash-links"
+    },
+    "backend/app/api/v1/notifications.py:unread_count": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Personal notification APIs had divergent tenant filters",
+      "fix": "Shared personal/organization predicate for unread, list and group summary",
+      "finding_id": "notifications"
+    },
+    "backend/app/api/v1/notifications.py:notification_summary": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Personal notification APIs had divergent tenant filters",
+      "fix": "Shared personal/organization predicate for unread, list and group summary",
+      "finding_id": "notifications"
+    },
+    "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py:v1_payments": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "Integrated Inventory payment total was the combined 100+100 preview length",
+      "fix": "Count complete source queries and expose returned_count independently",
+      "finding_id": "inventory-payment-preview"
+    },
+    "backend/app/apps/srm/api/router.py:collections_aging": {
+      "verification": "reviewed correction; see test evidence",
+      "problem": "A GET aging report overwrote a currency-less customer aging cache",
+      "fix": "Calculate read-only customer/currency groups and business-date age buckets",
+      "finding_id": "aging-side-effects"
+    }
+  }
+}

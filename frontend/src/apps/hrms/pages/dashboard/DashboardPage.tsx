@@ -1,3 +1,4 @@
+import {Button} from "@/components/ui/button";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -48,7 +49,7 @@ function StatCard({
   };
 
   const content = (
-    <Card className="stat-card">
+    <Card className="stat-card" title={subtitle||title}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -105,13 +106,13 @@ export default function DashboardPage() {
   const currentYear = new Date().getFullYear();
   const todayIso = new Date().toISOString().slice(0, 10);
 
-  const { data: dashboard, isLoading } = useQuery({
+  const { data: dashboard, isLoading, error: dashboardError, refetch:retryDashboard } = useQuery({
     queryKey: ["hrms", "dashboard"],
     queryFn: () => reportsApi.dashboard().then((r) => r.data),
     refetchInterval: 5 * 60 * 1000,
   });
 
-  const { data: headcount, isLoading: loadingHeadcount } = useQuery({
+  const { data: headcount, isLoading: loadingHeadcount, error:headcountError,refetch:retryHeadcount } = useQuery({
     queryKey: ["dashboard-headcount"],
     queryFn: () => employeeApi.count().then((r) => r.data),
   });
@@ -251,6 +252,7 @@ export default function DashboardPage() {
     },
   ];
 
+  if((headcountError||dashboardError) && roleKey!=="employee") return <section className="space-y-3 rounded-lg border p-6"><h1 className="text-xl font-semibold">HR statistics unavailable</h1><p role="alert">Could not verify the current headcount or dashboard data. A failed request is not reported as zero.</p><Button onClick={()=>{void retryDashboard();void retryHeadcount()}}>Retry statistics</Button></section>;
   if (roleKey === "employee") {
     return (
       <div className="space-y-5">
@@ -372,7 +374,7 @@ export default function DashboardPage() {
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border p-4">
                 <p className="text-2xl font-semibold">{headcount?.active ?? dashboard?.headcount?.active ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Active team members</p>
+                <p className="text-xs text-muted-foreground">Active / probation employee records</p>
               </div>
               <div className="rounded-lg border p-4">
                 <p className="text-2xl font-semibold">{pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0}</p>
@@ -470,7 +472,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="page-title">Dashboard</h1>
         <p className="page-description">
-          Welcome back! Here's your HR overview for today.
+          Employee records include interns and people without login accounts. Active means Active or Probation; registered user accounts are a separate metric.
         </p>
       </div>
 
@@ -481,7 +483,7 @@ export default function DashboardPage() {
         ) : (
           <>
             <StatCard
-              title="Total Employees"
+              title="Employee records"
               value={headcount?.total ?? dashboard?.headcount?.total ?? 0}
               subtitle={`${headcount?.active ?? dashboard?.headcount?.active ?? 0} active`}
               icon={Users}

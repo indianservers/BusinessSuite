@@ -120,6 +120,7 @@ def test_bulk_transfer_preview_and_future_application(client,db,superuser_header
     departments=[Department(branch_id=branch.id,name=name) for name in ("Before","After")];db.add_all(departments);db.flush()
     person=make_employee(db,branch_id=branch.id,department_id=departments[0].id)
     payload={"employee_ids":[person.id,999999],"changes":{"department_id":departments[1].id},"effective_from":str(date.today()+timedelta(days=3)),"reason":"Team restructure"}
+    superuser_headers={**superuser_headers,"X-Suite-Organization":str(company.id)}
     preview=client.post(ROOT+"/transfers/preview",headers=superuser_headers,json=payload)
     assert preview.status_code==200,preview.text
     assert preview.json()["count"]==1 and len(preview.json()["failures"])==1

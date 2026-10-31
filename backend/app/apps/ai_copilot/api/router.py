@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.services.metrics.queries import count_rows_before_page
 
 from datetime import datetime, timezone
 from typing import Any
@@ -384,8 +385,9 @@ def action_log(
         query = query.filter(AIActionLog.created_by == current_user.id)
     query = query.filter(AIActionLog.created_by == current_user.id)
     rows = query.limit(limit).all()
+    rows_statistics_total = count_rows_before_page(query.limit(limit))
     from app.ai_agents.security import metadata
-    return {"items": [{**_serialize(row),"detail_json":metadata(row.detail_json),"error_message":"AI_OPERATION_FAILED" if row.error_message else None} for row in rows], "total": len(rows)}
+    return {"items": [{**_serialize(row),"detail_json":metadata(row.detail_json),"error_message":"AI_OPERATION_FAILED" if row.error_message else None} for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/feedback", status_code=201)

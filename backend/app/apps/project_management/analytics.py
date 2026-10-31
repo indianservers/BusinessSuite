@@ -11,7 +11,8 @@ from .models import (PMSWorkspaceMember, PMSWorkspaceTeam, PMSProjectMember, PMS
                      PMSTaskAssignee, PMSTimeLog, PMSActivity)
 
 router = APIRouter()
-DONE = {"Done", "Completed", "Closed", "Resolved"}
+from app.services.metrics.queries import COMPLETED,TERMINAL,business_day
+DONE=set(COMPLETED)
 
 
 def utc(value):
@@ -25,7 +26,7 @@ def analytics_overview(
     team_id: int | None = None, member_id: int | None = None,
     db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ):
-    today = datetime.now(timezone.utc).date()
+    today = business_day(db,user)
     end_date = end_date or today
     start_date = start_date or end_date - timedelta(days=29)
     if start_date > end_date or (end_date - start_date).days > 365:
@@ -63,7 +64,7 @@ def analytics_overview(
         selected_members = ({member_id} if selected_members is None else selected_members & {member_id})
     tasks = db.query(PMSTask).filter(PMSTask.project_id.in_(project_ids), PMSTask.deleted_at.is_(None)).all()
     assignments = defaultdict(set)
-    for assignment in db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id.in_([t.id for t in tasks])).all():
+    for assignment in db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id.in_([t.id for t in tasks]),PMSTaskAssignee.cancelled_at.is_(None)).all():
         assignments[assignment.task_id].add(assignment.user_id)
     for task in tasks:
         if task.assignee_user_id:
@@ -103,7 +104,7 @@ def analytics_overview(
         done = sum(t.status in DONE for t in items)
         return {'total': len(items), 'completed': done, 'open': len(items) - done,
                 'blocked': sum(t.status == 'Blocked' for t in items),
-                'overdue': sum(bool(t.due_date and t.due_date < today and t.status not in DONE) for t in items),
+                'overdue': sum(bool(t.due_date and t.due_date < today and t.status not in TERMINAL) for t in items),
                 'completion_percent': round(done / len(items) * 100, 1) if items else 0}
     people = []
     for person in users:

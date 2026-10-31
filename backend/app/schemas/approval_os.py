@@ -120,5 +120,9 @@ class ApprovalSummary(BaseModel):
 
 
 class ApprovalInboxResponse(BaseModel):
+    total: int = 0
+    page: int = 1
+    per_page: int = 300
+    pages: int = 0
     summary: ApprovalSummary
     items: list[ApprovalInboxItem]

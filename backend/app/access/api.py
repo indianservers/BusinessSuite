@@ -295,11 +295,21 @@ def users_in_company(db, company):
     db.info.setdefault("suite_access_policies", {})[company] = {
         p.user_id: p for p in db.query(AccessPolicy).filter_by(company_id=company)
     }
-    return [
-        u
-        for u in db.query(User).options(*options).order_by(User.email).all()
-        if u.id in members or service.primary_company(u) == company
-    ]
+    from app.services.metrics.queries import registered_users
+    return registered_users(db,None,include_invited=True,organization_id=company).options(*options).order_by(User.email).all()
+
+
+
+@router.get("/statistics")
+def account_statistics(companyId:int|None=None,db:Session=Depends(get_db),actor:User=Depends(admin)):
+    from app.services.metrics.queries import registered_users,company_id,business_context
+    from sqlalchemy import func,case
+    selected=companyId or company_id(actor)
+    company_access(db,actor,selected)
+    registered=registered_users(db,actor,organization_id=selected)
+    total,active=registered.with_entities(func.count(User.id),func.sum(case((User.is_active.is_(True),1),else_=0))).first()
+    accounts=registered_users(db,actor,include_invited=True,organization_id=selected).count()
+    return {"registered":total,"loginEnabled":int(active or 0),"provisioned":accounts,"invited":accounts-total,"organization_id":selected,"definition":"Unique account IDs; registered excludes pending access invitations; login-enabled refers to User.is_active"}
 
 
 @router.get("/users")
@@ -320,8 +330,12 @@ def list_users(
 ):
     company_access(db, actor, companyId)
     rows = [service.snapshot(db, u, companyId) for u in users_in_company(db, companyId)]
+    from app.services.metrics.queries import registered_users
+    registered_ids={r[0] for r in registered_users(db,actor,organization_id=companyId).with_entities(User.id)}
     summary = {
         "total": len(rows),
+        "registered":len(registered_ids),
+        "loginEnabled":registered_users(db,actor,organization_id=companyId).filter(User.is_active.is_(True)).count(),
         "active": sum(u["status"] == "active" for u in rows),
         "invited": sum(u["status"] == "invited" for u in rows),
         "suspended": sum(u["status"] == "suspended" for u in rows),
@@ -379,7 +393,7 @@ def list_users(
                 g.get("enabled") and g.get("role") == role for g in u["grants"].values()
             )
         )
-        and (not status or u["status"] == status)
+        and (not status or (status=="registered" and u["id"] in registered_ids) or u["status"] == status)
         and (not module or u["grants"].get(module, {}).get("enabled"))
     ]
     rows.sort(key=lambda row: str(row.get(sort) or "").casefold(), reverse=descending)

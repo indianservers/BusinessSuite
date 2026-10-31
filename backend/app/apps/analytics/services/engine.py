@@ -64,50 +64,63 @@ def ensure_source_allowed(module_name: str, financial_allowed: bool) -> None:
 
 def default_fields(module_name: str) -> list[str]:
     if module_name == "lead_to_cash":
-        return ["deal_id", "deal_name", "deal_amount", "sales_order", "invoice", "collection_status", "margin"]
+        return ["deal_id", "deal_name", "deal_amount", "deal_currency", "sales_order", "invoice", "collection_status", "margin"]
     return DATA_SOURCES[module_name][1]
 
 
-def run_report(db: Session, report: AnalyticsReport, financial_allowed: bool, page: int = 1, page_size: int = 50, extra_filters: dict[str, Any] | None = None) -> dict[str, Any]:
-    ensure_source_allowed(report.module_name, financial_allowed)
-    page = max(page, 1)
-    page_size = min(max(page_size, 1), 500)
-    fields = list(report.fields_json or default_fields(report.module_name))
-    filters = {**(report.filters_json or {}), **(extra_filters or {})}
-    rows = cross_module_rows(db) if report.module_name == "lead_to_cash" else source_rows(db, report.module_name, fields, filters, (page - 1) * page_size, page_size)
-    if report.module_name == "lead_to_cash":
-        total = len(rows)
-        rows = rows[(page - 1) * page_size : page * page_size]
+def run_report(db: Session, report: AnalyticsReport, financial_allowed: bool, page: int = 1, page_size: int = 50, extra_filters: dict[str, Any] | None = None, user=None, max_page_size:int=500) -> dict[str, Any]:
+    ensure_source_allowed(report.module_name,financial_allowed)
+    page=max(page,1);page_size=min(max(page_size,1),max_page_size)
+    fields=list(report.fields_json or default_fields(report.module_name))
+    filters={**(report.filters_json or {}),**(extra_filters or {})}
+    if report.module_name=="lead_to_cash":
+        query=report_query(db,"crm_deals",filters,user)
+        total=query.count();rows=cross_module_rows(db,user,(page-1)*page_size,page_size,query)
     else:
-        total = count_rows(db, report.module_name, filters)
-    return {"items": rows, "total": total, "page": page, "page_size": page_size, "fields": fields, "async_ready": total > MAX_SYNC_EXPORT_ROWS}
+        rows=source_rows(db,report.module_name,fields,filters,(page-1)*page_size,page_size,user)
+        total=count_rows(db,report.module_name,filters,user)
+    return {"items":rows,"total":total,"page":page,"page_size":page_size,"fields":fields,"async_ready":total>MAX_SYNC_EXPORT_ROWS,"definition":"Full scoped source query total before pagination. Lead-to-cash rows are unique deals; link counts and collections are separate measures."}
 
 
-def source_rows(db: Session, module_name: str, fields: list[str], filters: dict[str, Any], offset: int, limit: int) -> list[dict[str, Any]]:
-    model = DATA_SOURCES[module_name][0]
-    query = db.query(model)
-    if hasattr(model, "deleted_at"):
-        query = query.filter(model.deleted_at.is_(None))
-    for field, value in filters.items():
-        if value in (None, "") or not hasattr(model, field):
-            continue
-        query = query.filter(getattr(model, field) == value)
-    if hasattr(model, "id"):
-        query = query.order_by(model.id.desc())
-    rows = query.offset(offset).limit(limit).all()
-    return [serialize_row(item, fields) for item in rows]
+def report_query(db,module_name,filters,user=None):
+    model=DATA_SOURCES[module_name][0]
+    query=db.query(model)
+    if user is not None:
+        from app.services.metrics.registry import crm_query
+        from app.services.metrics.queries import company_id
+        if module_name.startswith("crm_"):
+            resource={"crm_leads":"leads","crm_accounts":"companies","crm_contacts":"contacts","crm_deals":"deals","crm_quotes":"quotations"}[module_name]
+            query=crm_query(db,user,resource)
+        elif module_name in {"srm_invoices","srm_collections"}:
+            from app.apps.srm.services.commercial import invoice_query
+            query=invoice_query(db,user)
+        elif module_name=="srm_sales_orders":
+            from app.apps.srm.access import sales_order_query
+            query=sales_order_query(db,user)
+        elif module_name=="srm_engagements":
+            from app.apps.srm.access import engagement_query
+            query=engagement_query(db,user)
+        elif module_name=="srm_profitability":
+            from app.services.metrics.sales import latest_profitability_query
+            query=latest_profitability_query(db,user)
+        elif hasattr(model,"organization_id"):query=query.filter(func.coalesce(model.organization_id,1)==company_id(user))
+    if hasattr(model,"deleted_at"):query=query.filter(model.deleted_at.is_(None))
+    for field,value in filters.items():
+        if value in (None,""):continue
+        if field not in model.__table__.columns:raise HTTPException(422,"Unsupported report filter: "+field)
+        query=query.filter(getattr(model,field)==value)
+    return query
 
 
-def count_rows(db: Session, module_name: str, filters: dict[str, Any]) -> int:
-    model = DATA_SOURCES[module_name][0]
-    query = db.query(func.count(model.id))
-    if hasattr(model, "deleted_at"):
-        query = query.filter(model.deleted_at.is_(None))
-    for field, value in filters.items():
-        if value in (None, "") or not hasattr(model, field):
-            continue
-        query = query.filter(getattr(model, field) == value)
-    return int(query.scalar() or 0)
+def source_rows(db:Session,module_name:str,fields:list[str],filters:dict[str,Any],offset:int,limit:int,user=None):
+    model=DATA_SOURCES[module_name][0]
+    rows=report_query(db,module_name,filters,user).order_by(model.id.desc()).offset(offset).limit(limit).all()
+    return [serialize_row(item,fields) for item in rows]
+
+
+def count_rows(db:Session,module_name:str,filters:dict[str,Any],user=None):
+    model=DATA_SOURCES[module_name][0]
+    return report_query(db,module_name,filters,user).with_entities(model.id).distinct().count()
 
 
 def serialize_row(item: Any, fields: list[str]) -> dict[str, Any]:
@@ -124,22 +137,24 @@ def serialize_row(item: Any, fields: list[str]) -> dict[str, Any]:
     return row
 
 
-def cross_module_rows(db: Session) -> list[dict[str, Any]]:
-    deals = db.query(CRMDeal).order_by(CRMDeal.id.desc()).limit(100).all()
-    rows: list[dict[str, Any]] = []
+def cross_module_rows(db:Session,user=None,offset=0,limit=500,query=None):
+    # Stable identities and real deal/order links; never infer ownership from a company name.
+    query=query if query is not None else report_query(db,"crm_deals",{},user)
+    deals=query.order_by(CRMDeal.id.desc()).offset(offset).limit(limit).all();ids=[d.id for d in deals]
+    order_query=report_query(db,"srm_sales_orders",{},user).filter(SRMSalesOrder.crm_deal_id.in_(ids))
+    orders=order_query.order_by(SRMSalesOrder.id).all();order_ids=[o.id for o in orders]
+    invoices=report_query(db,"srm_invoices",{},user).filter(SRMInvoice.sales_order_id.in_(order_ids)).order_by(SRMInvoice.id).all() if order_ids else []
+    orders_by_deal={d.id:[] for d in deals};invoices_by_order={o.id:[] for o in orders}
+    for order in orders:orders_by_deal[order.crm_deal_id].append(order)
+    for invoice in invoices:invoices_by_order[invoice.sales_order_id].append(invoice)
+    rows=[]
     for deal in deals:
-        order = db.query(SRMSalesOrder).filter(SRMSalesOrder.crm_deal_id == deal.id).first()
-        invoice = db.query(SRMInvoice).filter(SRMInvoice.sales_order_id == order.id).first() if order else None
-        margin = db.query(SRMProfitabilitySnapshot).filter(SRMProfitabilitySnapshot.customer_id == getattr(deal, "company_id", None)).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).first()
-        rows.append({
-            "deal_id": deal.id,
-            "deal_name": deal.name,
-            "deal_amount": float(deal.amount or 0),
-            "sales_order": order.order_number if order else None,
-            "invoice": invoice.invoice_number if invoice else None,
-            "collection_status": invoice.status if invoice else "not_billed",
-            "margin": float(getattr(margin, "gross_margin_amount", 0) or 0) if margin else 0,
-        })
+        linked=orders_by_deal[deal.id];bills=[bill for order in linked for bill in invoices_by_order[order.id]]
+        rows.append({"deal_id":deal.id,"deal_name":deal.name,"deal_amount":float(deal.amount) if deal.amount is not None else None,"deal_currency":deal.currency,
+            "sales_order":linked[0].order_number if linked else None,"invoice":bills[0].invoice_number if bills else None,
+            "sales_orders":[o.order_number for o in linked],"invoices":[i.invoice_number for i in bills],"order_count":len(linked),"invoice_count":len(bills),
+            "collection_status":bills[0].status if len(bills)==1 else "multiple_invoices" if bills else "not_billed",
+            "margin":None,"margin_note":"No single attributable margin is inferred from matching a customer. Use authorized engagement profitability snapshots."})
     return rows
 
 

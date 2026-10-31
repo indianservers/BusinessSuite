@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.services.metrics.queries import count_rows_before_page
 from app.access.catalog import permission_objects
 
 import html
@@ -1245,8 +1246,11 @@ def _filtered_report_deals(
         query = query.filter(CRMDeal.owner_user_id == owner_id)
     if pipeline_id:
         query = query.filter(CRMDeal.pipeline_id == pipeline_id)
-    rows = query.all()
-    return [deal for deal in rows if start <= _deal_report_datetime(deal) <= end]
+    rows = [deal for deal in query.all() if start <= _deal_report_datetime(deal) <= end]
+    units={(deal.currency or "Unknown").strip().upper() or "Unknown" for deal in rows}
+    if len(units)>1 or "Unknown" in units:
+        raise HTTPException(422,"This legacy report cannot combine different or unknown currencies. Use the currency-separated CRM dashboard or an explicit-currency forecast; no currency conversion has been applied.")
+    return rows
 
 
 def _expected_close_datetime(deal: CRMDeal) -> datetime:
@@ -1276,42 +1280,34 @@ def _filtered_forecast_deals(
     if pipeline_id:
         query = query.filter(CRMDeal.pipeline_id == pipeline_id)
     if currency:
-        query = query.filter(CRMDeal.currency == currency)
+        query = query.filter(func.upper(CRMDeal.currency) == currency.upper())
     rows = query.all()
     return [deal for deal in rows if start <= _expected_close_datetime(deal) <= end or _deal_status(deal) in {"won", "lost"} and start <= _deal_report_datetime(deal) <= end]
 
 
-def _srm_actuals_for_deals(db: Session, organization_id: int, deal_ids: list[int]) -> dict[str, float]:
-    if not deal_ids:
-        return {"invoiced": 0.0, "collected": 0.0, "salesOrders": 0, "invoices": 0, "receipts": 0}
-    try:
-        from app.apps.srm.models import SRMInvoice, SRMReceiptAllocation, SRMSalesOrder
-    except Exception:
-        return {"invoiced": 0.0, "collected": 0.0, "salesOrders": 0, "invoices": 0, "receipts": 0}
-    sales_orders = (
-        db.query(SRMSalesOrder)
-        .filter(SRMSalesOrder.organization_id == organization_id, SRMSalesOrder.crm_deal_id.in_(deal_ids))
-        .all()
-    )
-    order_ids = [row.id for row in sales_orders]
-    if not order_ids:
-        return {"invoiced": 0.0, "collected": 0.0, "salesOrders": 0, "invoices": 0, "receipts": 0}
-    invoices = db.query(SRMInvoice).filter(SRMInvoice.organization_id == organization_id, SRMInvoice.sales_order_id.in_(order_ids)).all()
-    invoice_ids = [row.id for row in invoices]
-    allocations = db.query(SRMReceiptAllocation).filter(SRMReceiptAllocation.invoice_id.in_(invoice_ids)).all() if invoice_ids else []
-    invoiced = sum(float(getattr(row, "total_amount", None) or getattr(row, "amount", None) or 0) for row in invoices)
-    collected = sum(float(getattr(row, "amount", None) or 0) for row in allocations)
-    return {"invoiced": round(invoiced, 2), "collected": round(collected, 2), "salesOrders": len(sales_orders), "invoices": len(invoices), "receipts": len(allocations)}
+def _srm_actuals_for_deals(db: Session, organization_id: int, deal_ids: list[int],currency:str|None=None) -> dict[str, Any]:
+    from app.apps.srm.models import SRMInvoice,SRMReceiptAllocation,SRMSalesOrder
+    from app.services.metrics.queries import amounts_by_currency
+    from app.services.metrics.sales import scalar_currency
+    orders=db.query(SRMSalesOrder).filter(SRMSalesOrder.organization_id==organization_id,SRMSalesOrder.deleted_at.is_(None),SRMSalesOrder.crm_deal_id.in_(deal_ids))
+    invoices=db.query(SRMInvoice).filter(SRMInvoice.organization_id==organization_id,SRMInvoice.deleted_at.is_(None),SRMInvoice.sales_order_id.in_(orders.with_entities(SRMSalesOrder.id)))
+    if currency:invoices=invoices.filter(func.upper(SRMInvoice.currency)==currency.upper())
+    allocations=db.query(SRMReceiptAllocation).join(SRMInvoice,SRMInvoice.id==SRMReceiptAllocation.invoice_id).filter(SRMInvoice.id.in_(invoices.with_entities(SRMInvoice.id)))
+    invoiced=amounts_by_currency(invoices,SRMInvoice.currency,SRMInvoice.total_amount)
+    collected=amounts_by_currency(allocations,SRMInvoice.currency,SRMReceiptAllocation.amount)
+    return {"invoiced":scalar_currency(invoiced),"collected":scalar_currency(collected),"invoicedByCurrency":invoiced,"collectedByCurrency":collected,"salesOrders":orders.count(),"invoices":invoices.count(),"receipts":allocations.count(),"currencyPolicy":"Invoice currency; no conversion. Receipt allocations are attributed in invoice units."}
 
 
 def _forecast_summary(db: Session, organization_id: int, deals: list[CRMDeal]) -> dict[str, Any]:
+    currencies={(deal.currency or "Unknown").upper() for deal in deals}
+    if len(currencies)>1 or "Unknown" in currencies:raise HTTPException(422,"Choose one explicit currency for monetary forecast totals")
     pipeline_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) != "lost")
     weighted_amount = sum(_deal_amount(deal) * float(deal.probability or 0) / 100 for deal in deals if _deal_status(deal) != "lost")
     committed_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) == "won" or int(deal.probability or 0) >= 80)
     best_case_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) == "won" or int(deal.probability or 0) >= 50)
     upside_amount = sum(_deal_amount(deal) for deal in deals if 25 <= int(deal.probability or 0) < 50 and _deal_status(deal) == "open")
     closed_won_amount = sum(_deal_amount(deal) for deal in deals if _deal_status(deal) == "won")
-    actuals = _srm_actuals_for_deals(db, organization_id, [int(deal.id) for deal in deals])
+    actuals = _srm_actuals_for_deals(db, organization_id, [int(deal.id) for deal in deals],next(iter(currencies),None))
     scenarios = {
         "conservative": round(weighted_amount * Decimal("0.80"), 2) if isinstance(weighted_amount, Decimal) else round(weighted_amount * 0.8, 2),
         "expected": round(weighted_amount, 2),
@@ -1348,6 +1344,9 @@ def _forecast_payload(
     currency: str | None = None,
     group_by: str | None = None,
 ) -> dict[str, Any]:
+    from app.models.company import Company
+    company=db.get(Company,organization_id)
+    currency=(currency or (company.default_currency if company else None) or "INR").upper()
     start, end = _parse_report_range(start_date, end_date)
     deals = _filtered_forecast_deals(db, organization_id, start, end, current_user, owner_id=owner_id, team_id=team_id, territory_id=territory_id, pipeline_id=pipeline_id, currency=currency)
     summary = _forecast_summary(db, organization_id, deals)
@@ -5168,7 +5167,8 @@ def list_webhook_deliveries(
         .limit(100)
         .all()
     )
-    return {"items": [_serialize(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(_base_query(db, _get_resource('webhook-deliveries'), organization_id).filter(CRMWebhookDelivery.webhook_id == webhook_id).order_by(desc(CRMWebhookDelivery.created_at), desc(CRMWebhookDelivery.id)).limit(100))
+    return {"items": [_serialize(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.get("/approval-workflows")
@@ -5450,7 +5450,8 @@ def list_approvals(
     if entityId is not None:
         query = query.filter(CRMApprovalRequest.entity_id == entityId)
     rows = query.order_by(desc(CRMApprovalRequest.submitted_at), desc(CRMApprovalRequest.id)).limit(100).all()
-    return {"items": [_serialize_approval_request(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(query.order_by(desc(CRMApprovalRequest.submitted_at), desc(CRMApprovalRequest.id)).limit(100))
+    return {"items": [_serialize_approval_request(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.get("/duplicates")
@@ -7334,7 +7335,8 @@ def enrichment_history(
         .limit(50)
         .all()
     )
-    return {"items": [_enrichment_log_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(CRMEnrichmentLog).filter(CRMEnrichmentLog.organization_id == organization_id, CRMEnrichmentLog.entity_type == entity_type, CRMEnrichmentLog.entity_id == entityId).order_by(desc(CRMEnrichmentLog.created_at), desc(CRMEnrichmentLog.id)).limit(50))
+    return {"items": [_enrichment_log_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.get("/module-info")
@@ -7416,6 +7418,7 @@ def crm_audit_logs(
     if action:
         query = query.filter(AuditLog.action == action.upper())
     rows = query.order_by(desc(AuditLog.created_at), desc(AuditLog.id)).limit(limit).all()
+    rows_statistics_total = count_rows_before_page(query.order_by(desc(AuditLog.created_at), desc(AuditLog.id)).limit(limit))
     return {
         "items": [
             {
@@ -7431,7 +7434,7 @@ def crm_audit_logs(
             }
             for row in rows
         ],
-        "total": len(rows),
+        "total": rows_statistics_total,
     }
 
 
@@ -7901,28 +7904,45 @@ def crm_timeline(
     return {"items": _timeline_for(db, _canonical_entity(resource_name), record, organization_id), "recordType": record_type, "recordId": record_id}
 
 
+@router.get("/statistics/records")
+def statistics_records(kind:str,period:str="all",page:int=Query(1,ge=1),page_size:int=Query(25,ge=1,le=100),db:Session=Depends(get_db),current_user:User=Depends(RequirePermission("crm_view","crm_manage","crm_admin"))):
+    from app.services.metrics.crm import records
+    return records(db,current_user,kind,period,page,page_size)
+
+
 @router.get("/dashboard")
 def crm_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    period: str = "all",
 ):
     organization_id = _organization_id(db, current_user)
-    leads_query = _apply_record_visibility(_base_query(db, _get_resource("leads"), organization_id), _get_resource("leads"), current_user, db)
-    deals_query = _apply_record_visibility(_base_query(db, _get_resource("deals"), organization_id), _get_resource("deals"), current_user, db)
-    activities_query = _apply_record_visibility(_base_query(db, _get_resource("activities"), organization_id), _get_resource("activities"), current_user, db)
-    open_deals = deals_query.filter(CRMDeal.status.notin_(["Won", "Lost"])).all()
+    from app.services.metrics.registry import crm_query,open_deals as canonical_open_deals
+    from app.services.metrics.queries import amounts_by_currency,business_context
+    leads_query=crm_query(db,current_user,"leads")
+    deals_query=crm_query(db,current_user,"deals")
+    activities_query=crm_query(db,current_user,"activities")
+    open_deals_query=canonical_open_deals(db,current_user)
+    pipeline=amounts_by_currency(open_deals_query,CRMDeal.currency,CRMDeal.amount)
     now = datetime.now(timezone.utc)
     overdue = activities_query.filter(CRMActivity.due_date.is_not(None), CRMActivity.due_date < now, CRMActivity.status.notin_(["Completed", "Done", "Cancelled"])).count()
+    from app.services.metrics.crm import dashboard_statistics
+    period_statistics=dashboard_statistics(db,current_user,period)
     return {
+        "period_statistics":period_statistics,
         "summary": {
             "leads": leads_query.count(),
             "qualifiedLeads": leads_query.filter(CRMLead.status == "Qualified").count(),
             "contacts": _apply_record_visibility(_base_query(db, _get_resource("contacts"), organization_id), _get_resource("contacts"), current_user, db).count(),
             "accounts": _apply_record_visibility(_base_query(db, _get_resource("companies"), organization_id), _get_resource("companies"), current_user, db).count(),
-            "openDeals": len(open_deals),
-            "pipelineValue": float(sum(Decimal(str(deal.amount or 0)) for deal in open_deals)),
+            "openDeals": open_deals_query.count(),
+            "pipelineValue": float(pipeline[0]["amount"]) if len(pipeline)==1 and pipeline[0]["currency"]!="Unknown" else (0.0 if not pipeline else None),
+            "pipelineByCurrency":pipeline,
+            "pipelineCurrency":pipeline[0]["currency"] if len(pipeline)==1 else None,
+            "pipelineConversionPolicy":"No conversion; currencies are reported separately",
             "overdueActivities": overdue,
         },
+        "context":business_context(db,current_user),
         "nextBestAction": "Review overdue activities and qualify high-score leads.",
         "accountHealthPlaceholder": "Account health scoring will combine CRM, SRM, and PMS signals.",
         "dealRiskPlaceholder": "Deal risk indicators will use stage age, activity gaps, and approval status.",

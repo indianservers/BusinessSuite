@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.services.metrics.queries import count_rows_before_page
 
 import csv
 import hashlib
@@ -1076,6 +1077,8 @@ def module_info(db: Session = Depends(get_db), current_user: User = Depends(Requ
 @router.get("/dashboard")
 def dashboard(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
+    from app.services.metrics.queries import business_day
+    today=business_day(db,current_user)
     current_fy = get_current_financial_year(db, company_id)
     def total_for(nature: str, side: str) -> float:
         column = FAMLedger.current_balance_dr if side == "dr" else FAMLedger.current_balance_cr
@@ -1086,10 +1089,14 @@ def dashboard(db: Session = Depends(get_db), current_user: User = Depends(Requir
     payable_types = ["bill", "credit_note", "opening"]
     receivables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(receivable_types), FAMBillReference.outstanding_amount > 0).scalar() or 0
     payables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(payable_types), FAMBillReference.outstanding_amount > 0).scalar() or 0
-    overdue_receivables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(receivable_types), FAMBillReference.outstanding_amount > 0, FAMBillReference.due_date < date.today()).scalar() or 0
-    overdue_payables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(payable_types), FAMBillReference.outstanding_amount > 0, FAMBillReference.due_date < date.today()).scalar() or 0
+    overdue_receivables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(receivable_types), FAMBillReference.outstanding_amount > 0, FAMBillReference.due_date < today).scalar() or 0
+    overdue_payables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(payable_types), FAMBillReference.outstanding_amount > 0, FAMBillReference.due_date < today).scalar() or 0
     recent = db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id).order_by(FAMAuditLog.performed_at.desc(), FAMAuditLog.id.desc()).limit(8).all()
+    from app.services.metrics.queries import business_context,business_day
+    financial_settings=db.query(FAMCompanyFinancialSettings).filter_by(company_id=company_id).first()
     return {
+        "baseCurrency":financial_settings.base_currency if financial_settings else None,
+        "statisticsContext":{**business_context(db,current_user),"basis":"Current ledger balances and outstanding bill references; not fiscal-year turnover"},
         "currentFinancialYear": serialize(current_fy) if current_fy else None,
         "totalAssets": total_for("asset", "dr"),
         "totalLiabilities": total_for("liability", "cr"),
@@ -1410,7 +1417,8 @@ def create_branch(payload: BranchPayload, request: Request, db: Session = Depend
 def audit_logs(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_AUDIT_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     items = db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id).order_by(FAMAuditLog.performed_at.desc(), FAMAuditLog.id.desc()).limit(100).all()
-    return {"items": [serialize(item) for item in items], "total": len(items)}
+    items_statistics_total = count_rows_before_page(db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id).order_by(FAMAuditLog.performed_at.desc(), FAMAuditLog.id.desc()).limit(100))
+    return {"items": [serialize(item) for item in items], "total": items_statistics_total}
 
 
 @router.get("/chart-of-accounts")
@@ -1469,7 +1477,8 @@ def list_vouchers(status_filter: str | None = None, db: Session = Depends(get_db
     if status_filter:
         query = query.filter(FAMVoucher.status == status_filter)
     items = query.order_by(FAMVoucher.voucher_date.desc(), FAMVoucher.id.desc()).limit(200).all()
-    return {"items": [serialize(item) for item in items], "total": len(items)}
+    items_statistics_total = count_rows_before_page(query.order_by(FAMVoucher.voucher_date.desc(), FAMVoucher.id.desc()).limit(200))
+    return {"items": [serialize(item) for item in items], "total": items_statistics_total}
 
 
 @router.post("/vouchers", status_code=status.HTTP_201_CREATED)
@@ -1704,9 +1713,10 @@ def ledger_entries(ledger_id: int | None = None, db: Session = Depends(get_db), 
     if ledger_id:
         query = query.filter(FAMLedgerEntry.ledger_id == ledger_id)
     items = query.order_by(FAMLedgerEntry.voucher_date.desc(), FAMLedgerEntry.id.desc()).limit(500).all()
+    items_statistics_total = count_rows_before_page(query.order_by(FAMLedgerEntry.voucher_date.desc(), FAMLedgerEntry.id.desc()).limit(500))
     debit = sum(Decimal(item.debit_amount or 0) for item in items)
     credit = sum(Decimal(item.credit_amount or 0) for item in items)
-    return {"items": [serialize(item) for item in items], "total": len(items), "debitTotal": float(debit), "creditTotal": float(credit)}
+    return {"items": [serialize(item) for item in items], "total": items_statistics_total, "debitTotal": float(debit), "creditTotal": float(credit)}
 
 
 @router.get("/ledgers/{id}/entries")
@@ -1726,9 +1736,10 @@ def ledger_entries_for_ledger(id: int, db: Session = Depends(get_db), current_us
 def day_book(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_DAY_BOOK_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     items = db.query(FAMVoucher).filter(FAMVoucher.company_id == company_id).order_by(FAMVoucher.voucher_date.desc(), FAMVoucher.id.desc()).limit(300).all()
+    items_statistics_total = count_rows_before_page(db.query(FAMVoucher).filter(FAMVoucher.company_id == company_id).order_by(FAMVoucher.voucher_date.desc(), FAMVoucher.id.desc()).limit(300))
     debit = sum(Decimal(item.total_debit or 0) for item in items)
     credit = sum(Decimal(item.total_credit or 0) for item in items)
-    return {"items": [serialize(item) for item in items], "total": len(items), "debitTotal": float(debit), "creditTotal": float(credit)}
+    return {"items": [serialize(item) for item in items], "total": items_statistics_total, "debitTotal": float(debit), "creditTotal": float(credit)}
 
 
 @router.get("/voucher-audit/{id}")
@@ -1999,7 +2010,8 @@ def reverse_srm_accounting(source_record_type: str, source_record_id: int, reque
 def list_posting_jobs(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_SRM_INTEGRATION_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     items = db.query(FAMPostingJob).filter(FAMPostingJob.company_id == company_id).order_by(FAMPostingJob.id.desc()).limit(200).all()
-    return {"items": [serialize(item) for item in items], "total": len(items)}
+    items_statistics_total = count_rows_before_page(db.query(FAMPostingJob).filter(FAMPostingJob.company_id == company_id).order_by(FAMPostingJob.id.desc()).limit(200))
+    return {"items": [serialize(item) for item in items], "total": items_statistics_total}
 
 
 @router.get("/posting-jobs/{id}")
@@ -3934,7 +3946,8 @@ def inventory_report_hsn_summary(db: Session = Depends(get_db), current_user: Us
 def inventory_report_stock_movement_audit(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_AUDIT_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     rows = db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id, FAMAuditLog.record_type.ilike("inventory_%")).order_by(FAMAuditLog.performed_at.desc()).limit(200).all()
-    return {"items": [serialize(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id, FAMAuditLog.record_type.ilike('inventory_%')).order_by(FAMAuditLog.performed_at.desc()).limit(200))
+    return {"items": [serialize(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.get("/inventory/reconciliation/gl")

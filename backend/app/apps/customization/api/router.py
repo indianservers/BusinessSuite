@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.services.metrics.queries import count_rows_before_page
 
 from datetime import datetime, timezone
 from typing import Any
@@ -398,7 +399,8 @@ def test_formula(data: FormulaTestPayload, current_user: User = Depends(RequireP
 @customization_router.get("/audit-logs")
 def audit_logs(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_view", "customization_manage"))):
     items = db.query(CustomizationAuditLog).order_by(CustomizationAuditLog.created_at.desc()).limit(200).all()
-    return {"items": [_serialize(item) for item in items], "total": len(items)}
+    items_statistics_total = count_rows_before_page(db.query(CustomizationAuditLog).order_by(CustomizationAuditLog.created_at.desc()).limit(200))
+    return {"items": [_serialize(item) for item in items], "total": items_statistics_total}
 
 
 @dynamic_router.get("/{module_api_name}")

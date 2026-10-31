@@ -358,7 +358,7 @@ def v1_purchase_orders():
 def v1_payments():
     received = [{"id": p.id, "type": "received", "date": p.receipt_date.isoformat() if p.receipt_date else None, "party": p.customer.name if p.customer else "", "mode": p.payment_mode, "amount": float(p.amount or 0), "status": getattr(p, "status", "Posted")} for p in PaymentReceived.query.order_by(PaymentReceived.id.desc()).limit(100).all()]
     made = [{"id": p.id, "type": "made", "date": p.voucher_date.isoformat() if p.voucher_date else None, "party": p.supplier.name if p.supplier else "", "mode": p.payment_mode, "amount": float(p.amount or 0), "status": getattr(p, "status", "Posted")} for p in PaymentMade.query.order_by(PaymentMade.id.desc()).limit(100).all()]
-    return jsonify({"data": received + made, "meta": {"total": len(received) + len(made)}})
+    return jsonify({"data": received + made, "meta": {"total": PaymentReceived.query.count()+PaymentMade.query.count(),"returned_count":len(received)+len(made),"definition":"All permitted received and made payment records; preview returns the latest 100 of each type"}})
 
 
 @bp.route("/v1/reports/summary")

@@ -991,3 +991,74 @@
     margin-right:0;
   }
 }
+
+/* Application artwork and icon tiles matched to the supplied launcher reference. */
+.module-dashboard .md-grid { gap:20px; }
+.module-dashboard .md-card {
+  --md-tile-start:#a650ff;
+  --md-tile-end:#8530ff;
+  grid-template-columns:76px minmax(0,1fr);
+  grid-template-rows:minmax(36px,auto) minmax(38px,auto) 1fr auto auto;
+  column-gap:24px;
+  min-height:300px;
+  padding:25px 20px 16px 25px;
+  border-color:color-mix(in srgb,var(--md-tone) 13%,white);
+  background:linear-gradient(135deg,#fff 25%,color-mix(in srgb,var(--md-tint) 20%,white));
+  box-shadow:0 8px 28px #7a9bc308;
+}
+.module-dashboard .md-hrms { --md-tile-start:#377cff; --md-tile-end:#2360ff; }
+.module-dashboard .md-crm { --md-tone:#00aa53; --md-tint:#e2faf1; --md-tile-start:#3cdb78; --md-tile-end:#2bca61; }
+.module-dashboard .md-pms { --md-tone:#9400ff; --md-tint:#f6e7ff; --md-tile-start:#d000ff; --md-tile-end:#b900ef; }
+.module-dashboard .md-srm { --md-tone:#e16c00; --md-tile-start:#ffb131; --md-tile-end:#ff9918; }
+.module-dashboard .md-fam { --md-tone:#008bb4; --md-tile-start:#08a0ca; --md-tile-end:#00c4c4; }
+.module-dashboard .md-card-top { grid-row:1/3; }
+.module-dashboard .md-icon {
+  width:76px; height:76px; border-radius:19px; color:white;
+  background:linear-gradient(145deg,var(--md-tile-start),var(--md-tile-end));
+  box-shadow:inset 0 1px 3px #ffffff3b,0 6px 12px color-mix(in srgb,var(--md-tone) 10%,transparent);
+}
+.module-dashboard .md-icon svg { width:40px; height:40px; stroke-width:1.9; }
+.module-dashboard .suite-card-title { align-self:end; grid-row:1; }
+.module-dashboard .md-category { grid-row:2; align-self:start; padding-top:5px; }
+.module-dashboard .md-description {
+  grid-column:1/-1; padding-right:132px; margin:10px 0 12px;
+  min-height:60px; font-size:13px; line-height:1.5;
+}
+.module-dashboard .md-module-art {
+  position:absolute; z-index:0; right:8px; top:66px;
+  width:146px; height:146px; pointer-events:none;
+  display:grid; place-items:center;
+}
+.module-dashboard .md-module-art::before {
+  content:""; position:absolute; inset:9px; border-radius:50%;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--md-tint) 55%,white),var(--md-tint));
+}
+.module-dashboard .md-module-art img { position:relative; width:100%; height:100%; object-fit:contain; }
+.module-dashboard .md-card .md-features { grid-column:1/-1; gap:9px; padding-bottom:12px; align-self:end; }
+.module-dashboard .md-card .md-features>a,
+.module-dashboard .md-card .md-features>span {
+  color:var(--md-tone); background:color-mix(in srgb,var(--md-tint) 65%,white);
+  border:0; border-radius:13px; padding:10px 12px; font-size:12px;
+}
+.module-dashboard .md-card .md-features svg { width:19px; height:19px; }
+.module-dashboard .md-card .md-open {
+  background:linear-gradient(110deg,color-mix(in srgb,var(--md-tint) 70%,white),var(--md-tint));
+  border:0; border-radius:15px; padding:10px 14px 10px 20px; min-height:52px; margin:0 -4px;
+  font-size:16px; font-weight:700;
+}
+.module-dashboard .md-open svg { color:white; background:linear-gradient(145deg,var(--md-tile-start),var(--md-tile-end)); width:36px; height:36px; }
+.module-dashboard .suite-module-alerts { grid-column:1/-1; }
+.module-dashboard.suite-dashboard-compact .md-card { min-height:220px; }
+.module-dashboard.suite-dashboard-compact .md-module-art { width:100px; height:100px; top:65px; opacity:.75; }
+@media(max-width:1100px) and (min-width:761px) {
+  .module-dashboard .md-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:760px) {
+  .module-dashboard .md-card { padding:22px 18px 16px; column-gap:18px; grid-template-columns:66px minmax(0,1fr); }
+  .module-dashboard .md-icon { width:66px; height:66px; border-radius:17px; }
+  .module-dashboard .md-icon svg { width:35px; height:35px; }
+  .module-dashboard .md-module-art { width:115px; height:115px; right:5px; top:84px; }
+  .module-dashboard .md-description { padding-right:100px; }
+  .module-dashboard .md-card .md-features { gap:6px; }
+  .module-dashboard .md-card .md-features>a,.module-dashboard .md-card .md-features>span { padding:9px 10px; font-size:11px; }
+}

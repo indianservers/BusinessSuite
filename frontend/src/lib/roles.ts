@@ -1185,6 +1185,7 @@ function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname
     {label:"Module Management",to:"/admin/control/modules",icon:Building2},
     {label:"Security Center",to:"/admin/control/security",icon:ShieldCheck},
     {label:"Audit Logs",to:"/admin/control/audit",icon:ShieldCheck},
+    {label:"Statistics Audit",to:"/admin/control/statistics",icon:ShieldCheck},
     ...[["Executive Overview","overview"],["Business Insights","analytics"],["Action Center","actions"],["Subscriptions & Licensing","licensing"],["Feature Management","flags"],["Branding","branding"],["Health Monitor","health"],["Error Center","errors"],["Backup & Recovery","backups"],["Data Governance","governance"],["Support Center","support"],["Module Coverage","coverage"]].map(([label,path])=>({label,to:`/admin/control/enterprise/${path}`,icon:Building2,group:"Enterprise operations"})).filter(item=>!item.to.endsWith("/backups")||isSuperuser),
     {label:"AI Security",to:"/admin/control/ai-security",icon:ShieldCheck,group:"AI Management"},
     {label:"Shared Services",to:"/admin/control/services/services",icon:Building2,group:"Shared platform"},

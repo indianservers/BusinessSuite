@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.services.metrics.queries import count_rows_before_page
 
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
@@ -1407,7 +1408,8 @@ def list_inventory_batches(product_id: int | None = None, status: str | None = N
         SRMInventoryBatch.expiry_date.asc(),
         SRMInventoryBatch.id.desc(),
     ).limit(200).all()
-    return {"items": [_batch_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(query.order_by(case((SRMInventoryBatch.expiry_date.is_(None), 1), else_=0), SRMInventoryBatch.expiry_date.asc(), SRMInventoryBatch.id.desc()).limit(200))
+    return {"items": [_batch_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/inventory/batches", status_code=201)
@@ -1469,7 +1471,8 @@ def list_serial_numbers(product_id: int | None = None, status: str | None = None
     if status:
         query = query.filter(SRMSerialNumber.status == status)
     rows = query.order_by(SRMSerialNumber.id.desc()).limit(300).all()
-    return {"items": [_serial_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(query.order_by(SRMSerialNumber.id.desc()).limit(300))
+    return {"items": [_serial_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/inventory/serial-numbers", status_code=201)
@@ -1511,7 +1514,8 @@ def create_serial_number(data: SRMSerialNumberCreate, db: Session = Depends(get_
 @router.get("/inventory/manufacturing/bom")
 def list_boms(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     rows = db.query(SRMBillOfMaterial).filter(SRMBillOfMaterial.organization_id == _org(current_user), SRMBillOfMaterial.deleted_at.is_(None)).order_by(SRMBillOfMaterial.id.desc()).limit(100).all()
-    return {"items": [_bom_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(SRMBillOfMaterial).filter(SRMBillOfMaterial.organization_id == _org(current_user), SRMBillOfMaterial.deleted_at.is_(None)).order_by(SRMBillOfMaterial.id.desc()).limit(100))
+    return {"items": [_bom_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/inventory/manufacturing/bom", status_code=201)
@@ -1575,7 +1579,8 @@ def get_bom(bom_id: int, db: Session = Depends(get_db), current_user: User = Dep
 @router.get("/inventory/manufacturing/orders")
 def list_production_orders(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     rows = db.query(SRMProductionOrder).filter(SRMProductionOrder.organization_id == _org(current_user)).order_by(SRMProductionOrder.id.desc()).limit(100).all()
-    return {"items": [_production_order_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(SRMProductionOrder).filter(SRMProductionOrder.organization_id == _org(current_user)).order_by(SRMProductionOrder.id.desc()).limit(100))
+    return {"items": [_production_order_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/inventory/manufacturing/orders", status_code=201)
@@ -1629,7 +1634,8 @@ def post_production_order(order_id: int, data: SRMProductionPostRequest, db: Ses
 @router.get("/procurement/purchase-orders")
 def list_purchase_orders(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     rows = db.query(SRMPurchaseOrder).filter(SRMPurchaseOrder.organization_id == _org(current_user), SRMPurchaseOrder.deleted_at.is_(None)).order_by(SRMPurchaseOrder.id.desc()).limit(100).all()
-    return {"items": [_purchase_order_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(SRMPurchaseOrder).filter(SRMPurchaseOrder.organization_id == _org(current_user), SRMPurchaseOrder.deleted_at.is_(None)).order_by(SRMPurchaseOrder.id.desc()).limit(100))
+    return {"items": [_purchase_order_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/procurement/purchase-orders", status_code=201)
@@ -1699,7 +1705,8 @@ def get_purchase_order(po_id: int, db: Session = Depends(get_db), current_user: 
 @router.get("/procurement/grn")
 def list_goods_receipts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     rows = db.query(SRMGoodsReceipt).filter(SRMGoodsReceipt.organization_id == _org(current_user)).order_by(SRMGoodsReceipt.id.desc()).limit(100).all()
-    return {"items": [_goods_receipt_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(SRMGoodsReceipt).filter(SRMGoodsReceipt.organization_id == _org(current_user)).order_by(SRMGoodsReceipt.id.desc()).limit(100))
+    return {"items": [_goods_receipt_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/procurement/grn", status_code=201)
@@ -1787,7 +1794,8 @@ def get_goods_receipt(grn_id: int, db: Session = Depends(get_db), current_user: 
 @router.get("/pricing/price-lists")
 def list_price_lists(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     rows = db.query(SRMPriceList).filter(SRMPriceList.organization_id == _org(current_user), SRMPriceList.deleted_at.is_(None)).order_by(SRMPriceList.priority.asc(), SRMPriceList.id.desc()).limit(100).all()
-    return {"items": [_price_list_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(SRMPriceList).filter(SRMPriceList.organization_id == _org(current_user), SRMPriceList.deleted_at.is_(None)).order_by(SRMPriceList.priority.asc(), SRMPriceList.id.desc()).limit(100))
+    return {"items": [_price_list_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/pricing/price-lists", status_code=201)
@@ -1990,7 +1998,8 @@ def list_pos_held_bills(db: Session = Depends(get_db), current_user: User = Depe
         SRMPOSHeldBill.status == "held",
         SRMPOSHeldBill.deleted_at.is_(None),
     ).order_by(SRMPOSHeldBill.id.desc()).limit(100).all()
-    return {"items": [_held_bill_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(SRMPOSHeldBill).filter(SRMPOSHeldBill.organization_id == _org(current_user), SRMPOSHeldBill.status == 'held', SRMPOSHeldBill.deleted_at.is_(None)).order_by(SRMPOSHeldBill.id.desc()).limit(100))
+    return {"items": [_held_bill_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/pos/held-bills", status_code=201)
@@ -2061,7 +2070,8 @@ def delete_pos_held_bill(held_bill_id: int, db: Session = Depends(get_db), curre
 @router.get("/pos/returns")
 def list_pos_returns(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     rows = db.query(SRMPOSReturn).filter(SRMPOSReturn.organization_id == _org(current_user)).order_by(SRMPOSReturn.id.desc()).limit(100).all()
-    return {"items": [_return_payload(row) for row in rows], "total": len(rows)}
+    rows_statistics_total = count_rows_before_page(db.query(SRMPOSReturn).filter(SRMPOSReturn.organization_id == _org(current_user)).order_by(SRMPOSReturn.id.desc()).limit(100))
+    return {"items": [_return_payload(row) for row in rows], "total": rows_statistics_total}
 
 
 @router.post("/pos/returns", status_code=201)
@@ -3398,12 +3408,14 @@ def write_off_request(invoice_id: int, data: SRMWriteOffRequest | None = None, d
 
 @router.get("/collections/aging")
 def collections_aging(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
-    today = date.today()
+    from app.services.metrics.queries import business_day
+    today = business_day(db,current_user)
     invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None, SRMInvoice.balance_amount > 0).all()
     buckets: dict[int, dict] = {}
     for invoice in invoices:
         customer_id = invoice.customer_id or 0
-        bucket = buckets.setdefault(customer_id, {"customer_id": customer_id, "current_amount": 0, "days_1_30": 0, "days_31_60": 0, "days_61_90": 0, "days_90_plus": 0, "total_outstanding": 0})
+        code=(invoice.currency or "Unknown").strip().upper() or "Unknown"
+        bucket = buckets.setdefault((customer_id,code), {"customer_id": customer_id,"currency":code, "current_amount": 0, "days_1_30": 0, "days_31_60": 0, "days_61_90": 0, "days_90_plus": 0, "total_outstanding": 0})
         overdue_days = (today - invoice.due_date).days if invoice.due_date else 0
         amount = float(_decimal(invoice.balance_amount))
         if overdue_days <= 0:
@@ -3417,14 +3429,7 @@ def collections_aging(db: Session = Depends(get_db), current_user: User = Depend
         else:
             bucket["days_90_plus"] += amount
         bucket["total_outstanding"] += amount
-    for customer_id, bucket in buckets.items():
-        aging = db.query(SRMCustomerAging).filter(scoped(SRMCustomerAging.organization_id, current_user)).filter(scoped(SRMCustomerAging.organization_id, current_user), SRMCustomerAging.customer_id == customer_id).first()
-        if not aging:
-            aging = SRMCustomerAging(organization_id=_org(current_user), customer_id=customer_id)
-            db.add(aging)
-        for key in ["current_amount", "days_1_30", "days_31_60", "days_61_90", "days_90_plus", "total_outstanding"]:
-            setattr(aging, key, bucket[key])
-    db.commit()
+    # A read-only report must not overwrite a currency-less aging cache.
     return list(buckets.values())
 
 
@@ -3498,40 +3503,43 @@ def profitability(
 @router.get("/reports")
 def reports(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_admin"))):
     aging = collections_aging(db, current_user)
-    invoice_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.total_amount), 0)).filter(SRMInvoice.deleted_at == None, SRMInvoice.id.in_(authorized_invoice_query(db, current_user).with_entities(SRMInvoice.id))).scalar())
-    collected_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.paid_amount), 0)).filter(SRMInvoice.deleted_at == None, SRMInvoice.id.in_(authorized_invoice_query(db, current_user).with_entities(SRMInvoice.id))).scalar())
-    outstanding_total = _decimal(db.query(func.coalesce(func.sum(SRMInvoice.balance_amount), 0)).filter(SRMInvoice.deleted_at == None, SRMInvoice.id.in_(authorized_invoice_query(db, current_user).with_entities(SRMInvoice.id))).scalar())
-    snapshots = [_profitability_payload(item) for item in db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user)).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(50).all()]
-    return {
-        "sales_order_report": {"count": db.query(SRMSalesOrder).filter(SRMSalesOrder.deleted_at == None).count()},
-        "contract_report": {"count": db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.deleted_at == None).count()},
-        "invoice_register": {"count": authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None).count(), "total": float(invoice_total)},
-        "invoice_aging": aging,
-        "collection_aging": aging,
-        "customer_outstanding": {"total_outstanding": float(outstanding_total), "customers": aging},
-        "engagement_profitability": snapshots,
-        "project_profitability": [item for item in snapshots if item.get("engagement_id")],
-        "customer_profitability": snapshots,
-        "lead_to_cash_report": lead_to_cash_report(db, current_user),
-        "sales_to_delivery_margin": {"gross_margin_total": sum(float(item.get("gross_margin") or 0) for item in snapshots)},
-        "cash_margin_report": {"collected_total": float(collected_total), "cash_margin_total": sum(float(item.get("cash_margin") or 0) for item in snapshots)},
-    }
+    from app.services.metrics.sales import latest_profitability_query,invoice_statistics,scalar_currency
+    from app.services.metrics.queries import business_day,business_context,amounts_by_currency
+    invoices=authorized_invoice_query(db,current_user).filter(SRMInvoice.deleted_at.is_(None))
+    values=invoice_statistics(invoices,business_day(db,current_user))
+    query=latest_profitability_query(db,current_user)
+    snapshots=[_profitability_payload(row) for row in query.all()]
+    margins=query.join(SRMEngagement,SRMEngagement.id==SRMProfitabilitySnapshot.engagement_id)
+    gross=amounts_by_currency(margins,SRMEngagement.currency,SRMProfitabilitySnapshot.gross_margin_amount)
+    cash=amounts_by_currency(margins,SRMEngagement.currency,SRMProfitabilitySnapshot.cash_margin_amount)
+    return {"context":business_context(db,current_user),"currency_policy":"No conversion; unlike or unknown currencies have no scalar total. Latest profitability snapshot per engagement only.",
+        "sales_order_report":{"count":sales_order_query(db,current_user).count()},
+        "contract_report":{"count":db.query(SRMContract).filter(scoped(SRMContract.organization_id,current_user),SRMContract.deleted_at.is_(None)).count()},
+        "invoice_register":{"count":invoices.count(),"total":scalar_currency(values["total_invoiced_value"]),"by_currency":values["total_invoiced_value"]},
+        "invoice_aging":aging,"collection_aging":aging,
+        "customer_outstanding":{"total_outstanding":scalar_currency(values["outstanding_value"]),"by_currency":values["outstanding_value"],"customers":aging},
+        "engagement_profitability":snapshots,"project_profitability":[r for r in snapshots if r.get("engagement_id")],"customer_profitability":snapshots,
+        "lead_to_cash_report":lead_to_cash_report(db,current_user),
+        "sales_to_delivery_margin":{"gross_margin_total":scalar_currency(gross),"by_currency":gross},
+        "cash_margin_report":{"collected_total":scalar_currency(values["total_collected_value"]),"collected_by_currency":values["total_collected_value"],"cash_margin_total":scalar_currency(cash),"by_currency":cash}}
 
 
 def _dashboard_payload(db: Session, current_user: User) -> dict:
+    from app.services.metrics.sales import latest_profitability_query,invoice_statistics,scalar_currency
+    from app.services.metrics.queries import business_context,business_day,amounts_by_currency
     org_id = _org(current_user)
-    today = date.today()
+    today = business_day(db,current_user)
     sales_orders = sales_order_query(db, current_user)
     engagements = engagement_query(db, current_user)
     sales_order_ids = [item.id for item in sales_orders.with_entities(SRMSalesOrder.id).all()]
     engagement_ids = [item.id for item in engagements.with_entities(SRMEngagement.id).all()]
 
     invoice_query = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None)
-    invoice_draft_query = db.query(SRMInvoiceDraft)
+    invoice_draft_query = db.query(SRMInvoiceDraft).filter(scoped(SRMInvoiceDraft.organization_id,current_user))
     contract_query = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.deleted_at == None)
     billing_plan_query = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user))
     revenue_query = db.query(SRMRevenueEvent).filter(scoped(SRMRevenueEvent.organization_id, current_user))
-    snapshot_query = db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user))
+    snapshot_query = latest_profitability_query(db,current_user)
     if not current_user.is_superuser:
         invoice_query = invoice_query.filter(SRMInvoice.organization_id == org_id)
         invoice_draft_query = invoice_draft_query.filter(SRMInvoiceDraft.organization_id == org_id)
@@ -3610,6 +3618,18 @@ def _dashboard_payload(db: Session, current_user: User) -> dict:
             "pms_linked_engagements": linked_pms_engagements,
         },
     }
+    currency_totals=invoice_statistics(invoice_query,today)
+    for key,rows in currency_totals.items():payload[key]=scalar_currency(rows)
+    margin_query=snapshot_query.join(SRMEngagement,SRMEngagement.id==SRMProfitabilitySnapshot.engagement_id)
+    margin_values={"gross_margin":amounts_by_currency(margin_query,SRMEngagement.currency,SRMProfitabilitySnapshot.gross_margin_amount),"cash_margin":amounts_by_currency(margin_query,SRMEngagement.currency,SRMProfitabilitySnapshot.cash_margin_amount)}
+    payload["currency_totals"]=currency_totals
+    payload["context"]=business_context(db,current_user)
+    payload["currency_policy"]="No conversion. Invoice values are grouped by currency. Profit totals use only the latest snapshot per authorized engagement; historical snapshots do not preserve currency changes."
+    payload["profitability_summary"].update({key:scalar_currency(rows) for key,rows in margin_values.items()})
+    payload["profitability_summary"]["by_currency"]=margin_values
+    payload.update({key:scalar_currency(rows) for key,rows in margin_values.items()})
+    events=revenue_query.with_entities(func.extract("year",SRMRevenueEvent.recognized_on),func.extract("month",SRMRevenueEvent.recognized_on),SRMRevenueEvent.currency,SRMRevenueEvent.event_type,func.sum(SRMRevenueEvent.amount)).group_by(func.extract("year",SRMRevenueEvent.recognized_on),func.extract("month",SRMRevenueEvent.recognized_on),SRMRevenueEvent.currency,SRMRevenueEvent.event_type).order_by(func.extract("year",SRMRevenueEvent.recognized_on),func.extract("month",SRMRevenueEvent.recognized_on)).all()
+    payload["revenue_time_series"]=[{"date":f"{int(y):04d}-{int(m):02d}-01","currency":code or "Unknown","event_type":kind,"amount":str(amount or 0)} for y,m,code,kind,amount in events if y and m]
     payload.update({
         "sales_order_count": payload["total_sales_orders"],
         "engagement_count": _count_query(engagements),
@@ -3782,11 +3802,11 @@ def dashboard(db: Session = Depends(get_db), current_user: User = Depends(Requir
 
 @router.get("/reports/lead-to-cash")
 def lead_to_cash_report(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_admin"))):
-    orders = db.query(SRMSalesOrder).filter(SRMSalesOrder.deleted_at == None).count()
-    engagements = db.query(SRMEngagement).filter(SRMEngagement.deleted_at == None).count()
+    orders = sales_order_query(db,current_user).count()
+    engagements = engagement_query(db,current_user).count()
     invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None).count()
     receipts = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).count()
-    return {"crm_won_to_sales_order": orders, "sales_order_to_engagement": engagements, "engagement_to_invoice": invoices, "invoice_to_collection": receipts}
+    return {"definition":"Independent scoped record volumes; these are not matched cohort conversion rates", "crm_won_to_sales_order": orders, "sales_order_to_engagement": engagements, "engagement_to_invoice": invoices, "invoice_to_collection": receipts}
 
 
 @router.get("/settings")

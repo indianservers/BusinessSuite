@@ -38,7 +38,7 @@ export default function AppLayout() {
   }
 
   if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><SuiteContextBar /><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /></div>;
+    return <div className="flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /></div>;
   }
 
   return (

@@ -1,0 +1,536 @@
+{
+  "date": "2026-10-31",
+  "branch": "codex/statistics-audit",
+  "deployment": "Not deployed; no production business records changed",
+  "scope": "Entire repository statistics source discovery plus targeted cross-module query, API and browser verification",
+  "source_locations_discovered": 970,
+  "discovery_warnings": [],
+  "canonical_metric_count": 32,
+  "canonical_metric_ids": [
+    "users.total_registered",
+    "users.total_active",
+    "users.total_accounts",
+    "employees.total",
+    "employees.total_active",
+    "employees.on_leave",
+    "interns.total",
+    "interns.total_active",
+    "teams.total",
+    "teams.unique_members",
+    "pms.tasks.total",
+    "pms.tasks.completed",
+    "pms.tasks.overdue",
+    "pms.tasks.due_today",
+    "pms.tasks.blocked",
+    "pms.assignments.total",
+    "pms.projects.total",
+    "pms.projects.active",
+    "pms.projects.completed",
+    "internhub.batches.active",
+    "internhub.batches.upcoming",
+    "internhub.batches.completed",
+    "crm.contacts.total",
+    "crm.leads.total",
+    "crm.leads.active",
+    "crm.deals.open",
+    "crm.pipeline.value",
+    "notifications.unread",
+    "hrms.attendance.present_today",
+    "srm.orders.total",
+    "srm.invoices.total",
+    "fam.ledgers.active"
+  ],
+  "confirmed_root_cause_groups": 21,
+  "bounded_endpoint_total_corrections": 25,
+  "counting_note": "Root-cause groups and endpoint fixes overlap. Discovery candidates are not claimed to be individually runtime verified.",
+  "findings": [
+    {
+      "id": "identity-invitations",
+      "problem": "PMS account totals included provisioned invitations",
+      "fix": "Exclude invited AccessPolicy identities; retain provisioned account metric separately",
+      "sources": [
+        "backend/app/access/api.py:account_statistics",
+        "backend/app/apps/project_management/people_workspace.py:stats"
+      ]
+    },
+    {
+      "id": "employee-definitions",
+      "problem": "Active definitions differed; on-leave was inferred as total minus active",
+      "fix": "Share distinct employee IDs and explicit Active/Probation/On Leave statuses",
+      "sources": [
+        "backend/app/api/v1/employees.py:employee_count",
+        "backend/app/api/v1/employees.py:employee_stats",
+        "backend/app/api/v1/reports.py:dashboard_stats"
+      ]
+    },
+    {
+      "id": "hr-tenant-deletion",
+      "problem": "HR report counts included deleted or other-organization records for global administrators",
+      "fix": "Explicit organization and employee grant predicates; legacy reporting dependency",
+      "sources": [
+        "backend/app/api/v1/reports.py:dashboard_stats"
+      ]
+    },
+    {
+      "id": "unique-global-users",
+      "problem": "Multi-organization membership totals could count the same user more than once",
+      "fix": "Unique identity sets across administrable organizations; label global scope",
+      "sources": [
+        "backend/app/access/control.py:dashboard"
+      ]
+    },
+    {
+      "id": "pms-project-scope",
+      "problem": "Cross-organization workspace memberships or archived workspaces could affect project totals",
+      "fix": "Intersect project permission query with current organization and live workspace",
+      "sources": [
+        "backend/app/apps/project_management/api/router.py:get_project_dashboard"
+      ]
+    },
+    {
+      "id": "pms-task-states",
+      "problem": "Done-only completion and incomplete terminal states produced inconsistent overdue counts",
+      "fix": "Shared completed/terminal states; full-query status chart; recipient rows counted separately",
+      "sources": [
+        "backend/app/apps/project_management/api/router.py:get_project_dashboard"
+      ]
+    },
+    {
+      "id": "intern-project-context",
+      "problem": "Selected batches only used a primary project; cancelled recipients affected totals",
+      "fix": "Use all assigned batch project IDs and uncancelled recipient executions; label assignments",
+      "sources": [
+        "backend/app/apps/interns_hub/management_api.py:dashboard"
+      ]
+    },
+    {
+      "id": "approval-pagination",
+      "problem": "Approval summary was derived after per-source 200-row limits",
+      "fix": "SQL union aggregates before paginating selected IDs",
+      "sources": [
+        "backend/app/api/v1/approval_os.py:inbox",
+        "backend/app/api/v1/approval_os.py:summary"
+      ]
+    },
+    {
+      "id": "hr-workbench-caps",
+      "problem": "HR home and pending counts used capped employee/request previews",
+      "fix": "Full-query counts and explicitly bounded joiner/exit previews",
+      "sources": [
+        "backend/app/api/v1/hr_workbench.py:home",
+        "backend/app/api/v1/hr_workbench.py:approvals"
+      ]
+    },
+    {
+      "id": "crm-loaded-page",
+      "problem": "CRM cards counted or summed the first 100 fetched rows",
+      "fix": "Full-query period statistics plus matching paginated worklists",
+      "sources": [
+        "backend/app/apps/crm/api/router.py:crm_dashboard",
+        "backend/app/apps/crm/api/router.py:statistics_records"
+      ]
+    },
+    {
+      "id": "crm-archive",
+      "problem": "CRM dashboard included lead archive operating-state records",
+      "fix": "Canonical scoped query excludes archived lead operating state",
+      "sources": [
+        "backend/app/apps/crm/api/router.py:crm_dashboard"
+      ]
+    },
+    {
+      "id": "financial-units",
+      "problem": "CRM/Sales/Analytics summed unlike currencies",
+      "fix": "Group by explicit currency; scalar unavailable for mixed/unknown units; no conversion invented",
+      "sources": [
+        "backend/app/apps/srm/api/router.py:srm_dashboard",
+        "backend/app/apps/analytics/api/router.py:forecast"
+      ]
+    },
+    {
+      "id": "profit-history",
+      "problem": "Historical profitability snapshots were summed as current profit",
+      "fix": "Latest stored snapshot per authorized engagement; disclose missing currency history",
+      "sources": [
+        "backend/app/apps/srm/api/router.py:reports",
+        "backend/app/apps/analytics/api/router.py:profitability"
+      ]
+    },
+    {
+      "id": "report-export-cap",
+      "problem": "Export reused the preview page clamp and could mark an incomplete file completed",
+      "fix": "Export full matching rows up to explicit synchronous limit; fail clearly beyond it",
+      "sources": [
+        "backend/app/apps/analytics/api/router.py:export_report"
+      ]
+    },
+    {
+      "id": "lead-cash-links",
+      "problem": "Cross-module reports capped deals at 100 and inferred profit via customer",
+      "fix": "Count/page all visible deals, batch real order/invoice links, decline inferred margin",
+      "sources": [
+        "backend/app/apps/analytics/api/router.py:run_saved_report"
+      ]
+    },
+    {
+      "id": "notifications",
+      "problem": "Personal notification APIs had divergent tenant filters",
+      "fix": "Shared personal/organization predicate for unread, list and group summary",
+      "sources": [
+        "backend/app/api/v1/notifications.py:unread_count",
+        "backend/app/api/v1/notifications.py:notification_summary"
+      ]
+    },
+    {
+      "id": "statistics-cache",
+      "problem": "Tenant changes and mutations could retain unrelated statistics cache entries",
+      "fix": "Cancel/clear on identity/organization/grant changes and invalidate statistics on successful mutations",
+      "sources": []
+    },
+    {
+      "id": "unavailable-values",
+      "problem": "Unimplemented project metrics used numeric zero",
+      "fix": "Return explicit unavailable values and metadata instead of fabricated zero",
+      "sources": [
+        "backend/app/apps/project_management/api/router.py:get_project_dashboard"
+      ]
+    },
+    {
+      "id": "inventory-payment-preview",
+      "problem": "Integrated Inventory payment total was the combined 100+100 preview length",
+      "fix": "Count complete source queries and expose returned_count independently",
+      "sources": [
+        "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py:v1_payments"
+      ]
+    },
+    {
+      "id": "automation-organization",
+      "problem": "Automation organization helper ignored canonical request/persisted tenant context",
+      "fix": "Reuse tenant resolver and explicitly scope log/approval totals",
+      "sources": [
+        "backend/app/apps/automation/api/router.py:list_logs",
+        "backend/app/apps/automation/api/router.py:list_approvals"
+      ]
+    },
+    {
+      "id": "aging-side-effects",
+      "problem": "A GET aging report overwrote a currency-less customer aging cache",
+      "fix": "Calculate read-only customer/currency groups and business-date age buckets",
+      "sources": [
+        "backend/app/apps/srm/api/router.py:collections_aging"
+      ]
+    }
+  ],
+  "pagination_corrections": [
+    {
+      "file": "backend/app/apps/ai_copilot/api/router.py",
+      "function": "action_log",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/analytics/api/router.py",
+      "function": "profitability",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/analytics/api/router.py",
+      "function": "campaigns",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/automation/api/router.py",
+      "function": "list_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/automation/api/router.py",
+      "function": "list_approvals",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "list_webhook_deliveries",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "list_approvals",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "enrichment_history",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/crm/api/router.py",
+      "function": "crm_audit_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/customization/api/router.py",
+      "function": "audit_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "audit_logs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "list_vouchers",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "ledger_entries",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "day_book",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "list_posting_jobs",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(items)",
+      "correction": "items_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/fam/api/router.py",
+      "function": "inventory_report_stock_movement_audit",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_inventory_batches",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_serial_numbers",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_boms",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_production_orders",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_purchase_orders",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_goods_receipts",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_price_lists",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_pos_held_bills",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    },
+    {
+      "file": "backend/app/apps/srm/api/router.py",
+      "function": "list_pos_returns",
+      "unit": "Full scoped query rows before LIMIT/OFFSET",
+      "original": "len(rows)",
+      "correction": "rows_statistics_total"
+    }
+  ],
+  "identity_architecture": {
+    "User.id": "Stable login identity; pending invitations excluded from registered metrics but included in provisioned accounts",
+    "CommonPerson": "Maps account to canonical organization/profile identity; profiles do not add people",
+    "Employee.id": "Separate employment record; optional User link; nondeleted rows counted independently",
+    "Interns": "Explicit Intern employment classification in authorized InternHub scope; not inferred from team names",
+    "Memberships": "Workspace/project/team edges reference user IDs; distinct user IDs count once across selected teams",
+    "Batches": "InternHub batch membership and PMS assignment targets retain their existing identities; not merged by labels",
+    "ambiguity": "Duplicate email groups, multiple employee records per user, missing identity mappings and divergent team caches are flagged for manual review; never merged automatically"
+  },
+  "verified_fixture_results": [
+    {
+      "metric": "Registered vs provisioned accounts",
+      "result": "3 registered, 4 provisioned including 1 invitation; PMS and Master registered counts reconcile"
+    },
+    {
+      "metric": "Employee records",
+      "result": "4 nondeleted organization records, 2 Active/Probation, 1 On Leave; foreign/deleted employees excluded"
+    },
+    {
+      "metric": "Task records vs assignments",
+      "result": "7 task records, 14 recipient executions, 4 completed records, 2 overdue; terminal cancellations excluded"
+    },
+    {
+      "metric": "CRM pagination and currency",
+      "result": "148 matching leads across pages; 147 in current month; INR 400 and USD 200 remain separate"
+    },
+    {
+      "metric": "Approvals",
+      "result": "325 full matching pending approvals; page 7 returns 25 at page size 50; foreign organization excluded"
+    },
+    {
+      "metric": "Export",
+      "result": "625 full deal rows exported, rather than a 100/500-row preview"
+    },
+    {
+      "metric": "Profitability",
+      "result": "Snapshots 10 and 20 yield current 20, not historical sum 30"
+    },
+    {
+      "metric": "Team members",
+      "result": "2 users across 2 teams count as 2 unique members; removing one person from both teams reduces unique count to 1"
+    },
+    {
+      "metric": "Automation logs",
+      "result": "225 full matching records, preview 200; foreign organization excluded"
+    }
+  ],
+  "validation": {
+    "new_statistics_tests": 14,
+    "sqlite_focused_suite": "59 passed in statistics-final-regressions-2.log",
+    "postgresql_suite": "48 passed in statistics-postgresql-complete.log; disposable local database, deployed migration chain",
+    "frontend_build": "tsc + Vite passed (statistics-build-verified.log)",
+    "browser": "Desktop 1672x941 and mobile 390x844; audit run/definitions/inventory, mutation refresh, unavailable-source feedback; no browser exceptions",
+    "existing_failures": "6 wider-suite tests reproduce at original commit: SRM RBAC, two Approval OS and three Analytics tests create users without verified company membership. No access rules weakened.",
+    "lint": "20 existing frontend lint errors, all outside modified files; no claim of full-repository lint success",
+    "additional_final_checks": "20 statistics/PMS checks passed after legacy report currency guard; browser mutation refresh and failure states passed",
+    "changed_frontend_files": "ESLint passed for all changed and new frontend files; final TypeScript noEmit check passed"
+  },
+  "manual_review_and_unverified": [
+    "Production totals were not queried or certified; run Statistics Audit in the authorized organization after reviewing changes.",
+    "Discovered source locations without review annotations remain unverified; no claim that all discovered locations are correct.",
+    "Legacy CRM reports using the shared deal report loader now reject mixed/unknown currencies explicitly. Other legacy report families and their presentation still require individual cohort/currency review.",
+    "Legacy campaign/configuration models lack organization keys; scope cannot be safely reconstructed automatically.",
+    "Historical profitability snapshots do not preserve historical currency changes; current engagement currency is disclosed.",
+    "No implicit currency conversion, deduplication, production data correction, new tables or destructive migrations.",
+    "Reconciliation compares actual API source values; it does not claim to inspect a separately rendered browser cache. Unsupported independent adapters remain definition-only.",
+    "InternHub public frontend and Flutter source candidates are inventoried; Flutter runtime/device statistics are not certified. Historical database backups are not active metric definitions and were not exposed or replayed."
+  ],
+  "modified_files": [
+    "backend/app/access/api.py",
+    "backend/app/access/control.py",
+    "backend/app/api/v1/approval_os.py",
+    "backend/app/api/v1/attendance.py",
+    "backend/app/api/v1/employees.py",
+    "backend/app/api/v1/hr_workbench.py",
+    "backend/app/api/v1/notifications.py",
+    "backend/app/api/v1/reports.py",
+    "backend/app/apps/ai_copilot/api/router.py",
+    "backend/app/apps/analytics/api/router.py",
+    "backend/app/apps/analytics/services/engine.py",
+    "backend/app/apps/automation/api/router.py",
+    "backend/app/apps/automation/services/engine.py",
+    "backend/app/apps/crm/api/router.py",
+    "backend/app/apps/crm/lead_management.py",
+    "backend/app/apps/customization/api/router.py",
+    "backend/app/apps/fam/api/router.py",
+    "backend/app/apps/interns_hub/management_api.py",
+    "backend/app/apps/interns_hub/performance.py",
+    "backend/app/apps/inventory/vyapara_erp/app/routes/api_routes.py",
+    "backend/app/apps/project_management/access.py",
+    "backend/app/apps/project_management/analytics.py",
+    "backend/app/apps/project_management/api/router.py",
+    "backend/app/apps/project_management/dashboard_engine.py",
+    "backend/app/apps/project_management/people_workspace.py",
+    "backend/app/apps/srm/api/router.py",
+    "backend/app/crud/crud_employee.py",
+    "backend/app/module_registry.py",
+    "backend/app/schemas/approval_os.py",
+    "backend/app/services/metrics/__init__.py",
+    "backend/app/services/metrics/api.py",
+    "backend/app/services/metrics/approvals.py",
+    "backend/app/services/metrics/crm.py",
+    "backend/app/services/metrics/inventory.json",
+    "backend/app/services/metrics/quality.py",
+    "backend/app/services/metrics/queries.py",
+    "backend/app/services/metrics/registry.py",
+    "backend/app/services/metrics/report_scope.py",
+    "backend/app/services/metrics/reviewed_sources.json",
+    "backend/app/services/metrics/sales.py",
+    "backend/scripts/inventory_statistics.py",
+    "backend/tests/test_hr_workbench.py",
+    "backend/tests/test_statistics_metrics.py",
+    "docs/statistics-audit-report.json",
+    "frontend/src/App.tsx",
+    "frontend/src/apps/crm/CRMStatisticsWorklist.tsx",
+    "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "frontend/src/apps/crm/leads/LeadAnalyticsPanel.tsx",
+    "frontend/src/apps/crm/leads/api.ts",
+    "frontend/src/apps/crm/routes.tsx",
+    "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "frontend/src/apps/hrms/pages/dashboard/DashboardPage.tsx",
+    "frontend/src/apps/hrms/pages/workflow/ApprovalOsPage.tsx",
+    "frontend/src/apps/project-management/pages/PeopleManagementDirectory.tsx",
+    "frontend/src/apps/project-management/pages/ProjectDashboard.tsx",
+    "frontend/src/apps/project-management/types.ts",
+    "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "frontend/src/features/access/ControlCenter.tsx",
+    "frontend/src/features/access/StatisticsAuditPage.tsx",
+    "frontend/src/features/access/UsersAccessPage.tsx",
+    "frontend/src/lib/roles.ts",
+    "frontend/src/main.tsx",
+    "frontend/src/services/api.ts",
+    "qa/statistics_browser.cjs"
+  ],
+  "source_locations_with_review_annotations": 48
+}

@@ -1,3 +1,4 @@
+import { api as statisticsApi } from "@/services/api";
 import CRMStageDialog from "./CRMStageDialog";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -1004,7 +1005,10 @@ function CRMDashboard() {
   const taskState = useCrmRecords<CRMRecord>("tasks", emptyRecords);
   const activityState = useCrmRecords<CRMRecord>("activities", emptyRecords);
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
+  const [canonical,setCanonical]=useState<{data?:{leads_created:number;open_deals:number;won_deals:number;lost_deals:number;win_rate:number|null;pipeline_by_currency:{currency:string;amount:string}[];weighted_by_currency:{currency:string;amount:string}[];overdue_followups:number;lead_sources:{name:string;value:number}[];context:{definition:string;timezone:string;as_of:string}};error?:string;loading:boolean}>({loading:true});
+  const moneyGroups=(rows?:{currency:string;amount:string}[])=>!rows?"Not available":rows.length?rows.map(row=>`${row.currency} ${Number(row.amount).toLocaleString(undefined,{maximumFractionDigits:2})}`).join(" / "):"0 (no open deals)";
   const [dateRange, setDateRange] = useState<"month" | "quarter" | "all">("month");
+  useRefreshableEffect(()=>{let active=true;const load=()=>{setCanonical({loading:true});statisticsApi.get("/crm/dashboard",{params:{period:dateRange}}).then(r=>{if(active)setCanonical({data:r.data.period_statistics,loading:false})}).catch(e=>{if(active)setCanonical({loading:false,error:e?.response?.data?.detail||"Authoritative statistics unavailable. Refresh to retry."})})};load();window.addEventListener("suite:metrics-changed",load);return()=>{active=false;window.removeEventListener("suite:metrics-changed",load)}},[dateRange]);
   const [quickCreateKind, setQuickCreateKind] = useState<DashboardQuickCreateKind>("leads");
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   useCreateIntent(kind => { if (dashboardQuickCreateKinds.some(item => item.kind === kind)) { setQuickCreateKind(kind as DashboardQuickCreateKind); setShowQuickCreate(true); } });
@@ -1038,7 +1042,7 @@ function CRMDashboard() {
   const salesVelocity = openCrmDeals.length ? pipelineValue / Math.max(openCrmDeals.length, 1) : 0;
   const averageDealAge = averageDaysOpen(filteredDeals);
   const pipelineStages = useMemo(() => orderedPipelineStages(stageState.data, crmDeals), [stageState.data, crmDeals]);
-  const sourceData = useMemo(() => leadSourceRows(filteredLeads), [filteredLeads]);
+  const sourceData = canonical.data?.lead_sources || [];
   const priorityDeals = useMemo(() => priorityDealRows(openCrmDeals), [openCrmDeals]);
   const todayItems = useMemo(() => todayWorkItems(calendarState.data, taskState.data, activityState.data).slice(0, 7), [calendarState.data, taskState.data, activityState.data]);
   const briefingRows = useMemo(() => smartBriefingRows({
@@ -1049,7 +1053,7 @@ function CRMDashboard() {
     pipelineValue,
   }), [overdueFollowUps, staleOpenDeals, openCrmDeals, priorityDeals, pipelineValue]);
   const loading = leadState.loading || contactState.loading || companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || forecastState.loading || calendarState.loading;
-  const error = leadState.error || contactState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
+  const error = canonical.error || leadState.error || contactState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
 
   useRefreshableEffect(() => {
     let cancelled = false;
@@ -1145,14 +1149,15 @@ function CRMDashboard() {
       {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-200">{error}</div> : null}
       {loading ? <DashboardSkeleton /> : null}
 <ModuleWorkflows module="crm" />
+      <p className="text-xs text-muted-foreground">{canonical.data?.context.definition||"Loading full-dataset statistics..."} {canonical.data&&`${canonical.data.context.timezone} - refreshed ${new Date(canonical.data.context.as_of).toLocaleString()}`}</p>
       <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="CRM metrics">
-        <CompactMetricCard title="New leads" value={filteredLeads.length} detail={`${crmLeads.length} total visible`} tone="emerald" onClick={() => navigate("/crm/leads")} />
-        <CompactMetricCard title="Open deals" value={openDeals} detail={formatCurrency(pipelineValue)} tone="sky" onClick={() => navigate("/crm/deals")} />
-        <CompactMetricCard title="Pipeline" value={formatCurrency(pipelineValue)} detail={`${openDeals} active deals`} tone="sky" onClick={() => navigate("/crm/pipeline")} />
-        <CompactMetricCard title="Weighted forecast" value={formatCurrency(forecastAmount)} detail={forecastState.error ? "Forecast unavailable" : "Existing forecast API"} tone="emerald" onClick={() => navigate("/crm/forecasting")} />
-        <CompactMetricCard title="Win rate" value={wonDeals + lostDeals ? `${winRate}%` : "-"} detail={wonDeals + lostDeals ? `${wonDeals} won / ${lostDeals} lost` : "No closed deals"} tone="amber" onClick={() => navigate("/crm/reports")} />
-        <CompactMetricCard title="Overdue follow-ups" value={overdueFollowUps} detail={overdueFollowUps ? "Needs action" : "None overdue"} tone={overdueFollowUps ? "red" : "emerald"} onClick={() => navigate("/crm/tasks")} />
-      </section>
+        <CompactMetricCard title="New leads" value={canonical.loading?"Loading...":canonical.data?.leads_created??"Unavailable"} detail="Full permitted query; before pagination" tone="emerald" onClick={() => navigate(`/crm/statistics/leads?period=${dateRange}`)} />
+        <CompactMetricCard title="Open deals" value={canonical.loading?"Loading...":canonical.data?.open_deals??"Unavailable"} detail="Selected reporting period" tone="sky" onClick={() => navigate(`/crm/statistics/open-deals?period=${dateRange}`)} />
+        <CompactMetricCard title="Pipeline by currency" value={moneyGroups(canonical.data?.pipeline_by_currency)} detail="No currency conversion" tone="sky" onClick={() => navigate(`/crm/statistics/open-deals?period=${dateRange}`)} />
+        <CompactMetricCard title="Weighted open pipeline" value={moneyGroups(canonical.data?.weighted_by_currency)} detail="Amount multiplied by probability" tone="emerald" onClick={() => navigate("/crm/forecasting")} />
+        <CompactMetricCard title="Win rate" value={canonical.data?.win_rate==null?"Not available":`${canonical.data.win_rate}%`} detail={canonical.data?`${canonical.data.won_deals} won / ${canonical.data.lost_deals} lost`:"Closed deals in selected period"} tone="amber" onClick={() => navigate("/crm/reports")} />
+        <CompactMetricCard title="Overdue follow-ups" value={canonical.data?.overdue_followups??"Not available"} detail="All current active lead and task commitments" tone="red" onClick={() => navigate(`/crm/statistics/overdue?period=${dateRange}`)} />
+      </section><p className="text-xs text-muted-foreground">Record previews below use the first 100 permitted records. They are not full-dataset totals. Currency-specific forecasting is available in Forecast.</p>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(22rem,0.85fr)]">
         <div className="space-y-3">
@@ -1161,7 +1166,7 @@ function CRMDashboard() {
               <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-5">
                 {pipelineStages.map((stage) => {
                   const stageDeals = openCrmDeals.filter((deal) => deal.stageId === stage.id || deal.stage === stage.name);
-                  const value = stageDeals.reduce((sum, deal) => sum + deal.amount, 0);
+                  const stageCurrencyValues=Object.entries(stageDeals.reduce((groups,deal)=>{const code=deal.currency||"Unknown";groups[code]=(groups[code]||0)+deal.amount;return groups},{} as Record<string,number>)).map(([currency,amount])=>`${currency} ${amount.toLocaleString()}`).join(" / ");
                   const risk = pipelineStageRisk(stageDeals);
                   return (
                     <button key={`${stage.id}-${stage.name}`} type="button" className="rounded-md border border-border bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate("/crm/pipeline")}>
@@ -1170,7 +1175,7 @@ function CRMDashboard() {
                         <span className={`h-2 w-2 rounded-full ${risk.dot}`} aria-label={risk.label} />
                       </div>
                       <div className="mt-3 text-xl font-semibold text-foreground">{stageDeals.length}</div>
-                      <div className="text-xs text-muted-foreground">{formatCurrency(value)}</div>
+                      <div className="text-xs text-muted-foreground">{stageCurrencyValues||"No open deals"}</div>
                       <div className={`mt-2 text-[11px] font-medium ${risk.text}`}>{risk.label}</div>
                     </button>
                   );

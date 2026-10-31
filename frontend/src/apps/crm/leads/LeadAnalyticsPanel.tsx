@@ -37,7 +37,7 @@ export function LeadAnalyticsPanel({
       <header>
         <h2>Lead performance</h2>
         <p>
-          {data.scope} · {data.leadCount} records
+          {data.scope} · {data.leadCount} records analyzed of {data.matchingTotal??data.leadCount} matching
           {data.truncated ? " · limited to the newest 5,000 records" : ""}
         </p>
       </header>

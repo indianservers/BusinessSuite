@@ -60,7 +60,11 @@ api.interceptors.request.use((config) => {
 
 // Response interceptor: handle token refresh
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    const method=(response.config.method||"get").toLowerCase();
+    if(!["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
+    return response;
+  },
   async (error: AxiosError) => {
     const original = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
 

@@ -10,6 +10,7 @@ from app.apps.srm.services.commercial import tenant
 from .models import InternReport, InternEnrollment, InternCourse
 from .management_models import InternBatch, InternBatchMembership, InternCompletionReview
 from .management_access import employee_query
+from app.services.metrics.queries import TERMINAL,COMPLETED
 
 WEIGHTS={"quality":40,"timeliness":20,"reports":15,"completion":15,"communication":10}
 
@@ -34,7 +35,7 @@ def task_aggregates(db,user_ids,day,organization_id,task_ids=None):
     q=db.query(PMSTaskAssignee.user_id,
         func.count(PMSTaskAssignee.task_id).label("assigned"),
         func.sum(case((PMSTaskAssignee.execution_status=="Done",1),else_=0)).label("accepted"),
-        func.sum(case(((func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date)<day)&(PMSTaskAssignee.execution_status!="Done"),1),else_=0)).label("overdue")
+        func.sum(case(((func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date)<day)&(PMSTaskAssignee.execution_status.notin_(TERMINAL)),1),else_=0)).label("overdue")
     ).join(PMSTask,PMSTask.id==PMSTaskAssignee.task_id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(PMSTaskAssignee.cancelled_at.is_(None),PMSTask.deleted_at.is_(None),PMSProject.deleted_at.is_(None),func.coalesce(PMSProject.organization_id,1)==organization_id,PMSTaskAssignee.user_id.in_(user_ids)).group_by(PMSTaskAssignee.user_id)
     if task_ids is not None:q=q.filter(PMSTask.id.in_(task_ids))
     return {r.user_id:r for r in q}
@@ -48,7 +49,7 @@ def performance(db,user,filters,day,*,page=1,per_page=50):
     scoped_tasks=db.query(PMSTask.id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(PMSTask.deleted_at.is_(None),PMSProject.deleted_at.is_(None),func.coalesce(PMSProject.organization_id,1)==tenant(user))
     if filters.get("batch_id"):
         selected_batch=db.get(InternBatch,filters["batch_id"])
-        if selected_batch:scoped_tasks=scoped_tasks.filter(PMSTask.project_id==selected_batch.project_id)
+        if selected_batch:scoped_tasks=scoped_tasks.filter(PMSTask.project_id.in_({selected_batch.project_id,*(selected_batch.project_ids or [])}))
     if filters.get("date_from"):scoped_tasks=scoped_tasks.filter(PMSTask.due_date>=filters["date_from"])
     if filters.get("date_to"):scoped_tasks=scoped_tasks.filter(PMSTask.due_date<=filters["date_to"])
     stats=task_aggregates(db,uids,day,tenant(user),scoped_tasks)

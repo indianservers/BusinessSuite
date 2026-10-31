@@ -184,6 +184,8 @@ function formatValue(value: unknown) {
   return String(value).replace(/_/g, " ");
 }
 
+function currencyMoney(value:unknown,currency:unknown){return value==null?"Not available":`${String(currency||"Unknown")} ${Number(value).toLocaleString(undefined,{maximumFractionDigits:2})}`}
+
 function money(value: unknown) {
   const amount = Number(value || 0);
   return amount.toLocaleString(undefined, { maximumFractionDigits: 0, style: "currency", currency: "INR" });
@@ -309,13 +311,18 @@ function DashboardView() {
   const canManage = useCanManageRevenue();
   const recentOrders = asList(data.recent_sales_orders);
   const recentInvoices = asList(data.recent_invoices);
-  const revenueTrend = useMemo(() => buildRevenueTrend(asList(data.revenue_trend)), [data.revenue_trend]);
+  const [chosenCurrency,setChosenCurrency]=useState("");const [chosenType,setChosenType]=useState("");
+  const series=asList(data.revenue_time_series);
+  const currencies=[...new Set(series.map(row=>String(row.currency||"Unknown")))];const eventTypes=[...new Set(series.map(row=>String(row.event_type)))];
+  const seriesCurrency=chosenCurrency||currencies[0]||"",seriesType=chosenType||eventTypes[0]||"";
+  const revenueTrend=useMemo(()=>buildRevenueTrend(series.filter(row=>row.currency===seriesCurrency&&row.event_type===seriesType)),[data.revenue_time_series,seriesCurrency,seriesType]);
+  const groupedMoney=(key:string)=>{const rows=asList((data.currency_totals as SRMRecord|undefined)?.[key]);return rows.length?rows.map(row=>`${row.currency} ${Number(row.amount).toLocaleString(undefined,{maximumFractionDigits:2})}`).join(" / "):"0 (no invoice records)"};
   const orderPipeline = useMemo(() => buildOrderPipeline(data), [data]);
   const totalInvoiced = numberValue(data.total_invoiced_value);
   const collected = numberValue(data.total_collected_value);
   const outstanding = numberValue(data.outstanding_value);
   const overdue = numberValue(data.overdue_value);
-  const collectionPercent = totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : null;
+  const collectionPercent = data.total_invoiced_value!=null && data.total_collected_value!=null && totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : null;
   const latestDate = [...recentOrders, ...recentInvoices, ...asList(data.revenue_trend)]
     .map(recordDate)
     .filter(Boolean)
@@ -346,12 +353,13 @@ function DashboardView() {
       {!query.isLoading && !query.isError ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <DashboardMetricCard icon={IndianRupee} label="Total invoiced" value={money(totalInvoiced)} detail="All time" />
-            <DashboardMetricCard icon={Wallet} label="Collected" value={money(collected)} detail={collectionPercent !== null ? `${collectionPercent}% of invoiced` : "All time"} tone={collectionPercent === 100 ? "success" : "default"} />
-            <DashboardMetricCard icon={BarChart3} label="Outstanding" value={money(outstanding)} detail="All time" />
-            <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={money(overdue)} detail="All time" tone={overdue > 0 ? "danger" : "default"} />
+            <DashboardMetricCard icon={IndianRupee} label="Total invoiced" value={groupedMoney("total_invoiced_value")} detail="All time" />
+            <DashboardMetricCard icon={Wallet} label="Collected" value={groupedMoney("total_collected_value")} detail={collectionPercent !== null ? `${collectionPercent}% of invoiced` : "All time"} tone={collectionPercent === 100 ? "success" : "default"} />
+            <DashboardMetricCard icon={BarChart3} label="Outstanding" value={groupedMoney("outstanding_value")} detail="All time" />
+            <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={groupedMoney("overdue_value")} detail="All time" tone={overdue > 0 ? "danger" : "default"} />
           </div>
-<SecondaryDetails title="Revenue trends and order pipeline">
+<p className="text-xs text-muted-foreground">{String(data.currency_policy||"Currency units unavailable")}</p>
+<SecondaryDetails title="Revenue events and order pipeline"><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<select className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</select></label><label>Event type<select className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</select></label></div><p className="text-xs">Monthly totals for the selected event type and currency. Different commercial events are not combined into accounting revenue.</p>
           <div className="grid gap-4 xl:grid-cols-12">
             <RevenuePerformanceCard records={revenueTrend} />
             <OrderPipelineCard items={orderPipeline} total={numberValue(data.total_sales_orders)} />
@@ -361,7 +369,7 @@ function DashboardView() {
           <div className="grid gap-4 xl:grid-cols-12">
             <SalesOrdersCard records={recentOrders} />
             <InvoicesCard records={recentInvoices} />
-            <CollectionHealthCard collectionPercent={collectionPercent} outstanding={outstanding} overdue={overdue} overdueInvoices={asList(data.collection_alerts)} />
+            {data.total_invoiced_value==null?<Card className="xl:col-span-4 p-5 space-y-3"><h2 className="font-semibold">Collection health by currency</h2><p>Outstanding: {groupedMoney("outstanding_value")}</p><p>Overdue: {groupedMoney("overdue_value")}</p><p className="text-sm text-muted-foreground">A combined percentage is unavailable across different or unknown currencies.</p></Card>:<CollectionHealthCard collectionPercent={collectionPercent} outstanding={outstanding} overdue={overdue} overdueInvoices={asList(data.collection_alerts)} currency={String(asList((data.currency_totals as SRMRecord|undefined)?.total_invoiced_value)[0]?.currency||"Unknown")} />}
           </div>
         </>
       ) : null}
@@ -493,7 +501,7 @@ function SalesOrdersCard({ records }: { records: SRMRecord[] }) {
               <span className="block truncate text-xs text-muted-foreground">{formatValue(record.title || record.customer_id || recordDate(record))}</span>
             </td>
             <td className="px-3 py-2">{formatValue(((record.metadata_json || {}) as SRMRecord).source === "pos" ? "POS" : record.order_type || "-")}</td>
-            <td className="px-3 py-2 font-medium">{optionalMoney(record.total_amount)}</td>
+            <td className="px-3 py-2 font-medium">{currencyMoney(record.total_amount,record.currency)}</td>
             <td className="px-3 py-2"><Badge variant={statusTone(record.status)}>{displayStatus(record.status)}</Badge></td>
           </tr>
         );
@@ -547,7 +555,7 @@ function CompactTableCard({ title, viewAllTo, columns, records, render, empty, c
   );
 }
 
-function CollectionHealthCard({ collectionPercent, outstanding, overdue, overdueInvoices }: { collectionPercent: number | null; outstanding: number; overdue: number; overdueInvoices: SRMRecord[] }) {
+function CollectionHealthCard({ collectionPercent, outstanding, overdue, overdueInvoices, currency }: { currency:string; collectionPercent: number | null; outstanding: number; overdue: number; overdueInvoices: SRMRecord[] }) {
   const percent = collectionPercent ?? 0;
   return (
     <Card className="rounded-xl shadow-sm xl:col-span-4">
@@ -566,8 +574,8 @@ function CollectionHealthCard({ collectionPercent, outstanding, overdue, overdue
         </div>
         <div className="space-y-2 text-sm">
           <p className="font-semibold">{collectionPercent === null ? "No invoiced collection base" : `${percent}% collected`}</p>
-          <p className="text-muted-foreground">Outstanding {money(outstanding)}</p>
-          <p className="text-muted-foreground">Overdue {money(overdue)} across {overdueInvoices.length.toLocaleString("en-IN")} invoices</p>
+          <p className="text-muted-foreground">Outstanding {currencyMoney(outstanding,currency)}</p>
+          <p className="text-muted-foreground">Overdue {currencyMoney(overdue,currency)} · alert preview: {overdueInvoices.length.toLocaleString("en-IN")} invoices</p>
           {!overdueInvoices.length ? <p className="pt-2 text-muted-foreground">No collection alerts for the current filters.</p> : null}
         </div>
       </CardContent>

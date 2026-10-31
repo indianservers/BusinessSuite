@@ -215,21 +215,21 @@ export default function PeopleManagementDirectory() {
   ).length;
   const metrics = [
     {
-      label: "Total People",
+      label: "Registered users",
       value: stats?.total,
       icon: Users,
       color: "blue",
       key: "",
     },
     {
-      label: "Active",
+      label: "Login enabled",
       value: stats?.active,
       icon: Circle,
       color: "green",
       key: "active",
     },
     {
-      label: "Inactive",
+      label: "Login disabled",
       value: stats?.inactive,
       icon: Clock3,
       color: "orange",
@@ -419,6 +419,7 @@ export default function PeopleManagementDirectory() {
             {metrics.map((metric) => (
               <button
                 key={metric.label}
+                title={metric.key===""?"Unique registered accounts visible in the current organization; pending invitations excluded. Employee records and membership rows are separate measures.":metric.key==="active"||metric.key==="inactive"?"Global login switch for registered accounts; employment and workspace access are separate.":"Visible records in your current organization and permission scope."}
                 className={`pd-metric ${metric.color}`}
                 onClick={() => {
                   if (metric.key === "teams" || metric.key === "batches") {

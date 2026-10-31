@@ -3,6 +3,7 @@ import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 
+const CRMStatisticsWorklist=React.lazy(()=>import("./CRMStatisticsWorklist"));
 const CRMSalesHome = React.lazy(() => import("./CRMSalesHome"));
 const CRMWorkspacePage = React.lazy(() => import("./CRMWorkspacePage"));
 const CRMRecordDetailPage = React.lazy(() => import("./CRMRecordDetailPage"));
@@ -11,6 +12,7 @@ const CommunicationHubPage = React.lazy(() => import("@/apps/communication/Commu
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
 export const crmRoutes: FrontendRoute[] = [
+  {path:"crm/statistics/:kind",element:<CRMStatisticsWorklist/>},
  { path: "crm/messages", element: <CommunicationWorkspace module="CRM" /> },
   { path: "crm/gantt", element: <ModuleGanttPage key="crm" module="crm" /> },
   { path: "crm", element: <CRMSalesHome /> },

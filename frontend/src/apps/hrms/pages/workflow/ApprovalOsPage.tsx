@@ -47,6 +47,7 @@ type ApprovalInbox = {
     by_type: Record<string, number>;
   };
   items: ApprovalItem[];
+  total: number; page: number; pages: number;
 };
 
 function toneForStatus(status: string) {
@@ -68,14 +69,15 @@ export default function ApprovalOsPage() {
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
   const [scope, setScope] = useState<"mine" | "all" | "submitted">(roleKey === "employee" ? "submitted" : "mine");
   const [status, setStatus] = useState("Pending");
+  const [page,setPage]=useState(1);
   const [module, setModule] = useState("");
   const [reasonById, setReasonById] = useState<Record<string, string>>({});
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["approval-os", scope, status, module],
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["approval-os", user?.id, user?.access?.companyId, scope, status, module, page],
     queryFn: () =>
       approvalOsApi.inbox({
-        scope,
+        scope, page, per_page: 50,
         status: status || undefined,
         module: module || undefined,
       }).then((response) => response.data as ApprovalInbox),
@@ -109,19 +111,21 @@ export default function ApprovalOsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant={scope === "mine" ? "default" : "outline"} onClick={() => setScope("mine")}>Assigned to me</Button>
-          <Button variant={scope === "submitted" ? "default" : "outline"} onClick={() => setScope("submitted")}>Submitted by me</Button>
-          {roleKey !== "employee" ? <Button variant={scope === "all" ? "default" : "outline"} onClick={() => setScope("all")}>All</Button> : null}
+          <Button variant={scope === "mine" ? "default" : "outline"} onClick={() => (setScope("mine"),setPage(1))}>Assigned to me</Button>
+          <Button variant={scope === "submitted" ? "default" : "outline"} onClick={() => (setScope("submitted"),setPage(1))}>Submitted by me</Button>
+          {roleKey !== "employee" ? <Button variant={scope === "all" ? "default" : "outline"} onClick={() => (setScope("all"),setPage(1))}>All</Button> : null}
           <Button variant="outline" onClick={() => refetch()}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
         </div>
       </div>
 
+      {isError&&<p role="alert" className="text-destructive">Approval statistics unavailable. <Button variant="outline" onClick={()=>refetch()}>Retry</Button></p>}
+      <p className="text-xs text-muted-foreground">Current organization and selected permission scope. Totals include all matching requests before pagination.</p>
       <div className="grid gap-4 md:grid-cols-5">
-        <Metric icon={Inbox} label="Total" value={isLoading ? "-" : summary?.total ?? 0} />
-        <Metric icon={Clock3} label="Pending" value={isLoading ? "-" : summary?.pending ?? 0} />
-        <Metric icon={AlertTriangle} label="Overdue SLA" value={isLoading ? "-" : summary?.overdue ?? 0} />
-        <Metric icon={History} label="Escalated" value={isLoading ? "-" : summary?.escalated ?? 0} />
-        <Metric icon={FileCheck2} label="High Priority" value={isLoading ? "-" : summary?.high_priority ?? 0} />
+        <Metric icon={Inbox} label="Total" value={isLoading ? "-" : summary?.total ?? "Unavailable"} />
+        <Metric icon={Clock3} label="Pending" value={isLoading ? "-" : summary?.pending ?? "Unavailable"} />
+        <Metric icon={AlertTriangle} label="Overdue SLA" value={isLoading ? "-" : summary?.overdue ?? "Unavailable"} />
+        <Metric icon={History} label="Escalated" value={isLoading ? "-" : summary?.escalated ?? "Unavailable"} />
+        <Metric icon={FileCheck2} label="High Priority" value={isLoading ? "-" : summary?.high_priority ?? "Unavailable"} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[0.78fr_1.22fr]">
@@ -132,10 +136,10 @@ export default function ApprovalOsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
+              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => (setStatus(event.target.value),setPage(1))}>
                 {["Pending", "Approved", "Rejected", ""].map((item) => <option key={item} value={item}>{item || "Any status"}</option>)}
               </select>
-              <Input value={module} onChange={(event) => setModule(event.target.value)} placeholder="Module: crm, pms, hrms" />
+              <Input value={module} onChange={(event) => (setModule(event.target.value),setPage(1))} placeholder="Module: crm, pms, hrms" />
             </div>
             <div className="space-y-2">
               {moduleRows.length ? moduleRows.map(([name, count]) => (
@@ -159,6 +163,7 @@ export default function ApprovalOsPage() {
             <CardDescription>Native Approval OS records plus workflow-engine approvals.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {data&&<div className="flex flex-wrap items-center gap-3"><span>{data.total} matching requests · Page {page} of {Math.max(1,data.pages)}</span><Button variant="outline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</Button><Button variant="outline" disabled={page>=data.pages} onClick={()=>setPage(p=>p+1)}>Next</Button></div>}
             {isLoading ? <div className="h-32 rounded-lg border bg-muted/30" /> : null}
             {!isLoading && data?.items.map((item) => {
               const id = nativeApprovalId(item);

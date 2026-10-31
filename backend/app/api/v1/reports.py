@@ -24,7 +24,9 @@ from app.models.asset import AssetAssignment
 from app.models.performance import OneOnOneRecord, PerformanceGoal, PerformanceReview
 from app.schemas.platform import ReportDefinitionCreate, ReportDefinitionSchema, ReportRunSchema, ReportScheduleCreate, ReportScheduleSchema
 
-router = APIRouter(prefix="/reports", tags=["Reports & Analytics"])
+from app.services.metrics.report_scope import reporting_scope
+from app.services.metrics.queries import EMPLOYED
+router = APIRouter(prefix="/reports", tags=["Reports & Analytics"],dependencies=[Depends(reporting_scope)])
 from app.api.v1.team_workspace import router as team_workspace_router
 router.include_router(team_workspace_router)
 
@@ -38,9 +40,9 @@ REPORT_FIELD_CATALOG = {
 
 
 def _distribution(db: Session, field, label: str):
-    total = db.query(func.count(Employee.id)).filter(Employee.status == "Active").scalar() or 0
+    total = db.query(func.count(Employee.id)).filter(Employee.status.in_(EMPLOYED)).scalar() or 0
     rows = db.query(field.label(label), func.count(Employee.id).label("count")).filter(
-        Employee.status == "Active"
+        Employee.status.in_(EMPLOYED)
     ).group_by(field).order_by(func.count(Employee.id).desc()).all()
     return [
         {
@@ -118,7 +120,7 @@ def _employee_scope(
     employment_type: str | None = None,
     tenure_band: str | None = None,
 ):
-    query = db.query(Employee).filter(Employee.deleted_at.is_(None), Employee.status == "Active")
+    query = db.query(Employee).filter(Employee.deleted_at.is_(None), Employee.status.in_(EMPLOYED))
     if department_id:
         query = query.filter(Employee.department_id == department_id)
     if grade_band_id:
@@ -569,40 +571,17 @@ def dashboard_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("reports_view")),
 ):
-    total_employees = db.query(func.count(Employee.id)).scalar()
-    active_employees = db.query(func.count(Employee.id)).filter(Employee.status == "Active").scalar()
-    today = date.today()
-
-    present_today = db.query(func.count(Attendance.id)).filter(
-        Attendance.attendance_date == today,
-        Attendance.status == "Present",
-    ).scalar()
-
-    pending_leaves = db.query(func.count(LeaveRequest.id)).filter(
-        LeaveRequest.status == "Pending"
-    ).scalar()
-
-    open_positions = db.query(func.count(Job.id)).filter(Job.status == "Open").scalar()
-    total_candidates = db.query(func.count(Candidate.id)).scalar()
-
-    return {
-        "headcount": {
-            "total": total_employees,
-            "active": active_employees,
-            "on_leave": total_employees - active_employees,
-        },
-        "attendance": {
-            "present_today": present_today,
-            "absent_today": active_employees - present_today,
-        },
-        "leaves": {
-            "pending_approvals": pending_leaves,
-        },
-        "recruitment": {
-            "open_positions": open_positions,
-            "total_candidates": total_candidates,
-        },
-    }
+    from app.services.metrics.queries import employee_counts,employee_records,attendance_counts,business_context,company_id
+    from app.models.company import Branch
+    counts=employee_counts(db,current_user)
+    attendance=attendance_counts(db,current_user)
+    employee_ids=employee_records(db,current_user).with_entities(Employee.id)
+    company=company_id(current_user)
+    jobs=db.query(Job).filter((Job.branch_id.in_(db.query(Branch.id).filter(Branch.company_id==company))) | ((Job.branch_id.is_(None)) & (company==1)))
+    return {"headcount":counts,"attendance":{"present_today":attendance["present"],"absent_today":attendance["absent"],"on_leave_today":attendance["on_leave"],"eligible_employees":attendance["total_employees"]},
+        "leaves":{"pending_approvals":db.query(LeaveRequest).filter(LeaveRequest.employee_id.in_(employee_ids),LeaveRequest.deleted_at.is_(None),LeaveRequest.status=="Pending").count()},
+        "recruitment":{"open_positions":jobs.filter(Job.status=="Open").count(),"total_candidates":db.query(Candidate).filter(Candidate.job_id.in_(jobs.with_entities(Job.id))).count()},
+        "context":business_context(db,current_user)}
 
 
 @router.get("/manager-dashboard")
@@ -615,7 +594,7 @@ def manager_dashboard(
     if employee:
         team_ids = [row.id for row in db.query(Employee.id).filter(Employee.reporting_manager_id == employee.id, Employee.deleted_at.is_(None)).all()]
     if not team_ids and (current_user.is_superuser or (current_user.role and current_user.role.name in {"hr_manager", "super_admin"})):
-        team_ids = [row.id for row in db.query(Employee.id).filter(Employee.status == "Active", Employee.deleted_at.is_(None)).limit(50).all()]
+        team_ids = [row.id for row in db.query(Employee.id).filter(Employee.status.in_(EMPLOYED), Employee.deleted_at.is_(None)).limit(50).all()]
     today = date.today()
     month_start = today.replace(day=1)
     month_end = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
@@ -846,7 +825,7 @@ def people_moments(
             candidate = candidate.replace(year=today.year + 1)
         return today <= candidate <= today + timedelta(days=days)
 
-    employees = db.query(Employee).filter(Employee.status == "Active").all()
+    employees = db.query(Employee).filter(Employee.status.in_(EMPLOYED)).all()
     birthdays = [
         {"employee_id": e.id, "name": f"{e.first_name} {e.last_name}", "date": e.date_of_birth.replace(year=today.year).isoformat()}
         for e in employees if in_next_window(e.date_of_birth)
@@ -893,13 +872,11 @@ def headcount_by_department(
     current_user: User = Depends(RequirePermission("reports_view")),
 ):
     from app.models.company import Department
-    result = (
-        db.query(Department.name, func.count(Employee.id).label("count"))
-        .outerjoin(Employee, Employee.department_id == Department.id)
-        .group_by(Department.id, Department.name)
-        .all()
-    )
-    return [{"department": r[0], "department_name": r[0], "count": r[1]} for r in result]
+    from app.services.metrics.queries import employee_records
+    from sqlalchemy import literal
+    people=employee_records(db,current_user)
+    result=people.outerjoin(Department,Department.id==Employee.department_id).with_entities(func.coalesce(Department.name,"Unassigned"),func.count(func.distinct(Employee.id))).group_by(Department.id,Department.name).all()
+    return [{"department":name,"department_name":name,"count":count} for name,count in result]
 
 
 @router.get("/dei-analytics")
@@ -911,7 +888,7 @@ def dei_analytics(
 ):
     from app.models.company import Department, GradeBand
 
-    employee_query = db.query(Employee).filter(Employee.status == "Active")
+    employee_query = db.query(Employee).filter(Employee.status.in_(EMPLOYED))
     if department_id:
         employee_query = employee_query.filter(Employee.department_id == department_id)
     employee_ids = [item.id for item in employee_query.all()]
@@ -1150,7 +1127,7 @@ def turnover_report(
     if not from_date or not to_date:
         today = date.today()
         periods = [((today.replace(day=1) - timedelta(days=idx * 31)).replace(day=1)) for idx in range(11, -1, -1)]
-        active_total = db.query(func.count(Employee.id)).filter(Employee.status == "Active").scalar() or 0
+        active_total = db.query(func.count(Employee.id)).filter(Employee.status.in_(EMPLOYED)).scalar() or 0
         trend = []
         for period in periods:
             next_month = (period.replace(day=28) + timedelta(days=4)).replace(day=1)
@@ -1180,7 +1157,7 @@ def turnover_report(
         Employee.date_of_joining >= from_date,
         Employee.date_of_joining <= to_date,
     ).scalar()
-    total = db.query(func.count(Employee.id)).filter(Employee.status == "Active").scalar()
+    total = db.query(func.count(Employee.id)).filter(Employee.status.in_(EMPLOYED)).scalar()
     turnover_rate = round((resigned / total * 100) if total > 0 else 0, 2)
     return {
         "period": {"from": str(from_date), "to": str(to_date)},
@@ -1291,7 +1268,7 @@ def monthly_attrition_report(
     )
     exits_by_month = {int(row.month): row.count for row in exits}
     joins_by_month = {int(row.month): row.count for row in joins}
-    active = db.query(func.count(Employee.id)).filter(Employee.status == "Active").scalar() or 0
+    active = db.query(func.count(Employee.id)).filter(Employee.status.in_(EMPLOYED)).scalar() or 0
     return [
         {
             "month": month,

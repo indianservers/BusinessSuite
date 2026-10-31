@@ -29,9 +29,9 @@ from .task_programs import router as task_programs_router
 router.include_router(task_programs_router)
 
 
-def today():
-    from .router import today as day
-    return day()
+def today(db=None,user=None):
+    from app.services.metrics.queries import business_day
+    return business_day(db,user)
 
 
 def encoded(row):
@@ -352,16 +352,16 @@ def announce(data:NoticeInput,user=Depends(require_admin),db:Session=Depends(get
 @router.get("/dashboard")
 def dashboard(f=Depends(filters),user=Depends(require_admin),db:Session=Depends(get_db)):
     people=filtered_employees(db,user,f);uids=people.with_entities(Employee.user_id);ids=people.with_entities(Employee.id)
-    assignments=db.query(PMSTaskAssignee).join(PMSTask,PMSTask.id==PMSTaskAssignee.task_id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(PMSTaskAssignee.user_id.in_(uids),PMSTask.deleted_at.is_(None),func.coalesce(PMSProject.organization_id,1)==tenant(user))
+    assignments=db.query(PMSTaskAssignee).join(PMSTask,PMSTask.id==PMSTaskAssignee.task_id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(PMSTaskAssignee.user_id.in_(uids),PMSTaskAssignee.cancelled_at.is_(None),PMSTask.deleted_at.is_(None),PMSProject.deleted_at.is_(None),PMSProject.status!="Archived",func.coalesce(PMSProject.organization_id,1)==tenant(user))
     if f.get("batch_id"):
         selected_batch=get_batch(db,user,f["batch_id"])
-        assignments=assignments.filter(PMSTask.project_id==selected_batch.project_id)
+        assignments=assignments.filter(PMSTask.project_id.in_({selected_batch.project_id,*(selected_batch.project_ids or [])}))
     if f.get("date_from"):assignments=assignments.filter(PMSTask.due_date>=f["date_from"])
     if f.get("date_to"):assignments=assignments.filter(PMSTask.due_date<=f["date_to"])
     bq=batch_query(db,user)
     if f.get("batch_id"):bq=bq.filter(InternBatch.id==f["batch_id"])
     if f.get("department_id"):bq=bq.filter(InternBatch.department_id==f["department_id"])
-    day=today()
+    day=today(db,user)
     task_ids=assignments.with_entities(PMSTaskAssignee.task_id)
     subs=db.query(PMSWorkSubmission).filter(PMSWorkSubmission.user_id.in_(uids),PMSWorkSubmission.task_id.in_(task_ids),PMSWorkSubmission.status!="Draft")
     if f.get("date_from"):subs=subs.filter(func.date(PMSWorkSubmission.created_at)>=f["date_from"])
@@ -374,10 +374,10 @@ def dashboard(f=Depends(filters),user=Depends(require_admin),db:Session=Depends(
     due=assignments.filter(PMSTaskAssignee.execution_status!="Done").with_entities(PMSTask.id,PMSTask.title,PMSTask.due_date).distinct().order_by(PMSTask.due_date).limit(8).all()
     apps=db.query(InternApplication).filter(InternApplication.status=="Pending").count() if organization_admin(user) and tenant(user)==1 else 0
     recent=db.query(PMSActivity).filter(PMSActivity.task_id.in_(assignments.with_entities(PMSTaskAssignee.task_id))).order_by(PMSActivity.id.desc()).limit(8).all()
-    workload=db.query(PMSTaskAssignee.reviewer_user_id,func.count(PMSTaskAssignee.task_id)).filter(PMSTaskAssignee.user_id.in_(uids),PMSTaskAssignee.execution_status=="In Review").group_by(PMSTaskAssignee.reviewer_user_id).all()
+    workload=assignments.filter(PMSTaskAssignee.execution_status=="In Review").with_entities(PMSTaskAssignee.reviewer_user_id,func.count(PMSTaskAssignee.task_id)).group_by(PMSTaskAssignee.reviewer_user_id).all()
     return {"total_interns":people.count(),"active_interns":people.filter(Employee.status.in_(["Active","Probation"])).count(),"pending_applications":apps,
         "active_batches":bq.filter(InternBatch.status=="Active").count(),"upcoming_batches":bq.filter(InternBatch.status=="Upcoming").count(),"completed_batches":bq.filter(InternBatch.status=="Completed").count(),
-        "assigned_tasks":assignments.count(),"completed_tasks":assignments.filter(PMSTaskAssignee.execution_status=="Done").count(),"overdue":assignments.filter(func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date)<day,PMSTaskAssignee.execution_status!="Done").count(),
+        "assigned_tasks":assignments.count(),"unique_parent_tasks":assignments.with_entities(PMSTaskAssignee.task_id).distinct().count(),"metric_notes":{"assigned_tasks":"Individual uncancelled recipient execution rows; not unique tasks","completed_tasks":"Completed individual recipient execution rows"},"completed_tasks":assignments.filter(PMSTaskAssignee.execution_status=="Done").count(),"overdue":assignments.filter(func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date)<day,PMSTaskAssignee.execution_status.notin_(["Done","Completed","Closed","Resolved","Cancelled","Canceled"])).count(),
         "submissions_today":subs.filter(func.date(PMSWorkSubmission.created_at)==day).count(),"pending_reviews":pending,"average_score":round(float(average),1) if average is not None else None,
         "reports_today":db.query(InternReport).filter(InternReport.employee_id.in_(ids),InternReport.report_date==day,InternReport.status=="Submitted").count(),
         "completions":db.query(InternCompletionReview).filter(InternCompletionReview.employee_id.in_(ids),InternCompletionReview.decision=="Approved").count(),

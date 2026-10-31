@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.services.metrics.queries import count_rows_before_page
 from app.access.catalog import permission_objects
 from app.core.storage import upload_exists, FileResponse
 
@@ -118,7 +119,7 @@ def delete_report(report_id: int, db: Session = Depends(get_db), current_user: U
 @router.post("/reports/{report_id}/run")
 def run_saved_report(report_id: int, data: ReportRunPayload | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_view", "analytics_report_builder", "analytics_manage"))):
     report = _require_report(db, report_id, current_user)
-    payload = run_report(db, report, _financial_allowed(current_user), data.page if data else 1, data.page_size if data else 50, data.filters_json if data else None)
+    payload = run_report(db, report, _financial_allowed(current_user), data.page if data else 1, data.page_size if data else 50, data.filters_json if data else None,user=current_user)
     run = AnalyticsReportRun(report_id=report.id, status="completed", row_count=payload["total"], run_by=current_user.id, parameters_json=(data.model_dump() if data else {}), result_preview_json={"items": payload["items"][:10]})
     db.add(run)
     db.commit()
@@ -133,7 +134,10 @@ def export_report(report_id: int, data: ExportPayload, db: Session = Depends(get
     db.add(export)
     db.flush()
     try:
-        payload = run_report(db, report, _financial_allowed(current_user), 1, data.page_size, None)
+        from app.apps.analytics.services.engine import MAX_SYNC_EXPORT_ROWS
+        payload=run_report(db,report,_financial_allowed(current_user),1,MAX_SYNC_EXPORT_ROWS+1,None,user=current_user,max_page_size=MAX_SYNC_EXPORT_ROWS+1)
+        if payload["total"]>MAX_SYNC_EXPORT_ROWS:raise HTTPException(413,f"Report has {payload['total']} matching rows. Synchronous export supports {MAX_SYNC_EXPORT_ROWS}; narrow its filters. No partial export was marked complete.")
+        if len(payload["items"])!=payload["total"]:raise HTTPException(409,"Report changed during export. Retry to obtain a complete snapshot.")
         file_path, row_count = write_export(report, payload, data.export_type, export.id)
         export.status = "completed"
         export.file_path_or_reference = file_path
@@ -254,7 +258,7 @@ def run_schedule_now(schedule_id: int, db: Session = Depends(get_db), current_us
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
     report = _require_report(db, schedule.report_id, current_user)
-    payload = run_report(db, report, _financial_allowed(current_user), 1, 50, None)
+    payload = run_report(db, report, _financial_allowed(current_user), 1, 50, None,user=current_user)
     run = AnalyticsReportRun(report_id=report.id, status="completed", row_count=payload["total"], run_by=current_user.id, parameters_json={"schedule_id": schedule.id}, result_preview_json={"items": payload["items"][:10]})
     db.add(run)
     db.commit()
@@ -263,34 +267,52 @@ def run_schedule_now(schedule_id: int, db: Session = Depends(get_db), current_us
 
 @router.get("/funnel")
 def funnel(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_view"))):
-    return {"items": [{"stage": "Leads", "count": db.query(CRMLead).count()}, {"stage": "Deals", "count": db.query(CRMDeal).count()}, {"stage": "Invoices", "count": db.query(SRMInvoice).count()}], "total": 3}
+    from app.services.metrics.registry import crm_query
+    from app.apps.srm.services.commercial import invoice_query
+    from app.services.metrics.queries import business_context
+    return {"items":[{"stage":"Leads","count":crm_query(db,current_user,"leads").count()},{"stage":"Deals","count":crm_query(db,current_user,"deals").count()},{"stage":"Invoices","count":invoice_query(db,current_user).count()}],"total":3,"context":business_context(db,current_user),"definition":"Record volumes by source, not a conversion-rate funnel. One deal may have multiple invoices."}
+
 
 
 @router.get("/forecast")
 def forecast(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_view"))):
-    pipeline = float(db.query(func.coalesce(func.sum(CRMDeal.amount), 0)).scalar() or 0)
-    invoiced = float(db.query(func.coalesce(func.sum(SRMInvoice.total_amount), 0)).scalar() or 0)
-    collected = float(db.query(func.coalesce(func.sum(SRMReceipt.amount), 0)).scalar() or 0)
-    return {"pipeline": pipeline, "forecast_invoice": invoiced, "forecast_collection": collected, "variance_to_invoice": pipeline - invoiced}
+    if not _financial_allowed(current_user):raise HTTPException(403,"Financial analytics permission is required for monetary metrics")
+    from app.services.metrics.registry import open_deals
+    from app.services.metrics.queries import amounts_by_currency,business_context,company_id
+    from app.services.metrics.sales import scalar_currency
+    from app.apps.srm.services.commercial import invoice_query
+    pipeline=amounts_by_currency(open_deals(db,current_user),CRMDeal.currency,CRMDeal.amount)
+    invoiced=amounts_by_currency(invoice_query(db,current_user),SRMInvoice.currency,SRMInvoice.total_amount)
+    receipts=db.query(SRMReceipt).filter(func.coalesce(SRMReceipt.organization_id,1)==company_id(current_user))
+    collected=amounts_by_currency(receipts,SRMReceipt.currency,SRMReceipt.amount)
+    return {"pipeline":scalar_currency(pipeline),"forecast_invoice":scalar_currency(invoiced),"forecast_collection":scalar_currency(collected),"by_currency":{"pipeline":pipeline,"invoiced":invoiced,"collected":collected},"variance_to_invoice":None,"variance_reason":"Open opportunities and all-time invoices are different populations. No variance is calculated without aligned period and deal mapping.","context":business_context(db,current_user),"currency_policy":"Amounts retain source currency; no implicit exchange rate or conversion"}
+
 
 
 @router.get("/profitability")
 def profitability(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_profitability_view", "analytics_admin"))):
-    items = db.query(SRMProfitabilitySnapshot).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(50).all()
-    return {"items": [_serialize(item) for item in items], "total": len(items)}
+    from app.services.metrics.sales import latest_profitability_query
+    query=latest_profitability_query(db,current_user)
+    items=query.order_by(SRMProfitabilitySnapshot.id.desc()).limit(50).all()
+    return {"items":[_serialize(item) for item in items],"total":query.count(),"definition":"Latest snapshot per authorized engagement; older versions are history, not additional current profit"}
+
 
 
 @router.get("/collections")
 def collections(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_financial_view", "analytics_admin"))):
-    invoices = db.query(SRMInvoice).limit(100).all()
-    rows = [{"invoice_id": item.id, "invoice_number": item.invoice_number, "status": item.status, "outstanding": float((item.total_amount or 0) - (item.paid_amount or 0))} for item in invoices]
-    return {"items": rows, "total": len(rows)}
+    from app.apps.srm.services.commercial import invoice_query
+    query=invoice_query(db,current_user)
+    invoices=query.order_by(SRMInvoice.id.desc()).limit(100).all()
+    rows=[{"invoice_id":item.id,"invoice_number":item.invoice_number,"status":item.status,"currency":item.currency,"outstanding":float(item.balance_amount or 0)} for item in invoices]
+    return {"items":rows,"total":query.count(),"returned_count":len(rows),"definition":"Authorized nondeleted invoice records; monetary rows retain source currency"}
+
 
 
 @router.get("/campaigns")
 def campaigns(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_view"))):
     items = db.query(CommunicationCampaign).order_by(CommunicationCampaign.created_at.desc()).limit(100).all()
-    return {"items": [_serialize(item) for item in items], "total": len(items)}
+    items_statistics_total = count_rows_before_page(db.query(CommunicationCampaign).order_by(CommunicationCampaign.created_at.desc()).limit(100))
+    return {"items": [_serialize(item) for item in items], "total": items_statistics_total,"scope":"Platform communication configuration: this legacy model has no organization key; do not compare with organization-scoped customer counts"}
 
 
 @router.get("/anomalies")

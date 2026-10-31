@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import or_
+from sqlalchemy import or_,func
 from sqlalchemy.orm import Session
 
 from app.core.deps import RequirePermission, get_current_user, get_db
@@ -99,7 +99,8 @@ def _notify_assignee(db: Session, request: ApprovalRequest) -> None:
 
 
 def _request_query(db: Session, user: User, scope: str):
-    query = db.query(ApprovalRequest).filter(ApprovalRequest.source_module != "power_apps")
+    from app.services.metrics.queries import company_id
+    query = db.query(ApprovalRequest).filter(ApprovalRequest.source_module != "power_apps",func.coalesce(ApprovalRequest.organization_id,1)==company_id(user))
     role_name = _role_name(user)
     if scope == "submitted":
         return query.filter(ApprovalRequest.requester_user_id == user.id)
@@ -170,7 +171,7 @@ def _workflow_item(task: WorkflowTask, instance: WorkflowInstance | None, step: 
     )
 
 
-def _workflow_tasks(db: Session, user: User, scope: str) -> list[ApprovalInboxItem]:
+def _workflow_query(db: Session, user: User, scope: str):
     role_name = _role_name(user)
     query = db.query(WorkflowTask, WorkflowInstance, WorkflowStepDefinition).join(
         WorkflowInstance,
@@ -183,8 +184,13 @@ def _workflow_tasks(db: Session, user: User, scope: str) -> list[ApprovalInboxIt
         query = query.filter(WorkflowInstance.requester_user_id == user.id)
     elif scope != "all" or not _can_view_all(user):
         query = query.filter(or_(WorkflowTask.assigned_to_user_id == user.id, WorkflowTask.assigned_role == role_name))
-    rows = query.order_by(WorkflowTask.created_at.desc()).limit(200).all()
-    return [_workflow_item(task, instance, step, user) for task, instance, step in rows]
+    from app.services.metrics.queries import company_id
+    return query.filter(func.coalesce(WorkflowInstance.organization_id,1)==company_id(user))
+
+
+def _workflow_tasks(db:Session,user:User,scope:str):
+    return [_workflow_item(task,instance,step,user) for task,instance,step in _workflow_query(db,user,scope).order_by(WorkflowTask.created_at.desc()).limit(200).all()]
+
 
 
 def _summarize(items: list[ApprovalInboxItem]) -> ApprovalSummary:
@@ -240,17 +246,14 @@ def inbox(
     scope: Literal["mine", "all", "submitted"] = Query("mine"),
     status: str | None = Query(None),
     module: str | None = Query(None),
+    page: int = Query(1,ge=1),
+    per_page: int = Query(300,ge=1,le=300),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    native = [_native_item(item, current_user) for item in _request_query(db, current_user, scope).order_by(ApprovalRequest.created_at.desc()).limit(200).all()]
-    items = native + _workflow_tasks(db, current_user, scope)
-    if status:
-        items = [item for item in items if item.status.lower() == status.lower()]
-    if module:
-        items = [item for item in items if item.source_module.lower() == module.lower()]
-    items.sort(key=lambda item: (item.sla_due_at or item.submitted_at or _now()), reverse=False)
-    return ApprovalInboxResponse(summary=_summarize(items), items=items[:300])
+    from app.services.metrics.approvals import inbox as canonical_inbox
+    return canonical_inbox(db,current_user,scope,status,module,page,per_page)
+
 
 
 @router.get("/summary", response_model=ApprovalSummary)
@@ -259,7 +262,8 @@ def summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return inbox(scope=scope, db=db, current_user=current_user).summary
+    from app.services.metrics.approvals import inbox as canonical_inbox
+    return canonical_inbox(db,current_user,scope,include_items=False).summary
 
 
 @router.get("/requests/{request_id}", response_model=ApprovalRequestSchema)

@@ -1067,13 +1067,15 @@ export interface ProjectMetrics {
   overdue_tasks: number;
   high_risks: number;
   pending_approvals: number;
-  team_utilization: number;
-  hours_logged_this_week: number;
+  team_utilization: number | null;
+  hours_logged_this_week: number | null;
   upcoming_milestones: number;
-  recent_activities: number;
+  recent_activities: number | null;
 }
 
 export interface DashboardData {
+  status_counts: Record<string,number>;
+  assignment_count: number;
   project: PMSProject;
   metrics: ProjectMetrics;
 }

@@ -21,6 +21,7 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.services.metrics.api",
     "app.apps.power_apps.integrations.api",
     "app.apps.power_apps.approvals.api",
     "app.apps.power_apps.runtime_api",

@@ -343,12 +343,19 @@ def save_unit(
 def dashboard(db: Session = Depends(get_db), actor: User = Depends(admin)):
     companies = organizations(db, actor)
     rows, by_company = {}, {}
+    accounts_by_id={}
+    registered_ids=set()
+    restricted_ids=set()
+    from app.services.metrics.queries import registered_users
     by_module_users = {}
     for c in companies:
         people = users_in_company(db, c.id)
+        accounts_by_id.update({u.id:u for u in people})
+        registered_ids.update(r[0] for r in registered_users(db,actor,organization_id=c.id).with_entities(User.id))
         by_company[c.name] = len(people)
         for u in people:
             snapshot = service.snapshot(db, u, c.id)
+            if snapshot["status"] in {"suspended","deactivated"}:restricted_ids.add(u.id)
             rows.setdefault(u.id, snapshot)
             for key, grant in snapshot["grants"].items():
                 if grant.get("enabled"):
@@ -363,19 +370,19 @@ def dashboard(db: Session = Depends(get_db), actor: User = Depends(admin)):
         .all()
     )
     return {
+        "context":{"scope":"All organizations this administrator can manage; not just the active organization","organizations":[c.id for c in companies],"user_definition":"Unique User.id across organizations; company charts count memberships and may overlap"},
         "summary": {
             "Total companies": len(companies),
             "Total branches": db.query(Branch)
             .filter(Branch.company_id.in_([c.id for c in companies]))
             .count(),
             "Total users": len(users),
-            "Active users": sum(u["status"] == "active" for u in users),
-            "Suspended users": sum(
-                u["status"] in {"suspended", "deactivated"} for u in users
-            ),
+            "Registered users":len(registered_ids),
+            "Active users": sum(u.is_active and u.id in registered_ids for u in accounts_by_id.values()),
+            "Suspended users": len(restricted_ids),
             "Registered modules": len(modules),
             "Active Super Admins": sum(
-                u["isSuperuser"] and u["status"] == "active" for u in users
+                u.is_superuser and u.is_active for u in accounts_by_id.values()
             ),
             "Pending invitations": sum(u["status"] == "invited" for u in users),
         },

@@ -2318,6 +2318,7 @@ def analytics(
     db: Session = Depends(get_db), user: User = Depends(RequirePermission(*ACCESS))
 ):
     org = core()._organization_id(db, user)
+    matching_total=visible_query(db,user).count()
     leads = (
         visible_query(db, user).order_by(CRMLead.id.desc()).limit(MAX_ROWS + 1).all()
     )
@@ -2406,6 +2407,8 @@ def analytics(
         "scope": "All permitted leads; independent of list filters",
         "truncated": truncated,
         "leadCount": len(leads),
+        "matchingTotal":matching_total,
+        "definition":"Lead performance sample from newest permitted leads; sample aggregates are not whole-directory totals",
         "bySource": list(sources.values()),
         "byOwner": list(owners.values()),
         "stageHistory": [

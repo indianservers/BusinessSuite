@@ -42,10 +42,7 @@ export default function ProjectDashboard() {
   usePageRefresh(() => setRetryVersion(value => value + 1));
 
   const project = selectedProject || dashboard?.project;
-  const taskChart = ["Backlog", "To Do", "In Progress", "In Review", "Done"].map((status) => ({
-    status,
-    tasks: tasks.filter((task) => task.status === status).length,
-  }));
+  const taskChart=Object.entries(dashboard?.status_counts||{}).map(([status,tasks])=>({status,tasks}));
   const overdue = tasks.filter(isOverdue);
 
   if (loading) return <div className="skeleton h-72 rounded-lg" />;
@@ -81,13 +78,14 @@ export default function ProjectDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Metric icon={ListChecks} label="Total tasks" value={dashboard?.metrics.total_tasks ?? tasks.length} />
-        <Metric icon={CheckCircle2} label="Completed" value={dashboard?.metrics.completed_tasks ?? tasks.filter((task) => task.status === "Done").length} />
-        <Metric icon={Clock} label="Overdue" value={dashboard?.metrics.overdue_tasks ?? overdue.length} tone="text-red-600" />
-        <Metric icon={AlertTriangle} label="High risks" value={dashboard?.metrics.high_risks ?? 0} tone="text-amber-600" />
+        <Metric icon={ListChecks} label="Total tasks" value={dashboard?.metrics.total_tasks ?? "Unavailable"} />
+        <Metric icon={CheckCircle2} label="Completed" value={dashboard?.metrics.completed_tasks ?? "Unavailable"} />
+        <Metric icon={Clock} label="Overdue" value={dashboard?.metrics.overdue_tasks ?? "Unavailable"} tone="text-red-600" />
+        <Metric icon={AlertTriangle} label="High risks" value={dashboard?.metrics.high_risks ?? "Unavailable"} tone="text-amber-600" />
         <Metric icon={Timer} label="Progress" value={`${project.progress_percent}%`} />
       </div>
 
+      <p className="text-xs text-muted-foreground">Unique live task records, including subtasks. {dashboard?.assignment_count} individual assignments. The status chart includes the full permitted project; task previews below may be paginated.</p>
       <RecordCustomFields entity="project" id={id}/>
       <SecondaryDetails title="Task status and project details">
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">

@@ -95,29 +95,8 @@ def workspace_query(db, user):
 
 
 def scope(db, user):
-    company = organization_id_for(user)
-    member = exists(
-        select(AccessMembership.user_id).where(
-            AccessMembership.user_id == User.id,
-            AccessMembership.company_id == company,
-            AccessMembership.active.is_(True),
-        )
-    )
-    q = (
-        db.query(User)
-        .outerjoin(CommonPerson, CommonPerson.user_id == User.id)
-        .outerjoin(Employee, Employee.user_id == User.id)
-        .outerjoin(Branch, Branch.id == Employee.branch_id)
-        .outerjoin(Role, Role.id == User.role_id)
-        .outerjoin(CommonProfile, CommonProfile.person_id == CommonPerson.id)
-    )
-    q = q.filter(
-        or_(
-            CommonPerson.organization_id == company,
-            member,
-            and_(CommonPerson.id.is_(None), Branch.company_id == company),
-        )
-    )
+    from app.services.metrics.queries import registered_users
+    q=(db.query(User).outerjoin(CommonPerson,CommonPerson.user_id==User.id).outerjoin(Employee,Employee.user_id==User.id).outerjoin(Branch,Branch.id==Employee.branch_id).outerjoin(Role,Role.id==User.role_id).outerjoin(CommonProfile,CommonProfile.person_id==CommonPerson.id).filter(User.id.in_(registered_users(db,user).with_entities(User.id))))
     grants = getattr(user, "_suite_grants", None)
     grant = (grants or {}).get("project_management", {})
     level = grant.get("scope", "")
@@ -913,13 +892,14 @@ def task_stats(db, user, member_ids):
         PMSTask.deleted_at.is_(None),
         or_(PMSTask.assignee_user_id.in_(member_ids), PMSTask.id.in_(assigned)),
     )
-    complete = PMSTask.status.in_(["Done", "Completed", "Closed"])
-    closed = PMSTask.status.in_(["Done", "Completed", "Closed", "Cancelled"])
+    from app.services.metrics.queries import COMPLETED,TERMINAL,business_day
+    complete = PMSTask.status.in_(COMPLETED)
+    closed = PMSTask.status.in_(TERMINAL)
     total, completed, pending, overdue = q.with_entities(
         func.count(),
         func.sum(case((complete, 1), else_=0)),
         func.sum(case((~closed, 1), else_=0)),
-        func.sum(case((and_(~closed, PMSTask.due_date < date.today()), 1), else_=0)),
+        func.sum(case((and_(~closed, PMSTask.due_date < business_day(db,user)), 1), else_=0)),
     ).first()
     submissions = (
         db.query(PMSWorkSubmission.status, func.count())

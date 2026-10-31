@@ -172,6 +172,8 @@ export type LeadAnalytics = {
   scope: string;
   truncated: boolean;
   leadCount: number;
+  matchingTotal?: number;
+  definition?: string;
   measurementNote: string;
   bySource: AnalyticsGroup[];
   byOwner: AnalyticsGroup[];

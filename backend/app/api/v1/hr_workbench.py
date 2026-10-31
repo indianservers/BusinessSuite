@@ -51,7 +51,8 @@ def permit(user, permission):
 def employees(db, user, scope="organization"):
     # The parent /employees router installs tenant scope; central access additionally
     # intersects branch, department and managed grants on this same ORM session.
-    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+    from app.services.metrics.queries import employee_records
+    query = employee_records(db,user)
     own = user.employee.id if user.employee else None
     if scope == "mine":
         return query.filter(Employee.id == (own or 0))
@@ -106,6 +107,23 @@ def search(q: str = Query("", max_length=150), scope: Literal["mine", "team", "o
              Employee.personal_email, Employee.work_email, Employee.phone_number)]))
     return {"items": [summary(row, user) for row in query.order_by(Employee.first_name, Employee.id).limit(50)],
             "scope": scope, "limit": 50}
+
+
+def approval_counts(db,user,scope):
+    visible=employees(db,user,scope)
+    own=user.employee.id if user.employee else None
+    counts={}
+    specs=[("leave",LeaveRequest,["Pending"],"leave_approve","leave_view"),("attendance",AttendanceRegularization,["Pending"],"attendance_manage","attendance_view"),("expense",ExpenseClaim,["submitted","manager_approved"],None,None),("timesheet",Timesheet,["Submitted"],"timesheet_approve","timesheet_view")]
+    for kind,model,statuses,decide,view in specs:
+        permitted=visible
+        if kind=="expense":
+            from app.api.v1.expenses import _can_hr_or_finance
+            if not _can_hr_or_finance(user):permitted=permitted.filter(or_(Employee.id==(own or -1),Employee.reporting_manager_id==(own or -1)))
+        elif not permit(user,view) and not permit(user,decide):permitted=permitted.filter(Employee.id==(own or -1))
+        query=db.query(model).filter(model.employee_id.in_(permitted.with_entities(Employee.id)),model.status.in_(statuses))
+        if kind=="leave":query=query.filter(LeaveRequest.deleted_at.is_(None))
+        counts[kind]=query.count()
+    return counts
 
 
 def approval_items(db, user, scope):
@@ -167,10 +185,11 @@ def approval_items(db, user, scope):
 
 @router.get("/approvals")
 def approvals(scope: Literal["mine", "team", "organization"]="organization", db: Session=Depends(get_db), user: User=Depends(get_current_user)):
-    items = approval_items(db, user, scope)
-    return {"items": items[:1000], "total": len(items), "truncated": len(items)>1000,
-            "boundary":"Worklist scans up to 5,000 permitted employees and 1,001 pending records per source; use original workspaces for the complete dataset",
-            "counts": {kind: sum(i["kind"]==kind for i in items) for kind in ("leave", "attendance", "expense", "timesheet")}, "scope": scope}
+    items=approval_items(db,user,scope)
+    counts=approval_counts(db,user,scope);total=sum(counts.values())
+    return {"items":items[:1000],"total":total,"truncated":total>len(items[:1000]),"counts":counts,"scope":scope,
+        "boundary":"Statistics cover the complete authorized source queries. This inbox previews up to 1,000 requests; open source workspaces for complete worklists."}
+
 
 
 class Strict(BaseModel):
@@ -248,20 +267,22 @@ def decide(data: Decision, db: Session=Depends(get_db), user: User=Depends(get_c
 
 @router.get("/home")
 def home(scope: Literal["mine", "team", "organization"]="mine", db: Session=Depends(get_db), user: User=Depends(get_current_user)):
-    people = employees(db, user, scope).order_by(Employee.id).limit(5001).all()
-    ids = [p.id for p in people[:5000]]
-    requests = approval_items(db, user, scope)
-    today = business_today()
-    joiners = [summary(p,user) | {"joining_date": p.date_of_joining} for p in people if p.status not in {"Terminated","Exited","Resigned"} and p.date_of_joining and today-timedelta(days=7)<=p.date_of_joining<=today+timedelta(days=30)]
-    exits = db.query(ExitRecord).filter(ExitRecord.employee_id.in_(ids), ExitRecord.status.notin_(["Completed", "Cancelled"])).all() if permit(user,"exit_view") else []
-    tickets = db.query(HelpdeskTicket).filter(HelpdeskTicket.employee_id.in_(ids), HelpdeskTicket.status.in_(["Open","In Progress","Pending"])).count() if permit(user,"helpdesk_view") else 0
-    attendance = db.query(Attendance).filter(Attendance.employee_id.in_(ids), Attendance.attendance_date==today).all() if permit(user,"attendance_view") or scope=="mine" else []
-    return {"scope": scope, "refreshed_at": now(), "employee_count":len(ids), "truncated":len(people)>5000,
-        "can_manage":permit(user,"employee_update"), "can_create":permit(user,"employee_create"),
-        "pending_counts": {"approvals":len(requests), "leave":sum(i["kind"]=="leave" for i in requests), "expenses":sum(i["kind"]=="expense" for i in requests), "helpdesk":tickets},
-        "joiner_count":len(joiners),"exit_count":len(exits),"joiners":joiners[:50], "exits":[{"id":r.id,"employee_id":r.employee_id,"employee":summary(next(p for p in people if p.id==r.employee_id),user),"status":r.status,"last_working_date":r.last_working_date} for r in exits[:50]],
-        "missing_punches":sum(bool(a.check_in) != bool(a.check_out) for a in attendance),
-        "scope_note":("Global Super Admin scope includes all organizations. " if user.is_superuser else "Organization and central access restrictions always apply. ")+"My Team means direct reports."}
+    population=employees(db,user,scope);ids=population.with_entities(Employee.id)
+    total=population.count();counts=approval_counts(db,user,scope)
+    from app.services.metrics.queries import business_day,company_id
+    today=business_day(db,user)
+    joiner_query=population.filter(Employee.status.notin_(["Terminated","Exited","Resigned"]),Employee.date_of_joining>=today-timedelta(days=7),Employee.date_of_joining<=today+timedelta(days=30))
+    joiners=[summary(p,user)|{"joining_date":p.date_of_joining} for p in joiner_query.order_by(Employee.date_of_joining,Employee.id).limit(50)]
+    exit_query=db.query(ExitRecord).filter(ExitRecord.employee_id.in_(ids),ExitRecord.status.notin_(["Completed","Cancelled"]))
+    exits=exit_query.order_by(ExitRecord.id).limit(50).all() if permit(user,"exit_view") else []
+    exit_people={p.id:p for p in population.filter(Employee.id.in_([r.employee_id for r in exits])).all()} if exits else {}
+    tickets=db.query(HelpdeskTicket).filter(HelpdeskTicket.employee_id.in_(ids),HelpdeskTicket.status.in_(["Open","In Progress","Pending"])).count() if permit(user,"helpdesk_view") else None
+    missing=db.query(Attendance.employee_id).filter(Attendance.employee_id.in_(ids),Attendance.attendance_date==today,or_((Attendance.check_in.isnot(None)) & (Attendance.check_out.is_(None)),(Attendance.check_in.is_(None)) & (Attendance.check_out.isnot(None)))).distinct().count() if permit(user,"attendance_view") or scope=="mine" else None
+    return {"scope":scope,"refreshed_at":now(),"employee_count":total,"truncated":False,"can_manage":permit(user,"employee_update"),"can_create":permit(user,"employee_create"),
+        "pending_counts":{"approvals":sum(counts.values()),"leave":counts["leave"],"expenses":counts["expense"],"helpdesk":tickets},"joiner_count":joiner_query.count(),"exit_count":exit_query.count() if permit(user,"exit_view") else None,
+        "joiners":joiners,"exits":[{"id":r.id,"employee_id":r.employee_id,"employee":summary(exit_people[r.employee_id],user),"status":r.status,"last_working_date":r.last_working_date} for r in exits],"missing_punches":missing,
+        "scope_note":f"Organization #{company_id(user)} and current permission restrictions apply. My Team means direct reports. Counts cover complete source queries; joiner and exit previews show up to 50 records."}
+
 
 
 @router.get("/attendance-exceptions")

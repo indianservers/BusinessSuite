@@ -49,6 +49,7 @@ export function ControlNav() {
         ["Module Management", "/admin/control/modules"],
         ["Security Center", "/admin/control/security"],
         ["Audit Logs", "/admin/control/audit"],
+        ["Statistics Audit", "/admin/control/statistics"],
     ["Shared Services", "/admin/control/services/services"],
     ["Enterprise", "/admin/control/enterprise/overview"],
     ["AI Security", "/admin/control/ai-security"],
@@ -368,6 +369,7 @@ export default function ControlCenter() {
             value={company}
             onChange={(e) => {
               sessionStorage.setItem("suite-organization", e.target.value);
+              window.dispatchEvent(new Event("suite:organization-changed"));
               window.dispatchEvent(new Event("focus"));
               setCompany(Number(e.target.value));
               setPage(1);
@@ -392,10 +394,11 @@ export default function ControlCenter() {
       )}
       {data && section === "dashboard" && (
         <>
+          <p className="text-sm text-muted-foreground">Across all organizations you administer. Account totals count unique identities; organization charts count membership in each organization.</p>
           <div className="cc-stats">
             {Object.entries(data.summary).map(([label, value]) => (
-              <section className="cc-card" key={label}>
-                <span>{label}</span>
+              <section className="cc-card" key={({"Total users":"Provisioned accounts","Active users":"Login-enabled users","Suspended users":"Restricted org access"} as Record<string,string>)[label]||label}>
+                <span>{({"Total users":"Provisioned accounts","Active users":"Login-enabled users","Suspended users":"Restricted org access"} as Record<string,string>)[label]||label}</span>
                 <strong>{String(value)}</strong>
               </section>
             ))}

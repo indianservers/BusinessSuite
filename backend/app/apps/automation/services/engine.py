@@ -81,7 +81,8 @@ ACTION_REQUIRED_FIELDS = {
 
 
 def organization_id_for(user: User) -> int | None:
-    return getattr(user, "organization_id", None)
+    from app.apps.srm.services.commercial import tenant
+    return tenant(user)
 
 
 def validate_condition_schema(condition: dict[str, Any]) -> None:

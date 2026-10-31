@@ -135,12 +135,12 @@ def workspace_member(db, workspace_id, user, manage=False):
 @router.get("/workspaces")
 def list_workspaces(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     from .people_management import organization_admin
-    if organization_admin(user):
-        workspaces = db.query(PMSWorkspace).filter(PMSWorkspace.organization_id == organization_id_for(user), PMSWorkspace.id.notin_(archived_ids())).all()
-        memberships = {m.workspace_id: m.role for m in db.query(PMSWorkspaceMember).filter_by(user_id=user.id)}
-        return [{"id": w.id, "name": w.name, "role": memberships.get(w.id, "Admin"), "access_source": "Workspace membership" if w.id in memberships else "Organization role"} for w in workspaces]
-    rows = db.query(PMSWorkspace, PMSWorkspaceMember.role).join(PMSWorkspaceMember, PMSWorkspaceMember.workspace_id == PMSWorkspace.id).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspace.id.notin_(archived_ids())).all()
-    return [{"id": w.id, "name": w.name, "role": role} for w, role in rows]
+    query=db.query(PMSWorkspace).filter(func.coalesce(PMSWorkspace.organization_id,1)==organization_id_for(user),PMSWorkspace.id.notin_(archived_ids()))
+    memberships={m.workspace_id:m.role for m in db.query(PMSWorkspaceMember).filter_by(user_id=user.id)}
+    if not organization_admin(user):query=query.filter(PMSWorkspace.id.in_(memberships))
+    rows=query.order_by(PMSWorkspace.id).all()
+    counts=dict(db.query(PMSWorkspaceMember.workspace_id,func.count(PMSWorkspaceMember.id)).filter(PMSWorkspaceMember.workspace_id.in_([w.id for w in rows])).group_by(PMSWorkspaceMember.workspace_id).all()) if rows else {}
+    return [{"id":w.id,"name":w.name,"role":memberships.get(w.id,"Admin"),"access_source":"Workspace membership" if w.id in memberships else "Organization role","member_count":counts.get(w.id,0),"created_at":w.created_at} for w in rows]
 
 
 @router.get("/workspaces/{workspace_id}/overview")
@@ -155,7 +155,7 @@ def overview(workspace_id: int, db: Session = Depends(get_db), user: User = Depe
         "id": workspace.id, "name": workspace.name, "role": member.role,
         "projects": [{"id": p.id, "name": p.name, "project_key": p.project_key} for p in projects],
         "tasks": [{"id": t.id, "project_id": t.project_id, "task_key": t.task_key, "title": t.title, "description": t.description,
-                   "status": t.status, "priority": t.priority, "assignee_user_id": t.assignee_user_id, "assignee_user_ids": t.assignee_user_ids,
+                   "status": t.status, "priority": t.priority,"work_type":t.work_type, "assignee_user_id": t.assignee_user_id, "assignee_user_ids": t.assignee_user_ids,
                    "start_date": t.start_date, "due_date": t.due_date, "estimated_hours": t.estimated_hours, "position": t.position, "comments_count": counts.get(t.id, 0)} for t in tasks],
     }
 
