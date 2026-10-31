@@ -1,39 +1,875 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Dropdown from "@radix-ui/react-dropdown-menu";
+import {
+  Users,
+  Circle,
+  Clock3,
+  GraduationCap,
+  Plus,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronRight,
+  LayoutGrid,
+  List,
+  Download,
+  MoreVertical,
+  X,
+  Save,
+  RefreshCw,
+} from "lucide-react";
 import { api } from "@/services/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import ProfileListCard from "@/components/ProfileListCard";
 import { usePageRefresh } from "@/lib/page-refresh";
-import AddExistingPeopleDialog from "../components/people/AddExistingPeopleDialog";
-import { ManagePersonButton } from "../components/people/PersonIdentity";
-import { peopleBase, type Person, type Destinations } from "../components/people/peopleTypes";
+import DirectoryPersonCard from "../components/people/DirectoryPersonCard";
+import DirectoryGroupsPanel from "../components/people/DirectoryGroupsPanel";
+import {
+  PeopleDialog,
+  TeamEditor,
+  AddPeopleToTeam,
+  DirectoryPagination,
+} from "../components/people/DirectoryDialogs";
+import DirectoryImport from "../components/people/DirectoryImport";
+import {
+  directoryRoot,
+  directoryGet,
+  directoryTaskHref,
+  type DirectoryPage,
+  type DirectoryReference,
+  type GroupPage,
+} from "../components/people/peopleWorkspace";
 import { workspaceError } from "./workspaceTypes";
-
+import "./PeopleWorkspace.css";
+function GroupFilter({
+  kind,
+  value,
+  onChange,
+}: {
+  kind: "teams" | "batches";
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const groups = useQuery({
+    queryKey: ["people-workspace", "filter", kind, search, page],
+    queryFn: () =>
+      directoryGet<GroupPage>("/groups", {
+        kind,
+        q: search,
+        page,
+        page_size: 20,
+      }),
+  });
+  return (
+    <label>
+      {kind === "teams" ? "Team" : "Intern batch"}
+      <input
+        aria-label={`Search filter ${kind}`}
+        value={search}
+        placeholder={`Search ${kind}�`}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
+      />
+      <select
+        aria-label={`Filter ${kind}`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">All accessible {kind}</option>
+        {value && !groups.data?.items.some((g) => String(g.id) === value) && (
+          <option value={value}>
+            Selected {kind === "teams" ? "team" : "batch"} #{value}
+          </option>
+        )}
+        {groups.data?.items.map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.name}
+          </option>
+        ))}
+      </select>
+      {groups.isError && (
+        <span role="alert">
+          Could not load groups.{" "}
+          <button onClick={() => groups.refetch()}>Retry</button>
+        </span>
+      )}
+      {(groups.data?.pages || 0) > 1 && (
+        <DirectoryPagination
+          page={page}
+          pages={groups.data!.pages}
+          onChange={setPage}
+        />
+      )}
+    </label>
+  );
+}
 export default function PeopleManagementDirectory() {
-  const [data, setData] = useState<{ items: Person[]; counts: Record<string, number>; total: number }>();
-  const [options, setOptions] = useState<Destinations>();
-  const [status, setStatus] = useState("");
-  const [query, setQuery] = useState("");
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState(params.get("q") || "");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [adding, setAdding] = useState(false);
+  const [teamEditor, setTeamEditor] = useState<{
+    id?: number;
+    workspace?: number;
+  } | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [viewName, setViewName] = useState("");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const load = useCallback(async () => {
-    const [directory, destinations] = await Promise.all([api.get(`${peopleBase}/directory`, { params: { status } }), api.get<Destinations>(`${peopleBase}/options`)]);
-    setData(directory.data); setOptions(destinations.data); setError("");
-  }, [status]);
-  useEffect(() => { setData(undefined); void load().catch(e => setError(workspaceError(e))); }, [load]);
-  useEffect(() => { const changed = () => { void load().catch(e => setError(workspaceError(e))); }; window.addEventListener("pms:people-changed", changed); return () => window.removeEventListener("pms:people-changed", changed); }, [load]);
-  usePageRefresh(load);
-  const manageable = !!options && !!(options.workspaces.length || options.projects.length);
-  const visible = data?.items.filter(p => `${p.name} ${p.email} ${p.role}`.toLowerCase().includes(query.toLowerCase())) || [];
-  return <div className="mx-auto max-w-7xl space-y-5"><header className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="page-title">People directory</h1><p className="page-description">Find existing people, manage access, and add teams directly within your assigned scope.</p></div><div className="flex flex-wrap gap-2"><Button disabled={!manageable} onClick={() => { setSelected([]); setAdding(true); }}>Add existing person</Button><Button variant="outline" asChild><Link to="/pms/members">Workspace & project members</Link></Button><Link className="self-center text-sm underline" to="/pms/members#invitations">Invite by email</Link></div></header>
-    {!manageable && options && <p className="text-sm text-muted-foreground">Adding people requires a workspace administrator or authorized organization Admin/HR role within your assigned scope.</p>}
-    <div className="flex flex-wrap gap-2" role="group" aria-label="People status filters">{[["", "All people"], ["active", "Active"], ["suspended", "Suspended"], ["terminated", "Terminated"], ["invited", "Invited"]].map(([key, label]) => <button type="button" className={`rounded-full border px-3 py-2 text-sm ${key === status ? "bg-primary text-primary-foreground" : ""}`} aria-pressed={key === status} key={key} onClick={() => { setStatus(key); setSelected([]); }}>{label}{key && ` · ${data?.counts[key] ?? 0}`}</button>)}</div>
-    <div className="flex flex-wrap items-center gap-3"><Input className="max-w-md" aria-label="Search people directory" placeholder="Search name, email or role" value={query} onChange={e => setQuery(e.target.value)} /><span className="text-sm">{visible.length} shown</span>{!!selected.length && <Button disabled={!manageable} onClick={() => setAdding(true)}>Add {selected.length} selected people to destinations</Button>}</div>
-    {error && <p role="alert" className="text-destructive">{error}<Button variant="outline" onClick={() => void load().catch(e => setError(workspaceError(e)))}>Retry</Button></p>}
-    {!data && !error ? <p role="status">Loading people…</p> : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{visible.map(person => <article className="space-y-2 rounded-lg border p-2" key={`${person.status}-${person.id}`}><div className="flex items-center justify-between px-2">{person.status === "active" ? <label className="flex items-center gap-2 text-xs"><input type="checkbox" aria-label={`Select ${person.email}`} checked={selected.includes(person.id)} onChange={e => setSelected(e.target.checked ? [...selected, person.id] : selected.filter(id => id !== person.id))} />Select for bulk addition</label> : <span className="text-xs capitalize">{person.status}</span>}<small className="text-muted-foreground">{person.availability}</small></div><ProfileListCard name={person.name} photoUrl={person.photo_url} subtitle={<>{person.role.replace(/_/g, " ")} · {person.email}</>} status={{ label: person.status, tone: person.status === "active" ? "positive" : "muted" }} actions={person.status === "invited" ? <Link className="text-sm underline" to={`/pms/members?workspace=${person.workspace_id}#invitations`}>View / resend invitation</Link> : <><ManagePersonButton userId={person.id} />{person.status === "active" && <button className="text-xs underline" disabled={!manageable} onClick={() => { setSelected([person.id]); setAdding(true); }}>Add to workspace / project</button>}</>} /></article>)}</div>}
-    {data && !visible.length && <p className="text-sm text-muted-foreground">No people match this filter.</p>}
-    <AddExistingPeopleDialog open={adding} onClose={() => setAdding(false)} personIds={selected} onAdded={async () => { setSelected([]); await load(); }} />
-  </div>;
+  const [mobileTab, setMobileTab] = useState<
+    "people" | "teams" | "batches" | "organizations"
+  >("people");
+  const listRef = useRef<HTMLElement>(null);
+  const page = Number(params.get("page") || 1);
+  const query = Object.fromEntries(params);
+  const dataQuery = Object.fromEntries(
+    Object.entries(query).filter(([key]) =>
+      [
+        "q",
+        "status",
+        "role",
+        "workspace_id",
+        "team_id",
+        "batch_id",
+        "department_id",
+        "skill",
+        "kind",
+        "membership",
+        "registered_from",
+        "registered_to",
+        "sort",
+        "page",
+      ].includes(key),
+    ),
+  );
+  const layout = params.get("layout") || "cards";
+  const backTo = "/pms/people?" + params.toString();
+  const storageKey = "people-directory-scroll:" + params.toString();
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const change = (key: string, value: string) => {
+    const next = new URLSearchParams(paramsRef.current);
+    value ? next.set(key, value) : next.delete(key);
+    if (key !== "page") next.delete("page");
+    paramsRef.current = next;
+    setParams(next);
+    setSelected([]);
+  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (search !== (params.get("q") || "")) change("q", search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  useEffect(() => setSearch(params.get("q") || ""), [params.get("q")]);
+  const people = useQuery({
+    queryKey: ["people-workspace", "directory", JSON.stringify(dataQuery)],
+    queryFn: () =>
+      directoryGet<DirectoryPage>("/people", { ...query, page, page_size: 24 }),
+  });
+  const reference = useQuery({
+    queryKey: ["people-workspace", "reference"],
+    queryFn: () => directoryGet<DirectoryReference>("/reference"),
+    staleTime: 30000,
+  });
+  const views = useQuery({
+    queryKey: ["people-workspace", "views"],
+    queryFn: () =>
+      directoryGet<
+        { id: number; name: string; filters: Record<string, string> }[]
+      >("/views"),
+  });
+  usePageRefresh(() =>
+    qc.invalidateQueries({ queryKey: ["people-workspace"] }),
+  );
+  useEffect(() => {
+    if (people.data) {
+      const offset = Number(sessionStorage.getItem(storageKey) || 0);
+      requestAnimationFrame(() => listRef.current?.scrollTo({ top: offset }));
+    }
+  }, [people.data]);
+  const currentRef = useRef(storageKey);
+  currentRef.current = storageKey;
+  useEffect(
+    () => () => {
+      if (listRef.current)
+        sessionStorage.setItem(
+          currentRef.current,
+          String(listRef.current.scrollTop),
+        );
+    },
+    [],
+  );
+  const ref = reference.data;
+  const stats = ref?.stats;
+  const countFilters = [...params.keys()].filter(
+    (key) => !["page", "layout", "sort"].includes(key),
+  ).length;
+  const metrics = [
+    {
+      label: "Total People",
+      value: stats?.total,
+      icon: Users,
+      color: "blue",
+      key: "",
+    },
+    {
+      label: "Active",
+      value: stats?.active,
+      icon: Circle,
+      color: "green",
+      key: "active",
+    },
+    {
+      label: "Inactive",
+      value: stats?.inactive,
+      icon: Clock3,
+      color: "orange",
+      key: "inactive",
+    },
+    {
+      label: "Teams",
+      value: stats?.teams,
+      icon: Users,
+      color: "purple",
+      key: "teams",
+    },
+    {
+      label: "Interns Batches",
+      value: stats?.batches,
+      icon: GraduationCap,
+      color: "red",
+      key: "batches",
+    },
+  ];
+  const canTeam = !!ref?.can_manage_people;
+  const exportPeople = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const { data } = await api.get<Blob>(directoryRoot + "/export", {
+        params: query,
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "people-directory.csv";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setError(workspaceError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className={`people-workspace pd-mobile-${mobileTab}`}>
+      <div className="pd-mobile-tabs">
+        {["people", "teams", "batches", "organizations"].map((value) => (
+          <button
+            key={value}
+            className={mobileTab === value ? "active" : ""}
+            onClick={() => setMobileTab(value as typeof mobileTab)}
+          >
+            {value === "batches" ? "Interns Batches" : value}
+          </button>
+        ))}
+      </div>
+      <div className="pd-layout">
+        <section
+          ref={listRef}
+          className="pd-center"
+          onScroll={(e) =>
+            sessionStorage.setItem(
+              storageKey,
+              String(e.currentTarget.scrollTop),
+            )
+          }
+        >
+          <nav className="pd-breadcrumb" aria-label="People breadcrumbs">
+            <Link to="/dashboard">All applications</Link>
+            <ChevronRight />
+            <Link to="/pms">KaryaFlow PMS</Link>
+            <ChevronRight />
+            <strong>People directory</strong>
+          </nav>
+          <header className="pd-heading">
+            <div>
+              <h1>People directory</h1>
+              <p>
+                Explore registered users, teams and intern batches across all
+                workspaces.
+              </p>
+            </div>
+            <div className="pd-heading-actions">
+              <div className="pd-split-button">
+                <button
+                  className="pd-primary"
+                  disabled={!ref?.can_create_user && !canTeam}
+                  title={
+                    !ref?.can_create_user && !canTeam
+                      ? "Creating or inviting people requires an authorized administrator"
+                      : "Add a registered person or invitation"
+                  }
+                  onClick={() =>
+                    navigate(
+                      ref?.can_create_user
+                        ? "/users?create=1"
+                        : "/pms/members#invitations",
+                    )
+                  }
+                >
+                  <Plus size={16} />
+                  Add Person
+                </button>
+                <Dropdown.Root>
+                  <Dropdown.Trigger aria-label="Add person options">
+                    <ChevronDown size={14} />
+                  </Dropdown.Trigger>
+                  <Dropdown.Portal>
+                    <Dropdown.Content className="pd-dropdown">
+                      <Dropdown.Item asChild>
+                        <Link to="/pms/members">
+                          Add existing person to workspace / project
+                        </Link>
+                      </Dropdown.Item>
+                      <Dropdown.Item asChild>
+                        <Link to="/pms/members#invitations">
+                          Invite by email
+                        </Link>
+                      </Dropdown.Item>
+                    </Dropdown.Content>
+                  </Dropdown.Portal>
+                </Dropdown.Root>
+              </div>
+              <button
+                className="pd-button"
+                disabled={!canTeam}
+                onClick={() => setImporting(true)}
+              >
+                Import
+              </button>
+              <button
+                className="pd-button pd-export"
+                disabled={!ref?.can_export || busy}
+                title={
+                  !ref?.can_export
+                    ? "Scoped export permission is required"
+                    : "Export the current filtered records"
+                }
+                onClick={() => void exportPeople()}
+              >
+                <Download size={15} />
+                Export
+              </button>
+              <Dropdown.Root>
+                <Dropdown.Trigger
+                  className="pd-button"
+                  aria-label="More directory actions"
+                >
+                  <MoreVertical size={17} />
+                </Dropdown.Trigger>
+                <Dropdown.Portal>
+                  <Dropdown.Content className="pd-dropdown">
+                    <Dropdown.Item
+                      onSelect={() =>
+                        void qc.invalidateQueries({
+                          queryKey: ["people-workspace"],
+                        })
+                      }
+                    >
+                      <RefreshCw size={15} />
+                      Refresh directory
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                      disabled={!ref?.can_export || busy}
+                      onSelect={() => void exportPeople()}
+                    >
+                      <Download size={15} />
+                      Export filtered people
+                    </Dropdown.Item>
+                    <Dropdown.Item
+                      onSelect={() => {
+                        setParams(new URLSearchParams());
+                        setSelected([]);
+                      }}
+                    >
+                      Clear all filters
+                    </Dropdown.Item>
+                    <Dropdown.Item asChild>
+                      <Link to="/pms/members#invitations">
+                        Invitations & resend
+                      </Link>
+                    </Dropdown.Item>
+                  </Dropdown.Content>
+                </Dropdown.Portal>
+              </Dropdown.Root>
+            </div>
+          </header>
+          <div className="pd-metrics">
+            {metrics.map((metric) => (
+              <button
+                key={metric.label}
+                className={`pd-metric ${metric.color}`}
+                onClick={() => {
+                  if (metric.key === "teams" || metric.key === "batches") {
+                    setMobileTab(metric.key);
+                    return;
+                  }
+                  change("status", metric.key);
+                }}
+              >
+                <span>
+                  <metric.icon size={23} />
+                </span>
+                <div>
+                  <strong>{metric.value ?? "—"}</strong>
+                  <small>{metric.label}</small>
+                </div>
+              </button>
+            ))}
+          </div>
+          {(error || people.error || reference.error) && (
+            <div role="alert" className="pd-error pd-alert">
+              {error || workspaceError(people.error || reference.error)}
+              <button
+                onClick={() => {
+                  setError("");
+                  void qc.invalidateQueries({ queryKey: ["people-workspace"] });
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          <div className="pd-search-row">
+            <label className="pd-search">
+              <Search size={17} />
+              <input
+                aria-label="Search people directory"
+                placeholder="Search by name, email, role, skills, batch, team, workspace…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+            <button
+              className="pd-button pd-filter"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen((v) => !v)}
+            >
+              <Filter size={15} />
+              Filters{countFilters > 0 && <i>{countFilters}</i>}
+            </button>
+            <select
+              aria-label="Saved people views"
+              value=""
+              onChange={(e) => {
+                if (e.target.value === "save") setSaveOpen(true);
+                else {
+                  const view = views.data?.find(
+                    (v) => v.id === Number(e.target.value),
+                  );
+                  if (view) setParams(new URLSearchParams(view.filters));
+                }
+              }}
+            >
+              <option value="">Saved views</option>
+              {views.data?.map((view) => (
+                <option key={view.id} value={view.id}>
+                  {view.name}
+                </option>
+              ))}
+              <option value="save">+ Save current view</option>
+            </select>
+            <div className="pd-view-toggle">
+              <button
+                aria-label="Card view"
+                aria-pressed={layout === "cards"}
+                className={layout === "cards" ? "active" : ""}
+                onClick={() => change("layout", "cards")}
+              >
+                <LayoutGrid size={17} />
+              </button>
+              <button
+                aria-label="List view"
+                aria-pressed={layout === "list"}
+                className={layout === "list" ? "active" : ""}
+                onClick={() => change("layout", "list")}
+              >
+                <List size={17} />
+              </button>
+            </div>
+          </div>
+          <div className="pd-quick-filters">
+            {[
+              ["all", "All people"],
+              ["team_members", "Team members"],
+              ["interns", "Interns"],
+              ["batched", "By batch"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                className={
+                  (params.get("kind") || "all") === key ? "active" : ""
+                }
+                onClick={() => change("kind", key === "all" ? "" : key)}
+              >
+                {key !== "all" && <Users size={12} />} {label}
+              </button>
+            ))}
+            <button onClick={() => setFiltersOpen(true)}>
+              <Users size={12} />
+              By team
+            </button>
+            <select
+              aria-label="Filter role"
+              value={params.get("role") || ""}
+              onChange={(e) => change("role", e.target.value)}
+            >
+              <option value="">Roles</option>
+              <option value="superuser">Super Admin</option>
+              {ref?.roles.map((role) => (
+                <option key={role}>{role}</option>
+              ))}
+            </select>
+            <select
+              aria-label="Filter status"
+              value={params.get("status") || ""}
+              onChange={(e) => change("status", e.target.value)}
+            >
+              <option value="">Status</option>
+              {["active", "inactive", "suspended", "terminated"].map(
+                (status) => (
+                  <option key={status} value={status}>
+                    {status[0].toUpperCase() + status.slice(1)}
+                  </option>
+                ),
+              )}
+            </select>
+            <button onClick={() => setFiltersOpen((v) => !v)}>
+              More filters
+              <Filter size={11} />
+            </button>
+          </div>
+          {filtersOpen && (
+            <div className="pd-filter-panel">
+              <GroupFilter
+                kind="teams"
+                value={params.get("team_id") || ""}
+                onChange={(v) => change("team_id", v)}
+              />
+              <GroupFilter
+                kind="batches"
+                value={params.get("batch_id") || ""}
+                onChange={(v) => change("batch_id", v)}
+              />
+              <label>
+                Workspace
+                <select
+                  aria-label="Filter workspace"
+                  value={params.get("workspace_id") || ""}
+                  onChange={(e) => change("workspace_id", e.target.value)}
+                >
+                  <option value="">All accessible workspaces</option>
+                  {ref?.workspaces.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Department
+                <select
+                  aria-label="Filter department"
+                  value={params.get("department_id") || ""}
+                  onChange={(e) => change("department_id", e.target.value)}
+                >
+                  <option value="">All visible departments</option>
+                  {ref?.departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Skills
+                <input
+                  aria-label="Filter skill"
+                  value={params.get("skill") || ""}
+                  onChange={(e) => change("skill", e.target.value)}
+                  placeholder="Skill name"
+                />
+              </label>
+              <label>
+                Registered from
+                <input
+                  aria-label="Registered from"
+                  type="date"
+                  value={params.get("registered_from") || ""}
+                  onChange={(e) => change("registered_from", e.target.value)}
+                />
+              </label>
+              <label>
+                Registered to
+                <input
+                  aria-label="Registered to"
+                  type="date"
+                  value={params.get("registered_to") || ""}
+                  onChange={(e) => change("registered_to", e.target.value)}
+                />
+              </label>
+              <label>
+                Membership
+                <select
+                  aria-label="Filter membership"
+                  value={params.get("membership") || ""}
+                  onChange={(e) => change("membership", e.target.value)}
+                >
+                  <option value="">All registered people</option>
+                  <option value="member">
+                    Members of accessible workspaces
+                  </option>
+                  <option value="unassigned">
+                    No membership in accessible workspaces
+                  </option>
+                </select>
+              </label>
+              <label>
+                Sort
+                <select
+                  aria-label="Sort people"
+                  value={params.get("sort") || "name"}
+                  onChange={(e) => change("sort", e.target.value)}
+                >
+                  {[
+                    ["name", "Name"],
+                    ["email", "Email"],
+                    ["newest", "Newest registered"],
+                    ["oldest", "Oldest registered"],
+                    ["status", "Active first"],
+                  ].map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="pd-button"
+                onClick={() => {
+                  setParams(new URLSearchParams());
+                  setSearch("");
+                }}
+              >
+                Clear filters
+              </button>
+              <p>
+                Pending invitations remain separate from registered identities.{" "}
+                <Link to="/pms/members#invitations">Manage invitations</Link>
+              </p>
+            </div>
+          )}
+          {countFilters > 0 && (
+            <div className="pd-active-filters">
+              {[...params.entries()]
+                .filter(([key]) => !["page", "layout", "sort"].includes(key))
+                .map(([key, value]) => (
+                  <button key={key} onClick={() => change(key, "")}>
+                    {key.replace(/_/g, " ")}: {value}
+                    <X size={11} />
+                  </button>
+                ))}
+            </div>
+          )}
+          {!!selected.length && (
+            <div className="pd-bulk-actions">
+              <strong>{selected.length} selected</strong>
+              <button disabled={!canTeam} onClick={() => setAdding(true)}>
+                <Users size={15} />
+                Add to team
+              </button>
+              <button
+                onClick={() => navigate(directoryTaskHref("people", selected))}
+              >
+                Assign task
+              </button>
+              <button onClick={() => setSelected([])}>Clear selection</button>
+            </div>
+          )}
+          {people.isLoading ? (
+            <div
+              className="pd-card-grid"
+              role="status"
+              aria-label="Loading directory"
+            >
+              {Array.from({ length: 12 }, (_, i) => (
+                <div className="pd-card-skeleton" key={i} />
+              ))}
+            </div>
+          ) : (
+            <div className={`pd-card-grid ${layout === "list" ? "list" : ""}`}>
+              {people.data?.items.map((person) => (
+                <DirectoryPersonCard
+                  key={person.id}
+                  person={person}
+                  selected={selected.includes(person.id)}
+                  canTeam={canTeam}
+                  profileHref={`/pms/people/${person.id}?returnTo=${encodeURIComponent(backTo)}`}
+                  onSelect={() => {
+                    setSelected((ids) =>
+                      ids.includes(person.id)
+                        ? ids.filter((id) => id !== person.id)
+                        : ids.length < 100
+                          ? [...ids, person.id]
+                          : ids,
+                    );
+                    if (selected.length >= 100 && !selected.includes(person.id))
+                      setError("Select at most 100 people per bulk operation.");
+                  }}
+                  onTeam={() => {
+                    setSelected([person.id]);
+                    setAdding(true);
+                  }}
+                  onAssign={() =>
+                    navigate(directoryTaskHref("people", [person.id]))
+                  }
+                />
+              ))}
+            </div>
+          )}
+          {people.data && !people.data.items.length && (
+            <div className="pd-empty">
+              <Users />
+              <h2>No people match these filters</h2>
+              <p>Try another name, workspace, team, batch, or status.</p>
+              <button
+                className="pd-button"
+                onClick={() => setParams(new URLSearchParams())}
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+          <footer className="pd-results-footer">
+            <span>
+              {people.data?.total ?? 0} matching registered people
+              {people.isFetching && !people.isLoading ? " · Updating…" : ""}
+            </span>
+            <DirectoryPagination
+              page={page}
+              pages={people.data?.pages || 1}
+              onChange={(value) => change("page", String(value))}
+            />
+          </footer>
+        </section>
+        <DirectoryGroupsPanel
+          reference={ref}
+          onNewTeam={() => setTeamEditor({})}
+          onEditTeam={(id, workspace) => setTeamEditor({ id, workspace })}
+          forcedTab={mobileTab === "people" ? undefined : mobileTab}
+          onTabChange={setMobileTab}
+        />
+      </div>
+      <TeamEditor
+        open={!!teamEditor}
+        onClose={() => setTeamEditor(null)}
+        reference={ref}
+        initialWorkspace={
+          teamEditor?.workspace ||
+          Number(params.get("workspace_id")) ||
+          undefined
+        }
+        teamId={teamEditor?.id}
+      />
+      <AddPeopleToTeam
+        open={adding}
+        onClose={() => setAdding(false)}
+        personIds={selected}
+        reference={ref}
+      />
+      <DirectoryImport
+        open={importing}
+        onClose={() => setImporting(false)}
+        reference={ref}
+      />
+      <PeopleDialog
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        title="Save people view"
+        description="Store this directory's filters and layout against your own account."
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError("");
+            try {
+              await api.post(directoryRoot + "/views", {
+                name: viewName,
+                filters: query,
+              });
+              await views.refetch();
+              setSaveOpen(false);
+              setViewName("");
+            } catch (e) {
+              setError(workspaceError(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <label>
+            View name
+            <input
+              aria-label="People view name"
+              required
+              maxLength={120}
+              value={viewName}
+              onChange={(e) => setViewName(e.target.value)}
+            />
+          </label>
+          {error && (
+            <p role="alert" className="pd-error">
+              {error}
+            </p>
+          )}
+          <div className="pd-dialog-actions">
+            <button className="pd-primary" disabled={busy}>
+              <Save size={15} />
+              Save view
+            </button>
+          </div>
+        </form>
+        <h3>My saved views</h3>
+        {views.data?.map((view) => (
+          <div className="pd-saved-view" key={view.id}>
+            {view.name}
+            <button
+              onClick={async () => {
+                try {
+                  await api.delete(`${directoryRoot}/views/${view.id}`);
+                  await views.refetch();
+                } catch (e) {
+                  setError(workspaceError(e));
+                }
+              }}
+            >
+              Delete view
+            </button>
+          </div>
+        ))}
+      </PeopleDialog>
+    </div>
+  );
 }

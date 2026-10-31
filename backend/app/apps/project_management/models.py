@@ -843,7 +843,17 @@ class PMSWorkspaceTeam(Base):
     workspace_id = Column(Integer, ForeignKey("pms_workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(120), nullable=False)
     alias = Column(String(60), nullable=False)
-    member_ids_json = Column(Text, nullable=False, default="[]")
+    member_ids_json = Column(Text, nullable=False, default="[]")  # Compatibility cache for existing consumers.
+    description = Column(Text, nullable=False, default="", server_default="")
+    lead_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    visibility = Column(String(20), nullable=False, default="workspace", server_default="workspace")
+    members = relationship("PMSWorkspaceTeamMember", cascade="all, delete-orphan", lazy="select")
+
+
+class PMSWorkspaceTeamMember(Base):
+    __tablename__ = "pms_workspace_team_members"
+    team_id = Column(Integer, ForeignKey("pms_workspace_teams.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
 
 
 class PMSDirectConversation(Base):

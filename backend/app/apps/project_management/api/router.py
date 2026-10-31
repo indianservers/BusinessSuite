@@ -7256,3 +7256,6 @@ if is_app_enabled("hrms"):
 
 from ..task_studio import router as task_studio_router
 router.include_router(task_studio_router)
+
+from ..people_workspace import router as people_workspace_router
+router.include_router(people_workspace_router)

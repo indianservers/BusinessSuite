@@ -482,7 +482,7 @@ export default function TasksReferencePage() {
           </div>
         </header>
         {studio ? (
-          <TaskStudioPage key={route.taskId || "new"} />
+          <TaskStudioPage key={route.taskId || `new:${routeLocation.search}`} />
         ) : (
           <div className="tr-content">
             <main id="suite-main" tabIndex={-1}>

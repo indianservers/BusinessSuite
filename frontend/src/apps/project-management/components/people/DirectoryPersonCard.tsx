@@ -1,0 +1,174 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import * as Dropdown from "@radix-ui/react-dropdown-menu";
+import {
+  Users,
+  SquareArrowOutUpRight,
+  MoreHorizontal,
+  UserRound,
+  ClipboardList,
+  Mail,
+  Shield,
+} from "lucide-react";
+import { openPerson } from "./peopleTypes";
+import { type DirectoryPerson, initials } from "./peopleWorkspace";
+export function DirectoryAvatar({
+  person,
+  size = "normal",
+}: {
+  person: Pick<DirectoryPerson, "name" | "photo_url">;
+  size?: "normal" | "small" | "large";
+}) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [person.photo_url]);
+  return person.photo_url && !failed ? (
+    <img
+      className={`pd-avatar ${size}`}
+      src={person.photo_url}
+      alt={person.name}
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <span aria-label={person.name} className={`pd-avatar pd-initials ${size}`}>
+      {initials(person.name)}
+    </span>
+  );
+}
+export default function DirectoryPersonCard({
+  person,
+  selected,
+  onSelect,
+  onTeam,
+  onAssign,
+  canTeam,
+  profileHref,
+}: {
+  person: DirectoryPerson;
+  selected: boolean;
+  onSelect: () => void;
+  onTeam: () => void;
+  onAssign: () => void;
+  canTeam: boolean;
+  profileHref: string;
+}) {
+  const active = person.status === "active";
+  const tags = [
+    person.classification,
+    ...person.batches.slice(0, 1).map((b) => b.name),
+    ...person.teams.slice(0, 1).map((t) => t.name),
+    ...person.skills.slice(0, 1),
+    ...(person.department ? [person.department] : []),
+  ]
+    .filter(Boolean)
+    .slice(0, 3);
+  return (
+    <article className={`pd-person-card ${selected ? "selected" : ""}`}>
+      <div className="pd-person-body">
+        <Link to={profileHref} className="pd-person-photo">
+          <DirectoryAvatar person={person} />
+        </Link>
+        <div className="pd-person-identity">
+          <div>
+            <Link to={profileHref}>{person.name}</Link>
+            <span className={`pd-status ${active ? "active" : "inactive"}`}>
+              <i />
+              {active ? "Active" : person.status.replace(/_/g, " ")}
+            </span>
+          </div>
+          <p title={person.email}>
+            {person.classification}
+            {person.employee_code ? ` · ${person.employee_code}` : ""} ·{" "}
+            {person.email}
+          </p>
+          <div className="pd-tags">
+            {tags.map((tag, index) => (
+              <span key={`${tag}-${index}`}>{tag}</span>
+            ))}
+          </div>
+        </div>
+        <label className="pd-card-select">
+          <input
+            type="checkbox"
+            aria-label={`Select ${person.email}`}
+            checked={selected}
+            disabled={!active}
+            onChange={onSelect}
+          />
+          <span className="sr-only">Select for bulk actions</span>
+        </label>
+      </div>
+      <footer>
+        <button
+          type="button"
+          disabled={!active || !canTeam}
+          title={
+            !canTeam
+              ? "Team membership changes require a workspace administrator"
+              : "Add to a workspace team"
+          }
+          onClick={onTeam}
+        >
+          <Users size={14} />
+          Add to team
+        </button>
+        <button
+          type="button"
+          disabled={!active}
+          title={
+            !active
+              ? "Reactivate the account before assigning new work"
+              : "Open full-page task creation"
+          }
+          onClick={onAssign}
+        >
+          <SquareArrowOutUpRight size={13} />
+          Assign task
+        </button>
+        <Dropdown.Root>
+          <Dropdown.Trigger
+            className="pd-more"
+            aria-label={`More actions for ${person.name}`}
+          >
+            <MoreHorizontal size={17} />
+          </Dropdown.Trigger>
+          <Dropdown.Portal>
+            <Dropdown.Content className="pd-dropdown" sideOffset={5}>
+              <Dropdown.Item asChild>
+                <Link to={profileHref}>
+                  <UserRound size={15} />
+                  View profile
+                </Link>
+              </Dropdown.Item>
+              <Dropdown.Item asChild>
+                <Link to={profileHref + "&tab=tasks"}>
+                  <ClipboardList size={15} />
+                  View assignments
+                </Link>
+              </Dropdown.Item>
+              <Dropdown.Item asChild>
+                <a href={`mailto:${encodeURIComponent(person.email)}`}>
+                  <Mail size={15} />
+                  Compose email
+                </a>
+              </Dropdown.Item>
+              <Dropdown.Separator />
+              {person.can_manage ? (
+                <Dropdown.Item
+                  className="pd-manage-person"
+                  onSelect={() => openPerson({ userId: person.id })}
+                >
+                  <Shield size={15} />
+                  Manage person
+                </Dropdown.Item>
+              ) : (
+                <p className="pd-menu-note">
+                  Editing requires permission to manage this person.
+                </p>
+              )}
+            </Dropdown.Content>
+          </Dropdown.Portal>
+        </Dropdown.Root>
+      </footer>
+    </article>
+  );
+}

@@ -17,6 +17,7 @@ export default function AppLayout() {
   const location = useLocation();
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
+  const isPeopleDirectory = location.pathname === "/pms/people" || location.pathname === "/pms/directory" || /^\/pms\/people\/\d+$/.test(location.pathname);
   const isMessaging = /^\/(pms|crm|hrms|srm|fam)\/messages\/?$/.test(location.pathname);
   const isPosTerminal = location.pathname === "/srm/pos" || location.pathname === "/srm/pos/terminal";
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -60,9 +61,9 @@ export default function AppLayout() {
         }`}
       >
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main id="suite-main" tabIndex={-1} className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
-          {isPosTerminal || isMessaging ? null : <Breadcrumbs />}
-          {!isMessaging && <WorkspaceEnhancements terminal={isPosTerminal} />}
+        <main id="suite-main" tabIndex={-1} className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPeopleDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+          {isPosTerminal || isMessaging || isPeopleDirectory ? null : <Breadcrumbs />}
+          {!isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
@@ -70,7 +71,7 @@ export default function AppLayout() {
         <BackToTop />
       </div>
       <SessionTimeoutWarning />
-      <PMSAssistant />
+      {!isPeopleDirectory && <PMSAssistant />}
 
       {/* Mobile overlay */}
       {sidebarOpen && (

@@ -1275,3 +1275,38 @@
 .ts-modal[role="dialog"] {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
+
+.ts-execution-choice,
+.ts-job {
+  padding: 14px;
+  border: 1px solid #e7e2fc;
+  border-radius: 12px;
+  background: #faf8ff;
+  margin-bottom: 14px;
+}
+.ts-execution-choice select {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd5f8;
+  border-radius: 8px;
+  background: white;
+  margin: 6px 0;
+}
+.ts-execution-choice p,
+.ts-job small {
+  font-size: 12px;
+  color: #66618b;
+}
+.ts-job {
+  display: grid;
+  gap: 10px;
+}
+.ts-job progress {
+  width: 100%;
+  accent-color: #792bff;
+}
+.ts-job a {
+  color: #7427ef;
+  text-decoration: underline;
+}

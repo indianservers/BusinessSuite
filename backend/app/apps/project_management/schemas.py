@@ -652,6 +652,8 @@ class PMSTaskUpdate(BaseModel):
 
 
 class PMSTaskResponse(PMSTaskBase):
+    # Managed batch execution rows can exceed the interactive composer limit.
+    assignee_user_ids: Optional[list[int]] = None
     id: int
     project_id: int
     board_id: Optional[int] = None

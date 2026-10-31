@@ -75,6 +75,8 @@ type Group = {
   name: string;
   member_ids: number[];
   excluded_count: number;
+  member_count?: number;
+  population_count?: number;
 };
 type Selection = {
   people: number[];
@@ -107,6 +109,7 @@ type Draft = {
   assignment: Selection;
   task_key: string;
   custom_fields: FieldDraft;
+  execution_mode?: "shared" | "individual";
 };
 type Detail = {
   task: PMSTask;
@@ -114,6 +117,7 @@ type Detail = {
   version: string;
   can_edit: boolean;
   protected_ids: number[];
+  protected_count?: number;
   retained_people?: Person[];
 };
 const base = "/project-management/task-studio";
@@ -187,6 +191,7 @@ function PeoplePicker({
   disabled = false,
   protectedIds = [],
   projectId,
+  reviewers = false,
 }: {
   label: string;
   people: Person[];
@@ -196,8 +201,53 @@ function PeoplePicker({
   disabled?: boolean;
   protectedIds?: number[];
   projectId: number;
+  reviewers?: boolean;
 }) {
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [remote, setRemote] = useState<{
+    items: Person[];
+    selected: Person[];
+    pages: number;
+  }>();
+  const [pickerError, setPickerError] = useState("");
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      if (projectId)
+        api
+          .get(`${base}/people`, {
+            params: {
+              project_id: projectId,
+              q,
+              page,
+              selected: value.slice(0, 100).join(","),
+              reviewers,
+            },
+          })
+          .then((r) => {
+            if (active) {
+              setRemote(r.data);
+              setPickerError("");
+            }
+          })
+          .catch((e) => {
+            if (active) setPickerError(workspaceError(e));
+          });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [projectId, q, page, value.join(","), reviewers, retry]);
+  const known = [
+    ...new Map(
+      [...people, ...(remote?.items || []), ...(remote?.selected || [])].map(
+        (p) => [p.id, p],
+      ),
+    ).values(),
+  ];
   return (
     <div className="ts-picker">
       <details>
@@ -205,7 +255,7 @@ function PeoplePicker({
           <Search size={15} />
           <span>
             {single && value.length
-              ? people.find((p) => p.id === value[0])?.name ||
+              ? known.find((p) => p.id === value[0])?.name ||
                 `Person ${value[0]}`
               : label}
           </span>
@@ -215,10 +265,13 @@ function PeoplePicker({
           <input
             aria-label={`Search ${label}`}
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1);
+            }}
             placeholder="Name, email or role…"
           />
-          {people
+          {(remote?.items || people)
             .filter((p) =>
               `${p.name} ${p.email} ${p.role}`
                 .toLowerCase()
@@ -255,18 +308,45 @@ function PeoplePicker({
                 <ManagePersonButton userId={p.id} projectId={projectId} />
               </div>
             ))}
-          {!people.length && <p>No eligible people in this project.</p>}
+          {pickerError && (
+            <p role="alert">
+              {pickerError}
+              <button type="button" onClick={() => setRetry((v) => v + 1)}>
+                Retry
+              </button>
+            </p>
+          )}
+          {remote && remote.pages > 1 && (
+            <div>
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((v) => v - 1)}
+              >
+                Previous
+              </button>{" "}
+              Page {page} of {remote.pages}{" "}
+              <button
+                type="button"
+                disabled={page >= remote.pages}
+                onClick={() => setPage((v) => v + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          {remote?.items.length === 0 && <p>No eligible people match.</p>}
         </div>
       </details>
       <div className="ts-chips">
         {value.map((id) => (
           <span key={id}>
-            <Photo person={people.find((p) => p.id === id)} />
-            {people.find((p) => p.id === id)?.name || `Person ${id}`}
+            <Photo person={known.find((p) => p.id === id)} />
+            {known.find((p) => p.id === id)?.name || `Person ${id}`}
             <button
               type="button"
               disabled={disabled || protectedIds.includes(id)}
-              aria-label={`Remove ${people.find((p) => p.id === id)?.name || id} from ${label}`}
+              aria-label={`Remove ${known.find((p) => p.id === id)?.name || id} from ${label}`}
               onClick={() => onChange(value.filter((v) => v !== id))}
             >
               <X size={11} />
@@ -294,16 +374,41 @@ export default function TaskStudioPage() {
     start_date: "",
     due_date: params.get("dueDate") || "",
     story_points: "",
-    assignment: emptySelection(),
+    assignment: {
+      ...emptySelection(),
+      ...Object.fromEntries(
+        (["people", "teams", "batches"] as const).map((kind) => [
+          kind,
+          (params.get(kind) || "")
+            .split(",")
+            .map(Number)
+            .filter((id) => Number.isInteger(id) && id > 0),
+        ]),
+      ),
+    },
     task_key: `TSK-${crypto.randomUUID().slice(0, 12)}`,
     custom_fields: {},
   });
   const [draft, setDraft] = useState<Draft>(initial);
   const [saved, setSaved] = useState("");
   const [detail, setDetail] = useState<Detail>();
+  const [job, setJob] = useState<{
+    id: number;
+    task_id: number;
+    status: string;
+    total: number;
+    processed: number;
+    error?: string;
+  }>();
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [options, setOptions] = useState<Options>();
-  const [mode, setMode] = useState<"people" | "teams" | "batches">("people");
+  const [mode, setMode] = useState<"people" | "teams" | "batches">(
+    params.get("batches")
+      ? "batches"
+      : params.get("teams")
+        ? "teams"
+        : "people",
+  );
   const [groupSearch, setGroupSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -358,7 +463,15 @@ export default function TaskStudioPage() {
     setExtraDirty(false);
     allowNavigation.current = false;
     Promise.all([
-      api.get<StudioProject[]>(`${base}/projects`).then((r) => r.data),
+      api
+        .get<StudioProject[]>(`${base}/projects`, {
+          params: {
+            people: params.get("people") || undefined,
+            teams: params.get("teams") || undefined,
+            batches: params.get("batches") || undefined,
+          },
+        })
+        .then((r) => r.data),
       id
         ? api.get<Detail>(`${base}/tasks/${id}`).then((r) => r.data)
         : Promise.resolve(undefined),
@@ -427,7 +540,7 @@ export default function TaskStudioPage() {
     setOptions(undefined);
     api
       .get<Options>(`${base}/options`, {
-        params: { project_id: draft.projectId },
+        params: { project_id: draft.projectId, compact: true },
       })
       .then((r) => {
         if (active) setOptions(r.data);
@@ -564,7 +677,11 @@ export default function TaskStudioPage() {
       setError("Start date cannot be after due date.");
       return;
     }
-    if (excluded && !draft.assignment.allow_partial_groups) {
+    if (
+      draft.execution_mode !== "individual" &&
+      excluded &&
+      !draft.assignment.allow_partial_groups
+    ) {
       setError(
         "Review excluded group members and acknowledge assigning eligible members only.",
       );
@@ -586,6 +703,43 @@ export default function TaskStudioPage() {
           draft.story_points === "" ? null : Number(draft.story_points),
         custom_fields: draft.custom_fields,
       };
+      if (!id && draft.execution_mode === "individual") {
+        if (!draft.assignment.reviewer || !draft.due_date)
+          throw new Error(
+            "Choose a reviewer and due date for individual assignments.",
+          );
+        if (
+          draft.assignment.teams.length ||
+          (draft.assignment.people.length && draft.assignment.batches.length)
+        )
+          throw new Error(
+            "Choose batches or individual interns. Remove other selections first.",
+          );
+        if (files.length)
+          throw new Error(
+            "Save individual assignments first, then attach evidence to the parent task.",
+          );
+        const result = (
+          await api.post(
+            "/project-management/people-workspace/individual-tasks/" +
+              draft.projectId,
+            {
+              task,
+              people: draft.assignment.people,
+              batches: draft.assignment.batches,
+              reviewer_user_id: draft.assignment.reviewer,
+              request_key: draft.task_key,
+            },
+          )
+        ).data;
+        setJob(result);
+        setSaved(JSON.stringify(draft));
+        localStorage.removeItem(draftKey);
+        setNotice(
+          "Individual assignments published. Each intern has an independent execution and review record.",
+        );
+        return;
+      }
       let record: Detail;
       if (id || created.current) {
         record = (
@@ -742,7 +896,7 @@ export default function TaskStudioPage() {
           </button>
           <button
             className="tr-primary"
-            disabled={busy || !editable || !options?.can_edit}
+            disabled={busy || !!job || !editable || !options?.can_edit}
             onClick={() => void save()}
           >
             <Sparkles size={19} />
@@ -977,6 +1131,99 @@ export default function TaskStudioPage() {
                 title="2. Assignment"
                 sub="Assign this task to a person, team, or interns batch."
               >
+                {!id && (
+                  <div className="ts-execution-choice">
+                    <label>
+                      Execution mode
+                      <select
+                        aria-label="Execution mode"
+                        value={draft.execution_mode || "shared"}
+                        onChange={(e) =>
+                          set(
+                            "execution_mode",
+                            e.target.value as "shared" | "individual",
+                          )
+                        }
+                      >
+                        <option value="shared">
+                          Shared task � one task for selected collaborators
+                        </option>
+                        <option value="individual">
+                          Individual intern assignments � separate progress,
+                          submission and review
+                        </option>
+                      </select>
+                    </label>
+                    <p>
+                      {draft.execution_mode === "individual"
+                        ? "Choose linked intern batches or individual interns, a deadline and reviewer. Large batches are processed in resumable chunks of 500."
+                        : "Share this task with up to 100 collaborators. Groups use a snapshot of their eligible members."}
+                    </p>
+                  </div>
+                )}
+                {job && (
+                  <div className="ts-job" role="status">
+                    <strong>
+                      {job.status}: {job.processed} of {job.total} assignments
+                    </strong>
+                    <progress max={job.total} value={job.processed} />
+                    {job.error && <p role="alert">{job.error}</p>}
+                    {job.status !== "Completed" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          try {
+                            setJob(
+                              (
+                                await api.post(
+                                  `/project-management/people-workspace/assignment-jobs/${job.id}/continue`,
+                                )
+                              ).data,
+                            );
+                          } catch (e) {
+                            setError(workspaceError(e));
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        {job.status === "Failed"
+                          ? "Retry failed chunk"
+                          : "Continue next 500"}
+                      </button>
+                    )}
+                    <Link
+                      to={`/pms/tasks/${job.task_id}/classic`}
+                      onClick={() => {
+                        allowNavigation.current = true;
+                      }}
+                    >
+                      Open task and individual progress
+                    </Link>
+                    <Link
+                      to="/hrms/interns/tasks"
+                      onClick={() => {
+                        allowNavigation.current = true;
+                      }}
+                    >
+                      Open Intern Hub tracking
+                    </Link>
+                    <small>
+                      Committed chunks remain saved if you leave. Pending chunks
+                      are handled by the existing distribution worker or the
+                      Continue action.
+                    </small>
+                  </div>
+                )}
+                {(detail?.protected_count || 0) > 100 && (
+                  <p role="status">
+                    {detail?.protected_count} managed individual assignments.
+                    Edit task details here; use the execution panel or Batch
+                    controls for recipient progress and membership.
+                  </p>
+                )}
                 <div className="ts-assignment-cards">
                   {[
                     {
@@ -1059,7 +1306,12 @@ export default function TaskStudioPage() {
                               <input
                                 type="checkbox"
                                 checked={draft.assignment[mode].includes(g.id)}
-                                disabled={!g.member_ids.length}
+                                disabled={
+                                  draft.execution_mode === "individual" &&
+                                  mode === "batches"
+                                    ? !g.population_count
+                                    : !g.member_ids.length
+                                }
                                 onChange={(e) =>
                                   assign({
                                     [mode]: e.target.checked
@@ -1073,9 +1325,10 @@ export default function TaskStudioPage() {
                               <span>
                                 <strong>{g.name}</strong>
                                 <small>
-                                  {g.member_ids.length} eligible ·{" "}
-                                  {g.excluded_count} excluded (missing access,
-                                  inactive account, or outside your scope)
+                                  {g.member_count ?? g.member_ids.length}{" "}
+                                  eligible · {g.excluded_count} excluded
+                                  (missing access, inactive account, or outside
+                                  your scope)
                                 </small>
                               </span>
                             </label>
@@ -1184,6 +1437,7 @@ export default function TaskStudioPage() {
                     </label>
                     <PeoplePicker
                       label="Select reviewer"
+                      reviewers
                       people={people.filter((p) =>
                         options?.reviewers.includes(p.id),
                       )}
@@ -1547,7 +1801,7 @@ export default function TaskStudioPage() {
             <button
               className="tr-primary"
               type="submit"
-              disabled={busy || !editable || !options?.can_edit}
+              disabled={busy || !!job || !editable || !options?.can_edit}
             >
               {id ? "Save Changes" : "Create Task"}
             </button>
@@ -1561,7 +1815,16 @@ export default function TaskStudioPage() {
               </span>
               <div>
                 <h2>Assignment Summary</h2>
-                <small>{ids.length} assignees selected</small>
+                <small>
+                  {draft.execution_mode === "individual" &&
+                  selectedGroups.length
+                    ? "Whole batches selected; exact unique recipient count appears after publishing"
+                    : selectedGroups.some(
+                          (g) => (g.member_count || 0) > g.member_ids.length,
+                        )
+                      ? "Group preview (first 100); server validates all eligible members"
+                      : `${detail?.protected_count && detail.protected_count > 100 ? detail.protected_count : ids.length} assignees selected`}
+                </small>
                 <div className="ts-summary-photos">
                   {selectedPeople.slice(0, 5).map((p) => (
                     <Photo key={p.id} person={p} />
@@ -1719,6 +1982,7 @@ export default function TaskStudioPage() {
         open={adding}
         onClose={() => setAdding(false)}
         projectId={draft.projectId}
+        personIds={draft.assignment.people}
         workspaceId={options?.workspace_id}
         onAdded={(ids) => {
           setRevision((v) => v + 1);

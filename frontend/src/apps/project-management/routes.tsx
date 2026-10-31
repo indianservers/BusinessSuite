@@ -6,6 +6,7 @@ const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
 
 const ManagementHomePage = React.lazy(() => import("./pages/ManagementHomePage"));
 const MemberManagementPage = React.lazy(() => import("./pages/MemberManagementPage"));
+const PeopleDirectoryProfile = React.lazy(() => import("./pages/PeopleDirectoryProfile"));
 const PeopleDirectoryPage = React.lazy(() => import("./pages/PeopleManagementDirectory"));
 const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
 const AIOperatorPage = React.lazy(() => import("./pages/AIOperatorPage"));
@@ -80,6 +81,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
  {path:"pms/members",element:<MemberManagementPage/>},
  {path:"pms/projects/:projectId/members",element:<MemberManagementPage/>},
  {path:"pms/people",element:<PeopleDirectoryPage/>},
+ {path:"pms/people/:personId",element:<PeopleDirectoryProfile/>},
  {path:"pms/directory",element:<PeopleDirectoryPage/>},
  {path:"pms/people-work",element:<WorkforceOperationsPage/>},
  {path:"pms/my-notices",element:<MyNoticesPage/>},

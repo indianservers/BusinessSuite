@@ -568,6 +568,8 @@ export default function InternManagementPage({ page }: { page: Page }) {
       },
     });
   }
+  const directoryCreateOpened=useRef(false);
+  useEffect(()=>{if(options && new URLSearchParams(location.search).get("create")==="batch" && !directoryCreateOpened.current){directoryCreateOpened.current=true;newBatch();}},[options,location.search]);
   const choose = (id: number) =>
     setSelected((v) =>
       v.includes(id) ? v.filter((x) => x !== id) : [...v, id],

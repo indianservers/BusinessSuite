@@ -1,4 +1,4 @@
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
@@ -55,6 +55,8 @@ export default function UserAccountsPage() {
       description: role?.description || "", permission_ids: role?.permission_ids || [] });
     setReason(""); setVerification(""); setPermissionSearch(""); setError(""); setMessage("");
   }
+  const openedFromDirectory = useRef(false);
+  useEffect(()=>{if(allowed && options.data && url.get("create")==="1" && !openedFromDirectory.current){openedFromDirectory.current=true;open("create");}},[allowed,options.data,url]);
   function close() { if (!busy) { setEditor(null); setForm(current => ({ ...current, password: "" })); setVerification(""); } }
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -80,7 +82,7 @@ export default function UserAccountsPage() {
       }
       setEditor(null); setForm(current => ({ ...current, password: "" })); setVerification("");
       setMessage("Change saved and recorded in the audit history. Existing sessions were revoked where applicable.");
-      await Promise.all([qc.invalidateQueries({ queryKey: ["hrms-accounts"] }), qc.invalidateQueries({ queryKey: ["hrms-account-options"] }),
+      await Promise.all([qc.invalidateQueries({ queryKey: ["people-workspace"] }), qc.invalidateQueries({ queryKey: ["hrms-accounts"] }), qc.invalidateQueries({ queryKey: ["hrms-account-options"] }),
         qc.invalidateQueries({ queryKey: ["employee"] }), qc.invalidateQueries({ queryKey: ["employee-user-options"] })]);
     } catch (failure: any) {
       setError(typeof failure?.response?.data?.detail === "string" ? failure.response.data.detail : "Could not save this change. Check the values and try again.");

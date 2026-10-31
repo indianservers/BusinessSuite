@@ -265,6 +265,12 @@ def remove_member(workspace_id: int, member_id: int, db: Session = Depends(get_d
 
 
 def _unassign_workspace_member(db: Session, workspace_id: int, user_id: int):
+    import json
+    from .models import PMSWorkspaceTeam
+    for team in db.query(PMSWorkspaceTeam).filter_by(workspace_id=workspace_id).all():
+        team.members=[member for member in team.members if member.user_id!=user_id]
+        team.member_ids_json=json.dumps([identity for identity in json.loads(team.member_ids_json or "[]") if identity!=user_id])
+        if team.lead_user_id==user_id:team.lead_user_id=None
     tasks = db.query(PMSTask).join(PMSProject, PMSProject.id == PMSTask.project_id).filter(PMSProject.workspace_id == workspace_id).all()
     for task in tasks:
         if user_id in task.assignee_user_ids:
