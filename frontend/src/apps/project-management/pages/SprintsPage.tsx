@@ -1,3 +1,4 @@
+import SprintMoveBoard from "../components/SprintMoveBoard";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import type React from "react";
@@ -254,27 +255,7 @@ export default function SprintsPage() {
           </CardContent>
         </Card>
       </div>
-      <Card>
-        <CardHeader><CardTitle>Sprint backlog</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          {backlogTasks.slice(0, 12).map((task) => (
-            <div key={task.id} className="grid gap-2 rounded-md border p-3 text-sm md:grid-cols-[8rem_minmax(0,1fr)_10rem_6rem_12rem] md:items-center">
-              <span className="font-semibold text-muted-foreground">{task.task_key}</span>
-              <span className="min-w-0 truncate font-medium">{task.title}</span>
-              <Badge className={statusColor(task.status)}>{task.status}</Badge>
-              <span>{task.story_points ?? 0} pts</span>
-              <div className="flex flex-wrap gap-1">
-                {(task.tags || []).slice(0, 3).map((tag) => {
-                  const label = typeof tag === "string" ? tag : tag.name;
-                  return <Badge key={label} variant="outline" className="h-5 rounded px-1.5 text-[11px]">{label}</Badge>;
-                })}
-                {!task.tags?.length ? <span className="text-xs text-muted-foreground">No tags</span> : null}
-              </div>
-            </div>
-          ))}
-          {!backlogTasks.length ? <EmptyState text="No tasks found for this project backlog." /> : null}
-        </CardContent>
-      </Card>
+      {projectId && <Card><CardHeader><CardTitle>Sprint planning</CardTitle></CardHeader><CardContent><SprintMoveBoard key={projectId} projectId={Number(projectId)} onSaved={() => void loadProject(Number(projectId))} /></CardContent></Card>}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sprints.map((sprint) => (
           <Card key={sprint.id}>

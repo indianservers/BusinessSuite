@@ -58,7 +58,7 @@ const KanbanBoard: React.FC = () => {
 
   const { board, setBoard, loading, setLoading } = useKanbanStore();
   const { selectedProject, setSelectedProject } = useProjectStore();
-  const { tasks, setTasks, addTask, updateTask } = useTaskStore();
+  const { tasks, setTasks, addTask } = useTaskStore();
 
   const [activeId, setActiveId] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -73,11 +73,7 @@ const KanbanBoard: React.FC = () => {
   // Configure sensors for drag & drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      distance: 8,
-      activationConstraint: {
-        delay: 100,
-        tolerance: 5,
-      },
+      activationConstraint: { distance: 6 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -205,17 +201,9 @@ const KanbanBoard: React.FC = () => {
         position: targetPosition,
       });
 
-      // Update local state optimistically
-      const task = tasks.find((t) => t.id === activeTaskId);
-      if (task) {
-        updateTask({
-          ...task,
-          column_id: targetColumnId,
-          position: targetPosition,
-        });
-      }
+      await loadBoard(true);
     } catch (err: any) {
-      setError("Failed to reorder task");
+      setError(err?.response?.data?.detail || "Failed to reorder task");
       console.error("Error reordering task:", err);
     }
   };
@@ -346,6 +334,7 @@ const KanbanBoard: React.FC = () => {
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveId(null)}
         >
           <div className="flex min-h-[650px] gap-4">
             {board.columns?.map((column) => (

@@ -1,3 +1,5 @@
+import MoveBoard from "@/components/interaction/MoveBoard";
+import { api } from "@/services/api";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -164,6 +166,14 @@ export default function WorkloadPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {data && <Card><CardHeader><CardTitle>Reassign work</CardTitle></CardHeader><CardContent><MoveBoard label="Resource assignments" reorder={false} groups={data.rows.map(r => ({ id: String(r.user_id), label: r.user_name }))} items={data.rows.flatMap(r => [...new Map(r.cells.flatMap(c => c.tasks).map(t => [t.id, t])).values()].map(t => ({ id: `${r.user_id}:${t.id}`, label: t.title, group: String(r.user_id), content: <span className="text-xs text-muted-foreground">{t.task_key} · {t.status}</span> })))} onMove={async ({ item, group }) => {
+        if (item.group === group) return;
+        const [source, taskId] = String(item.id).split(":").map(Number);
+        const { data: current } = await api.get(`/project-management/my-work/tasks/${taskId}/assignment`);
+        await api.put(`/project-management/my-work/tasks/${taskId}/assignment`, { version: current.version, people: [...new Set([...current.assignment.people.filter((id: number) => id !== source), Number(group)])], teams: current.group_targets.filter((g: {kind: string}) => g.kind === "teams").map((g: {id: number}) => g.id), batches: current.group_targets.filter((g: {kind: string}) => g.kind === "batches").map((g: {id: number}) => g.id), notify: true });
+        load();
+      }} /></CardContent></Card>}
 
       {selectedCell ? (
         <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/20 p-4" onClick={() => setSelectedCell(null)}>

@@ -1,3 +1,5 @@
+import MoveBoard from "@/components/interaction/MoveBoard";
+import { api } from "@/services/api";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -201,6 +203,8 @@ export default function OrgChartPage() {
           ))}
         </svg>
       </div>
+
+      {!!nodes.length && <details className="rounded-lg border bg-card p-4"><summary>Edit position reporting relationships</summary><p className="text-sm text-muted-foreground my-3">Move a position into its manager's lane. This updates the position hierarchy. Cycles and cross-company moves are rejected.</p><MoveBoard label="Position reporting" reorder={false} groups={[{id:"root",label:"No manager"},...nodes.map(n=>({id:String(n.position_id),label:n.title}))]} items={nodes.map(n=>({id:n.position_id,label:`${n.title} · ${n.employee_name||"Vacant"}`,group:n.manager_position_id?String(n.manager_position_id):"root"}))} onMove={async({item,group})=>{await api.put(`/company/positions/${item.id}/reporting`,{manager_position_id:group==="root"?null:Number(group),previous_manager_position_id:item.group==="root"?null:Number(item.group)});await org.refetch();}}/></details>}
 
       <div className="flex flex-wrap gap-2 text-sm">
         <Badge variant="outline">{nodes.length} positions</Badge>

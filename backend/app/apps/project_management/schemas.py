@@ -112,6 +112,8 @@ class PMSProjectUpdate(BaseModel):
 
 
 class PMSProjectResponse(PMSProjectBase):
+    can_manage_tasks: bool = False
+    can_upload_files: bool = False
     can_manage_members: bool = False
     can_edit_project: bool = False
     id: int
@@ -807,6 +809,7 @@ class WorkloadResponse(BaseModel):
 
 # ============= FILE ASSET SCHEMAS =============
 class PMSFileAssetBase(BaseModel):
+    folder_id: Optional[int] = None
     file_name: str = Field(..., min_length=1, max_length=240)
     original_name: str = Field(..., min_length=1, max_length=240)
     mime_type: Optional[str] = None
@@ -823,6 +826,8 @@ class PMSFileAssetCreate(PMSFileAssetBase):
 
 
 class PMSFileAssetUpdate(BaseModel):
+    previous_folder_id: Optional[int] = None
+    folder_id: Optional[int] = None
     visibility: Optional[str] = None
     file_name: Optional[str] = None
 
@@ -867,6 +872,9 @@ class PMSCommentUpdate(BaseModel):
 
 
 class PMSCommentResponse(PMSCommentBase):
+    is_resolved: bool = False
+    reactions: List[dict[str, Any]] = []
+    author: Optional[dict[str, Any]] = None
     id: int
     author_user_id: Optional[int] = None
     project_id: Optional[int] = None

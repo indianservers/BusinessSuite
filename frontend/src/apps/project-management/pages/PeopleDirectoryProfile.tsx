@@ -1,4 +1,8 @@
-import { useState } from "react";
+import PeopleAction from "../components/people/PeopleAction";
+import AddPeopleMemberships from "../components/people/AddPeopleMemberships";
+import { useMembershipOptions } from "../components/people/peopleMemberships";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/authStore";
 import {
   Link,
   useNavigate,
@@ -32,6 +36,10 @@ import { workspaceError } from "./workspaceTypes";
 import "./PeopleWorkspace.css";
 type Profile = {
   person: DirectoryPerson;
+  is_intern?: boolean;
+  counts?: Record<string, number | null>;
+  access_issues?: string[];
+  current_projects?: { id: number; name: string; status: string; project_key: string; workspace_name?: string; role?: string; relationships?: string[] }[];
   can_manage: boolean;
   employment_status?: string;
   stats?: {
@@ -47,19 +55,26 @@ type Profile = {
   restricted_reason?: string;
 };
 export default function PeopleDirectoryProfile() {
+  const viewer = useAuthStore(state => state.user);
   const { personId } = useParams();
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") || "overview";
   const page = Number(params.get("page") || 1);
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
+  const [membershipMode, setMembershipMode] = useState<"workspace" | "project" | null>(null);
+  const destinations = useMembershipOptions();
+  const taskFilter = params.get("task_filter") || "all";
+  const keyBase = ["people-workspace", "profile", viewer?.id, viewer?.access?.companyId, personId];
+  const overview = useQuery({queryKey:[...keyBase,"overview",1,"all"], queryFn:()=>directoryGet<Profile>(`/people/${personId}`,{section:"overview",page:1,page_size:20}), staleTime:30000});
   const rawBack = params.get("returnTo");
   const back = rawBack?.startsWith("/pms/people?") ? rawBack : "/pms/people";
   const profile = useQuery({
-    queryKey: ["people-workspace", "profile", personId, tab, page],
+    queryKey: [...keyBase, tab, page, tab === "tasks" ? taskFilter : "all"],
     queryFn: () =>
       directoryGet<Profile>(`/people/${personId}`, {
         section: tab,
+        task_filter: tab === "tasks" ? taskFilter : "all",
         page,
         page_size: 20,
       }),
@@ -69,8 +84,14 @@ export default function PeopleDirectoryProfile() {
     queryFn: () => directoryGet<DirectoryReference>("/reference"),
     staleTime: 30000,
   });
-  const data = profile.data;
+  const data = profile.data || overview.data;
   const person = data?.person;
+  const isIntern = data?.is_intern ?? person?.classification.toLowerCase() === "intern";
+  useEffect(() => {
+    if (person && !isIntern && tab === "batches") setParams(previous => {
+      const next = new URLSearchParams(previous); next.delete("tab"); next.delete("page"); return next;
+    }, { replace: true });
+  }, [person, isIntern, tab, setParams]);
   return (
     <section className="people-workspace pd-profile">
       <nav className="pd-breadcrumb">
@@ -81,7 +102,7 @@ export default function PeopleDirectoryProfile() {
         <span>›</span>
         <strong>{person?.name || "Person profile"}</strong>
       </nav>
-      {profile.isLoading && (
+      {!person && profile.isLoading && (
         <div role="status" className="pd-profile-skeleton">
           Loading permitted profile information…
         </div>
@@ -128,24 +149,20 @@ export default function PeopleDirectoryProfile() {
                 Editing requires permission to manage this person.
               </span>
             )}
-            <button
-              className="pd-button"
-              disabled={
-                person.status !== "active" || !reference.data?.can_manage_people
-              }
-              onClick={() => setAdding(true)}
-            >
+            <PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding team memberships." : !reference.data?.can_manage_people ? "Adding team members requires workspace administration access." : undefined} onClick={() => setAdding(true)}>
               <Users size={16} />
               Add to team
-            </button>
-            <button
+            </PeopleAction>
+            <PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding memberships." : !destinations.data?.workspaces.length ? (destinations.isLoading ? "Loading workspaces…" : "No workspaces you can manage.") : undefined} onClick={()=>setMembershipMode("workspace")}>Add to workspace</PeopleAction>
+            <PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding memberships." : !destinations.data?.projects.length ? (destinations.isLoading ? "Loading projects…" : "No projects you can manage.") : undefined} onClick={()=>setMembershipMode("project")}>Add to project</PeopleAction>
+            <PeopleAction
               className="pd-primary"
-              disabled={person.status !== "active"}
+              reason={person.status !== "active" ? "Reactivate the account before assigning work." : undefined}
               onClick={() => navigate(directoryTaskHref("people", [person.id]))}
             >
               <Plus size={15} />
               Assign task
-            </button>
+            </PeopleAction>
             <a
               className="pd-button"
               href={`mailto:${encodeURIComponent(person.email)}`}
@@ -154,7 +171,8 @@ export default function PeopleDirectoryProfile() {
               Compose email
             </a>
           </div>
-          <nav className="pd-profile-tabs">
+          {!!data.access_issues?.length && <section className="mb-4 rounded-lg border border-amber-400 p-4" aria-label="Access needs attention"><h2 className="font-semibold">Access needs attention</h2>{data.access_issues.map(issue=><p key={issue}>{issue}</p>)}{(viewer?.is_superuser || viewer?.access?.isAccessAdmin) ? <Link className="pd-button" to={`/admin/control/users/${person.id}`}>Review organization access</Link> : <p>Contact your organization access administrator to resolve this.</p>}</section>}
+          <nav className="pd-profile-tabs" aria-label="Profile sections">
             {[
               "overview",
               "teams",
@@ -162,39 +180,42 @@ export default function PeopleDirectoryProfile() {
               "projects",
               "tasks",
               "activity",
-            ].map((value) => (
+            ].filter(value => value !== "batches" || isIntern).map((value) => (
               <button
                 key={value}
                 className={tab === value ? "active" : ""}
+                aria-current={tab === value ? "page" : undefined}
                 onClick={() =>
                   setParams((previous) => {
                     const next = new URLSearchParams(previous);
                     next.set("tab", value);
-                    next.delete("page");
+                    next.delete("page"); next.delete("task_filter");
                     return next;
                   })
                 }
               >
-                {value === "batches" ? "Intern batch" : value}
+                {value === "batches" ? "Intern batch" : value}{data.counts?.[value] != null ? ` (${data.counts[value]})` : ""}
               </button>
             ))}
           </nav>
-          <div className="pd-profile-content">
+          <div className="pd-profile-content" aria-busy={profile.isFetching}>
+            {!profile.data && profile.isFetching && <p role="status">Loading {tab === "batches" ? "intern batch" : tab}…</p>}
+            {profile.data && <>
             {tab === "overview" && (
               <>
                 <div className="pd-overview-stats">
                   {[
-                    ["Assigned tasks", data.stats?.total],
-                    ["Pending", data.stats?.pending],
-                    ["Completed", data.stats?.completed],
-                    ["Overdue", data.stats?.overdue],
-                  ].map(([label, value]) => (
+                    ["Assigned tasks", data.stats?.total, "all"],
+                    ["Pending", data.stats?.pending, "pending"],
+                    ["Completed", data.stats?.completed, "completed"],
+                    ["Overdue", data.stats?.overdue, "overdue"],
+                  ].map(([label, value, filter]) => (
                     <button
                       key={label}
                       onClick={() =>
                         setParams((previous) => {
                           const next = new URLSearchParams(previous);
-                          next.set("tab", "tasks");
+                          next.set("tab", "tasks"); next.set("task_filter", String(filter)); next.delete("page");
                           return next;
                         })
                       }
@@ -249,7 +270,7 @@ export default function PeopleDirectoryProfile() {
                         {team.name}
                       </Link>
                     ))}
-                    {person.batches.map((batch) => (
+                    {isIntern && person.batches.map((batch) => (
                       <Link
                         className="pd-project-link"
                         key={batch.id}
@@ -258,6 +279,11 @@ export default function PeopleDirectoryProfile() {
                         {batch.name}
                       </Link>
                     ))}
+                    <h3 className="mt-4">Current projects</h3>
+                    {data.current_projects?.map(project => <Link key={project.id} className="pd-project-link" to={`/pms/projects/${project.id}`}>
+                      <Briefcase size={16} /><span><strong>{project.name}</strong><small className="block">{project.project_key} · {project.status}{project.workspace_name ? ` · ${project.workspace_name}` : ""} · {project.role}</small><small className="block">{project.relationships?.join(" · ")}</small></span>
+                    </Link>)}
+                    {!data.current_projects?.length && <p>No current projects assigned. <PeopleAction className="pd-button" reason={!destinations.data?.projects.length ? "No projects you can manage." : person.status !== "active" ? "Reactivate this account first." : undefined} onClick={()=>setMembershipMode("project")}>Add to project</PeopleAction></p>}
                     <p className="pd-scope-note">
                       Private HR documents and identity records are not part of
                       this directory profile.
@@ -268,18 +294,21 @@ export default function PeopleDirectoryProfile() {
             )}
             {["teams", "batches"].includes(tab) && (
               <>
-                {data.items?.map((group) => (
-                  <Link
-                    className="pd-project-link"
-                    key={group.id}
-                    to={`/pms/people?${tab === "teams" ? "team_id" : "batch_id"}=${group.id}`}
-                  >
-                    <Users size={16} />
-                    {group.name}
-                  </Link>
-                ))}
+                {(tab !== "batches" || isIntern) && data.items?.map(group => <article key={group.id} className="mb-3 rounded-lg border p-4">
+                  <Link className="pd-project-link" to={`/pms/people?${tab === "teams" ? "team_id" : "batch_id"}=${group.id}`}><Users size={16} /><strong>{group.name}</strong></Link>
+                  {group.description && <p>{group.description}</p>}
+                  {tab === "teams" ? <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <div><dt>Workspace</dt><dd>{group.workspace_name || "Not recorded"}</dd></div>
+                    <div><dt>Team lead</dt><dd>{group.lead_name || "Not assigned"}</dd></div>
+                    <div><dt>Members</dt><dd>{group.members}</dd></div>
+                    <div><dt>Visibility</dt><dd>{group.visibility}</dd></div>
+                  </dl> : <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {[["Batch code", group.code], ["Program", group.program], ["Status", group.status], ["Start date", group.start_date], ["End date", group.end_date], ["Department", group.department], ["Manager", group.manager_name], ["Mentor", group.mentor_name], ["Coordinator", group.coordinator_name]].filter(([,value]) => value).map(([label,value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                    {group.project_name && <div><dt>Project</dt><dd><Link to={`/pms/projects/${group.project_id}`}>{group.project_name}</Link></dd></div>}
+                  </dl>}
+                </article>)}
                 {!data.items?.length && (
-                  <p>No visible memberships in this view.</p>
+                  <div><p>{tab === "teams" ? "No team memberships recorded." : "No active intern batch membership recorded."}</p>{tab === "teams" ? <PeopleAction className="pd-button" reason={!reference.data?.can_manage_people ? "Team changes require workspace administration access." : person.status !== "active" ? "Reactivate this account first." : undefined} onClick={()=>setAdding(true)}>Add to team</PeopleAction> : reference.data?.can_manage_batches && <Link className="pd-button" to="/hrms/interns/batches">Manage intern batches</Link>}</div>
                 )}
               </>
             )}
@@ -291,10 +320,12 @@ export default function PeopleDirectoryProfile() {
                   to={`/pms/projects/${project.id}`}
                 >
                   <Briefcase size={16} />
-                  {project.name}
-                  <small>{project.status}</small>
+                  <span><strong>{project.name}</strong><small className="block">{project.project_key} · {project.status} · {project.role}{project.workspace_name ? ` · ${project.workspace_name}` : ""}</small>
+                    <small className="block">{project.relationships?.join(" · ")}</small>
+                    {(project.start_date || project.due_date) && <small className="block">{project.start_date ? `Starts ${project.start_date}` : ""}{project.due_date ? ` · Due ${project.due_date}` : ""}</small>}</span>
                 </Link>
               ))}
+            {tab === "tasks" && <label className="mb-3 block">Task status <select aria-label="Filter profile tasks" value={taskFilter} onChange={event=>setParams(previous=>{const next=new URLSearchParams(previous);next.set("task_filter",event.target.value);next.delete("page");return next;})}><option value="all">All assigned tasks</option><option value="pending">Pending</option><option value="completed">Completed</option><option value="overdue">Overdue</option></select></label>}
             {tab === "tasks" &&
               data.items?.map((task) => (
                 <Link
@@ -328,9 +359,12 @@ export default function PeopleDirectoryProfile() {
             )}
             {["projects", "tasks", "activity"].includes(tab) && (
               <>
-                <p className="pd-scope-note">
+                {!data.items?.length && !data.restricted_reason && <p>{tab === "projects" ? "No projects assigned to this person yet." : tab === "tasks" ? `No ${taskFilter === "all" ? "assigned" : taskFilter} tasks recorded.` : "No membership activity recorded."}</p>}
+                {!data.items?.length && tab === "projects" && <PeopleAction className="pd-button" reason={!destinations.data?.projects.length ? "No projects you can manage." : person.status !== "active" ? "Reactivate the account first." : undefined} onClick={()=>setMembershipMode("project")}>Add to project</PeopleAction>}
+                {!data.items?.length && tab === "tasks" && <PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before assigning work." : undefined} onClick={()=>navigate(directoryTaskHref("people",[person.id]))}>Assign task</PeopleAction>}
+                {!viewer?.is_superuser && <p className="pd-scope-note">
                   Only records in your authorized scope are shown.
-                </p>
+                </p>}
                 <DirectoryPagination
                   page={page}
                   pages={data.pages || 1}
@@ -344,7 +378,9 @@ export default function PeopleDirectoryProfile() {
                 />
               </>
             )}
+            </>}
           </div>
+          <AddPeopleMemberships mode={membershipMode} personIds={[person.id]} onClose={()=>setMembershipMode(null)} onAdded={()=>{}} />
           <AddPeopleToTeam
             open={adding}
             onClose={() => setAdding(false)}

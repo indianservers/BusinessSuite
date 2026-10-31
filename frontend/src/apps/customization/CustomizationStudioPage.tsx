@@ -1,3 +1,4 @@
+import LayoutArrangement from "./LayoutArrangement";
 import type React from "react";
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -91,11 +92,11 @@ function Layouts() {
   const { toast } = useToast();
   const refresh = useRefresh("customization-layouts");
   const addSection = useMutation({
-    mutationFn: (id: number) => customizationApi.addLayoutSection(id, { name: "Commercial Details", fields_json: ["project_name", "budget", "status"] }),
+    mutationFn: (id: number) => customizationApi.addLayoutSection(id, { title: "Commercial Details" }),
     onSuccess: () => { toast({ title: "Layout section added" }); refresh(); },
     onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
-  return <GenericSection title="Layout Builder" description="Sections, field order, required markers, hidden/read-only placeholders." queryKey="customization-layouts" queryFn={customizationApi.layouts} action="Create Layout" mutation={() => customizationApi.createLayout({ module_name: "partner_projects", name: "Default Detail", layout_type: "detail", is_default: true })} actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || addSection.isPending} onClick={() => addSection.mutate(Number(item.id))}>Add Section</Button>} />;
+  return <GenericSection title="Layout Builder" description="Sections, field order, required markers, hidden/read-only placeholders." queryKey="customization-layouts" queryFn={customizationApi.layouts} action="Create Layout" mutation={() => customizationApi.createLayout({ module_name: "partner_projects", name: "Default Detail", layout_type: "detail", is_default: true })} actions={(item) => <><Button size="sm" variant="outline" disabled={!item.id || addSection.isPending} onClick={() => addSection.mutate(Number(item.id))}>Add Section</Button><LayoutArrangement layoutId={Number(item.id)} /></>} />;
 }
 
 function CustomButtons() {

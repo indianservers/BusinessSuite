@@ -5,6 +5,7 @@ const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/
 const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
 
 const ManagementHomePage = React.lazy(() => import("./pages/ManagementHomePage"));
+const MyWorkPage = React.lazy(() => import("./pages/MyWorkPage"));
 const MemberManagementPage = React.lazy(() => import("./pages/MemberManagementPage"));
 const PeopleDirectoryProfile = React.lazy(() => import("./pages/PeopleDirectoryProfile"));
 const PeopleDirectoryPage = React.lazy(() => import("./pages/PeopleManagementDirectory"));
@@ -35,8 +36,10 @@ const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
 const KanbanBoard = React.lazy(() => import("./pages/KanbanBoard"));
 const ProjectsList = React.lazy(() => import("./pages/ProjectsList"));
 const CreateProjectPage = React.lazy(() => import("./pages/CreateProjectPage"));
+const TaskExperiencePage = React.lazy(() => import("./pages/TaskExperiencePage"));
 const TasksReferencePage = React.lazy(() => import("./pages/TasksReferencePage"));
 const TaskListPage = React.lazy(() => import("./pages/TaskListPage"));
+const TaskWorkspacePage = React.lazy(() => import("./pages/TaskWorkspacePage"));
 const TaskDetail = React.lazy(() => import("./pages/TaskDetail"));
 const MilestonesPage = React.lazy(() => import("./pages/MilestonesPage"));
 const TimeTrackingPage = React.lazy(() => import("./pages/TimeTrackingPage"));
@@ -77,7 +80,7 @@ const WorkReviewsPage = React.lazy(() => import("./pages/WorkReviewsPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
  {path:"pms/management",element:<ManagementHomePage/>},
  {path:"pms/admin/configuration",element:<AdminPage/>},
- {path:"pms/my-work",element:<ManagementHomePage mine/>},
+ {path:"pms/my-work",element:<MyWorkPage/>},
  {path:"pms/members",element:<MemberManagementPage/>},
  {path:"pms/projects/:projectId/members",element:<MemberManagementPage/>},
  {path:"pms/people",element:<PeopleDirectoryPage/>},
@@ -134,12 +137,13 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/projects/:projectId/risks", element: <RisksPage /> },
   
   // Tasks
-  { path: "pms/tasks", element: <TasksReferencePage /> },
+  { path: "pms/tasks", element: <TaskExperiencePage /> },
   { path: "pms/tasks/advanced", element: <TaskListPage /> },
   { path: "pms/tasks/new", element: <TasksReferencePage /> },
-  { path: "pms/tasks/:taskId", element: <TasksReferencePage /> },
+  { path: "pms/tasks/:taskId", element: <TaskWorkspacePage /> },
+  { path: "pms/tasks/:taskId/edit", element: <TasksReferencePage /> },
   { path: "pms/tasks/:taskId/classic", element: <TaskDetail /> },
-  { path: "pms/projects/:projectId/tasks/:taskId", element: <TasksReferencePage /> },
+  { path: "pms/projects/:projectId/tasks/:taskId", element: <TaskWorkspacePage /> },
 
   // KaryaFlow software delivery workspaces
   { path: "pms/work-hub", element: <ImpactWorkHubPage /> },

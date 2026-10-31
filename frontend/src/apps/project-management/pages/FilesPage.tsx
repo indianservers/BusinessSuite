@@ -1,94 +1,251 @@
 import { usePageRefresh } from "@/lib/page-refresh";
-import type React from "react";
-import { FormEvent, useEffect, useState } from "react";
-import { FileText, Upload } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useRef, useState } from "react";
+import { Upload, FolderPlus, Download } from "lucide-react";
+import { api } from "@/services/api";
+import MoveBoard from "@/components/interaction/MoveBoard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { formatDate } from "@/lib/utils";
 import { filesAPI, projectsAPI } from "../services/api";
-import type { FileVisibility, PMSFileAsset, PMSProject } from "../types";
+import type { PMSFileAsset, PMSProject } from "../types";
 
+type Folder = { id: number; name: string };
 export default function FilesPage() {
   const [projects, setProjects] = useState<PMSProject[]>([]);
-  const [files, setFiles] = useState<PMSFileAsset[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [visibility, setVisibility] = useState<FileVisibility>("Project Team");
-
+  const [files, setFiles] = useState<PMSFileAsset[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [folder, setFolder] = useState("");
+  const [target, setTarget] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [over, setOver] = useState(false);
+  const projectRef = useRef(projectId);
+  projectRef.current = projectId;
   useEffect(() => {
-    projectsAPI.list().then((items) => {
-      setProjects(items);
-      const firstId = String(items[0]?.id || "");
-      setProjectId(firstId);
-      filesAPI.list(firstId ? { project_id: Number(firstId) } : undefined).then(setFiles);
-    });
+    projectsAPI
+      .list()
+      .then((items) => {
+        setProjects(items);
+        setProjectId(String(items[0]?.id || ""));
+      })
+      .catch(() => setError("Unable to load projects."));
   }, []);
-
-  usePageRefresh(async () => {
-    setProjects(await projectsAPI.list());
-    await filesAPI.list(projectId ? { project_id: Number(projectId) } : undefined).then(setFiles);
-  });
-
-  const switchProject = (value: string) => {
-    setProjectId(value);
-    filesAPI.list(value ? { project_id: Number(value) } : undefined).then(setFiles);
-  };
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!projectId || !fileName.trim()) return;
-    const created = await filesAPI.create({
-      project_id: Number(projectId),
-      file_name: fileName,
-      original_name: fileName,
-      mime_type: "application/octet-stream",
-      size_bytes: 0,
-      storage_path: `metadata://${fileName}`,
-      visibility,
-    });
-    setFiles((items) => [created, ...items]);
-    setFileName("");
-  };
-
+  async function load(id = projectId) {
+    if (!id) return;
+    const [assets, directories] = await Promise.all([
+      filesAPI.list({ project_id: Number(id) }),
+      api.get<Folder[]>("/project-management/file-folders", {
+        params: { project_id: Number(id) },
+      }),
+    ]);
+    if (id === projectRef.current) {
+      setFiles(assets);
+      setFolders(directories.data);
+    }
+  }
+  useEffect(() => {
+    setFiles([]);
+    setFolders([]);
+    setTarget("");
+    void load().catch(() => setError("Unable to load files."));
+  }, [projectId]);
+  usePageRefresh(() => load());
+  const canEdit = !!projects.find((p) => String(p.id) === projectId)
+    ?.can_upload_files;
+  async function upload(selected: File[]) {
+    if (!selected.length || !projectId || busy || !canEdit) return;
+    setBusy(true);
+    setError("");
+    let completed = 0;
+    try {
+      for (const file of selected) {
+        const data = new FormData();
+        data.append("file", file);
+        if (target) data.append("folder_id", target);
+        await api.post(
+          `/project-management/projects/${projectId}/files/upload`,
+          data,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+        completed++;
+      }
+    } catch (e) {
+      setError(
+        (e as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail || "Upload failed. Completed files have been retained.",
+      );
+    } finally {
+      setNotice(`${completed} file${completed === 1 ? "" : "s"} uploaded`);
+      try {
+        await load();
+      } catch {
+        setError(
+          "Files were uploaded, but the list could not refresh. Reload to see them.",
+        );
+      }
+      setBusy(false);
+    }
+  }
+  async function download(file: PMSFileAsset) {
+    try {
+      const blob = await filesAPI.downloadBlob(file.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.original_name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setError("Unable to download this file.");
+    }
+  }
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <h1 className="page-title">Files</h1>
-        <p className="page-description">File metadata, visibility, and project attachment management.</p>
+        <p className="page-description">
+          Drop files to upload, then move them into project folders.
+        </p>
       </div>
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" />Add file metadata</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_1fr_12rem_auto] md:items-end">
-            <Field label="Project"><select value={projectId} onChange={(event) => switchProject(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></Field>
-            <Field label="File name"><Input value={fileName} onChange={(event) => setFileName(event.target.value)} placeholder="Scope-v2.pdf" /></Field>
-            <Field label="Visibility"><select value={visibility} onChange={(event) => setVisibility(event.target.value as FileVisibility)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{["Internal", "Project Team", "Client Visible", "Private"].map((item) => <option key={item}>{item}</option>)}</select></Field>
-            <Button type="submit">Add</Button>
-          </form>
-        </CardContent>
-      </Card>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {files.map((file) => (
-          <Card key={file.id}>
-            <CardContent className="flex items-start gap-4 p-5">
-              <div className="rounded-lg bg-blue-100 p-3 text-blue-700"><FileText className="h-5 w-5" /></div>
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate font-semibold">{file.original_name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Version {file.version_number} - {formatDate(file.created_at)}</p>
-                <Badge variant="outline" className="mt-3">{file.visibility}</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <label>
+          Project{" "}
+          <select
+            className="input"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            disabled={busy}
+          >
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Upload folder{" "}
+          <select
+            className="input"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            disabled={busy}
+          >
+            <option value="">Unfiled</option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+      {error && (
+        <p role="alert" className="move-error">
+          {error}
+        </p>
+      )}
+      {notice && <p role="status">{notice}</p>}
+      <div
+        className={`rounded-xl border-2 border-dashed p-8 text-center ${over ? "border-primary bg-primary/5" : "border-border"}`}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes("Files")) {
+            e.preventDefault();
+            setOver(true);
+          }
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setOver(false);
+          void upload(Array.from(e.dataTransfer.files));
+        }}
+      >
+        <Upload className="mx-auto mb-3" />
+        <p>{busy ? "Uploading files…" : "Drop files here or choose files"}</p>
+        <input
+          className="mt-3 max-w-full"
+          aria-label="Upload project files"
+          type="file"
+          multiple
+          disabled={busy || !canEdit}
+          onChange={(e) => {
+            void upload(Array.from(e.target.files || []));
+            e.target.value = "";
+          }}
+        />
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="input max-w-xs"
+          aria-label="Folder name"
+          placeholder="New folder"
+          value={folder}
+          onChange={(e) => setFolder(e.target.value)}
+        />
+        <Button
+          disabled={!folder.trim() || busy || !canEdit}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              await api.post("/project-management/file-folders", {
+                project_id: Number(projectId),
+                name: folder,
+              });
+              setFolder("");
+              await load();
+            } catch {
+              setError("Could not create folder.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <FolderPlus size={16} />
+          Create folder
+        </Button>
+      </div>
+      <MoveBoard
+        label="Project file folders"
+        reorder={false}
+        disabled={busy || !canEdit}
+        groups={[
+          { id: "root", label: "Unfiled" },
+          ...folders.map((f) => ({ id: String(f.id), label: f.name })),
+        ]}
+        items={files.map((f) => ({
+          id: f.id,
+          label: f.original_name,
+          group: f.folder_id ? String(f.folder_id) : "root",
+          disabled: String(f.visibility) === "Work Evidence",
+          content: (
+            <div className="flex items-center justify-between text-xs">
+              <span>
+                {Math.ceil(f.size_bytes / 1024)} KB · {f.visibility}
+              </span>
+              <button
+                type="button"
+                aria-label={`Download ${f.original_name}`}
+                onClick={() => void download(f)}
+              >
+                <Download size={14} />
+              </button>
+            </div>
+          ),
+        }))}
+        onMove={async ({ item, group }) => {
+          await api.patch(`/project-management/files/${item.id}`, {
+            folder_id: group === "root" ? null : Number(group),
+            previous_folder_id:
+              item.group === "root" ? null : Number(item.group),
+          });
+          await load();
+        }}
+      />
+      <p className="text-xs text-muted-foreground">
+        Showing the latest 100 files in this project.
+      </p>
     </div>
   );
 }
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
-}
-

@@ -7,6 +7,9 @@ export type DirectoryPerson = {
   role: string;
   classification: string;
   status: string;
+  employment_status?: string;
+  projects?: { id: number; name: string }[];
+  workspaces?: { id: number; name: string }[];
   photo_url?: string | null;
   employee_code?: string;
   department?: string;

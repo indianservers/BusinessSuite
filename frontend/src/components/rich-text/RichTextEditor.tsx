@@ -1,3 +1,5 @@
+import BlockDragHandle from "./BlockDragHandle";
+import "./block-drag.css";
 import { richTextExtensions } from "./extensions";
 import { forwardRef, useEffect, useId, useRef, useState, type TextareaHTMLAttributes } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -107,7 +109,7 @@ export default function RichTextEditor({ value, onChange, onBlur, onSelection, r
         if (event.target.value === "paragraph") editor.chain().focus().setParagraph().run();
         else editor.chain().focus().setHeading({ level: Number(event.target.value) as 1 | 2 | 3 | 4 }).run();
       }}><option value="paragraph">Normal</option><option value="1">Title</option><option value="2">Heading 1</option><option value="3">Heading 2</option><option value="4">Heading 3</option></select>
-      <select aria-label="Font family" disabled={locked} value={String(editor.getAttributes("textStyle").fontFamily || "Inter").replace(/[\"\']/g, "")} onChange={event => editor.chain().focus().setFontFamily(event.target.value).run()}>{fontFamilies.map(font => <option key={font}>{font}</option>)}</select>
+      <select aria-label="Font family" disabled={locked} value={String(editor.getAttributes("textStyle").fontFamily || "Inter").replace(/["']/g, "")} onChange={event => editor.chain().focus().setFontFamily(event.target.value).run()}>{fontFamilies.map(font => <option key={font}>{font}</option>)}</select>
       <select aria-label="Font size" disabled={locked} value={editor.getAttributes("textStyle").fontSize || "14px"} onChange={event => editor.chain().focus().setFontSize(event.target.value).run()}>{fontSizes.map(size => <option key={size} value={size}>{parseInt(size)}</option>)}</select>
       <div className="suite-rte-tools">{tool("Bold (Ctrl+B)", Bold, () => { editor.chain().focus().toggleBold().run(); }, editor.isActive("bold"), !editor.can().toggleBold())}
         {tool("Italic (Ctrl+I)", Italic, () => { editor.chain().focus().toggleItalic().run(); }, editor.isActive("italic"), !editor.can().toggleItalic())}
@@ -144,7 +146,7 @@ export default function RichTextEditor({ value, onChange, onBlur, onSelection, r
       <button type="button" aria-label="Close link editor" onClick={() => setLink(null)}><X size={16}/></button>
     </div>}
     {error && <p role="alert" className="suite-rte-error">{error}</p>}
-    <EditorContent editor={editor}/>
+    {!readOnly && !disabled ? <BlockDragHandle editor={editor} onEdit={() => undefined}><EditorContent editor={editor}/></BlockDragHandle> : <EditorContent editor={editor}/>}
     {!readOnly && (maxLength || saveStatus) && <div className="suite-rte-status" aria-live="polite">
       {maxLength && <span>{Array.from(editor.state.doc.textContent).length.toLocaleString()} / {maxLength.toLocaleString()}</span>}
       {saveStatus && <span>{saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save failed. Your edits are retained."}{saveStatus === "failed" && onRetry && <button type="button" onClick={onRetry}>Retry</button>}</span>}

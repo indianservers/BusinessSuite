@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
+const m={exports:{}};
+new Function('exports',ts.transpileModule(fs.readFileSync(path.join(__dirname,'../src/lib/pms-page-labels.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(m.exports);
+const {pmsPageLabel,pmsPageResource}=m.exports;
+const recents = [{path:'/pms/people/148?tab=tasks'}, {path:'/pms/people/148?tab=projects'}, {path:'/pms/projects/7'}, {path:'/pms/projects/7/members'}, {path:'/pms/people/149'}];
+assert.deepEqual(m.exports.groupPmsRecents(recents).map(p=>p.path), ['/pms/people/148?tab=tasks','/pms/projects/7','/pms/people/149']);
+assert.equal(m.exports.groupPmsRecents([{path:'/pms/people?page=2'},{path:'/pms/people?layout=list'}]).length,1);
+const names={'person:148':'Abhishek kumar','project:7':'Website launch','workspace:2':'Delivery team'};
+assert.equal(pmsPageLabel('/pms/people/148?tab=projects&returnTo=%2Fpms%2Fpeople','Workspace',names),'Abhishek kumar · Projects');
+assert.equal(pmsPageLabel('/pms/people/148?tab=batches','Workspace',names),'Abhishek kumar · Intern batch');
+assert.equal(pmsPageLabel('/pms/projects/7/members','Workspace',names),'Website launch · Members');
+assert.equal(pmsPageLabel('/pms?workspace=2','Workspace',names),'Delivery team');
+assert.equal(pmsPageLabel('/pms/time-tracking?operation=%2Fpms%2Ftimesheets','Time Tracking'),'Timesheets');
+assert.equal(pmsPageLabel('/pms/people/9','Workspace'),'Person #9 · Overview');
+assert.equal(pmsPageResource('/pms/people/148?tab=teams').key,pmsPageResource('/pms/people/148?tab=projects').key);
+console.log('PMS page labels: person names, tabs, projects, workspaces, operations, and cache deduplication passed.');

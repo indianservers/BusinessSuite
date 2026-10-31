@@ -42,6 +42,8 @@ from .directory import can_explore_directory
 from .schemas import PMSTaskCreate
 
 router = APIRouter(prefix="/people-workspace", tags=["PMS People Workspace"])
+from .directory_actions import router as directory_actions_router
+router.include_router(directory_actions_router)
 
 
 class Filters(BaseModel):
@@ -53,11 +55,11 @@ class Filters(BaseModel):
     batch_id: int | None = None
     department_id: int | None = None
     skill: str = Field("", max_length=80)
-    kind: Literal["all", "interns", "employees", "team_members", "batched"] = "all"
+    kind: Literal["all", "interns", "employees", "team_members", "batched", "needs_attention"] = "all"
     membership: Literal["", "member", "unassigned"] = ""
     registered_from: date | None = None
     registered_to: date | None = None
-    sort: Literal["name", "email", "newest", "oldest", "status"] = "name"
+    sort: Literal["name", "name_desc", "email", "email_desc", "newest", "oldest", "status", "status_desc"] = "name"
 
 
 def filters(
@@ -69,11 +71,11 @@ def filters(
     batch_id: int | None = None,
     department_id: int | None = None,
     skill: str = Query("", max_length=80),
-    kind: Literal["all", "interns", "employees", "team_members", "batched"] = "all",
+    kind: Literal["all", "interns", "employees", "team_members", "batched", "needs_attention"] = "all",
     membership: Literal["", "member", "unassigned"] = "",
     registered_from: date | None = None,
     registered_to: date | None = None,
-    sort: Literal["name", "email", "newest", "oldest", "status"] = "name",
+    sort: Literal["name", "name_desc", "email", "email_desc", "newest", "oldest", "status", "status_desc"] = "name",
 ):
     return Filters(**locals())
 
@@ -239,8 +241,8 @@ def query_people(db, user, f):
         q = q.filter(User.is_active.is_(False), CommonPerson.status == f.status)
     elif f.status:
         raise HTTPException(422, "Unknown people status")
-    if f.role == "superuser":
-        q = q.filter(User.is_superuser.is_(True))
+    if f.role.lower().replace("_", "").replace(" ", "") in {"superuser", "superadmin"}:
+        q = q.filter(or_(User.is_superuser.is_(True), func.lower(func.replace(func.replace(Role.name, "_", ""), " ", "")) == "superadmin"))
     elif f.role:
         q = q.filter(Role.name == f.role)
     if f.department_id:
@@ -270,6 +272,10 @@ def query_people(db, user, f):
         )
     if f.kind == "batched":
         q = q.filter(User.id.in_(batch_users(db, user)))
+    if f.kind == "needs_attention":
+        from app.access.models import AccessPolicy
+        policy_gap = exists(select(AccessPolicy.id).where(AccessPolicy.user_id == User.id, AccessPolicy.company_id == organization_id_for(user), or_(AccessPolicy.status != "active", func.coalesce(AccessPolicy.grants["project_management"]["enabled"].as_boolean(), False) == False)))
+        q = q.filter(or_(User.is_active.is_(False), policy_gap))
     memberships = db.query(PMSWorkspaceMember.user_id).filter(
         PMSWorkspaceMember.workspace_id.in_(wids)
     )
@@ -359,6 +365,9 @@ def serialize(db, user, accounts):
     ids = [u.id for u in accounts]
     if not ids:
         return []
+    workspace_rows = (db.query(PMSWorkspaceMember.user_id, PMSWorkspace.id, PMSWorkspace.name)
+        .join(PMSWorkspace, PMSWorkspace.id == PMSWorkspaceMember.workspace_id)
+        .filter(PMSWorkspaceMember.user_id.in_(ids), PMSWorkspace.id.in_(workspace_query(db, user).with_entities(PMSWorkspace.id))).all())
     team_rows = (
         db.query(
             PMSWorkspaceTeamMember.user_id,
@@ -381,7 +390,7 @@ def serialize(db, user, accounts):
     )
 
     batch_rows = (
-        db.query(Employee.user_id, InternBatch.id, InternBatch.name)
+        db.query(Employee.user_id, InternBatch.id, InternBatch.name, InternBatch.project_id)
         .join(InternBatchMembership, InternBatchMembership.employee_id == Employee.id)
         .join(InternBatch, InternBatch.id == InternBatchMembership.batch_id)
         .filter(
@@ -403,6 +412,8 @@ def serialize(db, user, accounts):
         )
     }
     org_admin = organization_admin(user)
+    project_members = db.query(PMSProjectMember.user_id, PMSProjectMember.project_id).filter(PMSProjectMember.user_id.in_(ids)).all()
+    related_projects = accessible_project_query(db, user).filter(or_(PMSProject.id.in_([r.project_id for r in project_members]+[r.project_id for r in batch_rows]), PMSProject.workspace_id.in_([r.id for r in workspace_rows]), PMSProject.owner_user_id.in_(ids), PMSProject.manager_user_id.in_(ids))).all()
     rows = []
     for account in accounts:
         person = account.person
@@ -451,10 +462,13 @@ def serialize(db, user, accounts):
                 "email": account.email,
                 "role": (
                     "Super Admin"
-                    if account.is_superuser
+                    if account.is_superuser or account.role and account.role.name.lower().replace("_", "").replace(" ", "") == "superadmin"
                     else account.role.name if account.role else "User"
                 ),
                 "classification": classification,
+                "employment_status": e.status if e else None,
+                "workspaces": [{"id": row.id, "name": row.name} for row in workspace_rows if row.user_id == account.id],
+                "projects": [{"id": p.id, "name": p.name} for p in related_projects if p.id in {r.project_id for r in project_members if r.user_id == account.id} or p.id in {r.project_id for r in batch_rows if r.user_id == account.id} or p.workspace_id in {r.id for r in workspace_rows if r.user_id == account.id} or p.owner_user_id == account.id or p.manager_user_id == account.id][:5],
                 "status": (
                     "active"
                     if account.is_active
@@ -521,10 +535,13 @@ def directory(
     name = func.lower(func.coalesce(CommonPerson.display_name, User.email))
     order = {
         "name": name.asc(),
+        "name_desc": name.desc(),
         "email": User.email.asc(),
+        "email_desc": User.email.desc(),
         "newest": User.created_at.desc(),
         "oldest": User.created_at.asc(),
         "status": User.is_active.desc(),
+        "status_desc": User.is_active.asc(),
     }[f.sort]
     users = (
         load_users(q)
@@ -578,7 +595,7 @@ def reference(db: Session = Depends(get_db), user: User = Depends(get_current_us
     org_admin = organization_admin(user)
     return {
         "stats": stats(db, user),
-        "roles": roles,
+        "roles": [role for role in roles if role.lower().replace("_", "").replace(" ", "") not in {"superadmin", "superuser"}],
         "departments": [{"id": r.id, "name": r.name} for r in departments],
         "workspaces": [
             {"id": w.id, "name": w.name, "can_manage": org_admin or w.id in managed}
@@ -752,12 +769,18 @@ def groups(
 @router.get("/export")
 def export(
     f: Filters = Depends(filters),
+    selected_ids: str = Query("", max_length=1500),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     if not can_export(user):
         raise HTTPException(403, "Export requires scoped export permission")
     q = load_users(query_people(db, user, f)).order_by(User.id)
+    if selected_ids:
+        ids = {int(i) for i in selected_ids.split(",") if i.isdigit()}
+        if not ids or len(ids)>100: raise HTTPException(422, "Select 1–100 people")
+        if {u.id for u in scope(db, user).filter(User.id.in_(ids))} != ids: raise HTTPException(404, "Export selection is outside your scope")
+        q = load_users(scope(db, user).filter(User.id.in_(ids))).order_by(User.id)
 
     def safe(value):
         text = str(value or "")
@@ -1133,6 +1156,37 @@ def workspace_people(
     }
 
 
+def person_projects(db, viewer, person_id):
+    """Project participation includes ownership, task work and active intern batches."""
+    from app.apps.interns_hub.management_models import InternBatch, InternBatchMembership
+    workspace_ids = db.query(PMSWorkspaceMember.workspace_id).filter_by(user_id=person_id)
+    project_ids = db.query(PMSProjectMember.project_id).filter_by(user_id=person_id)
+    assigned = task_stats(db, viewer, [person_id])[0].with_entities(PMSTask.project_id)
+    batch_projects = (batches_query(db, viewer).join(InternBatchMembership, InternBatchMembership.batch_id == InternBatch.id)
+                      .join(Employee, Employee.id == InternBatchMembership.employee_id)
+                      .filter(Employee.user_id == person_id, InternBatchMembership.status == "Active")
+                      .with_entities(InternBatch.project_id))
+    return accessible_project_query(db, viewer).filter(or_(
+        PMSProject.workspace_id.in_(workspace_ids), PMSProject.id.in_(project_ids),
+        PMSProject.owner_user_id == person_id, PMSProject.manager_user_id == person_id,
+        PMSProject.id.in_(assigned), PMSProject.id.in_(batch_projects),
+    ))
+
+
+def profile_project_rows(db, viewer, person_id, projects):
+    workspaces = {w.id: w.name for w in workspace_query(db, viewer).all()}
+    roles = dict(db.query(PMSProjectMember.project_id, PMSProjectMember.role).filter_by(user_id=person_id).all())
+    workspace_ids = {row[0] for row in db.query(PMSWorkspaceMember.workspace_id).filter_by(user_id=person_id)}
+    task_projects = {row[0] for row in task_stats(db, viewer, [person_id])[0].with_entities(PMSTask.project_id).distinct()}
+    from app.apps.interns_hub.management_models import InternBatch, InternBatchMembership
+    batch_projects = {row[0] for row in batches_query(db, viewer).join(InternBatchMembership, InternBatchMembership.batch_id == InternBatch.id).join(Employee, Employee.id == InternBatchMembership.employee_id).filter(Employee.user_id == person_id, InternBatchMembership.status == "Active").with_entities(InternBatch.project_id)}
+    return [{"id": p.id, "name": p.name, "project_key": p.project_key, "status": p.status,
+             "workspace_name": workspaces.get(p.workspace_id), "start_date": p.start_date, "due_date": p.due_date,
+             "relationships": [label for label, applies in [("Owner", p.owner_user_id == person_id), ("Manager", p.manager_user_id == person_id), ("Direct project member", p.id in roles), ("Workspace collaborator", p.workspace_id in workspace_ids), ("Task assignee", p.id in task_projects), ("Batch participant", p.id in batch_projects)] if applies],
+             "role": "Owner" if p.owner_user_id == person_id else "Manager" if p.manager_user_id == person_id else roles.get(p.id, "Contributor")}
+            for p in projects]
+
+
 @router.get("/people/{person_id}")
 def person_detail(
     person_id: int,
@@ -1141,6 +1195,7 @@ def person_detail(
     ] = "overview",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    task_filter: Literal["all", "pending", "completed", "overdue"] = "all",
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -1166,43 +1221,74 @@ def person_detail(
         )
         .first()
     )
-    result = {"person": identity, "can_manage": can_manage}
+    is_intern = identity["classification"].lower() == "intern"
+    result = {"person": identity, "can_manage": can_manage, "is_intern": is_intern}
+    task_query, summary = task_stats(db, user, [person_id])
+    projects_query = person_projects(db, user, person_id)
+    logs = db.query(AuditLog).filter(AuditLog.organization_id == organization_id_for(user), AuditLog.entity_type == "user", AuditLog.entity_id == person_id, AuditLog.module == "project_management")
+    result["stats"] = summary
+    result["counts"] = {"teams": len(identity["teams"]), "batches": len(identity["batches"]) if is_intern else 0, "projects": projects_query.count(), "tasks": summary["total"], "activity": logs.count() if can_manage or user.id == person_id else None}
+    result["access_issues"] = []
+    if can_manage:
+        from app.access.service import policy_for, resolved_grants
+        policy = policy_for(db, person, organization_id_for(user))
+        if not person.is_active:
+            result["access_issues"].append("Login is disabled for this account.")
+        if policy and (policy.status != "active" or not resolved_grants(db, policy).get("project_management", {}).get("enabled")):
+            result["access_issues"].append("Organization access policy does not enable PMS for this account. Workspace or project membership alone will not enable access.")
     if section == "overview":
         _, summary = task_stats(db, user, [person_id])
         result["stats"] = summary
         result["employment_status"] = (
             person.employee.status if person.employee else None
         )
+        result["current_projects"] = profile_project_rows(db, user, person_id,
+            person_projects(db, user, person_id).filter(func.lower(PMSProject.status).notin_(["completed", "done", "cancelled", "closed", "archived"])).order_by(PMSProject.name).limit(5).all())
     if section == "teams":
-        result["items"] = identity["teams"]
+        result["items"] = []
+        for team in teams_query(db, user).filter(PMSWorkspaceTeam.id.in_([t["id"] for t in identity["teams"]])).all():
+            workspace = workspace_query(db, user).filter_by(id=team.workspace_id).first()
+            lead = load_users(scope(db, user).filter(User.id == team.lead_user_id)).first() if team.lead_user_id else None
+            result["items"].append({"id": team.id, "name": team.name, "description": team.description,
+                "workspace_name": workspace.name if workspace else None, "visibility": team.visibility,
+                "lead_name": (lead.person.display_name if lead.person else lead.email) if lead else None,
+                "members": db.query(PMSWorkspaceTeamMember).filter_by(team_id=team.id).filter(PMSWorkspaceTeamMember.user_id.in_(scope(db, user).with_entities(User.id))).count()})
     if section == "batches":
-        result["items"] = identity["batches"]
+        from app.apps.interns_hub.management_models import InternBatch
+        result["items"] = []
+        if is_intern:
+            for batch in batches_query(db, user).filter(InternBatch.id.in_([b["id"] for b in identity["batches"]])).all():
+                project = accessible_project_query(db, user).filter(PMSProject.id == batch.project_id).first()
+                department = db.get(Department, batch.department_id)
+                leaders = load_users(scope(db, user).filter(User.id.in_([batch.manager_user_id, batch.mentor_user_id, batch.coordinator_user_id]))).all()
+                names = {u.id: u.person.display_name if u.person else u.email for u in leaders}
+                result["items"].append({"id": batch.id, "name": batch.name, "code": batch.code,
+                    "description": batch.description, "status": batch.status, "program": batch.program,
+                    "start_date": batch.start_date, "end_date": batch.end_date, "department": department.name if department else None,
+                    "project_id": project.id if project else None, "project_name": project.name if project else None,
+                    "manager_name": names.get(batch.manager_user_id), "mentor_name": names.get(batch.mentor_user_id), "coordinator_name": names.get(batch.coordinator_user_id)})
     if section == "projects":
-        workspace_ids = db.query(PMSWorkspaceMember.workspace_id).filter_by(
-            user_id=person_id
-        )
-        project_ids = db.query(PMSProjectMember.project_id).filter_by(user_id=person_id)
-        query = accessible_project_query(db, user).filter(
-            or_(
-                PMSProject.workspace_id.in_(workspace_ids),
-                PMSProject.id.in_(project_ids),
-                PMSProject.manager_user_id == person_id,
-            )
-        )
+        query = person_projects(db, user, person_id)
         total = query.count()
         result.update(
-            items=[
-                {"id": p.id, "name": p.name, "status": p.status}
-                for p in query.order_by(PMSProject.name)
+            items=profile_project_rows(db, user, person_id, query.order_by(PMSProject.name)
                 .offset((page - 1) * page_size)
                 .limit(page_size)
-            ],
+                .all()),
             total=total,
             page=page,
             pages=(total + page_size - 1) // page_size,
         )
     if section == "tasks":
-        result.update(tasks_page(task_stats(db, user, [person_id])[0], page, page_size))
+        from app.services.metrics.queries import COMPLETED, TERMINAL, business_day
+        if task_filter == "completed":
+            task_query = task_query.filter(PMSTask.status.in_(COMPLETED))
+        elif task_filter in {"pending", "overdue"}:
+            task_query = task_query.filter(PMSTask.status.notin_(TERMINAL))
+            if task_filter == "overdue":
+                task_query = task_query.filter(PMSTask.due_date < business_day(db, user))
+        result.update(tasks_page(task_query, page, page_size))
+        result["task_filter"] = task_filter
     if section == "activity":
         if not can_manage and user.id != person_id:
             result["items"] = []
@@ -1520,24 +1606,6 @@ def change_team(
     user: User = Depends(get_current_user),
 ):
     team, preview = team_change_preview(db, user, team_id, data)
-    if preview["missing_user_ids"]:
-        if not data.add_workspace_members:
-            raise HTTPException(
-                409,
-                "Confirm the Member workspace access shown in the preview before adding these people",
-            )
-        from .people_management import BulkAdd, bulk_add
-
-        bulk_add(
-            BulkAdd(
-                user_ids=preview["missing_user_ids"],
-                workspace_ids=[team.workspace_id],
-                role="Member",
-                reason=data.reason,
-            ),
-            db,
-            user,
-        )
     from .teams import persist_team, TeamInput
 
     current = {member.user_id for member in team.members}

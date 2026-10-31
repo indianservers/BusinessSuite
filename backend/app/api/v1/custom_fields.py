@@ -11,6 +11,9 @@ from app.models.platform import (
     CustomFormSubmission,
 )
 from app.models.user import User
+from app.core.reorder import OrderInput, apply_order
+
+
 from app.schemas.platform import (
     CustomFieldDefinitionCreate,
     CustomFieldDefinitionSchema,
@@ -24,6 +27,14 @@ from app.schemas.platform import (
 )
 
 router = APIRouter(prefix="/custom-fields", tags=["Custom Fields"])
+
+
+@router.post("/definitions/reorder")
+def reorder_definitions(data: OrderInput, module: str = Query(..., max_length=80), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
+    rows = db.query(CustomFieldDefinition).filter_by(module=module, is_active=True).order_by(CustomFieldDefinition.display_order, CustomFieldDefinition.label, CustomFieldDefinition.id).with_for_update().all()
+    apply_order(rows, data, "display_order")
+    db.commit()
+    return {"ids": data.ids}
 
 
 @router.post("/definitions", response_model=CustomFieldDefinitionSchema, status_code=201)

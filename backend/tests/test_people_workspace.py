@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import event
 from tests.test_pms_task_studio import studio
 from tests.test_pms_workspaces import account, middleware_database, BASE
+from tests.rich_text_test_utils import organization_context
 from app.apps.project_management.models import (
     PMSWorkspaceTeamMember,
     PMSWorkspaceMember,
@@ -119,13 +120,6 @@ def test_teams_scope_membership_preview_and_deduplication(client, db, directory_
     )
     assert preview.status_code == 200, preview.text
     assert preview.json()["missing_user_ids"] == [outsider.id]
-    assert (
-        client.post(
-            ROOT + f"/teams/{team.id}/members", headers=h, json=body
-        ).status_code
-        == 409
-    )
-    body["add_workspace_members"] = True
     changed = client.post(ROOT + f"/teams/{team.id}/members", headers=h, json=body)
     assert changed.status_code == 200, changed.text
     assert (
@@ -201,6 +195,80 @@ def test_profiles_exports_and_assignment_context_are_scoped(client, db, director
     assert csv.status_code == 200, csv.text
     assert "Anila Directory" in csv.text and foreign.email not in csv.text
     assert client.get(ROOT + "/export", headers=mh).status_code == 403
+
+
+def test_profile_details_and_batch_project_without_workspace_membership(client, db, directory_data):
+    from app.apps.project_management.models import PMSProjectMember
+    data, foreign, fh = directory_data
+    owner, member, outsider, h, mh, oh, project, team, batch = data
+    team.description = "Delivery engineering"
+    team.lead_user_id = owner.id
+    db.query(PMSWorkspaceMember).filter_by(user_id=member.id).delete()
+    db.query(PMSProjectMember).filter_by(user_id=member.id).delete()
+    db.commit()
+    batches = client.get(ROOT + f"/people/{member.id}", headers=h, params={"section": "batches"})
+    assert batches.status_code == 200, batches.text
+    assert batches.json()["is_intern"] is True
+    item = batches.json()["items"][0]
+    assert item["code"] == "STU" and item["project_name"] == "Studio Project"
+    assert item["start_date"] == "2026-01-01" and item["mentor_name"]
+    teams = client.get(ROOT + f"/people/{member.id}", headers=h, params={"section": "teams"}).json()["items"]
+    assert teams[0]["description"] == "Delivery engineering"
+    assert teams[0]["workspace_name"] == "Task Studio" and teams[0]["lead_name"]
+    projects = client.get(ROOT + f"/people/{member.id}", headers=h, params={"section": "projects"}).json()["items"]
+    assert [p["id"] for p in projects] == [project["id"]]
+    assert projects[0]["project_key"] == "STU"
+    overview = client.get(ROOT + f"/people/{member.id}", headers=h).json()
+    assert overview["current_projects"][0]["id"] == project["id"]
+    nonintern = client.get(ROOT + f"/people/{outsider.id}", headers=h, params={"section": "batches"}).json()
+    assert nonintern["is_intern"] is False and nonintern["items"] == []
+
+
+def test_profile_projects_include_ownership_and_task_work_without_tenant_leak(client, db, directory_data):
+    from app.apps.project_management.models import PMSProject
+    data, foreign, fh = directory_data
+    owner, member, outsider, h, mh, oh, project, team, batch = data
+    owned = PMSProject(organization_id=1, name="Owned delivery", project_key="OWN", owner_user_id=outsider.id, status="Active")
+    assigned = PMSProject(organization_id=1, name="Task delivery", project_key="ASS", status="Active")
+    private = PMSProject(organization_id=2, name="Other organization", project_key="OTHER", owner_user_id=outsider.id)
+    db.add_all([owned, assigned, private]); db.flush()
+    db.add(PMSTask(project_id=assigned.id, title="Assigned work", task_key="ASS-1", assignee_user_id=outsider.id))
+    db.commit()
+    response = client.get(ROOT + f"/people/{outsider.id}", headers=h, params={"section": "projects"})
+    assert response.status_code == 200, response.text
+    projects = response.json()["items"]
+    assert {p["id"] for p in projects} == {owned.id, assigned.id}
+    assert next(p for p in projects if p["id"] == owned.id)["role"] == "Owner"
+    assert "Owner" in next(p for p in projects if p["id"] == owned.id)["relationships"]
+    assert "Task assignee" in next(p for p in projects if p["id"] == assigned.id)["relationships"]
+
+
+def test_profile_task_filters_counts_and_directory_context(client, db, directory_data):
+    data, foreign, fh = directory_data
+    owner, member, outsider, h, mh, oh, project, team, batch = data
+    for title, status, due in [("Late work", "To Do", date.today()-timedelta(days=2)), ("Future work", "To Do", date.today()+timedelta(days=2)), ("Finished work", "Done", date.today()-timedelta(days=2)), ("Canceled work", "Cancelled", date.today()-timedelta(days=2))]:
+        db.add(PMSTask(project_id=project["id"], title=title, task_key=title, status=status, due_date=due, assignee_user_id=member.id))
+    db.commit()
+    expected = {"all":4, "pending":2, "completed":1, "overdue":1}
+    for task_filter, total in expected.items():
+        response=client.get(ROOT+f"/people/{member.id}",headers=h,params={"section":"tasks","task_filter":task_filter})
+        assert response.status_code == 200, response.text
+        result=response.json()
+        assert result["total"] == total
+        assert result["counts"]["tasks"] == 4 and result["counts"]["teams"] == 1
+        assert result["counts"]["batches"] == 1
+    person=next(p for p in client.get(ROOT+"/people",headers=h).json()["items"] if p["id"]==member.id)
+    assert person["employment_status"] == "Active"
+    assert person["workspaces"][0]["name"] == "Task Studio"
+    from app.access.models import AccessPolicy
+    db.add(AccessPolicy(user_id=member.id, company_id=1, status="active", grants={"hrms":{"enabled":True}}))
+    db.commit()
+    profile=client.get(ROOT+f"/people/{member.id}",headers=h).json()
+    assert any("does not enable PMS" in issue for issue in profile["access_issues"])
+    ordered=client.get(ROOT+"/people",headers=h,params={"sort":"email_desc"})
+    assert ordered.status_code == 200, ordered.text
+    emails=[p["email"] for p in ordered.json()["items"]]
+    assert emails == sorted(emails, reverse=True)
 
 
 def test_directory_query_count_does_not_grow_with_people(client, db, directory_data):

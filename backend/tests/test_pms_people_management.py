@@ -52,6 +52,8 @@ def test_hr_direct_add_and_bulk_atomic_scope(client, db):
     assert client.get(f"{BASE}/workspaces/{wid}/members", headers=ah).status_code == 200
     assert not db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=actor.id).first()
     result = client.post(ROOT + "/memberships/bulk", headers=ah, json={"user_ids": [target.id], "workspace_ids": [wid], "project_ids": [pid], "reason": "HR staffed project"})
+    assert {row["destination_type"] for row in result.json()["results"]} == {"workspace", "project"}
+    assert all(row["status"] == "added" and row["email"] == target.email for row in result.json()["results"])
     assert result.status_code == 200, result.text
     assert db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=target.id).one().role == "Member"
     assert db.query(PMSProjectMember).filter_by(project_id=pid, user_id=target.id).one()

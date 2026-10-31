@@ -1,3 +1,4 @@
+import OrderedList from "@/components/interaction/OrderedList";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -119,7 +120,7 @@ export default function WorkflowDesignerPage() {
 
   useEffect(() => {
     if (dragFromIndex === null) return;
-    const onMove = (event: MouseEvent) => {
+    const onMove = (event: PointerEvent) => {
       const index = cardRefs.current.findIndex((node) => {
         if (!node) return false;
         const rect = node.getBoundingClientRect();
@@ -137,11 +138,14 @@ export default function WorkflowDesignerPage() {
       setDragFromIndex(null);
       setDragToIndex(null);
     };
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
+    const cancel = () => { setDragFromIndex(null); setDragToIndex(null); };
+    document.addEventListener("pointercancel", cancel);
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
     return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("pointercancel", cancel);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
     };
   }, [dragFromIndex, dragToIndex, steps]);
 
@@ -276,6 +280,7 @@ export default function WorkflowDesignerPage() {
                   </ul>
                 </div>
               ) : null}
+              <details className="border rounded-lg p-3 mb-4"><summary>Arrange approval steps</summary><OrderedList label="Workflow step order" items={steps} title={step=>step.name} disabled={reorderSteps.isPending} onReorder={async ordered=>{await reorderSteps.mutateAsync(ordered.map((step,index)=>({step_id:step.id,step_order:index+1})));}}/></details>
               <Connector onAdd={() => createStep.mutate(1)} active={dragToIndex === 0} />
               {steps.map((step, index) => (
                 <div key={step.id}>
@@ -285,7 +290,7 @@ export default function WorkflowDesignerPage() {
                     className={cn("rounded-xl border bg-card p-4 shadow-sm transition-all", selectedStepId === step.id && "border-primary shadow-md", dragFromIndex === index && "opacity-50")}
                   >
                     <div className="flex items-start gap-3">
-                      <button type="button" onMouseDown={(event) => { event.preventDefault(); setDragFromIndex(index); setDragToIndex(index); }} className="mt-1 text-muted-foreground"><GripVertical className="h-5 w-5" /></button>
+                      <button type="button" onPointerDown={(event) => { event.preventDefault(); setDragFromIndex(index); setDragToIndex(index); }} style={{touchAction:"none"}} aria-label={`Drag workflow step ${step.name}` } className="mt-1 text-muted-foreground"><GripVertical className="h-5 w-5" /></button>
                       <Badge className="mt-0.5">S{index + 1}</Badge>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">

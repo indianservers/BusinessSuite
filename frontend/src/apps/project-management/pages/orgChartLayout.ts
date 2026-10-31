@@ -9,6 +9,7 @@ export type OrgPerson = {
   teams: { id: number; name: string }[];
 };
 export type OrgData = {
+  positions?: Record<string, { x: number; y: number }>;
   revision: number;
   can_manage: boolean;
   people: OrgPerson[];

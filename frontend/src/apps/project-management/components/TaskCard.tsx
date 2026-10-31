@@ -67,7 +67,8 @@ export default function TaskCard({ task, onOpen, canEdit=false, onChanged }: { t
       <div className="flex items-start gap-2">
         <button
           type="button"
-          aria-label="Drag task"
+          aria-label={`Drag ${task.title}`}
+          style={{touchAction:"none"}}
           disabled={!canEdit}
           className="mt-0.5 rounded p-1 text-muted-foreground hover:bg-muted"
           {...attributes}

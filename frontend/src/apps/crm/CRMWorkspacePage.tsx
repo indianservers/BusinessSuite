@@ -1,3 +1,7 @@
+import CrmFilesPage from "./CrmFilesPage";
+import MoveBoard from "@/components/interaction/MoveBoard";
+import OrderedList from "@/components/interaction/OrderedList";
+import { api as movementApi } from "@/services/api";
 import { api as statisticsApi } from "@/services/api";
 import CRMStageDialog from "./CRMStageDialog";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -15,13 +19,14 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  KeyboardSensor,
   closestCorners,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -961,6 +966,7 @@ function kindlessEntity(entity: string) {
 }
 
 export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
+  if (kind === "files") return <CrmFilesPage />;
   if (kind === "pipeline") return <PipelinePage />;
   if (kind === "pipelineSettings") return <PipelineSettingsPage />;
   if (kind === "leadScoring") return <LeadScoringSettingsPage />;
@@ -1888,7 +1894,7 @@ function PipelinePage() {
   const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   const [stageReview,setStageReview]=useState<{id:number;stage:number}>();
   const isTemplateLibrary = location.pathname.includes("/crm/templates");
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const activeDeal = deals.find((deal) => deal.id === activeId);
   const visibleDeals = deals.filter((deal) => [deal.name, deal.company, deal.owner].join(" ").toLowerCase().includes(filter.toLowerCase()));
   const selectedTemplate = allCrmBusinessTemplates.find((template) => template.key === activeTemplateKey) || allCrmBusinessTemplates[0];
@@ -2478,6 +2484,7 @@ function CustomFieldsSettingsPageLegacy() {
 }
 
 function PipelineSettingsPage() {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const pipelineState = useCrmRecords<CRMRecord>("pipelines", emptyRecords, { sort_by: "created_at", sort_order: "asc" });
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
@@ -2533,7 +2540,7 @@ function PipelineSettingsPage() {
     }).catch((err) => setError(err?.response?.data?.detail || "Could not delete stage."));
   };
 
-  const onStageDragEnd = (event: DragEndEvent) => {
+  const onStageDragEnd = async (event: DragEndEvent) => {
     const activeId = Number(event.active.id);
     const overId = Number(event.over?.id);
     if (!activeId || !overId || activeId === overId) return;
@@ -2545,7 +2552,8 @@ function PipelineSettingsPage() {
     reordered.splice(newIndex, 0, moved);
     const withPositions: CRMRecord[] = reordered.map((stage, index) => ({ ...stage, position: index + 1 }));
     setStages((items) => items.map((stage) => withPositions.find((item) => Number(item.id) === Number(stage.id)) || stage));
-    withPositions.forEach((stage) => crmApi.update("pipeline-stages", Number(stage.id), { position: Number(stage.position) }).catch(() => undefined));
+    try { await movementApi.post(`/crm/pipelines/${activePipelineId}/stages/reorder`, { ids:withPositions.map(s=>Number(s.id)),previous_order:activeStages.map(s=>Number(s.id)) }); }
+    catch(e) { setStages(stageState.data); setError((e as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Could not save stage order. Refresh and try again."); }
   };
 
   return (
@@ -2581,7 +2589,7 @@ function PipelineSettingsPage() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(stageDraft.is_lost)} onChange={(event) => setStageDraft((current) => ({ ...current, is_lost: event.target.checked, is_won: event.target.checked ? false : current.is_won }))} />Lost</label>
               <Button onClick={createStage}>Add</Button>
             </div>
-            <DndContext collisionDetection={closestCorners} onDragEnd={onStageDragEnd}>
+            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onStageDragEnd}>
               <SortableContext items={activeStages.map((stage) => Number(stage.id))} strategy={verticalListSortingStrategy}>
                 <div className="space-y-2">
                   {activeStages.map((stage) => (
@@ -6187,7 +6195,8 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
         />
       ) : null}
       <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
-        <SmartCRMTable rows={rows} title={pageTitles[kind]} kind={kind} onSelect={setSelectedRecord} onOpen={detailPathFor(kind) ? (row) => navigate(`${detailPathFor(kind)}/${row.id}`) : undefined} onInlineSave={saveInlineCell} onBulkDelete={apiEntity ? (selectedRows) => Promise.all(selectedRows.map((row) => crmApi.delete(apiEntity, Number(row.id)))).then(() => {
+        {kind === "tasks" && <MoveBoard label="CRM task priorities" reorder={false} groups={["Urgent","High","Medium","Low"].map(p=>({id:p,label:p}))} items={rows.map(row=>({id:Number(row.id),label:String(row.subject||row.title||row.name||"Task"),group:String(row.priority||"Medium"),content:<p className="text-xs text-muted-foreground">{String(row.owner||"Unassigned")} · {String(row.status||"")}</p>}))} onMove={async({item,group})=>{await crmApi.update("tasks",Number(item.id),{priority:group});setLocalRows(records.map(r=>Number(r.id)===Number(item.id)?{...r,priority:group}:r));}}/>}
+      <SmartCRMTable rows={rows} title={pageTitles[kind]} kind={kind} onSelect={setSelectedRecord} onOpen={detailPathFor(kind) ? (row) => navigate(`${detailPathFor(kind)}/${row.id}`) : undefined} onInlineSave={saveInlineCell} onBulkDelete={apiEntity ? (selectedRows) => Promise.all(selectedRows.map((row) => crmApi.delete(apiEntity, Number(row.id)))).then(() => {
           const selectedIds = new Set(selectedRows.map((row) => Number(row.id)));
           setLocalRows(records.filter((row) => !selectedIds.has(Number(row.id))));
           setSelectedRecord(null);
@@ -6527,7 +6536,7 @@ function QuoteBuilderPage() {
                 <Input type="number" value={Number(line.tax_rate || 0)} onChange={(event) => setLine((current) => ({ ...current, tax_rate: Number(event.target.value) }))} />
                 <Button onClick={addLine} disabled={saving}><Plus className="h-4 w-4" />Add</Button>
               </div>
-              <SmartCRMTable rows={lines.map((item) => normalizeApiRecord("quoteBuilder", item))} title="Quote lines" kind="quoteBuilder" onSelect={() => undefined} />
+              <OrderedList<CRMRecord & {id:number}> label="Quote line order" items={lines.map(item => ({ ...item, id: Number(item.id) }))} title={item => String(item.name || item.description || `Line ${item.id}`)} disabled={saving || ["accepted", "declined", "rejected", "converted"].includes(String(quote?.status || "").toLowerCase())} render={item => <p className="text-xs text-muted-foreground">{String(item.quantity)} × {formatCurrency(Number(item.unitPrice || item.unit_price || 0))}</p>} onReorder={async ordered => { try { const response = await movementApi.post(`/crm/quotes/${quoteId}/lines/reorder`, { ids: ordered.map(i => i.id), previous_order: lines.map(i => Number(i.id)) }); setQuote(response.data); } catch (e) { load(); throw e; } }} />
             </CardContent>
           </Card>
         </div>

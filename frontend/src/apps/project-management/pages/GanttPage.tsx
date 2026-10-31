@@ -1,5 +1,5 @@
 import { useRefreshableEffect } from "@/lib/page-refresh";
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertTriangle, Link2, RefreshCw, Trash2, ZoomIn } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -110,7 +110,7 @@ export default function GanttPage() {
 
   useRefreshableEffect(() => {
     if (!drag) return undefined;
-    const onMove = (event: MouseEvent) => {
+    const onMove = (event: PointerEvent) => {
       const dayDelta = Math.round((event.clientX - drag.startX) / pixelsPerDay(zoom));
       setTasks((items) => items.map((task) => {
         if (task.id !== drag.taskId) return task;
@@ -118,7 +118,7 @@ export default function GanttPage() {
         return { ...task, start_date: toIsoDate(next.start), due_date: toIsoDate(next.end) };
       }));
     };
-    const onUp = async (event: MouseEvent) => {
+    const onUp = async (event: PointerEvent) => {
       const current = drag;
       setDrag(null);
       const dayDelta = Math.round((event.clientX - current.startX) / pixelsPerDay(zoom));
@@ -135,11 +135,14 @@ export default function GanttPage() {
       }
       finally { setSaving(false); }
     };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    const cancel = () => { setDrag(null); void load(); };
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
     };
   }, [drag, zoom, data]);
 
@@ -425,7 +428,7 @@ function TaskBar({
   warnings: string[];
   onEdit: () => void;
   readOnly: boolean;
-  onDragStart: (mode: DragMode, event: ReactMouseEvent) => void;
+  onDragStart: (mode: DragMode, event: ReactPointerEvent) => void;
 }) {
   const left = daysBetween(timelineStart, schedule.start) * pixelsPerDay(zoom);
   const width = Math.max((daysBetween(schedule.start, schedule.end) + 1) * pixelsPerDay(zoom), 22);
@@ -437,11 +440,11 @@ function TaskBar({
       style={{ top: index * rowHeight + 10, left, width }}
       title={`${task.task_key}: ${formatDate(task.start_date || null)} - ${formatDate(task.due_date || null)}${warnings.length ? ` / ${warnings[0]}` : ""}`}
     >
-      <button type="button" disabled={readOnly} aria-label={`Resize start date for ${task.task_key}`} onMouseDown={(event) => onDragStart("start", event)} className="absolute left-0 top-0 h-full w-2 cursor-ew-resize rounded-l-md bg-black/15" />
-      <button type="button" onDoubleClick={onEdit} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onEdit(); } }} onMouseDown={(event) => onDragStart("move", event)} className="h-full w-full cursor-grab truncate px-3 text-left text-xs font-semibold text-white">
+      <button type="button" disabled={readOnly} aria-label={`Resize start date for ${task.task_key}`} onPointerDown={(event) => onDragStart("start", event)} style={{touchAction:"none"}} className="absolute left-0 top-0 h-full w-2 cursor-ew-resize rounded-l-md bg-black/15" />
+      <button type="button" onDoubleClick={onEdit} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onEdit(); } }} onPointerDown={(event) => onDragStart("move", event)} style={{touchAction:"none"}} className="h-full w-full cursor-grab truncate px-3 text-left text-xs font-semibold text-white">
         {task.task_key} {task.title}
       </button>
-      <button type="button" disabled={readOnly} aria-label={`Resize end date for ${task.task_key}`} onMouseDown={(event) => onDragStart("end", event)} className="absolute right-0 top-0 h-full w-2 cursor-ew-resize rounded-r-md bg-black/15" />
+      <button type="button" disabled={readOnly} aria-label={`Resize end date for ${task.task_key}`} onPointerDown={(event) => onDragStart("end", event)} style={{touchAction:"none"}} className="absolute right-0 top-0 h-full w-2 cursor-ew-resize rounded-r-md bg-black/15" />
     </div>
   );
 }

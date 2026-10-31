@@ -26,6 +26,7 @@ import httpx
 from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, Response
+from app.core.reorder import OrderInput, apply_order
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import asc, case, desc, func, or_
 from sqlalchemy.inspection import inspect as sa_inspect
@@ -2311,7 +2312,7 @@ def _serialize_approval_request_step(step: CRMApprovalRequestStep) -> dict[str, 
 
 def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bool = False) -> dict[str, Any]:
     data = _normalize_payload(payload)
-    protected = {"id", "organization_id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "created_by_user_id", "updated_by_user_id", "is_superuser", "role_id", "permissions", "password", "hashed_password", "paid_amount", "amount_paid", "balance_due", "payment_status", "provider_message_id", "storage_path", "file_path"}
+    protected = {"id", "organization_id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "created_by_user_id", "updated_by_user_id", "is_superuser", "role_id", "permissions", "password", "hashed_password", "paid_amount", "amount_paid", "balance_due", "payment_status", "provider_message_id", "storage_path", "file_path", "folder_id"}
     forbidden = protected.intersection(data)
     if forbidden:
         raise HTTPException(422, "Server-owned fields cannot be supplied: " + ", ".join(sorted(forbidden)))
@@ -3333,7 +3334,7 @@ def _create_deal_contact_links_from_payload(
 
 
 def _quotation_items_for(db: Session, quotation_id: int) -> list[dict[str, Any]]:
-    return [_serialize(item) for item in db.query(CRMQuotationItem).filter(CRMQuotationItem.quotation_id == quotation_id).limit(50).all()]
+    return [_serialize(item) for item in db.query(CRMQuotationItem).filter(CRMQuotationItem.quotation_id == quotation_id).order_by(CRMQuotationItem.sort_order, CRMQuotationItem.id).limit(50).all()]
 
 
 def _money(value: Any, currency: str = "INR") -> str:
@@ -3564,7 +3565,7 @@ def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_i
 def _quote_lines(db: Session, quote_id: int) -> list[CRMQuotationItem]:
     return db.query(CRMQuotationItem).filter(
         (CRMQuotationItem.quotation_id == quote_id) | (CRMQuotationItem.quote_id == quote_id)
-    ).order_by(CRMQuotationItem.id.asc()).all()
+    ).order_by(CRMQuotationItem.sort_order, CRMQuotationItem.id).all()
 
 
 def _decimal_value(value: Any) -> Decimal:
@@ -5907,6 +5908,19 @@ def list_custom_fields(
     return {"items": [_serialize(row) for row in rows], "total": len(rows), "page": 1, "per_page": len(rows), "pages": 1 if rows else 0}
 
 
+@router.post("/quotes/{quote_id}/lines/reorder")
+def reorder_quote_lines(quote_id: int, payload: OrderInput, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS))):
+    _assert_entity_permission("quotations", current_user, "manage")
+    quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
+    db.query(CRMQuotation).filter_by(id=quote.id).with_for_update().one()
+    if str(quote.status or "").lower() in {"accepted", "declined", "rejected", "converted"}:
+        raise HTTPException(409, "Finalized quotes cannot be rearranged")
+    apply_order(_quote_lines(db, quote.id), payload, "sort_order")
+    _create_crm_audit_log(db, user_id=current_user.id, entity_type="quotes", entity_id=quote.id, action="UPDATE", new_values={"line_order": payload.ids}, description="Quote lines reordered")
+    db.commit()
+    return _quote_payload(db, quote)
+
+
 @router.post("/quotes/{quote_id}/lines", status_code=status.HTTP_201_CREATED)
 def add_quote_line(
     quote_id: int,
@@ -5923,6 +5937,7 @@ def add_quote_line(
     raw["quote_id"] = quote.id
     raw["quotation_id"] = quote.id
     data = _validate_and_build(_get_resource("quotation-items"), raw, partial=False)
+    data["sort_order"] = len(_quote_lines(db, quote.id))
     line = CRMQuotationItem(**data)
     _apply_quote_line_calculation(line)
     db.add(line)
@@ -8103,6 +8118,23 @@ def export_records(
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{entity}.csv"'},
     )
+
+
+
+from ..file_workspace import router as file_workspace_router
+router.include_router(file_workspace_router)
+
+@router.post("/pipelines/{pipeline_id}/stages/reorder")
+def reorder_pipeline_stages(pipeline_id: int, payload: OrderInput, db: Session = Depends(get_db), user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS))):
+    _assert_entity_permission("pipelines", user, "manage")
+    pipeline = _get_record(db, _get_resource("pipelines"), pipeline_id, _organization_id(db, user))
+    db.query(CRMPipeline).filter_by(id=pipeline.id).with_for_update().one()
+    stages = db.query(CRMPipelineStage).filter_by(pipeline_id=pipeline.id, deleted_at=None).order_by(CRMPipelineStage.position, CRMPipelineStage.id).all()
+    ordered = apply_order(stages, payload, "position")
+    for index, stage in enumerate(ordered): stage.order_index = index
+    _create_crm_audit_log(db, user_id=user.id, entity_type="pipelines", entity_id=pipeline.id, action="UPDATE", new_values={"stage_order":payload.ids}, description="Pipeline stages reordered")
+    db.commit()
+    return {"ids":payload.ids}
 
 
 @router.get("/{entity}")

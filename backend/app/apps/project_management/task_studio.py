@@ -2,6 +2,7 @@
 
 import json
 import hashlib
+from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, joinedload
@@ -20,6 +21,34 @@ from .people_management import same_company, public_person
 router = APIRouter(prefix="/task-studio", tags=["PMS Task Studio"])
 
 
+@router.post("/general-scope")
+def general_scope(workspace_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from .models import PMSProject, PMSWorkspace
+    from .people_management import scoped_workspace
+    from .access import organization_id_for
+    from sqlalchemy.exc import IntegrityError
+    workspace, membership = scoped_workspace(db, workspace_id, user, False)
+    if workspace.organization_id not in {None, organization_id_for(user)}:
+        raise HTTPException(404, "Workspace not found in this organization")
+    if membership.role not in {"Owner", "Admin", "Member"}:
+        raise HTTPException(403, "Workspace Member access is required to create general tasks")
+    db.query(PMSWorkspace).filter_by(id=workspace.id).with_for_update().one()
+    collection = db.query(PMSProject).filter_by(workspace_id=workspace.id, is_task_collection=True).first()
+    if not collection:
+        collection = PMSProject(organization_id=organization_id_for(user), workspace_id=workspace.id,
+            name="General tasks", project_key="G-" + str(workspace.id) + "-" + uuid4().hex[:6], status="Active", is_task_collection=True)
+        try:
+            db.add(collection)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            collection = db.query(PMSProject).filter_by(workspace_id=workspace.id, is_task_collection=True).first()
+            if not collection:
+                raise HTTPException(409, "Workspace task collection changed. Please retry.")
+    return {"id": collection.id, "name": collection.name, "project_key": collection.project_key,
+        "workspace_id": workspace.id, "is_task_collection": True, "can_manage_tasks": True}
+
+
 class Selection(BaseModel):
     model_config = ConfigDict(extra="forbid")
     people: list[int] = Field(default_factory=list, max_length=100)
@@ -29,6 +58,7 @@ class Selection(BaseModel):
     owner: int | None = None
     allow_partial_groups: bool = False
     preserve_managed: bool = False
+    group_responsibility: bool = False
 
 
 class CreateInput(BaseModel):
@@ -136,6 +166,7 @@ def choices(db, project, user, compact=False):
                     {
                         "id": batch.id,
                         "name": batch.name,
+                        "code": batch.code, "start_date": batch.start_date, "end_date": batch.end_date, "status": batch.status,
                         "member_ids": sorted(set(eligible)),
                         "excluded_count": len(members) - len(set(eligible)),
                         "population_count": len(members),
@@ -218,6 +249,7 @@ def projects(
             "name": p.name,
             "project_key": p.project_key,
             "workspace_id": p.workspace_id,
+            "is_task_collection": p.is_task_collection,
             "can_manage_tasks": can_access_project(db, p, user, "manage_tasks"),
         }
         for p in accessible_project_query(db, user).order_by(PMSProject.name).all()
@@ -240,7 +272,10 @@ def options(
 @router.get("/people")
 def picker_people(
     project_id: int,
+    group_kind: str | None = None,
+    group_id: int | None = None,
     q: str = Query("", max_length=150),
+    role: str = Query("", max_length=100),
     page: int = Query(1, ge=1),
     selected: str = Query("", max_length=2000),
     reviewers: bool = False,
@@ -254,6 +289,21 @@ def picker_people(
     query = query_people(db, user, Filters(q=q, status="active")).filter(
         User.id.in_(_project_user_query(db, project).with_entities(User.id))
     )
+    from app.models.user import Role
+    role_options = [row[0] for row in db.query(Role.name).filter(Role.id.in_(query.with_entities(User.role_id))).distinct().order_by(Role.name)]
+    if query.filter(User.is_superuser.is_(True)).first():
+        role_options = ["superuser", *role_options]
+    if role == "superuser":
+        query = query.filter(User.is_superuser.is_(True))
+    elif role:
+        query = query.filter(User.role_id.in_(db.query(Role.id).filter_by(name=role)))
+    if group_id:
+        if group_kind not in {"teams", "batches"}:
+            raise HTTPException(422, "Invalid group type")
+        group = next((g for g in choices(db, project, user)[group_kind] if g["id"] == group_id), None)
+        if not group:
+            raise HTTPException(404, "Group not found in this project")
+        query = query.filter(User.id.in_(group["member_ids"]))
     if reviewers:
         allowed = choices(db, project, user, True)["reviewers"]
         query = query.filter(User.id.in_(allowed))
@@ -281,6 +331,7 @@ def picker_people(
         "items": [public_person(db, u) for u in rows],
         "selected": [public_person(db, u) for u in retained],
         "total": total,
+        "roles": role_options,
         "pages": (total + 29) // 30,
         "page": page,
     }
@@ -305,14 +356,15 @@ def resolve(db, project, user, selection, preserved_ids=frozenset()):
                     422,
                     "A selected group is unavailable in this project or outside your management scope",
                 )
-            if not item["member_ids"]:
+            if not selection.group_responsibility and not item["member_ids"]:
                 raise HTTPException(422, "A selected group has no eligible members")
-            if item["excluded_count"] and not selection.allow_partial_groups:
+            if item["excluded_count"] and not selection.allow_partial_groups and not selection.group_responsibility:
                 raise HTTPException(
                     422,
                     "Some group members cannot receive this task. Review exclusions and explicitly choose eligible members only.",
                 )
-            ids.update(item["member_ids"])
+            if not selection.group_responsibility:
+                ids.update(item["member_ids"])
             snapshots.append({"kind": kind, **item})
     if len(ids) > 100:
         raise HTTPException(422, "Choose at most 100 unique task assignees")
@@ -342,6 +394,8 @@ def version(db, task):
                     "task.deleted",
                     "task.restored",
                     "task.moved",
+                    "task.reordered",
+                    "sprint.changed",
                 ]
             ),
         )
@@ -383,6 +437,12 @@ def detail(db, task, project, user):
             "teams": [],
             "batches": [],
         }
+    from .models import PMSTaskGroupTarget
+    group_targets = db.query(PMSTaskGroupTarget).filter_by(task_id=task.id).all()
+    if group_targets:
+        selection = {**selection, "group_responsibility": True,
+            "teams": [g.target_id for g in group_targets if g.kind == "teams"],
+            "batches": [g.target_id for g in group_targets if g.kind == "batches"]}
     protected = [a.user_id for a in task.assignments if a.source_key]
     protected_set = set(protected)
     if len(protected) > 100:
@@ -396,6 +456,7 @@ def detail(db, task, project, user):
     return {
         "task": PMSTaskResponse.model_validate(task).model_dump(),
         "protected_count": len(protected),
+        "group_targets": [{"id": g.target_id, "kind": g.kind, "name": g.name, "member_count": g.member_count} for g in group_targets],
         "assignment": {
             key: selection.get(key, default)
             for key, default in Selection().model_dump().items()
@@ -422,6 +483,11 @@ def get(
 
 def record(db, task, user, selection):
     from .api.router import _record_activity
+    from .models import PMSTaskGroupTarget
+    if selection.get("group_responsibility"):
+        db.query(PMSTaskGroupTarget).filter_by(task_id=task.id).delete(synchronize_session=False)
+        for group in selection.get("groups", []):
+            db.add(PMSTaskGroupTarget(task_id=task.id, kind=group["kind"], target_id=group["id"], name=group["name"], member_count=len(group["member_ids"]), assigned_by=user.id))
 
     for row in task.assignments:
         if not row.source_key:

@@ -22,7 +22,13 @@ export const usePmsNavigation = create<{
       } catch { /* First visit or unavailable browser storage. */ }
       current = legacy;
     }
-    if (current.recent[0]?.path === page.path) return state.contexts[scope] ? state : { contexts: { ...state.contexts, [scope]: current } };
+    if (current.recent[0]?.path === page.path) {
+      if (current.recent[0].label === page.label) return state.contexts[scope] ? state : { contexts: { ...state.contexts, [scope]: current } };
+      return { contexts: { ...state.contexts, [scope]: { ...current,
+        recent: current.recent.map(p => p.path === page.path ? page : p),
+        favorites: current.favorites.map(p => p.path === page.path ? page : p),
+      } } };
+    }
     return { contexts: { ...state.contexts, [scope]: { ...current, recent: [page, ...current.recent.filter(p => p.path !== page.path)].slice(0, 20), visits: { ...current.visits, [page.path]: (current.visits[page.path] || 0) + 1 } } } };
   }),
   pin: (scope, page) => set(state => {

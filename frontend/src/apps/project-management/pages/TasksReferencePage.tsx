@@ -1,3 +1,6 @@
+import TaskThemeSwitcher from "../components/TaskThemeSwitcher";
+import MoveBoard from "@/components/interaction/MoveBoard";
+import { arrangeTask } from "../components/SprintMoveBoard";
 import { useEffect, useState } from "react";
 import {
   Link,
@@ -58,7 +61,7 @@ import type {
 } from "../types";
 import CreateTaskModal from "../components/CreateTaskModal";
 import RecordActions from "../components/RecordActions";
-import TaskExecutionPanel from "../components/TaskExecutionPanel";
+import { RichTextContent } from "@/components/rich-text/LazyRichText";
 import { usePMSRealtime } from "../realtime";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { workspaceError } from "./workspaceTypes";
@@ -252,6 +255,20 @@ export default function TasksReferencePage() {
     }
     setCreate(true);
   };
+  const openFullTask = (task: PMSTaskListItem) => {
+    const from = routeLocation.pathname + routeLocation.search;
+    try { sessionStorage.setItem(`pms-task-list-scroll:${from}`, String(document.querySelector(".tr-content")?.scrollTop || document.querySelector("#suite-main")?.scrollTop || window.scrollY)); } catch { /* storage unavailable */ }
+    navigate(`/pms/tasks/${task.id}`, { state: { from } });
+  };
+  useEffect(() => {
+    if (!loading && !studio) requestAnimationFrame(() => {
+      const from = routeLocation.pathname + routeLocation.search;
+      let top = 0; try { top = Number(sessionStorage.getItem(`pms-task-list-scroll:${from}`)) || 0; } catch { /* storage unavailable */ }
+      window.scrollTo(0, top);
+      document.querySelector(".tr-content")?.scrollTo(0, top);
+      document.querySelector("#suite-main")?.scrollTo(0, top);
+    });
+  }, [loading, studio]);
   const open = (task?: PMSTaskListItem) => {
     if (dirty && !window.confirm("Discard unsaved task changes?")) return;
     setDirty(false);
@@ -437,6 +454,7 @@ export default function TasksReferencePage() {
           </button>
           <GlobalSearch />
           <div className="tr-header-actions">
+            {!studio && <TaskThemeSwitcher />}
             {studio && (
               <Link className="tr-primary tr-studio-new" to="/pms/tasks/new">
                 <Plus size={14} />
@@ -625,7 +643,7 @@ export default function TasksReferencePage() {
                         }
                       }}
                     >
-                      <option value="">☷　Saved views</option>
+                      <option value="">☷ Saved views</option>
                       {views.map((v) => (
                         <option key={v.id} value={v.id}>
                           {v.name}
@@ -801,6 +819,7 @@ export default function TasksReferencePage() {
                     </select>
                   </div>
                 )}
+                <details className="rounded-lg border bg-white p-3 mb-4"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>
                 <div
                   className={
                     layout === "gallery"
@@ -897,11 +916,12 @@ export default function TasksReferencePage() {
                             canEdit={editable.some(
                               (p) => p.id === task.project_id,
                             )}
-                            onOpen={() => open(task)}
+                            preview={false}
+                        onOpen={() => openFullTask(task)}
                             onChanged={reload}
                           >
                             {(more) => (
-                              <tr>
+                              <tr onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))openFullTask(task);}}>
                                 <td>
                                   <input
                                     type="checkbox"
@@ -926,10 +946,10 @@ export default function TasksReferencePage() {
                                 <td>
                                   <button
                                     className="tr-task-title"
-                                    onClick={() => open(task)}
+                                    onClick={() => openFullTask(task)}
                                   >
                                     {task.title}
-                                  </button>
+                                  </button><button type="button" className="tr-quick-preview" aria-label={`Quick preview ${task.title}`} onClick={e=>{e.stopPropagation();open(task);}}>Quick preview</button>
                                   <small>#{task.task_key || task.id}</small>
                                 </td>
                                 <td>
@@ -946,7 +966,7 @@ export default function TasksReferencePage() {
                                     />
                                     {task.project_name}
                                   </span>
-                                  <small>{task.project_key || "Project"}</small>
+                                  <small>{task.is_general ? "Workspace tasks" : task.project_key || "Project"}</small>
                                 </td>
                                 <td>
                                   <PriorityBadge priority={task.priority} />
@@ -993,21 +1013,22 @@ export default function TasksReferencePage() {
                         key={task.id}
                         record={{ ...task, key: task.task_key }}
                         canEdit={editable.some((p) => p.id === task.project_id)}
-                        onOpen={() => open(task)}
+                        preview={false}
+                        onOpen={() => openFullTask(task)}
                         onChanged={reload}
                       >
                         {(more) => (
-                          <article className="tr-task-card">
+                          <article className="tr-task-card" onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))openFullTask(task);}}>
                             <div className="tr-card-top">
                               <span>{task.task_key}</span>
                               {more}
                             </div>
                             <button
                               className="tr-task-title"
-                              onClick={() => open(task)}
+                              onClick={() => openFullTask(task)}
                             >
                               {task.title}
-                            </button>
+                            </button><button type="button" className="tr-quick-preview" aria-label={`Quick preview ${task.title}`} onClick={e=>{e.stopPropagation();open(task);}}>Quick preview</button>
                             <p>{task.project_name}</p>
                             <div>
                               {pill(task)}
@@ -1353,7 +1374,7 @@ export default function TasksReferencePage() {
           <Dialog.Content className="tr-detail-panel">
             <Dialog.Title>{opened?.title}</Dialog.Title>
             <Dialog.Description>
-              Task details and execution. Your list filters stay in place.
+              Quick summary. Open the full task to manage work and collaborate.
             </Dialog.Description>
             <button
               className="tr-panel-close"
@@ -1401,14 +1422,7 @@ export default function TasksReferencePage() {
                 Full details <ArrowUpRight size={14} />
               </Link>
             </div>
-            {opened && (
-              <TaskExecutionPanel
-                key={opened.id}
-                taskId={opened.id}
-                onChanged={reload}
-                onDirtyChange={setDirty}
-              />
-            )}
+            {opened && <section className="tr-preview-summary"><p>{opened.status} · {opened.priority} priority</p><p>{opened.project_name} · Due {opened.due_date || "not set"}</p><p>Assignee: {opened.assignee_name || "Unassigned"}</p><RichTextContent value={opened.description || "No description yet."}/><Link className="tr-primary" to={`/pms/tasks/${opened.id}`} state={{from:routeLocation.pathname+routeLocation.search}}>Open Full Task <ArrowUpRight size={14}/></Link></section>}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

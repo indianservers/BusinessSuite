@@ -42,6 +42,7 @@ export interface CreateClientInput {
 
 // ============= PROJECT TYPES =============
 export interface PMSProject {
+  can_upload_files?: boolean;
   can_edit_project?: boolean;
   can_manage_members?: boolean;
   can_manage_tasks?: boolean;
@@ -197,6 +198,7 @@ export interface PMSTask {
 }
 
 export interface PMSTaskListItem extends PMSTask {
+  is_general?: boolean;
   assignee_photo_url?:string|null;
   project_name?: string;
   project_key?: string;
@@ -242,12 +244,13 @@ export interface PMSBacklogSprint extends PMSSprint {
 }
 
 export interface PMSBacklogResponse {
-  project: { id: number; name: string; project_key?: string };
+  project: { id: number; name: string; project_key?: string; can_manage_tasks?: boolean };
   backlog: PMSTaskListItem[];
   sprints: PMSBacklogSprint[];
 }
 
 export interface PMSTaskListQuery {
+  taskIds?: string;
   referenceDate?:string;overdue?:boolean;openOnly?:boolean;
   projectId?: number | string;
   sprintId?: number | string;
@@ -375,6 +378,8 @@ export interface CreateMilestoneInput {
 
 // ============= COMMENT TYPES (COLLABORATION) =============
 export interface PMSComment {
+  is_resolved?: boolean;
+  reactions?: {emoji:string;count:number;mine:boolean}[];
   id: number;
   author_user_id?: number;
   project_id?: number;
@@ -437,6 +442,7 @@ export interface PMSNotification {
 
 // ============= FILE TYPES =============
 export interface PMSFileAsset {
+  folder_id?: number | null;
   id: number;
   uploaded_by_user_id?: number;
   uploaded_by_name?: string;

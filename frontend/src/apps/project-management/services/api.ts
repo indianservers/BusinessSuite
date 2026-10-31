@@ -521,9 +521,9 @@ export const commentsAPI = {
     return response.data;
   },
 
-  listForTask: async (taskId: number) => {
+  listForTask: async (taskId: number, skip = 0, limit = 100) => {
     const response = await api.get<PMSComment[]>(
-      `${BASE_URL}/tasks/${taskId}/comments`
+      `${BASE_URL}/tasks/${taskId}/comments`, { params: {skip, limit} }
     );
     return response.data;
   },

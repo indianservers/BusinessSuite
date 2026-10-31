@@ -1,3 +1,7 @@
+import DirectoryDestinations, { type DestinationRequest } from "../components/people/DirectoryDestinations";
+import { useAuthStore } from "@/store/authStore";
+import PeopleAction from "../components/people/PeopleAction";
+import DirectoryTable, { PageSelection } from "../components/people/DirectoryTable";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -31,10 +35,13 @@ import {
   DirectoryPagination,
 } from "../components/people/DirectoryDialogs";
 import DirectoryImport from "../components/people/DirectoryImport";
+import AddPeopleMemberships from "../components/people/AddPeopleMemberships";
+import { useMembershipOptions } from "../components/people/peopleMemberships";
 import {
   directoryRoot,
   directoryGet,
   directoryTaskHref,
+  type DirectoryPerson,
   type DirectoryPage,
   type DirectoryReference,
   type GroupPage,
@@ -114,7 +121,20 @@ export default function PeopleManagementDirectory() {
   const [search, setSearch] = useState(params.get("q") || "");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
+  const [selectionPeople, setSelectionPeople] = useState<Record<number, DirectoryPerson>>({});
+  const [selectionPages, setSelectionPages] = useState<Record<number, number>>({});
+  const [destinationRequest, setDestinationRequest] = useState<DestinationRequest>();
+  const [dragging, setDragging] = useState(false);
+  const [previewPerson, setPreviewPerson] = useState<DirectoryPerson>();
+  const [notice, setNotice] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [reviewSelection, setReviewSelection] = useState(false);
+  const user = useAuthStore(state => state.user);
   const [adding, setAdding] = useState(false);
+  const [membershipMode, setMembershipMode] = useState<"workspace" | "project" | null>(null);
+  const membershipOptions = useMembershipOptions();
+  const canAddWorkspace = !!membershipOptions.data?.workspaces.length;
+  const canAddProject = !!membershipOptions.data?.projects.length;
   const [teamEditor, setTeamEditor] = useState<{
     id?: number;
     workspace?: number;
@@ -125,7 +145,7 @@ export default function PeopleManagementDirectory() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [mobileTab, setMobileTab] = useState<
-    "people" | "teams" | "batches" | "organizations"
+    "people" | "destinations" | "teams" | "batches" | "organizations"
   >("people");
   const listRef = useRef<HTMLElement>(null);
   const page = Number(params.get("page") || 1);
@@ -158,10 +178,10 @@ export default function PeopleManagementDirectory() {
   const change = (key: string, value: string) => {
     const next = new URLSearchParams(paramsRef.current);
     value ? next.set(key, value) : next.delete(key);
-    if (key !== "page") next.delete("page");
+    if (!["page", "layout", "density", "panel", "columns"].includes(key)) next.delete("page");
     paramsRef.current = next;
     setParams(next);
-    setSelected([]);
+    if (!["page", "layout", "sort", "density", "panel", "columns"].includes(key)) setSelected([]);
   };
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -170,11 +190,27 @@ export default function PeopleManagementDirectory() {
     return () => clearTimeout(timer);
   }, [search]);
   useEffect(() => setSearch(params.get("q") || ""), [params.get("q")]);
+  useEffect(() => { const role = params.get("role") || ""; if (role !== "superuser" && ["superadmin", "superuser"].includes(role.toLowerCase().replace(/[ _]/g, ""))) change("role", "superuser"); }, [params.get("role")]);
   const people = useQuery({
     queryKey: ["people-workspace", "directory", JSON.stringify(dataQuery)],
     queryFn: () =>
       directoryGet<DirectoryPage>("/people", { ...query, page, page_size: 24 }),
   });
+  const selectionFilter = JSON.stringify(Object.entries(dataQuery).filter(([key]) => !["page", "sort"].includes(key)));
+  useEffect(() => { setSelected([]); setSelectionPeople({}); setSelectionPages({}); }, [selectionFilter, user?.id, user?.access?.companyId]);
+  useEffect(() => { if (people.data) setSelectionPeople(current => ({...current, ...Object.fromEntries(people.data.items.map(person => [person.id, person]))})); }, [people.data]);
+  const selectPerson = (person: DirectoryPerson) => {
+    setSelected(ids => ids.includes(person.id) ? ids.filter(id => id !== person.id) : ids.length < 100 ? [...ids,person.id] : ids);
+    setSelectionPages(current => ({...current,[person.id]:page}));
+    if (selected.length >= 100 && !selected.includes(person.id)) setError("Select at most 100 people per bulk operation.");
+  };
+  const togglePage = () => {
+    const active = (people.data?.items || []).filter(person => person.status === "active").map(person => person.id);
+    const all = active.length > 0 && active.every(id => selected.includes(id));
+    const next = all ? selected.filter(id => !active.includes(id)) : [...new Set([...selected,...active])];
+    if (next.length > 100) { setError("Select at most 100 people per bulk operation. Review or clear the existing selection first."); return; }
+    setSelected(next); setSelectionPages(current => ({...current, ...Object.fromEntries(active.map(id => [id,page]))}));
+  };
   const reference = useQuery({
     queryKey: ["people-workspace", "reference"],
     queryFn: () => directoryGet<DirectoryReference>("/reference"),
@@ -211,7 +247,7 @@ export default function PeopleManagementDirectory() {
   const ref = reference.data;
   const stats = ref?.stats;
   const countFilters = [...params.keys()].filter(
-    (key) => !["page", "layout", "sort"].includes(key),
+    (key) => !["page", "layout", "sort", "density", "panel", "columns"].includes(key),
   ).length;
   const metrics = [
     {
@@ -251,12 +287,12 @@ export default function PeopleManagementDirectory() {
     },
   ];
   const canTeam = !!ref?.can_manage_people;
-  const exportPeople = async () => {
+  const exportPeople = async (scope: "filtered" | "page" | "selected" = "filtered") => {
     setBusy(true);
     setError("");
     try {
       const { data } = await api.get<Blob>(directoryRoot + "/export", {
-        params: query,
+        params: scope === "filtered" ? query : { selected_ids: (scope === "selected" ? selected : (people.data?.items || []).map(p => p.id)).join(",") },
         responseType: "blob",
       });
       const url = URL.createObjectURL(data);
@@ -272,13 +308,13 @@ export default function PeopleManagementDirectory() {
     }
   };
   return (
-    <div className={`people-workspace pd-mobile-${mobileTab}`}>
+    <div className={`people-workspace pd-mobile-${mobileTab} ${dragging ? "pd-dragging" : ""} pd-density-${params.get("density") || "comfortable"} ${params.get("panel") === "hidden" ? "pd-panel-hidden" : ""}`}>
       <div className="pd-mobile-tabs">
-        {["people", "teams", "batches", "organizations"].map((value) => (
+        {["people", "destinations", "teams", "batches", "organizations"].map((value) => (
           <button
             key={value}
             className={mobileTab === value ? "active" : ""}
-            onClick={() => setMobileTab(value as typeof mobileTab)}
+            onClick={() => {setMobileTab(value as typeof mobileTab);if(value === "destinations")change("panel","");}}
           >
             {value === "batches" ? "Interns Batches" : value}
           </button>
@@ -366,7 +402,7 @@ export default function PeopleManagementDirectory() {
                     ? "Scoped export permission is required"
                     : "Export the current filtered records"
                 }
-                onClick={() => void exportPeople()}
+                onClick={() => setExportOpen(true)}
               >
                 <Download size={15} />
                 Export
@@ -501,7 +537,7 @@ export default function PeopleManagementDirectory() {
                 <LayoutGrid size={17} />
               </button>
               <button
-                aria-label="List view"
+                aria-label="Table view"
                 aria-pressed={layout === "list"}
                 className={layout === "list" ? "active" : ""}
                 onClick={() => change("layout", "list")}
@@ -510,11 +546,14 @@ export default function PeopleManagementDirectory() {
               </button>
             </div>
           </div>
+          <div className="pd-command-bar"><label>Density <select aria-label="Card density" value={params.get("density") || "comfortable"} onChange={e=>change("density",e.target.value)}>{["comfortable","compact","detailed"].map(v=><option key={v}>{v}</option>)}</select></label><button className="pd-button" onClick={()=>change("panel",params.get("panel") === "hidden" ? "" : "hidden")}>{params.get("panel") === "hidden" ? "Show destinations" : "Hide destinations"}</button><button className="pd-button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.href);setNotice("Directory link copied with filters and layout.");}catch{setNotice("Copy this page URL from the address bar.");}}}>Copy filtered link</button><span role="status">{notice}</span></div>
           <div className="pd-quick-filters">
             {[
               ["all", "All people"],
               ["team_members", "Team members"],
               ["interns", "Interns"],
+              ["employees", "Employees"],
+              ["needs_attention", "Needs attention"],
               ["batched", "By batch"],
             ].map(([key, label]) => (
               <button
@@ -527,6 +566,7 @@ export default function PeopleManagementDirectory() {
                 {key !== "all" && <Users size={12} />} {label}
               </button>
             ))}
+            <button className={params.get("membership") === "unassigned" ? "active" : ""} onClick={()=>change("membership",params.get("membership") === "unassigned" ? "" : "unassigned")}>Unassigned</button>
             <button onClick={() => setFiltersOpen(true)}>
               <Users size={12} />
               By team
@@ -655,10 +695,13 @@ export default function PeopleManagementDirectory() {
                 >
                   {[
                     ["name", "Name"],
+                    ["name_desc", "Name (Z–A)"],
                     ["email", "Email"],
+                    ["email_desc", "Email (Z–A)"],
                     ["newest", "Newest registered"],
                     ["oldest", "Oldest registered"],
                     ["status", "Active first"],
+                    ["status_desc", "Inactive first"],
                   ].map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
@@ -684,7 +727,7 @@ export default function PeopleManagementDirectory() {
           {countFilters > 0 && (
             <div className="pd-active-filters">
               {[...params.entries()]
-                .filter(([key]) => !["page", "layout", "sort"].includes(key))
+                .filter(([key]) => !["page", "layout", "sort", "density", "panel", "columns"].includes(key))
                 .map(([key, value]) => (
                   <button key={key} onClick={() => change(key, "")}>
                     {key.replace(/_/g, " ")}: {value}
@@ -695,19 +738,30 @@ export default function PeopleManagementDirectory() {
           )}
           {!!selected.length && (
             <div className="pd-bulk-actions">
-              <strong>{selected.length} selected</strong>
-              <button disabled={!canTeam} onClick={() => setAdding(true)}>
+              <strong>{selected.length} selected across {new Set(selected.map(id => selectionPages[id] || page)).size} {new Set(selected.map(id => selectionPages[id] || page)).size === 1 ? "page" : "pages"} · limit 100</strong>
+              <button onClick={() => setReviewSelection(true)}>Review selection</button>
+              {membershipOptions.isError && <span role="alert">Could not load membership destinations. <button onClick={() => membershipOptions.refetch()}>Retry</button></span>}
+              <PeopleAction reason={!canAddWorkspace ? (membershipOptions.isLoading ? "Loading workspaces…" : "No workspaces you can manage. Ask a workspace owner for access.") : undefined} onClick={() => setMembershipMode("workspace")}>
+                Add to workspace
+              </PeopleAction>
+              <PeopleAction reason={!canAddProject ? (membershipOptions.isLoading ? "Loading projects…" : "No projects you can manage. Ask a project owner for access.") : undefined} onClick={() => setMembershipMode("project")}>
+                Add to project
+              </PeopleAction>
+              <PeopleAction reason={!canTeam ? "Adding team members requires workspace administration access." : undefined} onClick={() => setAdding(true)}>
                 <Users size={15} />
                 Add to team
-              </button>
+              </PeopleAction>
               <button
                 onClick={() => navigate(directoryTaskHref("people", selected))}
               >
                 Assign task
               </button>
+              <button onClick={()=>{change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Bulk destinations / transfer / remove / roles</button>
+              <button disabled={!ref?.can_export || busy} onClick={()=>void exportPeople("selected")}>Export selected</button>
               <button onClick={() => setSelected([])}>Clear selection</button>
             </div>
           )}
+          <div className="mb-3 flex flex-wrap items-center gap-4 text-sm"><PageSelection people={people.data?.items || []} selected={selected} onToggle={togglePage} /><span>Select up to 100 active people across pages. Changing filters clears the selection.</span></div>
           {people.isLoading ? (
             <div
               className="pd-card-grid"
@@ -718,26 +772,24 @@ export default function PeopleManagementDirectory() {
                 <div className="pd-card-skeleton" key={i} />
               ))}
             </div>
-          ) : (
-            <div className={`pd-card-grid ${layout === "list" ? "list" : ""}`}>
+          ) : layout === "list" ? <DirectoryTable columnsValue={params.get("columns") ?? undefined} onColumnsChange={value=>change("columns",value)} people={people.data?.items || []} selected={selected} onSelect={selectPerson} onTogglePage={togglePage} backTo={backTo} sort={params.get("sort") || "name"} onSort={value => change("sort",value)} /> : (
+            <div className="pd-card-grid">
               {people.data?.items.map((person) => (
                 <DirectoryPersonCard
                   key={person.id}
                   person={person}
+                  onPreview={()=>setPreviewPerson(person)}
+                  onDestinations={()=>{setSelected([person.id]);change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}
+                  onDragMembers={event=>{const ids=selected.includes(person.id)?selected:[person.id];event.dataTransfer.setData("application/x-pms-members",JSON.stringify(ids));event.dataTransfer.effectAllowed="copyMove";setSelected(ids);setDragging(true);}}
+                  onDragEnd={()=>setDragging(false)}
                   selected={selected.includes(person.id)}
                   canTeam={canTeam}
+                  canAddWorkspace={canAddWorkspace}
+                  canAddProject={canAddProject}
+                  onWorkspace={() => { setSelected([person.id]); setMembershipMode("workspace"); }}
+                  onProject={() => { setSelected([person.id]); setMembershipMode("project"); }}
                   profileHref={`/pms/people/${person.id}?returnTo=${encodeURIComponent(backTo)}`}
-                  onSelect={() => {
-                    setSelected((ids) =>
-                      ids.includes(person.id)
-                        ? ids.filter((id) => id !== person.id)
-                        : ids.length < 100
-                          ? [...ids, person.id]
-                          : ids,
-                    );
-                    if (selected.length >= 100 && !selected.includes(person.id))
-                      setError("Select at most 100 people per bulk operation.");
-                  }}
+                  onSelect={() => selectPerson(person)}
                   onTeam={() => {
                     setSelected([person.id]);
                     setAdding(true);
@@ -774,14 +826,21 @@ export default function PeopleManagementDirectory() {
             />
           </footer>
         </section>
+        <div className="pd-destination-column"><DirectoryDestinations onClose={()=>{setMobileTab("people");change("panel","hidden");}} selected={selected} dragging={dragging} request={destinationRequest} onChanged={()=>{void qc.invalidateQueries({queryKey:["people-workspace"]});}} /><details className="pd-group-administration" open={!["people","destinations"].includes(mobileTab) || undefined}><summary>Team and batch administration</summary>
         <DirectoryGroupsPanel
           reference={ref}
           onNewTeam={() => setTeamEditor({})}
           onEditTeam={(id, workspace) => setTeamEditor({ id, workspace })}
-          forcedTab={mobileTab === "people" ? undefined : mobileTab}
+          forcedTab={mobileTab === "people" || mobileTab === "destinations" ? undefined : mobileTab}
           onTabChange={setMobileTab}
-        />
+        /></details></div>
       </div>
+      <PeopleDialog open={exportOpen} onClose={()=>setExportOpen(false)} title="Export people" description="Choose exactly which registered people to export."><div className="pd-dialog-actions">{(["filtered","page","selected"] as const).map(scope=><button className="pd-button" key={scope} disabled={busy || !ref?.can_export || (scope === "selected" && !selected.length)} onClick={()=>void exportPeople(scope)}>{scope === "filtered" ? "All filtered results" : scope === "page" ? "Current page" : `${selected.length} selected people`}</button>)}</div></PeopleDialog>
+      <PeopleDialog className="pd-preview-drawer" open={!!previewPerson} onClose={()=>setPreviewPerson(undefined)} title={previewPerson?.name || "Member preview"} description="Quick member preview. Close to return to your current selection and filters.">{previewPerson && <div className="pd-member-preview"><p>{previewPerson.email}</p><p>{previewPerson.classification} / {previewPerson.status}</p><h3>Current projects</h3><p>{previewPerson.projects?.map(p=>p.name).join(", ") || "No current projects"}</p><h3>Teams</h3><p>{previewPerson.teams.map(p=>p.name).join(", ") || "No teams"}</p>{previewPerson.classification.toLowerCase() === "intern" && <><h3>Intern batches</h3><p>{previewPerson.batches.map(p=>p.name).join(", ") || "No batch"}</p></>}<h3>Skills</h3><p>{previewPerson.skills.join(", ") || "No skills listed"}</p><div className="pd-dialog-actions"><Link className="pd-button" to={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`}>Open full profile</Link><Link className="pd-button" to={`/pms/people/${previewPerson.id}?tab=activity&returnTo=${encodeURIComponent(backTo)}`}>Assignment history</Link><button className="pd-primary" onClick={()=>{setSelected([previewPerson.id]);setPreviewPerson(undefined);change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Assign to destination</button></div></div>}</PeopleDialog>
+      <PeopleDialog open={reviewSelection} onClose={() => setReviewSelection(false)} title="Review selected people" description={`${selected.length} selected people. Remove anyone before applying a bulk action.`}>
+        <ul className="max-h-80 overflow-auto">{selected.map(id => <li className="flex items-center justify-between border-b py-2" key={id}><span>{selectionPeople[id]?.name || `Person #${id}`}<small className="block">{selectionPeople[id]?.email}</small></span><button className="pd-button" onClick={() => setSelected(ids => ids.filter(value => value !== id))}>Remove</button></li>)}</ul>
+        <button className="pd-button" onClick={() => setReviewSelection(false)}>Done</button>
+      </PeopleDialog>
       <TeamEditor
         open={!!teamEditor}
         onClose={() => setTeamEditor(null)}
@@ -799,6 +858,8 @@ export default function PeopleManagementDirectory() {
         personIds={selected}
         reference={ref}
       />
+      <AddPeopleMemberships mode={membershipMode} personIds={selected}
+        onClose={() => setMembershipMode(null)} onAdded={() => setSelected([])} />
       <DirectoryImport
         open={importing}
         onClose={() => setImporting(false)}

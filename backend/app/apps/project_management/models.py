@@ -1,8 +1,74 @@
-from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint, Index, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import deferred, relationship
 
 from app.db.base_class import Base
+
+
+class PMSTaskWorkspaceState(Base):
+    __tablename__ = "pms_task_workspace_state"
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    progress = Column(Integer, nullable=False, default=0)
+    progress_mode = Column(String(20), nullable=False, default="manual")
+    revision = Column(Integer, nullable=False, default=0)
+
+
+class PMSTaskWatcher(Base):
+    __tablename__ = "pms_task_watchers"
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+
+
+class PMSTaskReadPosition(Base):
+    __tablename__ = "pms_task_read_positions"
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    last_comment_id = Column(Integer, nullable=False, default=0)
+
+
+class PMSCommentReaction(Base):
+    __tablename__ = "pms_comment_reactions"
+    __table_args__ = (UniqueConstraint("comment_id", "user_id", "emoji"),)
+    id = Column(Integer, primary_key=True)
+    comment_id = Column(Integer, ForeignKey("pms_comments.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    emoji = Column(String(20), nullable=False)
+
+
+class PMSTaskUpdateEntry(Base):
+    __tablename__ = "pms_task_update_entries"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    kind = Column(String(20), nullable=False, default="update")
+    body = Column(Text, nullable=False)
+    progress = Column(Integer)
+    minutes = Column(Integer, nullable=False, default=0)
+    follow_up_date = Column(Date)
+    category = Column(String(40))
+    severity = Column(String(20))
+    responsible_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    assistance = Column(Text)
+    resolved = Column(Boolean, nullable=False, default=False)
+    file_ids = Column(JSON, nullable=False, default=list)
+    revision = Column(Integer, nullable=False, default=1)
+    deleted_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class PMSTaskGroupTarget(Base):
+    """Explicit group responsibility, separate from individual execution assignments."""
+    __tablename__ = "pms_task_group_targets"
+    __table_args__ = (UniqueConstraint("task_id", "kind", "target_id"),)
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String(12), nullable=False)
+    target_id = Column(Integer, nullable=False, index=True)
+    name = Column(String(240), nullable=False)
+    member_count = Column(Integer, nullable=False, default=0)
+    assigned_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class PMSTaskExecution(Base):
@@ -150,7 +216,8 @@ class PMSWorkspaceInvitation(Base):
 
 class PMSProject(Base):
     __tablename__ = "pms_projects"
-    __table_args__ = (UniqueConstraint("organization_id", "project_key", name="uq_pms_project_org_key"),)
+    __table_args__ = (UniqueConstraint("organization_id", "project_key", name="uq_pms_project_org_key"),
+        Index("uq_pms_workspace_task_collection", "workspace_id", unique=True, postgresql_where=text("is_task_collection = true"), sqlite_where=text("is_task_collection = 1")))
 
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, nullable=True, index=True)
@@ -182,6 +249,7 @@ class PMSProject(Base):
     progress_percent = Column(Integer, default=0)
     is_client_visible = Column(Boolean, default=False)
     is_template = Column(Boolean, default=False, index=True)
+    is_task_collection = Column(Boolean, nullable=False, default=False, server_default="false")
     is_archived = Column(Boolean, default=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -655,11 +723,19 @@ class PMSTaskTag(Base):
     tag_id = Column(Integer, ForeignKey("pms_tags.id", ondelete="CASCADE"), primary_key=True)
 
 
+class PMSFileFolder(Base):
+    __tablename__ = "pms_file_folders"
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+
+
 class PMSFileAsset(Base):
     __tablename__ = "pms_file_assets"
 
     id = Column(Integer, primary_key=True, index=True)
     uploaded_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    folder_id = Column(Integer, ForeignKey("pms_file_folders.id", ondelete="SET NULL"), nullable=True)
     project_id = Column(Integer, ForeignKey("pms_projects.id", ondelete="CASCADE"), nullable=True, index=True)
     task_id = Column(Integer, ForeignKey("pms_tasks.id", ondelete="CASCADE"), nullable=True, index=True)
     milestone_id = Column(Integer, ForeignKey("pms_milestones.id", ondelete="CASCADE"), nullable=True, index=True)
@@ -688,6 +764,7 @@ class PMSComment(Base):
     body_format = Column(String(20), default="markdown", index=True)
     is_internal = Column(Boolean, default=True, index=True)
     is_edited = Column(Boolean, default=False)
+    is_resolved = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True))

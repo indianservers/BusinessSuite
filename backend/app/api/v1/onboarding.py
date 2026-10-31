@@ -30,6 +30,19 @@ from app.schemas.onboarding import (
 
 router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 
+from app.core.reorder import OrderInput, apply_order
+
+
+@router.post("/templates/{template_id}/tasks/reorder")
+def reorder_template_tasks(template_id: int, data: OrderInput, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    _ensure_hr_admin(current_user)
+    template = _template_or_404(db, template_id)
+    db.query(OnboardingTemplate).filter_by(id=template.id).with_for_update().one()
+    rows = db.query(OnboardingTemplateTask).filter_by(template_id=template.id).order_by(OnboardingTemplateTask.order_index, OnboardingTemplateTask.id).all()
+    apply_order(rows, data, "order_index")
+    db.commit()
+    return {"ids": data.ids}
+
 
 def _permissions(user: User) -> set[str]:
     return {permission.name for permission in (permission_objects(user))}

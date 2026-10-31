@@ -36,5 +36,10 @@ assert.deepEqual(reloaded.getState().contexts["8:1"].favorites, [], "Preferences
 const before = reloaded.getState().contexts["8:1"].visits["/pms/members"];
 reloaded.getState().visit("8:1", { path:"/pms/members", label:"People" }, 8);
 assert.equal(reloaded.getState().contexts["8:1"].visits["/pms/members"], before, "Render/reload double-counted the same page");
+reloaded.getState().visit("8:1", { path:"/pms/people/148?tab=projects", label:"Workspace" }, 8);
+const profileVisits = reloaded.getState().contexts["8:1"].visits["/pms/people/148?tab=projects"];
+reloaded.getState().visit("8:1", { path:"/pms/people/148?tab=projects", label:"Abhishek kumar · Projects" }, 8);
+assert.equal(reloaded.getState().contexts["8:1"].recent[0].label, "Abhishek kumar · Projects", "Resolved page names did not repair generic labels");
+assert.equal(reloaded.getState().contexts["8:1"].visits["/pms/people/148?tab=projects"], profileVisits, "Name resolution double-counted visits");
 assert.equal(new Set(reloaded.getState().contexts[scope].recent.map(p => p.path)).size, reloaded.getState().contexts[scope].recent.length, "Recent pages contain duplicates");
 console.log("PMS personal navigation passed: legacy Top 5, stable pin order, reload persistence, distinct recents, account and organization isolation.");

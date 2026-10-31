@@ -1264,7 +1264,7 @@ function CommentsTab({
   );
 }
 
-function MentionMarkdownTextarea({
+export function MentionMarkdownTextarea({
   taskId,
   projectId,
   value,
@@ -1565,8 +1565,9 @@ function TimeTotal({ label, value }: { label: string; value: number }) {
   return <div className="rounded-md bg-muted/50 p-3 text-sm"><p className="text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{formatMinutes(value)}</p></div>;
 }
 
-function FilesTab({
+export function FilesTab({
   files,
+  canManage = true,
   uploading,
   dragActive,
   setDragActive,
@@ -1575,6 +1576,7 @@ function FilesTab({
   deleteAttachment,
 }: {
   files: PMSFileAsset[];
+  canManage?: boolean;
   uploading: boolean;
   dragActive: boolean;
   setDragActive: (value: boolean) => void;
@@ -1585,6 +1587,7 @@ function FilesTab({
   const [previewFile, setPreviewFile] = useState<PMSFileAsset | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewText, setPreviewText] = useState("");
 
   useRefreshableEffect(() => {
     let objectUrl: string | null = null;
@@ -1593,8 +1596,10 @@ function FilesTab({
       return;
     }
     setPreviewLoading(true);
+    setPreviewText("");
     filesAPI.downloadBlob(previewFile.id)
-      .then((blob) => {
+      .then(async (blob) => {
+        if ((previewFile.mime_type || "").startsWith("text/")) setPreviewText((await blob.text()).slice(0, 100000));
         objectUrl = URL.createObjectURL(blob);
         setPreviewUrl(objectUrl);
       })
@@ -1632,12 +1637,12 @@ function FilesTab({
 
   const canPreview = (file: PMSFileAsset) => {
     const type = file.mime_type || "";
-    return type.startsWith("image/") || type === "application/pdf";
+    return type.startsWith("image/") || type.startsWith("video/") || type.startsWith("text/") || type === "application/pdf";
   };
 
   return (
     <div className="space-y-4">
-      <label
+      {canManage && <label
         className={cn(
           "flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed p-6 text-center transition-colors",
           dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/30 bg-muted/20",
@@ -1653,7 +1658,7 @@ function FilesTab({
       >
         <Upload className="mb-3 h-7 w-7 text-muted-foreground" />
         <span className="font-medium">{uploading ? "Uploading attachments..." : "Drop files here or choose files"}</span>
-        <span className="mt-1 text-xs text-muted-foreground">Images, PDFs, Office docs, text, CSV, and ZIP. Hosted file limit: 3 MB; self-hosted limits may differ.</span>
+        <span className="mt-1 text-xs text-muted-foreground">Images, MP4/WebM video, PDFs, Office docs, logs, CSV, and ZIP. Hosted file limit: 3 MB; self-hosted limits may differ.</span>
         <Input
           type="file"
           multiple
@@ -1664,7 +1669,7 @@ function FilesTab({
             event.currentTarget.value = "";
           }}
         />
-      </label>
+      </label>}
       {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
       <div className="space-y-2">
         {files.map((item) => (
@@ -1691,15 +1696,17 @@ function FilesTab({
                 <Button type="button" size="sm" variant="outline" onClick={() => downloadAttachment(item)}>
                   <Download className="h-4 w-4" />Download
                 </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => deleteAttachment(item)}>
+                {canManage && <Button type="button" size="sm" variant="ghost" onClick={() => deleteAttachment(item)}>
                   <Trash2 className="h-4 w-4" />Delete
-                </Button>
+                </Button>}
               </div>
             </div>
             {previewFile?.id === item.id ? (
               <div className="mt-3 overflow-hidden rounded-md border bg-muted/20">
                 {previewLoading ? <div className="p-4 text-sm text-muted-foreground">Loading preview...</div> : null}
                 {!previewLoading && previewUrl && (item.mime_type || "").startsWith("image/") ? <img src={previewUrl} alt={item.original_name} className="max-h-96 w-full object-contain" /> : null}
+                {!previewLoading && previewUrl && (item.mime_type || "").startsWith("video/") ? <video controls preload="metadata" src={previewUrl} className="max-h-96 w-full"/> : null}
+                {!previewLoading && (item.mime_type || "").startsWith("text/") ? <pre className="max-h-96 overflow-auto whitespace-pre-wrap p-4 text-xs">{previewText}{item.size_bytes > 100000 ? "\nPreview limited to the first 100,000 characters. Download for the full file." : ""}</pre> : null}
                 {!previewLoading && previewUrl && item.mime_type === "application/pdf" ? <iframe title={item.original_name} src={previewUrl} className="h-96 w-full" /> : null}
                 {!previewLoading && !previewUrl ? <div className="p-4 text-sm text-muted-foreground">Preview unavailable.</div> : null}
               </div>

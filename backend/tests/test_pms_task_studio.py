@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import json
 from datetime import date
 import pytest
@@ -8,7 +9,7 @@ from app.models.employee import Employee
 from app.models.company import Department, Branch, Company
 
 @pytest.fixture
-def studio(client, db):
+def studio(client, db, middleware_database, organization_context):
     owner, headers = account(db, "studio-owner@test.com", True)
     member, member_headers = account(db, "studio-member@test.com")
     other, other_headers = account(db, "studio-outsider@test.com")

@@ -1,3 +1,4 @@
+import { arrangeTask } from "../components/SprintMoveBoard";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
@@ -5,12 +6,13 @@ import {
   DragEndEvent,
   DragOverlay,
   PointerSensor,
+  KeyboardSensor,
   closestCorners,
   useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CheckCircle2, ChevronDown, ChevronRight, GripVertical, ListChecks, Play, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +45,7 @@ export default function BacklogPage() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showSprintForm, setShowSprintForm] = useState(false);
   const [collapsedCompleted, setCollapsedCompleted] = useState(true);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
   useEffect(() => {
     projectsAPI.list().then((items) => {
@@ -93,19 +95,13 @@ export default function BacklogPage() {
     const source = findTaskContainer(taskId, data);
     if (!source || source === destination.containerId && destination.beforeTaskId === taskId) return;
 
+    if (source === destination.containerId && sortBy !== "rank") { setError("Choose Rank sorting to reorder tasks within a list. Moving between sprints is still available."); return; }
+
     const previous = data;
     const next = moveTaskLocally(data, taskId, destination.containerId, destination.beforeTaskId);
     setData(next);
     try {
-      if (destination.containerId === "backlog") {
-        await tasksAPI.removeFromSprint(taskId);
-        await backlogAPI.reorder(next.project.id, next.backlog.map((task) => task.id));
-      } else {
-        const sprintId = Number(destination.containerId.replace("sprint-", ""));
-        await tasksAPI.moveToSprint(taskId, sprintId);
-        const sprintTasks = next.sprints.find((sprint) => sprint.id === sprintId)?.tasks || [];
-        await sprintsAPI.reorderTasks(sprintId, sprintTasks.map((task) => task.id));
-      }
+      await arrangeTask(taskId, { group_by: "sprint", sprint_id: destination.containerId === "backlog" ? null : Number(destination.containerId.replace("sprint-", "")), before_id: destination.beforeTaskId });
       await loadBacklog(next.project.id);
     } catch (err: any) {
       setData(previous);
@@ -314,7 +310,7 @@ function TaskRow({ task, dragHandle, dragging = false }: { task: PMSTaskListItem
   return (
     <div className={cn("rounded-md border bg-background p-3 shadow-sm", dragging && "w-[36rem] shadow-lg")}>
       <div className="flex items-start gap-3">
-        <button type="button" className="mt-1 rounded p-1 text-muted-foreground hover:bg-muted" aria-label={`Drag ${task.task_key}`} {...dragHandle}>
+        <button type="button" className="mt-1 rounded p-1 text-muted-foreground hover:bg-muted" style={{touchAction:"none"}} aria-label={`Drag ${task.task_key}`} {...dragHandle}>
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1">

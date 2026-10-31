@@ -1,4 +1,4 @@
-"""Workspace team groups. Group membership never grants workspace access."""
+"""Workspace team groups. Adding a team member also grants ordinary Member access to its workspace."""
 
 import json
 import re
@@ -87,10 +87,17 @@ def persist_team(db, workspace_id, data, team=None, actor=None):
         for row in db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id)
         if row.role != "Guest"
     }
-    if not set(ids).issubset(eligible):
-        raise HTTPException(
-            422, "Choose existing workspace collaborators; guests cannot join teams"
-        )
+    missing = set(ids) - eligible
+    workspace_members = {row.user_id for row in db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id)}
+    if missing and actor:
+        from .people_management import scoped_workspace
+        from .people_workspace import scope
+        scoped_workspace(db, workspace_id, actor, True)
+        allowed = {row[0] for row in scope(db, actor).filter(User.id.in_(missing), User.is_active.is_(True)).with_entities(User.id)}
+        if missing - allowed or missing & workspace_members:
+            raise HTTPException(422, "Choose active people in your scope; guests must be upgraded separately")
+    elif missing:
+        raise HTTPException(422, "Adding workspace members requires an authorized actor")
     creating = team is None
     team = team or PMSWorkspaceTeam(workspace_id=workspace_id)
     before = set(json.loads(team.member_ids_json or "[]"))
@@ -128,6 +135,14 @@ def persist_team(db, workspace_id, data, team=None, actor=None):
     ]
     team.name, team.alias, team.member_ids_json = name, alias, json.dumps(ids)
     db.add(team)
+    if missing:
+        from .models import PMSWorkspaceInvitation
+        from .people_management import record
+        for identity in missing:
+            db.add(PMSWorkspaceMember(workspace_id=workspace_id, user_id=identity, role="Member"))
+            account = db.get(User, identity)
+            db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=account.email.lower(), status="pending").update({"status": "accepted"})
+            record(db, actor, identity, "PMS_WORKSPACE_ADDED", "Added automatically with team membership", after={"role": "Member", "team": team.name}, workspace_id=workspace_id)
     try:
         db.flush()
     except IntegrityError:

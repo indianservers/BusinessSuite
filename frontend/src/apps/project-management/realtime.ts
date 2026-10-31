@@ -196,7 +196,7 @@ export function usePMSRealtime({
     const pollFeed = async () => {
       try {
         const { data } = await api.get<{ cursor: number; events: PMSRealtimeEvent[] }>("/project-management/realtime/events", {
-          params: feedCursor === undefined ? {} : { cursor: feedCursor },
+          params: { ...(feedCursor === undefined ? {} : { cursor: feedCursor }), ...(taskId ? {task_id: taskId} : {}) },
         });
         if (closedByEffect) return;
         feedCursor = data.cursor;

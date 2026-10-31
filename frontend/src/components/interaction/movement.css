@@ -1,0 +1,137 @@
+.move-board {
+  min-width: 0;
+}
+.move-help {
+  font-size: 12px;
+  color: #77758a;
+  margin-bottom: 8px;
+}
+.move-feedback {
+  font-size: 12px;
+  color: #087f64;
+  min-height: 18px;
+}
+.move-error {
+  padding: 12px;
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+  border-radius: 9px;
+}
+.move-columns {
+  display: flex;
+  gap: 14px;
+  overflow: auto;
+  padding: 6px 2px 18px;
+  align-items: flex-start;
+}
+.move-lane {
+  flex: 1 0 240px;
+  min-width: 220px;
+  max-width: 500px;
+  border: 1px solid #e5e3ee;
+  background: #f8f8fc;
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 180px;
+}
+.move-lane > h3 {
+  font-size: 13px;
+  font-weight: 650;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.move-lane > h3 > span {
+  font-size: 11px;
+  background: #eee9fb;
+  color: #7442c9;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+.move-over {
+  outline: 2px solid #8b5cf6;
+  background: #f0eaff;
+}
+.move-card {
+  position: relative;
+  border: 1px solid #e4e0ed;
+  border-radius: 9px;
+  background: #fff;
+  background: hsl(var(--card));
+  padding: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px #2e16540a;
+  overflow-wrap: anywhere;
+}
+.move-dragging {
+  z-index: 20;
+  box-shadow: 0 12px 30px #3b256b40;
+  opacity: 0.8;
+}
+.move-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.move-handle {
+  touch-action: none;
+  cursor: grab;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  color: #8b80a0;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.move-handle:active {
+  cursor: grabbing;
+}
+.move-handle:focus-visible,
+.move-card-actions button:focus-visible,
+.move-card-actions select:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+.move-card-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 9px;
+}
+.move-card-actions button {
+  border: 1px solid #e8e3f0;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.move-card-actions select {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1;
+  border: 1px solid #e8e3f0;
+  border-radius: 5px;
+  padding: 4px;
+  font-size: 11px;
+  background: #fff;
+  background: hsl(var(--card));
+}
+.move-card button:disabled,
+.move-card select:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.move-empty {
+  border: 1px dashed #d9d2e8;
+  padding: 22px 10px;
+  text-align: center;
+  border-radius: 8px;
+  color: #9990aa;
+  font-size: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .move-card {
+    transition: none !important;
+  }
+}

@@ -61,7 +61,7 @@ import "./TaskStudioPage.css";
 type StudioProject = Pick<
   PMSProject,
   "id" | "name" | "project_key" | "workspace_id"
-> & { can_manage_tasks: boolean };
+> & { can_manage_tasks: boolean; is_task_collection?: boolean };
 type Person = {
   id: number;
   name: string;
@@ -85,6 +85,7 @@ type Selection = {
   reviewer: number | null;
   owner: number | null;
   allow_partial_groups: boolean;
+  group_responsibility?: boolean;
 };
 type Options = {
   people: Person[];
@@ -98,6 +99,7 @@ type Options = {
 };
 type Draft = {
   projectId: number;
+  parent_task_id: number | null;
   title: string;
   description: string;
   work_type: string;
@@ -128,6 +130,7 @@ const emptySelection = (): Selection => ({
   reviewer: null,
   owner: null,
   allow_partial_groups: false,
+  group_responsibility: true,
 });
 const dateLabel = (value: string) =>
   value
@@ -366,6 +369,7 @@ export default function TaskStudioPage() {
   const { user } = useAuthStore();
   const initial = (): Draft => ({
     projectId: Number(params.get("projectId")) || 0,
+    parent_task_id: Number(params.get("parentTaskId")) || null,
     title: params.get("title") || "",
     description: "",
     work_type: params.get("workType") || "Task",
@@ -402,6 +406,89 @@ export default function TaskStudioPage() {
   }>();
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [options, setOptions] = useState<Options>();
+  const [scopeMode, setScopeMode] = useState<"project" | "general">("project");
+  const [workspaces, setWorkspaces] = useState<{ id: number; name: string }[]>(
+    [],
+  );
+  const [generalWorkspace, setGeneralWorkspace] = useState("");
+  const [scopeBusy, setScopeBusy] = useState(false);
+  const [parents, setParents] = useState<PMSTask[]>([]);
+  const [parentSearch, setParentSearch] = useState("");
+  useEffect(() => {
+    let active = true;
+    api
+      .get("/project-management/workspaces")
+      .then((r) => {
+        if (active) setWorkspaces(r.data);
+      })
+      .catch((e) => {
+        if (active) setError(workspaceError(e));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!draft.projectId) {
+      setParents([]);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      tasksAPI
+        .listAll({
+          projectId: draft.projectId,
+          search: parentSearch,
+          pageSize: 30,
+        })
+        .then((r) => {
+          if (active)
+            setParents(r.items.filter((t) => t.id !== id && !t.parent_task_id));
+        })
+        .catch((e) => {
+          if (active) setError(workspaceError(e));
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [draft.projectId, parentSearch, id]);
+  useEffect(() => {
+    const location = projects.find(p => p.id === draft.projectId);
+    if (location) {
+      setScopeMode(location.is_task_collection ? "general" : "project");
+      setGeneralWorkspace(location.is_task_collection ? String(location.workspace_id) : "");
+    }
+  }, [draft.projectId, projects]);
+  async function chooseGeneralWorkspace(workspaceId: string) {
+    setGeneralWorkspace(workspaceId);
+    setScopeBusy(true);
+    setError("");
+    try {
+      const { data: collection } = await api.post<StudioProject>(
+        `${base}/general-scope`,
+        null,
+        { params: { workspace_id: Number(workspaceId) } },
+      );
+      setProjects((p) => [
+        ...p.filter((item) => item.id !== collection.id),
+        collection,
+      ]);
+      setDraft((d) => ({
+        ...d,
+        projectId: collection.id,
+        parent_task_id: null,
+        assignment: emptySelection(),
+        custom_fields: {},
+      }));
+    } catch (e) {
+      setError(workspaceError(e));
+    } finally {
+      setScopeBusy(false);
+    }
+  }
+
   const [mode, setMode] = useState<"people" | "teams" | "batches">(
     params.get("batches")
       ? "batches"
@@ -489,6 +576,7 @@ export default function TaskStudioPage() {
           d = {
             ...d,
             projectId: t.project_id,
+            parent_task_id: t.parent_task_id || null,
             title: t.title,
             description: t.description || "",
             work_type: t.work_type || "Task",
@@ -519,7 +607,18 @@ export default function TaskStudioPage() {
             .then(setChecklist)
             .catch((e) => setError(workspaceError(e)));
         } else if (!d.projectId)
-          d.projectId = p.find((project) => project.can_manage_tasks)?.id || 0;
+          d.projectId =
+            p.find(
+              (project) =>
+                !project.is_task_collection && project.can_manage_tasks,
+            )?.id || 0;
+        const selectedScope = p.find((item) => item.id === d.projectId);
+        setScopeMode(selectedScope?.is_task_collection ? "general" : "project");
+        setGeneralWorkspace(
+          selectedScope?.is_task_collection
+            ? String(selectedScope.workspace_id)
+            : "",
+        );
         setDraft(d);
         setSaved(JSON.stringify(d));
         setDraftAvailable(!!localStorage.getItem(draftKey));
@@ -616,10 +715,14 @@ export default function TaskStudioPage() {
   const ids = [
     ...new Set([
       ...draft.assignment.people,
-      ...selectedGroups.flatMap((g) => g.member_ids),
+      ...(draft.assignment.group_responsibility
+        ? []
+        : selectedGroups.flatMap((g) => g.member_ids)),
     ]),
   ];
-  const excluded = selectedGroups.reduce((n, g) => n + g.excluded_count, 0);
+  const excluded = draft.assignment.group_responsibility
+    ? 0
+    : selectedGroups.reduce((n, g) => n + g.excluded_count, 0);
   const people = [
     ...(options?.people || []),
     ...(detail?.retained_people || []).filter(
@@ -691,6 +794,7 @@ export default function TaskStudioPage() {
     setError("");
     try {
       const task = {
+        parent_task_id: draft.parent_task_id,
         title: draft.title.trim(),
         description: draft.description,
         work_type: draft.work_type,
@@ -886,7 +990,7 @@ export default function TaskStudioPage() {
           <p>
             {id
               ? "Review, update, and manage this task and its members."
-              : "Add a new task to keep your project on track and move work forward."}
+              : "Create a project task or general workspace task with clear ownership and deadlines."}
           </p>
         </div>
         <div className="ts-title-actions">
@@ -896,7 +1000,9 @@ export default function TaskStudioPage() {
           </button>
           <button
             className="tr-primary"
-            disabled={busy || !!job || !editable || !options?.can_edit}
+            disabled={
+              busy || scopeBusy || !!job || !editable || !options?.can_edit
+            }
             onClick={() => void save()}
           >
             <Sparkles size={19} />
@@ -977,32 +1083,126 @@ export default function TaskStudioPage() {
                 <label className="ts-field">
                   <Folder />
                   <span>
-                    Project <b>*</b>
+                    Task location
                     <select
-                      required
-                      aria-label="Project"
-                      value={draft.projectId || ""}
-                      disabled={!!id || !!created.current}
+                      aria-label="Task location"
+                      value={scopeMode}
+                      disabled={!!id || !!created.current || scopeBusy}
                       onChange={(e) => {
+                        const mode = e.target.value as "project" | "general";
+                        setScopeMode(mode);
+                        setGeneralWorkspace("");
                         setDraft((d) => ({
                           ...d,
-                          projectId: Number(e.target.value),
+                          projectId:
+                            mode === "project"
+                              ? projects.find(
+                                  (p) =>
+                                    !p.is_task_collection && p.can_manage_tasks,
+                                )?.id || 0
+                              : 0,
+                          parent_task_id: null,
                           assignment: emptySelection(),
                           custom_fields: {},
                         }));
-                        setNotice(
-                          "Project changed. Assignment selections were cleared to protect access boundaries.",
-                        );
                       }}
                     >
-                      <option value="">Choose a project</option>
-                      {projects.map((p) => (
-                        <option
-                          key={p.id}
-                          value={p.id}
-                          disabled={!id && !p.can_manage_tasks}
+                      <option value="project">Project task</option>
+                      <option value="general">General / workspace task</option>
+                    </select>
+                    {scopeMode === "general" ? (
+                      <>
+                        <span>Workspace *</span>
+                        <select
+                          aria-label="General task workspace"
+                          required
+                          disabled={!!id || scopeBusy}
+                          value={generalWorkspace}
+                          onChange={(e) =>
+                            void chooseGeneralWorkspace(e.target.value)
+                          }
                         >
-                          {p.name}　{p.project_key}
+                          <option value="">Choose a workspace</option>
+                          {workspaces.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name}
+                            </option>
+                          ))}
+                        </select>
+                        <small>
+                          No project is required. Choose any task type below.
+                        </small>
+                      </>
+                    ) : (
+                      <>
+                        <span>Project *</span>
+                        <select
+                          required
+                          aria-label="Project"
+                          value={draft.projectId || ""}
+                          disabled={!!id || !!created.current}
+                          onChange={(e) => {
+                            setDraft((d) => ({
+                              ...d,
+                              projectId: Number(e.target.value),
+                              parent_task_id: null,
+                              assignment: emptySelection(),
+                              custom_fields: {},
+                            }));
+                            setNotice(
+                              "Project changed. Assignment selections were cleared to protect access boundaries.",
+                            );
+                          }}
+                        >
+                          <option value="">Choose a project</option>
+                          {projects
+                            .filter((p) => !p.is_task_collection)
+                            .map((p) => (
+                              <option
+                                key={p.id}
+                                value={p.id}
+                                disabled={!id && !p.can_manage_tasks}
+                              >
+                                {p.name} {p.project_key}
+                              </option>
+                            ))}
+                        </select>
+                      </>
+                    )}
+                    <span>Parent task (optional)</span>
+                    <input
+                      aria-label="Search parent tasks"
+                      placeholder="Find a parent task in this location"
+                      value={parentSearch}
+                      onChange={(e) => setParentSearch(e.target.value)}
+                      disabled={!draft.projectId || scopeBusy}
+                    />
+                    <select
+                      aria-label="Parent task"
+                      value={draft.parent_task_id || ""}
+                      disabled={!draft.projectId || scopeBusy}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          parent_task_id: Number(e.target.value) || null,
+                          work_type: e.target.value
+                            ? "Sub-task"
+                            : d.work_type === "Sub-task"
+                              ? "Task"
+                              : d.work_type,
+                        }))
+                      }
+                    >
+                      <option value="">Top-level task</option>
+                      {draft.parent_task_id &&
+                        !parents.some((p) => p.id === draft.parent_task_id) && (
+                          <option value={draft.parent_task_id}>
+                            Selected parent task
+                          </option>
+                        )}
+                      {parents.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.title} ({p.task_key})
                         </option>
                       ))}
                     </select>
@@ -1089,7 +1289,7 @@ export default function TaskStudioPage() {
                         if (e.target.value) set("work_type", e.target.value);
                       }}
                     >
-                      <option value="">•••　Other</option>
+                      <option value="">••• Other</option>
                       {types
                         .filter(
                           (type) =>
@@ -1157,7 +1357,7 @@ export default function TaskStudioPage() {
                     <p>
                       {draft.execution_mode === "individual"
                         ? "Choose linked intern batches or individual interns, a deadline and reviewer. Large batches are processed in resumable chunks of 500."
-                        : "Share this task with up to 100 collaborators. Groups use a snapshot of their eligible members."}
+                        : draft.assignment.group_responsibility ? "Choose individual collaborators or assign collective responsibility to teams and batches." : "Share this task with up to 100 collaborators. Groups use a snapshot of their eligible members."}
                     </p>
                   </div>
                 )}
@@ -1412,9 +1612,9 @@ export default function TaskStudioPage() {
                     </button>
                     {!!selectedGroups.length && (
                       <small className="ts-snapshot-note">
-                        Groups assign a snapshot of their current eligible
-                        members. Future membership changes do not silently
-                        change this task.
+                        {draft.assignment.group_responsibility
+                          ? "Groups own this task collectively. Select people explicitly for individual responsibility; future membership changes do not create individual assignments."
+                          : "Legacy group assignments retain their member snapshot. Future membership changes do not silently change this task."}
                       </small>
                     )}
                     {excluded > 0 && (
@@ -1801,7 +2001,9 @@ export default function TaskStudioPage() {
             <button
               className="tr-primary"
               type="submit"
-              disabled={busy || !!job || !editable || !options?.can_edit}
+              disabled={
+                busy || scopeBusy || !!job || !editable || !options?.can_edit
+              }
             >
               {id ? "Save Changes" : "Create Task"}
             </button>
@@ -1856,8 +2058,8 @@ export default function TaskStudioPage() {
               },
               {
                 icon: Folder,
-                label: "Project",
-                value: project?.name || "Choose a project",
+                label: scopeMode === "general" ? "Workspace" : "Project",
+                value: scopeMode === "general" ? workspaces.find(w => String(w.id) === generalWorkspace)?.name || "Choose a workspace" : project?.name || "Choose a project",
               },
               { icon: Flag, label: "Work item type", value: draft.work_type },
               { icon: Search, label: "Priority", value: draft.priority },
@@ -1888,7 +2090,7 @@ export default function TaskStudioPage() {
             <div>
               <Sparkles size={20} />
               <strong>AI Assist</strong>
-              <small>Project context</small>
+              <small>{scopeMode === "general" ? "Workspace context" : "Project context"}</small>
             </div>
             <h3>Suggest task details with AI</h3>
             <p>
@@ -1953,7 +2155,9 @@ export default function TaskStudioPage() {
                     );
                     return;
                   }
-                  navigate(`/pms/tasks/${id}/classic`);
+                  navigate(
+                    `/pms/tasks/new?projectId=${draft.projectId}&parentTaskId=${id}&workType=Sub-task`,
+                  );
                 }}
               >
                 <ListChecks />

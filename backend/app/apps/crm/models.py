@@ -482,6 +482,7 @@ class CRMQuotationItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     quotation_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=False, index=True)
     quote_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=True, index=True)
+    sort_order = Column(Integer, nullable=False, default=0, server_default="0")
     item_type = Column(String(30), default="product", index=True)
     product_id = Column(Integer, ForeignKey("crm_products.id", ondelete="SET NULL"), nullable=True, index=True)
     service_id = Column(Integer, ForeignKey("crm_services.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -948,11 +949,20 @@ class CRMCampaignLead(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class CRMFileFolder(Base):
+    __tablename__ = "crm_file_folders"
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(150), nullable=False)
+
+
 class CRMFileAsset(Base):
     __tablename__ = "crm_file_assets"
 
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, nullable=True, index=True)
+    folder_id = Column(Integer, ForeignKey("crm_file_folders.id", ondelete="SET NULL"), nullable=True)
     uploaded_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     lead_id = Column(Integer, ForeignKey("crm_leads.id", ondelete="CASCADE"), nullable=True, index=True)
     contact_id = Column(Integer, ForeignKey("crm_contacts.id", ondelete="CASCADE"), nullable=True, index=True)

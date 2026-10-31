@@ -3,6 +3,9 @@ from app.services.metrics.queries import count_rows_before_page
 
 from datetime import datetime, timezone
 from typing import Any
+import hashlib
+import json
+from pydantic import BaseModel, ConfigDict, Field
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -243,8 +246,9 @@ def get_layout(layout_id: int, db: Session = Depends(get_db), current_user: User
     if not item:
         raise HTTPException(status_code=404, detail="Layout not found")
     data = _serialize(item)
-    data["sections"] = [_serialize(section) for section in db.query(CustomizationLayoutSection).filter(CustomizationLayoutSection.layout_id == layout_id).order_by(CustomizationLayoutSection.order_index).all()]
-    data["fields"] = [_serialize(field) for field in db.query(CustomizationLayoutField).filter(CustomizationLayoutField.layout_id == layout_id).order_by(CustomizationLayoutField.order_index).all()]
+    data["sections"] = [_serialize(section) for section in db.query(CustomizationLayoutSection).filter(CustomizationLayoutSection.layout_id == layout_id).order_by(CustomizationLayoutSection.order_index, CustomizationLayoutSection.id).all()]
+    data["fields"] = [_serialize(field) for field in db.query(CustomizationLayoutField).filter(CustomizationLayoutField.layout_id == layout_id).order_by(CustomizationLayoutField.order_index, CustomizationLayoutField.id).all()]
+    data["arrange_version"] = _arrange_version(data["sections"], data["fields"])
     return data
 
 
@@ -271,6 +275,43 @@ def add_layout_section(layout_id: int, data: LayoutSectionPayload, db: Session =
     _audit(db, current_user, "layout_section", item.id, "created", after=data.model_dump())
     db.commit()
     return _serialize(item)
+
+
+def _arrange_version(sections, fields):
+    return hashlib.sha256(json.dumps({"sections": sections, "fields": fields}, sort_keys=True, default=str).encode()).hexdigest()
+
+
+class FieldPlacement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: int
+    section_id: int | None = None
+
+
+class LayoutArrangementInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    version: str
+    section_ids: list[int] = Field(max_length=500)
+    fields: list[FieldPlacement] = Field(max_length=1000)
+
+
+@customization_router.post("/layouts/{layout_id}/arrange")
+def arrange_layout(layout_id: int, data: LayoutArrangementInput, db: Session = Depends(get_db), user: User = Depends(RequirePermission("customization_layouts_manage", "customization_manage"))):
+    layout = db.query(CustomizationLayout).filter_by(id=layout_id).with_for_update().first()
+    if not layout: raise HTTPException(404, "Layout not found")
+    sections = db.query(CustomizationLayoutSection).filter_by(layout_id=layout.id).order_by(CustomizationLayoutSection.order_index, CustomizationLayoutSection.id).all()
+    fields = db.query(CustomizationLayoutField).filter_by(layout_id=layout.id).order_by(CustomizationLayoutField.order_index, CustomizationLayoutField.id).all()
+    if _arrange_version([_serialize(s) for s in sections], [_serialize(f) for f in fields]) != data.version: raise HTTPException(409, "Layout changed. Refresh before arranging it.")
+    if len(data.section_ids) != len(set(data.section_ids)) or set(data.section_ids) != {s.id for s in sections}: raise HTTPException(422, "Include every section exactly once")
+    field_ids = [f.id for f in data.fields]
+    if len(field_ids) != len(set(field_ids)) or set(field_ids) != {f.id for f in fields}: raise HTTPException(422, "Include every layout field exactly once")
+    by_section = {s.id:s for s in sections}; by_field = {f.id:f for f in fields}
+    for index, identity in enumerate(data.section_ids): by_section[identity].order_index = index
+    for index, placement in enumerate(data.fields):
+        if placement.section_id is not None and placement.section_id not in by_section: raise HTTPException(422, "Choose a section from this layout")
+        by_field[placement.id].order_index = index; by_field[placement.id].section_id = placement.section_id
+    _audit(db, user, "layout", layout.id, "arranged", after=data.model_dump())
+    db.commit()
+    return {"saved": True}
 
 
 @customization_router.post("/layouts/{layout_id}/fields/reorder")

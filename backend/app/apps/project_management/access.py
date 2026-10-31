@@ -73,6 +73,8 @@ def project_member(db: Session, project_id: int, user_id: int) -> PMSProjectMemb
 
 
 def can_access_project(db: Session, project: PMSProject, user: User, action: str = "browse") -> bool:
+    if getattr(project, "is_task_collection", False) and action in {"edit_project", "administer", "create_project"}:
+        return False
     if project.workspace_id:
         from .workspace_lifecycle import is_archived
         if is_archived(db, project.workspace_id):

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/services/api";
 import { workspaceError } from "../pages/workspaceTypes";
@@ -20,19 +20,19 @@ export default function AssigneePicker({ people, value, onChange, disabled = fal
   const [warnings,setWarnings]=useState<string[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [options, setOptions] = useState<Person[]>(people);
+  const [remoteOptions, setRemoteOptions] = useState<{projectId: number; items: Person[]}>();
+  const options = useMemo(() => [...new Map([...people, ...(remoteOptions?.projectId === pid ? remoteOptions.items : [])].map(person => [person.id, person])).values()], [people, remoteOptions, pid]);
   const [canAdd, setCanAdd] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<number>();
   const [unavailable, setUnavailable] = useState("Choose a project to add people while assigning work.");
-  useEffect(() => setOptions(people), [people]);
   const load = useCallback(async () => {
     if (!pid) return;
     const { data } = await api.get<{ items: Person[]; workspace_id?: number; can_add_existing: boolean; unavailable_reason: string }>(`${peopleBase}/assignment-options`, { params: { project_id: pid } });
-    setOptions(data.items); setCanAdd(data.can_add_existing); setWorkspaceId(data.workspace_id); setUnavailable(data.unavailable_reason);
+    setRemoteOptions({ projectId: pid, items: data.items }); setCanAdd(data.can_add_existing); setWorkspaceId(data.workspace_id); setUnavailable(data.unavailable_reason);
   }, [pid]);
-  useEffect(() => { if (opened) void load().catch(e => setError(workspaceError(e))); }, [opened, load]);
+  useEffect(() => { if (opened || value.length) void load().catch(e => setError(workspaceError(e))); }, [opened, load, value.join(",")]);
   useEffect(()=>{let active=true;if(opened&&pid&&value.length)void Promise.all(value.map(id=>api.get<{warnings:string[]}>("/project-management/management/assignment-warnings",{params:{project_id:pid,user_id:id,on:onDate||undefined}}))).then(results=>{if(active)setWarnings([...new Set(results.flatMap(r=>r.data.warnings))]);}).catch(()=>{});return()=>{active=false;};},[opened,pid,value.join(","),onDate]);
-  const names = value.map(id => options.find(p => p.id === id)?.name || people.find(p => p.id === id)?.email || `Member ${id}`);
+  const names = value.map(id => options.find(p => p.id === id)?.name || options.find(p => p.id === id)?.email || "Person unavailable");
   async function change(ids: number[]) {
     setBusy(true); setError("");
     try { if(pid){const checks=await Promise.all(ids.filter(id=>!value.includes(id)).map(id=>api.get<{warnings:string[]}>("/project-management/management/assignment-warnings",{params:{project_id:pid,user_id:id,on:onDate||undefined}})));setWarnings(checks.flatMap(r=>r.data.warnings));} await onChange(single?ids.slice(-1):ids); if(single&&detailsRef.current)detailsRef.current.open=false; } catch (e) { setError(workspaceError(e)); } finally { setBusy(false); }

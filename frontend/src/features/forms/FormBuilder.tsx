@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   DndContext,
   KeyboardSensor,
   PointerSensor,
   useDraggable,
+  useDroppable,
   useSensor,
   useSensors,
   closestCenter,
@@ -28,6 +29,10 @@ import {
   type Kind,
   type Question,
 } from "./formsTypes";
+function CanvasDropZone({children}:{children:ReactNode}) {
+  const {setNodeRef,isOver}=useDroppable({id:"form-canvas"});
+  return <main ref={setNodeRef} className={`forms-canvas ${isOver?"ring-2 ring-primary":""}`}>{children}</main>;
+}
 function Palette({
   kind,
   label,
@@ -199,13 +204,13 @@ export default function FormBuilder({
         id.slice(8) as Kind,
         Math.max(
           0,
-          draft.fields.findIndex((f) => f.id === e.over!.id),
+          e.over.id === "form-canvas" ? draft.fields.length : draft.fields.findIndex((f) => f.id === e.over!.id),
         ),
       );
     else
       reorder(
         draft.fields.findIndex((f) => f.id === id),
-        draft.fields.findIndex((f) => f.id === e.over!.id),
+        e.over.id === "form-canvas" ? draft.fields.length - 1 : draft.fields.findIndex((f) => f.id === e.over!.id),
       );
   }
   return (
@@ -299,7 +304,7 @@ export default function FormBuilder({
             />
           </details>
         </aside>
-        <main className="forms-canvas">
+        <CanvasDropZone>
           <div className="form-visual-toolbar" role="group" aria-label="Canvas view">
             <button aria-pressed={canvas} onClick={() => setCanvas(true)}>✦ Visual editor</button>
             <button aria-pressed={!canvas} onClick={() => setCanvas(false)}>☷ Arrange fields</button>
@@ -362,7 +367,7 @@ export default function FormBuilder({
           <button className="form-add-question" onClick={() => add("text")}>
             ＋ Add question
           </button>
-        </main>
+        </CanvasDropZone>
         <aside className="forms-panel forms-properties">
           <h2>
             {field

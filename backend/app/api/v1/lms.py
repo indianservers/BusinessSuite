@@ -19,6 +19,76 @@ from app.schemas.lms import (
 router = APIRouter(prefix="/lms", tags=["Learning"])
 
 
+class LessonInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    title: str = Field(min_length=1, max_length=220)
+    content: str = Field("", max_length=20000)
+
+    @field_validator("title")
+    @classmethod
+    def valid_title(cls, value):
+        return clean_text(value, 220)
+
+    @field_validator("content")
+    @classmethod
+    def valid_content(cls, value):
+        return clean_text(value, 20000, required=False, multiline=True)
+
+
+class SectionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    title: str = Field(min_length=1, max_length=220)
+    lessons: list[LessonInput] = Field(default_factory=list, max_length=100)
+
+    @field_validator("title")
+    @classmethod
+    def valid_title(cls, value):
+        return clean_text(value, 220)
+
+
+class CurriculumInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    revision: int = Field(ge=0)
+    sections: list[SectionInput] = Field(default_factory=list, max_length=100)
+
+
+def _course(db, course_id):
+    item = db.query(LearningCourse).filter_by(id=course_id, is_active=True).first()
+    if not item: raise HTTPException(404, "Course not found")
+    return item
+
+
+@router.get("/courses/{course_id}/curriculum")
+def get_curriculum(course_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    metadata = _course(db, course_id).metadata_json or {}
+    return {"revision": metadata.get("curriculum_revision", 0), "sections": metadata.get("curriculum_sections", [])}
+
+
+@router.put("/courses/{course_id}/curriculum")
+def save_curriculum(course_id: int, data: CurriculumInput, db: Session = Depends(get_db), user: User = Depends(RequirePermission("performance_manage"))):
+    item = _course(db, course_id)
+    db.query(LearningCourse).filter_by(id=item.id).with_for_update().one()
+    db.refresh(item)
+    metadata = dict(item.metadata_json or {})
+    if metadata.get("curriculum_revision", 0) != data.revision:
+        raise HTTPException(409, "Course contents changed. Refresh before arranging lessons.")
+    ids = [s.id for s in data.sections] + [l.id for s in data.sections for l in s.lessons]
+    if len(ids) != len(set(ids)):
+        raise HTTPException(422, "Section and lesson identities must be unique")
+    sections = [s.model_dump() for s in data.sections]
+    for section in sections:
+        section["title"] = clean_text(section["title"], 220)
+        for lesson in section["lessons"]:
+            lesson["title"] = clean_text(lesson["title"], 220)
+            lesson["content"] = clean_text(lesson["content"], 20000, required=False, multiline=True)
+    metadata.update(curriculum_revision=data.revision + 1, curriculum_sections=sections)
+    item.metadata_json = metadata
+    db.commit()
+    return {"revision": data.revision + 1, "sections": sections}
+
+
 @router.post("/courses", response_model=LearningCourseSchema, status_code=201)
 def create_course(data: LearningCourseCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("performance_manage"))):
     course = LearningCourse(**data.model_dump(), created_by=current_user.id)

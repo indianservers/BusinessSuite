@@ -106,10 +106,22 @@ export default function OrgChartPage() {
       active = false;
     };
   }, [wid, retry]);
-  const graph = useMemo(
-    () => layoutChart(data.people, collapsed, mode, team),
-    [data, collapsed, mode, team],
-  );
+  const [positions, setPositions] = useState<Record<string, {x:number;y:number}>>({});
+  const cardDrag = useRef<{id:number;x:number;y:number;left:number;top:number}|null>(null);
+  useEffect(()=>setPositions(data.positions || {}),[data.positions]);
+  async function savePositions(next: Record<string,{x:number;y:number}>) {
+    setBusy(true);setError("");
+    try { const response=await api.put<OrgData>(`${base}/layout`,{revision:data.revision,positions:next});setData(response.data);setNotice("Chart layout saved"); }
+    catch(e){setPositions(data.positions||{});setError(workspaceError(e));}
+    finally{setBusy(false);}
+  }
+  const graph = useMemo(() => {
+    const result=layoutChart(data.people,collapsed,mode,team);
+    result.nodes=result.nodes.map(n=>({...n,...positions[String(n.person.id)]}));
+    result.width=Math.max(result.width,...result.nodes.map(n=>n.x+CARD_W+40));
+    result.height=Math.max(result.height,...result.nodes.map(n=>n.y+CARD_H+40));
+    return result;
+  },[data,collapsed,mode,team,positions]);
   const nodeMap = useMemo(
     () => new Map(graph.nodes.map((n) => [n.person.id, n])),
     [graph],
@@ -519,6 +531,12 @@ export default function OrgChartPage() {
                         height: CARD_H,
                       }}
                     >
+                      {data.can_manage && <button type="button" disabled={busy} aria-label={`Reposition ${n.person.name}`} title="Drag to arrange; arrow keys move 20 pixels" style={{position:"absolute",right:4,top:2,zIndex:2,touchAction:"none",cursor:"grab"}}
+                        onPointerDown={e=>{e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);cardDrag.current={id:n.person.id,x:e.clientX,y:e.clientY,left:n.x,top:n.y};}}
+                        onPointerMove={e=>{const d=cardDrag.current;if(!d)return;setPositions(p=>({...p,[d.id]:{x:Math.max(0,Math.min(20000,d.left+(e.clientX-d.x)/zoom)),y:Math.max(0,Math.min(20000,d.top+(e.clientY-d.y)/zoom))}}));}}
+                        onPointerUp={e=>{if(!cardDrag.current)return;e.currentTarget.releasePointerCapture(e.pointerId);cardDrag.current=null;void savePositions(positions);}}
+                        onPointerCancel={()=>{cardDrag.current=null;setPositions(data.positions||{});}}
+                        onKeyDown={e=>{if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key))return;e.preventDefault();const next={...positions,[n.person.id]:{x:Math.max(0,Math.min(20000,n.x+(e.key==="ArrowLeft"?-20:e.key==="ArrowRight"?20:0))),y:Math.max(0,Math.min(20000,n.y+(e.key==="ArrowUp"?-20:e.key==="ArrowDown"?20:0)))}};setPositions(next);void savePositions(next);}}>⠿</button>}
                       <button
                         className="org-person-main"
                         onClick={() => openPerson(n.person)}

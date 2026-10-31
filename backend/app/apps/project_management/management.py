@@ -35,6 +35,10 @@ def completion(db, task):
 
 
 def guard_transition(db, task, status):
+    if status in {"Done", "Completed", "Closed", "Resolved", "In Review"}:
+        from .models import PMSTaskUpdateEntry
+        if db.query(PMSTaskUpdateEntry).filter_by(task_id=task.id, kind="blocker", resolved=False, deleted_at=None).first():
+            raise HTTPException(409, "Resolve open task blockers before submitting or completing work")
     if status in {"Done", "Completed", "Closed", "Resolved"}:
         blockers = completion(db, task)["blockers"]
         if blockers: raise HTTPException(409, "; ".join(blockers))
@@ -77,7 +81,7 @@ def home(workspace_id: int | None = None, project_id: int | None = None, mine: b
     for p in projects:
         pt = [t for t in tasks if t.project_id == p.id]
         upcoming = sorted([m for m in milestones if m.project_id == p.id and m.status not in CLOSED], key=lambda m: m.due_date or date.max)
-        rows.append({"id": p.id, "name": p.name, "project_key": p.project_key, "workspace_id": p.workspace_id,
+        rows.append({"is_task_collection": p.is_task_collection, "id": p.id, "name": p.name, "project_key": p.project_key, "workspace_id": p.workspace_id,
             "owner_user_id": p.owner_user_id, "status": p.status, "health": p.health, "due_date": p.due_date,
             "is_archived": p.is_archived, "progress": round(100 * sum(t.status in CLOSED for t in pt) / len(pt)) if pt else p.progress_percent or 0,
             "overdue": sum(bool(t.due_date and t.due_date < today and t.status not in CLOSED) for t in pt),
@@ -170,6 +174,9 @@ def change_task(task_id: int, data: TaskChange, db: Session = Depends(get_db), u
     values = data.model_dump(exclude_unset=True)
     destination = values.pop("project_id", None)
     if destination and destination != task.project_id:
+        from .models import PMSTaskGroupTarget
+        if db.query(PMSTaskGroupTarget).filter_by(task_id=task.id).first():
+            raise HTTPException(409, "Remove team and batch responsibility before moving this task to another project")
         target = get_project_for_action(db, destination, user, "manage_tasks")
         if target.organization_id != project.organization_id: raise HTTPException(403, "Task moves must stay within the same organization")
         if target.is_archived: raise HTTPException(409, "Destination project is archived")

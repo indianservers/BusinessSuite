@@ -101,6 +101,15 @@ def install_scope(db, user, company, grants):
     ]
     cache = {}
 
+    def pms_assigned_tasks(ids):
+        from app.apps.project_management.models import PMSTask, PMSTaskAssignee, PMSTaskGroupTarget, PMSWorkspaceTeamMember
+        from app.apps.interns_hub.management_models import InternBatchMembership
+        tasks, assignments, targets, teams = PMSTask.__table__, PMSTaskAssignee.__table__, PMSTaskGroupTarget.__table__, PMSWorkspaceTeamMember.__table__
+        batches, employees = InternBatchMembership.__table__, Employee.__table__
+        member_batches = select(batches.c.batch_id).join(employees, employees.c.id == batches.c.employee_id).where(batches.c.status == "Active", employees.c.user_id.in_(ids), employees.c.deleted_at.is_(None), employees.c.status.notin_(["Inactive", "Suspended", "Terminated"]))
+        group_tasks = select(targets.c.task_id).where(or_(and_(targets.c.kind == "teams", targets.c.target_id.in_(select(teams.c.team_id).where(teams.c.user_id.in_(ids)))), and_(targets.c.kind == "batches", targets.c.target_id.in_(member_batches))))
+        return select(tasks.c.id).where(tasks.c.deleted_at.is_(None), or_(tasks.c.assignee_user_id.in_(ids), tasks.c.id.in_(select(assignments.c.task_id).where(assignments.c.user_id.in_(ids))), tasks.c.id.in_(group_tasks)))
+
     def predicate(model, stack=()):
         from app.apps.power_apps.approvals.scope import predicate as approval_predicate
         approval = approval_predicate(model,user,company,grants)
@@ -252,14 +261,7 @@ def install_scope(db, user, company, grants):
                 if scope == "team" and employee:
                     owner.append(Employee.reporting_manager_id == employee.id)
             if key == "project_management" and model.__tablename__ == "pms_tasks":
-                from app.apps.project_management.models import PMSTaskAssignee
-
-                table = PMSTaskAssignee.__table__
-                owner.append(
-                    model.id.in_(
-                        select(table.c.task_id).where(table.c.user_id.in_(ids))
-                    )
-                )
+                owner.append(model.id.in_(pms_assigned_tasks(ids)))
             if key == "crm" and scope == "team" and "assigned_team_id" in columns:
                 from app.apps.crm.models import CRMOwner
 
@@ -280,6 +282,11 @@ def install_scope(db, user, company, grants):
                         select(table.c.project_id).where(table.c.user_id.in_(ids))
                     )
                 )
+                # Project context is visible only when the task is directly or
+                # collectively assigned; other task roots retain their own scope.
+                from app.apps.project_management.models import PMSTask
+                tasks_table = PMSTask.__table__
+                owner.append(model.id.in_(select(tasks_table.c.project_id).where(tasks_table.c.id.in_(pms_assigned_tasks(ids)))))
             if key == "project_management" and model.__tablename__ == "pms_workspaces":
                 from app.apps.project_management.models import PMSWorkspaceMember
 

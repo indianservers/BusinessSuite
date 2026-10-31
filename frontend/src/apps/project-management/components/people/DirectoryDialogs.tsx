@@ -19,12 +19,14 @@ export function PeopleDialog({
   title,
   description,
   children,
+  className,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   description: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <Dialog.Root
@@ -35,7 +37,7 @@ export function PeopleDialog({
     >
       <Dialog.Portal>
         <Dialog.Overlay className="pd-dialog-overlay" />
-        <Dialog.Content className="pd-dialog">
+        <Dialog.Content className={`pd-dialog ${className || ""}`}>
           <Dialog.Title>{title}</Dialog.Title>
           <Dialog.Description>{description}</Dialog.Description>
           <Dialog.Close className="pd-dialog-close" aria-label="Close dialog">
@@ -419,14 +421,12 @@ export function AddPeopleToTeam({
     selected: number;
     changed: number;
   }>();
-  const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
     if (open) {
       setTeam("");
       setPreview(undefined);
-      setConfirm(false);
       setError("");
     }
   }, [open]);
@@ -445,14 +445,14 @@ export function AddPeopleToTeam({
     user_ids: personIds,
     action: "add",
     reason: "Add existing people to workspace team",
-    add_workspace_members: confirm,
+    add_workspace_members: true,
   };
   return (
     <PeopleDialog
       open={open}
       onClose={onClose}
       title="Add to team"
-      description="Select a team, review its scope, and confirm any workspace access that will be created."
+      description="Select a team. New members automatically receive Member access to its workspace."
     >
       <input
         aria-label="Find destination team"
@@ -477,7 +477,6 @@ export function AddPeopleToTeam({
                 onChange={() => {
                   setTeam(String(t.id));
                   setPreview(undefined);
-                  setConfirm(false);
                 }}
               />
               <strong>{t.name}</strong>
@@ -515,15 +514,10 @@ export function AddPeopleToTeam({
             memberships.
           </p>
           {preview.missing_user_ids.length > 0 && (
-            <label>
-              <input
-                type="checkbox"
-                checked={confirm}
-                onChange={(e) => setConfirm(e.target.checked)}
-              />
-              Also add {preview.missing_user_ids.length} people to this
-              workspace with Member access. No administrator role is granted.
-            </label>
+            <p>
+              {preview.missing_user_ids.length} people will automatically join
+              this workspace as Members.
+            </p>
           )}
         </div>
       )}
@@ -533,9 +527,7 @@ export function AddPeopleToTeam({
         </button>
         <button
           className="pd-primary"
-          disabled={
-            !team || busy || (!!preview?.missing_user_ids.length && !confirm)
-          }
+          disabled={!team || busy}
           onClick={async () => {
             setBusy(true);
             setError("");

@@ -1,3 +1,4 @@
+import TemplateSteps from "./TemplateSteps";
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ClipboardCheck, Plus, RefreshCw } from "lucide-react";
@@ -81,7 +82,7 @@ export default function OnboardingPage() {
                 <Button type="submit"><Plus className="h-4 w-4" />Add</Button>
               </form>
               <div className="mt-4 space-y-2">
-                {templates.data?.map((t: any) => <div key={t.id} className="rounded-md border p-3 text-sm">{t.name}</div>)}
+                {templates.data?.map((t: any) => <TemplateSteps key={t.id} template={t} refresh={() => templates.refetch()} />)}
               </div>
             </CardContent>
           </Card>

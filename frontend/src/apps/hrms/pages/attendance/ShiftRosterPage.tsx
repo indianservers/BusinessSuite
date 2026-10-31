@@ -1,6 +1,6 @@
 import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
 import {HR,errorText} from "../../workbench/shared";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarDays, Copy, Loader2, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +181,19 @@ export default function ShiftRosterPage() {
     onError: () => toast({ title: "Could not save weekly off", variant: "destructive" }),
   });
 
+  const shiftDrag = useRef<{ id:number; x:number; y:number; moved:boolean } | null>(null);
+  const suppressShiftClick = useRef(false);
+  const [hoverCell,setHoverCell] = useState("");
+  const [shiftGhost,setShiftGhost] = useState<{id:number;x:number;y:number}|null>(null);
+  function shiftCell(x:number,y:number) { return document.elementFromPoint(x,y)?.closest<HTMLElement>("td[data-roster-date]"); }
+  function endShiftDrag(x:number,y:number) {
+    const active=shiftDrag.current;shiftDrag.current=null;setHoverCell("");setShiftGhost(null);
+    if(!active?.moved)return;
+    suppressShiftClick.current=true;
+    window.setTimeout(()=>{suppressShiftClick.current=false;},0);
+    const target=shiftCell(x,y);
+    if(target)dropShift(Number(target.dataset.employeeId),target.dataset.rosterDate!,String(active.id));
+  }
   function dropShift(employeeId: number, date: string, data: string) {
     const shiftId = Number(data || selectedShiftId);
     if (!shiftId) return;
@@ -224,9 +237,14 @@ export default function ShiftRosterPage() {
               <button
                 key={shift.id}
                 type="button"
-                draggable
-                onDragStart={(event) => event.dataTransfer.setData("shiftId", String(shift.id))}
-                onClick={() => setSelectedShiftId(shift.id)}
+                disabled={assign.isPending || applyReview.isPending}
+                style={{touchAction:"none",userSelect:"none"}}
+                onPointerDown={event=>{if(event.button!==0)return;shiftDrag.current={id:shift.id,x:event.clientX,y:event.clientY,moved:false};event.currentTarget.setPointerCapture(event.pointerId);}}
+                onPointerMove={event=>{const active=shiftDrag.current;if(!active)return;if(Math.hypot(event.clientX-active.x,event.clientY-active.y)<6&&!active.moved)return;active.moved=true;const target=shiftCell(event.clientX,event.clientY);setHoverCell(target?.dataset.rosterCell||"");setShiftGhost({id:active.id,x:event.clientX,y:event.clientY});}}
+                onPointerUp={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);endShiftDrag(event.clientX,event.clientY);}}
+                onPointerCancel={()=>{shiftDrag.current=null;setHoverCell("");setShiftGhost(null);}}
+                onClick={()=>{if(suppressShiftClick.current){suppressShiftClick.current=false;return;}setSelectedShiftId(shift.id);}}
+                title="Drag onto an employee/date slot, or click then select a slot"
                 className={cn("w-full rounded-md border p-3 text-left text-sm", shiftColors[index % shiftColors.length], selectedShiftId === shift.id && "ring-2 ring-primary")}
               >
                 <p className="font-semibold">{shift.name}</p>
@@ -311,10 +329,13 @@ export default function ShiftRosterPage() {
                           return (
                             <td
                               key={day.date}
+                              data-roster-date={day.date}
+                              data-employee-id={employee.id}
+                              data-roster-cell={`${employee.id}:${day.date}`}
                               onDragOver={(event) => event.preventDefault()}
                               onDrop={(event) => dropShift(employee.id, day.date, event.dataTransfer.getData("shiftId"))}
                               onClick={() => selectedShiftId && dropShift(employee.id, day.date, String(selectedShiftId))}
-                              className="h-24 min-w-32 cursor-pointer border-l p-2 align-top hover:bg-muted/30"
+                              className={`h-24 min-w-32 cursor-pointer border-l p-2 align-top hover:bg-muted/30 ${hoverCell===`${employee.id}:${day.date}`?"ring-2 ring-inset ring-primary bg-primary/10":""}`}
                             >
                               {cell ? (
                                 <div className={cn("rounded-md border p-2", shiftColors[Math.max(shiftIndex, 0) % shiftColors.length])}>
@@ -347,6 +368,7 @@ export default function ShiftRosterPage() {
         </Card>
       </div>
 
+      {shiftGhost && <div aria-hidden="true" className="fixed z-50 rounded-lg border bg-primary px-3 py-2 text-xs text-primary-foreground shadow-xl" style={{left:shiftGhost.x+12,top:shiftGhost.y+12,pointerEvents:"none"}}>{shifts.data?.find(shift=>shift.id===shiftGhost.id)?.name}</div>}
       {!!lastConflicts.length && (
         <Card className="border-amber-200 bg-amber-50/60">
           <CardHeader><CardTitle className="flex items-center gap-2 text-base text-amber-900"><AlertTriangle className="h-5 w-5" /> Conflict Warnings</CardTitle></CardHeader>

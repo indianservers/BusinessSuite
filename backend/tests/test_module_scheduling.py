@@ -137,6 +137,9 @@ def test_viewer_cannot_mutate_dates_or_dependencies(client, db, superuser_header
     from app.models.user import User, Permission
     rows, keys, _ = seed(db, "crm", "calendar")
     user = db.query(User).filter_by(email="testadmin@test.com").one()
+    from app.common.services.identity import SharedIdentityService
+    SharedIdentityService.ensure_person_for_user(db, user, organization_id=1)
+    read(client, superuser_headers, "/api/v1/scheduling/crm/calendar", keys)
     user.is_superuser = False; user.role.name = "crm_viewer"
     view = db.query(Permission).filter_by(name="crm_view").first() or Permission(name="crm_view")
     user.role.permissions = [view]

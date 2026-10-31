@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { openPerson } from "./peopleTypes";
 import { type DirectoryPerson, initials } from "./peopleWorkspace";
+import PeopleAction from "./PeopleAction";
 export function DirectoryAvatar({
   person,
   size = "normal",
@@ -41,7 +42,11 @@ export default function DirectoryPersonCard({
   onTeam,
   onAssign,
   canTeam,
-  profileHref,
+  canAddWorkspace,
+  canAddProject,
+  onWorkspace,
+  onProject,
+  profileHref, onPreview, onDragMembers, onDragEnd, onDestinations,
 }: {
   person: DirectoryPerson;
   selected: boolean;
@@ -49,7 +54,15 @@ export default function DirectoryPersonCard({
   onTeam: () => void;
   onAssign: () => void;
   canTeam: boolean;
+  canAddWorkspace?: boolean;
+  canAddProject?: boolean;
+  onWorkspace?: () => void;
+  onProject?: () => void;
   profileHref: string;
+  onPreview?: () => void;
+  onDestinations?: () => void;
+  onDragMembers?: (event: React.DragEvent) => void;
+  onDragEnd?: () => void;
 }) {
   const active = person.status === "active";
   const tags = [
@@ -62,17 +75,17 @@ export default function DirectoryPersonCard({
     .filter(Boolean)
     .slice(0, 3);
   return (
-    <article className={`pd-person-card ${selected ? "selected" : ""}`}>
+    <article className={`pd-person-card ${selected ? "selected" : ""}`} draggable={active} onDragStart={onDragMembers} onDragEnd={onDragEnd}>
       <div className="pd-person-body">
-        <Link to={profileHref} className="pd-person-photo">
+        <Link to={profileHref} onClick={e => { if(onPreview){e.preventDefault();onPreview();} }} className="pd-person-photo">
           <DirectoryAvatar person={person} />
         </Link>
         <div className="pd-person-identity">
           <div>
-            <Link to={profileHref}>{person.name}</Link>
+            <Link to={profileHref} onClick={e => {if(onPreview){e.preventDefault();onPreview();}}}>{person.name}</Link>
             <span className={`pd-status ${active ? "active" : "inactive"}`}>
               <i />
-              {active ? "Active" : person.status.replace(/_/g, " ")}
+              {active ? "Login enabled" : `Login disabled (${person.status.replace(/_/g, " ")})`}
             </span>
           </div>
           <p title={person.email}>
@@ -81,6 +94,7 @@ export default function DirectoryPersonCard({
             {person.email}
           </p>
           <div className="pd-tags">
+            {person.employment_status && <span>{person.classification}: {person.employment_status}</span>}
             {tags.map((tag, index) => (
               <span key={`${tag}-${index}`}>{tag}</span>
             ))}
@@ -97,9 +111,12 @@ export default function DirectoryPersonCard({
           <span className="sr-only">Select for bulk actions</span>
         </label>
       </div>
+      <div className="pd-membership-summary"><span>Project: {person.projects?.[0]?.name || "No current project"}</span><details><summary>Membership details</summary><p>Workspaces: {person.workspaces?.map(x=>x.name).join(", ") || "None"}</p><p>Teams: {person.teams.map(x=>x.name).join(", ") || "None"}</p>{person.classification.toLowerCase() === "intern" && <p>Intern batches: {person.batches.map(x=>x.name).join(", ") || "None"}</p>}<p>Projects: {person.projects?.map(x=>x.name).join(", ") || "None"}</p></details></div>
+      <button className="pd-drag-handle" disabled={!active} onClick={onDestinations} aria-label={`Assign ${person.name} to a destination`} title="Drag this card to a destination, or click to choose one">Drag or assign</button>
       <footer>
-        <button
+        <PeopleAction
           type="button"
+          reason={!active ? "Reactivate this account before changing team memberships." : !canTeam ? "Team membership changes require workspace administration access." : undefined}
           disabled={!active || !canTeam}
           title={
             !canTeam
@@ -110,9 +127,13 @@ export default function DirectoryPersonCard({
         >
           <Users size={14} />
           Add to team
-        </button>
-        <button
+        </PeopleAction>
+        <PeopleAction type="button" disabled={!active || !canAddWorkspace} reason={!active ? "Reactivate this account first." : !canAddWorkspace ? "Workspace administration access is required." : undefined} onClick={onWorkspace}>
+          <Users size={14} /> Add to workspace
+        </PeopleAction>
+        <PeopleAction
           type="button"
+          reason={!active ? "Reactivate this account before assigning work." : undefined}
           disabled={!active}
           title={
             !active
@@ -123,7 +144,7 @@ export default function DirectoryPersonCard({
         >
           <SquareArrowOutUpRight size={13} />
           Assign task
-        </button>
+        </PeopleAction>
         <Dropdown.Root>
           <Dropdown.Trigger
             className="pd-more"
@@ -133,6 +154,13 @@ export default function DirectoryPersonCard({
           </Dropdown.Trigger>
           <Dropdown.Portal>
             <Dropdown.Content className="pd-dropdown" sideOffset={5}>
+              <Dropdown.Item disabled={!active || !canAddWorkspace} onSelect={onWorkspace}>
+                <Users size={15} /> Add to workspace
+              </Dropdown.Item>
+              <Dropdown.Item disabled={!active || !canAddProject} onSelect={onProject}>
+                <ClipboardList size={15} /> Add to project
+              </Dropdown.Item>
+              <Dropdown.Separator />
               <Dropdown.Item asChild>
                 <Link to={profileHref}>
                   <UserRound size={15} />

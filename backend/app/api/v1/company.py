@@ -5,6 +5,7 @@ import os
 import shutil
 import uuid
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, RequirePermission
@@ -506,6 +507,31 @@ def list_positions(status_filter: Optional[str] = Query(None, alias="status"), d
     if status_filter:
         query = query.filter(Position.status == status_filter)
     return query.order_by(Position.position_code).all()
+
+
+class ReportingMoveInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    manager_position_id: int | None = None
+    previous_manager_position_id: int | None = None
+
+
+@router.put("/positions/{position_id}/reporting")
+def move_reporting(position_id: int, data: ReportingMoveInput, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("company_manage"))):
+    position = db.query(Position).filter_by(id=position_id, is_active=True).first()
+    if not position: raise HTTPException(404, "Position not found")
+    db.query(Company).filter_by(id=position.company_id).with_for_update().one()
+    db.refresh(position)
+    if position.manager_position_id != data.previous_manager_position_id: raise HTTPException(409, "Reporting relationship changed. Refresh the chart.")
+    positions = {p.id: p for p in db.query(Position).filter_by(company_id=position.company_id, is_active=True).all()}
+    cursor = data.manager_position_id
+    visited = {position.id}
+    while cursor is not None:
+        if cursor in visited: raise HTTPException(422, "Reporting relationships cannot contain a cycle")
+        if cursor not in positions: raise HTTPException(422, "Choose an active manager position in this company")
+        visited.add(cursor); cursor = positions[cursor].manager_position_id
+    position.manager_position_id = data.manager_position_id
+    db.commit()
+    return {"id": position.id, "manager_position_id": position.manager_position_id}
 
 
 @router.get("/org-chart")

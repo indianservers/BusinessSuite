@@ -138,6 +138,7 @@ CLOSED_STATUSES = set(TERMINAL)
 PMS_UPLOAD_ROOT = Path(os.getenv("PMS_UPLOAD_ROOT", str(Path(settings.UPLOAD_DIR) / "pms"))).resolve()
 PMS_MAX_ATTACHMENT_BYTES = int(os.getenv("PMS_MAX_ATTACHMENT_BYTES", str((3 if settings.SERVERLESS else 25) * 1024 * 1024)))
 PMS_ALLOWED_ATTACHMENT_TYPES = {
+    "video/mp4", "video/webm",
     "application/pdf",
     "application/zip",
     "application/x-zip-compressed",
@@ -423,6 +424,7 @@ def _task_list_payload(
     payload = _model_payload(task)
     subtask_total, subtask_done = (subtask_counts_by_task_id or {}).get(task.id, (0, 0))
     payload.update({
+        "is_general": bool(project and project.is_task_collection),
         "project_name": project.name if project else None,
         "project_key": project.project_key if project else None,
         "epic_name": epic.name if epic else task.initiative,
@@ -510,15 +512,22 @@ def _broadcast_realtime(
 
 @router.get("/realtime/config")
 def realtime_config(current_user: User = Depends(get_current_user)):
-    return {"transport": settings.REALTIME_TRANSPORT, "pollIntervalMs": 3000}
+    employee = getattr(current_user, "employee", None)
+    intern = (current_user.role and current_user.role.name.lower() == "intern") or (employee and (employee.employment_type or "").lower() == "intern")
+    return {"transport": "database" if intern else settings.REALTIME_TRANSPORT, "pollIntervalMs": 3000}
 
 
 @router.get("/realtime/events")
-def realtime_events(response: Response, cursor: int | None = Query(None, ge=0), db: Session = Depends(get_db),
+def realtime_events(response: Response, cursor: int | None = Query(None, ge=0), task_id: int | None = None, db: Session = Depends(get_db),
                     current_user: User = Depends(get_current_user)):
     response.headers["Cache-Control"] = "private, no-store"
     from ..event_feed import read_events
-    return read_events(db, _accessible_project_ids(db, current_user), cursor)
+    if task_id:
+        from ..task_workspace import scoped_task
+        scoped_task(db, task_id, current_user)
+    def visible_tasks(ids):
+        return {row[0] for row in db.query(PMSTask.id).filter(PMSTask.id.in_(ids), PMSTask.deleted_at.is_(None))}
+    return read_events(db, _accessible_project_ids(db, current_user), cursor, task_id=task_id, task_filter=visible_tasks)
 
 
 @router.websocket("/realtime")
@@ -598,6 +607,11 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
                 if project_id is None or int(project_id) not in accessible_ids:
                     continue
                 task_id = message.get("taskId")
+                if task_id is not None:
+                    try: task_id = int(task_id)
+                    except (TypeError, ValueError): continue
+                    item = db.query(PMSTask).filter_by(id=task_id, project_id=int(project_id), deleted_at=None).first()
+                    if not item or not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, project_id, payload.get("sid"), payload.get("exp"), task_id): continue
                 await broadcast_pms_event({
                     "type": "user.presence" if action == "presence" else "user.typing",
                     "organizationId": organization_id_for(current_user),
@@ -2110,7 +2124,7 @@ def list_projects(
     current_user: User = Depends(get_current_user),
 ):
     """List accessible projects, optionally within a workspace."""
-    query = accessible_project_query(db, current_user)
+    query = accessible_project_query(db, current_user).filter(PMSProject.is_task_collection.is_(False))
     if workspace_id is not None:
         workspace_member(db, workspace_id, current_user)
         query = query.filter(PMSProject.workspace_id == workspace_id)
@@ -2120,6 +2134,8 @@ def list_projects(
     
     projects = query.offset(skip).limit(limit).all()
     for project in projects:
+        project.can_manage_tasks = can_access_project(db, project, current_user, "manage_tasks")
+        project.can_upload_files = can_access_project(db, project, current_user, "upload")
         project.can_edit_project = can_access_project(db, project, current_user, "edit_project")
     return projects
 
@@ -3058,6 +3074,14 @@ def list_tasks(
 
 @router.get("/tasks")
 def list_all_tasks(
+    taskIds: str | None = Query(None, max_length=2000),
+    workspaceId: int | None = None,
+    projectIds: str | None = Query(None, max_length=2000),
+    assigneeIds: str | None = Query(None, max_length=2000),
+    workView: str | None = None,
+    teamId: int | None = None,
+    batchId: int | None = None,
+    workType: str | None = None,
     projectId: int = Query(None),
     sprintId: int = Query(None),
     epicId: int = Query(None),
@@ -3092,6 +3116,43 @@ def list_all_tasks(
         PMSTask.project_id.in_(accessible_project_ids),
     )
 
+    from ..models import PMSTaskGroupTarget, PMSWorkspace
+    def parse_ids(value):
+        try:
+            values = {int(item) for item in value.split(",") if item}
+        except ValueError:
+            raise HTTPException(422, "Invalid filter IDs")
+        if len(values) > 100:
+            raise HTTPException(422, "Choose at most 100 filter values")
+        return values
+    if taskIds:
+        query = query.filter(PMSTask.id.in_(parse_ids(taskIds)))
+    if projectIds:
+        query = query.filter(PMSTask.project_id.in_(parse_ids(projectIds)))
+    if assigneeIds:
+        selected_ids = parse_ids(assigneeIds)
+        query = query.filter(or_(PMSTask.assignee_user_id.in_(selected_ids), PMSTask.assignments.any(PMSTaskAssignee.user_id.in_(selected_ids))))
+    if workspaceId:
+        query = query.filter(PMSProject.workspace_id == workspaceId)
+    if workType:
+        query = query.filter(PMSTask.work_type == workType)
+    group_tasks = db.query(PMSTaskGroupTarget.task_id)
+    if teamId:
+        query = query.filter(PMSTask.id.in_(group_tasks.filter_by(kind="teams", target_id=teamId)))
+    if batchId:
+        query = query.filter(PMSTask.id.in_(group_tasks.filter_by(kind="batches", target_id=batchId)))
+    if workView == "mine":
+        query = query.filter(or_(PMSTask.assignee_user_id == current_user.id, PMSTask.assignments.any(user_id=current_user.id)))
+    elif workView == "unassigned":
+        query = query.filter(PMSTask.assignee_user_id.is_(None), ~PMSTask.assignments.any(), ~PMSTask.id.in_(group_tasks))
+    elif workView == "teams":
+        query = query.filter(PMSTask.id.in_(group_tasks.filter_by(kind="teams")))
+    elif workView == "batches":
+        query = query.filter(PMSTask.id.in_(group_tasks.filter_by(kind="batches")))
+    elif workView == "completed":
+        query = query.filter(PMSTask.status.in_(DONE_STATUSES))
+    elif workView == "approvals":
+        query = query.filter(PMSTask.status == "In Review")
     if projectId:
         query = query.filter(PMSTask.project_id == projectId)
     if overdue:
@@ -3106,9 +3167,9 @@ def list_all_tasks(
     if epicId:
         query = query.filter(PMSTask.epic_id == epicId)
     if status:
-        query = query.filter(PMSTask.status == status)
+        query = query.filter(PMSTask.status.in_(status.split(",")))
     if priority:
-        query = query.filter(PMSTask.priority == priority)
+        query = query.filter(PMSTask.priority.in_(priority.split(",")))
     if assigneeId:
         query = query.filter(or_(PMSTask.assignee_user_id == assigneeId, PMSTask.assignments.any(user_id=assigneeId)))
     if reporterId:
@@ -3158,6 +3219,8 @@ def list_all_tasks(
         else_=0,
     )
     sort_map = {
+        "position": PMSTask.position,
+        "rank": PMSTask.rank,
         "dueDate": PMSTask.due_date,
         "due_date": PMSTask.due_date,
         "priority": priority_order,
@@ -3168,6 +3231,7 @@ def list_all_tasks(
         "storyPoints": PMSTask.story_points,
         "story_points": PMSTask.story_points,
         "status": PMSTask.status,
+        "title": PMSTask.title,
     }
     sort_column = sort_map.get(sortBy, PMSTask.updated_at)
     sort_expression = desc(sort_column) if sortOrder.lower() == "desc" else asc(sort_column)
@@ -3179,12 +3243,13 @@ def list_all_tasks(
     project_ids = {task.project_id for task in tasks}
     epic_ids = {task.epic_id for task in tasks if task.epic_id}
     sprint_ids = {task.sprint_id for task in tasks if task.sprint_id}
-    user_ids = {task.assignee_user_id for task in tasks if task.assignee_user_id} | {task.reporter_user_id for task in tasks if task.reporter_user_id}
+    user_ids = {uid for task in tasks for uid in task.assignee_user_ids} | {task.assignee_user_id for task in tasks if task.assignee_user_id} | {task.reporter_user_id for task in tasks if task.reporter_user_id}
 
     projects_by_id = {project.id: project for project in db.query(PMSProject).filter(PMSProject.id.in_(project_ids)).all()} if project_ids else {}
     epics_by_id = {epic.id: epic for epic in db.query(PMSEpic).filter(PMSEpic.id.in_(epic_ids)).all()} if epic_ids else {}
     sprints_by_id = {sprint.id: sprint for sprint in db.query(PMSSprint).filter(PMSSprint.id.in_(sprint_ids)).all()} if sprint_ids else {}
-    users_by_id = {user.id: user for user in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    from ..people_workspace import load_users
+    users_by_id = {user.id: user for user in load_users(db.query(User).filter(User.id.in_(user_ids))).all()} if user_ids else {}
     tags_by_task_id: dict[int, list[str]] = {}
     if task_ids:
         tag_rows = db.query(PMSTaskTag.task_id, PMSTag.name).join(PMSTag, PMSTag.id == PMSTaskTag.tag_id).filter(
@@ -3198,8 +3263,10 @@ def list_all_tasks(
         PMSTask.project_id.in_(accessible_project_ids),
     )
     visible_project_ids = [row[0] for row in accessible_project_ids.all()]
+    all_assignee_ids = {row[0] for row in db.query(PMSTaskAssignee.user_id).join(PMSTask, PMSTask.id == PMSTaskAssignee.task_id).filter(PMSTask.project_id.in_(visible_project_ids), PMSTask.deleted_at.is_(None)).distinct()}
     assignee_ids = [row[0] for row in filters_task_query.with_entities(PMSTask.assignee_user_id).filter(PMSTask.assignee_user_id != None).distinct().all()]
     reporter_ids = [row[0] for row in filters_task_query.with_entities(PMSTask.reporter_user_id).filter(PMSTask.reporter_user_id != None).distinct().all()]
+    assignee_ids = sorted(set(assignee_ids) | all_assignee_ids)
     filter_user_ids = set(assignee_ids + reporter_ids)
     filter_users = {user.id: user for user in db.query(User).filter(User.id.in_(filter_user_ids)).all()} if filter_user_ids else {}
     tag_names = [
@@ -3227,6 +3294,7 @@ def list_all_tasks(
             func.date(PMSTask.created_at) <= reference_day,
         ), 1), else_=0)),
     ).first()
+    status_counts = dict(query.order_by(None).with_entities(PMSTask.status, func.count(PMSTask.id)).group_by(PMSTask.status).all())
     recent = (
         db.query(PMSActivity).filter(PMSActivity.task_id.in_(filtered_task_ids))
         .order_by(PMSActivity.created_at.desc(), PMSActivity.id.desc()).limit(4).all()
@@ -3234,14 +3302,37 @@ def list_all_tasks(
     actor_ids = {activity.actor_user_id for activity in recent if activity.actor_user_id}
     actors = {actor.id: actor for actor in db.query(User).filter(User.id.in_(actor_ids)).all()} if actor_ids else {}
 
+    group_summaries = [{"id": row[0], "kind": row[1], "name": row[2], "total": row[3], "completed": int(row[4] or 0), "member_count": row[5]} for row in db.query(PMSTaskGroupTarget.target_id, PMSTaskGroupTarget.kind, PMSTaskGroupTarget.name, func.count(PMSTask.id), func.sum(case((PMSTask.status.in_(DONE_STATUSES), 1), else_=0)), func.max(PMSTaskGroupTarget.member_count)).join(PMSTask, PMSTask.id == PMSTaskGroupTarget.task_id).filter(PMSTask.id.in_(filtered_task_ids)).group_by(PMSTaskGroupTarget.target_id, PMSTaskGroupTarget.kind, PMSTaskGroupTarget.name)]
+    group_rows = db.query(PMSTaskGroupTarget).filter(PMSTaskGroupTarget.task_id.in_(task_ids)).all() if task_ids else []
+    workspace_names = dict(db.query(PMSWorkspace.id, PMSWorkspace.name).filter(PMSWorkspace.id.in_([p.workspace_id for p in projects_by_id.values()])).all())
+    check_counts = {row[0]: (row[1], row[2]) for row in db.query(PMSChecklistItem.task_id, func.count(PMSChecklistItem.id), func.sum(case((PMSChecklistItem.is_completed.is_(True), 1), else_=0))).filter(PMSChecklistItem.task_id.in_(task_ids)).group_by(PMSChecklistItem.task_id)} if task_ids else {}
+    def assignee_identity(uid):
+        account = users_by_id.get(uid)
+        person = account.person if account else None
+        profile = person.profile if person else None
+        return {"id": uid, "name": (person.display_name if person else None) or _user_display_name(account) or f"Person {uid}",
+                "photo_url": _user_photo_url(account) if profile and profile.directory_visibility == "public" else None}
+    from ..models import PMSTaskWorkspaceState
+    progress_states = {row.task_id: row for row in db.query(PMSTaskWorkspaceState).filter(PMSTaskWorkspaceState.task_id.in_(task_ids))} if task_ids else {}
+    items = []
+    for task in tasks:
+        item = _task_list_payload(task, projects_by_id, epics_by_id, sprints_by_id, users_by_id, tags_by_task_id, subtask_counts_by_task_id)
+        item["assignees"] = [assignee_identity(uid) for uid in task.assignee_user_ids]
+        item["group_targets"] = [{"id": g.target_id, "kind": g.kind, "name": g.name, "member_count": g.member_count} for g in group_rows if g.task_id == task.id]
+        item["workspace_name"] = workspace_names.get(projects_by_id[task.project_id].workspace_id)
+        total_checks, done_checks = check_counts.get(task.id, (0, 0))
+        progress_state = progress_states.get(task.id)
+        item["progress"] = 100 if task.status in DONE_STATUSES else progress_state.progress if progress_state and progress_state.progress_mode == "manual" else round(100 * done_checks / total_checks) if total_checks else 0
+        items.append(item)
     return {
-        "items": [_task_list_payload(task, projects_by_id, epics_by_id, sprints_by_id, users_by_id, tags_by_task_id, subtask_counts_by_task_id) for task in tasks],
+        "items": items,
         "total": total,
+        "group_summaries": group_summaries,
         "page": page,
         "pageSize": pageSize,
         "pages": (total + pageSize - 1) // pageSize,
         "summary": {
-            "total": total, "in_progress": int(stats[0] or 0),
+            "total": total, "todo": status_counts.get("To Do", 0), "in_review": status_counts.get("In Review", 0), "in_progress": int(stats[0] or 0),
             "due_today": int(stats[1] or 0), "completed": int(stats[2] or 0),
             "overdue": int(stats[3] or 0), "created_last_week": int(stats[4] or 0),
         },
@@ -3255,6 +3346,8 @@ def list_all_tasks(
             for activity in recent
         ],
         "filters": {
+            "workspaces": [{"id": w.id, "name": w.name} for w in db.query(PMSWorkspace).filter(PMSWorkspace.id.in_(accessible_project_query(db, current_user).with_entities(PMSProject.workspace_id))).order_by(PMSWorkspace.name)],
+            "groups": [{"id": row.target_id, "kind": row.kind, "name": row.name} for row in db.query(PMSTaskGroupTarget.target_id, PMSTaskGroupTarget.kind, PMSTaskGroupTarget.name).join(PMSTask, PMSTask.id == PMSTaskGroupTarget.task_id).filter(PMSTask.project_id.in_(visible_project_ids), PMSTask.deleted_at.is_(None)).distinct()],
             "projects": [
                 {"id": project.id, "name": project.name, "project_key": project.project_key,
                  "can_manage_tasks": can_access_project(db, project, current_user, "manage_tasks")}
@@ -3322,7 +3415,7 @@ def get_backlog(
         PMSSprint.id,
     ).all()
     return {
-        "project": {"id": project.id, "name": project.name, "project_key": project.project_key},
+        "project": {"id": project.id, "name": project.name, "project_key": project.project_key, "can_manage_tasks": can_access_project(db, project, current_user, "manage_tasks")},
         "backlog": _task_list_payloads(db, tasks_by_sprint.get(None, [])),
         "sprints": [
             {
@@ -4719,7 +4812,14 @@ def add_comment_to_task_operation(
     """Add a comment to a task (Collaboration)."""
     task, project = get_task_project_for_action(db, task_id, current_user, "comment")
     
+    if comment_in.parent_comment_id:
+        parent = db.query(PMSComment).filter_by(id=comment_in.parent_comment_id, task_id=task.id, deleted_at=None).first()
+        if not parent or parent.is_internal and not can_access_project(db, project, current_user, "manage_tasks"):
+            raise HTTPException(404, "Parent discussion not found in this task")
+    from app.core.rich_text import sanitize_rich_text, rich_text_plain
     comment_data = comment_in.dict(exclude={"mentioned_user_ids"})
+    comment_data["body"] = sanitize_rich_text(comment_data["body"])
+    if not rich_text_plain(comment_data["body"]).strip(): raise HTTPException(422, "Write a comment")
     if comment_data.get("body_format") not in {"markdown", "plain"}:
         raise HTTPException(status_code=400, detail="Unsupported comment body format")
     comment_data['author_user_id'] = current_user.id
@@ -4760,6 +4860,8 @@ def add_comment_to_task_operation(
 @router.get("/tasks/{task_id}/comments", response_model=list[PMSCommentResponse])
 def list_task_comments(
     task_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -4772,9 +4874,16 @@ def list_task_comments(
     )
     if not can_access_project(db, project, current_user, "manage_tasks"):
         query = query.filter(PMSComment.is_internal == False)
-    comments = query.order_by(desc(PMSComment.created_at)).all()
+    comments = query.order_by(desc(PMSComment.created_at), desc(PMSComment.id)).offset(skip).limit(limit).all()
     mentions = _comment_mentions(db, [comment.id for comment in comments])
-    return [_comment_payload(comment, mentions) for comment in comments]
+    from ..people_workspace import load_users
+    from ..people_management import public_person
+    authors = {u.id: public_person(db, u) for u in load_users(db.query(User).filter(User.id.in_({c.author_user_id for c in comments}))).all()}
+    from ..models import PMSCommentReaction
+    reactions = db.query(PMSCommentReaction).filter(PMSCommentReaction.comment_id.in_([c.id for c in comments])).all()
+    def reaction_summary(cid):
+        return [{"emoji": emoji, "count": sum(r.comment_id == cid and r.emoji == emoji for r in reactions), "mine": any(r.comment_id == cid and r.emoji == emoji and r.user_id == current_user.id for r in reactions)} for emoji in sorted({r.emoji for r in reactions if r.comment_id == cid})]
+    return [{"reactions": reaction_summary(comment.id), **_comment_payload(comment, mentions), "author": {"id": comment.author_user_id, "name": authors.get(comment.author_user_id, {}).get("name", "Former collaborator"), "avatar_url": authors.get(comment.author_user_id, {}).get("photo_url")}} for comment in comments]
 
 
 @router.patch("/comments/{comment_id}", response_model=PMSCommentResponse)
@@ -4797,6 +4906,10 @@ def update_comment(
         task, project = get_task_project_for_action(db, comment.task_id, current_user, "comment")
     
     update_data = comment_in.dict(exclude_unset=True)
+    if "body" in update_data:
+        from app.core.rich_text import sanitize_rich_text, rich_text_plain
+        update_data["body"] = sanitize_rich_text(update_data["body"])
+        if not rich_text_plain(update_data["body"]).strip(): raise HTTPException(422, "Write a comment")
     if update_data.get("body_format") and update_data["body_format"] not in {"markdown", "plain"}:
         raise HTTPException(status_code=400, detail="Unsupported comment body format")
     update_data['is_edited'] = True
@@ -5881,6 +5994,9 @@ def create_file_metadata(
         task, _project = get_task_project_for_action(db, file_in.task_id, current_user, "upload")
         if file_in.project_id and task.project_id != file_in.project_id:
             raise HTTPException(status_code=400, detail="Task does not belong to selected project")
+    if file_in.folder_id:
+        from ..file_workspace import folder_for_project
+        folder_for_project(db, file_in.folder_id, file_in.project_id)
     file_asset = PMSFileAsset(
         **file_in.dict(exclude={"uploaded_by_user_id"}),
         uploaded_by_user_id=current_user.id,
@@ -5943,7 +6059,14 @@ def update_file_metadata(
         get_project_for_action(db, file_asset.project_id, current_user, "upload")
     if file_asset.visibility == "Work Evidence":
         raise HTTPException(409, "Submitted evidence metadata is immutable; submit a new version")
-    for field, value in file_in.dict(exclude_unset=True).items():
+    db.query(PMSFileAsset).filter_by(id=file_asset.id).with_for_update().one()
+    db.refresh(file_asset)
+    if "previous_folder_id" in file_in.model_fields_set and file_asset.folder_id != file_in.previous_folder_id:
+        raise HTTPException(409, "This file moved. Refresh before moving it.")
+    if file_in.folder_id:
+        from ..file_workspace import folder_for_project
+        folder_for_project(db, file_in.folder_id, file_asset.project_id)
+    for field, value in file_in.dict(exclude_unset=True, exclude={"previous_folder_id"}).items():
         setattr(file_asset, field, value)
     db.add(file_asset)
     db.commit()
@@ -7243,8 +7366,16 @@ if is_app_enabled("hrms"):
     from app.apps.interns_hub.operations import router as operations_router
     router.include_router(operations_router)
 
+from ..my_work import router as my_work_router
+router.include_router(my_work_router)
 from ..task_studio import router as task_studio_router
 router.include_router(task_studio_router)
 
 from ..people_workspace import router as people_workspace_router
 router.include_router(people_workspace_router)
+
+from ..task_workspace import router as task_workspace_router
+router.include_router(task_workspace_router)
+
+from ..file_workspace import router as file_workspace_router
+router.include_router(file_workspace_router)

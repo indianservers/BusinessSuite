@@ -1,5 +1,5 @@
 import { useRefreshableEffect } from "@/lib/page-refresh";
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, ChevronDown, ChevronRight, GitBranch, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -244,20 +244,21 @@ function EpicRoadmapRow({
   const progress = Math.min(100, Math.max(0, epic.progress_percent || 0));
   const rowHeight = expanded ? 92 + (epic.tasks?.length || 0) * 42 : 92;
 
-  const onMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const originX = event.clientX;
-    const originalStart = start;
-    const originalEnd = end;
-    const onMove = () => undefined;
-    const onUp = (upEvent: MouseEvent) => {
-      const deltaDays = Math.round((upEvent.clientX - originX) / timeline.dayWidth);
-      if (deltaDays) onDateChange(epic, addDays(originalStart, deltaDays), addDays(originalEnd, deltaDays));
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
+  const [drag, setDrag] = useState<{ x: number; days: number; mode: "move" | "start" | "end" } | null>(null);
+  const begin = (event: ReactPointerEvent<HTMLDivElement>, mode: "move" | "start" | "end" = "move") => {
+    if (saving || event.button !== 0) return;
+    event.preventDefault(); event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);
+    setDrag({ x: event.clientX, days: 0, mode });
+  };
+  const movedStart = drag && drag.mode !== "end" ? addDays(start, drag.days) : start;
+  const movedEnd = drag && drag.mode !== "start" ? addDays(end, drag.days) : end;
+  const previewLeft = drag ? Math.max(0, daysBetween(timeline.startDate, movedStart) * timeline.dayWidth) : left;
+  const previewWidth = drag ? Math.max(28, (daysBetween(movedStart, movedEnd) + 1) * timeline.dayWidth) : width;
+  const finish = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (drag.days && movedEnd >= movedStart) onDateChange(epic, movedStart, movedEnd);
+    setDrag(null);
   };
 
   return (
@@ -281,11 +282,18 @@ function EpicRoadmapRow({
         <div
           role="button"
           tabIndex={0}
-          title="Drag to reschedule"
-          onMouseDown={onMouseDown}
+          title="Drag to reschedule; drag an edge to resize. Arrow keys move one day, Shift + arrows move one week."
+          aria-label={`Reschedule ${epic.name}`}
+          onPointerDown={e => begin(e)}
+          onPointerMove={e => { if (drag) setDrag({ ...drag, days: Math.round((e.clientX - drag.x) / timeline.dayWidth) }); }}
+          onPointerUp={finish}
+          onPointerCancel={() => setDrag(null)}
+          onKeyDown={e => { if (saving || !["ArrowLeft", "ArrowRight"].includes(e.key)) return; e.preventDefault(); const days = (e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 7 : 1); onDateChange(epic, addDays(start,days), addDays(end,days)); }}
           className={cn("absolute top-5 h-9 cursor-grab overflow-hidden rounded-md border text-white shadow-sm active:cursor-grabbing", saving ? "opacity-60" : "")}
-          style={{ left, width, backgroundColor: epic.color || "#2563eb" }}
+          style={{ left: previewLeft, width: previewWidth, backgroundColor: epic.color || "#2563eb", touchAction: "none" }}
         >
+          <span className="absolute inset-y-0 left-0 z-20 w-2 cursor-ew-resize bg-black/10" onPointerDown={e=>begin(e as unknown as ReactPointerEvent<HTMLDivElement>,"start")} />
+          <span className="absolute inset-y-0 right-0 z-20 w-2 cursor-ew-resize bg-black/10" onPointerDown={e=>begin(e as unknown as ReactPointerEvent<HTMLDivElement>,"end")} />
           <div className="absolute inset-y-0 left-0 bg-white/25" style={{ width: `${progress}%` }} />
           <div className="relative flex h-full items-center justify-between gap-2 px-3 text-xs font-semibold">
             <span className="truncate">{epic.name}</span>
@@ -365,7 +373,7 @@ function parseDate(value: string) {
 }
 
 function toISODate(value: Date) {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).toISOString().slice(0, 10);
+  return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,"0")}-${String(value.getDate()).padStart(2,"0")}`;
 }
 
 function addDays(value: Date, days: number) {

@@ -279,10 +279,11 @@ def bulk_add(data: BulkAdd, db: Session = Depends(get_db), actor: User = Depends
             raise HTTPException(404, "An eligible active person was not found in your assigned scope")
         # Scope-filtered user lookups and destination checks complete before any mutation.
         users.append(target)
-    added, existing = [], 0
+    added, existing, membership_results = [], 0, []
     for target in users:
         for wid, workspace in workspaces.items():
             member = db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=target.id).first()
+            membership_results.append({"user_id": target.id, "email": target.email, "destination_type": "workspace", "destination_name": workspace.name, "status": "already_present" if member else "added"})
             if member:
                 if projects and member.role == "Guest" and any(p.workspace_id == wid for p in projects):
                     raise HTTPException(409, f"{target.email} is a guest in {workspace.name}. Review and upgrade their workspace role first.")
@@ -293,7 +294,9 @@ def bulk_add(data: BulkAdd, db: Session = Depends(get_db), actor: User = Depends
                 record(db, actor, target.id, "PMS_WORKSPACE_ADDED", data.reason, after={"workspace": workspace.name, "role": data.role}, workspace_id=wid)
                 added.append({"user_id": target.id, "workspace_id": wid})
         for project in projects:
-            if db.query(PMSProjectMember).filter_by(project_id=project.id, user_id=target.id).first():
+            present = db.query(PMSProjectMember).filter_by(project_id=project.id, user_id=target.id).first()
+            membership_results.append({"user_id": target.id, "email": target.email, "destination_type": "project", "destination_name": project.name, "status": "already_present" if present else "added"})
+            if present:
                 existing += 1
                 continue
             db.add(PMSProjectMember(project_id=project.id, user_id=target.id, role="Member"))
@@ -307,7 +310,7 @@ def bulk_add(data: BulkAdd, db: Session = Depends(get_db), actor: User = Depends
         if policy and (policy.status != "active" or not resolved_grants(db, policy).get("project_management", {}).get("enabled")):
             warnings.append(f"{target.email}: membership is saved, but the organization access policy does not currently enable PMS. An authorized access administrator must enable that module; this action does not override policy.")
     db.commit()
-    return {"added": added, "already_present": existing, "warnings": warnings, "message": "People added directly; no invitation approval required"}
+    return {"added": added, "already_present": existing, "warnings": warnings, "results": membership_results, "message": "People added directly; no invitation approval required"}
 
 
 def _impact(db, actor, target, workspace_id=None, project_id=None):

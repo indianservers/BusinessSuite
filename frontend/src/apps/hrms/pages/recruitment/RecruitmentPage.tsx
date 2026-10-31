@@ -1,3 +1,4 @@
+import MoveBoard from "@/components/interaction/MoveBoard";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -73,7 +74,7 @@ export default function RecruitmentPage() {
       recruitmentApi.candidates({
         job_id: selectedJob || undefined,
         status: statusFilter || undefined,
-      }).then((r) => r.data),
+      }).then((r) => (r.data as Array<Candidate & {first_name?:string;last_name?:string}>).map(c=>({...c,name:c.name || [c.first_name,c.last_name].filter(Boolean).join(" ")}))),
   });
 
   const { control: editorControl, register: registerJob, handleSubmit: handleJobSubmit, reset: resetJob, formState: { errors: jobErrors } } = useForm<JobForm>({
@@ -97,6 +98,7 @@ export default function RecruitmentPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       recruitmentApi.updateCandidateStatus(id, status),
+    onError: (e: unknown) => toast({ title: "Could not move candidate", description: (e as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Please try again.", variant: "destructive" }),
     onSuccess: () => {
       toast({ title: "Status updated" });
       refetchCandidates();
@@ -275,6 +277,7 @@ export default function RecruitmentPage() {
         </div>
       )}
 
+      {activeTab === "candidates" && !loadingCandidates && <MoveBoard label="Hiring pipeline" reorder={false} groups={CANDIDATE_STATUSES.map(status => ({ id: status, label: status }))} disabled={updateStatusMutation.isPending} items={((candidates || []) as Candidate[]).map(c => ({ id: c.id, label: c.name, group: c.status, content: <span className="text-xs text-muted-foreground">{c.job?.title} · {c.email}</span> }))} onMove={async ({ item, group }) => { await updateStatusMutation.mutateAsync({ id: Number(item.id), status: group }); }} />}
       {/* Candidates tab */}
       {activeTab === "candidates" && (
         <div className="space-y-4">

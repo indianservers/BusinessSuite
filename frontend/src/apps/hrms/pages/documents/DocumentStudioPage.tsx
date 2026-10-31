@@ -1,3 +1,4 @@
+import OrderedList from "@/components/interaction/OrderedList";
 import { useSearchParams } from "react-router-dom";
 import {
   Suspense,
@@ -882,6 +883,7 @@ export default function DocumentStudioPage() {
                           Add field
                         </Button>
                       </div>
+                      <OrderedList label="Document field order" items={editTemplate.custom_fields.map((f,index)=>({...f,id:index}))} title={f=>f.label || f.key || "New field"} onReorder={async ordered=>setEditTemplate({...editTemplate,custom_fields:ordered.map(({id,...field})=>field)})}/>
                       {editTemplate.custom_fields.map((field, index) => {
                         const change = (patch: Partial<CustomField>) =>
                           setEditTemplate({
