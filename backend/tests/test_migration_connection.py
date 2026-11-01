@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 import pytest
-from scripts.migrate_deployment import migration_url, migration_lock
+from scripts.migrate_deployment import migration_url, migration_lock, MIGRATION_LOCK_ID
 
 
 def test_neon_migrations_use_direct_host_without_changing_credentials(monkeypatch):
@@ -35,7 +35,7 @@ def test_session_lock_is_released_after_success_or_failed_migration(fail):
     else:
         run()
     statements = [str(call.args[0]) for call in connection.execute.call_args_list]
-    assert statements == ["SET lock_timeout = '60s'", "SELECT pg_advisory_lock(827460231)", "SELECT pg_advisory_unlock(827460231)"]
+    assert statements == ["SET lock_timeout = '60s'", f"SELECT pg_advisory_lock({MIGRATION_LOCK_ID})", f"SELECT pg_advisory_unlock({MIGRATION_LOCK_ID})"]
     connection.rollback.assert_called_once()
     assert connection.commit.call_count == 2
 
@@ -48,3 +48,16 @@ def test_lock_acquisition_failure_does_not_unlock_an_unowned_lock():
             pytest.fail("Should not start migrating")
     connection.rollback.assert_not_called()
     assert connection.execute.call_count == 2
+
+
+def test_direct_session_migration_can_run_while_legacy_pooled_lock_is_orphaned():
+    connection = Mock()
+    def execute(statement):
+        sql = str(statement)
+        if sql == "SELECT pg_advisory_lock(827460231)":
+            raise TimeoutError("Legacy pooled session still owns this lock")
+        assert sql != "SELECT pg_advisory_unlock(827460231)", "Do not release another deployment's lock"
+    connection.execute.side_effect = execute
+    with migration_lock(connection):
+        connection.commit()
+    connection.rollback.assert_called_once()

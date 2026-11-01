@@ -6,6 +6,11 @@ from contextlib import contextmanager
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Lock namespace v2 is used only on direct migration sessions. The retired key
+# 827460231 may be orphaned in a transaction-pool backend after older failed
+# builds. All those builds are terminal; leave their application sessions alone.
+MIGRATION_LOCK_ID = 827460232
+
 
 def migration_url(runtime_url):
     """Session locks and Alembic commits require a direct Postgres session."""
@@ -23,14 +28,14 @@ def migration_lock(connection):
     from sqlalchemy import text
 
     connection.execute(text("SET lock_timeout = '60s'"))
-    connection.execute(text("SELECT pg_advisory_lock(827460231)"))
+    connection.execute(text(f"SELECT pg_advisory_lock({MIGRATION_LOCK_ID})"))
     try:
         yield
     finally:
         # A failed DDL statement leaves the transaction aborted. Roll it back
         # before releasing the session lock, including when verification fails.
         connection.rollback()
-        connection.execute(text("SELECT pg_advisory_unlock(827460231)"))
+        connection.execute(text(f"SELECT pg_advisory_unlock({MIGRATION_LOCK_ID})"))
         connection.commit()
 
 
