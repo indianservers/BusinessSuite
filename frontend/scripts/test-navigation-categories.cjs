@@ -64,3 +64,23 @@ for (const module of ["hrms", "crm", "srm", "fam"]) {
   count++;
 }
 console.log(`${count} navigation checks passed (role visibility, managed grants, canonical links and categories).`);
+
+for (const role of ["admin", "hr", "ceo", "manager", "employee"]) {
+  assert(!roles.getRoleNav(role, false, "/hrms").some(item => item.to === "/analytics"), "Suite analytics leaked into HRMS");
+}
+assert.equal(roles.getActiveModule("/analytics"), "suite");
+assert.equal(roles.getActiveModule("/analytics/collections"), "suite");
+assert(roles.getRoleNav("admin", true, "/analytics").some(item => item.to === "/analytics"));
+
+for (const managed of [false, true]) {
+  auth = managed ? { user: { access: { managed: true, modules: [{key:"crm",route:"/crm"},{key:"project_management",route:"/pms"}], grants: {crm:{enabled:true},project_management:{enabled:true}} } } } : {};
+  for (const [module, removed, retained] of [
+    ["/crm", ["/analytics", "/ai-agents/config", "/crm/feature-checklist", "/crm/gantt", "/crm/tickets", "/crm/lead-to-cash"], ["/crm/campaigns", "/crm/quotations", "/crm/activities"]],
+    ["/pms", ["/ai-agents", "/pms/org-chart", "/pms/people-work", "/pms/my-notices", "/pms/plans", "/pms/settings/ai/openai", "/pms/settings/ai/gemini", "/pms/settings/ai/claude"], ["/pms/tasks", "/pms/projects", "/pms/people", "/pms/settings", "/pms/operator"]],
+  ]) {
+    const nav = roles.getRoleNav("admin", !managed, module);
+    for (const to of removed) assert(!nav.some(item => item.to === to), "Unrelated menu link: " + to);
+    for (const to of retained) assert(nav.some(item => item.to === to), "Lost core menu link: " + to);
+  }
+}
+console.log("PMS and CRM menu scope checks passed for role-based and managed access.");

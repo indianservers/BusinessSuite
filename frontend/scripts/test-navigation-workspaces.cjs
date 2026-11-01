@@ -48,3 +48,10 @@ assert.deepEqual(internMenu[0].pages, internLinks);
 const singleGoal = menuItems([{to:'/pms/goals',label:'Goals',group:'Planning'}]);
 assert.equal(menuLabel(singleGoal[0]), 'Goals', 'A single planning page must not inherit an administration label');
 console.log('Intern pages retained under one hub and single-page labels preserved.');
+
+for (const paths of [["/crm/deals", "/crm/pipeline", "/crm/templates"], ["/crm/forms", "/crm/webforms"], ["/pms/live", "/pms/teams-live"]]) {
+  const result = menuItems(paths.map(to => ({to,label:to,group:"Same category"})));
+  assert.equal(result.length, 1);
+  assert.deepEqual(result[0].pages.map(page => page.to).sort(), [...paths].sort());
+}
+console.log("CRM deal/form and PMS live-work consolidation checks passed.");

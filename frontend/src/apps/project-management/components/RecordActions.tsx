@@ -286,7 +286,7 @@ export default function RecordActions({
       run: () => navigate(`/pms/projects/${record.project_id}`),
     });
   if (kind === "task" && canEdit) {
-    actions.push({label:"Edit task",icon:<ArrowUpRight size={15}/>,run:()=>navigate(`/pms/tasks/${record.id}`)});
+    actions.push({label:"Edit task",icon:<ArrowUpRight size={15}/>,run:()=>navigate(`/pms/tasks/${record.id}/edit`)});
     actions.push(
       {
         label: done(record.status) ? "Reopen task" : "Mark complete",
@@ -362,7 +362,7 @@ export default function RecordActions({
   }
   if (canEdit) {
     actions.push({
-      label: "Move to trash…",
+      label: kind === "task" ? "Delete task…" : "Move to trash…",
       icon: <Trash2 size={15} />,
       danger: true,
       run: () => {
@@ -405,6 +405,8 @@ export default function RecordActions({
     );
   }
   const menuButton = (
+    <span className="inline-flex items-center gap-1">
+    {kind === "task" && canEdit && <><button type="button" className="pms-record-more" aria-label={`Edit task ${record.title}`} onClick={e => { e.stopPropagation(); navigate(`${href}/edit`); }}>Edit</button><button type="button" className="pms-record-more" aria-label={`Delete task ${record.title}`} onClick={e => { e.stopPropagation(); hidePreview(); setConfirmTrash(true); }}><Trash2 size={16}/></button></>}
     <Dropdown.Root
       open={menuOpen}
       onOpenChange={(value) => {
@@ -445,6 +447,7 @@ export default function RecordActions({
         </Dropdown.Content>
       </Dropdown.Portal>
     </Dropdown.Root>
+    </span>
   );
   return (
     <>

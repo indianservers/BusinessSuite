@@ -746,7 +746,6 @@ const adminNav: RoleNavItem[] = [
   { label: "Enterprise", icon: Network, to: "/enterprise", group: "Platform" },
   { label: "Automation Studio", icon: GitBranch, to: "/admin/automation/workflows", group: "Platform" },
   { label: "Customization Studio", icon: SlidersHorizontal, to: "/admin/customization/modules", group: "Platform" },
-  { label: "Analytics BI", icon: BarChart3, to: "/analytics", group: "Platform" },
   { label: "Reports", icon: BarChart3, to: "/reports", group: "Platform" },
   { label: "Advanced Analytics", icon: Gauge, to: "/advanced-analytics", group: "Platform", badge: "AI" },
   { label: "AI Agents", icon: Sparkles, to: "/ai-agents", badge: "AI", group: "Platform" },
@@ -830,19 +829,16 @@ const employeeNav: RoleNavItem[] = [
 const crmNav: RoleNavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
   { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },
-  { label: "AI Agents", icon: Sparkles, to: "/ai-agents/config", group: "Core" },
   { label: "Leads", icon: Users, to: "/crm/leads", group: "Core" },
   { label: "Contacts", icon: UserRound, to: "/crm/contacts", group: "Core" },
   { label: "Customers / Companies", icon: Building2, to: "/crm/companies", group: "Core" },
   { label: "Deals", icon: DollarSign, to: "/crm/deals", group: "Sales" },
   { label: "Pipeline", icon: GitBranch, to: "/crm/pipeline", group: "Sales", badge: "Drag" },
   { label: "Pipeline templates", icon: LayoutGrid, to: "/crm/templates", group: "Sales" },
-  { label: "Lead-to-Cash", icon: GitBranch, to: "/crm/lead-to-cash", group: "Sales", badge: "Flow" },
   { label: "Forecasting", icon: BarChart3, to: "/crm/forecasting", group: "Sales", badge: "Quota" },
   { label: "Activities", icon: Clock, to: "/crm/activities", group: "Sales" },
   { label: "Tasks", icon: ClipboardCheck, to: "/crm/tasks", group: "Sales" },
   { label: "Calendar", icon: CalendarDays, to: "/crm/calendar", group: "Sales" },
-  { label: "Gantt", icon: CalendarDays, to: "/crm/gantt", group: "Sales" },
   { label: "Calendar Integrations", icon: CalendarDays, to: "/crm/calendar-integrations", group: "Sales" },
   { label: "Communication Hub", icon: MessageCircle, to: "/crm/communication-hub", group: "Growth" },
   { label: "Email Templates", icon: FileText, to: "/crm/email-templates", group: "Growth" },
@@ -860,23 +856,19 @@ const crmNav: RoleNavItem[] = [
   { label: "Lead Scoring", icon: Gauge, to: "/crm/lead-scoring", group: "Growth" },
   { label: "Duplicates", icon: GitMerge, to: "/crm/duplicates", group: "Growth" },
   { label: "Territories", icon: Globe2, to: "/crm/territories", group: "Growth" },
-  { label: "Tickets", icon: HelpCircle, to: "/crm/tickets", group: "Support" },
   { label: "Files", icon: FileText, to: "/crm/files", group: "Support" },
   { label: "Customer 360", icon: Users, to: "/crm/customer-360", group: "Support" },
   { label: "Reports", icon: BarChart3, to: "/crm/reports", group: "Insights" },
-  { label: "Analytics BI", icon: BarChart3, to: "/analytics", group: "Insights" },
   { label: "Automation", icon: Sparkles, to: "/crm/automation", group: "Insights" },
   { label: "Import & Export", icon: Upload, to: "/crm/import-export", group: "Insights" },
   { label: "Custom Fields", icon: SlidersHorizontal, to: "/crm/settings", group: "Insights" },
   { label: "Approval Settings", icon: FileCheck2, to: "/crm/approval-settings", group: "Insights" },
   { label: "Webhooks", icon: MessageCircle, to: "/crm/webhooks", group: "Insights" },
-  { label: "Feature Checklist", icon: ClipboardCheck, to: "/crm/feature-checklist", group: "Insights" },
   { label: "CRM Admin", icon: ShieldCheck, to: "/crm/admin", group: "Admin" },
 ];
 
 const projectManagementNav: RoleNavItem[] = [
   { label: "Workspace board", icon: LayoutDashboard, to: "/pms", group: "Projects & tasks", exact: true },
-  { label: "AI Agents", icon: Sparkles, to: "/ai-agents", group: "AI Agents", badge: "AI" },
   { label: "Command Center", icon: Globe2, to: "/pms/command-center", group: "Overview", badge: "New" },
   { label: "Enterprise Engine", icon: ShieldCheck, to: "/pms/enterprise-engine", group: "Settings & administration", badge: "Pro" },
   { label: "Product Launch", icon: Package, to: "/pms/product-launch", group: "Projects & tasks", badge: "Launch" },
@@ -904,7 +896,6 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Roadmap", icon: CalendarDays, to: "/pms/roadmap", group: "Planning & delivery" },
   { label: "Timeline Plus", icon: CalendarDays, to: "/pms/timeline-plus", group: "Planning & delivery", badge: "Deps" },
   { label: "Dependencies", icon: Network, to: "/pms/dependencies", group: "Planning & delivery" },
-  { label: "Plans and capabilities", icon: FileCheck2, to: "/pms/plans", group: "Settings & administration" },
   { label: "Releases", icon: Package, to: "/pms/releases", group: "Planning & delivery" },
   { label: "Forms", icon: FileText, to: "/pms/forms", group: "Settings & administration" },
   { label: "Templates", icon: BookOpen, to: "/pms/templates", group: "Settings & administration" },
@@ -917,7 +908,6 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Blueprints", icon: Workflow, to: "/pms/blueprints", group: "Settings & administration" },
   { label: "Resource Utilization", icon: Users, to: "/pms/resource-utilization", group: "Planning & delivery" },
   { label: "Apps & Integrations", icon: Network, to: "/pms/apps", group: "Settings & administration" },
-  { label: "Org Chart", icon: GitBranch, to: "/pms/org-chart", group: "People & access" },
   { label: "Teams Live", icon: Users, to: "/pms/teams-live", group: "People & access", badge: "Drag" },
   { label: "Files", icon: FileText, to: "/pms/files", group: "Collaboration" },
   { label: "Time Tracking", icon: Clock, to: "/pms/time-tracking", group: "Collaboration" },
@@ -937,8 +927,6 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Docs", icon: FileText, to: "/pms/docs", group: "Collaboration" },
   { label: "Timesheets", icon: Clock, to: "/pms/timesheets", group: "Collaboration" },
   { label: "Workload", icon: Users, to: "/pms/workload", group: "Planning & delivery" },
-  { label: "People & work management", icon: Users, to: "/pms/people-work", group: "People & access" },
-  { label: "My notices", icon: Inbox, to: "/pms/my-notices", group: "People & access" },
   { label: "Custom fields", icon: SlidersHorizontal, to: "/pms/custom-fields", group: "Settings & administration" },
   { label: "Task types", icon: ListChecks, to: "/pms/task-types", group: "Settings & administration" },
   { label: "Tags", icon: FileText, to: "/pms/tags", group: "Settings & administration" },
@@ -949,9 +937,6 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Workspace tools", icon: LayoutGrid, to: "/pms/workspace-tools", group: "Projects & tasks" },
   { label: "Overview", icon: LayoutDashboard, to: "/pms/overview", group: "Overview" },
   { label: "Portfolio", icon: Briefcase, to: "/pms/portfolio", group: "Reports & finances" },
-  { label: "OpenAI settings", icon: Sparkles, to: "/pms/settings/ai/openai", group: "Settings & administration" },
-  { label: "Gemini settings", icon: Sparkles, to: "/pms/settings/ai/gemini", group: "Settings & administration" },
-  { label: "Claude settings", icon: Sparkles, to: "/pms/settings/ai/claude", group: "Settings & administration" },
 ].sort((a, b) => {
   const groups = ["Overview", "Projects & tasks", "People & access", "Planning & delivery", "Collaboration", "Reports & finances", "Settings & administration", "AI Agents"];
   const rank = (item: { to: string }) => item.to === "/pms/members" ? -2 : item.to === "/pms/people" ? -1 : 0;
@@ -1138,7 +1123,7 @@ function withPrefix(items: RoleNavItem[], prefix: string) {
 
 export function getActiveModule(pathname: string) {
   const normalizedPathname = pathname.toLowerCase();
-  if (pathname === "/" || pathname === "") return "suite";
+  if (pathname === "/" || pathname === "" || pathname === "/analytics" || pathname.startsWith("/analytics/")) return "suite";
   if (isAdminSecurityPath(pathname)) return "admin_security";
   if (pathname.startsWith("/mobile") || pathname.startsWith("/developer") || pathname.startsWith("/marketplace") || pathname.startsWith("/admin/sandbox") || pathname.startsWith("/admin/company-settings") || pathname.startsWith("/admin/feature-flags") || pathname.startsWith("/admin/subscription") || pathname.startsWith("/admin/usage")) return "saas";
   if (pathname.startsWith("/ai/")) return "ai_copilot";
@@ -1246,6 +1231,9 @@ function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname
 
   if (activeModule === "suite") {
     const suiteNav: RoleNavItem[] = [];
+    if (canAccessAnalyticsPath("/analytics", role, isSuperuser)) {
+      suiteNav.push({ label: "Business Analytics", icon: BarChart3, to: "/analytics", group: "Suite tools" });
+    }
     if (installedApps.includes("hrms") && isHrmsRole(role, isSuperuser)) {
       suiteNav.push({ label: "AI HRMS", icon: Building2, to: "/hrms", group: "Applications", exact: true });
     }

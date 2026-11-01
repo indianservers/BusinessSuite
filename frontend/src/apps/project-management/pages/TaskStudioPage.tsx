@@ -1472,6 +1472,7 @@ export default function TaskStudioPage() {
                           (mode === "teams" ? "teams" : "intern batches")}{" "}
                       <b>*</b>
                     </label>
+                    {mode === "people" && user && people.some(p => p.id === user.id) && <button type="button" disabled={!editable || draft.assignment.people.includes(user.id)} onClick={() => assign({ people: [...new Set([...draft.assignment.people, user.id])] })}>{draft.assignment.people.includes(user.id) ? "Assigned to me" : "Assign to me"}</button>}
                     {!options ? (
                       <p role="status">Loading assignment options…</p>
                     ) : mode === "people" ? (

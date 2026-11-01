@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/store/authStore";
 import "../pages/MyWorkPage.css";
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -77,6 +78,7 @@ export function PeopleSelector({
   onChange: (ids: number[]) => void;
   protectedIds?: number[];
 }) {
+  const user = useAuthStore(s => s.user);
   const [q, setQ] = useState("");
   const [role, setRole] = useState("");
   const [page, setPage] = useState(1);
@@ -123,6 +125,7 @@ export function PeopleSelector({
   }, [projectId, q, page, groupKind, groupId, role]);
   return (
     <>
+      {!groupKind && user && data?.items.some(p => p.id === user.id) && <button type="button" disabled={value.includes(user.id)} onClick={() => onChange([...new Set([...value, user.id])])}>{value.includes(user.id) ? "Assigned to me" : "Assign to me"}</button>}
       <label className="mw-search">
         <Search size={16} />
         <input
