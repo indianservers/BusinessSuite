@@ -190,7 +190,7 @@ export function NodeLibrary({
                         color: categoryColors[def.category] || "#8254d0",
                       }}
                     >
-                      <NodeIcon name={def.icon} size={18} />
+                      <NodeIcon name={def.icon} nodeType={def.id} size={18} />
                     </span>
                     <span>
                       <strong>{def.name}</strong>

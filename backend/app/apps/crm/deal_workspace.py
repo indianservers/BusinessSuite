@@ -90,6 +90,10 @@ def guard(db, user, data, record=None):
     for field, entity in (("company_id", "companies"), ("contact_id", "contacts")):
         if data.get(field) and (not record or data[field] != getattr(record, field)):
             crm._assert_record_visible(db, crm._get_resource(entity), data[field], org, user)
+    if data.get("assigned_team_id"):
+        crm._get_record(db, crm._get_resource("teams"), data["assigned_team_id"], org)
+        if not crm._crm_can_assign_beyond_self(user) and data["assigned_team_id"] not in crm._crm_user_scope(db, user)["team_ids"]:
+            raise HTTPException(403, "Choose a sales team within your permitted workspace scope")
     owner = data.get("owner_user_id")
     if owner and (not record or owner != record.owner_user_id):
         candidate = db.get(User, owner)
@@ -142,7 +146,13 @@ def guard(db, user, data, record=None):
 def filtered(db, user, search="", currency="", pipeline_id=None, owner_id=None, stage_id=None, status="", priority="", deal_type="", start=None, end=None, no_next=False, industry="", source="", team_id=None):
     q = rows(db, user, "deals")
     if search:
-        q = q.filter(or_(CRMDeal.name.ilike(f"%{search}%"), CRMDeal.description.ilike(f"%{search}%")))
+        matches = [CRMDeal.name.ilike(f"%{search}%"), CRMDeal.description.ilike(f"%{search}%")]
+        from .models import CRMCompany, CRMContact
+        if allowed(user, "companies", "view"):
+            matches.append(CRMDeal.company_id.in_(rows(db, user, "companies").with_entities(CRMCompany.id).filter(CRMCompany.name.ilike(f"%{search}%"))))
+        if allowed(user, "contacts", "view"):
+            matches.append(CRMDeal.contact_id.in_(rows(db, user, "contacts").with_entities(CRMContact.id).filter(or_(CRMContact.full_name.ilike(f"%{search}%"), CRMContact.email.ilike(f"%{search}%")))))
+        q = q.filter(or_(*matches))
     for field, value in (("currency", currency), ("pipeline_id", pipeline_id), ("owner_user_id", owner_id), ("stage_id", stage_id), ("status", status), ("priority", priority), ("deal_type", deal_type), ("industry", industry), ("assigned_team_id", team_id)):
         if value:
             q = q.filter(getattr(CRMDeal, field) == value)
@@ -198,7 +208,11 @@ def query(search: str = Query("", max_length=180), currency: str = "", pipeline_
     total = q.count()
     items = q.options(joinedload(CRMDeal.stage)).order_by(column.asc() if direction == "asc" else column.desc(), CRMDeal.id).offset((page - 1) * per_page).limit(per_page).all()
     entered = dict(db.query(CRMTimelineEvent.record_id, func.max(CRMTimelineEvent.occurred_at)).filter(CRMTimelineEvent.record_type == "deal", CRMTimelineEvent.event_type == "stage_change", CRMTimelineEvent.organization_id == lm.core()._organization_id(db, user), CRMTimelineEvent.record_id.in_([item.id for item in items])).group_by(CRMTimelineEvent.record_id).all()) if items else {}
-    return {"items": [{**lm.core()._serialize(item), "health": health(item, entered.get(item.id))} for item in items], "total": total, "page": page, "pages": (total + per_page - 1) // per_page, "can_manage": allowed(user, "deals", "manage"), "can_assign": lm.core()._crm_can_assign_beyond_self(user)}
+    from .models import CRMCompany
+    company_names = {item.id: item.name for item in rows(db, user, "companies").filter(CRMCompany.id.in_([deal.company_id for deal in items if deal.company_id])).all()} if items and allowed(user, "companies", "view") else {}
+    from .lead_assignment import candidate_organization
+    owner_names = {owner.id: owner.email for owner in db.query(User).filter(User.id.in_([deal.owner_user_id for deal in items if deal.owner_user_id])).all() if candidate_organization(owner) == lm.core()._organization_id(db, user)} if items else {}
+    return {"items": [{**lm.core()._serialize(item), "company_name": company_names.get(item.company_id), "owner_name": owner_names.get(item.owner_user_id), "stage_name": item.stage.name if item.stage else None, "health": health(item, entered.get(item.id))} for item in items], "total": total, "page": page, "pages": (total + per_page - 1) // per_page, "can_manage": allowed(user, "deals", "manage"), "can_assign": lm.core()._crm_can_assign_beyond_self(user)}
 
 
 @router.get("/summary")
@@ -246,6 +260,16 @@ def assignees(page: int = Query(1, ge=1), per_page: int = Query(100, ge=1, le=10
     candidates, _ = directory(db, user, lm.core()._crm_can_assign_beyond_self(user), {"crm_view", "crm_manage", "crm_admin", "crm_deals_view", "crm_deals_manage"})
     candidates = [item for item in candidates if allowed(db.get(User, item["id"]), "deals", "view")]
     return {"items": candidates[(page - 1) * per_page:page * per_page], "total": len(candidates), "page": page, "pages": (len(candidates) + per_page - 1) // per_page}
+
+
+@router.get("/teams")
+def eligible_teams(page: int = Query(1, ge=1), per_page: int = Query(100, ge=1, le=100), db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+    from .models import CRMTeam
+    crm = lm.core(); crm._assert_entity_permission("deals", user, "view")
+    query = db.query(CRMTeam).filter_by(organization_id=crm._organization_id(db, user), deleted_at=None, status="Active")
+    if not crm._crm_can_assign_beyond_self(user): query = query.filter(CRMTeam.id.in_(crm._crm_user_scope(db, user)["team_ids"]))
+    total = query.count()
+    return {"items": [{"id": item.id, "name": item.name} for item in query.order_by(CRMTeam.name, CRMTeam.id).offset((page - 1) * per_page).limit(per_page)], "total": total, "page": page, "pages": (total + per_page - 1) // per_page}
 
 
 @router.get("/export")

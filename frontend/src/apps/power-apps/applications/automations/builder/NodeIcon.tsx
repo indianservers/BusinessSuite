@@ -44,6 +44,10 @@ import {
   Webhook,
   Workflow,
   Shapes,
+  Sheet,
+  FolderOpen,
+  CreditCard,
+  BrainCircuit,
   type LucideIcon,
 } from "lucide-react";
 const icons: Record<string, LucideIcon> = {
@@ -92,7 +96,18 @@ const icons: Record<string, LucideIcon> = {
   Webhook,
   Workflow,
 };
-export function NodeIcon({ name, size = 20 }: { name: string; size?: number }) {
-  const Icon = icons[name] || Shapes;
+const providerIcons: Record<string, LucideIcon> = {
+  connector_google_sheets: Sheet,
+  connector_google_drive: FolderOpen,
+  connector_gmail: Mail,
+  connector_outlook: Mail,
+  connector_groq: BrainCircuit,
+  connector_openai: BrainCircuit,
+  connector_gemini: Sparkles,
+  connector_stripe: CreditCard,
+  connector_slack: MessageSquare,
+};
+export function NodeIcon({ name, size = 20, nodeType }: { name: string; size?: number; nodeType?: string }) {
+  const Icon = (nodeType && providerIcons[nodeType]) || icons[name] || Shapes;
   return <Icon size={size} strokeWidth={1.8} aria-hidden="true" />;
 }

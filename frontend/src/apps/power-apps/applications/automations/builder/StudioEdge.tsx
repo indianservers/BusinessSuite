@@ -20,6 +20,8 @@ export const StudioEdge = memo(function StudioEdge(props: EdgeProps) {
         style={{
           ...props.style,
           strokeWidth: props.selected || props.data?.highlighted ? 2.8 : 1.8,
+          strokeDasharray: props.selected ? undefined : "1 10",
+          strokeLinecap: "round",
         }}
       />
       {(label || props.selected) && (

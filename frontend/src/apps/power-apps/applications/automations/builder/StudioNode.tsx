@@ -30,7 +30,17 @@ function NodeCard({ data, selected }: NodeProps<CanvasNode>) {
   useEffect(() => {
     updateInternals(node.id);
   }, [node.id, portSignature, updateInternals]);
-  const color = categoryColors[definition.category] || "#8254d0";
+  const providerColors: Record<string, string> = {
+    connector_google_sheets: "#0ca66c",
+    connector_google_drive: "#4285f4",
+    connector_gmail: "#ed5145",
+    connector_groq: "#f36b43",
+    connector_openai: "#149b83",
+    connector_gemini: "#6379ee",
+    connector_slack: "#853f89",
+    connector_stripe: "#635bff",
+  };
+  const color = providerColors[definition.id] || categoryColors[definition.category] || "#8254d0";
   return (
     <div
       className={`as-node ${selected ? "selected" : ""} ${errors ? "invalid" : ""} ${node.disabled ? "disabled" : ""}`}
@@ -47,7 +57,7 @@ function NodeCard({ data, selected }: NodeProps<CanvasNode>) {
     >
       <div className="as-node-heading">
         <span className="as-node-icon">
-          <NodeIcon name={definition.icon} size={22} />
+          <NodeIcon name={definition.icon} nodeType={definition.id} size={60} />
         </span>
         <span className="as-node-category">{definition.category}</span>
         <button
@@ -79,7 +89,7 @@ function NodeCard({ data, selected }: NodeProps<CanvasNode>) {
             ? "Disabled"
             : errors
               ? `${errors} to configure`
-              : "Configured"}
+              : "Ready"}
         </span>
         <span
           title={
@@ -88,7 +98,7 @@ function NodeCard({ data, selected }: NodeProps<CanvasNode>) {
               : "No runtime executor is registered"
           }
         >
-          {definition.executable ? "Executor available" : "Not Executable Yet"}
+          {definition.executable ? "" : "Preview only"}
         </span>
       </div>
       {definition.inputs.map((port, index) => (

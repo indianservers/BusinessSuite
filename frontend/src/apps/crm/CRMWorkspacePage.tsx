@@ -1,3 +1,4 @@
+import DealCatalogSelect from "./deals/DealCatalogSelect";
 import * as DealDialog from "@radix-ui/react-dialog";
 import PipelinePolicyPanel from "./deals/PipelinePolicyPanel";
 import EnterpriseDealsPage from "./deals/EnterpriseDealsPage";
@@ -200,6 +201,7 @@ type CRMDealRow = {
   industry?: string;
   internal_reference?: string;
   planning?: CRMApiRecord;
+  assigned_team_id?: number;
   contactLinks?: CRMApiRecord[];
   version?: number;
   catalogItems?: CRMApiRecord[];
@@ -3936,6 +3938,7 @@ function buildLeadPayload(draft: CRMApiRecord): CRMApiRecord {
     next_follow_up_at: followUp || undefined,
     notes: emptyToUndefined(draft.notes),
   };
+  if (draft.assigned_team_id) payload.assigned_team_id = Number(draft.assigned_team_id);
   if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
   if (draft.territoryId) payload.territoryId = Number(draft.territoryId);
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
@@ -5349,7 +5352,7 @@ function TagIcon() {
 
 type DealViewKey = "all" | "mine" | "closing" | "no_follow_up";
 type DealFormMode = "create" | "edit";
-type DealLineItem = { key: string; productId: string; unitPrice: string; quantity: string; discount: string };
+type DealLineItem = { name?: string; key: string; productId: string; unitPrice: string; quantity: string; discount: string };
 type DealFilters = { stageId: string; ownerId: string; companyId: string; contactId: string; territoryId: string; status: string; source: string; minAmount: string; maxAmount: string; minProbability: string; maxProbability: string };
 type DealsState = { rows: CRMDealRow[]; total: number; page: number; pages: number; loading: boolean; error: string | null };
 
@@ -5757,9 +5760,9 @@ export function QuickDealDialog({close, saved, dealId}: {close: () => void; save
   const user = useAuthStore(state => state.user);
   useEffect(() => {
     let active = true;
-    const resources = ["companies", "contacts", "deal-workspace/assignees", "territories", "pipelines", "pipeline-stages", "products", "services", "custom-fields"];
+    const resources = ["companies", "contacts", "deal-workspace/assignees", "deal-workspace/teams", "territories", "pipelines", "pipeline-stages", "products", "services", "custom-fields"];
     setError(null);
-    void Promise.all([Promise.all(resources.map(async resource => [resource, await dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {})] as const)), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions")]).then(([entries, response, permissions]) => {
+    void Promise.all([Promise.all(resources.map(async resource => [resource, await (["companies", "contacts", "products", "services"].includes(resource) ? crmApi.list(resource, {per_page: 100, page: 1}).then(response => response.data.items) : dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {}))] as const)), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions")]).then(([entries, response, permissions]) => {
       if (!active) return;
       const options = Object.fromEntries(entries.map(([key, items]) => [key, items.map(item => normalizeApiRecord(key, item))]));
       options.owners = options["deal-workspace/assignees"];
@@ -5770,7 +5773,7 @@ export function QuickDealDialog({close, saved, dealId}: {close: () => void; save
     return () => {active = false;};
   }, [reload, dealId]);
   if (!lookups) return createPortal(<div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-label="Create deal" className="rounded-lg bg-card p-6 text-foreground">{error ? <><p role="alert">{error}</p><Button onClick={() => setReload(v => v + 1)}>Retry</Button></> : <div role="status" className="animate-pulse space-y-3"><p>Loading deal form...</p><div className="h-10 w-72 rounded bg-muted"/><div className="h-10 w-72 rounded bg-muted"/></div>}<Button variant="outline" onClick={close}>Cancel</Button></div></div>, document.body);
-  return <DealFormModal canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload) => {
+  return <DealFormModal canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} teams={lookups["deal-workspace/teams"]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload) => {
     setSaving(true);setError(null);
     try {
       if (dealId) await crmApi.update("deals", dealId, {...dirtyPayload, expected_version: dirtyPayload.expected_version ?? record?.version});
@@ -5781,7 +5784,7 @@ export function QuickDealDialog({close, saved, dealId}: {close: () => void; save
   }}/>;
 }
 
-function DealFormModal({ canManualProbability = false, mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { canManualProbability?: boolean; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+function DealFormModal({ canManualProbability = false, teams = [], mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { canManualProbability?: boolean; teams?: CRMRecord[]; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
   const initial = useMemo(() => dealFormInitial(deal), [deal?.id]);
   const initialCustomValues = useMemo(() => dealCustomFieldInitial(deal), [deal?.id]);
   const user = useAuthStore(state => state.user);
@@ -5789,7 +5792,7 @@ function DealFormModal({ canManualProbability = false, mode, deal, saving, error
   const restored = useMemo(() => {try {return JSON.parse(sessionStorage.getItem(draftKey) || "null");} catch {return null;}}, [draftKey]);
   const [draft, setDraft] = useState<CRMApiRecord>(restored?.draft || initial);
   const [customValues, setCustomValues] = useState<CRMApiRecord>(restored?.customValues || initialCustomValues);
-  const initialLines = useMemo<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0)})), [deal?.id]);
+  const initialLines = useMemo<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({name: String(line.name || ""), key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0)})), [deal?.id]);
   const [lines, setLines] = useState<DealLineItem[]>(restored?.lines || initialLines);
   const [addedCompanies, setAddedCompanies] = useState<CRMRecord[]>([]);
   const [addedContacts, setAddedContacts] = useState<CRMRecord[]>([]);
@@ -5824,7 +5827,7 @@ function DealFormModal({ canManualProbability = false, mode, deal, saving, error
   const productTotal = dealProductTotal(lines);
   const currencyMoney = (amount: number) => dealMoney(amount, draft.currency || "INR");
   const amountSource = lines.length > 0 ? "Product lines" : "Manual amount";
-  const effectiveAmount = lines.length > 0 ? productTotal : Number(draft.amount || 0);
+  const effectiveAmount = lines.length > 0 ? deal && JSON.stringify(lines) === JSON.stringify(initialLines) ? deal.amount : productTotal : Number(draft.amount || 0);
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial) || JSON.stringify(customValues) !== JSON.stringify(initialCustomValues) || JSON.stringify(lines) !== JSON.stringify(initialLines);
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
@@ -5907,6 +5910,7 @@ function DealFormModal({ canManualProbability = false, mode, deal, saving, error
                 </div>
               </div>
             </LeadFormSection>}
+            {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Sales team"><LeadFormField label="Assigned sales team"><select className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.assigned_team_id)} onChange={e => patch("assigned_team_id", e.target.value)}><option value="">No team assigned</option>{teams.map(team => <option key={String(team.id)} value={String(team.id)}>{String(team.name)}</option>)}</select></LeadFormField><p className="text-sm text-muted-foreground">Secondary owners, lead originators, collaborators, and watchers are managed in the saved deal's Contacts tab, where their record access can be verified.</p></LeadFormSection>}
             {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Related contacts & decision roles"><div className="space-y-3 sm:col-span-2">{visibleContacts.map(person => {const links = (draft.related_contacts || []) as CRMApiRecord[];const selected = links.find(link => Number(link.contactId) === Number(person.id));return <div className="flex flex-wrap items-center gap-3" key={String(person.id)}><label className="flex min-w-0 flex-1 items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(selected)} onChange={e => patch("related_contacts", e.target.checked ? [...links, {contactId: Number(person.id), role: "Stakeholder", isPrimary: false}] : links.filter(link => Number(link.contactId) !== Number(person.id)))}/>{String(person.name || person.full_name || person.email)}</label>{selected && <select aria-label={`Role for ${person.name || person.full_name}`} className="rounded border bg-background p-2 text-sm" value={String(selected.role)} onChange={e => patch("related_contacts", links.map(link => link === selected ? {...link, role: e.target.value} : link))}>{["Stakeholder", "Decision Maker", "Influencer", "Technical Contact", "Procurement", "Finance", "Champion", "Economic Buyer"].map(role => <option key={role}>{role}</option>)}</select>}</div>;})}</div></LeadFormSection>}
             {formTab === "advanced" && <DealPlanningFields tab={advancedTab} planning={(draft.planning || {}) as CRMApiRecord} update={value => patch("planning", value)} amount={effectiveAmount} currency={String(draft.currency || "INR")}/>}
           </div>
@@ -5928,11 +5932,7 @@ function DealFormModal({ canManualProbability = false, mode, deal, saving, error
 
 function DealProductLine({ line, products, onChange, onRemove }: { line: DealLineItem; products: CRMRecord[]; onChange: (line: DealLineItem) => void; onRemove: () => void }) {
   const patch = (key: keyof DealLineItem, value: string) => onChange({ ...line, [key]: value });
-  const selectProduct = (productId: string) => {
-    const product = products.find((item) => `${item.catalogKind || "product"}:${item.id}` === productId);
-    onChange({ ...line, productId, unitPrice: String(product?.price ?? product?.listPrice ?? product?.default_rate ?? product?.unit_price ?? 0) });
-  };
-  return <tr className="[&>td]:px-3 [&>td]:py-2"><td><select className="h-9 w-full min-w-52 rounded-md border border-border bg-card px-2 text-foreground" value={line.productId} onChange={(event) => selectProduct(event.target.value)}><option value="">Select product or service...</option>{products.map((product) => <option key={`${product.catalogKind || "product"}:${product.id}`} value={`${product.catalogKind || "product"}:${product.id}`}>{String(product.name || product.sku || product.id)} ({product.catalogKind === "service" ? "Service" : "Product"})</option>)}</select></td><td><Input className="h-9 min-w-28 border-border bg-card text-foreground" type="number" min={0} step="0.01" value={line.unitPrice} onChange={(event) => patch("unitPrice", event.target.value)} /></td><td><Input className="h-9 min-w-20 border-border bg-card text-foreground" type="number" min={1} step={1} value={line.quantity} onChange={(event) => patch("quantity", event.target.value)} /></td><td><Input className="h-9 min-w-24 border-border bg-card text-foreground" type="number" min={0} max={100} value={line.discount} onChange={(event) => patch("discount", event.target.value)} /></td><td className="font-semibold text-foreground">{formatCurrency(dealLineTotal(line))}</td><td><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onRemove} aria-label="Remove product line"><X className="h-4 w-4" /></Button></td></tr>;
+  return <tr className="[&>td]:px-3 [&>td]:py-2"><td><DealCatalogSelect initial={products} value={line.productId} savedName={line.name} onSelect={(productId, product) => onChange({...line, productId, name: String(product.name || ""), unitPrice: String(product.price ?? product.listPrice ?? product.list_price ?? product.defaultRate ?? product.default_rate ?? product.unit_price ?? 0)})}/></td><td><Input className="h-9 min-w-28 border-border bg-card text-foreground" type="number" min={0} step="0.01" value={line.unitPrice} onChange={(event) => patch("unitPrice", event.target.value)} /></td><td><Input className="h-9 min-w-20 border-border bg-card text-foreground" type="number" min={1} step={1} value={line.quantity} onChange={(event) => patch("quantity", event.target.value)} /></td><td><Input className="h-9 min-w-24 border-border bg-card text-foreground" type="number" min={0} max={100} value={line.discount} onChange={(event) => patch("discount", event.target.value)} /></td><td className="font-semibold text-foreground">{formatCurrency(dealLineTotal(line))}</td><td><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onRemove} aria-label="Remove product line"><X className="h-4 w-4" /></Button></td></tr>;
 }
 
 function DealCustomFieldInput({ field, value, onChange }: { field: CRMRecord; value: CRMApiRecord[string]; onChange: (value: CRMApiRecord[string]) => void }) {
@@ -6006,16 +6006,17 @@ function recordToDealRow(record: CRMRecord, lookups: { companyNames: Map<number,
     source: String(record.source || record.lead_source || ""),
     description: String(record.description || record.nextStep || ""),
     customFields: extractDealCustomValues(record),
+    assigned_team_id: Number(record.assigned_team_id || 0) || undefined,
     contactLinks: (((record.related || {}) as CRMApiRecord).contacts || []) as CRMApiRecord[],
     currency: String(record.currency || "INR"), priority: String(record.priority || "Medium"), deal_type: String(record.deal_type || "New Business"), industry: String(record.industry || ""), internal_reference: String(record.internal_reference || ""), planning: (record.planning || {}) as CRMApiRecord, version: Number(record.version || 1),
-    catalogItems: (record.catalog_items || record.catalogItems || []) as CRMApiRecord[],
+    catalogItems: (record.catalog_items ?? record.catalogItems ?? ((((record.related || {}) as CRMApiRecord).products || []) as CRMApiRecord[]).map(line => ({kind: "product", item_id: line.product_id || line.productId || (line.product as CRMApiRecord)?.id, name: (line.product as CRMApiRecord)?.name || line.name, unit_price: line.unit_price ?? line.unitPrice ?? 0, quantity: line.quantity || 1, discount: Number(line.unit_price || line.unitPrice || 0) * Number(line.quantity || 1) > 0 ? Number(line.discount_amount || line.discountAmount || 0) / (Number(line.unit_price || line.unitPrice || 0) * Number(line.quantity || 1)) * 100 : 0}))) as CRMApiRecord[],
     createdAt: String(record.createdAt || record.created_at || ""),
     updatedAt: String(record.updatedAt || record.updated_at || ""),
   };
 }
 
 function dealFormInitial(deal: CRMDealRow | null): CRMApiRecord {
-  return { related_contacts: (deal?.contactLinks || []).map(link => ({contactId: Number(link.contactId || link.contact_id), role: link.role || "Stakeholder", isPrimary: Boolean(link.isPrimary || link.is_primary)})), currency: deal?.currency || "INR", priority: deal?.priority || "Medium", deal_type: deal?.deal_type || "New Business", industry: deal?.industry || "", internal_reference: deal?.internal_reference || "", planning: deal?.planning || {}, name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal?.pipelineId || "", stageId: deal?.stageId || "", amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal?.source || "", ownerId: deal?.ownerId || "", territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
+  return { assigned_team_id: deal?.assigned_team_id || "", related_contacts: (deal?.contactLinks || []).map(link => ({contactId: Number(link.contactId || link.contact_id), role: link.role || "Stakeholder", isPrimary: Boolean(link.isPrimary || link.is_primary)})), currency: deal?.currency || "INR", priority: deal?.priority || "Medium", deal_type: deal?.deal_type || "New Business", industry: deal?.industry || "", internal_reference: deal?.internal_reference || "", planning: deal?.planning || {}, name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal?.pipelineId || "", stageId: deal?.stageId || "", amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal?.source || "", ownerId: deal?.ownerId || "", territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
 }
 
 function dealCustomFieldInitial(deal: CRMDealRow | null): CRMApiRecord {

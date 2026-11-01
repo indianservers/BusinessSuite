@@ -3248,9 +3248,11 @@ def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: i
         entity = "products" if line["kind"] == "product" else "services"
         _assert_entity_permission(entity, current_user, "view")
         resource = _get_resource(entity)
-        item = _get_record(db, resource, item_id, organization_id)
-        _assert_record_visible(db, resource, item_id, organization_id, current_user)
         existing = next((entry for entry in (getattr(record, "catalog_items", None) or []) if entry["kind"] == line["kind"] and entry["item_id"] == item_id), None)
+        if not existing and record and line["kind"] == "product" and record.catalog_items is None:
+            existing = db.query(CRMDealProduct).filter_by(deal_id=record.id, product_id=item_id).first()
+        item = _get_record(db, resource, item_id, organization_id, include_deleted=bool(existing))
+        _assert_record_visible(db, resource, item_id, organization_id, current_user, include_deleted=bool(existing))
         if not existing and (not item.active or str(getattr(item, "status", "Active")).lower() == "inactive"):
             raise HTTPException(422, "Select an active catalog item")
         if (getattr(item, "currency", None) or "INR") != currency:

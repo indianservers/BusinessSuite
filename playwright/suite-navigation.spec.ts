@@ -326,7 +326,7 @@ test("company switching uses names and isolates favorites, recents and notificat
   await expect(
     page.getByRole("button", { name: "Pin AI HRMS", exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: /^Notifications/ }).click();
+  await page.getByRole("button", { name: /^Notifications/ }).click();
   await expect(
     page.getByText("Other company private update", { exact: true }),
   ).toBeVisible();
@@ -352,7 +352,7 @@ test("permission-aware inbox and unauthorized return paths", async ({
   await expect(
     page.getByText("Recommended for your role", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: /^Notifications/ }).click();
+  await page.getByRole("button", { name: /^Notifications/ }).click();
   await expect(
     page.getByText("Profile update available", { exact: true }),
   ).toBeVisible();
@@ -394,27 +394,20 @@ test("notification reads update suite badges and link to real destinations", asy
   });
   expect(created.ok()).toBe(true);
   await page.reload();
-  await expect(
-    page
-      .getByRole("article", { name: "VyaparaCRM", exact: true })
-      .getByRole("link", { name: /unread update/ }),
-  ).toBeVisible();
-  await page.getByRole("link", { name: /^Notifications/ }).click();
-  const notification = page
-    .locator(".suite-notification-list article")
-    .filter({ hasText: title });
+  await page.getByRole("button", { name: /^Notifications/ }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  const notification = page.getByRole("button").filter({ hasText: title });
   await expect(notification).toBeVisible();
-  await expect(
-    notification.getByRole("link", { name: "Open update" }),
-  ).toHaveAttribute("href", "/crm/contacts");
-  await notification
-    .getByRole("button", { name: "Mark read", exact: true })
-    .click();
+  await notification.click();
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.getByText("Open the contacts page.", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByRole("link", { name: "Open related update" })).toHaveAttribute("href", "/crm/contacts");
+  await page.getByRole("button", { name: "Back to notifications" }).click();
   await expect(notification.getByText("New", { exact: true })).toHaveCount(0);
-  await page
-    .getByLabel("Filter notifications by application")
-    .selectOption("hrms");
-  await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+  await notification.click();
+  await page.getByRole("link", { name: "Open related update" }).click();
+  await expect(page).toHaveURL(/\/crm\/contacts$/);
   await noOverflow(page);
 });
 

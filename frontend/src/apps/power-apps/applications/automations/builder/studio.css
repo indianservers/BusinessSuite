@@ -2049,3 +2049,34 @@
 .ai-node-state.error { background:#ffedf0; color:#b44f6b; }
 @media(max-width:1000px) { .ai-button-label { display:none; } .ai-mapping-grid { grid-template-columns:1fr; } .ai-mapping-grid>div:first-child { max-height:180px; overflow:auto; } }
 @media(max-width:700px) { .ai-workbench { top:112px; right:5px; bottom:5px; min-width:0; width:calc(100vw - 52px); max-width:calc(100vw - 52px); resize:none; } .ai-workbench-body { flex-direction:column; } .ai-workbench-body>nav { width:auto; display:flex; overflow-x:auto; padding:5px; border-right:0; flex-shrink:0; } .ai-workbench-body>nav button { white-space:nowrap; width:auto; font-size:10px; } .ai-workbench-content { padding:12px; } .ai-workbench>header span { display:none; } .ai-template-grid,.ai-debug-grid { grid-template-columns:1fr; } .ai-rule { flex-direction:column; } }
+
+/* Circular scenario modules preserve the canvas connection geometry. */
+.as-studio { --as-purple: #7450dc; --as-ink: #24283d; --as-muted: #70778c; --as-line: #e9eaf1; }
+.as-rail { background: linear-gradient(180deg, #26213e, #443174); width: 68px; }
+.as-toolbar { box-shadow: 0 2px 16px #24283d04; }
+.as-title input { font-size: 16px; font-weight: 650; color: #292c42; }
+.as-canvas { background: #f8f9fc; }
+.as-library-node { border-radius: 12px; margin-bottom: 5px; }
+.as-canvas-tools { border-radius: 14px; box-shadow: 0 8px 28px #2824420d; }
+.as-node { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; text-align: center; }
+.as-node.selected, .as-node.invalid { border: 0; box-shadow: none; }
+.as-node-heading { margin: 0; height: 160px; justify-content: center; position: relative; }
+.as-node-icon { width: 148px; height: 148px; border-radius: 50%; color: white; background: linear-gradient(145deg, color-mix(in srgb, var(--node-color) 80%, white), var(--node-color)); border: 5px solid #fff; box-shadow: 0 8px 20px color-mix(in srgb, var(--node-color) 20%, transparent), inset 0 1px 1px #ffffff60; transition: box-shadow .18s, transform .18s; }
+.as-node-icon svg { stroke-width: 1.5; filter: drop-shadow(0 2px 2px #00000012); }
+.as-node.selected .as-node-icon { box-shadow: 0 0 0 3px var(--node-color), 0 0 0 9px color-mix(in srgb, var(--node-color) 10%, transparent), 0 12px 25px #30283f15; }
+.as-node:hover .as-node-icon { transform: translateY(-2px); }
+.as-node-category { position: absolute; top: -19px; left: 0; right: 0; color: var(--node-color); font-size: 9px; font-weight: 700; letter-spacing: 1.4px; }
+.as-node-menu { position: absolute; right: 9px; top: 8px; width: 26px; height: 26px; border-radius: 50%; background: #fff !important; border: 1px solid #e7e8ef !important; color: #70778c !important; }
+.as-node > strong { margin-top: 12px; font-size: 15px; color: #292d43; line-height: 1.4; }
+.as-node > p { color: #747b8f; font-size: 11px; margin: 5px 8px 0; line-height: 1.5; }
+.as-node-foot { border: 0; justify-content: center; margin-top: 7px; padding: 0; color: #747b8f; }
+.as-node-foot > span:first-child { font-size: 9px; }
+.as-node-ready { color: #34866c; }
+.as-node-error { color: #b97921; }
+.as-node.invalid .as-node-icon { border-color: #fff0d8; }
+.as-node .react-flow__handle { width: 13px; height: 13px; min-width: 13px; min-height: 13px; border: 3px solid #f8f9fc; box-shadow: none; }
+.as-node-add { opacity: 1; width: 24px; height: 24px; right: -38px; color: var(--node-color) !important; box-shadow: 0 3px 10px #30283f08; }
+.as-port-label { border-radius: 5px; background: #f8f9fc; font-size: 9px; }
+.as-edge-label { background: #fff; border-color: #e7e8ef; border-radius: 20px; color: #687086; }
+.as-node .ai-node-state { position: absolute; top: 140px; left: 50%; transform: translateX(-50%); z-index: 1; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .as-node-icon { transition: none; } }
