@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
@@ -256,6 +256,7 @@ def workspace_export(db, workspace_id):
     """Export workspace-owned PMS rows, following child FKs, never global users/secrets."""
     from app.db.base_class import Base
 
+    models = {mapper.local_table.name: mapper.class_ for mapper in Base.registry.mappers}
     known = {"pms_workspaces": [{"id": workspace_id}]}
     result = {}
     private = {
@@ -300,9 +301,12 @@ def workspace_export(db, workspace_id):
                             filters.append(fk.parent.in_(values))
             if not filters:
                 continue
+            model = models.get(table.name)
+            if model is None:
+                raise HTTPException(422, "This workspace contains a record type that cannot be exported")
             rows = [
-                dict(row)
-                for row in db.execute(select(table).where(or_(*filters))).mappings()
+                {column.name: getattr(record, column.key) for column in table.columns}
+                for record in db.query(model).filter(or_(*filters)).all()
             ]
             if table.name == "pms_workspace_entries":
                 # Private dashboard definitions and personal tool state stay private.

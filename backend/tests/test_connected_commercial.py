@@ -524,13 +524,16 @@ def test_configured_smtp_path_uses_shared_delivery_and_does_not_send_twice(
         def __exit__(self, *args):
             pass
 
-        def starttls(self):
+        def ehlo(self):
+            pass
+
+        def starttls(self, **kwargs):
             pass
 
         def login(self, *args):
             pass
 
-        def send_message(self, message, to_addrs):
+        def send_message(self, message, to_addrs, from_addr=None):
             calls.append(message)
             assert to_addrs == [contact.email]
             attachments = list(message.iter_attachments())
@@ -544,6 +547,9 @@ def test_configured_smtp_path_uses_shared_delivery_and_does_not_send_twice(
     monkeypatch.setattr(smtplib, "SMTP", SandboxSMTP)
     for key, value in {
         "COMMUNICATION_EMAIL_PROVIDER": "smtp",
+        "EMAIL_PROVIDER": "smtp",
+        "MAIL_SERVER": "smtp.fixture.invalid",
+        "MAIL_STARTTLS": True,
         "MAIL_USERNAME": "synthetic",
         "MAIL_PASSWORD": "synthetic-test-value",
         "MAIL_FROM": "sender@example.com",

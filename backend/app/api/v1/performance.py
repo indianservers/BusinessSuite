@@ -165,6 +165,9 @@ def _cycle_payload(data: AppraisalCycleCreate, current_user: User) -> dict:
     payload["cycle_type"] = (payload.get("cycle_type") or "annual").lower().replace("-", "_").replace(" ", "_")
     payload["status"] = "draft"
     payload["created_by"] = current_user.id
+    if payload.get("organization_id") is None:
+        from app.apps.srm.services.commercial import tenant
+        payload["organization_id"] = tenant(current_user)
     return payload
 
 

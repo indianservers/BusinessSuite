@@ -112,6 +112,7 @@ CUSTOM_FIELD_COLUMNS = {
 }
 
 DEAL_REPORT_COLUMNS = {
+    "catalog_items": "JSON",
     "lost_reason": "TEXT",
     "win_reason": "TEXT",
     "source": "VARCHAR(80)",

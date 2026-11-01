@@ -65,7 +65,11 @@ def test_bank_advice_preview_generate_and_download(client, db):
     export_body = export_response.json()
     assert export_body["export_type"] == "txt"
     assert export_body["total_amount"] != "0.00"
-    from app.core.storage import normalize_upload_references
+    from app.core.storage import normalize_upload_references as normalize_reference
+    from app.models.user import User
+    actor = db.query(User).filter_by(email="admin@aihrms.com").one()
+    def normalize_upload_references(value):
+        return normalize_reference(value, db=db, actor_id=actor.id, company_id=employee.branch.company_id)
     assert normalize_upload_references(export_body["file_path"]).endswith(".txt")
 
     export = db.query(PayrollBankExport).filter(PayrollBankExport.id == export_body["id"]).first()

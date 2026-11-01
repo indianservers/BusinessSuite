@@ -43,21 +43,26 @@ class NotificationService:
             priority=data.priority,
             channels=channels,
         )
+        # Link new delivery rows before the flush. They belong to this new,
+        # validated notification; the sender need not read the recipient's inbox.
+        notification.delivery_logs = [
+            NotificationDeliveryLog(
+                channel=channel,
+                recipient=cls._delivery_recipient(recipient, channel),
+                status="delivered" if channel == "in_app" else "queued",
+            )
+            for channel in channels
+        ]
         db.add(notification)
         db.flush()
-
-        for channel in channels:
-            db.add(
-                NotificationDeliveryLog(
-                    notification_id=notification.id,
-                    channel=channel,
-                    recipient=cls._delivery_recipient(recipient, channel),
-                    status="delivered" if channel == "in_app" else "queued",
-                )
-            )
-
-        db.commit()
-        db.refresh(notification)
+        # All generated values are loaded by flush. Refreshing after commit
+        # would incorrectly require the sender to read another user's inbox.
+        expire_on_commit = db.expire_on_commit
+        try:
+            db.expire_on_commit = False
+            db.commit()
+        finally:
+            db.expire_on_commit = expire_on_commit
         return notification
 
 

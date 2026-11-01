@@ -526,15 +526,30 @@ export default function TaskWorkspacePage() {
             {task.task_key}
           </small>
           <h1 className="sr-only">{task.title}</h1>
-          <input
+          <textarea
             aria-label="Task title"
+            rows={1}
+            maxLength={220}
             defaultValue={task.title}
             key={`${id}:${task.title}`}
             disabled={!data.can_manage || busy}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
             onBlur={(e) => {
-              if (e.target.value.trim() && e.target.value !== task.title)
+              const title = e.currentTarget.value.replace(/[\r\n]+/g, " ").trim();
+              if (!title) {
+                e.currentTarget.value = task.title;
+                setError("Task title cannot be empty.");
+                return;
+              }
+              e.currentTarget.value = title;
+              if (title !== task.title)
                 void run(
-                  () => tasksAPI.update(id, { title: e.target.value.trim() }),
+                  () => tasksAPI.update(id, { title }),
                   "Title saved",
                 );
             }}

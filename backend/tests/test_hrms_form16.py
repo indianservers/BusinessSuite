@@ -84,7 +84,11 @@ def test_form16_generate_upload_publish_and_download(client, db, superuser_heade
     )
     assert generated.status_code == 200, generated.text
     assert generated.json()[0]["status"] == "generated"
-    from app.core.storage import normalize_upload_references
+    from app.core.storage import normalize_upload_references as normalize_reference
+    from app.models.user import User
+    actor_id = db.query(User).filter_by(email="testadmin@test.com").one().id
+    def normalize_upload_references(value):
+        return normalize_reference(value, db=db, actor_id=actor_id, company_id=1)
     assert normalize_upload_references(generated.json()[0]["partBFilePath"]).endswith("form16_part_b.pdf")
     assert Decimal(str(generated.json()[0]["taxDeducted"])) == Decimal("3500.00")
     assert Decimal(str(generated.json()[0]["taxableIncome"])) == Decimal("0.00")

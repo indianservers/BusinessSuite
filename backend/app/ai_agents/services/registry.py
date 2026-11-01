@@ -146,11 +146,18 @@ class AiAgentRegistryService:
                 self.db.add(agent)
                 continue
 
-            agent.name = definition["name"]
-            agent.module = definition["module"]
-            agent.description = definition["description"]
-            agent.system_prompt = build_agent_prompt(definition["code"])
-            agent.requires_approval = definition["requires_approval"]
+            # Same-value assignments still mark ORM objects dirty. Ordinary
+            # catalog reads must not become writes to a protected global table.
+            values = {
+                "name": definition["name"],
+                "module": definition["module"],
+                "description": definition["description"],
+                "system_prompt": build_agent_prompt(definition["code"]),
+                "requires_approval": definition["requires_approval"],
+            }
+            for field, value in values.items():
+                if getattr(agent, field) != value:
+                    setattr(agent, field, value)
         self.db.flush()
 
     def list_agents(self, module: str | None = None) -> list[AiAgent]:

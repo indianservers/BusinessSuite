@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 import pytest
 from app.models.company import Company, Branch, Department
 from app.models.user import User, UserSession
@@ -167,7 +168,7 @@ def test_delegated_admin_cannot_cross_company_or_revoke_privileged_sessions(
         client.get(
             ROOT + "/security", headers=headers, params={"companyId": other.id}
         ).status_code
-        == 403
+        == 404
     )
     tree = client.get(ROOT + "/organizations", headers=headers)
     assert tree.status_code == 200 and other.id not in [c["id"] for c in tree.json()]
@@ -377,7 +378,10 @@ def test_shared_identity_security_is_hidden_from_delegated_admin(
     )
     db.commit()
     headers = login(client)
-    admin_id = db.query(User).filter_by(is_superuser=True).first().id
+    admin = db.query(User).filter_by(is_superuser=True).first()
+    attach_test_identity(db, admin)
+    db.commit()
+    admin_id = admin.id
     profile = client.get(ROOT + f"/users/{admin_id}/360", headers=headers)
     assert profile.status_code == 200
     assert profile.json()["security"]["sessions"] == []

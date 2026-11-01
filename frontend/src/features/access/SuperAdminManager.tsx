@@ -31,7 +31,7 @@ export default function SuperAdminManager({ companyId }: { companyId: number }) 
           <label className="block">Reason<input className="w-full rounded border p-2" required minLength={3} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} /></label>
           <AdminVerification value={password} onChange={setPassword} />
           {error && <p role="alert" className="text-destructive">{error}</p>}{message && <p role="status">{message}</p>}
-          <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Grant full Super Admin access"}</Button>
+          <Button type="submit" disabled={busy}>{busy ? "Savingâ€¦" : "Grant full Super Admin access"}</Button>
         </form>
       </DialogContent>
     </Dialog></>;

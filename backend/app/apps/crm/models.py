@@ -264,6 +264,7 @@ class CRMDeal(Base):
     description = Column(Text)
     amount = Column(Numeric(12, 2), default=0)
     currency = Column(String(10), default="INR")
+    catalog_items = Column(JSON, nullable=True)
     probability = Column(Integer, default=0)
     expected_revenue = Column(Numeric(12, 2))
     expected_close_date = Column(Date, index=True)

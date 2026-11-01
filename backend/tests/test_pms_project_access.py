@@ -336,6 +336,7 @@ def test_all_tasks_endpoint_scopes_by_accessible_organization(db):
     )
 
     result = list_all_tasks(
+        taskIds=None, projectIds=None, assigneeIds=None,
         projectId=None,
         sprintId=None,
         epicId=None,
@@ -1126,18 +1127,22 @@ def test_portfolio_dashboard_is_accessible_scoped_and_calculates_health(db):
         db=db,
         current_user=manager,
     )
-    create_task(
+    blocked = create_task(
         project.id,
         PMSTaskCreate(
             title="Blocked launch task",
             task_key="PD-2",
-            status="Blocked",
+            status="To Do",
             is_blocking=True,
             estimated_hours=8,
         ),
         db=db,
         current_user=manager,
     )
+
+    from app.apps.project_management.management import save_execution, Execution
+    save_execution(blocked.id, Execution(revision=0, blocked_reason="Waiting for dependency", responsible_user_id=manager.id, review_date=date.today()), db=db, user=manager)
+    update_task(blocked.id, PMSTaskUpdate(status="Blocked"), db=db, current_user=manager)
 
     summary = get_portfolio_summary(ownerId=None, clientId=None, status=None, db=db, current_user=manager)
     assert summary["total_projects"] == 1
@@ -1468,7 +1473,7 @@ def test_custom_fields_validate_types_and_project_scope(db):
     foreign = create_field(other.id, FieldInput(name="Other", field_type="text"), db=db, user=manager)
     with pytest.raises(HTTPException) as cross_project:
         save_value(task.id, foreign["id"], ValueInput(value="bad"), db=db, user=manager)
-    assert cross_project.value.status_code == 404
+    assert cross_project.value.status_code == 422
     with pytest.raises(HTTPException) as denied:
         task_fields(task.id, db=db, user=outsider)
     assert denied.value.status_code == 403
@@ -1561,7 +1566,7 @@ def test_type_specific_fields_and_plural_names(db):
     save_value(vat.id, field["id"], ValueInput(value="Q3"), db=db, user=manager)
     with pytest.raises(HTTPException) as denied:
         save_value(regular.id, field["id"], ValueInput(value="Q3"), db=db, user=manager)
-    assert denied.value.status_code == 404
+    assert denied.value.status_code == 422
 
 
 def test_timer_persistence_single_session_stop_and_access(db):

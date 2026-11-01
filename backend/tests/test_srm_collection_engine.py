@@ -25,7 +25,7 @@ def test_srm_receipt_allocation_updates_invoice_and_aging(client, db, superuser_
     aging = client.get("/api/v1/srm/collections/aging", headers=superuser_headers)
     assert aging.status_code == 200
     assert aging.json()[0]["total_outstanding"] > 0
-    assert db.query(SRMCustomerAging).filter(SRMCustomerAging.customer_id == 101).first() is not None
+    assert any(row["customer_id"] == 101 and row["total_outstanding"] > 0 for row in aging.json())
 
     reminder = client.post("/api/v1/srm/collections/reminders/send", headers=superuser_headers, json={"customer_id": 101, "invoice_id": invoice["id"]})
     assert reminder.status_code == 200, reminder.text

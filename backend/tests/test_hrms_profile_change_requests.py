@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from datetime import date
 
 from app.core.security import get_password_hash
@@ -25,6 +26,7 @@ def test_employee_profile_change_request_requires_approval(client, db, superuser
         emergency_contact_name="Old Contact",
     )
     db.add_all([role, user, employee])
+    attach_test_identity(db, user)
     db.commit()
     employee_headers = _login(client, "profile-change@test.com")
 
@@ -68,6 +70,7 @@ def test_employee_cannot_create_change_request_for_other_employee(client, db):
     owner = Employee(employee_id="PCR-002", user=user, first_name="Self", last_name="Only", date_of_joining=date(2025, 1, 1), status="Active")
     other = Employee(employee_id="PCR-003", first_name="Other", last_name="Person", date_of_joining=date(2025, 1, 1), status="Active")
     db.add_all([role, user, owner, other])
+    attach_test_identity(db, user)
     db.commit()
     headers = _login(client, "profile-self@test.com")
 

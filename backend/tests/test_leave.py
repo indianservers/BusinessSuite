@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 import pytest
 from datetime import date, timedelta
 from decimal import Decimal
@@ -21,6 +22,7 @@ def _create_employee_with_leave(db, client, headers):
         role_id=role.id,
     )
     db.add(user)
+    attach_test_identity(db, user)
     db.flush()
 
     emp = Employee(
@@ -142,6 +144,7 @@ def test_leave_balance_check(client, db):
 def test_leave_request_workflow(client, db):
     """Test apply → approve flow."""
     from app.models.user import User, Role
+    from app.models.leave import LeaveRequest
     from app.core.security import get_password_hash
 
     emp, lt, user = _create_employee_with_leave(db, client, {})
@@ -159,9 +162,10 @@ def test_leave_request_workflow(client, db):
         "to_date": to_date,
         "reason": "Family vacation",
     }, headers=emp_headers)
-    assert apply_resp.status_code == 201
+    assert apply_resp.status_code == 201, apply_resp.text
     request_id = apply_resp.json()["id"]
     assert apply_resp.json()["status"] == "Pending"
+    assert db.query(LeaveRequest).filter_by(id=request_id).one().company_id == 1
 
 
 def test_hr_can_review_leave_with_reason(client, db, superuser_headers):
@@ -180,7 +184,7 @@ def test_hr_can_review_leave_with_reason(client, db, superuser_headers):
         "to_date": (date.today() + timedelta(days=15)).isoformat(),
         "reason": "Family function",
     }, headers=emp_headers)
-    assert apply_resp.status_code == 201
+    assert apply_resp.status_code == 201, apply_resp.text
     request_id = apply_resp.json()["id"]
 
     pending = client.get("/api/v1/leave/requests", params={"status": "Pending"}, headers=superuser_headers)
@@ -228,6 +232,7 @@ def test_leave_calendar_scopes_manager_team_and_holidays(client, db):
         role_id=manager_role.id,
     )
     db.add(manager_user)
+    attach_test_identity(db, manager_user)
     db.flush()
     manager_emp = Employee(
         employee_id=f"CALMGR{id(db)}",
@@ -248,6 +253,7 @@ def test_leave_calendar_scopes_manager_team_and_holidays(client, db):
         role_id=manager_role.id,
     )
     db.add(outsider_user)
+    attach_test_identity(db, outsider_user)
     db.flush()
     outsider_emp = Employee(
         employee_id=f"CALOUT{id(db)}",
@@ -260,6 +266,7 @@ def test_leave_calendar_scopes_manager_team_and_holidays(client, db):
     db.flush()
     start = date.today() + timedelta(days=30)
     db.add(LeaveRequest(
+        company_id=1,
         employee_id=report_emp.id,
         leave_type_id=leave_type.id,
         from_date=start,
@@ -269,6 +276,7 @@ def test_leave_calendar_scopes_manager_team_and_holidays(client, db):
         reason="Team leave",
     ))
     db.add(LeaveRequest(
+        company_id=1,
         employee_id=outsider_emp.id,
         leave_type_id=leave_type.id,
         from_date=start,
@@ -362,11 +370,13 @@ def test_team_leave_calendar_scopes_manager_employee_and_hr(client, db, superuse
     leave_type = LeaveType(name=f"Casual Leave {suffix}", code=f"CL{suffix}", days_allowed=Decimal("12"))
     db.add(leave_type)
     db.flush()
+    from app.models.security_boundary import SecurityResourceOwnership
+    db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=company.id))
     leave_day = date.today().replace(day=1)
     db.add_all([
-        LeaveRequest(employee_id=reportee_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day, days_count=Decimal("1"), status="Approved"),
-        LeaveRequest(employee_id=teammate_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day + timedelta(days=1), days_count=Decimal("2"), status="Approved", is_half_day=False),
-        LeaveRequest(employee_id=outsider_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day, days_count=Decimal("1"), status="Approved"),
+        LeaveRequest(company_id=company.id, employee_id=reportee_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day, days_count=Decimal("1"), status="Approved"),
+        LeaveRequest(company_id=company.id, employee_id=teammate_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day + timedelta(days=1), days_count=Decimal("2"), status="Approved", is_half_day=False),
+        LeaveRequest(company_id=company.id, employee_id=outsider_emp.id, leave_type_id=leave_type.id, from_date=leave_day, to_date=leave_day, days_count=Decimal("1"), status="Approved"),
     ])
     db.commit()
 
@@ -433,7 +443,9 @@ def test_department_calendar_and_today_absences(client, db):
     leave_type = LeaveType(name=f"Sick Leave {suffix}", code=f"SL{suffix}", days_allowed=Decimal("10"))
     db.add(leave_type)
     db.flush()
-    db.add(LeaveRequest(employee_id=teammate.id, leave_type_id=leave_type.id, from_date=date.today(), to_date=date.today(), days_count=Decimal("1"), status="Approved", is_half_day=True))
+    from app.models.security_boundary import SecurityResourceOwnership
+    db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=company.id))
+    db.add(LeaveRequest(company_id=company.id, employee_id=teammate.id, leave_type_id=leave_type.id, from_date=date.today(), to_date=date.today(), days_count=Decimal("1"), status="Approved", is_half_day=True))
     db.commit()
 
     login = client.post("/api/v1/auth/login", json={"email": user.email, "password": "Test@123"})
@@ -495,6 +507,7 @@ def test_leave_request_requires_allocated_balance(client, db):
         role_id=role.id,
     )
     db.add(user)
+    attach_test_identity(db, user)
     db.flush()
     emp = Employee(
         employee_id=f"NOBAL{id(db)}",
@@ -535,7 +548,7 @@ def test_leave_ledger_tracks_apply_and_cancel(client, db):
         "to_date": (date.today() + timedelta(days=21)).isoformat(),
         "reason": "Track ledger",
     }, headers=headers)
-    assert apply_resp.status_code == 201
+    assert apply_resp.status_code == 201, apply_resp.text
     request_id = apply_resp.json()["id"]
 
     ledger = client.get("/api/v1/leave/ledger", headers=headers)

@@ -55,6 +55,7 @@ class CommunicationEmailAttachment(Base):
 
 class CommunicationWebform(Base):
     __tablename__ = "communication_webforms"
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
     __table_args__ = (UniqueConstraint("public_slug", name="uq_communication_webform_slug"),)
 
     id = Column(Integer, primary_key=True, index=True)
@@ -95,6 +96,7 @@ class CommunicationWebformSubmission(Base):
 
 class CommunicationAutoResponseRule(Base):
     __tablename__ = "communication_auto_response_rules"
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(180), nullable=False, index=True)
@@ -178,6 +180,7 @@ class CommunicationOptOut(Base):
 
 class CommunicationWhatsAppTemplate(Base):
     __tablename__ = "communication_whatsapp_templates"
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(180), nullable=False, index=True)

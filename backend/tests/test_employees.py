@@ -159,6 +159,7 @@ def test_employee_directory_filters_and_team_only(client, superuser_headers, db)
         last_name="Manager",
         date_of_joining=date.today(),
         user_id=manager_user.id,
+        branch_id=branch.id,
     )
     db.add(manager)
     db.flush()
@@ -213,6 +214,7 @@ def test_employee_directory_filters_and_team_only(client, superuser_headers, db)
 
     login = client.post("/api/v1/auth/login", json={"email": manager_user.email, "password": "Test@123"})
     manager_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    manager_headers["X-Company-Id"] = str(company.id)
     team = client.get("/api/v1/employees/directory", params={"team_only": True}, headers=manager_headers)
     assert team.status_code == 200
     team_ids = {item["employee_id"] for item in team.json()["items"]}
@@ -288,6 +290,7 @@ def test_lifecycle_event_can_apply_employee_changes(client, superuser_headers, d
 
 def test_hr_cannot_create_employee_login_account(client, db):
     from app.db.init_db import init_db
+    from app.models.company import Branch
 
     init_db(db)
     login = client.post("/api/v1/auth/login", json={
@@ -296,6 +299,7 @@ def test_hr_cannot_create_employee_login_account(client, db):
     })
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post("/api/v1/employees/", json={
+        "branch_id": db.query(Branch).filter_by(name="Head Office").first().id,
         "first_name": "Login",
         "last_name": "Blocked",
         "date_of_joining": str(date.today()),
@@ -303,7 +307,7 @@ def test_hr_cannot_create_employee_login_account(client, db):
         "user_email": "blocked.employee@aihrms.com",
         "user_password": "Employee@123456",
     }, headers=headers)
-    assert response.status_code == 403
+    assert response.status_code == 403, response.text
     assert "only admin" in response.json()["detail"].lower()
 
 

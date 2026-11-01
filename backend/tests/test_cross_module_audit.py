@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 """Real persistence and API authorization: no commercial service mocks."""
 from uuid import uuid4
 import pytest
@@ -6,6 +7,17 @@ from app.models.user import User, Role, Permission
 from app.common.models import CommonPerson
 from app.apps.project_management.models import PMSProjectMember
 from tests.test_connected_commercial import setup_business, link
+
+def socket_identity(db, user):
+    attach_test_identity(db, user)
+    permission = db.query(Permission).filter_by(name="pms_view").first()
+    if not permission:
+        permission = Permission(name="pms_view", module="project_management")
+        db.add(permission)
+    user.role = Role(name=f"socket_viewer_{user.id}", permissions=[permission])
+    from app.access.models import AccessPolicy
+    db.add(AccessPolicy(user_id=user.id, company_id=1, grants={"project_management": {"enabled": True, "role": "viewer", "permissions": ["pms_view"], "actions": ["view"], "scope": "assigned"}}))
+
 
 CASES = [
     ("sales", ["srm_invoice_view"], "Member", True, False, False, True),
@@ -33,8 +45,7 @@ def test_commercial_role_matrix(client, db, superuser_headers, name, permissions
         role.permissions.append(perm)
     user=User(email=f"{name}@audit.invalid",hashed_password="unused",role_id=role.id,is_active=active,is_superuser=False)
     db.add(user); db.flush()
-    if name == "other_tenant":
-        person=CommonPerson(organization_id=2,display_name="Other tenant",user_id=user.id);db.add(person);db.flush();db.expire(user, ["person"])
+    attach_test_identity(db, user, company_id=2 if name == "other_tenant" else 1)
     if membership:
         db.add(PMSProjectMember(project_id=project.id,user_id=user.id,role=membership))
     if name == "removed":
@@ -89,6 +100,7 @@ def test_project_member_removal_revokes_existing_realtime_subscription(client, d
     buyer, contact, project, team = setup_business(db)
     user=User(email="socket@audit.invalid",hashed_password="unused",is_active=True)
     db.add(user);db.flush()
+    socket_identity(db, user)
     member=PMSProjectMember(project_id=project.id,user_id=user.id,role="Viewer")
     db.add(member);db.commit()
     class Socket:
@@ -144,7 +156,7 @@ def test_realtime_checks_inactive_identity_and_current_membership(db, superuser_
     from app.apps.project_management.realtime import PMSRealtimeManager
     buyer, contact, project, team = setup_business(db)
     user=User(email="revoked-socket@audit.invalid",hashed_password="unused",is_active=True)
-    db.add(user);db.flush();membership=PMSProjectMember(project_id=project.id,user_id=user.id,role="Viewer");db.add(membership);db.commit()
+    db.add(user);db.flush();socket_identity(db, user);membership=PMSProjectMember(project_id=project.id,user_id=user.id,role="Viewer");db.add(membership);db.commit()
     @contextmanager
     def fixture_session(): yield db
     manager=PMSRealtimeManager(db_factory=fixture_session)

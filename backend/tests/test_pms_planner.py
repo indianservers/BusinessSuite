@@ -6,7 +6,7 @@ from tests.test_pms_workspaces import account, middleware_database, BASE
 def test_planner_includes_full_schedule_and_enforces_visibility(client, db):
     owner, headers = account(db, 'planner-owner@test.com', True)
     guest, gh = account(db, 'planner-guest@test.com')
-    outsider, oh = account(db, 'planner-outsider@test.com', True)
+    outsider, oh = account(db, 'planner-outsider@test.com')
     wid=client.post(BASE+'/workspaces',headers=headers,json={'name':'Planner workspace'}).json()['id']
     pid=client.post(BASE+'/projects',headers=headers,json={'name':'Planner project','project_key':'PLAN','workspace_id':wid,'due_date':'2026-11-30'}).json()['id']
     db.add(PMSWorkspaceMember(workspace_id=wid,user_id=guest.id,role='Guest'))

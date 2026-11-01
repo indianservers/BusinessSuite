@@ -67,6 +67,7 @@ def test_backup_manifest_only_after_complete_recovery_set(monkeypatch, tmp_path,
 def test_migration_accepts_fresh_and_existing_database(monkeypatch, has_version):
     from scripts import migrate_deployment as module
     import sqlalchemy
+    import app.db.schema_health
     import alembic.command
     import alembic.script
     connection = Mock()
@@ -86,10 +87,15 @@ def test_migration_accepts_fresh_and_existing_database(monkeypatch, has_version)
     monkeypatch.setattr(sqlalchemy, "create_engine", lambda *a, **kw: engine)
     monkeypatch.setattr(sqlalchemy, "inspect", lambda conn: SimpleNamespace(has_table=lambda _: has_version))
     monkeypatch.setattr(alembic.script.ScriptDirectory, "from_config", lambda config: SimpleNamespace(get_current_head=lambda: "head"))
+    # This unit test covers migration ordering; the real-schema test below checks DDL.
+    import app.db.schema_health
+    schema_check = Mock(return_value={"checked_tables": 1, "checked_columns": 1})
+    monkeypatch.setattr(app.db.schema_health, "require_model_schema", schema_check)
     upgrade = Mock()
     monkeypatch.setattr(alembic.command, "upgrade", upgrade)
     module.main()
     upgrade.assert_called_once()
+    schema_check.assert_called_once()
     assert upgrade.call_args.args[1] == "head"
 
 

@@ -163,7 +163,7 @@ export default function ApprovalOsPage() {
             <CardDescription>Native Approval OS records plus workflow-engine approvals.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {data&&<div className="flex flex-wrap items-center gap-3"><span>{data.total} matching requests · Page {page} of {Math.max(1,data.pages)}</span><Button variant="outline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</Button><Button variant="outline" disabled={page>=data.pages} onClick={()=>setPage(p=>p+1)}>Next</Button></div>}
+            {data&&<div className="flex flex-wrap items-center gap-3"><span>{data.total} matching requests Â· Page {page} of {Math.max(1,data.pages)}</span><Button variant="outline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</Button><Button variant="outline" disabled={page>=data.pages} onClick={()=>setPage(p=>p+1)}>Next</Button></div>}
             {isLoading ? <div className="h-32 rounded-lg border bg-muted/30" /> : null}
             {!isLoading && data?.items.map((item) => {
               const id = nativeApprovalId(item);

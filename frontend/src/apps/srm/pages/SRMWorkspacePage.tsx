@@ -575,7 +575,7 @@ function CollectionHealthCard({ collectionPercent, outstanding, overdue, overdue
         <div className="space-y-2 text-sm">
           <p className="font-semibold">{collectionPercent === null ? "No invoiced collection base" : `${percent}% collected`}</p>
           <p className="text-muted-foreground">Outstanding {currencyMoney(outstanding,currency)}</p>
-          <p className="text-muted-foreground">Overdue {currencyMoney(overdue,currency)} · alert preview: {overdueInvoices.length.toLocaleString("en-IN")} invoices</p>
+          <p className="text-muted-foreground">Overdue {currencyMoney(overdue,currency)} Â· alert preview: {overdueInvoices.length.toLocaleString("en-IN")} invoices</p>
           {!overdueInvoices.length ? <p className="pt-2 text-muted-foreground">No collection alerts for the current filters.</p> : null}
         </div>
       </CardContent>

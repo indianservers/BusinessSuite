@@ -1012,7 +1012,7 @@ export default function UsersAccessPage() {
                       })
                     ) : (
                       <>
-                        <td>{u.email}<Link className="ml-2 text-primary" to={`/admin/control/users/${u.id}`}>Access 360�</Link></td>
+                        <td>{u.email}<Link className="ml-2 text-primary" to={`/admin/control/users/${u.id}`}>Access 360°</Link></td>
                         <td>{u.employeeCode || "—"}</td>
                         <td>{u.department || "—"}</td>
                         <td>
@@ -1879,7 +1879,7 @@ export default function UsersAccessPage() {
             </p>
             {roleEdit.affectedUsers?.map((u: Person) => (
               <p key={u.id}>
-                {u.name} · {u.email}<Link className="ml-2 text-primary" to={`/admin/control/users/${u.id}`}>Access 360�</Link>
+                {u.name} · {u.email}<Link className="ml-2 text-primary" to={`/admin/control/users/${u.id}`}>Access 360°</Link>
               </p>
             ))}
             <label>

@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from datetime import date, timedelta
 
 from app.core.security import get_password_hash
@@ -35,6 +36,7 @@ def _employee_user(db, email: str, code: str, *, branch_id: int | None = None):
         status="Active",
     )
     db.add(employee)
+    attach_test_identity(db, user, db.get(Branch, branch_id).company_id if branch_id else 1)
     db.commit()
     return user, employee
 

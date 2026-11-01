@@ -2,6 +2,7 @@ from datetime import date
 from io import BytesIO
 
 from app.db.init_db import init_db
+from app.models.user import User
 
 
 def _create_employee(db):
@@ -43,7 +44,7 @@ def test_upload_and_verify_employee_certificate(client, superuser_headers, db):
     assert data["category"] == "Study"
     assert data["verification_status"] == "Pending"
     from app.core.storage import normalize_upload_references
-    assert normalize_upload_references(data["file_url"]).startswith(f"/uploads/certificates/{emp.id}/")
+    assert normalize_upload_references(data["file_url"], db=db, actor_id=db.query(User).filter_by(email="testadmin@test.com").one().id, company_id=1).startswith(f"/uploads/certificates/{emp.id}/")
 
     verify = client.put(
         f"/api/v1/documents/certificates/{data['id']}/verify",
@@ -77,7 +78,7 @@ def test_certificate_import_and_export_logs(client, superuser_headers, db):
     assert imported.status_code == 201
     assert imported.json()["operation_type"] == "Import"
     from app.core.storage import normalize_upload_references
-    assert normalize_upload_references(imported.json()["source_file_url"]).startswith("/uploads/certificate_imports/")
+    assert normalize_upload_references(imported.json()["source_file_url"], db=db, actor_id=db.query(User).filter_by(email="testadmin@test.com").one().id, company_id=1).startswith("/uploads/certificate_imports/")
 
     exported = client.post(
         f"/api/v1/documents/certificates/exports?employee_id={emp.id}&total_records=4",

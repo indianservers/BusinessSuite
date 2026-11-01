@@ -202,24 +202,34 @@ def _ensure_default_plans(db: Session) -> None:
         if not db.query(TenantSubscriptionPlan).filter(TenantSubscriptionPlan.code == code).first():
             db.add(TenantSubscriptionPlan(code=code, name=code.title(), features_json=sorted(features), active=True))
     db.flush()
-    if not db.query(TenantSubscription).first():
+    if not db.query(TenantSubscription).filter(TenantSubscription.company_id.is_(None)).first():
         ultimate = db.query(TenantSubscriptionPlan).filter(TenantSubscriptionPlan.code == "ultimate").first()
         db.add(TenantSubscription(plan_id=ultimate.id if ultimate else None, edition="ultimate", status="active", admin_override=True))
+        db.flush()
 
 
 def _feature_allowed(db: Session, feature_key: str, current_user: User | None = None) -> dict[str, Any]:
     if current_user and current_user.is_superuser:
         return {"allowed": True, "feature_key": feature_key, "source": "superuser"}
-    subscription = db.query(TenantSubscription).order_by(TenantSubscription.id.desc()).first()
-    if not subscription:
-        _ensure_default_plans(db)
-        subscription = db.query(TenantSubscription).order_by(TenantSubscription.id.desc()).first()
-    if subscription and subscription.admin_override:
+    from sqlalchemy import select
+    from app.apps.srm.services.commercial import tenant
+    subscription = db.query(TenantSubscription).filter(
+        TenantSubscription.company_id == tenant(current_user)
+    ).order_by(TenantSubscription.id.desc()).first() if current_user else None
+    values = {"edition": subscription.edition, "admin_override": subscription.admin_override} if subscription else None
+    if values is None:
+        # Only non-sensitive installation defaults may be inherited. Never read
+        # another company's subscription, and never bootstrap settings on a GET.
+        table = TenantSubscription.__table__
+        values = db.connection().execute(select(table.c.edition, table.c.admin_override).where(
+            table.c.company_id.is_(None)
+        ).order_by(table.c.id.desc()).limit(1)).mappings().first()
+    if values and values["admin_override"]:
         return {"allowed": True, "feature_key": feature_key, "source": "admin_override"}
     flag = db.query(TenantFeatureFlag).filter(TenantFeatureFlag.feature_key == feature_key).first()
     if flag and not flag.enabled:
         return {"allowed": False, "feature_key": feature_key, "message": flag.upgrade_message or "Feature disabled. Upgrade or enable this feature."}
-    edition = (subscription.edition if subscription else "ultimate").lower()
+    edition = (values["edition"] if values else "ultimate").lower()
     allowed = feature_key in EDITION_FEATURES.get(edition, set())
     return {"allowed": allowed, "feature_key": feature_key, "edition": edition, "message": None if allowed else "This feature requires a higher subscription edition."}
 
@@ -616,13 +626,13 @@ def create_subscription_plan(data: SubscriptionPlanPayload, db: Session = Depend
 def get_subscription(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_view", "tenant_admin"))):
     _ensure_default_plans(db)
     db.commit()
-    return _serialize(db.query(TenantSubscription).order_by(TenantSubscription.id.desc()).first())
+    return _serialize(db.query(TenantSubscription).filter(TenantSubscription.company_id.is_(None)).order_by(TenantSubscription.id.desc()).first())
 
 
 @router.put("/admin/subscription", dependencies=[Depends(global_configuration)])
 def update_subscription(data: SubscriptionPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("tenant_admin"))):
     _ensure_default_plans(db)
-    item = db.query(TenantSubscription).first() or TenantSubscription()
+    item = db.query(TenantSubscription).filter(TenantSubscription.company_id.is_(None)).order_by(TenantSubscription.id.desc()).first() or TenantSubscription()
     item.edition = data.edition
     item.plan_id = data.plan_id
     item.status = data.status

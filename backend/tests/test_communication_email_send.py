@@ -9,7 +9,7 @@ def scoped_headers(client, db):
     from app.models.user import User
     headers = communication_headers(client, db)
     user = db.query(User).filter_by(email="communication-admin@example.com").one()
-    db.add(CommonPerson(user_id=user.id, organization_id=1, display_name="Communication admin"))
+    user.person.display_name = "Communication admin"
     db.commit()
     headers["X-Company-ID"] = "1"
     return headers

@@ -29,9 +29,11 @@ export default function BlockDragHandle({
   const pointer = useRef<{ x: number; y: number } | null>(null);
   const touchPointer = useRef<number | null>(null);
   const ignoreClick = useRef(false);
+  const viewReady = useRef(editor.isInitialized && !editor.isDestroyed);
   const edit = useRef(onEdit);
   edit.current = onEdit;
   function showBlock(position: number) {
+    if (!viewReady.current || editor.isDestroyed) return;
     const resolved = editor.state.doc.resolve(position);
     if (!resolved.depth) return;
     const from = resolved.before(1),
@@ -49,6 +51,7 @@ export default function BlockDragHandle({
     }
   }
   function dropPoint(x: number, y: number): DropPoint | null {
+    if (!viewReady.current || editor.isDestroyed) return null;
     const area = editor.view.dom.getBoundingClientRect();
     const found = editor.view.posAtCoords({
       left: Math.max(area.left + 2, Math.min(area.right - 2, x)),
@@ -77,6 +80,7 @@ export default function BlockDragHandle({
     return next;
   }
   function move(from: number, to: number, target: number) {
+    if (!viewReady.current || editor.isDestroyed) return;
     if (target >= from && target <= to) return;
     const fragment = editor.state.doc.slice(from, to).content;
     const transaction = editor.state.tr.delete(from, to);
@@ -101,12 +105,33 @@ export default function BlockDragHandle({
     setLine(null);
   }
   useEffect(() => {
+    viewReady.current = editor.isInitialized && !editor.isDestroyed;
     const selection = () => {
       if (!drag.current) showBlock(editor.state.selection.from);
     };
+    const mounted = () => {
+      viewReady.current = true;
+      selection();
+    };
+    const unmounted = () => {
+      viewReady.current = false;
+      drag.current = null;
+      pointer.current = null;
+      touchPointer.current = null;
+      setBlock(null);
+      setLine(null);
+      setDragging(false);
+    };
+    editor.on("mount", mounted);
+    editor.on("create", mounted);
+    editor.on("unmount", unmounted);
     editor.on("selectionUpdate", selection);
     selection();
     return () => {
+      viewReady.current = false;
+      editor.off("mount", mounted);
+      editor.off("create", mounted);
+      editor.off("unmount", unmounted);
       editor.off("selectionUpdate", selection);
     };
   }, [editor]);
@@ -114,6 +139,7 @@ export default function BlockDragHandle({
     if (!dragging) return;
     let frame = 0;
     const tick = () => {
+      if (!viewReady.current || editor.isDestroyed) return;
       const point = pointer.current;
       const scroller =
         editor.view.dom.closest<HTMLElement>(".note-writer-fullscreen") ||
@@ -154,7 +180,7 @@ export default function BlockDragHandle({
         finish(event.clientX, event.clientY);
       }}
       onMouseMove={(event) => {
-        if (drag.current) return;
+        if (drag.current || !viewReady.current || editor.isDestroyed) return;
         const position = editor.view.posAtCoords({
           left: event.clientX,
           top: event.clientY,
@@ -179,6 +205,7 @@ export default function BlockDragHandle({
           draggable
           style={{ top: block.top }}
           onClick={() => {
+            if (!viewReady.current || editor.isDestroyed) return;
             if (ignoreClick.current) {
               ignoreClick.current = false;
               return;
@@ -191,6 +218,10 @@ export default function BlockDragHandle({
             editor.commands.focus();
           }}
           onDragStart={(event) => {
+            if (!viewReady.current || editor.isDestroyed) {
+              event.preventDefault();
+              return;
+            }
             drag.current = { from: block.from, to: block.to };
             setDragging(true);
             event.dataTransfer.effectAllowed = "move";
@@ -202,6 +233,7 @@ export default function BlockDragHandle({
           }}
           onDragEnd={() => finish()}
           onPointerDown={(event) => {
+            if (!viewReady.current || editor.isDestroyed) return;
             if (event.pointerType === "mouse") return;
             event.preventDefault();
             touchPointer.current = event.pointerId;
@@ -226,6 +258,7 @@ export default function BlockDragHandle({
             if (touchPointer.current !== null) finish();
           }}
           onKeyDown={(event) => {
+            if (!viewReady.current || editor.isDestroyed) return;
             if (!event.altKey || !["ArrowUp", "ArrowDown"].includes(event.key))
               return;
             event.preventDefault();

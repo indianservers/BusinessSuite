@@ -23,7 +23,7 @@ def test_payroll_formula_tax_and_platform_foundations(client, db):
         "name": "HRA", "code": "HRA", "component_type": "Earning", "calculation_type": "Formula",
         "formula_expression": "BASIC * Decimal('0.40')", "amount": "0",
     }, headers=admin)
-    assert hra.status_code == 201
+    assert hra.status_code == 201, hra.text
     structure = client.post("/api/v1/payroll/structures", json={
         "name": "Dependency Structure",
         "components": [
@@ -66,7 +66,7 @@ def test_payroll_formula_tax_and_platform_foundations(client, db):
         "module": "employees", "field_key": "tshirt_size", "label": "T-Shirt Size", "field_type": "Select",
         "options_json": ["S", "M", "L"],
     }, headers=admin)
-    assert field.status_code == 201
+    assert field.status_code == 201, field.text
     value = client.put("/api/v1/custom-fields/values", json={
         "definition_id": field.json()["id"], "entity_type": "employee", "entity_id": employee.id, "value_text": "M",
     }, headers=admin)
@@ -74,11 +74,11 @@ def test_payroll_formula_tax_and_platform_foundations(client, db):
 
     report = client.post("/api/v1/reports/definitions", json={
         "name": "Employee Master", "code": "EMP_MASTER", "module": "employees",
-        "selected_fields_json": ["employee_id", "first_name", "status"],
+        "selected_fields_json": ["employee_code", "first_name", "status"],
     }, headers=admin)
-    assert report.status_code == 201
+    assert report.status_code == 201, report.text
     run = client.post(f"/api/v1/reports/definitions/{report.json()['id']}/run", headers=admin)
-    assert run.status_code == 201
+    assert run.status_code == 201, run.text
     assert run.json()["row_count"] >= 1
 
 

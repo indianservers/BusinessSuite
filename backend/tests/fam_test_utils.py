@@ -1,5 +1,6 @@
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
+from test_identity_utils import attach_test_identity
 
 
 def auth_headers_for(client, db, email: str, role_name: str, password: str = "Password@123", permissions: list[str] | None = None):
@@ -19,6 +20,7 @@ def auth_headers_for(client, db, email: str, role_name: str, password: str = "Pa
             role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash(password), is_active=True, is_superuser=False, role_id=role.id)
     db.add(user)
+    attach_test_identity(db, user)
     db.commit()
     payload = {"email": email, "password": password}
     if role_name in {"fam_admin", "fam_accountant", "fam_finance_manager", "fam_auditor", "fam_viewer", "fam_business_owner"}:

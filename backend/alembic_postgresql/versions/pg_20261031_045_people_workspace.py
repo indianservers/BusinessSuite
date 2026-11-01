@@ -110,13 +110,17 @@ def upgrade():
     index("ix_users_role_active_id", "users", ["role_id", "is_active", "id"])
     if bind.dialect.name == "postgresql":
         op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+        extension_schema = bind.execute(sa.text(
+            "SELECT n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='pg_trgm'"
+        )).scalar_one()
+        operator_class = bind.dialect.identifier_preparer.quote_schema(extension_schema) + ".gin_trgm_ops"
         for name, table, column in [
             ("ix_people_name_trgm", "common_people", "display_name"),
             ("ix_people_email_trgm", "users", "email"),
             ("ix_people_employee_code_trgm", "employees", "employee_id"),
         ]:
             op.execute(
-                f"CREATE INDEX IF NOT EXISTS {name} ON {table} USING gin ({column} gin_trgm_ops)"
+                f"CREATE INDEX IF NOT EXISTS {name} ON {table} USING gin ({column} {operator_class})"
             )
 
 

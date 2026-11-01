@@ -350,6 +350,8 @@ def _crud_collection(model, payload_model, permission: str, entity_type: str):
             )
         if entity_type == "buttons" and payload["action_type"] not in SAFE_ACTION_TYPES:
             raise HTTPException(status_code=400, detail="Unsupported button action type")
+        if "owner_user_id" in model.__table__.c and payload.get("owner_user_id") is None:
+            payload["owner_user_id"] = current_user.id
         item = model(**payload, created_by=current_user.id)
         db.add(item)
         db.flush()
@@ -455,7 +457,7 @@ def list_dynamic_records(module_api_name: str, db: Session = Depends(get_db), cu
 def create_dynamic_record(module_api_name: str, data: DynamicRecordPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_manage"))):
     _require_module(db, module_api_name)
     validate_record_payload(db, module_api_name, data.values)
-    item = CustomizationRecord(module_api_name=module_api_name, owner_user_id=data.owner_user_id, values_json=data.values, created_by=current_user.id)
+    item = CustomizationRecord(module_api_name=module_api_name, owner_user_id=data.owner_user_id or current_user.id, values_json=data.values, created_by=current_user.id)
     db.add(item)
     db.flush()
     for field in db.query(CustomizationField).filter(CustomizationField.module_name == module_api_name).all():
@@ -485,7 +487,8 @@ def update_dynamic_record(module_api_name: str, record_id: int, data: DynamicRec
     validate_record_payload(db, module_api_name, data.values, record_id)
     before = _serialize(item)
     item.values_json = data.values
-    item.owner_user_id = data.owner_user_id
+    if data.owner_user_id is not None:
+        item.owner_user_id = data.owner_user_id
     item.updated_by = current_user.id
     _audit(db, current_user, "dynamic_record", item.id, "updated", before=before, after={"module": module_api_name, "values": data.values})
     db.commit()

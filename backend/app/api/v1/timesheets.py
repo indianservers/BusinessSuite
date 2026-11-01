@@ -59,7 +59,8 @@ def create_project(
 ):
     if db.query(Project).filter(Project.code == data.code).first():
         raise HTTPException(status_code=400, detail="Project code already exists")
-    project = Project(**data.model_dump(), created_by=current_user.id)
+    from app.apps.srm.services.commercial import tenant
+    project = Project(**data.model_dump(), created_by=current_user.id, organization_id=tenant(current_user))
     db.add(project)
     db.commit()
     db.refresh(project)

@@ -950,3 +950,10 @@
 .pa-template-panel p {
   color: #81708e;
 }
+
+.pa-sidebar nav.pa-categorized-navigation { display: block; overflow: auto; min-height: 0; }
+.pa-categorized-navigation .module-menu { padding: 0; }
+.pa-sidebar .pa-categorized-navigation .module-menu-heading { padding: 7px 8px; white-space: normal; font-size: 12px; }
+.pa-sidebar .pa-categorized-navigation .module-menu-toolbar button { padding: 0; width: 28px; height: 28px; }
+.pa-sidebar .pa-categorized-navigation .module-menu-search button { padding: 4px; }
+@media (max-width: 600px) { .pa-sidebar nav.pa-categorized-navigation { max-height: 290px; } }

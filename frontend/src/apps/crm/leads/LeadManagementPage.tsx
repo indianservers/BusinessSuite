@@ -5,6 +5,7 @@ import { RichTextField, RichTextContent, richTextPlainText } from "@/components/
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
+  UserRound, UserRoundPlus, Zap, BarChart3, Target, Flag, FileText, ChevronRight, Building2,
   ArrowRight,
   Check,
   Download,
@@ -1111,22 +1112,30 @@ export function CaptureDialog({
     )
       close();
   };
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) dismiss();
-      }}
-    >
-      <DialogContent className="lm-dialog">
-        <DialogTitle>Capture a new lead</DialogTitle>
-        <p>
-          Start with a name. Add qualification details as the conversation
-          develops.
-        </p>
-        <form
+  const [step, setStep] = useState(0);
+  const priority = values.capture_priority || "Medium";
+  const setPriority = (priority: string) => setValues(v => ({...v, capture_priority: priority}));
+  const update = (name: string, value: string) => setValues(v => ({...v, [name]: value}));
+  const field = (name: string, label: string, placeholder = "", type = "text") => <label className="lead-create-field">{label}<span className="lead-create-control"><UserRound size={19}/><input aria-label={label} autoFocus={name === "full_name"} required={name === "full_name"} type={type} maxLength={name === "full_name" ? 220 : 180} placeholder={placeholder} value={values[name] || ""} onChange={e => update(name, e.target.value)}/></span></label>;
+  return <Dialog open onOpenChange={open => {if (!open) dismiss();}}>
+    <DialogContent className="lead-create-dialog" overlayClassName="lead-create-overlay">
+      <aside className="lead-create-aside">
+        <div className="lead-create-emblem"><UserRoundPlus size={34}/></div>
+        <DialogTitle>Create New Lead</DialogTitle>
+        <p className="lead-create-intro">Capture potential business opportunities and start the conversation.</p>
+        <div className="lead-create-benefits">{[[Zap, "Quick & Easy", "Add essential details in seconds"], [Users, "Organize Better", "Keep all lead information in one place"], [BarChart3, "Convert Faster", "Track and move leads through pipeline"]].map(([Icon, title, text]) => {const Glyph = Icon as typeof Zap; return <div key={String(title)}><span><Glyph size={28}/></span><p><strong>{String(title)}</strong><small>{String(text)}</small></p></div>;})}</div>
+        <div className="lead-create-art" aria-hidden="true">
+          <div className="lead-art-card"><UserRound size={32}/><i/><i/><i/></div>
+          <div className="lead-art-chart"><BarChart3 size={43}/></div>
+          <div className="lead-art-target"><div><div><div/></div></div></div>
+          <div className="lead-art-arrow"><span/><i/></div>
+          <div className="lead-art-check"><Check size={29}/></div>
+        </div>
+      </aside>
+      <form className="lead-create-main"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (step < 3) { setStep(step + 1); return; }
             setSaving(true);
             setError("");
             try {
@@ -1134,8 +1143,9 @@ export function CaptureDialog({
                 values: Object.fromEntries(
                   Object.entries({
                     ...values,
+                    notes: [values.notes, `Priority: ${priority}`].filter(Boolean).join("\n"),
                     owner_user_id: values.owner_user_id ?? defaultOwner,
-                  }).filter(([, value]) => value !== ""),
+                  }).filter(([name, value]) => value !== "" && name !== "capture_priority"),
                 ),
               });
               sessionStorage.removeItem(key);
@@ -1147,111 +1157,28 @@ export function CaptureDialog({
             }
           }}
         >
-          <div className="lm-form-grid">
-            <Field label="Assign to employee">
-              <select
-                value={values.owner_user_id ?? defaultOwner}
-                onChange={(e) =>
-                  setValues((v) => ({ ...v, owner_user_id: e.target.value }))
-                }
-              >
-                <option value="">
-                  {automaticRouting
-                    ? "Use automatic assignment rules"
-                    : "Assign to me"}
-                </option>
-                {bootstrap.owners.map((owner) => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            {[
-              ["full_name", "Full name *"],
-              ["company_name", "Company"],
-              ["email", "Email"],
-              ["source", "Lead source"],
-            ].map(([name, label]) => (
-              <Field key={name} label={label}>
-                <input
-                  autoFocus={name === "full_name"}
-                  required={name === "full_name"}
-                  type={
-                    name === "email"
-                      ? "email"
-                      : name === "phone"
-                        ? "tel"
-                        : "text"
-                  }
-                  value={values[name] || ""}
-                  maxLength={
-                    name === "full_name"
-                      ? 220
-                      : name === "email"
-                        ? 150
-                        : name === "phone"
-                          ? 40
-                          : 180
-                  }
-                  onChange={(e) =>
-                    setValues((current) => ({
-                      ...current,
-                      [name]: e.target.value,
-                    }))
-                  }
-                />
-              </Field>
-            ))}
-            <Field label="Phone">
-              <PhoneInput
-                value={values.phone || ""}
-                countryCode={values.phone_country_code || ""}
-                onChange={(phone) => setValues((v) => ({ ...v, phone }))}
-                onCountryCodeChange={(phone_country_code) =>
-                  setValues((v) => ({ ...v, phone_country_code }))
-                }
-              />
-            </Field>
+
+          <nav className="lead-create-steps" aria-label="Lead creation progress">{["Basic Details", "Contact Info", "Company Details", "Additional"].map((title, index) => <React.Fragment key={title}>{index > 0 && <ChevronRight size={14}/>}<button type="button" disabled={index > step} onClick={() => setStep(index)} aria-current={step === index ? "step" : undefined}><span>{index < step ? <Check size={16}/> : index + 1}</span>{title}</button></React.Fragment>)}</nav>
+          <div className="lead-create-body">
+            <h3>{["Basic Information", "Contact Information", "Company Details", "Additional Information"][step]}</h3>
+            <p className="lead-create-subtitle">{["Start with the essential details about this lead.", "Add contact details to keep the conversation going.", "Tell us about the business behind this opportunity.", "Choose who will take this opportunity forward."][step]}</p>
+            {step === 0 && <div className="lead-create-grid">
+              {field("full_name", "Lead Name *", "e.g. John Smith")}
+              <label className="lead-create-field">Lead Source <b>*</b><span className="lead-create-control"><Target size={20}/><select required value={values.source || "Manual"} onChange={e => update("source", e.target.value)}>{[...new Set(["Manual", "Website", "Referral", "Social Media", "Email", "Phone", "Event", ...(values.source ? [values.source] : [])])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</select></span></label>
+              <label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><select value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</select></span></label>
+              <label className="lead-create-field">Priority<span className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><select value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</select></span></label>
+              <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label>
+            </div>}
+            {step === 1 && <div className="lead-create-grid">{field("email", "Email", "e.g. john@company.com", "email")}<label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{field("job_title", "Job Title", "e.g. Sales Manager")}</div>}
+            {step === 2 && <div className="lead-create-grid">{field("company_name", "Company", "Company name")}{field("industry", "Industry", "e.g. Technology")}{field("city", "City")}{field("country", "Country")}</div>}
+            {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><select value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</select></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}</>}
+            {duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
+            {error && <ErrorNotice message={error}/>}
           </div>
-          {!!bootstrap.unavailableEmployees?.length && (
-            <details className="lm-help">
-              <summary>
-                Employees missing CRM access (
-                {bootstrap.unavailableEmployees.length})
-              </summary>
-              <ul>
-                {bootstrap.unavailableEmployees.map((employee) => (
-                  <li key={employee.employeeId}>
-                    {employee.name} ({employee.employeeCode}): {employee.reason}
-                  </li>
-                ))}
-              </ul>
-              <p>
-                Link an active login and grant CRM lead access before assigning
-                these employees.
-              </p>
-            </details>
-          )}
-          {duplicate?.matched&&<div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item=><p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}{!duplicate.items.length&&<p>The matching record is outside your scope. Ask your sales manager to review it.</p>}</div>}
-          {error && <ErrorNotice message={error} />}
-          <div className="lm-dialog-actions">
-            <span>
-              {saving ? "Saving…" : "Draft saved in this browser session"}
-            </span>
-            <Button type="submit" disabled={saving||!!duplicate?.matched&&bootstrap.settings.preventDuplicates}>
-              {saving ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Check size={16} />
-              )}
-              Create lead
-            </Button>
-          </div>
+          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}<Button type="submit" disabled={saving || (step === 3 && !!duplicate?.matched && bootstrap.settings.preventDuplicates)}>{saving ? "Saving…" : step === 3 ? "Create lead" : "Next"}<ArrowRight size={19}/></Button></div></footer>
         </form>
-      </DialogContent>
-    </Dialog>
-  );
+    </DialogContent>
+  </Dialog>;
 }
 
 export function LeadDrawer({

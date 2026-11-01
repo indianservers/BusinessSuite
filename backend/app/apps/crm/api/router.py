@@ -3193,7 +3193,51 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int, us
     return related
 
 
+def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: int, current_user: User, record=None) -> None:
+    if "catalog_items" not in data:
+        return
+    lines = data["catalog_items"]
+    if not isinstance(lines, list) or len(lines) > 100:
+        raise HTTPException(422, "Supply at most 100 product/service lines")
+    normalized = []
+    total = Decimal("0")
+    currency = data.get("currency") or getattr(record, "currency", None) or "INR"
+    for line in lines:
+        if not isinstance(line, dict) or line.get("kind") not in {"product", "service"}:
+            raise HTTPException(422, "Each line must select a product or service")
+        try:
+            item_id = int(line["item_id"])
+            quantity = Decimal(str(line["quantity"]))
+            price = Decimal(str(line["unit_price"]))
+            discount = Decimal(str(line.get("discount", 0)))
+            if not all(v.is_finite() for v in (quantity, price, discount)) or quantity < 1 or quantity != quantity.to_integral_value() or quantity > 1000000 or price < 0 or price > Decimal("9999999999.99") or not 0 <= discount <= 100:
+                raise ValueError()
+        except (KeyError, TypeError, ValueError, ArithmeticError):
+            raise HTTPException(422, "Invalid line price, quantity, or discount")
+        entity = "products" if line["kind"] == "product" else "services"
+        resource = _get_resource(entity)
+        item = _get_record(db, resource, item_id, organization_id)
+        _assert_record_visible(db, resource, item_id, organization_id, current_user)
+        existing = next((entry for entry in (getattr(record, "catalog_items", None) or []) if entry["kind"] == line["kind"] and entry["item_id"] == item_id), None)
+        if not existing and (not item.active or str(getattr(item, "status", "Active")).lower() == "inactive"):
+            raise HTTPException(422, "Select an active catalog item")
+        if (getattr(item, "currency", None) or "INR") != currency:
+            raise HTTPException(422, "Catalog item currency must match the deal currency")
+        price = price.quantize(Decimal("0.01"))
+        line_total = (price * quantity * (1 - discount / 100)).quantize(Decimal("0.01"))
+        normalized.append({"kind": line["kind"], "item_id": item_id, "name": item.name, "quantity": int(quantity), "unit_price": float(price), "discount": float(discount), "total_amount": float(line_total), "currency": currency})
+        total += line_total
+    if total > Decimal("9999999999.99"):
+        raise HTTPException(422, "Deal total exceeds the supported amount")
+    data["catalog_items"] = normalized
+    if lines:
+        data["amount"] = total
+
+
 def _deal_products_for(db: Session, deal_id: int, organization_id: int) -> list[dict[str, Any]]:
+    deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
+    if deal.catalog_items is not None:
+        return deal.catalog_items
     deal_products = db.query(CRMDealProduct).filter(CRMDealProduct.deal_id == deal_id).limit(50).all()
     product_ids = [item.product_id for item in deal_products if item.product_id]
     products = {
@@ -7788,6 +7832,7 @@ def import_records(
                 data["updated_by_user_id"] = current_user.id
             _validate_related_records(db, data, organization_id)
             if resource.model is CRMDeal:
+                _validate_deal_catalog(db, data, organization_id, current_user)
                 _validate_deal_pipeline_stage(db, data.get("pipeline_id"), data.get("stage_id"), organization_id)
             record = resource.model(**data)
             db.add(record)
@@ -8283,6 +8328,7 @@ def create_record(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Custom field key already exists for this entity")
     _validate_related_records(db, data, organization_id)
     if resource.model is CRMDeal:
+        _validate_deal_catalog(db, data, organization_id, current_user)
         _validate_deal_pipeline_stage(db, data.get("pipeline_id"), data.get("stage_id"), organization_id)
     if resource.owner_field and resource.owner_field in columns and not data.get(resource.owner_field):
         data[resource.owner_field] = current_user.id
@@ -8389,6 +8435,7 @@ def update_record(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Custom field key already exists for this entity")
     _validate_related_records(db, data, organization_id)
     if resource.model is CRMDeal:
+        _validate_deal_catalog(db, data, organization_id, current_user, record)
         _validate_deal_pipeline_stage(db, data.get("pipeline_id", record.pipeline_id), data.get("stage_id", record.stage_id), organization_id)
         from app.apps.crm.productivity import stage_requirements
         stage = db.get(CRMPipelineStage,data.get("stage_id",record.stage_id))

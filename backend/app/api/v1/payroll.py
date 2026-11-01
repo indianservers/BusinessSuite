@@ -325,9 +325,8 @@ def _can_view_other_payslips(user: User) -> bool:
 
 
 def _current_company_id(user: User) -> Optional[int]:
-    if user.employee and user.employee.branch:
-        return user.employee.branch.company_id
-    return None
+    from app.apps.srm.services.commercial import tenant
+    return tenant(user)
 
 
 def _locked_period(

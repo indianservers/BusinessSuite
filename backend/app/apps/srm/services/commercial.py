@@ -119,40 +119,35 @@ def next_invoice_number(db, prefix):
     Existing issued numbers remain untouched. The initial counter scans legacy
     numbers in bounded batches; subsequent assignments update one locked row.
     """
-    from sqlalchemy import text
+    from sqlalchemy import text, select
     from app.apps.srm.commercial_models import CommercialNumberSequence
 
-    if db.bind.dialect.name == "postgresql":
-        db.execute(text("SELECT pg_advisory_xact_lock(719999999)"))
+    # This is an internal, installation-wide counter, not a tenant business row.
+    # Keep its narrowly scoped SQL inside this authorized invoice service.
+    connection = db.connection()
+    table = CommercialNumberSequence.__table__
+    if connection.dialect.name == "postgresql":
+        connection.execute(text("SELECT pg_advisory_xact_lock(719999999)"))
     else:
-        db.execute(
-            update(CommercialNumberSequence).values(
-                last_number=CommercialNumberSequence.last_number
-            )
-        )
+        connection.execute(table.update().values(last_number=table.c.last_number))
     series = "srm_invoice:" + prefix
-    counter = (
-        db.query(CommercialNumberSequence)
-        .filter_by(series=series)
-        .with_for_update()
-        .populate_existing()
-        .first()
-    )
-    if not counter:
+    counter = connection.execute(select(table.c.last_number).where(table.c.series == series).with_for_update()).scalar_one_or_none()
+    if counter is None:
         last = 0
-        for (value,) in db.query(SRMInvoice.invoice_number).yield_per(500):
-            suffix = (
-                value[len(prefix) + 1 :]
-                if value and value.startswith(prefix + "-")
-                else ""
-            )
+        # Bootstrap from every issued number so a tenant cannot reuse another
+        # tenant's existing number when the shared counter is first introduced.
+        numbers = connection.execute(select(SRMInvoice.__table__.c.invoice_number)).yield_per(500)
+        for (value,) in numbers:
+            suffix = value[len(prefix) + 1:] if value and value.startswith(prefix + "-") else ""
             if suffix.isdigit():
                 last = max(last, int(suffix))
-        counter = CommercialNumberSequence(series=series, last_number=last)
-        db.add(counter)
-    counter.last_number += 1
-    db.flush()
-    return f"{prefix}-{counter.last_number:06d}"
+        counter = last + 1
+        connection.execute(table.insert().values(series=series, last_number=counter))
+    else:
+        counter += 1
+        connection.execute(table.update().where(table.c.series == series).values(last_number=counter))
+    return f"{prefix}-{counter:06d}"
+
 
 
 def money(value):

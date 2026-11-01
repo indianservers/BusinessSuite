@@ -83,7 +83,13 @@ def test_approved_form_becomes_complete_profile_intern_portal_and_shared_identit
     designation = Designation(name="Profile Intern", department_id=department.id)
     db.add(designation)
     db.flush()
+    manager_role = Role(name="hr", is_system=True)
+    manager_account = User(email="profile-manager@example.com", hashed_password="unused", is_active=True, role=manager_role)
+    db.add(manager_account)
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, manager_account)
     manager = Employee(
+        user=manager_account,
         employee_id="PROFILE-MANAGER",
         first_name="HR",
         last_name="Manager",

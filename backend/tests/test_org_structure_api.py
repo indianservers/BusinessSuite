@@ -114,6 +114,8 @@ def test_org_structure_get_all_allows_any_authenticated_user(client, db, superus
         role_id=role.id,
     )
     db.add(user)
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, user, company.id)
     db.commit()
 
     headers = _login(client, "plain.employee@test.com", "User@123456")

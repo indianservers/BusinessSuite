@@ -592,10 +592,28 @@
   white-space: nowrap;
 }
 .tr-person {
+  min-width: 0;
   display: flex;
   gap: 9px;
   align-items: center;
   white-space: nowrap;
+}
+.tr-assignee-stack {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.tr-assignee-stack .tr-avatar + .tr-avatar {
+  margin-left: -8px;
+}
+.tr-person-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-task-card footer .tr-person-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .tr-avatar {
   width: 26px;
@@ -1413,4 +1431,40 @@
 }
 .tr-activity strong {
   overflow-wrap: anywhere;
+}
+
+.tr-quick-preview {
+  font-size: 10px !important;
+  display: inline-flex;
+  padding: 3px 7px;
+  margin: 4px 0 0 8px;
+  border: 1px solid #e4dafb !important;
+  border-radius: 5px;
+  color: #8051dc !important;
+  background: #faf7ff;
+}
+.tr-preview-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  margin-top: 20px;
+}
+.tr-preview-summary .suite-rich-text {
+  max-height: 200px;
+  overflow: auto;
+}
+.tr-task-title {
+  cursor: pointer;
+}
+
+.tr-task-card .tr-quick-preview {
+  align-self: flex-start;
+  margin-left: 0;
+}
+
+/* Match the shared navigation drawer breakpoint and stacking. */
+@media (max-width: 1023px) {
+  .pms-task-reference .tr-mobile { display: block; }
+  .pms-task-reference .tr-scrim { position: fixed; inset: 0; background: #21183566; z-index: 34; }
 }

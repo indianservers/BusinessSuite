@@ -74,7 +74,7 @@ def test_report_schedule_creation_and_manual_run(client, db):
         "report_definition_id": definition.json()["id"],
         "name": "Monthly active employee export",
         "cron_expression": "0 9 1 * *",
-        "recipients_json": ["hr@example.com"],
+        "recipients_json": ["admin@aihrms.com"],
     }, headers=headers)
     assert schedule.status_code == 201
     assert schedule.json()["status"] == "Active"

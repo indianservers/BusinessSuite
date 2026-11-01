@@ -43,5 +43,9 @@ def test_shared_assignment_roundtrip_access_filters_and_workload(client, db):
     assert client.patch(f"{BASE}/tasks/{tid}", json={"start_date": "2026-11-01"}, headers=headers).status_code == 422
     client.patch(f"{BASE}/tasks/{tid}", json={"assignee_user_ids": [owner.id, member.id]}, headers=headers)
     membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=member.id).one()
+    # Role reduction must not silently discard an active collaborator's work.
+    assert client.patch(f"{BASE}/workspaces/{wid}/members/{membership.id}", json={"role": "Guest"}, headers=headers).status_code == 409
+    reassigned = client.patch(f"{BASE}/tasks/{tid}", json={"assignee_user_ids": [owner.id]}, headers=headers)
+    assert reassigned.status_code == 200, reassigned.text
     assert client.patch(f"{BASE}/workspaces/{wid}/members/{membership.id}", json={"role": "Guest"}, headers=headers).status_code == 200
     assert client.get(f"{BASE}/tasks/{tid}", headers=headers).json()["assignee_user_ids"] == [owner.id]

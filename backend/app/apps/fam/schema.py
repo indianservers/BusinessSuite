@@ -80,9 +80,12 @@ def ensure_fam_seed_data(db: Session, company_id: int = 1) -> None:
         db.add(FAMFinancialYear(company_id=company_id, name="FY 2026-27", start_date=date(2026, 4, 1), end_date=date(2027, 3, 31), status="open", is_current=True))
         db.flush()
 
-    groups_by_code: dict[str, FAMLedgerGroup] = {}
+    groups_by_code = {group.group_code: group for group in db.query(FAMLedgerGroup).filter(
+        FAMLedgerGroup.company_id == company_id,
+        FAMLedgerGroup.group_code.in_([row[1] for row in SYSTEM_LEDGER_GROUPS]),
+    ).all()}
     for name, code, nature, parent_code, sequence in SYSTEM_LEDGER_GROUPS:
-        group = db.query(FAMLedgerGroup).filter(FAMLedgerGroup.company_id == company_id, FAMLedgerGroup.group_code == code).first()
+        group = groups_by_code.get(code)
         if not group:
             group = FAMLedgerGroup(company_id=company_id, group_name=name, group_code=code, nature=nature, system_group=True, sequence_order=sequence, active=True)
             db.add(group)
@@ -92,9 +95,11 @@ def ensure_fam_seed_data(db: Session, company_id: int = 1) -> None:
         if parent_code and groups_by_code[code].parent_group_id != groups_by_code[parent_code].id:
             groups_by_code[code].parent_group_id = groups_by_code[parent_code].id
 
+    ledger_codes = {row[0] for row in db.query(FAMLedger.ledger_code).filter(
+        FAMLedger.company_id == company_id, FAMLedger.ledger_code.in_([row[0] for row in DEFAULT_LEDGERS]),
+    ).all()}
     for code, name, group_code, nature, ledger_type in DEFAULT_LEDGERS:
-        ledger = db.query(FAMLedger).filter(FAMLedger.company_id == company_id, FAMLedger.ledger_code == code).first()
-        if not ledger:
+        if code not in ledger_codes:
             db.add(
                 FAMLedger(
                     company_id=company_id,
@@ -112,9 +117,11 @@ def ensure_fam_seed_data(db: Session, company_id: int = 1) -> None:
                     system_ledger=True,
                 )
             )
+    voucher_codes = {row[0] for row in db.query(FAMVoucherType.voucher_type_code).filter(
+        FAMVoucherType.company_id == company_id, FAMVoucherType.voucher_type_code.in_([row[0] for row in SYSTEM_VOUCHER_TYPES]),
+    ).all()}
     for code, name, category, prefix in SYSTEM_VOUCHER_TYPES:
-        voucher_type = db.query(FAMVoucherType).filter(FAMVoucherType.company_id == company_id, FAMVoucherType.voucher_type_code == code).first()
-        if not voucher_type:
+        if code not in voucher_codes:
             db.add(
                 FAMVoucherType(
                     company_id=company_id,

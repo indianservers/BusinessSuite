@@ -10,6 +10,7 @@ def test_access_returns_names_only_for_member_companies(client, db, superuser_he
     actor = db.query(User).filter_by(email="testadmin@test.com").one()
     if not db.get(Company, 1): db.add(Company(id=1, name="Primary", is_active=True))
     db.add_all([Company(id=20, name="Member company", is_active=True), Company(id=21, name="Private company", is_active=True)])
+    db.flush()
     db.add(AccessMembership(user_id=actor.id, company_id=20, active=True))
     db.commit()
     result = client.get("/api/v1/access/me", headers=superuser_headers)
@@ -41,7 +42,9 @@ def test_notification_summary_requires_authentication(client):
 
 
 def test_company_names_are_available_to_regular_members_across_their_workspaces(client, db):
-    db.add_all([Company(id=1, name="Primary member company", is_active=True), Company(id=20, name="Second member company", is_active=True), Company(id=21, name="Inactive membership", is_active=True)])
+    primary = db.get(Company, 1)
+    primary.name = "Primary member company"
+    db.add_all([Company(id=20, name="Second member company", is_active=True), Company(id=21, name="Inactive membership", is_active=True)])
     actor = User(email="member-nav@example.com", hashed_password="unused", is_active=True,
                  person=CommonPerson(organization_id=1, primary_email="member-nav@example.com", display_name="Member"))
     db.add(actor); db.flush()

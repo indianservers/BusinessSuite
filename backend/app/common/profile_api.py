@@ -241,6 +241,8 @@ def email_candidates(db, target, actor):
 def connect_preview(
     user_id: int, db: Session = Depends(get_db), actor: User = Depends(get_current_user)
 ):
+    if not service.can_manage(actor):
+        raise HTTPException(403, "HR profile management access required")
     target = service.authorized_user(db, actor, user_id, write=True)
     rows = email_candidates(db, target, actor)
     return {
@@ -270,6 +272,8 @@ def connect_email(
     db: Session = Depends(get_db),
     actor: User = Depends(get_current_user),
 ):
+    if not service.can_manage(actor):
+        raise HTTPException(403, "HR profile management access required")
     target = service.authorized_user(db, actor, user_id, write=True)
     db.refresh(target, with_for_update=True)
     employee = (

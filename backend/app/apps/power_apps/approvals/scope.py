@@ -137,6 +137,7 @@ def domain_write(db, item, user, company):
         return False
     from app.models.approval_os import ApprovalRequest, ApprovalHistory, ApprovalComment
     from app.models.notification import Notification, NotificationDeliveryLog
+    from app.models.email_outbox import EmailOutbox
     from app.apps.power_apps.models import (
         PowerResource,
         PowerVersion,
@@ -161,6 +162,7 @@ def domain_write(db, item, user, company):
             ApprovalComment,
             Notification,
             NotificationDeliveryLog,
+            EmailOutbox,
             PowerResource,
             PowerVersion,
             PowerExecution,

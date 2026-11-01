@@ -1,0 +1,191 @@
+{
+  "status": "local_regression_checkpoint_complete_manual_ui_coverage_partial",
+  "target": "http://127.0.0.1:5190",
+  "inventory": {
+    "route_declarations": 639,
+    "control_declarations": 6221,
+    "client_api_calls": 2118,
+    "backend_operations": 2679
+  },
+  "live_public_browser_checks": [
+    {
+      "check": "Application search filters to Finance",
+      "status": "passed"
+    },
+    {
+      "check": "Unknown application search shows an empty state",
+      "status": "passed"
+    },
+    {
+      "check": "Show all applications restores the module cards",
+      "status": "passed"
+    },
+    {
+      "check": "Sign-in navigation opens the login form",
+      "status": "passed"
+    },
+    {
+      "check": "Empty sign-in shows email and password validation",
+      "status": "passed"
+    },
+    {
+      "check": "Help page renders with sign-in/app navigation",
+      "status": "passed"
+    },
+    {
+      "check": "Forgot password opens recovery",
+      "status": "passed"
+    },
+    {
+      "check": "Empty recovery email is blocked by required-field validation",
+      "status": "passed"
+    },
+    {
+      "check": "Back to login restores the login form",
+      "status": "passed"
+    },
+    {
+      "check": "Show/hide password toggles and restores its state",
+      "status": "passed"
+    },
+    {
+      "check": "Keep me signed in checkbox toggles and restores its state",
+      "status": "passed"
+    },
+    {
+      "check": "Explore applications returns to the directory",
+      "status": "passed"
+    },
+    {
+      "check": "Ctrl+K focuses application search",
+      "status": "passed"
+    }
+  ],
+  "protected_live_browser_checks": "User signed in. Checked task quick preview, full-page forms and task sections; CRM lead capture validation, board and targets; HR employee dialogs and directory; Finance ledgers; inventory empty state; Power Apps automations. Power Apps Forms is an explicit roadmap placeholder. Loading-only visits are not passes.",
+  "fixes": [
+    {
+      "issue": "Initialized AI agent catalog reads dirty protected global records and fail for ordinary users",
+      "state": "fixed locally; focused PostgreSQL tests passed"
+    },
+    {
+      "issue": "AI provider-setting events without parent runs disappear from company-scoped history",
+      "state": "fixed locally with explicit organization ownership and additive migrations; focused PostgreSQL tests passed"
+    }
+  ],
+  "production_changes_this_phase": "General-task workspace selection invoked the existing general-scope endpoint. No live task, comment, assignment, approval, financial posting or workflow execution was saved.",
+  "full_test_run": "Initial broad run stopped at 25 failures; complete suite is not certified. Ordinary workflow fixtures were updated to supply verified company identity and explicit cross-company isolation.",
+  "pending": [
+    "Complete remaining route/control interactions and API workflows",
+    "Review remaining full-suite failures",
+    "Deploy and verify the local fixes after validation"
+  ],
+  "isolated_browser_workflows": "Task creation, Start Work, 25% progress with 15 minutes logged, checklist creation/completion, follow-up persistence, discussion posting, review submission/approval to Done at 100%, multi-person assignment, and dashboard cross-module search passed.",
+  "latest_validation": "Production build passed. 42 ownership/migration/company-boundary checks, 33 AI extension/background-job checks, 1 MFA listing regression, 289 frontend validation checks and 102 navigation checks passed. Full suite and PMS workflow runs are in progress.",
+  "deployment_constraint": "User explicitly requested local testing only. Do not push or deploy until requested later.",
+  "additional_local_fixes": "Cross-module dashboard search; explicit company ownership for AI runs/drafts/feedback; duplicate feedback rating argument; invalid UTF-8 UI text. Ambiguous historical AI ownership fails closed, including for company 1. Not deployed.",
+  "focused_postgresql_checks": {
+    "passed": 36,
+    "failed": 0,
+    "complete_suite": false
+  },
+  "local_only": true,
+  "push_or_deploy_performed": false,
+  "local_regression_receipts": {
+    "ownership-regression.xml": {
+      "tests": 42,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "background-ai.xml": {
+      "tests": 33,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "communication-final.xml": {
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "scope-final.xml": {
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "deploy-final.xml": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "finance-recheck.xml": {
+      "tests": 15,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "realtime-scope.xml": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "hr-final.xml": {
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "actor-scope.xml": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "frontend_build": "passed: final TypeScript/Vite production build",
+  "entire_app_certified": false,
+  "remaining": "Full manual UI/control, dynamic API and drag-and-drop coverage; deferred server/Vercel testing. No whole-app bug-free certification.",
+  "interrupted_runs": [
+    "resume-5 (stopped before JUnit receipt; not counted)"
+  ],
+  "tests": {
+    "qualification": "Latest per-case evidence across separate local runs, not one fresh full-suite pass. Re-run affected cases after changing covered code.",
+    "collected": 2250,
+    "latest_status_counts": {
+      "passed": 2247,
+      "failed": 0,
+      "skipped": 3
+    },
+    "unvisited": [],
+    "failed": [],
+    "skipped": [
+      {
+        "nodeid": "tests/test_control_browser.py::test_control_center_real_browser",
+        "status": "skipped",
+        "receipt": "tail1.xml"
+      },
+      {
+        "nodeid": "tests/test_enterprise_browser.py::test_real_enterprise_browser",
+        "status": "skipped",
+        "receipt": "tail0.xml"
+      },
+      {
+        "nodeid": "tests/test_shared_browser.py::test_real_shared_workflow_editor_and_delivery",
+        "status": "skipped",
+        "receipt": "tail1.xml"
+      }
+    ]
+  },
+  "postgresql_migration_head_tested": "pg_20261101_052_timesheet_tenant",
+  "frontend_validation_checks_passed": 289,
+  "literal_client_api_calls": {
+    "matched": 895,
+    "unmatched": 0
+  },
+  "enterprise_scale_profile": "passed: 10000 users, 100 companies, 10000 leads",
+  "automation_load": "passed: 10/50/100/500/1000 jobs, 8 workers, zero errors"
+}

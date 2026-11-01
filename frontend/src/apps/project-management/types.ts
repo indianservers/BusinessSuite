@@ -198,6 +198,7 @@ export interface PMSTask {
 }
 
 export interface PMSTaskListItem extends PMSTask {
+  assignees?: Array<{ id: number; name: string; photo_url?: string | null }>;
   is_general?: boolean;
   assignee_photo_url?:string|null;
   project_name?: string;

@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from datetime import datetime, timedelta, timezone
 
 from app.core.security import get_password_hash
@@ -26,12 +27,16 @@ def _user(db, email: str, role_name: str) -> User:
         role_id=role.id,
     )
     db.add(user)
+    attach_test_identity(db, user)
     db.commit()
     db.refresh(user)
     return user
 
 
 def test_approval_os_create_inbox_decide_history_and_notification(client, db, superuser_headers):
+    requester = db.query(User).filter_by(email="testadmin@test.com").one()
+    attach_test_identity(db, requester)
+    db.commit()
     approver = _user(db, "manager-approval-os@test.com", "manager")
 
     due_at = (datetime.now(timezone.utc) + timedelta(hours=4)).isoformat()

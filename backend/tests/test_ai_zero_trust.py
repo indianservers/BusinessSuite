@@ -785,6 +785,9 @@ def test_handoff_recipient_needs_a_recheckable_source(
 ):
     headers, user, _, _, lead = secured
     root = db.query(User).filter_by(is_superuser=True).first()
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, root)
+    db.commit()
     body = {"module": "CRM", "summary": "Private handoff", "assigned_to": root.id}
     response = client.post(
         "/api/v1/ai-agents/handoff-notes", headers=headers, json=body

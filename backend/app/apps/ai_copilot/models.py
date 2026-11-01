@@ -39,6 +39,8 @@ class AIPromptTemplate(Base):
 class AIPromptRun(Base):
     __tablename__ = "ai_prompt_runs"
 
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+
     id = Column(Integer, primary_key=True, index=True)
     use_case = Column(String(80), nullable=False, index=True)
     provider = Column(String(80), index=True)
@@ -105,6 +107,8 @@ class AIRecommendation(Base):
 class AIAgentAction(Base):
     __tablename__ = "ai_agent_actions"
 
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+
     id = Column(Integer, primary_key=True, index=True)
     prompt_run_id = Column(Integer, ForeignKey("ai_prompt_runs.id", ondelete="SET NULL"), nullable=True, index=True)
     action_type = Column(String(80), nullable=False, index=True)
@@ -124,6 +128,8 @@ class AIAgentAction(Base):
 class AIActionLog(Base):
     __tablename__ = "ai_action_logs"
 
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
+
     id = Column(Integer, primary_key=True, index=True)
     prompt_run_id = Column(Integer, ForeignKey("ai_prompt_runs.id", ondelete="SET NULL"), nullable=True, index=True)
     agent_action_id = Column(Integer, ForeignKey("ai_agent_actions.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -140,6 +146,8 @@ class AIActionLog(Base):
 
 class AIUserFeedback(Base):
     __tablename__ = "ai_user_feedback"
+
+    organization_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True)
 
     id = Column(Integer, primary_key=True, index=True)
     prompt_run_id = Column(Integer, ForeignKey("ai_prompt_runs.id", ondelete="SET NULL"), nullable=True, index=True)

@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
 
@@ -15,6 +16,7 @@ def _headers_for_permissions(client, db, email: str, permissions: list[str]):
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Sales@123456"), is_active=True, role_id=role.id)
     db.add(user)
+    attach_test_identity(db, user)
     db.commit()
     login = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
     assert login.status_code == 200

@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
 
@@ -19,7 +20,7 @@ AI_PERMISSIONS = [
 ]
 
 
-def auth_headers(client, db, email: str = "ai-admin@example.com", permissions: list[str] | None = None, role_name: str | None = None):
+def auth_headers(client, db, email: str = "ai-admin@example.com", permissions: list[str] | None = None, role_name: str | None = None, company_id: int = 1):
     from app.models.company import Company
     if not db.get(Company,1):
         db.add(Company(id=1,name="AI Test Company")); db.flush()
@@ -35,6 +36,9 @@ def auth_headers(client, db, email: str = "ai-admin@example.com", permissions: l
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
+    attach_test_identity(db, user, company_id)
+    from app.ai_agents.services.registry import AiAgentRegistryService
+    AiAgentRegistryService(db).ensure_seed_data()
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text

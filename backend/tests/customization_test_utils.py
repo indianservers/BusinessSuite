@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
 
@@ -27,6 +28,7 @@ def customization_headers(client, db, email: str = "customization-admin@example.
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
+    attach_test_identity(db, user)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text

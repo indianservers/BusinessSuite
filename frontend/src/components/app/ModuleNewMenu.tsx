@@ -25,6 +25,8 @@ export default function ModuleNewMenu() {
     const manages = privileged || ["crm_super_admin", "crm_org_admin", "crm_sales_manager", "crm_sales_executive"].includes(role);
     const quick=(label:string,type:string,icon:NewAction["icon"],path:string)=>{if(manages&&canAccessRoute(path,user?.role,user?.is_superuser))actions.push({label,description:`Quick capture ${label.toLowerCase()}`,icon,onSelect:()=>setCRMQuick(type)});};
     quick("Lead","lead",UserPlus,"/crm/leads");quick("Contact","contact",Users,"/crm/contacts");quick("Customer company","company",Building2,"/crm/companies");quick("Deal","deal",Wallet,"/crm/deals");quick("Task","task",CheckCircle2,"/crm/tasks");quick("Activity","activity",CalendarDays,"/crm/activities");
+    add("Product", "Manage the CRM product catalog", ShoppingBag, "/crm/products?new=products", manages);
+    add("Service", "Manage the CRM service catalog", ShoppingBag, "/crm/services?new=services", manages);
     add("Support ticket", "Record a customer support request", LifeBuoy, "/crm/tickets?new=tickets", manages || role === "crm_support_agent");
     add("Campaign", "Plan a marketing campaign", CalendarDays, "/crm/campaigns?new=campaigns", privileged || ["crm_super_admin", "crm_org_admin", "crm_marketing_user"].includes(role));
   } else if (pathname.startsWith("/srm")) {

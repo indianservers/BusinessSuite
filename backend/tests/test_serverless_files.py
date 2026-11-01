@@ -38,15 +38,18 @@ def test_event_endpoint_rechecks_membership_after_removal(client, db, superuser_
                          json={"name": "Scoped feed", "project_key": "FEEDS", "workspace_id": workspace["id"]}).json()
     teammate = User(email="feed-member@test.local", hashed_password="unused", is_active=True)
     db.add(teammate)
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, teammate)
     db.flush()
     membership = PMSWorkspaceMember(workspace_id=workspace["id"], user_id=teammate.id, role="Member")
     db.add(membership)
     db.commit()
     headers = {"Authorization": "Bearer " + create_access_token(str(teammate.id))}
-    append_event(db, {"type": "task.updated", "projectId": project["id"], "taskId": 123})
+    task = client.post(f"{BASE}/projects/{project['id']}/tasks", headers=superuser_headers, json={"title": "Feed task", "task_key": "FEEDS-1"}).json()
+    append_event(db, {"type": "task.updated", "projectId": project["id"], "taskId": task["id"]})
     events = client.get(BASE + "/realtime/events?cursor=0", headers=headers)
     assert events.status_code == 200, events.text
-    assert any(event["taskId"] == 123 for event in events.json()["events"])
+    assert any(event["taskId"] == task["id"] for event in events.json()["events"])
     db.delete(membership)
     db.commit()
     assert client.get(BASE + "/realtime/events?cursor=0", headers=headers).json()["events"] == []

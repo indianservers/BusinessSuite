@@ -6,7 +6,7 @@ from app.apps.project_management.models import PMSTask
 
 def test_project_trash_restore_permissions_and_children(client, db):
     wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
-    outsider, xh = account(db, "trash-outsider@test.com", True)
+    outsider, xh = account(db, "trash-outsider@test.com", False)
     project_url = f"{BASE}/projects/{pid}"
     task = client.post(project_url + "/tasks", headers=oh, json={"title":"Keep child", "task_key":"KEEP-1"})
     assert task.status_code == 200, task.text

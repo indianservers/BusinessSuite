@@ -12,7 +12,7 @@ def _login(client, email: str, password: str) -> dict[str, str]:
 
 
 def _seed_payroll_record(db, employee_id: int, month: int, year: int, gross: Decimal, net: Decimal):
-    run = PayrollRun(month=month, year=year, status="Completed", total_gross=gross, total_net=net)
+    run = PayrollRun(month=month, year=year, status="Completed", total_gross=gross, total_net=net, company_id=db.get(Employee, employee_id).branch.company_id)
     db.add(run)
     db.flush()
     record = PayrollRecord(
@@ -58,7 +58,11 @@ def test_payroll_variance_and_export_batches(client, db):
     data = exported.json()
     assert data["export_type"] == "pf_ecr"
     assert data["status"] == "Generated"
-    from app.core.storage import normalize_upload_references
+    from app.core.storage import normalize_upload_references as normalize_reference
+    from app.models.user import User
+    actor = db.query(User).filter_by(email="admin@aihrms.com").one()
+    def normalize_upload_references(value):
+        return normalize_reference(value, db=db, actor_id=actor.id, company_id=employee.branch.company_id)
     assert normalize_upload_references(data["output_file_url"]).endswith("/pf_ecr.csv")
     assert data["total_records"] == 1
 
@@ -73,7 +77,7 @@ def test_payroll_lock_blocks_sensitive_mutations(client, db):
     employee_headers = _login(client, "employee@aihrms.com", "Employee@123456")
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
 
-    locked_run = PayrollRun(month=5, year=2026, status="Locked")
+    locked_run = PayrollRun(month=5, year=2026, status="Locked", company_id=employee.branch.company_id)
     db.add(locked_run)
     db.commit()
 

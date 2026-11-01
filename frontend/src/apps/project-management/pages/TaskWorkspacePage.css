@@ -55,7 +55,12 @@
   font-size: 11px;
   margin-bottom: 8px;
 }
-.tw-title input {
+.tw-title textarea {
+  field-sizing: content;
+  min-height: 0;
+  resize: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
   display: block;
   width: 100%;
   font-size: 27px;
@@ -68,7 +73,7 @@
   padding: 0;
   color: inherit;
 }
-.tw-title input:disabled {
+.tw-title textarea:disabled {
   opacity: 1;
 }
 .tw-heading-tags,
@@ -576,27 +581,6 @@
   text-align: center;
   color: #8b91aa;
 }
-.tr-quick-preview {
-  font-size: 10px !important;
-  display: inline-flex;
-  padding: 3px 7px;
-  margin: 4px 0 0 8px;
-  border: 1px solid #e4dafb !important;
-  border-radius: 5px;
-  color: #8051dc !important;
-  background: #faf7ff;
-}
-.tr-preview-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  font-size: 13px;
-  margin-top: 20px;
-}
-.tr-preview-summary .suite-rich-text {
-  max-height: 200px;
-  overflow: auto;
-}
 .tw-page .suite-rich-text {
   overflow-wrap: anywhere;
 }
@@ -607,7 +591,7 @@
   .tw-facts {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .tw-title input {
+  .tw-title textarea {
     font-size: 23px;
   }
   .tw-actionbar {
@@ -635,7 +619,7 @@
   .tw-title {
     flex-direction: column;
   }
-  .tw-title input {
+  .tw-title textarea {
     font-size: 22px;
   }
   .tw-title > .tw-buttons {
@@ -664,7 +648,7 @@
   .tw-box {
     padding: 13px;
   }
-  .tw-title input {
+  .tw-title textarea {
     font-size: 20px;
   }
   .tw-topline span {
@@ -741,9 +725,6 @@
 }
 .tw-checklist-templates {
   margin: 12px 0;
-}
-.tr-task-title {
-  cursor: pointer;
 }
 .tw-unread {
   background: #7541f5;

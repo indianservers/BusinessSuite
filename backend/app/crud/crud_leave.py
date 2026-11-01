@@ -332,6 +332,8 @@ def create_leave_request(db: Session, employee_id: int, data: dict) -> LeaveRequ
 
     employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
     company_id = employee.branch.company_id if employee and employee.branch else None
+    if company_id is None and employee and employee.user and employee.user.person:
+        company_id = employee.user.person.organization_id
 
     request = LeaveRequest(
         company_id=company_id,

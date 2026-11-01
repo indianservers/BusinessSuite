@@ -308,8 +308,17 @@ def _user_display_name(user: User | None) -> str | None:
     if not user:
         return None
     employee = getattr(user, "employee", None)
+    person = getattr(user, "person", None)
+    profile = getattr(person, "profile", None)
     employee_name = getattr(employee, "full_name", None) or getattr(employee, "name", None)
-    return employee_name or getattr(user, "email", None)
+    if not employee_name and employee:
+        employee_name = " ".join(filter(None, [employee.first_name, employee.last_name]))
+    return (
+        getattr(profile, "preferred_display_name", None)
+        or getattr(person, "display_name", None)
+        or employee_name
+        or getattr(user, "email", None)
+    )
 
 
 def _safe_attachment_name(filename: str | None) -> str:
@@ -431,6 +440,10 @@ def _task_list_payload(
         "sprint_name": sprint.name if sprint else None,
         "assignee_name": _user_display_name(assignee),
         "assignee_photo_url": _user_photo_url(assignee),
+        "assignees": [
+            {"id": uid, "name": _user_display_name(users_by_id[uid]), "photo_url": _user_photo_url(users_by_id[uid])}
+            for uid in task.assignee_user_ids if uid in users_by_id
+        ],
         "reporter_name": _user_display_name(reporter),
         "tags": tags_by_task_id.get(task.id, []),
         "subtask_count": subtask_total,
@@ -2913,6 +2926,8 @@ def create_task_operation(
     validate_recurrence(task_in.recurrence_rule, task_in.due_date, task_in.recurrence_until, task_in.recurrence_interval)
     validate_task_type(db, task_data.get("work_type") or "Task", project.organization_id)
     task_data['project_id'] = project_id
+    if task_data.get("reporter_user_id") is None:
+        task_data["reporter_user_id"] = current_user.id
     if task_data.get('status') in DONE_STATUSES:
         task_data['completed_at'] = datetime.now(timezone.utc)
     parent_task = _ensure_valid_parent_task(db, project_id, None, task_data.get("parent_task_id"))
@@ -3268,7 +3283,7 @@ def list_all_tasks(
     reporter_ids = [row[0] for row in filters_task_query.with_entities(PMSTask.reporter_user_id).filter(PMSTask.reporter_user_id != None).distinct().all()]
     assignee_ids = sorted(set(assignee_ids) | all_assignee_ids)
     filter_user_ids = set(assignee_ids + reporter_ids)
-    filter_users = {user.id: user for user in db.query(User).filter(User.id.in_(filter_user_ids)).all()} if filter_user_ids else {}
+    filter_users = {user.id: user for user in load_users(db.query(User).filter(User.id.in_(filter_user_ids))).all()} if filter_user_ids else {}
     tag_names = [
         row[0] for row in db.query(PMSTag.name)
         .join(PMSTaskTag, PMSTaskTag.tag_id == PMSTag.id)

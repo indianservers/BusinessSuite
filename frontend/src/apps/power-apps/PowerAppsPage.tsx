@@ -1,3 +1,4 @@
+import ModuleNavigation from "@/components/layout/ModuleNavigation";
 import { AutomationList } from "./applications/automations/AutomationList";
 import {
   environmentFromSearch,
@@ -108,6 +109,11 @@ export default function PowerAppsPage() {
     navigate(
       route.startsWith("/power-apps") ? studioPath(route, environment) : route,
     );
+  const toolkitGroup = (id: string) => ["automations", "approvals"].includes(id) ? "Workflows & approvals"
+    : ["forms", "tables", "app-builder", "documents"].includes(id) ? "Build & customize"
+    : ["notifications", "search", "connectors", "ai-agents"].includes(id) ? "Connections & AI" : "Reports & activity";
+  const toolkitItems = [{ to: studioPath("/power-apps", environment), label: "Overview", icon: Layers3, group: "Overview" },
+    ...(catalog?.applications || []).map(app => ({ to: studioPath(app.route, environment), label: app.name, icon: applicationIcons[app.icon] || Layers3, group: toolkitGroup(app.id) }))];
   const selected = catalog?.applications.find((a) => a.id === section);
   const available =
     catalog?.applications.filter((a) =>
@@ -128,29 +134,8 @@ export default function PowerAppsPage() {
           <ArrowLeft size={15} />
           Master Suite
         </Link>
-        <nav aria-label="Power Apps">
-          <button
-            className={!section ? "active" : ""}
-            onClick={() => move("/power-apps")}
-          >
-            <Layers3 size={18} />
-            Overview
-          </button>
-          <p>YOUR TOOLKIT</p>
-          {catalog?.applications.map((app) => {
-            const Icon = applicationIcons[app.icon];
-            return (
-              <button
-                className={section === app.id ? "active" : ""}
-                key={app.id}
-                onClick={() => move(app.route)}
-              >
-                <Icon size={18} />
-                {app.name}
-                {app.status === "planned" && <span className="pa-dot" />}
-              </button>
-            );
-          })}
+        <nav aria-label="Power Apps" className="pa-categorized-navigation">
+          <ModuleNavigation modulePath="/power-apps" customItems={toolkitItems} onNavigate={() => {}} />
         </nav>
         <div className="pa-sidebar-note">
           <ShieldCheck size={20} />

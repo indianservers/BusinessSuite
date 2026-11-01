@@ -371,7 +371,9 @@ async def command(data: Command, request: Request, db: Session = Depends(get_db)
         raise HTTPException(409, 'Selected LLM is unavailable in this scope')
     header = request.headers.get('authorization', '')
     claims = verify_access_token(header.partition(' ')[2]) or {}
-    run = SuiteRun(user_id=user.id, session_id=claims.get('sid'), workspace_id=data.workspace_id, scope_key=scope,
+    from app.core.deps import token_record_id
+    session_id = token_record_id(claims['sid']) if claims.get('sid') is not None else None
+    run = SuiteRun(user_id=user.id, session_id=session_id, workspace_id=data.workspace_id, scope_key=scope,
                    request_key=data.request_key, request_hash=fingerprint, command=data.text, receipts=[],result={'request':{
                        'project_id':data.project_id,'task_ids':data.task_ids,'provider':data.provider,'timezone':data.timezone,
                        'input_mode':data.input_mode,'parent_run_id':data.parent_run_id,'module':data.module,

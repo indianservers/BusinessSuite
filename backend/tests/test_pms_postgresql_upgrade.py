@@ -14,7 +14,7 @@ HEAD = "pg_20261101_049_arrangement"
 
 def test_deployment_chain_reaches_task_schema():
     scripts = ScriptDirectory.from_config(Config(str(ROOT / "alembic.ini")))
-    assert scripts.get_current_head() == HEAD
+    assert HEAD in {revision.revision for revision in scripts.walk_revisions()}
     revisions = list(scripts.iterate_revisions(HEAD, OLD))
     assert len(revisions) == 4
     assert {r.module.revision for r in revisions} == {
@@ -40,6 +40,14 @@ def test_deployed_postgres_task_upgrade_preserves_rows(db_engine):
             # The db_engine fixture separately builds the full PostgreSQL chain.
             for ddl in [
                 "CREATE TABLE users (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE companies (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE ai_action_logs (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE ai_prompt_runs (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE ai_agent_actions (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE ai_user_feedback (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE communication_whatsapp_templates (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE communication_auto_response_rules (id SERIAL PRIMARY KEY)",
+                "CREATE TABLE communication_webforms (id SERIAL PRIMARY KEY)",
                 "CREATE TABLE pms_projects (id SERIAL PRIMARY KEY, name TEXT, project_key TEXT, workspace_id INTEGER)",
                 "CREATE TABLE pms_tasks (id SERIAL PRIMARY KEY, project_id INTEGER REFERENCES pms_projects(id), title TEXT, task_key TEXT)",
                 "CREATE TABLE pms_comments (id SERIAL PRIMARY KEY)",
@@ -55,7 +63,7 @@ def test_deployed_postgres_task_upgrade_preserves_rows(db_engine):
             db.commit()
             command.upgrade(config, "head")
             db.commit()
-            assert db.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == HEAD
+            assert db.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == ScriptDirectory.from_config(config).get_current_head()
             assert db.execute(text("SELECT title FROM pms_tasks WHERE task_key='KEEP-1'")).scalar_one() == "Existing task"
             assert db.execute(text("SELECT is_task_collection FROM pms_projects WHERE project_key='KEEP'")).scalar_one() is False
             tables = set(inspect(db).get_table_names(schema=schema))

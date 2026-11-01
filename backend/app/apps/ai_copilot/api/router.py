@@ -75,8 +75,9 @@ def _log(
     detail: dict[str, Any] | None = None,
     error: str | None = None,
 ) -> AIActionLog:
-    from app.ai_agents.security import metadata
+    from app.ai_agents.security import metadata, company
     row = AIActionLog(
+        organization_id=company(user),
         prompt_run_id=prompt_run_id,
         agent_action_id=agent_action_id,
         event_type=event_type,
@@ -156,7 +157,9 @@ def _run_ai_use_case(db: Session, current_user: User, use_case: str, payload: AI
     )
     template = _prompt_template(db, use_case, context.get("module_name"))
     setting = _enabled_provider(db)
+    from app.ai_agents.security import company
     run = AIPromptRun(
+        organization_id=company(current_user),
         use_case=use_case,
         provider=setting.provider_name if setting else None,
         model=setting.model_name if setting else None,
@@ -334,7 +337,8 @@ def preview_agent_action(payload: AIAgentActionPreviewRequest, db: Session = Dep
         raise HTTPException(status_code=400, detail="AI agent action is not allowed")
     _assert_action_permission(current_user, action_type, payload.module_name)
     context = build_secure_context(db, current_user, record_type=payload.record_type, record_id=payload.record_id, module_name=payload.module_name, data=payload.input_json)
-    action = AIAgentAction(action_type=action_type, module_name=context["module_name"], record_type=context["record_type"], record_id=context.get("record_id"), preview_json={"action_type": action_type, "input": context["input_data"], "requires_confirmation": True}, status="previewed", requires_confirmation=True, created_by=current_user.id)
+    from app.ai_agents.security import company
+    action = AIAgentAction(organization_id=company(current_user), action_type=action_type, module_name=context["module_name"], record_type=context["record_type"], record_id=context.get("record_id"), preview_json={"action_type": action_type, "input": context["input_data"], "requires_confirmation": True}, status="previewed", requires_confirmation=True, created_by=current_user.id)
     from app.ai_agents.security import seal
     action.preview_json = {**action.preview_json, "_security":seal(db,current_user,action.preview_json)}
     db.add(action)
@@ -380,7 +384,8 @@ def action_log(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("ai_action_log_view", "ai_manage_settings")),
 ):
-    query = db.query(AIActionLog).order_by(AIActionLog.created_at.desc(), AIActionLog.id.desc())
+    from app.ai_agents.security import company
+    query = db.query(AIActionLog).filter(AIActionLog.organization_id == company(current_user)).order_by(AIActionLog.created_at.desc(), AIActionLog.id.desc())
     if not current_user.is_superuser and not has_any(current_user, "ai_manage_settings"):
         query = query.filter(AIActionLog.created_by == current_user.id)
     query = query.filter(AIActionLog.created_by == current_user.id)
@@ -395,7 +400,8 @@ def create_feedback(payload: AIUserFeedbackPayload, db: Session = Depends(get_db
     rating = payload.rating.strip().lower()
     if rating not in {"helpful", "not_helpful", "neutral"}:
         raise HTTPException(status_code=400, detail="Feedback rating must be helpful, not_helpful, or neutral")
-    row = AIUserFeedback(**payload.model_dump(), rating=rating, created_by=current_user.id)
+    from app.ai_agents.security import company
+    row = AIUserFeedback(organization_id=company(current_user), **payload.model_dump(exclude={"rating"}), rating=rating, created_by=current_user.id)
     db.add(row)
     db.flush()
     _log(db, current_user, event_type="ai_feedback", status_value="completed", prompt_run_id=row.prompt_run_id, detail={"rating": rating})

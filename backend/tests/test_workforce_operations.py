@@ -185,7 +185,10 @@ def test_backup_supervisor_scope_and_view_only_permissions(client, db, program):
     role = Role(name="manager", permissions=[permission])
     db.add(role); db.flush()
     account = User(email="backup-supervisor@example.com", hashed_password=p["admin"].hashed_password, role_id=role.id, is_active=True)
-    db.add(account); db.commit()
+    db.add(account)
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, account)
+    db.commit()
     response = client.post("/api/v1/auth/login", json={"email": account.email, "password": "Admin@123456"})
     assert response.status_code == 200, response.text
     headers = {"Authorization": "Bearer " + response.json()["access_token"]}

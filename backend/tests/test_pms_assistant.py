@@ -365,11 +365,9 @@ def test_revoked_financial_permission_and_changed_tenant_cannot_use_history(
     assert history.status_code == 404
     from app.models.company import Company
     if not db.get(Company,2):db.add(Company(id=2,name="Other isolated tenant"));db.flush()
-    db.add(
-        CommonPerson(
-            user_id=user.id, organization_id=2, display_name="Tenant reassigned"
-        )
-    )
+    person = db.query(CommonPerson).filter_by(user_id=user.id).one()
+    person.organization_id = 2
+    person.display_name = "Tenant reassigned"
     db.commit()
     assert (
         client.get(f"{BASE}/conversations/{conv}", headers=headers).status_code == 404

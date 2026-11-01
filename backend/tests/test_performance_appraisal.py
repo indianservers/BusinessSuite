@@ -134,6 +134,7 @@ def test_manager_cannot_review_non_reportee(client, db):
             "review_period_end": "2026-09-30",
         },
     )
+    assert cycle.json()["organization_id"] == manager.branch.company_id
     cycle_id = cycle.json()["id"]
     client.put(f"/api/v1/performance/cycles/{cycle_id}/activate", headers=admin_headers)
 

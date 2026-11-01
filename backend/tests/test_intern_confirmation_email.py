@@ -10,6 +10,15 @@ from app.apps.interns_hub.models import InternApplication
 from app.core.config import settings
 
 
+@pytest.fixture(autouse=True)
+def isolated_confirmation_transport(monkeypatch):
+    monkeypatch.setattr(settings, "EMAIL_PROVIDER", "auto")
+    monkeypatch.setattr(settings, "SES_FROM", "")
+    monkeypatch.setattr(settings, "SES_SMTP_SERVER", "")
+    monkeypatch.setattr(settings, "INTERN_HUB_SES_SMTP_SERVER", "")
+    monkeypatch.setattr(settings, "INTERN_HUB_SES_FROM", "noreply@indianservers.com")
+
+
 @pytest.fixture
 def saved_application(db):
     item = InternApplication(organization_id=1, reference="APP-EMAIL-TEST",

@@ -73,7 +73,7 @@ def test_blueprints_customized_runs_permissions_and_retry(client, db):
     path = f"{BASE}/workspaces/{wid}/blueprints/apply"
     body = {"request_id": str(uuid4()), "name": "October onboarding", "project_id": pid,
             "description": "Complete access checks with the team buddy", "task_titles": [" Prepare approved accounts ", "Meet the buddy"]}
-    _, outsider_headers = account(db, "blueprint-outsider@test.com", True)
+    _, outsider_headers = account(db, "blueprint-outsider@test.com", False)
     assert client.post(path, headers=gh, json=body).status_code == 403
     assert client.post(path, headers=outsider_headers, json=body).status_code == 404
     for titles in [[], ["ok", " "], ["x" * 221], ["step"] * 21]:

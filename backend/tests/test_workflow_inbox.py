@@ -21,8 +21,11 @@ def test_manager_workflow_inbox_shows_team_approvals(client, db):
     leave_type = LeaveType(name="Workflow Leave", code="WFL", days_allowed=Decimal("5"))
     db.add(leave_type)
     db.flush()
+    from app.models.security_boundary import SecurityResourceOwnership
+    db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
     db.add(
         LeaveRequest(
+            company_id=employee.branch.company_id,
             employee_id=employee.id,
             leave_type_id=leave_type.id,
             from_date=date(2026, 5, 12),
@@ -33,7 +36,7 @@ def test_manager_workflow_inbox_shows_team_approvals(client, db):
         )
     )
 
-    project = Project(code="WF-001", name="Workflow Project")
+    project = Project(code="WF-001", name="Workflow Project", organization_id=employee.branch.company_id)
     db.add(project)
     db.flush()
     db.add(
@@ -66,8 +69,11 @@ def test_employee_workflow_inbox_shows_own_submissions_only(client, db):
     leave_type = LeaveType(name="My Workflow Leave", code="MWFL", days_allowed=Decimal("5"))
     db.add(leave_type)
     db.flush()
+    from app.models.security_boundary import SecurityResourceOwnership
+    db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
     db.add(
         LeaveRequest(
+            company_id=employee.branch.company_id,
             employee_id=employee.id,
             leave_type_id=leave_type.id,
             from_date=date(2026, 6, 1),

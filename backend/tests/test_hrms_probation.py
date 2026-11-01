@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from datetime import date
 
 from app.core.security import get_password_hash
@@ -6,6 +7,9 @@ from app.models.user import Role, User
 
 
 def test_probation_manager_review_hr_confirm_and_letter(client, superuser_headers, db):
+    from app.models.company import Branch
+    branch = Branch(name="Local probation branch", company_id=1)
+    db.add(branch); db.flush()
     manager_role = Role(name="manager", description="Manager", is_system=True)
     db.add(manager_role)
     db.flush()
@@ -16,9 +20,11 @@ def test_probation_manager_review_hr_confirm_and_letter(client, superuser_header
         role_id=manager_role.id,
     )
     db.add(manager_user)
+    attach_test_identity(db, manager_user)
     db.flush()
     manager = Employee(
         employee_id="PBM001",
+        branch_id=branch.id,
         first_name="Probation",
         last_name="Manager",
         date_of_joining=date(2023, 1, 1),
@@ -29,6 +35,7 @@ def test_probation_manager_review_hr_confirm_and_letter(client, superuser_header
     db.flush()
     employee = Employee(
         employee_id="PBE001",
+        branch_id=branch.id,
         first_name="Probation",
         last_name="Employee",
         date_of_joining=date(2025, 12, 1),

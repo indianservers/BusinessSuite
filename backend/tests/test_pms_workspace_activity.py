@@ -4,7 +4,7 @@ from app.apps.project_management.models import PMSActivity, PMSWorkspaceMember
 
 def test_workspace_activity_pagination_filters_and_private_access(client, db):
     owner, oh = account(db, "activity-owner@test.com", True)
-    outsider, xh = account(db, "activity-outsider@test.com", True)
+    outsider, xh = account(db, "activity-outsider@test.com", False)
     member, mh = account(db, "activity-member@test.com")
     wid = client.post(BASE + "/workspaces", json={"name": "Activity audit"}, headers=oh).json()["id"]
     pid = client.post(BASE + "/projects", json={"name": "Audited", "project_key": "AUD", "workspace_id": wid}, headers=oh).json()["id"]

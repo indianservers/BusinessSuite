@@ -1346,10 +1346,10 @@ export default function TaskStudioPage() {
                         }
                       >
                         <option value="shared">
-                          Shared task � one task for selected collaborators
+                          Shared task: one task for selected collaborators
                         </option>
                         <option value="individual">
-                          Individual intern assignments � separate progress,
+                          Individual intern assignments: separate progress,
                           submission and review
                         </option>
                       </select>

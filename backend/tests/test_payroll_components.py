@@ -60,6 +60,7 @@ def test_payroll_run_persists_component_lines_and_rich_payslip(client, db):
 
     run = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=admin_headers)
     assert run.status_code == 201
+    assert run.json()["company_id"] == employee.branch.company_id
     run_id = run.json()["id"]
 
     records = client.get(f"/api/v1/payroll/runs/{run_id}/records", headers=admin_headers)

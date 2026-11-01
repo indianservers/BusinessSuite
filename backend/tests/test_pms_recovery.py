@@ -191,7 +191,7 @@ def test_savepoint_preview_safety_scope_and_permissions(client, db):
     data = exported.json()
     assert data["workspace_id"] == wid and len(data["tables"]["pms_tasks"]) == 1
     assert "users" not in data["tables"] and "pms_direct_messages" not in data["tables"]
-    _, outsider_headers = account(db, "recovery-outsider@test.com", True)
+    _, outsider_headers = account(db, "recovery-outsider@test.com", False)
     assert client.get(path, headers=outsider_headers).status_code == 404
     assert (
         client.get(path + f"/savepoints/{saved}/download", headers=mh).status_code

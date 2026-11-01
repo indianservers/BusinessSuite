@@ -171,7 +171,7 @@ def test_scoped_analytics_cannot_aggregate_another_company_or_owner(
             headers=user_headers,
             params={"companyId": other.id, "source": "crm_leads"},
         ).status_code
-        == 403
+        == 404
     )
     assert (
         client.get(

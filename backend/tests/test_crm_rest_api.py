@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from datetime import date, datetime, timedelta, timezone
 
 from app.apps.crm.models import CRMApprovalRequest, CRMCalendarIntegration, CRMContact, CRMDeal, CRMDealContact, CRMEnrichmentLog, CRMLead, CRMMessage, CRMNoteMention, CRMPipeline, CRMPipelineStage, CRMQuotationItem, CRMTask, CRMTerritoryUser, CRMWebhookDelivery
@@ -78,6 +79,7 @@ def _crm_user_headers(client, db, email: str, role_name: str, permissions: list[
         role_id=role.id,
     )
     db.add(user)
+    attach_test_identity(db, user)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
     assert response.status_code == 200
@@ -219,10 +221,10 @@ def test_crm_validates_unknown_entity_and_required_fields(client, superuser_head
 
 
 def test_crm_secondary_list_pages_use_backend_resources(client, superuser_headers):
+    assert client.post("/api/v1/crm/files", headers=superuser_headers, json={"fileName": "proposal.txt", "originalName": "Proposal.txt", "storagePath": "metadata-only", "mimeType": "text/plain"}).status_code == 422
     resources = [
         ("campaigns", {"name": "Renewal Push", "campaignType": "Email", "status": "Planned"}),
         ("tickets", {"ticketNumber": "TCK-9001", "subject": "Customer escalation", "priority": "High", "status": "Open"}),
-        ("files", {"fileName": "proposal.txt", "originalName": "Proposal.txt", "storagePath": "metadata-only", "mimeType": "text/plain"}),
     ]
 
     for entity, payload in resources:
@@ -927,7 +929,10 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     assert detail.status_code == 200
     assert detail.json()["pdfStatus"] == "generated"
     from app.core.storage import normalize_upload_references
-    assert normalize_upload_references(detail.json()["pdfUrl"]).endswith("PDF-001-" + str(quote.json()["id"]) + ".pdf")
+    actor_id = db.query(User).filter_by(email="testadmin@test.com").one().id
+    def normalize_reference(url):
+        return normalize_upload_references(url, db=db, actor_id=actor_id, company_id=1)
+    assert normalize_reference(detail.json()["pdfUrl"]).endswith("PDF-001-" + str(quote.json()["id"]) + ".pdf")
 
     timeline = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}/related", headers=superuser_headers)
     assert any(item["record"].get("activityType") == "quotation_pdf" and item["title"] == "Quotation PDF generated" for item in timeline.json()["timeline"])
@@ -939,7 +944,7 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     )
     assert emailed.status_code == 201
     assert emailed.json()["status"] == "draft"
-    assert normalize_upload_references(emailed.json()["pdfUrl"]) == normalize_upload_references(detail.json()["pdfUrl"])
+    assert normalize_reference(emailed.json()["pdfUrl"]) == normalize_reference(detail.json()["pdfUrl"])
 
 
 def test_crm_multiple_pipelines_stage_management_and_remap(client, superuser_headers):

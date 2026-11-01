@@ -92,26 +92,26 @@ class PMSRealtimeManager:
             if user.role and user.role.name.lower()=='intern' or employee and (employee.employment_type or '').lower()=='intern':
                 return False
             from app.core.tenant_boundary import company_ids
-            from app.access.service import check_background_access
+            from app.access.service import background_scope
             if not user.is_superuser and not company_ids(db, user):
                 return False
             try:
-                check_background_access(db, user, "project_management", "view")
+                with background_scope(db, user, "project_management", "view"):
+                    if task_id:
+                        from app.access.service import policy_for, resolved_grants, primary_company
+                        policy = policy_for(db, user, primary_company(user))
+                        grant = resolved_grants(db, policy).get("project_management", {}) if policy else {}
+                        if grant.get("scope") in {"own", "assigned"}:
+                            from .models import PMSTask
+                            from .task_workspace import can_work
+                            item = db.query(PMSTask).filter_by(id=int(task_id), deleted_at=None).first()
+                            project = db.get(PMSProject, item.project_id) if item else None
+                            if not item or not project or not can_work(db, item, project, user): return False
+                    if project_id is None:
+                        return True
+                    return accessible_project_query(db, user).filter(PMSProject.id == int(project_id)).first() is not None
             except Exception:
                 return False
-            if task_id:
-                from app.access.service import policy_for, resolved_grants, primary_company
-                policy = policy_for(db, user, primary_company(user))
-                grant = resolved_grants(db, policy).get("project_management", {}) if policy else {}
-                if grant.get("scope") in {"own", "assigned"}:
-                    from .models import PMSTask
-                    from .task_workspace import can_work
-                    item = db.query(PMSTask).filter_by(id=int(task_id), deleted_at=None).first()
-                    project = db.get(PMSProject, item.project_id) if item else None
-                    if not item or not project or not can_work(db, item, project, user): return False
-            if project_id is None:
-                return True
-            return accessible_project_query(db, user).filter(PMSProject.id == int(project_id)).first() is not None
 
     async def broadcast(self, event: dict[str, Any]) -> None:
         payload = json.dumps(event, default=str)

@@ -31,7 +31,11 @@ def test_payroll_pdf_exports_and_formula_preview(client, db):
 
     pdf = client.post(f"/api/v1/payroll/payslip/{record.id}/pdf", headers=headers)
     assert pdf.status_code == 200
-    from app.core.storage import normalize_upload_references
+    from app.core.storage import normalize_upload_references as normalize_reference
+    from app.models.user import User
+    actor_id = db.query(User).filter_by(email="admin@aihrms.com").one().id
+    def normalize_upload_references(value):
+        return normalize_reference(value, db=db, actor_id=actor_id, company_id=employee.branch.company_id)
     assert normalize_upload_references(pdf.json()["payslip_pdf_url"]).endswith(".pdf")
 
     export = client.post(f"/api/v1/payroll/runs/{run.id}/exports/pay_register", headers=headers)

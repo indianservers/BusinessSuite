@@ -1,5 +1,6 @@
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
+from test_identity_utils import attach_test_identity
 
 
 ALL_COMMUNICATION_PERMISSIONS = [
@@ -15,7 +16,7 @@ ALL_COMMUNICATION_PERMISSIONS = [
 ]
 
 
-def communication_headers(client, db, email: str = "communication-admin@example.com", permissions: list[str] | None = None):
+def communication_headers(client, db, email: str = "communication-admin@example.com", permissions: list[str] | None = None, company_id: int = 1):
     role = Role(name=f"role-{email}", description="Communication test role", is_system=False)
     db.add(role)
     db.flush()
@@ -28,6 +29,7 @@ def communication_headers(client, db, email: str = "communication-admin@example.
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
+    attach_test_identity(db, user, company_id)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text

@@ -43,6 +43,10 @@ os.environ['REFRESH_SECRET_KEY_PREVIOUS']=''
 os.environ['STORAGE_BACKEND']='local'
 for _credential in ('OPENAI_API_KEY','ANTHROPIC_API_KEY','GEMINI_API_KEY','S3_ACCESS_KEY_ID','S3_SECRET_ACCESS_KEY','BLOB_READ_WRITE_TOKEN','RECAPTCHA_SECRET_KEY','FORMS_TURNSTILE_SECRET_KEY'):
     os.environ[_credential]=''
+for _mail_credential in ('MAIL_SERVER', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'SES_SMTP_USERNAME', 'SES_SMTP_PASSWORD', 'INTERN_HUB_SES_SMTP_USERNAME', 'INTERN_HUB_SES_SMTP_PASSWORD'):
+    os.environ[_mail_credential] = ''
+os.environ['EMAIL_PROVIDER'] = 'smtp'
+os.environ['INTERN_HUB_SES_ENABLED'] = 'false'
 os.environ.setdefault("INSTALLED_APPS", "hrms,crm,project_management,srm,fam")
 
 from app.main import app

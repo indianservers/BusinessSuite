@@ -119,6 +119,9 @@ def _ensure_user(db, email: str, role_name: str) -> User:
         role_id=role.id,
     )
     db.add(user)
+    from test_identity_utils import attach_test_identity
+    employee = db.query(Employee).filter_by(employee_id="DEMO-EMP-001").one()
+    attach_test_identity(db, user, employee.branch.company_id)
     db.flush()
     return user
 
@@ -129,12 +132,17 @@ def _ensure_leave_request(db) -> LeaveRequest:
         employee = Employee(employee_id="WF-EMP-001", first_name="Workflow", last_name="Employee", date_of_joining=date(2024, 1, 1))
         db.add(employee)
         db.flush()
-    leave_type = db.query(LeaveType).first()
+    leave_type = db.query(LeaveType).filter_by(code="WFT").first()
     if not leave_type:
         leave_type = LeaveType(name="Workflow Test Leave", code="WFT", days_allowed=10)
         db.add(leave_type)
         db.flush()
+    from app.models.security_boundary import SecurityResourceOwnership
+    owned = db.get(SecurityResourceOwnership, ("leave_types", leave_type.id))
+    if not owned:
+        db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
     leave = LeaveRequest(
+        company_id=employee.branch.company_id,
         employee_id=employee.id,
         leave_type_id=leave_type.id,
         from_date=date(2026, 6, 1),
@@ -213,7 +221,7 @@ def test_workflow_sequential_conditional_delegated_action_and_audit(client, db):
         json={"decision": "approve", "reason": "Delegated approval"},
         headers=delegate_headers,
     )
-    assert decision.status_code == 200
+    assert decision.status_code == 200, decision.text
     db.refresh(leave)
     assert leave.status == "Approved"
     assert leave.review_remarks == "Workflow approved"

@@ -1,10 +1,14 @@
-import {Link,useLocation} from "react-router-dom";
-import {Home,Inbox,CheckCircle2,CalendarDays,MessagesSquare,LayoutGrid,Folder,CheckCheck,Layers3,Repeat2,Flag,BarChart3,Users,Contact,GraduationCap,Search,Settings,LifeBuoy,Megaphone} from "lucide-react";
-import {canAccessRoute} from "@/lib/roles";
-import {useAuthStore} from "@/store/authStore";
+import { Link } from "react-router-dom";
+import { Flag } from "lucide-react";
+import { canAccessRoute } from "@/lib/roles";
+import { useAuthStore } from "@/store/authStore";
+import ModuleNavigation from "./ModuleNavigation";
 
-export default function WorkspaceBoardNavigation({workspaceId,projectId,collapsed,onNavigate}:{workspaceId?:number;projectId?:number;collapsed:boolean;onNavigate:()=>void}){
- const user=useAuthStore(s=>s.user),location=useLocation();
- const groups=[{name:"",items:[["Dashboard","/pms/overview",Home],["Inbox","/notifications",Inbox],["My Tasks","/pms/my-work",CheckCircle2],["Calendar","/pms/calendar",CalendarDays],["Team Chat","/pms/messages",MessagesSquare]]},{name:"Projects & Tasks",items:[["Workspace board","/pms",LayoutGrid],["Projects","/pms/projects",Folder],["Tasks","/pms/tasks",CheckCheck],["Backlog","/pms/backlog",Layers3],["Sprints","/pms/sprints",Repeat2],["Milestones",projectId?`/pms/projects/${projectId}/milestones`:"/pms/projects",Flag],["Reports","/pms/reports",BarChart3]]},{name:"People & Teams",items:[["People","/pms/people",Contact],["Teams","/pms/teams",Users],["Interns Hub","/interns-hub",GraduationCap]]},{name:"Workspace Tools",items:[["Issue Navigator","/pms/issues",Search],["Workspace Settings","/pms/settings",Settings]]},{name:"Help & Support",items:[["Help Center","/help",LifeBuoy],["What's New","/pms/my-notices",Megaphone]]}];
- return <nav className="wb-side-navigation" aria-label="Workspace navigation">{groups.map(group=><section key={group.name}>{group.name&&!collapsed&&<h2>{group.name}</h2>}{group.items.map(([label,path,Icon])=>{const href=path as string,TitleIcon=Icon as typeof Home;if(!canAccessRoute(href,user?.role,user?.is_superuser))return null;const active=label==="Workspace board"?["/pms","/pms/workspaces"].includes(location.pathname):location.pathname===href&&label!=="Milestones";return <Link key={label as string} to={`${href}${workspaceId?`?workspace=${workspaceId}`:""}`} onClick={onNavigate} title={label as string} aria-current={active?"page":undefined}><TitleIcon size={17}/>{!collapsed&&<span>{label as string}</span>}</Link>})}</section>)}</nav>
+export default function WorkspaceBoardNavigation({ projectId, ...props }: { workspaceId?: number; projectId?: number; collapsed: boolean; onNavigate: () => void }) {
+  const user = useAuthStore(state => state.user);
+  const milestones = projectId ? `/pms/projects/${projectId}/milestones` : undefined;
+  return <>
+    <ModuleNavigation {...props} modulePath="/pms" />
+    {milestones && canAccessRoute(milestones, user?.role, user?.is_superuser) && <Link className="nav-link mx-3" to={milestones} onClick={props.onNavigate} title="Project milestones"><Flag size={17} />{!props.collapsed && "Project milestones"}</Link>}
+  </>;
 }

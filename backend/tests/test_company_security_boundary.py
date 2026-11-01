@@ -681,3 +681,49 @@ def test_bulk_parameter_updates_cannot_assign_a_foreign_user(db, tenants):
             )
     finally:
         cleanup()
+
+
+def test_api_key_actor_stamps_do_not_replace_company_ownership(db, tenants):
+    from app.apps.saas.models import DeveloperAPIKey
+
+    first, second = tenants["users"][:2]
+    cleanup = install(db, first, 1)
+    db.info["shared_actor"] = (first.id, 1)
+    try:
+        key = DeveloperAPIKey(name="Local audit key", key_prefix="audit", key_hash="audit-not-a-credential", created_by=first.id)
+        db.add(key)
+        db.flush()
+        key_id = key.id
+        assert db.query(DeveloperAPIKey).filter_by(id=key_id).one().revoked_by is None
+        key.revoked_by = first.id
+        key.status = "revoked"
+        db.flush()
+        assert db.query(DeveloperAPIKey).filter_by(id=key_id).one().status == "revoked"
+    finally:
+        db.info.pop("shared_actor", None)
+        cleanup()
+    cleanup = install(db, second, 2)
+    try:
+        assert db.query(DeveloperAPIKey).filter_by(id=key_id).first() is None
+    finally:
+        cleanup()
+
+
+def test_internal_invoice_counter_bootstraps_globally_without_exposing_foreign_invoices(db, tenants):
+    from app.apps.srm.models import SRMInvoice
+    from app.apps.srm.commercial_models import CommercialNumberSequence
+    from app.apps.srm.services.commercial import next_invoice_number
+    foreign = SRMInvoice(organization_id=2, invoice_number="AUD-009999")
+    db.add(foreign); db.flush()
+    cleanup = install(db, tenants["users"][0], 1)
+    try:
+        assert db.query(SRMInvoice).filter_by(id=foreign.id).first() is None
+        assert next_invoice_number(db, "AUD") == "AUD-010000"
+        assert db.query(CommercialNumberSequence).all() == []
+    finally:
+        cleanup()
+    cleanup = install(db, tenants["users"][1], 2)
+    try:
+        assert next_invoice_number(db, "AUD") == "AUD-010001"
+    finally:
+        cleanup()

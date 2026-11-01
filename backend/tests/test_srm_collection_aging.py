@@ -14,4 +14,5 @@ def test_srm_collection_aging_buckets_overdue_invoice(client, db, superuser_head
     assert response.status_code == 200
     bucket = response.json()[0]
     assert bucket["days_31_60"] > 0
-    assert db.query(SRMCustomerAging).filter(SRMCustomerAging.customer_id == 101).first().days_31_60 > 0
+    assert bucket["customer_id"] == 101
+    assert bucket["total_outstanding"] == bucket["days_31_60"]

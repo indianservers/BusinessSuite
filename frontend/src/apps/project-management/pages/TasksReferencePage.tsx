@@ -1,3 +1,4 @@
+import Sidebar from "@/components/layout/Sidebar";
 import TaskThemeSwitcher from "../components/TaskThemeSwitcher";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { arrangeTask } from "../components/SprintMoveBoard";
@@ -15,8 +16,6 @@ import {
   ThumbsUp,
   Sparkles,
   LayoutGrid,
-  Layers,
-  Building2,
   Users,
   List,
   Box,
@@ -39,7 +38,6 @@ import {
   Upload,
   Bug,
   Shield,
-  LogOut,
   Menu,
   X,
   ArrowUpRight,
@@ -51,7 +49,6 @@ import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
 import PMSProfileMenu from "@/components/layout/PMSProfileMenu";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
-import { useSignOut } from "@/hooks/use-sign-out";
 import { tasksAPI, savedViewsAPI } from "../services/api";
 import type {
   PMSTaskListItem,
@@ -127,12 +124,20 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
     </span>
   );
 }
+function TaskAssignees({ task }: { task: PMSTaskListItem }) {
+  const people = task.assignees?.length ? task.assignees : [{ id: 0, name: task.assignee_name || "Unassigned", photo_url: task.assignee_photo_url }];
+  const names = people.map((person) => person.name).join(", ");
+  return <span className="tr-person" title={names}>
+    <span className="tr-assignee-stack">{people.slice(0, 3).map((person) => <Avatar key={person.id} name={person.name} url={person.photo_url} />)}{people.length > 3 && <span>+{people.length - 3}</span>}</span>
+    <span className="tr-person-name">{names}</span>
+  </span>;
+}
+
 export default function TasksReferencePage() {
   const { user } = useAuthStore();
   const route = useParams();
   const routeLocation = useLocation();
   const studio = routeLocation.pathname === "/pms/tasks/new" || !!route.taskId;
-  const signOut = useSignOut("/login");
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [importOpen, setImportOpen] = useState(false);
@@ -149,6 +154,7 @@ export default function TasksReferencePage() {
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
   const [menu, setMenu] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const [create, setCreate] = useState(false);
   const [starterTitle, setStarterTitle] = useState("");
   const [template, setTemplate] = useState<"Task" | "Story" | "Bug">("Task");
@@ -161,10 +167,26 @@ export default function TasksReferencePage() {
   const [viewName, setViewName] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [narrowScreen, setNarrowScreen] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 560px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 560px)");
+    const update = () => setNarrowScreen(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const [search, setSearch] = useState(params.get("search") || "");
   const page = Number(params.get("page") || 1),
     pageSize = Number(params.get("pageSize") || 8),
     layout = params.get("layout") || "list";
+  const cardLayout = layout === "gallery" || (narrowScreen && layout === "list");
+  const filterKeys = ["search", "taskIds", "workspaceId", "projectId", "projectIds", "assigneeId", "assigneeIds", "reporterId", "workView", "teamId", "batchId", "workType", "status", "priority", "dueFrom", "dueTo", "createdFrom", "createdTo", "updatedFrom", "updatedTo", "storyPointsMin", "storyPointsMax", "overdue", "openOnly", "sprintId", "epicId", "tag"];
+  const activeFilterCount = filterKeys.filter((key) => {
+    const value = params.get(key);
+    return value && value !== "false";
+  }).length;
   const change = (key: string, value: string) => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -274,23 +296,6 @@ export default function TasksReferencePage() {
     setDirty(false);
     setOpened(task);
   };
-  const nav = [
-    { label: "Overview", to: "/pms", icon: LayoutGrid },
-    { label: "Workspace board", to: "/pms/workspaces", icon: LayoutGrid },
-    { label: "Product Launch", to: "/pms/product-launch", icon: Box },
-    { label: "Impact Work Hub", to: "/pms/work-hub", icon: Activity },
-    { label: "Live Work", to: "/pms/live", icon: Activity },
-    { label: "Issues", to: "/pms/issues", icon: CircleAlert },
-    { label: "Tasks", to: "/pms/tasks", icon: SlidersHorizontal },
-    { label: "Issue Navigator", to: "/pms/navigator", icon: Search },
-    {
-      label: "Issue Navigator Pro",
-      to: "/pms/issue-navigator-pro",
-      icon: ClipboardList,
-    },
-    { label: "Workspaces", to: "/pms/workspaces", icon: Building2 },
-    { label: "People", to: "/pms/people", icon: Users },
-  ];
   const summary = data?.summary;
   const metrics = [
     {
@@ -377,72 +382,7 @@ export default function TasksReferencePage() {
           onClick={() => setMenu(false)}
         />
       )}
-      <aside className={`tr-sidebar ${menu ? "is-open" : ""}`}>
-        <Link to="/pms" className="tr-brand">
-          <span>
-            <Sparkles />
-          </span>
-          <div>
-            <strong>Indian Servers</strong>
-            <small>PMS 1.0.1 · Admin Console</small>
-          </div>
-        </Link>
-        <nav aria-label="Project management">
-          <Link to="/dashboard" className="tr-nav">
-            <LayoutGrid />
-            All applications
-          </Link>
-          <div className="tr-product">
-            <Link to="/pms">
-              <Layers />
-              KaryaFlow PMS
-              <ChevronDown />
-            </Link>
-            <Link to="/pms/workspaces">
-              <Building2 />
-              Indian Servers (active)
-            </Link>
-            {allowed("/pms/people") && (
-              <Link to="/pms/people">
-                <Users />
-                Users & access
-              </Link>
-            )}
-          </div>
-          {nav
-            .filter((n) => allowed(n.to))
-            .map((n, i) => (
-              <div key={`${n.label}-${i}`}>
-                {i === 1 && (
-                  <div className="tr-group">
-                    Projects & tasks <ChevronDown size={13} />
-                  </div>
-                )}
-                <Link
-                  className={`tr-nav ${n.to === "/pms/tasks" ? "active" : ""}`}
-                  to={n.to}
-                >
-                  <n.icon />
-                  {n.label}
-                </Link>
-              </div>
-            ))}
-        </nav>
-        <footer>
-          <span className="tr-nav">
-            <Users />
-            {user?.email}
-          </span>
-          <Link className="tr-nav" to="/help">
-            <Box />
-            Help & support
-          </Link>
-          <button className="tr-nav tr-signout" onClick={() => void signOut()}>
-            <LogOut />
-            Sign out
-          </button>
-        </footer>
-      </aside>
+      <Sidebar embedded open={menu} collapsed={navCollapsed} onClose={() => setMenu(false)} onToggleCollapse={() => setNavCollapsed(value => !value)} />
       <div className="tr-body">
         <header className="tr-topbar">
           <button
@@ -751,7 +691,7 @@ export default function TasksReferencePage() {
                     onClick={() => setExtra(!extra)}
                   >
                     <SlidersHorizontal size={15} />
-                    Filters{params.size > 0 && <span>{params.size}</span>}
+                    Filters{activeFilterCount > 0 && <span>{activeFilterCount}</span>}
                   </button>
                 </div>
                 {extra && (
@@ -785,7 +725,12 @@ export default function TasksReferencePage() {
                     </button>
                     <button
                       className="tr-button"
-                      onClick={() => setParams(new URLSearchParams())}
+                      onClick={() => setParams((previous) => {
+                        const next = new URLSearchParams(previous);
+                        filterKeys.forEach((key) => next.delete(key));
+                        next.delete("page");
+                        return next;
+                      })}
                     >
                       Clear filters
                     </button>
@@ -822,7 +767,7 @@ export default function TasksReferencePage() {
                 <details className="rounded-lg border bg-white p-3 mb-4"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>
                 <div
                   className={
-                    layout === "gallery"
+                    cardLayout
                       ? "tr-gallery"
                       : layout === "table"
                         ? "tr-table-wrap tr-compact"
@@ -830,7 +775,7 @@ export default function TasksReferencePage() {
                   }
                   aria-busy={loading}
                 >
-                  {layout !== "gallery" ? (
+                  {!cardLayout ? (
                     <table>
                       <thead>
                         <tr>
@@ -972,13 +917,7 @@ export default function TasksReferencePage() {
                                   <PriorityBadge priority={task.priority} />
                                 </td>
                                 <td>
-                                  <span className="tr-person">
-                                    <Avatar
-                                      name={task.assignee_name || "Unassigned"}
-                                      url={task.assignee_photo_url}
-                                    />
-                                    {task.assignee_name || "Unassigned"}
-                                  </span>
+                                  <TaskAssignees task={task} />
                                 </td>
                                 <td
                                   className={
@@ -1020,6 +959,15 @@ export default function TasksReferencePage() {
                         {(more) => (
                           <article className="tr-task-card" onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))openFullTask(task);}}>
                             <div className="tr-card-top">
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${task.title}`}
+                                disabled={!editable.some((p) => p.id === task.project_id)}
+                                checked={selected.includes(task.id)}
+                                onChange={(e) => setSelected((current) =>
+                                  e.target.checked ? [...current, task.id] : current.filter((id) => id !== task.id),
+                                )}
+                              />
                               <span>{task.task_key}</span>
                               {more}
                             </div>
@@ -1035,13 +983,7 @@ export default function TasksReferencePage() {
                               <PriorityBadge priority={task.priority} />
                             </div>
                             <footer>
-                              <span className="tr-person">
-                                <Avatar
-                                  name={task.assignee_name || "Unassigned"}
-                                  url={task.assignee_photo_url}
-                                />
-                                {task.assignee_name || "Unassigned"}
-                              </span>
+                              <TaskAssignees task={task} />
                               <span>{task.due_date || "No due date"}</span>
                             </footer>
                           </article>
@@ -1422,7 +1364,7 @@ export default function TasksReferencePage() {
                 Full details <ArrowUpRight size={14} />
               </Link>
             </div>
-            {opened && <section className="tr-preview-summary"><p>{opened.status} · {opened.priority} priority</p><p>{opened.project_name} · Due {opened.due_date || "not set"}</p><p>Assignee: {opened.assignee_name || "Unassigned"}</p><RichTextContent value={opened.description || "No description yet."}/><Link className="tr-primary" to={`/pms/tasks/${opened.id}`} state={{from:routeLocation.pathname+routeLocation.search}}>Open Full Task <ArrowUpRight size={14}/></Link></section>}
+            {opened && <section className="tr-preview-summary"><p>{opened.status} · {opened.priority} priority</p><p>{opened.project_name} · Due {opened.due_date || "not set"}</p><div><span>Assignees</span><TaskAssignees task={opened} /></div><RichTextContent value={opened.description || "No description yet."}/><Link className="tr-primary" to={`/pms/tasks/${opened.id}`} state={{from:routeLocation.pathname+routeLocation.search}}>Open Full Task <ArrowUpRight size={14}/></Link></section>}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

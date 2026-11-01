@@ -40,7 +40,11 @@ def test_logo_validation(client, db, access_account, superuser_headers, tmp_path
     content=io.BytesIO();Image.new("RGB",(10,10)).save(content,format="PNG")
     result=client.post(url,headers=superuser_headers,files={"file":("x.png",content.getvalue(),"image/png")})
     assert result.status_code==200,result.text
-    from app.core.storage import normalize_upload_references
+    from app.core.storage import normalize_upload_references as normalize_reference
+    from app.models.user import User
+    actor_id = db.query(User).filter_by(email="testadmin@test.com").one().id
+    def normalize_upload_references(value):
+        return normalize_reference(value, db=db, actor_id=actor_id, company_id=1)
     assert normalize_upload_references(result.json())["url"].startswith("/uploads/branding/")
 
     saved=client.put("/api/v1/access/enterprise/policies",headers=secure(client,superuser_headers),json={"companyId":1,"kind":"branding","key":"theme","version":0,"reason":"Configure workspace identity","values":{"appName":"Indian Servers Pvt Limited","logoPath":result.json()["url"]}})

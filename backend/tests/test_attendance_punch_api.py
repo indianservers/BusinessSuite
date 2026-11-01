@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from datetime import date, datetime, time, timezone
 
 from app.core.security import get_password_hash
@@ -25,6 +26,7 @@ def _user_employee(db, email, code, first_name, *, manager_id=None, is_superuser
         role_id=role.id,
     )
     db.add(user)
+    attach_test_identity(db, user)
     db.flush()
     employee = Employee(
         employee_id=code,
@@ -116,6 +118,6 @@ def test_manager_can_view_reportee_team_attendance_and_regularization_notifies_m
         },
         headers=reportee_headers,
     )
-    assert regularize.status_code == 201
+    assert regularize.status_code == 201, regularize.text
     assert db.query(AttendanceRegularization).filter_by(employee_id=reportee.id).count() == 1
     assert db.query(Notification).filter_by(user_id=manager.user_id, event_type="attendance_regularization_requested").count() == 1

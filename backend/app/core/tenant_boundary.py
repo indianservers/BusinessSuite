@@ -29,6 +29,7 @@ GLOBAL_CATALOGUES = frozenset(
         "gratuity_rules",
         "feature_plans",
         "tenant_subscription_plans",
+        "tenant_feature_flags",
         "bos_modules",
         "bos_module_dependencies",
         "ai_agents",
@@ -67,6 +68,9 @@ ACTOR_FIELDS = frozenset(
         "assigned_by",
         "added_by",
         "submitted_by",
+        "revoked_by",
+        "posted_by",
+        "performed_by",
     }
 )
 
@@ -269,7 +273,12 @@ def install(db, user, company, *, verified_portal=False):
         else:
             direct = []
             if "organization_id" in table.c:
-                direct.append(func.coalesce(table.c.organization_id, 1) == company)
+                # Newly scoped history/forms may have ambiguous historical rows.
+                # Those rows must not inherit the legacy company-1 fallback.
+                if table.name in {"ai_prompt_runs", "ai_action_logs", "ai_agent_actions", "ai_user_feedback", "communication_webforms", "communication_auto_response_rules", "communication_whatsapp_templates", "projects"}:
+                    direct.append(table.c.organization_id == company)
+                else:
+                    direct.append(func.coalesce(table.c.organization_id, 1) == company)
             # FK targets decide whether company_id is a tenant or CRM customer.
             if tenant_company_column(model):
                 direct.append(table.c.company_id == company)
@@ -288,6 +297,7 @@ def install(db, user, company, *, verified_portal=False):
                 "folder_id",
                 "lead_id",
                 "invoice_id",
+                "voucher_id",
                 "quotation_id",
                 "batch_id",
                 "application_id",

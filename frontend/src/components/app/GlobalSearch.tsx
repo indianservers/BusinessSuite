@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 
 import * as Dialog from "@radix-ui/react-dialog";
 
-import { getRoleNav } from "@/lib/roles";
+import { searchableNavigation } from "@/lib/search-navigation";
 
 import { modules } from "@/lib/moduleCatalog";
 
@@ -520,9 +520,7 @@ export default function GlobalSearch() {
       { type: "Page", title: "Help & support", url: "/help" },
     ],
     ...modules.map((p) => ({ type: "Module", title: p.name, url: p.homePath })),
-    ...getRoleNav(user?.role, user?.is_superuser, location.pathname).map(
-      (p) => ({ type: "Page", title: p.label, url: p.to }),
-    ),
+    ...searchableNavigation(user?.role, !!user?.is_superuser, location.pathname),
     ...staticResults,
   ];
 
@@ -531,7 +529,7 @@ export default function GlobalSearch() {
       !query.trim() ||
       `${item.title} ${item.subtitle || ""}`
         .toLowerCase()
-        .includes(query.toLowerCase()),
+        .includes(query.trim().toLowerCase()),
   );
 
   const results: Result[] = Array.from(

@@ -1,3 +1,4 @@
+from test_identity_utils import attach_test_identity
 from app.core.security import get_password_hash
 from app.apps.crm.models import CRMDeal, CRMPipeline, CRMPipelineStage
 from app.models.user import Permission, Role, User
@@ -28,6 +29,7 @@ def analytics_headers(client, db, email: str = "analytics-admin@example.com", pe
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
+    attach_test_identity(db, user)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text
@@ -41,13 +43,14 @@ def create_report(client, headers, module_name: str = "crm_deals"):
 
 
 def create_analytics_deal(db, name: str, amount: int, probability: int = 50):
-    pipeline = CRMPipeline(name=f"{name} Pipeline", is_default=True, active=True)
+    owner = db.query(User).filter_by(email="analytics-admin@example.com").one()
+    pipeline = CRMPipeline(organization_id=1, name=f"{name} Pipeline", is_default=True, active=True)
     db.add(pipeline)
     db.flush()
-    stage = CRMPipelineStage(pipeline_id=pipeline.id, name="Open", probability=probability, stage_type="open", active=True)
+    stage = CRMPipelineStage(organization_id=1, pipeline_id=pipeline.id, name="Open", probability=probability, stage_type="open", active=True)
     db.add(stage)
     db.flush()
-    deal = CRMDeal(name=name, amount=amount, status="Open", probability=probability, pipeline_id=pipeline.id, stage_id=stage.id)
+    deal = CRMDeal(organization_id=1, owner_user_id=owner.id, name=name, amount=amount, status="Open", probability=probability, pipeline_id=pipeline.id, stage_id=stage.id)
     db.add(deal)
     db.commit()
     return deal

@@ -1,5 +1,6 @@
 from __future__ import annotations
 from app.access.catalog import permission_objects
+from app.access.service import primary_company
 from app.core.input_validation import contact_change_errors, clean_text
 
 from datetime import datetime, timezone
@@ -70,9 +71,10 @@ def _list_payload(items: list[Any]) -> dict[str, Any]:
     return {"items": [_serialize(item) for item in items], "total": len(items)}
 
 
-def _timeline(db: Session, record_type: str, record_id: int, channel: str, event_type: str, subject: str, summary: str, actor_user_id: int | None = None, metadata: dict[str, Any] | None = None) -> None:
+def _timeline(db: Session, record_type: str, record_id: int, channel: str, event_type: str, subject: str, summary: str, actor_user_id: int | None = None, metadata: dict[str, Any] | None = None, organization_id: int | None = None) -> None:
     db.add(
         CommunicationTimelineEvent(
+            organization_id=organization_id,
             record_type=record_type,
             record_id=record_id,
             channel=channel,
@@ -88,6 +90,7 @@ def _timeline(db: Session, record_type: str, record_id: int, channel: str, event
 def _log_whatsapp_placeholder(db: Session, record_type: str, record_id: int, phone: str, body: str, template: CommunicationWhatsAppTemplate | None = None) -> None:
     db.add(
         CommunicationDeliveryLog(
+            organization_id=template.organization_id if template else None,
             channel="whatsapp",
             related_message_id=None,
             provider="placeholder",
@@ -113,7 +116,25 @@ def _log_whatsapp_placeholder(db: Session, record_type: str, record_id: int, pho
         f"WhatsApp auto-response queued for {phone}",
         None,
         {"template_id": template.id if template else None, "placeholder_only": True},
+        organization_id=template.organization_id if template else None,
     )
+
+
+def _validate_form_rule(db: Session, rule_id: int | None, company: int | None) -> None:
+    if rule_id and not db.query(CommunicationAutoResponseRule.id).filter_by(id=rule_id, organization_id=company).first():
+        raise HTTPException(404, "Auto-response rule not found in this company")
+
+
+def _validate_rule_templates(db: Session, template_id: int | None, conditions: dict | None, company: int) -> None:
+    template = _require_template(db, template_id)
+    if template and template.organization_id != company:
+        raise HTTPException(404, "Email template not found in this company")
+    raw = (conditions or {}).get("whatsapp_template_id")
+    if raw is not None:
+        if isinstance(raw, bool) or len(str(raw)) > 10 or not str(raw).isascii() or not str(raw).isdigit() or not 1 <= int(raw) <= 2147483647:
+            raise HTTPException(422, "WhatsApp template must be a valid template ID")
+        if not db.query(CommunicationWhatsAppTemplate.id).filter_by(id=int(raw), organization_id=company, active=True).first():
+            raise HTTPException(404, "WhatsApp template not found in this company")
 
 
 def _require_template(db: Session, template_id: int | None) -> CommunicationEmailTemplate | None:
@@ -285,7 +306,9 @@ def list_webforms(db: Session = Depends(get_db), current_user: User = Depends(Re
 def create_webform(data: WebformPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_webforms_manage"))):
     if db.query(CommunicationWebform).filter(CommunicationWebform.public_slug == data.public_slug).first():
         raise HTTPException(status_code=400, detail="Public slug already exists")
-    item = CommunicationWebform(**data.model_dump())
+    company = getattr(current_user, "organization_id", None) or primary_company(current_user)
+    _validate_form_rule(db, data.auto_response_rule_id, company)
+    item = CommunicationWebform(organization_id=company, **data.model_dump())
     db.add(item)
     db.flush()
     _timeline(db, "webform", item.id, "webform", "created", item.name, "Webform created", current_user.id)
@@ -306,6 +329,7 @@ def update_webform(webform_id: int, data: WebformPayload, db: Session = Depends(
     item = db.query(CommunicationWebform).filter(CommunicationWebform.id == webform_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Webform not found")
+    _validate_form_rule(db, data.auto_response_rule_id, item.organization_id)
     for key, value in data.model_dump().items():
         setattr(item, key, value)
     _timeline(db, "webform", item.id, "webform", "updated", item.name, "Webform updated", current_user.id)
@@ -326,7 +350,7 @@ def delete_webform(webform_id: int, db: Session = Depends(get_db), current_user:
 @public_router.get("/{slug}")
 def public_webform(slug: str, db: Session = Depends(get_db)):
     item = db.query(CommunicationWebform).filter(CommunicationWebform.public_slug == slug, CommunicationWebform.active == True).first()
-    if not item:
+    if not item or item.organization_id is None:
         raise HTTPException(status_code=404, detail="Webform not found")
     return _serialize(item)
 
@@ -336,8 +360,9 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
     if data.anti_spam:
         raise HTTPException(status_code=400, detail="Spam check failed")
     webform = db.query(CommunicationWebform).filter(CommunicationWebform.public_slug == slug, CommunicationWebform.active == True).first()
-    if not webform:
+    if not webform or webform.organization_id is None:
         raise HTTPException(status_code=404, detail="Webform not found")
+    company = webform.organization_id
     values = data.values
     mapping = webform.mapping_json or {}
     errors=contact_change_errors({'email':values.get(mapping.get('email','email')),'phone':values.get(mapping.get('phone','phone')),'phone_country_code':values.get(mapping.get('phone_country_code','phone_country_code'))})
@@ -356,37 +381,42 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
     phone_country_code=values.get(mapping.get("phone_country_code","phone_country_code"))
     first_name = str(values.get(mapping.get("first_name", "first_name"), "") or values.get("name", "Website")).strip() or "Website"
     last_name = str(values.get(mapping.get("last_name", "last_name"), "") or "Lead").strip()
-    duplicate = bool(email and db.query(CRMLead).filter(CRMLead.email == email, CRMLead.deleted_at.is_(None)).first())
+    target = CRMContact if webform.target_module == "contact" else CRMLead
+    duplicate = bool(email and db.query(target).filter(target.email == email, target.organization_id == company, target.deleted_at.is_(None)).first())
     created_type = None
     created_id = None
     if webform.target_module == "contact":
-        contact = CRMContact(first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", created_by_user_id=None)
+        contact = CRMContact(organization_id=company, first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", created_by_user_id=None)
         db.add(contact)
         db.flush()
         created_type = "contact"
         created_id = contact.id
     else:
-        lead = CRMLead(first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", status="New", created_by_user_id=None)
+        lead = CRMLead(organization_id=company, first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", status="New", created_by_user_id=None)
         db.add(lead)
         db.flush()
         created_type = "lead"
         created_id = lead.id
     submission = CommunicationWebformSubmission(webform_id=webform.id, payload_json=values, created_record_type=created_type, created_record_id=created_id, duplicate_detected=duplicate, ip_address=request.client.host if request.client else None)
     db.add(submission)
-    _timeline(db, created_type, created_id, "webform", "submitted", webform.name, "Webform submission created CRM record", None, {"webform_id": webform.id, "duplicate_detected": duplicate})
+    _timeline(db, created_type, created_id, "webform", "submitted", webform.name, "Webform submission created CRM record", None, {"webform_id": webform.id, "duplicate_detected": duplicate}, organization_id=company)
     auto_responses: list[dict[str, Any]] = []
     if webform.auto_response_rule_id:
-        rule = db.query(CommunicationAutoResponseRule).filter(CommunicationAutoResponseRule.id == webform.auto_response_rule_id, CommunicationAutoResponseRule.active == True).first()
+        rule = db.query(CommunicationAutoResponseRule).filter(CommunicationAutoResponseRule.id == webform.auto_response_rule_id, CommunicationAutoResponseRule.organization_id == company, CommunicationAutoResponseRule.active == True).first()
+        if rule:
+            _validate_rule_templates(db, rule.template_id, rule.condition_json, company)
         template = _require_template(db, rule.template_id if rule and rule.template_id else None)
+        if template and template.organization_id != company:
+            raise HTTPException(404, "Auto-response template not found in this company")
         if template and email:
-            message = CommunicationEmailMessage(related_record_type=created_type, related_record_id=created_id, to_email=email, subject=merge_template(template.subject, values), body=merge_template(template.body_html or template.body_text or "", values), status="queued")
+            message = CommunicationEmailMessage(organization_id=company, related_record_type=created_type, related_record_id=created_id, to_email=email, subject=merge_template(template.subject, values), body=merge_template(template.body_html or template.body_text or "", values), status="queued")
             db.add(message)
             db.flush()
             deliver_email(db, message, None)
             auto_responses.append({"channel": "email", "status": message.status, "message_id": message.id})
         whatsapp_template_id = (rule.condition_json or {}).get("whatsapp_template_id") if rule else None
         if whatsapp_template_id and phone:
-            whatsapp_template = db.query(CommunicationWhatsAppTemplate).filter(CommunicationWhatsAppTemplate.id == int(whatsapp_template_id), CommunicationWhatsAppTemplate.active == True).first()
+            whatsapp_template = db.query(CommunicationWhatsAppTemplate).filter(CommunicationWhatsAppTemplate.id == int(whatsapp_template_id), CommunicationWhatsAppTemplate.organization_id == company, CommunicationWhatsAppTemplate.active == True).first()
             if whatsapp_template:
                 _log_whatsapp_placeholder(db, created_type, created_id, str(phone_country_code)+phone, merge_template(whatsapp_template.body_text, values), whatsapp_template)
                 auto_responses.append({"channel": "whatsapp", "status": "queued", "template_id": whatsapp_template.id})
@@ -401,7 +431,9 @@ def list_auto_rules(db: Session = Depends(get_db), current_user: User = Depends(
 
 @communication_router.post("/auto-response-rules", status_code=201)
 def create_auto_rule(data: AutoResponseRulePayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_webforms_manage"))):
-    item = CommunicationAutoResponseRule(**data.model_dump(), created_by=current_user.id)
+    company = getattr(current_user, "organization_id", None) or primary_company(current_user)
+    _validate_rule_templates(db, data.template_id, data.condition_json, company)
+    item = CommunicationAutoResponseRule(organization_id=company, **data.model_dump(), created_by=current_user.id)
     db.add(item)
     db.commit()
     return _serialize(item)
@@ -543,7 +575,7 @@ def list_whatsapp_templates(db: Session = Depends(get_db), current_user: User = 
 
 @communication_router.post("/whatsapp-templates", status_code=201)
 def create_whatsapp_template(data: WhatsAppTemplatePayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_templates_manage"))):
-    item = CommunicationWhatsAppTemplate(**data.model_dump(exclude={"provider_status"}), created_by=current_user.id, provider_status="placeholder_only")
+    item = CommunicationWhatsAppTemplate(organization_id=getattr(current_user, "organization_id", None) or primary_company(current_user), **data.model_dump(exclude={"provider_status"}), created_by=current_user.id, provider_status="placeholder_only")
     db.add(item)
     db.commit()
     return _serialize(item)

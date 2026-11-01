@@ -29,7 +29,7 @@ def setup_operator(client, db, provider="openai"):
     if not db.get(Company,1):
         db.add(Company(id=1,name="AI test company"));db.commit()
     headers, user = auth_headers(client, db, email=f"operator-{uuid4().hex}@example.com",
-        permissions=["ai_assistant", "settings_manage", "pms_manage_projects", "pms_manage_tasks"])
+        permissions=["ai_assistant", "ai_manage_settings", "settings_manage", "pms_manage_projects", "pms_manage_tasks"])
     p = client.post("/api/v1/project-management/projects", headers=headers, json={"name": "Operator", "project_key": "OP"})
     assert p.status_code == 200, p.text
     project = p.json()["id"]
@@ -211,7 +211,7 @@ def test_permissions_and_private_scope_isolation(client, db, monkeypatch):
     headers, _, project, task = setup_operator(client, db)
     mock_provider(monkeypatch, plan_for(task))
     run = preview(client, headers, project, task).json()
-    other, _ = auth_headers(client, db, email="other-operator@example.com", permissions=["ai_assistant"])
+    other, _ = auth_headers(client, db, email="other-operator@example.com", permissions=["ai_assistant"], company_id=2)
     assert client.get("/api/v1/ai-operator/providers", headers=other).json()["items"] == []
     assert client.get(f"/api/v1/ai-operator/runs/{run['id']}", headers=other).status_code == 404
     assert client.get("/api/v1/ai-operator/analytics", headers=other).status_code == 403

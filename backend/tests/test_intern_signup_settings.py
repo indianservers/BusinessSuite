@@ -187,7 +187,11 @@ def test_google_signup_cannot_grant_ineligible_access(client, db, firebase_ident
     if change == 'former_intern': approved_applicant.employee.status = 'Terminated'
     if change == 'other_organization': returning_application.organization_id = 2
     if change == 'unapproved': returning_application.status = 'Pending'
-    if change == 'sso': approved_applicant.sso_provider_id = 1
+    if change == 'sso':
+        from app.models.sso import SSOProvider
+        provider = SSOProvider(name='Local test SSO', provider_type='oidc')
+        db.add(provider); db.flush()
+        approved_applicant.sso_provider_id = provider.id
     if change == 'mismatched_employee': returning_application.employee_id = None
     # Model an account explicitly belonging to another organization.
     if change == 'other_organization':

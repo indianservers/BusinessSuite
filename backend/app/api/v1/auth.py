@@ -5,7 +5,7 @@ import secrets
 from typing import Literal
 from pydantic import BaseModel, Field
 from sqlalchemy import func
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 import jwt
@@ -983,6 +983,19 @@ def revoke_user_session(
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.get("/mfa-methods", response_model=list[MFAMethodSchema], response_model_exclude={"__all__": {"secret_ref"}})
+def list_mfa_methods(
+    user_id: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=100, ge=1, le=300),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    query = db.query(MFAMethod)
+    if user_id is not None:
+        query = query.filter(MFAMethod.user_id == user_id)
+    return query.order_by(MFAMethod.id.desc()).limit(limit).all()
 
 
 @router.post("/mfa-methods", response_model=MFAMethodSchema, status_code=201)
