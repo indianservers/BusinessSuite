@@ -2,10 +2,13 @@ import { expect, test } from "../frontend/node_modules/playwright/test";
 import { authenticateCrm } from "./crm-core-test-utils";
 
 test("CRM shares the notes editor, keeps local drafts and arranges tasks without PMS data", async ({ page }) => {
+  await page.setViewportSize({ width: 1680, height: 1000 });
+  // Isolate UI checks from live shell APIs and real account sessions.
+  await page.route("**/api/v1/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
   await authenticateCrm(page);
   await page.route("**/api/v1/access/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   const dataCalls: string[] = [];
-  page.on("request", request => { if (/\/(project-management\/(notes|tasks)|crm\/(tasks|activities))(?:[/?]|$)/.test(request.url()) && request.url().includes("/api/")) dataCalls.push(request.url()); });
+  page.on("request", request => { if (request.url().includes("/api/v1/project-management/") || (/\/crm\/(tasks|activities)(?:[/?]|$)/.test(request.url()) && request.url().includes("/api/"))) dataCalls.push(request.url()); });
   await page.goto("/crm/activities?operation=%2Fcrm%2Ftasks");
   const workspace = page.getByRole("region", { name: "Tasks and notes workspace" });
   await expect(workspace.getByRole("heading", { name: "Tasks & notes" })).toBeVisible();
@@ -28,34 +31,44 @@ test("CRM shares the notes editor, keeps local drafts and arranges tasks without
   await page.mouse.move(lane.x + lane.width / 2, lane.y + lane.height / 2, { steps: 20 });
   await page.mouse.up();
   await expect(workspace.getByRole("region", { name: "To Do", exact: true }).getByText("Prepare proposal", { exact: true })).toBeVisible();
-  await workspace.getByRole("button", { name: "Notes", exact: true }).click();
-  await workspace.getByRole("button", { name: "New note", exact: true }).first().click();
-  await workspace.getByRole("textbox", { name: "Note title", exact: true }).fill("Discovery notes");
-  await workspace.getByRole("textbox", { name: "Note content", exact: true }).fill("Customer priorities");
-  await workspace.getByRole("button", { name: "Add notebook", exact: true }).click();
-  await workspace.getByRole("textbox", { name: "Notebook name" }).fill("Sales ideas");
-  await workspace.getByRole("button", { name: "Add", exact: true }).click();
-  await workspace.getByRole("button", { name: "All notes", exact: false }).click();
-  await workspace.getByRole("button", { name: /Discovery notes/ }).dragTo(workspace.getByRole("button", { name: /^Sales ideas/ }));
-  await expect(workspace.getByRole("combobox", { name: "Move to notebook" })).toHaveValue(/.+/);
-  await expect(workspace.getByRole("combobox", { name: "Move to notebook" }).locator("option:checked")).toHaveText("Sales ideas");
+  const notes = page.getByRole("region", { name: "CRM notes workspace" });
+  // Drag sensors briefly suppress click events after a drop.
+  await expect(async () => {
+    await workspace.getByRole("button", { name: "Notes", exact: true }).click();
+    await expect(notes.getByRole("button", { name: "New note", exact: true })).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 10000 });
+  await notes.getByRole("button", { name: "New note", exact: true }).click();
+  await notes.getByRole("textbox", { name: "Note title", exact: true }).fill("Discovery notes");
+  await notes.getByRole("textbox", { name: "Note content", exact: true }).fill("Customer priorities");
+  await notes.getByRole("button", { name: "Actions for CRM Notes", exact: true }).click();
+  await page.getByRole("menuitem", { name: "New folder", exact: true }).click();
+  await page.getByLabel("Folder name", { exact: true }).fill("Sales ideas");
+  await page.getByRole("button", { name: "Save folder", exact: true }).click();
+  await notes.getByText("Edit location", { exact: true }).click();
+  await notes.getByRole("combobox", { name: "Note folder", exact: true }).selectOption({ label: "Sales ideas" });
   await page.reload();
-  await workspace.getByRole("button", { name: /Discovery notes/ }).click();
-  await expect(workspace.getByRole("textbox", { name: "Note content", exact: true })).toContainText("Customer priorities");
-  await workspace.getByRole("button", { name: "Delete selected item" }).click();
-  await workspace.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect(workspace.getByRole("button", { name: /Discovery notes/ })).toBeVisible();
+  await notes.getByRole("button", { name: /Discovery notes/ }).click();
+  await expect(notes.getByRole("textbox", { name: "Note content", exact: true })).toContainText("Customer priorities");
+  await notes.getByRole("button", { name: "Favorite note", exact: true }).click();
+  await notes.getByRole("treeitem", { name: /^Favorites/ }).click();
+  await expect(notes.getByRole("button", { name: /Discovery notes/ })).toBeVisible();
+  await notes.getByRole("checkbox", { name: "Select Discovery notes", exact: true }).check();
+  await notes.getByRole("button", { name: "Trash selected notes", exact: true }).click();
+  await notes.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(notes.getByRole("button", { name: /Discovery notes/ })).toBeVisible();
   expect(dataCalls).toEqual([]);
-  await workspace.getByRole("button", { name: /Discovery notes/ }).click();
-  await page.screenshot({ path: "test-results/crm-productivity-desktop.png", fullPage: true });
+  await page.screenshot({ path: "test-results/crm-notes-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect.poll(async () => (await workspace.boundingBox())?.x ?? 999).toBeLessThan(30);
-  await expect(workspace.getByRole("textbox", { name: "Note title", exact: true })).toBeVisible();
-  await expect(workspace.getByRole("button", { name: "Back", exact: true })).toBeVisible();
-  await page.screenshot({ path: "test-results/crm-productivity-mobile.png", fullPage: true });
+  await notes.getByRole("navigation", { name: "Notes mobile navigation" }).getByRole("button", { name: "Editor", exact: true }).click();
+  await expect.poll(async () => (await notes.boundingBox())?.x ?? 999).toBeLessThan(30);
+  await expect(notes.getByRole("textbox", { name: "Note title", exact: true })).toBeVisible();
+  await page.screenshot({ path: "test-results/crm-notes-mobile.png", fullPage: true });
+
 });
 
 test("PMS-style CRM creation restores drafts and keeps data local", async ({ page }) => {
+  // Isolate UI checks from live shell APIs and real account sessions.
+  await page.route("**/api/v1/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
   await authenticateCrm(page);
   await page.route("**/api/v1/access/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   const dataCalls: string[] = [];
@@ -95,5 +108,51 @@ test("PMS-style CRM creation restores drafts and keeps data local", async ({ pag
   await expect.poll(async () => (await form.boundingBox())?.x ?? 999).toBeLessThan(30);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: "test-results/crm-task-creation-mobile.png", fullPage: true });
+  expect(dataCalls).toEqual([]);
+});
+
+
+test("CRM notes reuse PMS explorer, templates and tags with isolated browser data", async ({ page }) => {
+  await page.route("**/api/v1/**", route=>route.fulfill({status:200,contentType:"application/json",body:"[]"}));
+  await authenticateCrm(page);
+  await page.route("**/api/v1/access/**", route=>route.fulfill({status:200,contentType:"application/json",body:"{}"}));
+  await page.addInitScript(()=>{if(!localStorage.getItem("seeded-crm-note")){localStorage.setItem("productivity:crm:100:v1",JSON.stringify({notebooks:[{id:"inbox",name:"Inbox"}],entries:[{id:"old-note",kind:"note",title:"Legacy CRM idea",content:"Keep this CRM draft",notebook:"inbox",favorite:false,updated:new Date().toISOString()}]}));localStorage.setItem("seeded-crm-note","yes");}});
+  const dataCalls:string[]=[]; page.on("request",r=>{if(r.url().includes("/api/v1/project-management/"))dataCalls.push(r.url());});
+  await page.setViewportSize({width:1680,height:1000});
+  await page.goto("/crm/activities?operation=%2Fcrm%2Ftasks&workspaceView=notes");
+  const notes=page.getByRole("region",{name:"CRM notes workspace"});
+  await expect(notes.getByRole("button",{name:/Legacy CRM idea/})).toBeVisible();
+  await notes.getByRole("button",{name:"Browse all templates",exact:true}).click();
+  await page.getByRole("dialog").getByRole("button",{name:/Meeting notes/}).click();
+  await expect(notes.getByRole("textbox",{name:"Note content",exact:true}).getByRole("heading",{name:"Agenda",exact:true})).toBeVisible();
+  await notes.getByRole("button",{name:"Add note tag",exact:true}).click();
+  await notes.getByRole("textbox",{name:"New note tag",exact:true}).fill("sales");
+  await notes.getByRole("textbox",{name:"New note tag",exact:true}).press("Enter");
+  await notes.getByRole("button",{name:"Pin note",exact:true}).click();
+  await notes.getByRole("button",{name:"Actions for CRM Notes",exact:true}).click();
+  await page.getByRole("menuitem",{name:"New folder",exact:true}).click();
+  await page.getByLabel("Folder name",{exact:true}).fill("Customer plans");
+  await page.getByRole("button",{name:"Save folder",exact:true}).click();
+  await notes.getByRole("treeitem",{name:/^All Notes/}).click();
+  await notes.getByRole("button",{name:/Meeting notes.*Agenda/}).dragTo(notes.getByRole("treeitem",{name:/^Customer plans/}));
+  await expect(notes.getByRole("status").filter({hasText:"Notes moved"})).toBeVisible();
+  await notes.getByRole("treeitem",{name:/^Customer plans/}).click();
+  await expect(notes.getByRole("button",{name:/Meeting notes.*Agenda/})).toBeVisible();
+  await notes.getByRole("checkbox",{name:"Select Meeting notes",exact:true}).check();
+  await notes.getByRole("button",{name:"Archive selected notes",exact:true}).click();
+  await notes.getByRole("treeitem",{name:/^Archived/}).click();
+  await notes.getByRole("button",{name:/Meeting notes.*Agenda/}).click();
+  await notes.getByRole("checkbox",{name:"Select Meeting notes",exact:true}).check();
+  await notes.getByRole("button",{name:"Archive selected notes",exact:true}).click();
+  await notes.getByRole("treeitem",{name:/^All Notes/}).click();
+  await notes.getByText("Filters",{exact:true}).click();
+  await notes.getByRole("combobox",{name:"Filter by tag",exact:true}).selectOption("sales");
+  await notes.locator(".notes-search-tools > details > summary").click();
+  await expect(notes.getByRole("button",{name:/Legacy CRM idea/})).toHaveCount(0);
+  await expect(notes.getByRole("button",{name:/Meeting notes.*Agenda/})).toBeVisible();
+  await notes.getByRole("separator",{name:"Resize notes list",exact:true}).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(notes.getByRole("separator",{name:"Resize notes list",exact:true})).toHaveAttribute("aria-valuenow","320");
+  await page.screenshot({path:"test-results/crm-notes-desktop.png",fullPage:true});
   expect(dataCalls).toEqual([]);
 });
