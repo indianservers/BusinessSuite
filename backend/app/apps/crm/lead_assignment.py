@@ -47,10 +47,19 @@ def tenant(user):
     return organization(user)
 
 
-def ineligible_reason(candidate, organization_id, employee=None):
+def candidate_organization(user):
+    if not user:
+        return None
+    try:
+        return tenant(user)
+    except HTTPException:
+        return None
+
+
+def ineligible_reason(candidate, organization_id, employee=None, access_permissions=None):
     if not candidate or not candidate.is_active:
         return "Needs an active login account"
-    if tenant(candidate) != organization_id:
+    if candidate_organization(candidate) != organization_id:
         return "Needs a login account in this organization"
     if employee is not None:
         if (
@@ -68,7 +77,7 @@ def ineligible_reason(candidate, organization_id, employee=None):
     permissions = {
         p.name for p in (permission_objects(candidate))
     }
-    if not candidate.is_superuser and not permissions.intersection(LEAD_ACCESS):
+    if not candidate.is_superuser and not permissions.intersection(access_permissions or LEAD_ACCESS):
         return "Needs CRM lead access on the linked account"
     return None
 
@@ -111,7 +120,7 @@ def assignee_summary(db, candidate, employee=None):
     }
 
 
-def directory(db, actor, can_assign):
+def directory(db, actor, can_assign, access_permissions=None):
     organization_id = tenant(actor)
     users = (
         db.query(User)
@@ -131,7 +140,7 @@ def directory(db, actor, can_assign):
         assignee_summary(db, candidate, employee_map.get(candidate.id))
         for candidate in users
         if not ineligible_reason(
-            candidate, organization_id, employee_map.get(candidate.id)
+            candidate, organization_id, employee_map.get(candidate.id), access_permissions
         )
     ]
     unavailable = []
@@ -142,7 +151,7 @@ def directory(db, actor, can_assign):
             employee_org = (
                 employee.branch.company_id
                 if employee.branch
-                else tenant(linked_user) if linked_user else 1
+                else candidate_organization(linked_user)
             )
             if (
                 employee_org != organization_id
@@ -150,7 +159,7 @@ def directory(db, actor, can_assign):
                 or (employee.status or "").casefold() not in ACTIVE_EMPLOYMENT
             ):
                 continue
-            reason = ineligible_reason(linked_user, organization_id, employee)
+            reason = ineligible_reason(linked_user, organization_id, employee, access_permissions)
             if reason:
                 unavailable.append(
                     {

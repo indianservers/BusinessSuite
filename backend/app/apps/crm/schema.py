@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.apps.crm.models import (
     CRMAccount,
+    CRMDealCollaborator,
     CRMCPQRule,
     CRMForecastSnapshot,
     CRMGuidedSellingFlow,
@@ -112,6 +113,12 @@ CUSTOM_FIELD_COLUMNS = {
 }
 
 DEAL_REPORT_COLUMNS = {
+    "priority": "VARCHAR(20) DEFAULT 'Medium'",
+    "deal_type": "VARCHAR(40) DEFAULT 'New Business'",
+    "industry": "VARCHAR(120)",
+    "internal_reference": "VARCHAR(180)",
+    "planning": "JSON",
+    "version": "INTEGER NOT NULL DEFAULT 1",
     "catalog_items": "JSON",
     "lost_reason": "TEXT",
     "win_reason": "TEXT",
@@ -239,6 +246,7 @@ def ensure_crm_schema(db: Session) -> None:
         table
         for table in (
             CRMAccount.__table__,
+            CRMDealCollaborator.__table__,
             CRMTimelineEvent.__table__,
             CRMLeadConversionLog.__table__,
             CRMService.__table__,
@@ -369,6 +377,8 @@ def ensure_crm_schema(db: Session) -> None:
             db.execute(text("UPDATE crm_custom_fields SET is_unique = COALESCE(is_unique, false)"))
             db.execute(text("UPDATE crm_custom_fields SET is_visible = COALESCE(is_visible, true)"))
             db.execute(text("UPDATE crm_custom_fields SET is_filterable = COALESCE(is_filterable, false)"))
+        if table_name == "crm_pipeline_stages" and "policy_json" not in columns:
+            db.execute(text("ALTER TABLE crm_pipeline_stages ADD COLUMN policy_json JSON"))
         if table_name == "crm_deals":
             for column_name, column_type in DEAL_REPORT_COLUMNS.items():
                 if column_name not in columns:

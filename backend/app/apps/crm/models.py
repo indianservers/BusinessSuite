@@ -232,6 +232,7 @@ class CRMPipelineStage(Base):
     order_index = Column(Integer, default=0, index=True)
     stage_type = Column(String(20), default="open", index=True)
     color = Column(String(30))
+    policy_json = Column(JSON, nullable=True)
     active = Column(Boolean, default=True, index=True)
     is_won = Column(Boolean, default=False)
     is_lost = Column(Boolean, default=False)
@@ -265,6 +266,12 @@ class CRMDeal(Base):
     amount = Column(Numeric(12, 2), default=0)
     currency = Column(String(10), default="INR")
     catalog_items = Column(JSON, nullable=True)
+    priority = Column(String(20), default="Medium", server_default="Medium", index=True)
+    deal_type = Column(String(40), default="New Business", server_default="New Business", index=True)
+    industry = Column(String(120))
+    internal_reference = Column(String(180))
+    planning = Column(JSON, nullable=True)
+    version = Column(Integer, default=1, server_default="1", nullable=False)
     probability = Column(Integer, default=0)
     expected_revenue = Column(Numeric(12, 2))
     expected_close_date = Column(Date, index=True)
@@ -315,6 +322,20 @@ class CRMDealContact(Base):
 
     deal = relationship("CRMDeal", back_populates="contact_links")
     contact = relationship("CRMContact", back_populates="deal_links")
+
+
+class CRMDealCollaborator(Base):
+    __tablename__ = "crm_deal_collaborators"
+    __table_args__ = (UniqueConstraint("deal_id", "user_id", name="uq_crm_deal_collaborator"),)
+
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(80), nullable=False, default="Collaborator")
+    watching = Column(Boolean, nullable=False, default=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class CRMProduct(Base):

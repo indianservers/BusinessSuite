@@ -1,3 +1,4 @@
+import Deal360Page from "./deals/Deal360Page";
 import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
@@ -32,7 +33,7 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/companies", element: <CRMWorkspacePage kind="companies" /> },
   { path: "crm/companies/:id", element: <CRMRecordDetailPage kind="accounts" /> },
   { path: "crm/deals", element: <CRMWorkspacePage kind="deals" /> },
-  { path: "crm/deals/:id", element: <CRMRecordDetailPage kind="deals" /> },
+  { path: "crm/deals/:id", element: <Deal360Page /> },
   { path: "crm/pipeline", element: <CRMWorkspacePage kind="pipeline" /> },
   { path: "crm/templates", element: <CRMWorkspacePage kind="pipeline" /> },
   { path: "crm/pipeline-settings", element: <CRMWorkspacePage kind="pipelineSettings" /> },

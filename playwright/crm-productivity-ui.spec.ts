@@ -6,6 +6,9 @@ test("CRM shares the notes editor, keeps local drafts and arranges tasks without
   // Isolate UI checks from live shell APIs and real account sessions.
   await page.route("**/api/v1/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
   await authenticateCrm(page);
+  // The app keeps logins per tab; seed both stores on every test navigation.
+  await page.addInitScript(() => sessionStorage.setItem("hrms-auth", JSON.stringify({ state: { accessToken: "crm-token", refreshToken: "crm-refresh", user: { id: 100, email: "admin@example.com", role: "admin", is_superuser: true }, isAuthenticated: true }, version: 0 })));
+  await page.route("**/api/v1/auth/refresh", route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({access_token:"crm-token",refresh_token:"crm-refresh"})}));
   await page.route("**/api/v1/access/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   const dataCalls: string[] = [];
   page.on("request", request => { if (request.url().includes("/api/v1/project-management/") || (/\/crm\/(tasks|activities)(?:[/?]|$)/.test(request.url()) && request.url().includes("/api/"))) dataCalls.push(request.url()); });
@@ -70,6 +73,9 @@ test("PMS-style CRM creation restores drafts and keeps data local", async ({ pag
   // Isolate UI checks from live shell APIs and real account sessions.
   await page.route("**/api/v1/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
   await authenticateCrm(page);
+  // The app keeps logins per tab; seed both stores on every test navigation.
+  await page.addInitScript(() => sessionStorage.setItem("hrms-auth", JSON.stringify({ state: { accessToken: "crm-token", refreshToken: "crm-refresh", user: { id: 100, email: "admin@example.com", role: "admin", is_superuser: true }, isAuthenticated: true }, version: 0 })));
+  await page.route("**/api/v1/auth/refresh", route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({access_token:"crm-token",refresh_token:"crm-refresh"})}));
   await page.route("**/api/v1/access/**", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   const dataCalls: string[] = [];
   page.on("request", r => { if (r.url().includes("/api/v1/project-management/") || (r.url().includes("/api/v1/crm/") && r.method() !== "GET")) dataCalls.push(r.url()); });
@@ -115,6 +121,9 @@ test("PMS-style CRM creation restores drafts and keeps data local", async ({ pag
 test("CRM notes reuse PMS explorer, templates and tags with isolated browser data", async ({ page }) => {
   await page.route("**/api/v1/**", route=>route.fulfill({status:200,contentType:"application/json",body:"[]"}));
   await authenticateCrm(page);
+  // The app keeps logins per tab; seed both stores on every test navigation.
+  await page.addInitScript(() => sessionStorage.setItem("hrms-auth", JSON.stringify({ state: { accessToken: "crm-token", refreshToken: "crm-refresh", user: { id: 100, email: "admin@example.com", role: "admin", is_superuser: true }, isAuthenticated: true }, version: 0 })));
+  await page.route("**/api/v1/auth/refresh", route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({access_token:"crm-token",refresh_token:"crm-refresh"})}));
   await page.route("**/api/v1/access/**", route=>route.fulfill({status:200,contentType:"application/json",body:"{}"}));
   await page.addInitScript(()=>{if(!localStorage.getItem("seeded-crm-note")){localStorage.setItem("productivity:crm:100:v1",JSON.stringify({notebooks:[{id:"inbox",name:"Inbox"}],entries:[{id:"old-note",kind:"note",title:"Legacy CRM idea",content:"Keep this CRM draft",notebook:"inbox",favorite:false,updated:new Date().toISOString()}]}));localStorage.setItem("seeded-crm-note","yes");}});
   const dataCalls:string[]=[]; page.on("request",r=>{if(r.url().includes("/api/v1/project-management/"))dataCalls.push(r.url());});

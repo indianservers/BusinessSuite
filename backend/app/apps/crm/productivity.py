@@ -219,7 +219,7 @@ def apply_handover(data:Handover,db:Session=Depends(get_db),user:User=Depends(Re
 class LogInteraction(Strict):
     entity:Literal["leads","deals"]
     record_id:int
-    channel:Literal["call","meeting"]="call"
+    channel:Literal["call","meeting","whatsapp","email"]="call"
     outcome:Literal["Connected","No Answer","Callback Requested","Not Interested"]
     notes:str=Field(default="",max_length=4000)
     next_follow_up:datetime|None=None
@@ -256,6 +256,7 @@ def interaction(data:LogInteraction,db:Session=Depends(get_db),user:User=Depends
         state.data_json=details;state.version+=1;record.last_contacted_at=lm.now()
         lm.refresh_next_follow_up(db,record)
     else:
+        record.version += 1
         record.last_activity_at=lm.now()
         db.flush()
         pending=db.query(CRMActivity).filter(CRMActivity.organization_id==record.organization_id,CRMActivity.deal_id==record.id,CRMActivity.status.in_(OPEN_ACTIVITY),CRMActivity.due_date.isnot(None)).order_by(CRMActivity.due_date,CRMActivity.id).first()
@@ -330,10 +331,11 @@ def deal_stage_plan(ident:int,db:Session=Depends(get_db),user:User=Depends(Requi
     record=rows(db,user,"deals").filter(CRMDeal.id==ident).first()
     if not record:raise HTTPException(404,"Deal not found in your permitted scope")
     stages=db.query(CRMPipelineStage).filter_by(pipeline_id=record.pipeline_id,organization_id=record.organization_id,deleted_at=None).order_by(CRMPipelineStage.position).all()
-    return {"current_stage_id":record.stage_id,"values":{f:str(getattr(record,f) or "") for f in ("company_id","contact_id","amount","expected_close_date","next_follow_up_at","lead_source")},"stages":[{"id":s.id,"name":s.name,"is_won":s.is_won,"is_lost":s.is_lost,"probability":s.probability,**stage_requirements(db,record,s)} for s in stages]}
+    return {"version": record.version, "current_stage_id":record.stage_id,"values":{f:str(getattr(record,f) or "") for f in ("company_id","contact_id","amount","expected_close_date","next_follow_up_at","lead_source")},"stages":[{"id":s.id,"name":s.name,"is_won":s.is_won,"is_lost":s.is_lost,"probability":s.probability,**stage_requirements(db,record,s)} for s in stages]}
 
 
 class StageMove(Strict):
+    expected_version:int|None=None
     stage_id:int
     corrections:dict=Field(default_factory=dict)
     lost_reason:str=Field(default="",max_length=1000)
@@ -350,6 +352,7 @@ def transition_deal(ident:int,data:StageMove,db:Session=Depends(get_db),user:Use
     permitted={"company_id","contact_id","amount","expected_close_date","next_follow_up_at","lead_source"}
     if set(data.corrections)-permitted:raise HTTPException(422,"Unsupported correction fields")
     values={**data.corrections,"stage_id":stage.id,"probability":stage.probability}
+    if data.expected_version is not None: values["expected_version"] = data.expected_version
     if stage.is_lost or (stage.stage_type or "").lower()=="lost":values.update(status="Lost",lost_reason=data.lost_reason)
     elif stage.is_won or (stage.stage_type or "").lower()=="won":values["status"]="Won"
     else:values["status"]="Open"

@@ -29,7 +29,7 @@ class InternBatch(Base):
     expected_hours = Column(Numeric(4, 1), default=8)
     reporting_frequency = Column(String(20), default="Daily")
     policy = Column(JSON, nullable=False, default=dict)
-    status = Column(String(20), nullable=False, default="Draft", index=True)
+    status = Column(String(20), nullable=False, default="Active", index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

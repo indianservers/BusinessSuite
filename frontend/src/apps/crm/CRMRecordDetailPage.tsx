@@ -1,3 +1,4 @@
+import {dealError} from "./deals/deal-utils";
 import {useAuthStore} from "@/store/authStore";
 import {crmScope,useCRMProductivity} from "./productivityStore";
 import CRMStageDialog from "./CRMStageDialog";
@@ -196,7 +197,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
     crmApi
       .get<DetailRecord>(config.entity, recordId)
       .then((response) => setRecord(response.data))
-      .catch((err) => setError(err?.response?.data?.detail || "CRM record could not be loaded."))
+      .catch((err) => setError(dealError(err) || "CRM record could not be loaded."))
       .finally(() => setLoading(false));
   };
 
@@ -221,7 +222,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
         setRecord(response.data);
         setEditOpen(false);
       })
-      .catch((err) => setError(err?.response?.data?.detail || "CRM record could not be saved."))
+      .catch((err) => setError(dealError(err) || "CRM record could not be saved."))
       .finally(() => setSaving(false));
   };
 
@@ -239,7 +240,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       .then((response) => setRecord(response.data))
       .catch((err) => {
         setRecord(previous);
-        throw new Error(err?.response?.data?.detail || "CRM record could not be saved.");
+        throw new Error(dealError(err) || "CRM record could not be saved.");
       })
       .finally(() => setSaving(false));
   };
@@ -269,13 +270,13 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       })
       .catch((err) => {
         setRecord(previous);
-        throw new Error(err?.response?.data?.detail || "Custom field could not be saved.");
+        throw new Error(dealError(err) || "Custom field could not be saved.");
       });
   };
 
   const deleteRecord = () => {
     if (!window.confirm(`Delete this ${config.singular.toLowerCase()}?`)) return;
-    crmApi.delete(config.entity, recordId).then(() => navigate(config.listPath)).catch((err) => setError(err?.response?.data?.detail || "CRM record could not be deleted."));
+    crmApi.delete(config.entity, recordId).then(() => navigate(config.listPath)).catch((err) => setError(dealError(err) || "CRM record could not be deleted."));
   };
 
   const recalculateScore = () => {
@@ -284,7 +285,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
     setError(null);
     crmApi.recalculateLeadScore<DetailRecord>(recordId)
       .then((response) => setRecord(response.data))
-      .catch((err) => setError(err?.response?.data?.detail || "Lead score could not be recalculated."))
+      .catch((err) => setError(dealError(err) || "Lead score could not be recalculated."))
       .finally(() => setSaving(false));
   };
 
@@ -305,7 +306,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
         if (dealId) navigate(`/crm/deals/${dealId}`);
         else if (contactId) navigate(`/crm/contacts/${contactId}`);
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Lead could not be converted."))
+      .catch((err) => setError(dealError(err) || "Lead could not be converted."))
       .finally(() => setLeadConverting(false));
   };
 
@@ -316,7 +317,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
     crmApi
       .submitApproval({ entityType: kind === "deals" ? "deal" : "quotation", entityId: recordId, triggerType: "manual" })
       .then(loadRecord)
-      .catch((err) => setError(err?.response?.data?.detail || "Approval could not be submitted."))
+      .catch((err) => setError(dealError(err) || "Approval could not be submitted."))
       .finally(() => setApprovalSubmitting(false));
   };
 
@@ -343,7 +344,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
         }
         loadRecord();
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Quotation PDF could not be generated."))
+      .catch((err) => setError(dealError(err) || "Quotation PDF could not be generated."))
       .finally(() => setPdfGenerating(false));
   };
 
@@ -443,7 +444,7 @@ function DetailFields({ kind, record, fields, onSave, saving }: { kind: DetailKi
   );
 }
 
-function CommercialHandoff({ related }: { related: Record<string, unknown> }) {
+export function CommercialHandoff({ related }: { related: Record<string, unknown> }) {
   const srm = related.srm as CRMApiRecord | undefined;
   if (!srm || typeof srm !== "object") return null;
   const salesOrder = srm.salesOrder as CRMApiRecord | null | undefined;
@@ -851,7 +852,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
         setPreview(response.data);
         setSelected(Object.fromEntries((response.data.fields || []).filter((field) => field.supported && field.changed).map((field) => [field.key, true])));
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Enrichment preview could not be loaded."))
+      .catch((err) => setError(dealError(err) || "Enrichment preview could not be loaded."))
       .finally(() => setLoading(false));
   };
   const apply = () => {
@@ -862,7 +863,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
     crmApi
       .enrichmentApply({ entityType, entityId: recordId, provider, values: preview.values, appliedFields })
       .then((response) => onDone(response.data.record as DetailRecord))
-      .catch((err) => setError(err?.response?.data?.detail || "Enrichment could not be applied."))
+      .catch((err) => setError(dealError(err) || "Enrichment could not be applied."))
       .finally(() => setLoading(false));
   };
 
@@ -925,7 +926,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
   );
 }
 
-function QuickActionModal({ action, kind, record, entity, recordId, onClose, onDone }: { action: QuickAction; kind: DetailKind; record: DetailRecord; entity: string; recordId: number; onClose: () => void; onDone: () => void }) {
+export function QuickActionModal({ action, kind, record, entity, recordId, onClose, onDone }: { action: QuickAction; kind: DetailKind; record: DetailRecord; entity: string; recordId: number; onClose: () => void; onDone: () => void }) {
   const [draft, setDraft] = useState<CRMApiRecord>(() => defaultActionPayload(action, kind, record, entity, recordId));
   const [mentions, setMentions] = useState<MentionUser[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -937,7 +938,7 @@ function QuickActionModal({ action, kind, record, entity, recordId, onClose, onD
     crmApi
       .create(targetEntity, { ...draft, mentions: mentions.map((user) => ({ id: user.id })) })
       .then(onDone)
-      .catch((err) => setError(err?.response?.data?.detail || "Action could not be saved."))
+      .catch((err) => setError(dealError(err) || "Action could not be saved."))
       .finally(() => setSaving(false));
   };
   return (
@@ -1029,7 +1030,7 @@ function MentionTextarea({ value, onChange, mentions, onMentionsChange }: { valu
   );
 }
 
-function EmailComposeModal({ kind, record, disabled = false, approvalStatus = "", onClose, onDone }: { kind: DetailKind; record: DetailRecord; disabled?: boolean; approvalStatus?: string; onClose: () => void; onDone: () => void }) {
+export function EmailComposeModal({ kind, record, disabled = false, approvalStatus = "", onClose, onDone }: { kind: DetailKind; record: DetailRecord; disabled?: boolean; approvalStatus?: string; onClose: () => void; onDone: () => void }) {
   const entityType = kind === "accounts" ? "account" : kind.replace(/s$/, "");
   const recordName = titleFor(record, detailConfig[kind].nameKeys, detailConfig[kind].singular);
   const [templates, setTemplates] = useState<CRMApiRecord[]>([]);
@@ -1084,7 +1085,7 @@ function EmailComposeModal({ kind, record, disabled = false, approvalStatus = ""
         }
         onDone();
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Email could not be saved."))
+      .catch((err) => setError(dealError(err) || "Email could not be saved."))
       .finally(() => setSaving(false));
   };
 
@@ -1127,10 +1128,10 @@ function EmailComposeModal({ kind, record, disabled = false, approvalStatus = ""
               className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             />
           </Field>
-          <Field label="Attachments">
+          {kind !== "deals" && <Field label="Attachments">
             <Input type="file" multiple onChange={(event) => setAttachments(Array.from(event.target.files || []).map((file) => file.name))} />
             {attachments.length ? <p className="text-xs text-muted-foreground">{attachments.join(", ")} will be logged with the draft UI. File upload is not connected for CRM email yet.</p> : null}
-          </Field>
+          </Field>}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
             <Button variant="outline" onClick={() => submit(true)} disabled={saving}>Save as draft</Button>
@@ -1189,7 +1190,7 @@ function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKi
         setStatusMessage(`${labelFor(channel)} message ${status || "sent"}.`);
         onDone();
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Message could not be sent."))
+      .catch((err) => setError(dealError(err) || "Message could not be sent."))
       .finally(() => setSaving(false));
   };
 
@@ -1258,9 +1259,9 @@ function defaultActionPayload(action: QuickAction, kind: DetailKind, record: Det
   const linkField = entity === "companies" ? "company_id" : `${entity.replace(/s$/, "")}_id`;
   const linked = { [linkField]: recordId };
   if (action === "note") return { body: `Note for ${titleFor(record, detailConfig[kind].nameKeys, detailConfig[kind].singular)}`, ...linked };
-  if (action === "task") return { title: "Follow up", status: "To Do", priority: "Medium", due_date: new Date().toISOString(), ...linked };
+  if (action === "task") return { title: "Follow up", status: "To Do", priority: "Medium", due_date: new Date().toISOString(), reminder_at: "", ...linked };
   if (action === "call") return { direction: "Outbound", phone_number: valueText(record.phone), phone_number_country_code:valueText(record.phone_country_code) || (record.phone ? "" : "+91"), call_time: new Date().toISOString(), outcome: "Logged", ...linked };
-  if (action === "email") return { subject: "Follow up", to_email: valueText(record.email) || "customer@example.com", direction: "Outbound", body: "", ...linked };
+  if (action === "email") return { subject: "Follow up", to_email: valueText(record.email), direction: "Outbound", body: "", ...linked };
   if (action === "meeting") return { title: "Customer meeting", start_time: new Date().toISOString(), end_time: new Date(Date.now() + 30 * 60000).toISOString(), status: "Scheduled", location: "", ...linked };
   const today = new Date();
   const expiry = new Date(today.getTime() + 14 * 86400000);
@@ -1279,6 +1280,7 @@ function defaultActionPayload(action: QuickAction, kind: DetailKind, record: Det
     expiry_date: expiry.toISOString().slice(0, 10),
     status: "Draft",
     total_amount: Number(record.amount || record.total_amount || 0),
+    currency: valueText(record.currency) || "INR",
     ...(kind === "deals" ? { deal_id: recordId, company_id: record.company_id, contact_id: record.contact_id } : linked),
   };
 }

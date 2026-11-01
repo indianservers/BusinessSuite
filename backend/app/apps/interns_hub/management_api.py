@@ -158,7 +158,7 @@ class Transition(BaseModel):
 @router.post("/batches/{batch_id}/transition")
 def transition(batch_id:int,data:Transition,user=Depends(require_admin),db:Session=Depends(get_db)):
     b=get_batch(db,user,batch_id)
-    allowed={"Draft":{"Upcoming","Archived"},"Upcoming":{"Active","Archived"},"Active":{"Evaluation","Archived"},"Evaluation":{"Active","Completed","Archived"},"Completed":{"Archived"},"Archived":set()}
+    allowed={"Draft":{"Active","Upcoming","Archived"},"Upcoming":{"Active","Archived"},"Active":{"Evaluation","Archived"},"Evaluation":{"Active","Completed","Archived"},"Completed":{"Archived"},"Archived":set()}
     if data.status not in allowed.get(b.status,set()):raise HTTPException(409,"Invalid batch lifecycle transition")
     if data.status=="Completed":
         active=db.query(InternBatchMembership.employee_id).filter_by(batch_id=b.id,status="Active")

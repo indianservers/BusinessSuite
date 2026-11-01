@@ -30,7 +30,7 @@ const categories: Record<string, readonly Category[]> = {
   crm: [
     { name: "Overview", paths: ["/crm"] },
     { name: "Customers & leads", paths: ["/crm/leads", "/crm/contacts", "/crm/companies", "/crm/customer-360", "/crm/lead-scoring", "/crm/duplicates", "/crm/territories"] },
-    { name: "Sales & pipeline", paths: ["/crm/deals", "/crm/pipeline", "/crm/lead-to-cash", "/crm/products", "/crm/quotations", "/crm/my-approvals"] },
+    { name: "Sales & pipeline", paths: ["/crm/deals", "/crm/pipeline", "/crm/lead-to-cash", "/crm/products", "/crm/services", "/crm/quotations", "/crm/my-approvals"] },
     { name: "Activities & planning", paths: ["/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"] },
     { name: "Marketing & campaigns", paths: ["/crm/campaigns", "/crm/webforms", "/crm/forms", "/crm/consents", "/crm/templates"] },
     { name: "Communication", paths: ["/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/whatsapp", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline", "/crm/messages"] },

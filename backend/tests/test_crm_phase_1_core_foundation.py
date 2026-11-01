@@ -132,6 +132,11 @@ def test_crm_phase_1_deal_actions_activity_completion_and_srm_readiness(client, 
     assert lost_deal.status_code == 201
     missing_reason = client.post(f"/api/v1/crm/deals/{lost_deal.json()['id']}/mark-lost", headers=superuser_headers, json={})
     assert missing_reason.status_code == 422
+    # Terminal outcomes now require the pipeline's configured terminal stage.
+    unconfigured = client.post(f"/api/v1/crm/deals/{lost_deal.json()['id']}/mark-lost", headers=superuser_headers, json={"lostReason": "Budget frozen"})
+    assert unconfigured.status_code == 422
+    stage_lost = client.post(f"/api/v1/crm/pipelines/{pipeline.json()['id']}/stages", headers=superuser_headers, json={"name": "Closed Lost", "probability": 0, "isLost": True})
+    assert stage_lost.status_code == 201
     lost = client.post(f"/api/v1/crm/deals/{lost_deal.json()['id']}/mark-lost", headers=superuser_headers, json={"lostReason": "Budget frozen"})
     assert lost.status_code == 200
     assert lost.json()["status"] == "Lost"

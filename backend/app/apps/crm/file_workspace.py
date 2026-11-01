@@ -70,10 +70,14 @@ def move_file(file_id: int, data: MoveInput, db: Session = Depends(get_db), user
 
 
 @router.post("/file-workspace/upload", status_code=201)
-def upload(file: UploadFile = File(...), folder_id: int | None = Form(None), db: Session = Depends(get_db), user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS))):
+def upload(file: UploadFile = File(...), folder_id: int | None = Form(None), deal_id: int | None = Form(None), db: Session = Depends(get_db), user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS))):
     from app.apps.project_management.api.router import _validate_attachment_upload, _safe_attachment_name, PMS_MAX_ATTACHMENT_BYTES
     organization = access(db, user, "manage")
     folder(db, folder_id, organization)
+    if deal_id:
+        from .api.router import _assert_record_visible, _assert_entity_permission, _get_resource
+        _assert_entity_permission("deals", user, "manage")
+        _assert_record_visible(db, _get_resource("deals"), deal_id, organization, user)
     _validate_attachment_upload(file)
     original = _safe_attachment_name(file.filename)
     filename = f"{uuid.uuid4().hex}_{original}"
@@ -89,7 +93,7 @@ def upload(file: UploadFile = File(...), folder_id: int | None = Form(None), db:
                 output.write(chunk)
         if not size: raise HTTPException(400, "Empty files cannot be uploaded")
         persist_file(str(target))
-        item = CRMFileAsset(organization_id=organization, uploaded_by_user_id=user.id, created_by_user_id=user.id, folder_id=folder_id, file_name=filename, original_name=original, mime_type=file.content_type, size_bytes=size, storage_path=str(target), visibility="Internal")
+        item = CRMFileAsset(organization_id=organization, uploaded_by_user_id=user.id, created_by_user_id=user.id, folder_id=folder_id, deal_id=deal_id, file_name=filename, original_name=original, mime_type=file.content_type, size_bytes=size, storage_path=str(target), visibility="Internal")
         db.add(item); db.commit(); db.refresh(item)
         return {"id": item.id}
     except Exception:

@@ -1,3 +1,10 @@
+import * as DealDialog from "@radix-ui/react-dialog";
+import PipelinePolicyPanel from "./deals/PipelinePolicyPanel";
+import EnterpriseDealsPage from "./deals/EnterpriseDealsPage";
+import DealPlanningFields from "./deals/DealPlanningFields";
+import DealRecordSelect from "./deals/DealRecordSelect";
+import {dealTabs, dealOptions, dealError, dealMoney} from "./deals/deal-utils";
+import {createPortal} from "react-dom";
 import CrmFilesPage from "./CrmFilesPage";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import OrderedList from "@/components/interaction/OrderedList";
@@ -187,6 +194,14 @@ type CRMDealRow = {
   source?: string;
   description?: string;
   customFields?: CRMApiRecord;
+  currency?: string;
+  priority?: string;
+  deal_type?: string;
+  industry?: string;
+  internal_reference?: string;
+  planning?: CRMApiRecord;
+  contactLinks?: CRMApiRecord[];
+  version?: number;
   catalogItems?: CRMApiRecord[];
   createdAt?: string;
   updatedAt?: string;
@@ -994,7 +1009,7 @@ export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
   if (kind === "leads") return <CRMLeadsPage />;
   if (kind === "contacts") return <CRMContactsPage />;
   if (kind === "companies") return <CRMAccountsPage />;
-  if (kind === "deals") return <CRMDealsPage />;
+  if (kind === "deals") return <EnterpriseDealsPage />;
   if (kind === "products") return <ProductCatalogPage />;
   if (kind === "quoteBuilder") return <QuoteBuilderPage />;
   if (kind === "quoteApprovals") return <QuoteApprovalsPage />;
@@ -2609,6 +2624,7 @@ function PipelineSettingsPage() {
           </CardContent>
         </Card>
       </div>
+      <PipelinePolicyPanel/>
     </div>
   );
 }
@@ -3855,12 +3871,12 @@ function LeadActivityItem({ item }: { item: CRMApiRecord }) {
 }
 
 function LeadFormSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section><h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3><div className="grid gap-4 md:grid-cols-2">{children}</div></section>;
+  return <section><h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3><div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">{children}</div></section>;
 }
 
 function LeadFormField({ label, required, error, wide, children }: { label: string; required?: boolean; error?: string; wide?: boolean; children: React.ReactNode }) {
   return (
-    <label className={`space-y-1 text-sm ${wide ? "md:col-span-2" : ""}`}>
+    <label className={`min-w-0 space-y-1 text-sm ${wide ? "md:col-span-2" : ""}`}>
       <span className="font-medium text-foreground">{label}{required ? <span className="text-red-700 dark:text-red-300"> *</span> : null}</span>
       {children}
       {error ? <span className="block text-xs text-red-700 dark:text-red-300">{error}</span> : null}
@@ -4593,6 +4609,7 @@ function buildContactPayload(draft: CRMApiRecord): CRMApiRecord {
     next_follow_up_at: followUp || undefined,
     notes: emptyToUndefined(draft.notes),
   };
+  for (const key of ["currency", "priority", "deal_type", "industry", "internal_reference", "planning", "tags_text"]) if (draft[key] !== undefined) payload[key] = draft[key];
   if (draft.companyId) payload.company_id = Number(draft.companyId);
   if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
@@ -5369,6 +5386,7 @@ function CRMDealsPage() {
   const [formSaving, setFormSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
+  useEffect(() => {const changed = () => setRefreshKey(v => v + 1);window.addEventListener("crm:records-changed", changed);return () => window.removeEventListener("crm:records-changed", changed);}, []);
   const ownerNames = useMemo(() => leadOwnerLookup(owners), [owners]);
   const territoryNames = useMemo(() => leadTerritoryLookup(territories), [territories]);
   const companyNames = useMemo(() => companyNameLookup(companies), [companies]);
@@ -5729,42 +5747,50 @@ function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDeal
   );
 }
 
-export function QuickDealDialog({close, saved}: {close: () => void; saved: () => void}) {
+export function QuickDealDialog({close, saved, dealId}: {close: () => void; saved: () => void; dealId?: number}) {
   const [lookups, setLookups] = useState<Record<string, CRMRecord[]>>();
+  const [canManualProbability, setCanManualProbability] = useState(false);
+  const [record, setRecord] = useState<CRMDealRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [reload, setReload] = useState(0);
+  const user = useAuthStore(state => state.user);
   useEffect(() => {
     let active = true;
-    const resources = ["companies", "contacts", "owners", "territories", "pipelines", "pipeline-stages", "products", "services", "custom-fields"];
+    const resources = ["companies", "contacts", "deal-workspace/assignees", "territories", "pipelines", "pipeline-stages", "products", "services", "custom-fields"];
     setError(null);
-    void Promise.all(resources.map(async resource => {
-      const items: CRMRecord[] = [];
-      let page = 1, pages = 1;
-      do {
-        const response = await crmApi.list(resource, {per_page: 100, page, ...(resource === "custom-fields" ? {entityType: "deals"} : {})});
-        items.push(...response.data.items.map(item => normalizeApiRecord(resource as CRMPageKind, item)));
-        pages = response.data.pages || 1;
-        page++;
-      } while (page <= pages);
-      return [resource, items] as const;
-    })).then(entries => {if (active) setLookups(Object.fromEntries(entries));}).catch(err => {if (active) setError(err?.response?.data?.detail || "Deal options could not be loaded.");});
+    void Promise.all([Promise.all(resources.map(async resource => [resource, await dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {})] as const)), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions")]).then(([entries, response, permissions]) => {
+      if (!active) return;
+      const options = Object.fromEntries(entries.map(([key, items]) => [key, items.map(item => normalizeApiRecord(key, item))]));
+      options.owners = options["deal-workspace/assignees"];
+      setCanManualProbability(Boolean(permissions.data.can_manual_probability));
+      setLookups(options);
+      if (response) setRecord(recordToDealRow(response.data, {companyNames: new Map(), contactNames: new Map(), ownerNames: new Map(), territoryNames: new Map(), stageNames: new Map(), pipelineNames: new Map(), stages: options["pipeline-stages"]}));
+    }).catch(err => {if (active) setError(dealError(err));});
     return () => {active = false;};
-  }, [reload]);
-  if (!lookups) return <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-label="Create deal" className="rounded-lg bg-card p-6 text-foreground">{error ? <><p role="alert">{error}</p><Button onClick={() => setReload(v => v + 1)}>Retry</Button></> : <p role="status">Loading deal form…</p>}<Button variant="outline" onClick={close}>Cancel</Button></div></div>;
-  return <DealFormModal mode="create" deal={null} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} customFields={lookups["custom-fields"]} onClose={close} onSave={async payload => {
+  }, [reload, dealId]);
+  if (!lookups) return createPortal(<div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-label="Create deal" className="rounded-lg bg-card p-6 text-foreground">{error ? <><p role="alert">{error}</p><Button onClick={() => setReload(v => v + 1)}>Retry</Button></> : <div role="status" className="animate-pulse space-y-3"><p>Loading deal form...</p><div className="h-10 w-72 rounded bg-muted"/><div className="h-10 w-72 rounded bg-muted"/></div>}<Button variant="outline" onClick={close}>Cancel</Button></div></div>, document.body);
+  return <DealFormModal canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload) => {
     setSaving(true);setError(null);
-    try {await crmApi.create("deals", payload);saved();close();} catch(err: any) {setError(err?.response?.data?.detail || "Deal could not be saved.");} finally {setSaving(false);}
+    try {
+      if (dealId) await crmApi.update("deals", dealId, {...dirtyPayload, expected_version: dirtyPayload.expected_version ?? record?.version});
+      else await crmApi.create("deals", payload);
+      sessionStorage.removeItem(`crm-deal-draft:${user?.access?.companyId}:${user?.id}:${dealId || "new"}`);
+      saved();close();
+    } catch(err) {setError(dealError(err));} finally {setSaving(false);}
   }}/>;
 }
 
-function DealFormModal({ mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+function DealFormModal({ canManualProbability = false, mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { canManualProbability?: boolean; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
   const initial = useMemo(() => dealFormInitial(deal), [deal?.id]);
   const initialCustomValues = useMemo(() => dealCustomFieldInitial(deal), [deal?.id]);
-  const [draft, setDraft] = useState<CRMApiRecord>(initial);
-  const [customValues, setCustomValues] = useState<CRMApiRecord>(initialCustomValues);
+  const user = useAuthStore(state => state.user);
+  const draftKey = `crm-deal-draft:${user?.access?.companyId}:${user?.id}:${deal?.id || "new"}`;
+  const restored = useMemo(() => {try {return JSON.parse(sessionStorage.getItem(draftKey) || "null");} catch {return null;}}, [draftKey]);
+  const [draft, setDraft] = useState<CRMApiRecord>(restored?.draft || initial);
+  const [customValues, setCustomValues] = useState<CRMApiRecord>(restored?.customValues || initialCustomValues);
   const initialLines = useMemo<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0)})), [deal?.id]);
-  const [lines, setLines] = useState<DealLineItem[]>(initialLines);
+  const [lines, setLines] = useState<DealLineItem[]>(restored?.lines || initialLines);
   const [addedCompanies, setAddedCompanies] = useState<CRMRecord[]>([]);
   const [addedContacts, setAddedContacts] = useState<CRMRecord[]>([]);
   const [addedProducts, setAddedProducts] = useState<CRMRecord[]>([]);
@@ -5782,19 +5808,21 @@ function DealFormModal({ mode, deal, saving, error, companies, contacts, owners,
       else if (inlineKind === "contacts") {setAddedContacts(items => [...items, created]);setDraft(v => ({...v, contactId: created.id}));}
       else {const kind = inlineKind === "services" ? "service" : "product";setAddedProducts(items => [...items, {...created, catalogKind: kind}]);setLines(items => [...items, {key: crypto.randomUUID(), productId: `${kind}:${created.id}`, unitPrice: String(created.price ?? created.default_rate ?? created.list_price ?? created.unit_price ?? 0), quantity: "1", discount: "0"}]);}
       setInlineKind(null);
-    } catch(err: any) {setInlineError(err?.response?.data?.detail || "Record could not be created.");} finally {setInlineSaving(false);}
+    } catch(err: any) {setInlineError(dealError(err));} finally {setInlineSaving(false);}
   };
   const [formTab, setFormTab] = useState<"simple" | "advanced">("simple");
+  const [advancedTab, setAdvancedTab] = useState(0);
+  const [duplicate, setDuplicate] = useState<CRMApiRecord[]>([]);
+  const [draftNotice, setDraftNotice] = useState("");
+  useEffect(() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: restored?.baseVersion || deal?.version}));}, [draftKey, draft, customValues, lines]);
+  useEffect(() => {let active = true;const timer = setTimeout(() => {if (String(draft.name || "").trim().length < 2) {setDuplicate([]);return;}void crmApi.list("deal-workspace/duplicates", {name: String(draft.name), company_id: draft.companyId ? Number(draft.companyId) : undefined, exclude_id: deal?.id}).then(response => {if (active) setDuplicate(response.data.items || []);}).catch(() => {});}, 400);return () => {active = false;clearTimeout(timer);};}, [draft.name, draft.companyId, deal?.id]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const visibleCustomFields = useMemo(() => customFields.filter((field) => Boolean(field.isVisible ?? field.is_visible ?? true)), [customFields]);
-  useEffect(() => {
-    setDraft(initial);
-    setCustomValues(initialCustomValues);
-    setLines(initialLines);
-  }, [initial, initialCustomValues]);
+
   const pipelineStages = useMemo(() => stages.filter((stage) => !draft.pipelineId || String(stage.pipelineId || stage.pipeline_id || "") === String(draft.pipelineId)), [stages, draft.pipelineId]);
   const visibleContacts = useMemo(() => [...contacts, ...addedContacts].filter((contact) => !draft.companyId || !(contact.companyId || contact.company_id) || String(contact.companyId || contact.company_id) === String(draft.companyId)), [contacts, addedContacts, draft.companyId]);
   const productTotal = dealProductTotal(lines);
+  const currencyMoney = (amount: number) => dealMoney(amount, draft.currency || "INR");
   const amountSource = lines.length > 0 ? "Product lines" : "Manual amount";
   const effectiveAmount = lines.length > 0 ? productTotal : Number(draft.amount || 0);
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial) || JSON.stringify(customValues) !== JSON.stringify(initialCustomValues) || JSON.stringify(lines) !== JSON.stringify(initialLines);
@@ -5810,45 +5838,58 @@ function DealFormModal({ mode, deal, saving, error, companies, contacts, owners,
   const submit = () => {
     const validation = { ...validateDealDraft(draft), ...(mode === "create" ? validateDealCustomFields(visibleCustomFields, customValues) : {}) };
     setFieldErrors(validation);
-    if (Object.keys(validation).length) return;
+    if (Object.keys(validation).length) {setAdvancedTab(0);return;}
     if (lines.some(line => !line.productId || !Number.isFinite(Number(line.unitPrice)) || Number(line.unitPrice) < 0 || !Number.isInteger(Number(line.quantity)) || Number(line.quantity) < 1 || !Number.isFinite(Number(line.discount)) || Number(line.discount) < 0 || Number(line.discount) > 100)) {setFieldErrors({...validation, catalog: "Choose a product/service for each line, a nonnegative price, a whole quantity of at least 1, and a discount from 0 to 100."});return;}
+    setAdvancedTab(0);
     const fullPayload = buildDealPayload(draft, effectiveAmount, customValues);
     const dirtyPayload = buildDealDirtyPayload(draft, initial, effectiveAmount, customValues, initialCustomValues);
     const catalogItems = lines.map(line => {const [kind, id] = line.productId.split(":");return {kind, item_id: Number(id), unit_price: Number(line.unitPrice), quantity: Number(line.quantity), discount: Number(line.discount)};});
     if (mode === "create" || JSON.stringify(lines) !== JSON.stringify(initialLines)) {fullPayload.catalog_items = catalogItems;dirtyPayload.catalog_items = catalogItems;}
+    if (mode === "edit") dirtyPayload.expected_version = restored?.baseVersion || deal?.version;
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
   };
-  return (
-    <>
+  return createPortal(
+    <DealDialog.Root open modal={!inlineKind} onOpenChange={open => {if (!open && !saving) requestClose();}}>
+    <DealDialog.Content asChild aria-describedby={undefined} onInteractOutside={e => {if (inlineKind) e.preventDefault();}} onEscapeKeyDown={e => {if (inlineKind) {e.preventDefault();if (!inlineSaving) setInlineKind(null);}}}>
     <div role="dialog" aria-modal="true" aria-label={mode === "edit" ? "Edit deal" : "Create deal"} className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
-          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white"><GitMerge className="h-5 w-5" /></span><div><h2 className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit deal" : "Create deal"}</h2><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update opportunity value, products, and sales commitment." : "Capture the opportunity, products, value, and next sales commitment in one place."}</p></div></div>
-          <div className="flex items-center gap-3"><div className="rounded-md border border-border bg-white/[0.04] p-1"><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "simple" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("simple")}>Simple</button><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "advanced" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("advanced")}>Advanced</button></div><span className="text-xs text-muted-foreground"><span className="text-emerald-700 dark:text-emerald-300">*</span> Required fields</span><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close deal form"><X className="h-4 w-4" /></Button></div>
+      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-3 shrink-0 border-b border-border px-5 py-4">
+          <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500 text-white"><GitMerge className="h-5 w-5" /></span><div><DealDialog.Title className="text-xl font-semibold text-foreground">{mode === "edit" ? "Edit deal" : "Create deal"}</DealDialog.Title><p className="text-sm text-muted-foreground">{mode === "edit" ? "Update opportunity value, products, and sales commitment." : "Capture the opportunity, products, value, and next sales commitment in one place."}</p></div></div>
+          <div className="flex items-center gap-3"><div className="rounded-md border border-border bg-white/[0.04] p-1"><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "simple" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("simple")}>Quick Create</button><button type="button" className={`h-8 rounded px-3 text-sm ${formTab === "advanced" ? "bg-slate-700 text-white" : "text-muted-foreground"}`} onClick={() => setFormTab("advanced")}>Advanced Create</button></div><span className="text-xs text-muted-foreground"><span className="text-emerald-700 dark:text-emerald-300">*</span> Required fields</span><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close deal form"><X className="h-4 w-4" /></Button></div>
         </div>
-        <div className="grid max-h-[calc(92vh-8rem)] overflow-y-auto lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <div className="space-y-4 border-r border-border px-5 py-4">
-            {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
-            <LeadFormSection title="Opportunity">
-              <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.companyId)} onChange={(event) => setDraft(v => ({...v, companyId: event.target.value, contactId: ""}))}><option value="">No company</option>{[...companies, ...addedCompanies].map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.companyName || company.id)}</option>)}</select><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("companies");}}><Plus size={14}/>Add company</Button></LeadFormField>
-              <LeadFormField label="Contact"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.contactId)} onChange={(event) => patch("contactId", event.target.value)}><option value="">No contact</option>{visibleContacts.map((contact) => <option key={String(contact.id)} value={String(contact.id)}>{String(contact.name || contact.full_name || contact.email || contact.id)}</option>)}</select><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("contacts");}}><Plus size={14}/>Add contact</Button></LeadFormField>
+        {formTab === "advanced" && <nav aria-label="Advanced deal sections" className="flex shrink-0 gap-1 overflow-x-auto border-b px-4 py-2">{dealTabs.map((title, index) => <Button type="button" size="sm" variant={advancedTab === index ? "default" : "ghost"} key={title} onClick={() => setAdvancedTab(index)}>{title}</Button>)}</nav>}
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="min-w-0 space-y-4 border-r border-border px-5 py-4">
+            {error ? <div role="alert" className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}{error.includes("changed") && <Button type="button" variant="outline" onClick={() => {if (window.confirm("Discard this saved draft and load the latest deal?")) {sessionStorage.removeItem(draftKey);window.location.reload();}}}>Discard draft and reload latest</Button>}</div> : null}
+            {Object.keys(fieldErrors).length > 0 && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{Object.values(fieldErrors).join(" ")}</p>}
+            {duplicate.length > 0 && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">A deal with this name already exists in your permitted scope. {duplicate.map(item => <a key={String(item.id)} className="ml-2 underline" href={`/crm/deals/${item.id}`} target="_blank" rel="noreferrer">Review #{String(item.id)}</a>)}</p>}
+            {(formTab === "simple" || advancedTab === 0) && <LeadFormSection title="Opportunity">
+              <LeadFormField label="Company"><DealRecordSelect resource="companies" name="Company" value={valueText(draft.companyId)} onChange={value => setDraft(v => ({...v, companyId: value, contactId: ""}))} initial={[...companies, ...addedCompanies]}/><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("companies");}}><Plus size={14}/>Add company</Button></LeadFormField>
+              <LeadFormField label="Contact"><DealRecordSelect resource="contacts" name="Contact" value={valueText(draft.contactId)} onChange={value => patch("contactId", value)} initial={visibleContacts}/><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("contacts");}}><Plus size={14}/>Add contact</Button></LeadFormField>
               <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
+              <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><select aria-label="Pipeline" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.pipelineId)} onChange={event => setDraft(v => ({...v, pipelineId: event.target.value, stageId: "", status: "Open"}))}><option value="">Select pipeline</option>{pipelines.map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.name)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Currency"><Input maxLength={3} value={valueText(draft.currency || "INR")} onChange={e => patch("currency", e.target.value.toUpperCase())}/></LeadFormField>
+              <LeadFormField label="Deal owner"><select aria-label="Deal owner" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.ownerId)} onChange={e => patch("ownerId", e.target.value)}><option value="">Assign to me</option>{owners.map(owner => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.full_name || owner.email)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Priority"><LeadFormSelect value={valueText(draft.priority || "Medium")} values={["Low", "Medium", "High", "Critical"]} onChange={value => patch("priority", value)}/></LeadFormField>
+              <LeadFormField label="Lead source"><Input value={valueText(draft.source)} onChange={e => patch("source", e.target.value)}/></LeadFormField>
               <LeadFormField label="Stage" required error={fieldErrors.stageId}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</select></LeadFormField>
               <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
               <LeadFormField label="Closing date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} /></LeadFormField>
-              <LeadFormField label="Description" wide><RichTextField className="min-h-16 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." /></LeadFormField>
-            </LeadFormSection>
-            {formTab === "advanced" ? (
+              <LeadFormField label="Description" wide>{formTab === "simple" ? <textarea rows={2} className="w-full rounded-md border bg-background p-3" value={valueText(draft.description)} onChange={event => patch("description", event.target.value)} placeholder="Short description..."/> : <RichTextField className="min-h-16 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." />}</LeadFormField>
+            </LeadFormSection>}
+            {formTab === "advanced" && advancedTab === 0 && <LeadFormSection title="Classification"><LeadFormField label="Deal type"><LeadFormSelect value={valueText(draft.deal_type || "New Business")} values={["New Business", "Existing Business", "Renewal", "Upsell", "Cross-sell"]} onChange={value => patch("deal_type", value)}/></LeadFormField><LeadFormField label="Industry"><Input value={valueText(draft.industry)} onChange={e => patch("industry", e.target.value)}/></LeadFormField><LeadFormField label="Internal reference"><Input value={valueText(draft.internal_reference)} onChange={e => patch("internal_reference", e.target.value)}/></LeadFormField><LeadFormField label="Tags"><Input value={valueText(draft.tags_text)} onChange={e => patch("tags_text", e.target.value)}/></LeadFormField><LeadFormField label="Deal ID"><p>{deal ? `DEAL-${deal.id}` : "Assigned automatically on save"}</p></LeadFormField></LeadFormSection>}
+            {formTab === "advanced" && [1, 2, 3].includes(advancedTab) ? (
               <LeadFormSection title="Advanced deal controls">
-                <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.pipelineId)} onChange={(event) => patch("pipelineId", event.target.value)}><option value="">Select pipeline</option>{pipelines.map((pipeline) => <option key={String(pipeline.id)} value={String(pipeline.id)}>{String(pipeline.name || pipeline.id)}</option>)}</select></LeadFormField>
-                <LeadFormField label="Probability" error={fieldErrors.probability}><Input className="border-border bg-card text-foreground" type="number" min={0} max={100} value={valueText(draft.probability)} onChange={(event) => patch("probability", event.target.value)} /></LeadFormField>
-                <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
-                <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
-                <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={["Website", "Referral", "Event", "Partner", "Phone Call", "Email Campaign", "Other"]} onChange={(value) => patch("source", value)} /></LeadFormField>
-                <LeadFormField label="Next follow-up"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>
+                {advancedTab === 1 && <LeadFormField label="Probability" error={fieldErrors.probability}><Input disabled={!canManualProbability} title={canManualProbability ? "Authorized manual override" : "Probability follows the selected stage; a manager can override it"} className="border-border bg-card text-foreground" type="number" min={0} max={100} value={valueText(draft.probability)} onChange={(event) => patch("probability", event.target.value)} /></LeadFormField>}
+                {advancedTab === 2 && <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>}
+                {advancedTab === 2 && <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>}
+
+                {advancedTab === 3 && <LeadFormField label="Next follow-up"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>}
+                {advancedTab === 1 && <><LeadFormField label="Estimated deal value"><Input type="number" min={0} step="0.01" value={valueText(draft.amount)} onChange={e => patch("amount", e.target.value)}/></LeadFormField><LeadFormField label="Deal currency"><Input maxLength={3} value={valueText(draft.currency || "INR")} onChange={e => patch("currency", e.target.value.toUpperCase())}/></LeadFormField><LeadFormField label="Expected revenue"><p>{currencyMoney(effectiveAmount * Number(draft.probability || 0) / 100)}</p></LeadFormField></>}
+                {advancedTab === 3 && <LeadFormField label="Expected closing date"><Input type="date" value={valueText(draft.expectedCloseDate)} onChange={e => patch("expectedCloseDate", e.target.value)}/></LeadFormField>}
               </LeadFormSection>
             ) : null}
-            {visibleCustomFields.length ? (
+            {formTab === "advanced" && advancedTab === 5 && visibleCustomFields.length ? (
               <LeadFormSection title="Custom fields">
                 {visibleCustomFields.map((field) => {
                   const key = String(field.fieldKey || field.field_key || field.id);
@@ -5856,29 +5897,32 @@ function DealFormModal({ mode, deal, saving, error, companies, contacts, owners,
                 })}
               </LeadFormSection>
             ) : null}
-            <LeadFormSection title="Products & services">
+            {(formTab === "simple" || advancedTab === 1) && <LeadFormSection title="Products & services">
               <div className="flex flex-wrap gap-2 md:col-span-2"><Button size="sm" variant="outline" onClick={() => {setInlineError(null);setInlineKind("products");}}><Plus size={14}/>Create product</Button><Button size="sm" variant="outline" onClick={() => {setInlineError(null);setInlineKind("services");}}><Plus size={14}/>Create service</Button><a className="px-2 py-1 text-sm text-emerald-700 dark:text-emerald-300 underline" href="/crm/products" target="_blank" rel="noreferrer">Manage products</a><a className="px-2 py-1 text-sm text-emerald-700 dark:text-emerald-300 underline" href="/crm/services" target="_blank" rel="noreferrer">Manage services</a></div>
               {fieldErrors.catalog && <p role="alert" className="text-sm text-destructive md:col-span-2">{fieldErrors.catalog}</p>}
-              <div className="md:col-span-2">
-                <div className="mb-2 flex items-center justify-between gap-2"><p className="text-sm text-muted-foreground">Add products or services to auto-calculate deal value.</p><Button size="sm" variant="outline" className="h-8 border-emerald-400/40 bg-transparent text-emerald-200 hover:bg-emerald-500/10" onClick={() => setLines((current) => [...current, { key: crypto.randomUUID(), productId: "", unitPrice: "0", quantity: "1", discount: "0" }])}><Plus className="h-3.5 w-3.5" />Add line</Button></div>
+              <div className="min-w-0 md:col-span-2">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">Add products or services to auto-calculate deal value.</p><Button size="sm" variant="outline" className="h-8 border-emerald-400/40 bg-transparent text-emerald-700 dark:text-emerald-200 hover:bg-emerald-500/10" onClick={() => setLines((current) => [...current, { key: crypto.randomUUID(), productId: "", unitPrice: "0", quantity: "1", discount: "0" }])}><Plus className="h-3.5 w-3.5" />Add line</Button></div>
                 <div className="overflow-x-auto rounded-md border border-border">
                   <table className="min-w-full text-sm"><thead className="bg-white/[0.035] text-xs uppercase text-muted-foreground"><tr className="[&>th]:px-3 [&>th]:py-2"><th>Product / service</th><th>List price</th><th>Qty</th><th>Discount %</th><th>Line total</th><th></th></tr></thead><tbody className="divide-y divide-white/10">{lines.length ? lines.map((line) => <DealProductLine key={line.key} line={line} products={allProducts} onChange={(next) => setLines((current) => current.map((item) => item.key === line.key ? next : item))} onRemove={() => setLines((current) => current.filter((item) => item.key !== line.key))} />) : <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">No products or services added yet.</td></tr>}</tbody></table>
                 </div>
               </div>
-            </LeadFormSection>
+            </LeadFormSection>}
+            {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Related contacts & decision roles"><div className="space-y-3 sm:col-span-2">{visibleContacts.map(person => {const links = (draft.related_contacts || []) as CRMApiRecord[];const selected = links.find(link => Number(link.contactId) === Number(person.id));return <div className="flex flex-wrap items-center gap-3" key={String(person.id)}><label className="flex min-w-0 flex-1 items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(selected)} onChange={e => patch("related_contacts", e.target.checked ? [...links, {contactId: Number(person.id), role: "Stakeholder", isPrimary: false}] : links.filter(link => Number(link.contactId) !== Number(person.id)))}/>{String(person.name || person.full_name || person.email)}</label>{selected && <select aria-label={`Role for ${person.name || person.full_name}`} className="rounded border bg-background p-2 text-sm" value={String(selected.role)} onChange={e => patch("related_contacts", links.map(link => link === selected ? {...link, role: e.target.value} : link))}>{["Stakeholder", "Decision Maker", "Influencer", "Technical Contact", "Procurement", "Finance", "Champion", "Economic Buyer"].map(role => <option key={role}>{role}</option>)}</select>}</div>;})}</div></LeadFormSection>}
+            {formTab === "advanced" && <DealPlanningFields tab={advancedTab} planning={(draft.planning || {}) as CRMApiRecord} update={value => patch("planning", value)} amount={effectiveAmount} currency={String(draft.currency || "INR")}/>}
           </div>
           <aside className="space-y-3 bg-white/[0.018] px-4 py-4">
             <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Selected stage</p><p className="mt-2 text-lg font-semibold text-foreground">{selectedStageName(stages, draft.stageId) || "No stage selected"}</p><p className="mt-1 text-sm text-muted-foreground">{draft.stageId ? `${Number(draft.probability || 0)}% probability` : "Select a stage to see probability."}</p></div>
-            <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Deal value</p><p className="mt-3 text-3xl font-semibold text-foreground">{formatCurrency(effectiveAmount)}</p><div className="mt-3 space-y-2 text-sm text-muted-foreground"><div className="flex justify-between"><span>Manual amount</span><span>{formatCurrency(Number(draft.amount || 0))}</span></div><div className="flex justify-between"><span>Product lines</span><span>{formatCurrency(productTotal)}</span></div><div className="flex justify-between border-t border-border pt-2 font-semibold text-foreground"><span>Total</span><span>{formatCurrency(effectiveAmount)}</span></div><p className="text-xs text-amber-700 dark:text-amber-300">Source: {amountSource}</p></div></div>
+            <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Deal value</p><p className="mt-3 text-3xl font-semibold text-foreground">{currencyMoney(effectiveAmount)}</p><div className="mt-3 space-y-2 text-sm text-muted-foreground"><div className="flex justify-between"><span>Manual amount</span><span>{currencyMoney(Number(draft.amount || 0))}</span></div><div className="flex justify-between"><span>Product lines</span><span>{currencyMoney(productTotal)}</span></div><div className="flex justify-between border-t border-border pt-2 font-semibold text-foreground"><span>Total</span><span>{currencyMoney(effectiveAmount)}</span></div><p className="text-xs text-amber-700 dark:text-amber-300">Source: {amountSource}</p></div></div>
             <div className="rounded-md border border-border bg-white/[0.03] p-4"><p className="text-sm font-semibold text-foreground">Readiness</p><div className="mt-3 space-y-2 text-sm text-muted-foreground"><DealReadiness done={Boolean(draft.name)} label="Add deal name" /><DealReadiness done={Boolean(draft.pipelineId && draft.stageId)} label="Choose pipeline and stage" /><DealReadiness done={Boolean(draft.expectedCloseDate)} label="Choose a closing date" /><DealReadiness done={effectiveAmount > 0} label="Add products or set amount" /></div></div>
-            <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
+            <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-900 dark:text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-800 dark:text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
           </aside>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3"><Button variant="ghost" className="text-emerald-700 dark:text-emerald-300 hover:bg-accent hover:text-emerald-200"><ListFilter className="h-4 w-4" />Customize fields</Button><div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{dirty ? "Unsaved changes" : ""}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Save"}</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: restored?.baseVersion || deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{dirty ? "Unsaved changes" : ""}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
       </div>
     </div>
+    </DealDialog.Content>
     {inlineKind && <CreateRecordDialog kind={inlineKind} saving={inlineSaving} error={inlineError} onClose={() => {if (!inlineSaving) setInlineKind(null);}} onCreate={createInline}/>}
-    </>
+    </DealDialog.Root>, document.body
   );
 }
 
@@ -5962,6 +6006,8 @@ function recordToDealRow(record: CRMRecord, lookups: { companyNames: Map<number,
     source: String(record.source || record.lead_source || ""),
     description: String(record.description || record.nextStep || ""),
     customFields: extractDealCustomValues(record),
+    contactLinks: (((record.related || {}) as CRMApiRecord).contacts || []) as CRMApiRecord[],
+    currency: String(record.currency || "INR"), priority: String(record.priority || "Medium"), deal_type: String(record.deal_type || "New Business"), industry: String(record.industry || ""), internal_reference: String(record.internal_reference || ""), planning: (record.planning || {}) as CRMApiRecord, version: Number(record.version || 1),
     catalogItems: (record.catalog_items || record.catalogItems || []) as CRMApiRecord[],
     createdAt: String(record.createdAt || record.created_at || ""),
     updatedAt: String(record.updatedAt || record.updated_at || ""),
@@ -5969,7 +6015,7 @@ function recordToDealRow(record: CRMRecord, lookups: { companyNames: Map<number,
 }
 
 function dealFormInitial(deal: CRMDealRow | null): CRMApiRecord {
-  return { name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal?.pipelineId || "", stageId: deal?.stageId || "", amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal?.source || "", ownerId: deal?.ownerId || "", territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
+  return { related_contacts: (deal?.contactLinks || []).map(link => ({contactId: Number(link.contactId || link.contact_id), role: link.role || "Stakeholder", isPrimary: Boolean(link.isPrimary || link.is_primary)})), currency: deal?.currency || "INR", priority: deal?.priority || "Medium", deal_type: deal?.deal_type || "New Business", industry: deal?.industry || "", internal_reference: deal?.internal_reference || "", planning: deal?.planning || {}, name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal?.pipelineId || "", stageId: deal?.stageId || "", amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal?.source || "", ownerId: deal?.ownerId || "", territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
 }
 
 function dealCustomFieldInitial(deal: CRMDealRow | null): CRMApiRecord {
@@ -5981,7 +6027,8 @@ function validateDealDraft(draft: CRMApiRecord) {
   if (!String(draft.name || "").trim()) errors.name = "Deal name is required.";
   if (!draft.pipelineId) errors.pipelineId = "Pipeline is required.";
   if (!draft.stageId) errors.stageId = "Stage is required.";
-  if (draft.amount !== "" && Number.isNaN(Number(draft.amount))) errors.amount = "Amount must be numeric.";
+  if (draft.amount !== "" && (!Number.isFinite(Number(draft.amount)) || Number(draft.amount) < 0)) errors.amount = "Amount must be a nonnegative number.";
+  if (draft.currency && !/^[A-Z]{3}$/.test(String(draft.currency))) errors.currency = "Use a three-letter currency code.";
   if (draft.probability !== "" && (Number.isNaN(Number(draft.probability)) || Number(draft.probability) < 0 || Number(draft.probability) > 100)) errors.probability = "Probability must be 0 to 100.";
   return errors;
 }
@@ -6022,6 +6069,10 @@ function extractDealCustomValues(record: CRMRecord) {
 
 function buildDealPayload(draft: CRMApiRecord, amount: number, customValues?: CRMApiRecord): CRMApiRecord {
   const payload: CRMApiRecord = { name: String(draft.name || "").trim(), pipeline_id: Number(draft.pipelineId), stage_id: Number(draft.stageId), amount, probability: draft.probability === "" ? 0 : Number(draft.probability), status: emptyToUndefined(draft.status) || "Open", expected_close_date: emptyToUndefined(draft.expectedCloseDate), next_follow_up_at: emptyToUndefined(draft.nextFollowUp), description: emptyToUndefined(draft.description), source: emptyToUndefined(draft.source), lead_source: emptyToUndefined(draft.source) };
+  if (Array.isArray(draft.related_contacts)) {
+    const links = (draft.related_contacts as CRMApiRecord[]).filter(link => Number(link.contactId) !== Number(draft.contactId));
+    payload.dealContacts = [...(draft.contactId ? [{contactId: Number(draft.contactId), role: "Primary", isPrimary: true}] : []), ...links.map(link => ({...link, isPrimary: false}))];
+  }
   if (draft.companyId) payload.company_id = Number(draft.companyId);
   if (draft.contactId) payload.contact_id = Number(draft.contactId);
   if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
@@ -6034,7 +6085,7 @@ function buildDealDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord, amoun
   const next = buildDealPayload(draft, amount);
   const previous = buildDealPayload(initial, Number(initial.amount || 0));
   const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
-  const payload = Object.fromEntries(Array.from(keys).flatMap((key) => String(next[key] ?? "") === String(previous[key] ?? "") ? [] : [[key, next[key] ?? null]]));
+  const payload = Object.fromEntries(Array.from(keys).flatMap((key) => JSON.stringify(next[key] ?? null) === JSON.stringify(previous[key] ?? null) ? [] : [[key, next[key] ?? null]]));
   const customDirty = cleanCustomFieldValues(Object.fromEntries(Object.entries(customValues || {}).filter(([key, value]) => String(value ?? "") !== String(initialCustomValues?.[key] ?? ""))));
   if (Object.keys(customDirty).length) payload.customFields = customDirty;
   return payload;

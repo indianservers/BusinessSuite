@@ -2619,7 +2619,7 @@ function BatchTable({
   ) => void;
 }) {
   const next: Row = {
-    Draft: ["Upcoming", "Archived"],
+    Draft: ["Active", "Upcoming", "Archived"],
     Upcoming: ["Active", "Archived"],
     Active: ["Evaluation", "Archived"],
     Evaluation: ["Active", "Completed", "Archived"],

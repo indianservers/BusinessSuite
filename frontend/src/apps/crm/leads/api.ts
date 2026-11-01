@@ -303,9 +303,11 @@ export function errorMessage(error: unknown): string {
       (info.missingFields?.length ? ": " + info.missingFields.join(", ") : "")
     );
   }
-  return detail
-    ? JSON.stringify(detail)
-    : value?.message || "The request failed. Try again.";
+  if (Array.isArray(detail)) return detail.map(item => {
+    const field = String(item.loc?.slice(-1)[0] || "Field").replace(/_/g, " ");
+    return `${field}: ${String(item.msg || "Check this value")}`;
+  }).join(". ");
+  return "The request failed. Check your connection and try again.";
 }
 
 export function download(blob: Blob, name: string) {

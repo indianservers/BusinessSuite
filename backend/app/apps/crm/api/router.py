@@ -15,7 +15,7 @@ import smtplib
 import csv
 import io
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from difflib import SequenceMatcher
 from email.message import EmailMessage
 from math import ceil
@@ -104,6 +104,9 @@ from app.apps.crm.lead_management import router as lead_management_router
 router.include_router(lead_management_router)
 from app.apps.crm.productivity import router as productivity_router
 router.include_router(productivity_router)
+from app.apps.crm.deal_workspace import router as deal_workspace_router
+router.include_router(deal_workspace_router)
+
 
 
 class CRMRecordPayload(BaseModel):
@@ -524,6 +527,12 @@ DUPLICATE_ENTITY_RESOURCES = {
 }
 
 IMPORTANT_UPDATE_FIELDS = {
+    "name",
+    "company_id",
+    "contact_id",
+    "description",
+    "lead_source",
+    "actual_close_date",
     "status",
     "owner_user_id",
     "branch_id",
@@ -539,6 +548,11 @@ IMPORTANT_UPDATE_FIELDS = {
     "discount_amount",
     "lost_reason",
     "win_reason",
+    "currency",
+    "deal_type",
+    "planning",
+    "internal_reference",
+    "catalog_items",
 }
 
 RESERVED_QUERY_KEYS = {
@@ -578,6 +592,11 @@ CRM_WEBHOOK_EVENTS = {
     "deal.created",
     "deal.updated",
     "deal.stage_changed",
+    "deal.assigned",
+    "deal.value_changed",
+    "deal.won",
+    "deal.lost",
+    "deal.reopened",
     "quotation.created",
     "quotation.sent",
     "quotation.approved",
@@ -1110,6 +1129,14 @@ def _event_types_for_update(canonical: str, before: dict[str, Any], record: Any,
         events.append("deal.updated")
         if "stage_id" in data and before.get("stage_id") != getattr(record, "stage_id", None):
             events.append("deal.stage_changed")
+        for field, event in (("owner_user_id", "deal.assigned"), ("amount", "deal.value_changed")):
+            if field in data and before.get(field) != getattr(record, field, None):
+                events.append(event)
+        previous = str(before.get("status") or "Open")
+        current = str(record.status)
+        if current != previous:
+            if current in {"Won", "Lost"}: events.append("deal." + current.lower())
+            elif previous in {"Won", "Lost"}: events.append("deal.reopened")
     elif canonical == "quotations":
         status_value = str(getattr(record, "status", "") or "").lower()
         previous_status = str(before.get("status") or "").lower()
@@ -2312,7 +2339,7 @@ def _serialize_approval_request_step(step: CRMApprovalRequestStep) -> dict[str, 
 
 def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bool = False) -> dict[str, Any]:
     data = _normalize_payload(payload)
-    protected = {"id", "organization_id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "created_by_user_id", "updated_by_user_id", "is_superuser", "role_id", "permissions", "password", "hashed_password", "paid_amount", "amount_paid", "balance_due", "payment_status", "provider_message_id", "storage_path", "file_path", "folder_id"}
+    protected = {"id", "version", "organization_id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "created_by_user_id", "updated_by_user_id", "is_superuser", "role_id", "permissions", "password", "hashed_password", "paid_amount", "amount_paid", "balance_due", "payment_status", "provider_message_id", "storage_path", "file_path", "folder_id"}
     forbidden = protected.intersection(data)
     if forbidden:
         raise HTTPException(422, "Server-owned fields cannot be supplied: " + ", ".join(sorted(forbidden)))
@@ -3194,7 +3221,11 @@ def _related_for(db: Session, entity: str, record: Any, organization_id: int, us
 
 
 def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: int, current_user: User, record=None) -> None:
+    from app.apps.crm.deal_workspace import guard
+    guard(db, current_user, data, record)
     if "catalog_items" not in data:
+        if record is not None and record.catalog_items and "amount" in data:
+            data["amount"] = sum(Decimal(str(line["total_amount"])) for line in record.catalog_items)
         return
     lines = data["catalog_items"]
     if not isinstance(lines, list) or len(lines) > 100:
@@ -3215,6 +3246,7 @@ def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: i
         except (KeyError, TypeError, ValueError, ArithmeticError):
             raise HTTPException(422, "Invalid line price, quantity, or discount")
         entity = "products" if line["kind"] == "product" else "services"
+        _assert_entity_permission(entity, current_user, "view")
         resource = _get_resource(entity)
         item = _get_record(db, resource, item_id, organization_id)
         _assert_record_visible(db, resource, item_id, organization_id, current_user)
@@ -3223,8 +3255,8 @@ def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: i
             raise HTTPException(422, "Select an active catalog item")
         if (getattr(item, "currency", None) or "INR") != currency:
             raise HTTPException(422, "Catalog item currency must match the deal currency")
-        price = price.quantize(Decimal("0.01"))
-        line_total = (price * quantity * (1 - discount / 100)).quantize(Decimal("0.01"))
+        price = price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        line_total = (price * quantity * (1 - discount / 100)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         normalized.append({"kind": line["kind"], "item_id": item_id, "name": item.name, "quantity": int(quantity), "unit_price": float(price), "discount": float(discount), "total_amount": float(line_total), "currency": currency})
         total += line_total
     if total > Decimal("9999999999.99"):
@@ -3232,6 +3264,7 @@ def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: i
     data["catalog_items"] = normalized
     if lines:
         data["amount"] = total
+        data["expected_revenue"] = (total * Decimal(str(data.get("probability", getattr(record, "probability", 0)) or 0)) / 100).quantize(Decimal("0.01"))
 
 
 def _deal_products_for(db: Session, deal_id: int, organization_id: int) -> list[dict[str, Any]]:
@@ -3809,6 +3842,9 @@ def _detail_payload(db: Session, entity: str, record: Any, organization_id: int,
     payload["related"] = _related_for(db, canonical, record, organization_id, user)
     if canonical == "quotations":
         payload.update({key: value for key, value in _quote_payload(db, record).items() if key not in payload or key in {"lines", "versions", "approvals", "srmConversionLogs"}})
+    if canonical == "deals" and user:
+        from app.apps.crm.deal_workspace import secure_detail
+        payload = secure_detail(db, user, payload)
     return payload
 
 
@@ -4177,6 +4213,11 @@ def _apply_deal_close_fields(record: CRMDeal, data: dict[str, Any]) -> None:
         record.won_at = None
         if data.get("lost_reason") and not record.loss_reason:
             record.loss_reason = data.get("lost_reason")
+    elif status_key == "open":
+        record.won_at = None
+        record.lost_at = None
+        record.closed_at = None
+        record.actual_close_date = None
 
 
 def _duplicate_resource_name(entity_type: str | None) -> str:
@@ -4735,7 +4776,7 @@ def _create_update_timeline_events(
             user_id=user_id,
             metadata={"sourceEntity": canonical, "sourceId": record.id},
         )
-    db.commit()
+    if canonical != "deals": db.commit()
 
 
 def _email_template_rows(db: Session, organization_id: int, entity_type: str | None = None) -> list[dict[str, Any]]:
@@ -7914,7 +7955,10 @@ def mark_deal_won(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_deals_manage")),
 ):
-    return update_record("deals", deal_id, CRMRecordPayload(status="Won"), db, current_user)
+    deal = _get_record(db, _get_resource("deals"), deal_id, _organization_id(db, current_user))
+    stage = db.query(CRMPipelineStage).filter_by(pipeline_id=deal.pipeline_id, organization_id=deal.organization_id, deleted_at=None).filter(or_(CRMPipelineStage.is_won.is_(True), CRMPipelineStage.stage_type == "won")).first()
+    if not stage: raise HTTPException(422, "Configure a Won stage for this pipeline first")
+    return update_record("deals", deal_id, CRMRecordPayload(status="Won", stage_id=stage.id), db, current_user)
 
 
 @router.post("/deals/{deal_id}/mark-lost")
@@ -7927,7 +7971,10 @@ def mark_deal_lost(
     reason = payload.lostReason or payload.lost_reason
     if not reason:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="lostReason is required")
-    data: dict[str, Any] = {"status": "Lost", "lostReason": reason}
+    deal = _get_record(db, _get_resource("deals"), deal_id, _organization_id(db, current_user))
+    stage = db.query(CRMPipelineStage).filter_by(pipeline_id=deal.pipeline_id, organization_id=deal.organization_id, deleted_at=None).filter(or_(CRMPipelineStage.is_lost.is_(True), CRMPipelineStage.stage_type == "lost")).first()
+    if not stage: raise HTTPException(422, "Configure a Lost stage for this pipeline first")
+    data: dict[str, Any] = {"status": "Lost", "stage_id": stage.id, "lostReason": reason}
     return update_record("deals", deal_id, CRMRecordPayload(**data), db, current_user)
 
 
@@ -8273,13 +8320,17 @@ def get_related_records(
     canonical = _canonical_entity(entity)
     if canonical not in {"leads", "contacts", "companies", "deals", "quotations"}:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CRM related records are not configured for this entity")
-    return {
+    result = {
         "entity": canonical,
         "id": record.id,
         "related": _related_for(db, canonical, record, organization_id, current_user),
         "timeline": _timeline_for(db, canonical, record, organization_id),
         "customFields": _custom_fields_for(db, canonical, record.id, organization_id),
     }
+    if canonical == "deals":
+        from app.apps.crm.deal_workspace import secure_detail
+        result = secure_detail(db, current_user, result)
+    return result
 
 
 @router.post("/{entity}", status_code=status.HTTP_201_CREATED)
@@ -8314,6 +8365,10 @@ def create_record(
     canonical = _canonical_entity(entity)
     if canonical in CUSTOM_FIELD_SUPPORTED_ENTITIES:
         _validate_required_custom_fields(db, canonical, None, organization_id, custom_values)
+    if resource.model is CRMPipelineStage and "policy_json" in data:
+        from app.apps.crm.deal_workspace import StagePolicy
+        try: data["policy_json"] = StagePolicy.model_validate(data["policy_json"] or {}).model_dump()
+        except Exception: raise HTTPException(422, "Invalid pipeline stage policy")
     if resource.model is CRMActivity:
         _sync_activity_link_fields(data)
     if "organization_id" in columns:
@@ -8327,6 +8382,8 @@ def create_record(
         if existing:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Custom field key already exists for this entity")
     _validate_related_records(db, data, organization_id)
+    if data.get("deal_id"):
+        _assert_record_visible(db, _get_resource("deals"), data["deal_id"], organization_id, current_user)
     if resource.model is CRMDeal:
         _validate_deal_catalog(db, data, organization_id, current_user)
         _validate_deal_pipeline_stage(db, data.get("pipeline_id"), data.get("stage_id"), organization_id)
@@ -8353,6 +8410,10 @@ def create_record(
         _apply_ticket_csat_flow(record, data)
     db.add(record)
     db.flush()
+    if resource.model in {CRMActivity, CRMTask, CRMNote, CRMCallLog, CRMMeeting, CRMEmailLog} and getattr(record, "deal_id", None):
+        linked = _get_record(db, _get_resource("deals"), record.deal_id, organization_id)
+        linked.last_activity_at = datetime.now(timezone.utc)
+        linked.version += 1
     if resource.model is CRMAccount:
         from app.apps.srm.services.customer_identity import account_write
         account_write(db, record, current_user)
@@ -8399,6 +8460,12 @@ def update_record(
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
     before = {key: getattr(record, key) for key in _columns(resource.model) if key in IMPORTANT_UPDATE_FIELDS}
     raw_payload = payload.model_dump(exclude_unset=True)
+    if resource.model is CRMDeal:
+        db.refresh(record, with_for_update=True)
+        expected = raw_payload.pop("expected_version", None)
+        if expected is not None and expected != record.version:
+            raise HTTPException(409, "This deal changed since you opened it. Refresh the record before saving; keep a copy of your draft.")
+    before = {key: getattr(record, key) for key in _columns(resource.model) if key in IMPORTANT_UPDATE_FIELDS}
     deal_contacts_payload = None
     if resource.model is CRMDeal:
         for key in ("contacts", "dealContacts", "deal_contacts", "stakeholders"):
@@ -8419,6 +8486,10 @@ def update_record(
     canonical = _canonical_entity(entity)
     if canonical in CUSTOM_FIELD_SUPPORTED_ENTITIES:
         _validate_required_custom_fields(db, canonical, record.id, organization_id, custom_values)
+    if resource.model is CRMPipelineStage and "policy_json" in data:
+        from app.apps.crm.deal_workspace import StagePolicy
+        try: data["policy_json"] = StagePolicy.model_validate(data["policy_json"] or {}).model_dump()
+        except Exception: raise HTTPException(422, "Invalid pipeline stage policy")
     if resource.model is CRMActivity:
         _sync_activity_link_fields(data)
     if "organization_id" in data and data["organization_id"] != organization_id:
@@ -8434,6 +8505,8 @@ def update_record(
         if duplicate:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Custom field key already exists for this entity")
     _validate_related_records(db, data, organization_id)
+    if data.get("deal_id"):
+        _assert_record_visible(db, _get_resource("deals"), data["deal_id"], organization_id, current_user)
     if resource.model is CRMDeal:
         _validate_deal_catalog(db, data, organization_id, current_user, record)
         _validate_deal_pipeline_stage(db, data.get("pipeline_id", record.pipeline_id), data.get("stage_id", record.stage_id), organization_id)
@@ -8453,6 +8526,7 @@ def update_record(
         from app.apps.srm.services.customer_identity import account_write
         account_write(db, record, current_user, data)
     if resource.model is CRMDeal:
+        record.version += 1
         _apply_deal_close_fields(record, data)
     if resource.model is CRMTicket:
         _apply_ticket_csat_flow(record, data)
@@ -8486,7 +8560,8 @@ def update_record(
     if resource.model is CRMLead:
         from app.apps.crm.lead_management import after_existing_api
         after_existing_api(db, current_user, record, before)
-    db.commit()
+    if resource.model is CRMDeal: db.flush()
+    else: db.commit()
     db.refresh(record)
     _create_update_timeline_events(db, entity, record, before, data, organization_id, current_user.id)
     changed_audit = {
@@ -8512,6 +8587,9 @@ def update_record(
             new_values={key: value["new"] for key, value in changed_audit.items()},
             description=f"CRM {action.lower().replace('_', ' ')}",
         )
+    if resource.model is CRMDeal and changed_audit:
+        from app.apps.crm.deal_workspace import notify_watchers
+        notify_watchers(db, record, current_user)
     for event_type in _event_types_for_update(canonical, before, record, data):
         _enqueue_webhook_event(db, organization_id, event_type, _serialize(record), current_user.id, {"changedFields": sorted(data)})
     db.commit()

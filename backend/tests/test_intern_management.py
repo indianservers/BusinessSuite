@@ -4,7 +4,7 @@ import pytest
 from tests.test_interns_hub import interns
 from app.apps.interns_hub.router import today
 from app.apps.project_management.models import PMSProject, PMSTask, PMSTaskAssignee, PMSWorkSubmission, PMSWorkReview
-from app.apps.interns_hub.management_models import InternBatchMembership, InternDistribution
+from app.apps.interns_hub.management_models import InternBatch, InternBatchMembership, InternDistribution
 from app.models.user import User
 
 ROOT='/api/v1/interns-hub/management'
@@ -19,8 +19,7 @@ def program(client,db,interns,superuser_headers):
         data=dict(name='Intern '+code,code=code,department_id=interns[0][0].department_id,manager_user_id=admin.id,mentor_user_id=admin.id,project_id=project.id,start_date=str(today()-timedelta(days=30)),end_date=str(today()+timedelta(days=60)),capacity=capacity,policy={'weights':{'quality':40,'timeliness':20,'reports':15,'completion':15,'communication':10},'completion':{'minimum_days':0,'minimum_tasks':1,'minimum_reports_percent':0}})
         r=client.post(ROOT+'/batches',headers=superuser_headers,json=data);assert r.status_code==201,r.text
         bid=r.json()['id']
-        for status in ['Upcoming','Active']:
-            r=client.post(f'{ROOT}/batches/{bid}/transition',headers=superuser_headers,json={'status':status});assert r.status_code==200,r.text
+        assert r.json()['status']=='Active'
         return bid
     first,second=batch('A'),batch('B')
     for bid in [first,second]:
@@ -195,3 +194,13 @@ def test_learning_global_courses_are_tenant_scoped(client,db,program):
     titles=[r['title'] for r in client.get('/api/v1/interns-hub/learning',headers=h).json()]
     assert 'Own course' in titles and 'Other tenant course' not in titles
 
+
+
+def test_draft_batch_can_activate_directly(client, db, program):
+    bid = program['batches'][0]
+    batch = db.get(InternBatch, bid)
+    batch.status = 'Draft'
+    db.commit()
+    response = client.post(f'{ROOT}/batches/{bid}/transition', headers=program['headers'], json={'status': 'Active'})
+    assert response.status_code == 200, response.text
+    assert response.json()['status'] == 'Active'

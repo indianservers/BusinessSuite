@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const source = fs.readFileSync(path.resolve(__dirname, '../src/apps/crm/deals/deal-utils.ts'), 'utf8');
+const code = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020}}).outputText;
+const calls = [];
+let fail = false;
+const mod = {exports: {}};
+const crmApi = {list: async (resource, params) => {
+  calls.push({resource, ...params});
+  assert.equal(params.per_page, 100);
+  if (fail && params.page === 2) throw new Error('Network interruption');
+  return {data: {items: params.page <= 2 ? Array.from({length: 100}, (_, i) => ({id: (params.page - 1) * 100 + i + 1})) : [{id: 201}], total: 201, pages: 3}};
+}};
+new Function('module', 'exports', 'require', code)(mod, mod.exports, request => request === '../api' ? {crmApi} : require(request));
+(async () => {
+  const {dealOptions, dealError, dealMoney} = mod.exports;
+  const choices = await dealOptions('pipeline-stages');
+  assert.equal(choices.length, 201);
+  assert.equal(choices[200].id, 201);
+  assert.deepEqual(calls.map(call => call.page), [1, 2, 3]);
+  fail = true;
+  await assert.rejects(() => dealOptions('pipelines'), /Network interruption/);
+  const message = dealError({response: {data: {detail: [{loc: ['query', 'per_page'], msg: 'Input should be less than or equal to 100', type: 'less_than_equal'}]}}});
+  assert.match(message, /per page:/);
+  assert(!message.includes('"loc"'));
+  assert(!message.includes('less_than_equal'));
+  assert.notEqual(dealMoney(100, 'INR'), dealMoney(100, 'USD'));
+  console.log('PASS CRM deal selectors: supported pagination, complete options, failed-page rejection, readable validation errors, currency-specific formatting');
+})().catch(error => {console.error(error);process.exitCode = 1;});

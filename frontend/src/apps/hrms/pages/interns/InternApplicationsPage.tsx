@@ -220,6 +220,7 @@ export default function InternApplicationsPage() {
   const applications: Row[] = intake?.items || [];
   const { data: intakeJobs } = useQuery<Row>({ queryKey: ["intake-jobs"],
     queryFn: () => api.get("/interns-hub/admin/application-jobs").then(r => r.data), refetchInterval: 10000 });
+  const pendingIntakeJobs: Row[] = (intakeJobs?.items || []).filter((job: Row) => job.status !== "Completed");
   const { data: options } = useQuery({
     queryKey: ["intern-application-organization"],
     queryFn: async () => {
@@ -384,8 +385,8 @@ export default function InternApplicationsPage() {
       <div className="flex flex-wrap items-center gap-3"><span>{intake?.total || 0} matching applications · Page {intakePage}</span>
         <Button variant="outline" disabled={intakePage === 1 || busy} onClick={() => { setIntakePage(p => p - 1); setCheckedIds([]); setSelected(undefined); }}>Previous</Button>
         <Button variant="outline" disabled={!intake || intakePage * 50 >= intake.total || busy} onClick={() => { setIntakePage(p => p + 1); setCheckedIds([]); setSelected(undefined); }}>Next</Button></div>
-      {!!intakeJobs?.items.length && <section className="rounded-xl border bg-card p-4 space-y-3" aria-label="Intake operations"><h2 className="font-semibold">Intake operations</h2>
-        {intakeJobs.items.map((job: Row) => <div key={job.id} className="space-y-2"><div className="flex flex-wrap items-center gap-3"><strong>#{job.id} · {job.status}</strong><span>{job.cursor}/{job.total} processed · {job.result?.succeeded || 0} succeeded · {job.result?.failed_count || 0} failed</span>
+      {!!pendingIntakeJobs.length && <section className="rounded-xl border bg-card p-4 space-y-3" aria-label="Intake operations"><h2 className="font-semibold">Intake operations</h2>
+        {pendingIntakeJobs.map((job: Row) => <div key={job.id} className="space-y-2"><div className="flex flex-wrap items-center gap-3"><strong>#{job.id} · {job.status}</strong><span>{job.cursor}/{job.total} processed · {job.result?.succeeded || 0} succeeded · {job.result?.failed_count || 0} failed</span>
           {job.status !== "Completed" && <Button variant="outline" disabled={busy} onClick={async () => { try { await api.post(`/interns-hub/admin/application-jobs/${job.id}/continue`); refreshApplications(); void qc.invalidateQueries({ queryKey: ["intake-jobs"] }); } catch (error) { toast({ title: "Could not continue intake", description: reviewError(error), variant: "destructive" }); } }}>Process next chunk</Button>}</div>
           {job.error && <p role="alert" className="text-destructive">{job.error}</p>}
           {!!job.result?.failed_count && <IntakeJobErrors jobId={job.id} total={job.result.failed_count} />}
