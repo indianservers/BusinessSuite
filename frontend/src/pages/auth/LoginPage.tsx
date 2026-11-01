@@ -58,7 +58,9 @@ export default function LoginPage() {
   const recoveryRequested = params.get("recover") === "1";
   const [view, setView] = useState<AuthView>(resetToken ? "reset" : "login");
   const [remember, setRemember] = useState(
-    () => localStorage.getItem("suite-remember-session") === "true",
+    () => sessionStorage.getItem("suite-social-redirect-provider") === "google"
+      ? sessionStorage.getItem("suite-social-redirect-remember") === "true"
+      : localStorage.getItem("suite-remember-session") === "true",
   );
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -72,6 +74,7 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [ssoBusy, setSsoBusy] = useState(false);
   const handoffStarted = useRef(false);
+  const redirectStarted = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const {
@@ -154,6 +157,19 @@ export default function LoginPage() {
     },
     [remember, qc, setTokens, setUser, navigate, continuation],
   );
+
+  useEffect(() => {
+    if (!firebase.data?.firebase_config || redirectStarted.current ||
+        sessionStorage.getItem("suite-social-redirect-provider") !== "google") return;
+    redirectStarted.current = true;
+    setSsoBusy(true);
+    import("@/services/firebaseLogin")
+      .then(({ completeGoogleRedirect }) => completeGoogleRedirect(firebase.data!.firebase_config!))
+      .then((response) => finish(response.data))
+      .catch((err: unknown) => setError(errorMessage(err,
+        err instanceof Error ? err.message : "Google sign-in could not be completed. Please try again.")))
+      .finally(() => setSsoBusy(false));
+  }, [firebase.data, finish]);
 
   useEffect(() => {
     const handoff = new URLSearchParams(location.hash.replace(/^#/, ""));
@@ -270,7 +286,7 @@ export default function LoginPage() {
       const code = (err as { code?: string }).code;
       setError(
         code === "auth/popup-closed-by-user"
-          ? "Sign-in was canceled. You can try again."
+          ? "The sign-in popup closed before sign-in completed. For Google, try the same-tab option below."
           : code === "auth/popup-blocked"
             ? "Allow the sign-in popup, then try again."
             : errorMessage(
@@ -279,6 +295,19 @@ export default function LoginPage() {
               ),
       );
     } finally {
+      setSsoBusy(false);
+    }
+  }
+  async function googleSameTab() {
+    if (!firebase.data?.firebase_config) return;
+    setError("");
+    setSsoBusy(true);
+    try {
+      const { startGoogleRedirect } = await import("@/services/firebaseLogin");
+      sessionStorage.setItem("suite-social-redirect-remember", String(remember));
+      await startGoogleRedirect(firebase.data.firebase_config);
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Google sign-in could not start. Please try again."));
       setSsoBusy(false);
     }
   }
@@ -671,6 +700,11 @@ export default function LoginPage() {
                         </button>
                       ))}
                 </div>
+              )}
+              {firebase.data?.enabled && firebase.data.firebase_config && firebase.data.modules.length > 0 && (
+                <button type="button" className="suite-secondary" disabled={busy} onClick={() => void googleSameTab()}>
+                  Continue with Google in this tab
+                </button>
               )}
               {(firebase.isPending || providers.isPending) && (
                 <p role="status" className="suite-login-note">
