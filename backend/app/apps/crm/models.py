@@ -390,6 +390,7 @@ class CRMService(Base):
     category = Column(String(120), index=True)
     description = Column(Text)
     billing_type = Column(String(30), default="fixed", index=True)
+    currency = Column(String(10), default="INR", server_default="INR")
     default_rate = Column(Numeric(14, 2), default=0)
     default_cost = Column(Numeric(14, 2), default=0)
     tax_rate = Column(Numeric(5, 2), default=0)

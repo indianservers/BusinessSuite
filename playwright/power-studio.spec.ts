@@ -600,14 +600,20 @@ test("mini-map renders workflow nodes and wheel and touch gestures zoom", async 
     const afterWheel = await page
       .locator(".react-flow__viewport")
       .evaluate((el) => (el as HTMLElement).style.transform);
-    const cdp = await context.newCDPSession(page);
-    await cdp.send("Input.synthesizePinchGesture", {
-      x,
-      y,
-      scaleFactor: 1.2,
-      relativeSpeed: 400,
-      gestureSourceType: "touch",
+    const touch = await page.locator(".react-flow__pane").evaluate(element => {
+      const box=element.getBoundingClientRect();
+      for(let ty=box.bottom-130;ty>box.top+80;ty-=70) for(let tx=box.left+120;tx<box.right-120;tx+=100) {
+        if ([-80,-40,0,40,80].every(offset=>document.elementFromPoint(tx+offset,ty)?.classList.contains("react-flow__pane"))) return {x:tx,y:ty};
+      }
+      throw new Error("No clear canvas area for a pinch gesture");
     });
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: touch.x-40, y: touch.y, id: 1 }, { x: touch.x+40, y: touch.y, id: 2 }] });
+    for (const distance of [50, 60, 70, 80]) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: touch.x-distance, y: touch.y, id: 1 }, { x: touch.x+distance, y: touch.y, id: 2 }] });
+      await page.evaluate(()=>new Promise(requestAnimationFrame));
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect
       .poll(() =>
         page

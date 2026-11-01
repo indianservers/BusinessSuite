@@ -300,6 +300,7 @@ export const categoryColors: Record<string, string> = {
   Communication: "#c46494",
   Approvals: "#5b9d72",
   Connectors: "#6b88b7",
+  Integrations: "#229ed9",
   AI: "#a064c6",
   Utilities: "#8b8a9e",
   "Error Handling": "#d66d72",

@@ -400,6 +400,9 @@ NATIVE = {
 
 def catalog(include_candidates=False):
     items = [m.model_dump() for m in REGISTRY.values()]
+    from app.apps.power_apps.integrations.editor_options import editor_options
+    for item in items:
+        item["editor_options"] = editor_options(REGISTRY[item["id"]])
     if include_candidates:
         items += [
             Manifest(
@@ -434,3 +437,5 @@ def get_action(connector_id, action_id):
 
 from app.apps.power_apps.integrations.providers import install as install_providers
 install_providers(add, action)
+from app.apps.power_apps.integrations.editor_options import narrow_action_schemas
+narrow_action_schemas(REGISTRY)

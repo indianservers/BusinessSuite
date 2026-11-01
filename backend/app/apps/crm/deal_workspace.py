@@ -8,8 +8,8 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from sqlalchemy import func, or_, and_, case, literal, union_all, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import Integer, cast, func, or_, and_, case, literal, union_all, select
+from sqlalchemy.orm import Session, joinedload, aliased
 
 from app.core.deps import get_db, RequirePermission
 from app.models.user import User
@@ -25,6 +25,26 @@ def permissions(db: Session = Depends(get_db), user: User = Depends(RequirePermi
     """Field-level capabilities for the current authorized CRM actor."""
     lm.core()._assert_entity_permission("deals", user, "view")
     return {"can_manage": allowed(user, "deals", "manage"), "can_assign": lm.core()._crm_can_assign_beyond_self(user), "can_manual_probability": lm.core()._crm_can_assign_beyond_self(user), "can_manage_pipelines": allowed(user, "pipelines", "manage")}
+
+
+@router.get("/pipelines")
+def pipeline_choices(page: int = Query(1, ge=1), per_page: int = Query(100, ge=1, le=100), db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+    """Minimal read-only deal choices; editing pipeline configuration needs its own permission."""
+    from .models import CRMPipeline
+    crm = lm.core(); crm._assert_entity_permission("deals", user, "view")
+    q = db.query(CRMPipeline).filter_by(organization_id=crm._organization_id(db, user), deleted_at=None, active=True)
+    total = q.count()
+    return {"items": [{"id": item.id, "name": item.name} for item in q.order_by(CRMPipeline.name, CRMPipeline.id).offset((page - 1) * per_page).limit(per_page)], "total": total, "page": page, "pages": (total + per_page - 1) // per_page}
+
+
+@router.get("/pipeline-stages")
+def stage_choices(page: int = Query(1, ge=1), per_page: int = Query(100, ge=1, le=100), pipeline_id: int | None = None, db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+    from .models import CRMPipeline
+    crm = lm.core(); crm._assert_entity_permission("deals", user, "view")
+    q = db.query(CRMPipelineStage).join(CRMPipeline, CRMPipelineStage.pipeline_id == CRMPipeline.id).filter(CRMPipeline.organization_id == crm._organization_id(db, user), CRMPipeline.deleted_at.is_(None), CRMPipeline.active.is_(True), CRMPipelineStage.organization_id == crm._organization_id(db, user), CRMPipelineStage.deleted_at.is_(None), CRMPipelineStage.active.is_(True))
+    if pipeline_id: q = q.filter(CRMPipelineStage.pipeline_id == pipeline_id)
+    total = q.count()
+    return {"items": [{"id": item.id, "name": item.name, "pipeline_id": item.pipeline_id, "probability": item.probability, "is_won": item.is_won, "is_lost": item.is_lost, "stage_type": item.stage_type, "color": item.color} for item in q.order_by(CRMPipelineStage.pipeline_id, CRMPipelineStage.position, CRMPipelineStage.id).offset((page - 1) * per_page).limit(per_page)], "total": total, "page": page, "pages": (total + per_page - 1) // per_page}
 
 
 class Planning(BaseModel):
@@ -122,7 +142,7 @@ def guard(db, user, data, record=None):
         next_ids = (source.policy_json or {}).get("allowed_next_ids", []) if source else []
         if next_ids and stage.id not in next_ids:
             raise HTTPException(422, "This stage transition is not allowed by the pipeline")
-    if moving:
+    if moving or (record and "status" in data and data["status"] != record.status):
         policy = stage.policy_json or {}
         missing = [key for key in policy.get("required", []) if data.get(key, getattr(record, key, None)) in (None, "", 0)]
         if missing:
@@ -143,7 +163,7 @@ def guard(db, user, data, record=None):
         raise HTTPException(403, "Manual probability overrides require a sales manager")
 
 
-def filtered(db, user, search="", currency="", pipeline_id=None, owner_id=None, stage_id=None, status="", priority="", deal_type="", start=None, end=None, no_next=False, industry="", source="", team_id=None):
+def filtered(db, user, search="", currency="", pipeline_id=None, owner_id=None, stage_id=None, status="", priority="", deal_type="", start=None, end=None, no_next=False, industry="", source="", team_id=None, entered_stage_id=None, lost_reason=""):
     q = rows(db, user, "deals")
     if search:
         matches = [CRMDeal.name.ilike(f"%{search}%"), CRMDeal.description.ilike(f"%{search}%")]
@@ -162,6 +182,11 @@ def filtered(db, user, search="", currency="", pipeline_id=None, owner_id=None, 
         q = q.filter(CRMDeal.expected_close_date >= start)
     if end:
         q = q.filter(CRMDeal.expected_close_date <= end)
+    if entered_stage_id:
+        entered = db.query(CRMTimelineEvent.record_id).filter(CRMTimelineEvent.organization_id == lm.core()._organization_id(db, user), CRMTimelineEvent.record_type == "deal", CRMTimelineEvent.event_type == "stage_change", cast(CRMTimelineEvent.metadata_json["new"].as_string(), Integer) == entered_stage_id)
+        q = q.filter(CRMDeal.id.in_(entered))
+    if lost_reason:
+        q = q.filter(func.coalesce(func.nullif(CRMDeal.lost_reason, ""), func.nullif(CRMDeal.loss_reason, ""), "No reason recorded") == lost_reason)
     if no_next:
         q = q.filter(CRMDeal.next_follow_up_at.is_(None), CRMDeal.status == "Open")
     return q
@@ -200,10 +225,10 @@ def health(record, stage_entered=None):
 
 
 @router.get("/query")
-def query(search: str = Query("", max_length=180), currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, start: date | None = None, end: date | None = None, no_next: bool = False, page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100), sort: str = "updated_at", direction: Literal["asc", "desc"] = "desc", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+def query(search: str = Query("", max_length=180), currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, entered_stage_id: int | None = None, lost_reason: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100), sort: str = "updated_at", direction: Literal["asc", "desc"] = "desc", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
     if start and end and start > end:
         raise HTTPException(422, "Start date must be before end date")
-    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id)
+    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
     column = getattr(CRMDeal, sort) if sort in {"name", "amount", "probability", "priority", "expected_close_date", "created_at", "updated_at", "company_id", "currency", "stage_id", "owner_user_id", "status", "next_follow_up_at"} else CRMDeal.updated_at
     total = q.count()
     items = q.options(joinedload(CRMDeal.stage)).order_by(column.asc() if direction == "asc" else column.desc(), CRMDeal.id).offset((page - 1) * per_page).limit(per_page).all()
@@ -216,8 +241,8 @@ def query(search: str = Query("", max_length=180), currency: str = "", pipeline_
 
 
 @router.get("/summary")
-def summary(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
-    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id)
+def summary(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
     now = datetime.now(timezone.utc)
     month = now.date().replace(day=1)
     next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
@@ -239,9 +264,44 @@ def summary(currency: str = "", pipeline_id: int | None = None, owner_id: int | 
     closed = q.filter(CRMDeal.status.in_(["Won", "Lost"]))
     closed_count = closed.count()
     win_rate = round(q.filter(CRMDeal.status == "Won").count() / closed_count * 100, 2) if closed_count else None
-    return {"counts": {"open": opened.count(), "closing_month": opened.filter(CRMDeal.expected_close_date >= month, CRMDeal.expected_close_date < next_month).count(), "won_month": count((CRMDeal.status == "Won") & (CRMDeal.closed_at >= datetime.combine(month, datetime.min.time())) & (CRMDeal.closed_at < datetime.combine(next_month, datetime.min.time()))), "lost_month": count((CRMDeal.status == "Lost") & (CRMDeal.closed_at >= datetime.combine(month, datetime.min.time())) & (CRMDeal.closed_at < datetime.combine(next_month, datetime.min.time()))), "overdue": opened.filter(CRMDeal.next_follow_up_at < now).count(), "without_activity": opened.filter(CRMDeal.last_activity_at.is_(None)).count(), "no_next_action": opened.filter(CRMDeal.next_follow_up_at.is_(None)).count()},
-            "win_rate": win_rate, "breakdowns": breakdowns, "currencies": [{"currency": code or "Unknown", "pipeline": float(amount or 0), "weighted": float(weighted or 0)} for code, amount, weighted in money], "forecast": sorted(groups.values(), key=lambda item: (item["month"], item["currency"])), "stages": [{"stage_id": sid, "currency": code or "Unknown", "count": number, "amount": float(amount or 0)} for sid, code, number, amount in stages],
-            "definitions": {"pipeline": "Sum of open deal amounts, separated by currency; no conversion.", "weighted": "Open deal amount multiplied by probability / 100.", "dates": "Date filters apply to expected closing date. Monthly wins/losses use actual closed_at in UTC. Forecast uses expected closing month.", "win_rate": "Won deals divided by Won plus Lost deals within the current filters; open deals are excluded. No closed deals means no rate.", "activity": "Without activity means no recorded last_activity_at timestamp. Overdue uses the current UTC instant."}}
+    closed_day = func.coalesce(CRMDeal.actual_close_date, func.date(CRMDeal.closed_at))
+    cycle = func.julianday(closed_day) - func.julianday(func.date(CRMDeal.created_at)) if db.bind.dialect.name == "sqlite" else closed_day - func.date(CRMDeal.created_at)
+    outcome_rows = q.with_entities(CRMDeal.currency, func.avg(CRMDeal.amount), func.sum(case((CRMDeal.status == "Won", CRMDeal.amount), else_=0)), func.sum(case((CRMDeal.status == "Lost", CRMDeal.amount), else_=0)), func.sum(case((CRMDeal.status == "Won", 1), else_=0)), func.sum(case((CRMDeal.status == "Lost", 1), else_=0)), func.avg(case((and_(CRMDeal.status.in_(["Won", "Lost"]), cycle >= 0), cycle), else_=None)), func.sum(case((CRMDeal.status == "Open", CRMDeal.amount), else_=0))).group_by(CRMDeal.currency).all()
+    analytics = []
+    for code, average, won_amount, lost_amount, won_count, lost_count, days, open_amount in outcome_rows:
+        rate = float(won_count or 0) / (won_count + lost_count) if won_count + lost_count else None
+        analytics.append({"currency": code or "Unknown", "average_deal_size": round(float(average or 0), 2), "won_revenue": float(won_amount or 0), "lost_value": float(lost_amount or 0), "win_rate": round(rate * 100, 2) if rate is not None else None, "sales_cycle_days": round(float(days), 2) if days is not None else None, "velocity_per_day": round(float(open_amount or 0) * rate / float(days), 2) if rate is not None and days and days > 0 else None})
+    return {"counts": {"open": opened.count(), "closing_month": opened.filter(CRMDeal.expected_close_date >= month, CRMDeal.expected_close_date < next_month).count(), "won_month": count((CRMDeal.status == "Won") & (closed_day >= month) & (closed_day < next_month)), "lost_month": count((CRMDeal.status == "Lost") & (closed_day >= month) & (closed_day < next_month)), "overdue": opened.filter(CRMDeal.next_follow_up_at < now).count(), "without_activity": opened.filter(CRMDeal.last_activity_at.is_(None)).count(), "no_next_action": opened.filter(CRMDeal.next_follow_up_at.is_(None)).count()},
+            "analytics": analytics, "win_rate": win_rate, "breakdowns": breakdowns, "currencies": [{"currency": code or "Unknown", "pipeline": float(amount or 0), "weighted": float(weighted or 0)} for code, amount, weighted in money], "forecast": sorted(groups.values(), key=lambda item: (item["month"], item["currency"])), "stages": [{"stage_id": sid, "currency": code or "Unknown", "count": number, "amount": float(amount or 0)} for sid, code, number, amount in stages],
+            "definitions": {"pipeline": "Sum of open deal amounts, separated by currency; no conversion.", "weighted": "Open deal amount multiplied by probability / 100.", "dates": "Date filters apply to expected closing date. Monthly wins/losses use actual_close_date, falling back to the recorded closed_at date. Forecast uses expected closing month.", "outcomes": "Average size uses all filtered deals. Sales cycle uses nonnegative calendar days from creation to actual close date (fallback closed_at) for recorded closed outcomes. Velocity per day is open pipeline value times the currency cohort win fraction, divided by that cohort average sales cycle; missing/zero cycle history produces no estimate.", "win_rate": "Won deals divided by Won plus Lost deals within the current filters; open deals are excluded. No closed deals means no rate.", "activity": "Without activity means no recorded last_activity_at timestamp. Overdue uses the current UTC instant."}}
+
+
+@router.get("/conversion")
+def conversion(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+
+    """Observed forward progression from recorded stage entries, using current stage order."""
+    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
+    org = lm.core()._organization_id(db, user)
+    history = db.query(CRMTimelineEvent).filter(CRMTimelineEvent.organization_id == org, CRMTimelineEvent.record_type == "deal", CRMTimelineEvent.event_type == "stage_change", CRMTimelineEvent.record_id.in_(q.with_entities(CRMDeal.id)))
+    new_stage = cast(CRMTimelineEvent.metadata_json["new"].as_string(), Integer)
+    old_stage = cast(CRMTimelineEvent.metadata_json["old"].as_string(), Integer)
+    entries = history.with_entities(CRMTimelineEvent.record_id.label("deal_id"), new_stage.label("stage_id")).filter(new_stage.is_not(None)).distinct().subquery()
+    source_stage, destination = aliased(CRMPipelineStage), aliased(CRMPipelineStage)
+    progression = history.join(source_stage, source_stage.id == old_stage).join(destination, destination.id == new_stage).filter(source_stage.organization_id == org, destination.organization_id == org, source_stage.pipeline_id == destination.pipeline_id, or_(destination.is_won.is_(True), destination.stage_type == "won", and_(destination.position > source_stage.position, destination.is_lost.is_(False), destination.stage_type != "lost"))).with_entities(CRMTimelineEvent.record_id.label("deal_id"), old_stage.label("stage_id")).distinct().subquery()
+    result = db.query(CRMPipelineStage.id, CRMPipelineStage.name, CRMPipelineStage.is_won, CRMPipelineStage.is_lost, CRMDeal.currency, func.count(entries.c.deal_id), func.count(progression.c.deal_id)).select_from(entries).join(CRMDeal, CRMDeal.id == entries.c.deal_id).join(CRMPipelineStage, CRMPipelineStage.id == entries.c.stage_id).outerjoin(progression, and_(progression.c.deal_id == entries.c.deal_id, progression.c.stage_id == entries.c.stage_id)).filter(CRMPipelineStage.organization_id == org).group_by(CRMPipelineStage.id, CRMPipelineStage.name, CRMPipelineStage.is_won, CRMPipelineStage.is_lost, CRMPipelineStage.position, CRMDeal.currency).order_by(CRMPipelineStage.position).all()
+    return {"items": [{"stage_id": identity, "name": name, "currency": code or "Unknown", "entries": count, "progressed": progressed, "conversion_rate": round(progressed / count * 100, 2) if count and not (won or lost) else None, "terminal": bool(won or lost)} for identity, name, won, lost, code, count, progressed in result], "definition": "Distinct currently permitted deals with a recorded entry into each stage form the cohort. Conversion means a recorded move to a later stage in the current stage order or to Won, excluding Lost and backwards moves. Terminal stages have no onward rate. Reordering stages changes the interpretation of older transitions. Missing historical entries are excluded, never inferred. Filters apply to the current deal cohort."}
+
+
+@router.get("/loss-analysis")
+def loss_analysis(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+
+    """Loss reasons and competitors from actual closed Lost records, by currency."""
+    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, "Lost", priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
+    reason = func.coalesce(func.nullif(CRMDeal.lost_reason, ""), func.nullif(CRMDeal.loss_reason, ""), "No reason recorded")
+    competitor = func.coalesce(func.nullif(CRMDeal.planning["closure"]["competitor"].as_string(), ""), func.nullif(CRMDeal.planning["qualification"]["competitor"].as_string(), ""), "No competitor recorded")
+    reasons = q.with_entities(reason, CRMDeal.currency, func.count(CRMDeal.id), func.sum(CRMDeal.amount)).group_by(reason, CRMDeal.currency).all()
+    competitors = q.with_entities(competitor, CRMDeal.currency, func.count(CRMDeal.id), func.sum(CRMDeal.amount)).group_by(competitor, CRMDeal.currency).all()
+    return {"items": [{"name": name, "currency": code or "Unknown", "count": count, "amount": float(amount or 0)} for name, code, count, amount in reasons], "competitors": [{"name": name, "currency": code or "Unknown", "count": count, "amount": float(amount or 0)} for name, code, count, amount in competitors], "definition": "Lost outcomes only, within the current authorized deal filters. Values are separated by currency. Competitor information comes from the recorded closure or qualification. No AI pattern is asserted."}
 
 
 @router.get("/duplicates")
@@ -273,9 +333,9 @@ def eligible_teams(page: int = Query(1, ge=1), per_page: int = Query(100, ge=1, 
 
 
 @router.get("/export")
-def export(format: Literal["csv", "xlsx"] = "csv", currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+def export(format: Literal["csv", "xlsx"] = "csv", currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
     lm.core()._assert_entity_permission("deals", user, "view")
-    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id)
+    q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
     if q.count() > 20000:
         raise HTTPException(422, "Narrow the filters to export at most 20,000 deals")
     headers = ["ID", "Deal", "Currency", "Amount", "Probability", "Weighted value", "Stage ID", "Owner ID", "Expected close", "Priority", "Status"]
@@ -486,6 +546,13 @@ def secure_detail(db, user, payload):
             from .models import CRMContact
             permitted = {item[0] for item in rows(db, user, "contacts").with_entities(CRMContact.id).filter(CRMContact.id.in_([link.get("contact_id") or link.get("contactId") for link in contacts])).all()}
             related["contacts"] = [link for link in contacts if (link.get("contact_id") or link.get("contactId")) in permitted]
+    # Deal line snapshots remain readable; catalog internals require catalog scope.
+    products = related.get("products", [])
+    nested_ids = [line["product"]["id"] for line in products if isinstance(line.get("product"), dict) and line["product"].get("id")]
+    if nested_ids:
+        from .models import CRMProduct
+        permitted_products = {item[0] for item in rows(db, user, "products").with_entities(CRMProduct.id).filter(CRMProduct.id.in_(nested_ids)).all()} if allowed(user, "products", "view") else set()
+        related["products"] = [{**line, "product": {"name": line["product"].get("name")}} if isinstance(line.get("product"), dict) and line["product"].get("id") not in permitted_products else line for line in products]
     payload["related"] = related
     timeline = []
     for event in payload.get("timeline", []):
@@ -513,6 +580,8 @@ def close(ident: int, data: CloseDeal, db: Session = Depends(get_db), user: User
         quote = crm._get_record(db, crm._get_resource("quotations"), data.quotation_id, record.organization_id)
         crm._assert_record_visible(db, crm._get_resource("quotations"), quote.id, record.organization_id, user)
         if quote.deal_id != ident: raise HTTPException(422, "Choose a quotation linked to this deal")
+    if data.actual_close_date > datetime.now(timezone.utc).date(): raise HTTPException(422, "Actual closing date cannot be in the future")
+    if data.reengagement_date and data.reengagement_date < datetime.now(timezone.utc).date(): raise HTTPException(422, "Re-engagement date must be today or later")
     planning = {**(record.planning or {}), "closure": data.model_dump(mode="json", exclude={"expected_version", "outcome", "actual_value"}, exclude_none=True)}
     corrections = {"stage_id": stage.id, "status": data.outcome, "amount": data.actual_value, "actual_close_date": data.actual_close_date, "planning": planning, "expected_version": data.expected_version, "probability": stage.probability, "win_reason" if data.outcome == "Won" else "lost_reason": data.reason}
     if data.onboarding or data.reengagement_date:

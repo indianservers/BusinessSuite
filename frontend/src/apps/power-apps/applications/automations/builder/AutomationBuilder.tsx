@@ -69,6 +69,7 @@ import { NodeGroup, WorkflowAnnotation } from "./NodeGroup";
 import { ConnectionEditor } from "./ConnectionEditor";
 import { StudioNode, type CanvasNode } from "./StudioNode";
 import { StudioEdge } from "./StudioEdge";
+import { WorkflowContextMenu, type WorkflowMenuItem } from "./WorkflowContextMenu";
 import { NodeLibrary } from "./NodeLibrary";
 import { useDocument } from "./useDocument";
 import { useDraftPersistence } from "./useDraftPersistence";
@@ -157,6 +158,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
       () => window.innerWidth >= 900,
     );
   const [context, setContext] = useState<{
+    kind: "node" | "edge" | "canvas";
     id: string;
     x: number;
     y: number;
@@ -169,6 +171,10 @@ function BuilderCanvas(props: AutomationBuilderProps) {
   const [simulation, setSimulation] = useState<PreviewResult>();
   const [searchOpen, setSearchOpen] = useState(false);
   const [pendingEdge, setPendingEdge] = useState<string | null>(null);
+  const pickerPosition = useRef<{ x: number; y: number }>();
+  useEffect(() => {
+    if (!picker) pickerPosition.current = undefined;
+  }, [picker]);
   const [viewExpandedGroups, setViewExpandedGroups] = useState<Set<string>>(
     new Set(),
   );
@@ -254,13 +260,16 @@ function BuilderCanvas(props: AutomationBuilderProps) {
   }, []);
   const openMenu = useCallback((id: string, x: number, y: number) => {
     setContext({
+      kind: "node",
       id,
-      x: Math.min(x, window.innerWidth - 205),
-      y: Math.min(y, window.innerHeight - 270),
+      x,
+      y,
     });
     setSelected((current) => (current.has(id) ? current : new Set([id])));
+    setSelectedEdges(new Set());
   }, []);
   const addAfter = useCallback((id: string, port: string) => {
+    pickerPosition.current = undefined;
     setPendingEdge(null);
     setPendingSource({ id, port });
     setPicker(true);
@@ -953,7 +962,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
       }
       if (
         (event.target as HTMLElement)?.closest(
-          "input, textarea, select, [contenteditable=true]",
+          "input, textarea, select, [contenteditable=true], [role=menu]",
         )
       )
         return;
@@ -1131,9 +1140,9 @@ function BuilderCanvas(props: AutomationBuilderProps) {
       setCopying(false);
     }
   };
-  const addAnnotation = (kind: "note" | "annotation") => {
+  const addAnnotation = (kind: "note" | "annotation", screenPosition?: { x: number; y: number }) => {
     if (readonly || (graph.annotations || []).length >= 100) return;
-    const position = flow.screenToFlowPosition({
+    const position = flow.screenToFlowPosition(screenPosition || {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
     });
@@ -1173,6 +1182,77 @@ function BuilderCanvas(props: AutomationBuilderProps) {
     setInspectorOpen(true);
   };
   const selectedEdge = graph.edges.find((e) => selectedEdges.has(e.id));
+  const menuAction = (action: () => void) => () => {
+    setContext(null);
+    action();
+  };
+  const selectionItems: WorkflowMenuItem[] = [
+    { label: "Copy selection", icon: Copy, shortcut: "Ctrl+C", action: menuAction(() => copyNodes()) },
+    { label: "Duplicate selection", icon: Copy, shortcut: "Ctrl+D", disabled: readonly, action: menuAction(() => duplicateNodes()) },
+    { label: "Group selection", icon: Group, shortcut: "Ctrl+G", disabled: readonly || graph.nodes.filter((n) => selected.has(n.id)).length < 2, action: menuAction(groupSelection) },
+    { label: "Ungroup", icon: Ungroup, disabled: readonly || !graph.groups.some((g) => selected.has(g.id) || g.node_ids.some((id) => selected.has(id))), action: menuAction(ungroup) },
+  ];
+  const openPicker = () => {
+    pickerPosition.current = context ? flow.screenToFlowPosition({ x: context.x, y: context.y }) : undefined;
+    setPendingEdge(null);
+    setPendingSource(null);
+    setPicker(true);
+  };
+  const menuNode = graph.nodes.find((n) => n.id === context?.id);
+  const menuEdge = graph.edges.find((e) => e.id === context?.id);
+  const contextItems: WorkflowMenuItem[] = context?.kind === "edge" ? [
+    { label: "Edit connection", icon: Settings2, action: menuAction(() => {
+      setInspectedId(null); setInspectorOpen(true); setPanel(null);
+    }) },
+    { label: "Insert step", icon: Plus, disabled: readonly, action: menuAction(() => {
+      setPendingEdge(context.id); setPendingSource(null); setPicker(true);
+    }) },
+    { label: "Go to step", icon: ArrowLeft, children: [
+      { label: "Source step", action: menuAction(() => { if (menuEdge) focusNode(menuEdge.source); }) },
+      { label: "Destination step", action: menuAction(() => { if (menuEdge) focusNode(menuEdge.target); }) },
+    ] },
+    { label: "Delete connection", icon: Trash2, danger: true, disabled: readonly, action: menuAction(() => {
+      changeGraph((g) => ({ ...g, edges: g.edges.filter((e) => e.id !== context.id) }));
+      setSelectedEdges(new Set());
+    }) },
+  ] : context?.kind === "node" ? [
+    { label: menuNode ? "Configure node" : "Inspect selection", icon: Settings2, action: menuAction(() => {
+      if (menuNode) inspect(menuNode.id);
+      else { setInspectedId(null); setPanel(null); setInspectorOpen(true); }
+    }) },
+    ...(menuNode ? [
+      { label: "Add next step", icon: Plus, disabled: readonly || !nodeDefinition(menuNode, props.nodeCatalog)?.outputs.length, children: (nodeDefinition(menuNode, props.nodeCatalog)?.outputs || []).map((port) => ({
+        label: port.label, action: menuAction(() => addAfter(menuNode.id, port.id)),
+      })) },
+      { label: menuNode.disabled ? "Enable node" : "Disable node", icon: Play, disabled: readonly, action: menuAction(() => {
+        changeGraph((g) => ({ ...g, nodes: g.nodes.map((n) => n.id === menuNode.id ? { ...n, disabled: !n.disabled } : n) }));
+      }) },
+    ] : []),
+    { label: "Selection", icon: MousePointer2, children: selectionItems },
+    { label: "Delete selection", icon: Trash2, shortcut: "Del", danger: true, disabled: readonly, action: menuAction(() => deleteSelection()) },
+  ] : [
+    { label: "Add", icon: Plus, disabled: readonly, children: [
+      { label: "Workflow step", icon: Workflow, action: menuAction(openPicker) },
+      { label: "Sticky note", icon: Braces, action: menuAction(() => addAnnotation("note", context || undefined)) },
+      { label: "Annotation", icon: Braces, action: menuAction(() => addAnnotation("annotation", context || undefined)) },
+    ] },
+    { label: "Paste", icon: Copy, shortcut: "Ctrl+V", disabled: readonly || !clipboardReady, action: menuAction(pasteNodes) },
+    { label: "Select all", icon: MousePointer2, shortcut: "Ctrl+A", disabled: !graph.nodes.length && !graph.groups.length && !graph.annotations?.length, action: menuAction(() => {
+      setSelected(new Set([...graph.nodes.map((n) => n.id), ...graph.groups.map((g) => g.id), ...(graph.annotations || []).map((n) => n.id)]));
+      setSelectedEdges(new Set());
+    }) },
+    { label: "Selection", icon: Group, disabled: !selected.size, children: selectionItems },
+    { label: "View", icon: Expand, children: [
+      { label: "Fit to screen", icon: Expand, action: menuAction(() => { void flow.fitView({ padding: .24, duration: 250, maxZoom: 1.2 }); }) },
+      { label: "Zoom in", icon: ZoomIn, action: menuAction(() => { void flow.zoomIn(); }) },
+      { label: "Zoom out", icon: ZoomOut, action: menuAction(() => { void flow.zoomOut(); }) },
+      { label: showGrid ? "Hide grid" : "Show grid", icon: Grid2X2, action: menuAction(() => setShowGrid(!showGrid)) },
+    ] },
+    { label: "History", icon: History, children: [
+      { label: "Undo", icon: Undo2, shortcut: "Ctrl+Z", disabled: readonly || !canUndo, action: menuAction(undo) },
+      { label: "Redo", icon: Redo2, shortcut: "Ctrl+Shift+Z", disabled: readonly || !canRedo, action: menuAction(redo) },
+    ] },
+  ];
   const Config = props.configurationPanel || ConfigurationPanel;
   return (
     <div
@@ -1596,6 +1676,21 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                   event.preventDefault();
                   openMenu(node.id, event.clientX, event.clientY);
                 }}
+                onSelectionContextMenu={(event, nodes) => {
+                  event.preventDefault();
+                  if (nodes[0]) openMenu(nodes[0].id, event.clientX, event.clientY);
+                }}
+                onEdgeContextMenu={(event, edge) => {
+                  event.preventDefault();
+                  setSelected(new Set());
+                  setSelectedEdges(new Set([edge.id]));
+                  setContext({ kind: "edge", id: edge.id, x: event.clientX, y: event.clientY });
+                }}
+                onPaneContextMenu={(event) => {
+                  event.preventDefault();
+                  setContext({ kind: "canvas", id: "", x: event.clientX, y: event.clientY });
+                }}
+                onMoveStart={() => setContext(null)}
                 onPaneClick={() => {
                   setContext(null);
                 }}
@@ -2326,79 +2421,23 @@ function BuilderCanvas(props: AutomationBuilderProps) {
             <NodeLibrary
               catalog={props.nodeCatalog}
               picker
-              onAdd={(def) => addNode(def)}
-              onClose={() => setPicker(false)}
+              onAdd={(def) => {
+                addNode(def, pickerPosition.current);
+                pickerPosition.current = undefined;
+              }}
+              onClose={() => { setPicker(false); pickerPosition.current = undefined; }}
             />
           </div>
         </div>
       )}
       {context && (
-        <div
-          className="as-context-menu"
-          role="menu"
-          style={{ left: context.x, top: context.y }}
-        >
-          <button
-            role="menuitem"
-            onClick={() => {
-              inspect(context.id);
-              setContext(null);
-            }}
-          >
-            Configure node
-          </button>
-          <button
-            role="menuitem"
-            disabled={readonly || !graph.nodes.some((n) => n.id === context.id)}
-            onClick={() => {
-              changeGraph((c) => ({
-                ...c,
-                nodes: c.nodes.map((n) =>
-                  n.id === context.id ? { ...n, disabled: !n.disabled } : n,
-                ),
-              }));
-              setContext(null);
-            }}
-          >
-            {graph.nodes.find((n) => n.id === context.id)?.disabled
-              ? "Enable node"
-              : "Disable node"}
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => {
-              copyNodes(selected);
-              setContext(null);
-            }}
-          >
-            Copy selection
-          </button>
-          <button
-            role="menuitem"
-            disabled={readonly}
-            onClick={() => duplicateNodes(selected)}
-          >
-            Duplicate selection
-          </button>
-          <button
-            role="menuitem"
-            disabled={readonly || selected.size < 2}
-            onClick={groupSelection}
-          >
-            Group selection
-          </button>
-          <button
-            role="menuitem"
-            disabled={readonly}
-            onClick={() => deleteSelection(selected)}
-            className="as-danger"
-          >
-            Delete selection
-          </button>
-          <button role="menuitem" onClick={() => setContext(null)}>
-            Close menu
-          </button>
-        </div>
+        <WorkflowContextMenu
+          key={`${context.kind}-${context.id}-${context.x}-${context.y}`}
+          x={context.x} y={context.y}
+          title={context.kind === "canvas" ? "Workflow canvas" : context.kind === "edge" ? "Connection" : graph.nodes.find((n) => n.id === context.id)?.label || "Selection"}
+          items={contextItems}
+          onClose={() => setContext(null)}
+        />
       )}
       {shortcuts && (
         <div

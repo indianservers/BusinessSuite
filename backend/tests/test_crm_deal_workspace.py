@@ -178,6 +178,14 @@ def test_readonly_deal_access_does_not_expose_restricted_notes_or_allow_mutation
     result = client.get(BASE + f"/{row.id}/record", headers=headers)
     assert result.status_code == 200, result.text
     assert result.json()["related"]["notes"] == []
+    choices = client.get(BASE + "/pipelines", headers=headers)
+    assert choices.status_code == 200, choices.text
+    assert record["pipeline_id"] in [item["id"] for item in choices.json()["items"]]
+    stages = client.get(BASE + "/pipeline-stages", headers=headers, params={"pipeline_id":record["pipeline_id"]})
+    assert stages.status_code == 200, stages.text
+    assert record["stage_id"] in [item["id"] for item in stages.json()["items"]]
+    policy = client.put(BASE + f"/stage-policy/{record['stage_id']}", headers=headers, json={})
+    assert policy.status_code == 403, policy.text
     forbidden = client.patch(f"/api/v1/crm/deals/{row.id}", headers=headers, json={"amount": 999})
     assert forbidden.status_code == 403, forbidden.text
     feed = client.get(BASE + f"/{row.id}/events", headers=headers)
@@ -194,3 +202,45 @@ def test_whatsapp_recording_is_internal_and_visible_in_unified_events(client, db
     feed = client.get(BASE + f"/{record['id']}/events", headers=superuser_headers)
     assert feed.status_code == 200, feed.text
     assert any(event["type"] == "whatsapp" and "acknowledged" in event["record"]["description"] for event in feed.json()["items"])
+
+
+def test_recorded_conversion_loss_analysis_and_drill_filters(client, db, superuser_headers):
+    record = create(client, db, superuser_headers, amount=125)
+    initial = db.get(CRMPipelineStage, record["stage_id"])
+    next_stage = CRMPipelineStage(name="Proposal", organization_id=1, pipeline_id=record["pipeline_id"], position=(initial.position or 0)+1, probability=60, active=True)
+    lost = CRMPipelineStage(name="Lost", organization_id=1, pipeline_id=record["pipeline_id"], position=10, stage_type="lost", is_lost=True, probability=0, active=True)
+    db.add_all([next_stage, lost]); db.commit()
+    moved = client.patch(f"/api/v1/crm/deals/{record['id']}", headers=superuser_headers, json={"stage_id":next_stage.id, "expected_version":1})
+    assert moved.status_code == 200, moved.text
+    report = client.get(BASE + "/conversion", headers=superuser_headers)
+    assert report.status_code == 200, report.text
+    discovery = next(row for row in report.json()["items"] if row["stage_id"] == initial.id)
+    assert discovery["entries"] == discovery["progressed"] == 1
+    assert discovery["conversion_rate"] == 100
+    drill = client.get(BASE + "/query", headers=superuser_headers, params={"entered_stage_id":initial.id})
+    assert [row["id"] for row in drill.json()["items"]] == [record["id"]]
+    closed = client.post(BASE + f"/{record['id']}/close", headers=superuser_headers, json={"outcome":"Lost", "expected_version":2, "reason":"Price too high", "actual_close_date":date.today().isoformat(), "actual_value":125, "currency":"INR", "competitor":"Alternative supplier"})
+    assert closed.status_code == 200, closed.text
+    losses = client.get(BASE + "/loss-analysis", headers=superuser_headers)
+    assert losses.status_code == 200, losses.text
+    assert losses.json()["items"] == [{"name":"Price too high", "currency":"INR", "count":1, "amount":125}]
+    assert losses.json()["competitors"][0]["name"] == "Alternative supplier"
+    drill = client.get(BASE + "/query", headers=superuser_headers, params={"lost_reason":"Price too high"})
+    assert drill.json()["total"] == 1
+    totals = client.get(BASE + "/summary", headers=superuser_headers).json()
+    assert totals["counts"]["lost_month"] == 1
+    assert totals["analytics"][0]["lost_value"] == 125
+
+
+def test_service_currency_is_persisted_and_deal_mismatch_rejected(client, db, superuser_headers):
+    payload, _, service_id = seed(client, db, superuser_headers)
+    updated = client.patch(f"/api/v1/crm/services/{service_id}", headers=superuser_headers, json={"currency":"USD"})
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["currency"] == "USD"
+    payload.update(currency="INR", catalog_items=[{"kind":"service", "item_id":service_id, "quantity":1, "unit_price":50, "discount":0}])
+    rejected = client.post("/api/v1/crm/deals", headers=superuser_headers, json=payload)
+    assert rejected.status_code == 422, rejected.text
+    payload["currency"] = "USD"
+    saved = client.post("/api/v1/crm/deals", headers=superuser_headers, json=payload)
+    assert saved.status_code == 201, saved.text
+    assert saved.json()["amount"] == 50

@@ -17,6 +17,7 @@ import {
   type Connection,
 } from "./integrationApi";
 import ActionFields from "./ActionFields";
+import { authFields, authLabels, supportsWrites } from "./moduleOptions";
 import "./integrations.css";
 type Log = {
   id: number;
@@ -26,18 +27,6 @@ type Log = {
   duration_ms: number;
   error_category: string | null;
   correlation_id: string;
-};
-const secretKeys: Record<string, string[]> = {
-  none: [],
-  bearer: ["access_token"],
-  api_key: ["api_key"],
-  basic: ["username", "password"],
-  signing: ["signing_secret"],
-  database: ["username", "password"],
-  service_account: ["service_account"],
-  oauth2: [],
-  gateway: [],
-  platform_smtp: [],
 };
 export default function IntegrationsPage() {
   const dialogRef = useRef<HTMLElement>(null);
@@ -56,7 +45,7 @@ export default function IntegrationsPage() {
   const [name, setName] = useState(""),
     [auth, setAuth] = useState("bearer"),
     [secrets, setSecrets] = useState<Record<string, string>>({}),
-    [hosts, setHosts] = useState(""),
+    [connectionConfig, setConnectionConfig] = useState<Record<string, unknown>>({}),
     [writes, setWrites] = useState(false),
     [testing, setTesting] = useState<Connection>(),
     [actionId, setActionId] = useState(""),
@@ -126,6 +115,7 @@ export default function IntegrationsPage() {
   }, [selected, testing, busy]);
   const profile = catalog.find((c) => c.id === testing?.connector_id);
   const action = profile?.actions.find((a) => a.id === actionId);
+  const actionMutates = Boolean(action?.mutates || (profile?.id === "http" && !["GET", "HEAD"].includes(String(input.method || "GET"))));
   const visible = catalog.filter(
     (c) =>
       (!category || c.category === category) &&
@@ -136,14 +126,12 @@ export default function IntegrationsPage() {
     setBusy(true);
     setError("");
     try {
-      const config = hosts
-        ? {
-            hosts: hosts
-              .split(",")
-              .map((h) => h.trim())
-              .filter(Boolean),
-          }
-        : {};
+      const configSchema = selected.editor_options?.config_schema;
+      const config = {
+        ...Object.fromEntries(Object.entries(configSchema?.properties || {}).filter(([, field]) => field.default !== undefined).map(([key, field]) => [key, field.default])),
+        ...connectionConfig,
+      };
+      if (auth !== "api_key") delete config.header_name;
       const scopes = [
         ...new Set(
           selected.actions
@@ -161,7 +149,7 @@ export default function IntegrationsPage() {
           config,
           scopes,
           sharing: [],
-          writes_enabled: writes,
+          writes_enabled: Boolean(writes && supportsWrites(selected)),
         },
         { params: { environment } },
       );
@@ -358,7 +346,7 @@ export default function IntegrationsPage() {
                   ) || c.authentication[0],
                 );
                 setSecrets({});
-                setHosts("");
+                setConnectionConfig({});
                 setWrites(false);
                 setError("");
               }}
@@ -512,9 +500,10 @@ export default function IntegrationsPage() {
                     {selected.authentication.map((a) => (
                       <option
                         key={a}
+                        value={a}
                         disabled={a === "oauth2" && !selected.oauth_ready}
                       >
-                        {a}
+                        {authLabels[a] || a}
                         {a === "oauth2" && !selected.oauth_ready
                           ? " (administrator setup required)"
                           : ""}
@@ -522,9 +511,9 @@ export default function IntegrationsPage() {
                     ))}
                   </select>
                 </label>
-                {(secretKeys[auth] || []).map((key) => (
+                {Object.entries(selected.editor_options?.credentials[auth] || authFields[auth] || {}).map(([key, label]) => (
                   <label className="ic-field" key={key}>
-                    {key.replace(/_/g, " ")}
+                    {label}
                     <input
                       type="password"
                       autoComplete="off"
@@ -535,33 +524,20 @@ export default function IntegrationsPage() {
                     />
                   </label>
                 ))}
-                {["http", "outgoing_webhook", "postgresql"].includes(
-                  selected.id,
-                ) && (
-                  <label className="ic-field">
-                    Exact allowed hostnames
-                    <input
-                      placeholder="api.example.com"
-                      value={hosts}
-                      onChange={(e) => setHosts(e.target.value)}
-                    />
-                  </label>
-                )}
-                {selected.id === "postgresql" && (
-                  <p>
-                    PostgreSQL requires database and table allowlists; configure
-                    it through the typed connection API until the database setup
-                    panel is available.
-                  </p>
-                )}
+                <ActionFields connector={selected.id} action={{ id: "connection_settings", name: "Connection settings", mutates: false, scopes: [], input_schema: {
+                  ...selected.editor_options?.config_schema,
+                  properties: Object.fromEntries(Object.entries(selected.editor_options?.config_schema.properties || {}).filter(([key]) => key !== "header_name" || auth === "api_key")),
+                } }} value={connectionConfig} onChange={setConnectionConfig} />
+                {supportsWrites(selected) && (
                 <label className="ic-check">
                   <input
                     type="checkbox"
                     checked={writes}
                     onChange={(e) => setWrites(e.target.checked)}
                   />
-                  Allow intentional external writes for this connection
+                  Allow {selected.id === "http" ? "write HTTP methods" : selected.actions.filter((a) => a.mutates).map((a) => a.name.toLowerCase()).join(", ")}
                 </label>
+                )}
                 <ul>
                   {selected.setup.map((s) => (
                     <li key={s}>{s}</li>
@@ -574,7 +550,9 @@ export default function IntegrationsPage() {
                 <button
                   className="ic-primary"
                   disabled={
-                    busy || !name.trim() || selected.id === "postgresql"
+                    busy || !name.trim() ||
+                    Object.keys(selected.editor_options?.credentials[auth] || authFields[auth] || {}).some((key) => !secrets[key]?.trim()) ||
+                    (selected.editor_options?.config_schema.required || []).some((key) => connectionConfig[key] === undefined || connectionConfig[key] === "" || (Array.isArray(connectionConfig[key]) && !(connectionConfig[key] as unknown[]).length))
                   }
                   onClick={() => void create()}
                 >
@@ -619,18 +597,18 @@ export default function IntegrationsPage() {
                       onChange={(value) => {
                         setInput(value);
                         setRequestKey(crypto.randomUUID());
+                        setConfirmed(false);
                       }}
                     />
                   )}
-                  {action?.mutates && (
+                  {actionMutates && (
                     <label className="ic-check">
                       <input
                         type="checkbox"
                         checked={confirmed}
                         onChange={(e) => setConfirmed(e.target.checked)}
                       />
-                      Run this external write now. This can send a message,
-                      create a record or consume provider credits.
+                      Run {action?.name.toLowerCase()} now for this account.
                     </label>
                   )}
                   <button
@@ -638,7 +616,7 @@ export default function IntegrationsPage() {
                     disabled={
                       busy ||
                       !action ||
-                      (!!action.mutates &&
+                      (actionMutates &&
                         (!confirmed || !testing.writes_enabled))
                     }
                     onClick={async () => {

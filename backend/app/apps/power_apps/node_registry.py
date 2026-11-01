@@ -17,6 +17,9 @@ for connector_id, manifest in CONNECTORS.items():
         fields=[dict(key="action",label="Action",kind="select",required=True,allow_expression=False,options=[a.id for a in manifest.actions],default=manifest.actions[0].id),dict(key="input",label="Action input",kind="json",required=True,allow_expression=True,default={}),dict(key="confirm_write",label="Authorize this external write",kind="boolean",required=False,allow_expression=False,default=False)],
         inputs=[dict(id="in",label="In",data_type="flow",max_connections=1)],outputs=[dict(id="out",label="Next",data_type="flow",max_connections=1)],output_schema={"data":"object","http_status":"number","text":"string"},help="Configure a connection in Integration Studio, choose an action and map webhook or prior-step output. External writes require explicit authorization. Local previews do not call providers.")
 
+NODES["connector_telegram"]["icon"] = "Send"
+NODES["connector_telegram"]["description"] = "Send Telegram messages with your bot. Configure its token in Module settings."
+NODES["connector_telegram"]["fields"][0]["default"] = "send_message"
 NODES["webhook_trigger"]["description"] = "Receive a signed webhook and start a durable workflow."
 SECRET_KEYS = {"api_key", "apikey", "secret", "client_secret", "password", "access_token", "refresh_token", "authorization", "private_key", "token"}
 PATH = re.compile(r"^(?:workflow\.variables\.[A-Za-z_][A-Za-z0-9_]*|env\.name|trigger\.(?:record|input)(?:\.[A-Za-z_][A-Za-z0-9_]*)*|steps\.[A-Za-z_][A-Za-z0-9_-]*\.output(?:\.[A-Za-z_][A-Za-z0-9_]*)*)$")

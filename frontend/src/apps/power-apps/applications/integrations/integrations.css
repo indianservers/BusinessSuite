@@ -411,3 +411,20 @@
   background: #faf7ff;
   border-color: #e1d5f6;
 }
+
+.ic-module-settings { margin: 8px 0 18px; padding: 16px; border: 1px solid #dcebf7; border-radius: 14px; background: linear-gradient(145deg, #f3faff, #fff 70%); }
+.ic-module-settings > header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ic-module-settings > header > span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: #e2f2fc; color: #229ed9; }
+.ic-module-settings h3 { margin: 0; color: #28374c; font-size: 13px; }
+.ic-module-settings p { font-size: 11px; line-height: 1.7; color: #68788d; margin: 8px 0 12px; }
+.ic-module-settings a { color: #168ac3; }
+.ic-module-connected { display: flex; align-items: center; gap: 8px; padding: 10px; margin: 12px 0; border: 1px solid #d8ece6; border-radius: 9px; background: #f3fbf8; color: #27866d; font-size: 12px; }
+.ic-module-connected small { display: block; font-size: 10px; margin-top: 3px; }
+.ic-module-toggle { display: flex; align-items: flex-start; gap: 8px; font-size: 11px; line-height: 1.6; margin: 12px 0; color: #556278; }
+.ic-module-toggle input { width: 14px; min-width: 14px; height: 14px; margin: 2px 0 0; accent-color: #229ed9; }
+.as-studio .ic-module-test { padding: 8px 10px; border: 1px solid #d4e6f2; border-radius: 8px; background: #f4faff; color: #167eaf; font-size: 11px; margin: 8px 0; }
+.ic-module-action-test { padding-top: 12px; margin-top: 12px; border-top: 1px solid #e8edf4; }
+.ic-module-success { color: #248168 !important; font-size: 11px; }
+.ic-module-spinner { animation: ic-module-spin 1s linear infinite; }
+@keyframes ic-module-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ic-module-spinner { animation: none; } }

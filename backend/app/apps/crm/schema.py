@@ -319,6 +319,8 @@ def ensure_crm_schema(db: Session) -> None:
                 if column_name not in columns:
                     db.execute(text(f"ALTER TABLE crm_contacts ADD COLUMN {column_name} {column_type}"))
                     columns.add(column_name)
+        if table_name == "crm_services" and "currency" not in columns:
+            db.execute(text("ALTER TABLE crm_services ADD COLUMN currency VARCHAR(10) DEFAULT 'INR'"))
         if table_name == "crm_products":
             for column_name, column_type in PRODUCT_PHASE3_COLUMNS.items():
                 if column_name not in columns:

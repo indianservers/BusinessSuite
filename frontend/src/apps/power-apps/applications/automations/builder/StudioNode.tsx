@@ -31,6 +31,7 @@ function NodeCard({ data, selected }: NodeProps<CanvasNode>) {
     updateInternals(node.id);
   }, [node.id, portSignature, updateInternals]);
   const providerColors: Record<string, string> = {
+    connector_telegram: "#229ed9",
     connector_google_sheets: "#0ca66c",
     connector_google_drive: "#4285f4",
     connector_gmail: "#ed5145",

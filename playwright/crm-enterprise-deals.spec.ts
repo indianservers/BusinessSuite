@@ -15,6 +15,8 @@ async function setup(page: Page) {
     if (path.endsWith("/insights")) payload = {score: 60, level: "Needs Attention", age_days: 12, stage_age_days: 3, qualification_score: 29, reasons: ["No next action scheduled"], stage_name: "Qualification", pipeline_name: "Sales", owner_name: "Sales Admin"};
     if (path.endsWith("/collaborators")) payload = {items: [], can_assign: true};
     if (path.endsWith("/events")) payload = {items: [{type: "stage_change", title: "Stage changed to Qualification", occurredAt: "2026-11-01T08:00:00Z", record: {description: "Moved from Discovery", actor_user_id: 100}}], total: 1, pages: 1};
+    if (path.endsWith("/pipelines")) payload = {items: [{id: 1, name: "Enterprise Sales"}], total: 1, pages: 1};
+    if (path.endsWith("/pipeline-stages")) payload = {items: [{id: 1, name: "Qualification", pipeline_id: 1, probability: 20}, {id: 2, name: "Proposal", pipeline_id: 1, probability: 60}, {id: 3, name: "Closed Won", pipeline_id: 1, probability: 100, is_won: true}], total: 3, pages: 1};
     await route.fulfill({json: payload});
   });
   await page.route("**/api/v1/crm/deals/1", async route => route.fulfill({json: {...deal, related: {account: {id: 1, name: "Acme"}, contact: {id: 1, full_name: "John"}, notes: [{id: 1, body: "Customer requested a renewal proposal."}], tasks: [{id: 1, title: "Prepare renewal", status: "To Do"}], files: [], contacts: [], quotations: [{id: 1, quote_number: "QT-001", status: "Draft", grand_total: 25000, currency: "INR"}], products: []}, timeline: []}}));
@@ -34,7 +36,7 @@ test("all deal views use real response data, currency filters, and saved prefere
   await page.getByRole("button", {name: "Forecast", exact: true}).click();
   await expect(page.getByRole("heading", {name: "Revenue forecast"})).toBeVisible();
   await page.getByLabel("Forecast grouping").selectOption("owner");
-  await expect(page.locator(".ed-forecast")).toContainText("Sales Admin");
+  await expect(page.locator(".ed-forecast").filter({has:page.getByRole("heading", {name:"Revenue forecast"})})).toContainText("Sales Admin");
   await page.getByRole("combobox", {name: "Currency", exact: true}).selectOption("USD");
   await expect.poll(() => page.url()).toContain("/crm/deals");
   await page.getByLabel("View name").fill("Dollar renewals");
@@ -47,7 +49,7 @@ test("all deal views use real response data, currency filters, and saved prefere
 test("advanced create keeps all six tabs, paginates choices, and retains drafts on validation failure", async ({page}) => {
   await setup(page);
   const calls: number[] = [];
-  await page.route("**/api/v1/crm/pipelines?**", async route => {
+  await page.route("**/api/v1/crm/deal-workspace/pipelines?**", async route => {
     const url = new URL(route.request().url()), number = Number(url.searchParams.get("page") || 1);
     calls.push(Number(url.searchParams.get("per_page")));
     await route.fulfill({json: {items: number === 1 ? Array.from({length: 100}, (_, index) => ({id: index + 1, name: `Pipeline ${index + 1}`})) : [{id: 101, name: "Pipeline 101"}], total: 101, pages: 2, page: number}});
@@ -116,4 +118,37 @@ test("dragging a pipeline card opens a reviewed, versioned stage transition", as
   await expect.poll(() => submitted).toBeTruthy();
   expect(submitted.stage_id).toBe(2);
   expect(submitted.expected_version).toBe(1);
+});
+
+test("editing qualification sends the changed structured section and the original version", async ({page}) => {
+  await setup(page);
+  let submitted: any;
+  await page.route("**/api/v1/crm/deals/1", async route => {if (route.request().method() !== "PATCH") return route.fallback();submitted = route.request().postDataJSON();await route.fulfill({json: {...deal, ...submitted, version: 2}});});
+  await page.goto("/crm/deals");
+  await page.getByRole("button", {name: "Edit", exact: true}).click();
+  const dialog = page.getByRole("dialog", {name: "Edit deal", exact: true});
+  await dialog.getByRole("button", {name: "Advanced Create", exact: true}).click();
+  await dialog.getByRole("button", {name: "Qualification", exact: true}).click();
+  await dialog.getByLabel("Business Need", {exact: true}).fill("Updated customer qualification");
+  await dialog.getByRole("button", {name: "Save changes", exact: true}).click();
+  await expect.poll(() => submitted).toBeTruthy();
+  expect(submitted.planning.qualification.business_need).toBe("Updated customer qualification");
+  expect(submitted.expected_version).toBe(1);
+});
+
+test("editing a legacy deal keeps existing product associations and saved value", async ({page}) => {
+  await setup(page);
+  let submitted: any;
+  await page.route("**/api/v1/crm/deal-workspace/1/record", route => route.fulfill({json: {...deal, amount: 110, catalog_items: null, related: {contacts: [], products: [{id: 7, product_id: 21, quantity: 1, unit_price: 100, discount_amount: 10, total_amount: 110, product: {id: 21, name: "Legacy product"}}]}}}));
+  await page.route("**/api/v1/crm/deals/1", async route => {if (route.request().method() !== "PATCH") return route.fallback();submitted = route.request().postDataJSON();await route.fulfill({json: {...deal, ...submitted, version: 2}});});
+  await page.goto("/crm/deals");
+  await page.getByRole("button", {name: "Edit", exact: true}).click();
+  const dialog = page.getByRole("dialog", {name: "Edit deal", exact: true});
+  await expect(dialog.getByLabel("Catalog item")).toHaveValue("product:21");
+  await dialog.getByPlaceholder("Enter deal name...").fill("Legacy deal renamed");
+  await dialog.getByRole("button", {name: "Save changes", exact: true}).click();
+  await expect.poll(() => submitted).toBeTruthy();
+  expect(submitted.name).toBe("Legacy deal renamed");
+  expect(submitted.amount).toBeUndefined();
+  expect(submitted.catalog_items).toBeUndefined();
 });

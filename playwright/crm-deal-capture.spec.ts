@@ -6,7 +6,9 @@ for (const entry of ["full", "quick", "mobile"] as const) {
     let saved: any;
     await page.route("**/api/v1/crm/deal-workspace/**", async route => {
       const path = new URL(route.request().url()).pathname;
-      const payload = path.endsWith("query") ? {items: [], total: 0, pages: 1, can_manage: true, can_assign: true} : path.endsWith("summary") ? {counts: {}, currencies: [], stages: [], forecast: []} : path.endsWith("assignees") ? {items: [{id: 100, userId: 100, name: "Admin"}], total: 1, pages: 1} : {items: []};
+      let payload = path.endsWith("query") ? {items: [], total: 0, pages: 1, can_manage: true, can_assign: true} : path.endsWith("summary") ? {counts: {}, currencies: [], stages: [], forecast: []} : path.endsWith("assignees") ? {items: [{id: 100, userId: 100, name: "Admin"}], total: 1, pages: 1} : {items: []};
+      if (path.endsWith("/pipelines")) payload = {items: [{id: 1, name: "Enterprise Sales"}], total: 1, pages: 1};
+    if (path.endsWith("/pipeline-stages")) payload = {items: [{id: 1, name: "Qualification", pipeline_id: 1, probability: 20}, {id: 2, name: "Proposal", pipeline_id: 1, probability: 60}, {id: 3, name: "Closed Won", pipeline_id: 1, probability: 100, is_won: true}], total: 3, pages: 1};
       await route.fulfill({json: payload});
     });
     page.on("request", request => {const perPage = new URL(request.url()).searchParams.get("per_page");if (perPage) expect(Number(perPage)).toBeLessThanOrEqual(100);});

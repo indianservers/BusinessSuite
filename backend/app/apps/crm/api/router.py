@@ -4204,6 +4204,7 @@ def _apply_deal_close_fields(record: CRMDeal, data: dict[str, Any]) -> None:
         return
     status_key = _deal_status_key(data.get("status"))
     now = datetime.now(timezone.utc)
+    if status_key in {"won", "lost"}: record.actual_close_date = record.actual_close_date or now.date()
     if status_key == "won":
         record.won_at = record.won_at or now
         record.closed_at = record.closed_at or record.won_at
@@ -4659,6 +4660,9 @@ def _record_entity_type(entity: str) -> str | None:
 
 def _create_related_timeline_event(db: Session, entity: str, item: dict[str, Any], organization_id: int, user_id: int | None) -> None:
     canonical = _canonical_entity(entity)
+    if canonical == "deals":
+        _create_timeline_activity(db, organization_id=organization_id, entity_type="deal", entity_id=int(item["id"]), activity_type="stage_change", title="Deal entered initial pipeline stage", body=f"Created in stage #{item.get('stage_id')}", user_id=user_id, metadata={"field": "stage_id", "old": None, "new": item.get("stage_id"), "sourceEntity": "deals", "sourceId": item["id"]})
+        return
     if canonical == "activities":
         return
     entity_type, entity_id = _linked_entity_from_data(item)
@@ -8435,7 +8439,8 @@ def create_record(
     if resource.model is CRMLead:
         from app.apps.crm.lead_management import after_existing_api
         after_existing_api(db, current_user, record, owner_was_provided=owner_was_provided)
-    db.commit()
+    if resource.model is CRMDeal: db.flush()
+    else: db.commit()
     db.refresh(record)
     _create_related_timeline_event(db, entity, _serialize(record), organization_id, current_user.id)
     if resource.model is not CRMLead:

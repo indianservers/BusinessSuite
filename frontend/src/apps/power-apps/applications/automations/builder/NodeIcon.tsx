@@ -48,6 +48,7 @@ import {
   FolderOpen,
   CreditCard,
   BrainCircuit,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 const icons: Record<string, LucideIcon> = {
@@ -97,6 +98,7 @@ const icons: Record<string, LucideIcon> = {
   Workflow,
 };
 const providerIcons: Record<string, LucideIcon> = {
+  connector_telegram: Send,
   connector_google_sheets: Sheet,
   connector_google_drive: FolderOpen,
   connector_gmail: Mail,

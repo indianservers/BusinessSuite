@@ -8,6 +8,8 @@ depends_on = None
 
 
 def upgrade():
+    if sa.inspect(op.get_bind()).has_table("crm_services") and "currency" not in {c["name"] for c in sa.inspect(op.get_bind()).get_columns("crm_services")}:
+        op.add_column("crm_services", sa.Column("currency", sa.String(10), server_default="INR"))
     columns = {c["name"] for c in sa.inspect(op.get_bind()).get_columns("crm_deals")}
     for name, kind, default in [("priority", sa.String(20), "Medium"), ("deal_type", sa.String(40), "New Business"), ("industry", sa.String(120), None), ("internal_reference", sa.String(180), None), ("planning", sa.JSON(), None), ("version", sa.Integer(), "1")]:
         if name not in columns:
@@ -35,6 +37,8 @@ def upgrade():
 
 
 def downgrade():
+    if sa.inspect(op.get_bind()).has_table("crm_services"):
+        op.drop_column("crm_services", "currency")
     op.drop_table("crm_deal_collaborators")
     op.drop_column("crm_pipeline_stages", "policy_json")
     for name in ("priority", "deal_type"):

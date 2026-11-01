@@ -726,7 +726,8 @@ def install(add, action):
                     Field(
                         min_length=1,
                         max_length=(
-                            16000 if key in {"text", "prompt", "fields_json"} else 1000
+                            4096 if p["id"] == "telegram" and key == "text"
+                            else 16000 if key in {"text", "prompt", "fields_json"} else 1000
                         ),
                     ),
                 )

@@ -770,6 +770,7 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
     { key: "name", label: "Product name", required: true, placeholder: "CRM Starter" },
     { key: "productCode", label: "Product code", placeholder: "CRM-STARTER" },
     { key: "category", label: "Category", placeholder: "Software" },
+    { key: "currency", label: "Currency", placeholder: "INR" },
     { key: "price", label: "List price", type: "number", placeholder: "25000" },
     { key: "cost", label: "Cost price", type: "number", placeholder: "12000" },
     { key: "status", label: "Status", type: "select", options: ["Active", "Draft", "Inactive"] },
@@ -780,6 +781,7 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
     { key: "name", label: "Service name", required: true, placeholder: "Implementation" },
     { key: "category", label: "Category", placeholder: "Professional Services" },
     { key: "billingType", label: "Billing type", type: "select", options: ["fixed", "hourly", "milestone", "recurring"] },
+    { key: "currency", label: "Currency", placeholder: "INR" },
     { key: "price", label: "Default rate", type: "number", placeholder: "5000" },
     { key: "cost", label: "Default cost", type: "number", placeholder: "2500" },
   ],
@@ -4611,7 +4613,6 @@ function buildContactPayload(draft: CRMApiRecord): CRMApiRecord {
     next_follow_up_at: followUp || undefined,
     notes: emptyToUndefined(draft.notes),
   };
-  for (const key of ["currency", "priority", "deal_type", "industry", "internal_reference", "planning", "tags_text"]) if (draft[key] !== undefined) payload[key] = draft[key];
   if (draft.companyId) payload.company_id = Number(draft.companyId);
   if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
@@ -5759,11 +5760,15 @@ export function QuickDealDialog({close, saved, dealId}: {close: () => void; save
   const user = useAuthStore(state => state.user);
   useEffect(() => {
     let active = true;
-    const resources = ["companies", "contacts", "deal-workspace/assignees", "deal-workspace/teams", "territories", "pipelines", "pipeline-stages", "products", "services", "custom-fields"];
+    const resources = ["companies", "contacts", "deal-workspace/assignees", "deal-workspace/teams", "territories", "deal-workspace/pipelines", "deal-workspace/pipeline-stages", "products", "services", "custom-fields"];
     setError(null);
-    void Promise.all([Promise.all(resources.map(async resource => [resource, await (["companies", "contacts", "products", "services"].includes(resource) ? crmApi.list(resource, {per_page: 100, page: 1}).then(response => response.data.items) : dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {}))] as const)), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions")]).then(([entries, response, permissions]) => {
+    void Promise.all([Promise.all(resources.map(async resource => [resource, await (["companies", "contacts", "products", "services"].includes(resource) ? crmApi.list(resource, {per_page: 100, page: 1}).then(response => response.data.items) : dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {})).catch(error => {if (["companies", "contacts", "products", "services", "territories", "custom-fields"].includes(resource) && error?.response?.status === 403) return [];throw error;})] as const)), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions")]).then(([entries, response, permissions]) => {
       if (!active) return;
       const options = Object.fromEntries(entries.map(([key, items]) => [key, items.map(item => normalizeApiRecord(key, item))]));
+      options.pipelines = options["deal-workspace/pipelines"];
+      options["pipeline-stages"] = options["deal-workspace/pipeline-stages"];
+      if (response?.data.related?.account) options.companies = [normalizeApiRecord("companies", response.data.related.account), ...options.companies.filter(item => item.id !== response.data.related.account.id)];
+      if (response?.data.related?.contact) options.contacts = [normalizeApiRecord("contacts", response.data.related.contact), ...options.contacts.filter(item => item.id !== response.data.related.contact.id)];
       options.owners = options["deal-workspace/assignees"];
       setCanManualProbability(Boolean(permissions.data.can_manual_probability));
       setLookups(options);
@@ -5931,7 +5936,7 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
 
 function DealProductLine({ line, products, onChange, onRemove }: { line: DealLineItem; products: CRMRecord[]; onChange: (line: DealLineItem) => void; onRemove: () => void }) {
   const patch = (key: keyof DealLineItem, value: string) => onChange({ ...line, [key]: value });
-  return <tr className="[&>td]:px-3 [&>td]:py-2"><td><DealCatalogSelect initial={products} value={line.productId} savedName={line.name} onSelect={(productId, product) => onChange({...line, productId, name: String(product.name || ""), unitPrice: String(product.price ?? product.listPrice ?? product.list_price ?? product.defaultRate ?? product.default_rate ?? product.unit_price ?? 0)})}/></td><td><Input className="h-9 min-w-28 border-border bg-card text-foreground" type="number" min={0} step="0.01" value={line.unitPrice} onChange={(event) => patch("unitPrice", event.target.value)} /></td><td><Input className="h-9 min-w-20 border-border bg-card text-foreground" type="number" min={1} step={1} value={line.quantity} onChange={(event) => patch("quantity", event.target.value)} /></td><td><Input className="h-9 min-w-24 border-border bg-card text-foreground" type="number" min={0} max={100} value={line.discount} onChange={(event) => patch("discount", event.target.value)} /></td><td className="font-semibold text-foreground">{formatCurrency(dealLineTotal(line))}</td><td><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onRemove} aria-label="Remove product line"><X className="h-4 w-4" /></Button></td></tr>;
+  return <tr className="[&>td]:px-3 [&>td]:py-2"><td><DealCatalogSelect initial={products} value={line.productId} savedName={line.name} onSelect={(productId, product) => onChange({...line, productId, name: String(product.name || ""), unitPrice: String(product.price || product.listPrice || product.list_price || product.defaultRate || product.default_rate || product.unit_price || 0)})}/></td><td><Input className="h-9 min-w-28 border-border bg-card text-foreground" type="number" min={0} step="0.01" value={line.unitPrice} onChange={(event) => patch("unitPrice", event.target.value)} /></td><td><Input className="h-9 min-w-20 border-border bg-card text-foreground" type="number" min={1} step={1} value={line.quantity} onChange={(event) => patch("quantity", event.target.value)} /></td><td><Input className="h-9 min-w-24 border-border bg-card text-foreground" type="number" min={0} max={100} value={line.discount} onChange={(event) => patch("discount", event.target.value)} /></td><td className="font-semibold text-foreground">{formatCurrency(dealLineTotal(line))}</td><td><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onRemove} aria-label="Remove product line"><X className="h-4 w-4" /></Button></td></tr>;
 }
 
 function DealCustomFieldInput({ field, value, onChange }: { field: CRMRecord; value: CRMApiRecord[string]; onChange: (value: CRMApiRecord[string]) => void }) {
@@ -6069,6 +6074,7 @@ function extractDealCustomValues(record: CRMRecord) {
 
 function buildDealPayload(draft: CRMApiRecord, amount: number, customValues?: CRMApiRecord): CRMApiRecord {
   const payload: CRMApiRecord = { name: String(draft.name || "").trim(), pipeline_id: Number(draft.pipelineId), stage_id: Number(draft.stageId), amount, probability: draft.probability === "" ? 0 : Number(draft.probability), status: emptyToUndefined(draft.status) || "Open", expected_close_date: emptyToUndefined(draft.expectedCloseDate), next_follow_up_at: emptyToUndefined(draft.nextFollowUp), description: emptyToUndefined(draft.description), source: emptyToUndefined(draft.source), lead_source: emptyToUndefined(draft.source) };
+  for (const key of ["currency", "priority", "deal_type", "industry", "internal_reference", "planning", "tags_text"]) if (draft[key] !== undefined) payload[key] = draft[key];
   if (Array.isArray(draft.related_contacts)) {
     const links = (draft.related_contacts as CRMApiRecord[]).filter(link => Number(link.contactId) !== Number(draft.contactId));
     payload.dealContacts = [...(draft.contactId ? [{contactId: Number(draft.contactId), role: "Primary", isPrimary: true}] : []), ...links.map(link => ({...link, isPrimary: false}))];
@@ -9175,10 +9181,10 @@ function normalizeApiRecord(kind: string, record: CRMApiRecord): CRMRecord {
     return { id, subject: String(record.title || "Meeting"), type: "Meeting", location: String(record.location || ""), due: String(record.start_time || ""), status: String(record.status || "Scheduled"), syncStatus: String(record.syncStatus || record.sync_status || "not_synced"), externalProvider: String(record.externalProvider || record.external_provider || "") };
   }
   if (kind === "products") {
-    return { id, name: String(record.name || "Product"), productCode: String(record.productCode || record.product_code || record.sku || ""), sku: String(record.sku || record.productCode || ""), category: String(record.category || ""), price: Number(record.listPrice || record.list_price || record.unit_price || 0), cost: Number(record.costPrice || record.cost_price || 0), status: String(record.status || "Active") };
+    return { id, currency: String(record.currency || "INR"), name: String(record.name || "Product"), productCode: String(record.productCode || record.product_code || record.sku || ""), sku: String(record.sku || record.productCode || ""), category: String(record.category || ""), price: Number(record.listPrice || record.list_price || record.unit_price || 0), cost: Number(record.costPrice || record.cost_price || 0), status: String(record.status || "Active") };
   }
   if (kind === "services") {
-    return { id, name: String(record.name || "Service"), serviceCode: String(record.serviceCode || record.service_code || ""), category: String(record.category || ""), billingType: String(record.billingType || record.billing_type || "fixed"), price: Number(record.defaultRate || record.default_rate || 0), cost: Number(record.defaultCost || record.default_cost || 0), status: record.active === false ? "Inactive" : "Active" };
+    return { id, currency: String(record.currency || "INR"), name: String(record.name || "Service"), serviceCode: String(record.serviceCode || record.service_code || ""), category: String(record.category || ""), billingType: String(record.billingType || record.billing_type || "fixed"), price: Number(record.defaultRate || record.default_rate || 0), cost: Number(record.defaultCost || record.default_cost || 0), status: record.active === false ? "Inactive" : "Active" };
   }
   if (kind === "priceBooks") {
     return { id, name: String(record.name || "Price Book"), currency: String(record.currency || "INR"), region: String(record.region || ""), segment: String(record.customerSegment || record.customer_segment || ""), status: String(record.status || "active") };
@@ -9281,8 +9287,8 @@ function createPayloadForKind(kind: CRMPageKind, record: CRMRecord): CRMApiRecor
   if (kind === "deals") return { name: record.name, pipeline_id: record.pipelineId || 1, stage_id: record.stageId || 1, amount: record.amount, probability: record.probability, status: record.status || "Open", expected_close_date: record.nextFollowUp, description: record.description || record.nextStep, lead_source: record.source, source: record.source, ownerId };
   if (kind === "activities") return { activity_type: record.type || "Task", subject: record.subject || record.name || "Activity", status: record.status, priority: record.priority, due_date: record.nextFollowUp, ownerId };
   if (kind === "tasks") return { title: record.subject || record.name || "Task", status: record.status, priority: record.priority, due_date: record.nextFollowUp, ownerId };
-  if (kind === "products") return { name: record.name, product_code: record.productCode || record.sku, sku: record.sku || record.productCode, category: record.category, list_price: record.price || 0, unit_price: record.price || 0, cost_price: record.cost || 0, status: record.status || "Active", active: record.status !== "Inactive" };
-  if (kind === "services") return { service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
+  if (kind === "products") return { currency: String(record.currency || "INR").toUpperCase(), name: record.name, product_code: record.productCode || record.sku, sku: record.sku || record.productCode, category: record.category, list_price: record.price || 0, unit_price: record.price || 0, cost_price: record.cost || 0, status: record.status || "Active", active: record.status !== "Inactive" };
+  if (kind === "services") return { currency: String(record.currency || "INR").toUpperCase(), service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
   if (kind === "priceBooks") return { name: record.name, currency: record.currency || "INR", region: record.region, customer_segment: record.segment, status: record.status || "active", active: record.status !== "inactive" };
   if (kind === "quotations" || kind === "quotes") return { quote_number: record.quote || `QT-${Date.now()}`, quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10), status: record.status || "Draft", grand_total: record.total };
   if (kind === "cpq") return { name: record.name || "CPQ Rule", rule_type: record.type || "recommendation", condition: { minAmount: Number(record.amount || 0) }, action: { message: "Review recommended configuration" }, active: true };

@@ -1,8 +1,9 @@
 import "./integrations.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { WorkflowNode } from "../automations/builder/types";
 import ActionFields from "./ActionFields";
+import ModuleConnectionSettings from "./ModuleConnectionSettings";
 import {
   integrationApi,
   message,
@@ -14,15 +15,28 @@ export default function ConnectorNodeEditor({
   onChange,
   environment,
   readOnly,
+  settingsOnly = false,
+  onOpenSettings,
 }: {
   node: WorkflowNode;
   onChange: (n: WorkflowNode) => void;
   environment: string;
   readOnly: boolean;
+  settingsOnly?: boolean;
+  onOpenSettings?: () => void;
 }) {
   const [connector, setConnector] = useState<Connector>();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [error, setError] = useState("");
+  const [testBusy, setTestBusy] = useState(false);
+  const [testConfirmed, setTestConfirmed] = useState(false);
+  const [testStatus, setTestStatus] = useState("");
+  const requestKey = useRef(crypto.randomUUID());
+  useEffect(() => {
+    requestKey.current = crypto.randomUUID();
+    setTestConfirmed(false);
+    setTestStatus("");
+  }, [node.credential_reference, node.config.action, node.config.input]);
   useEffect(() => {
     let live = true;
     Promise.all([
@@ -42,10 +56,20 @@ export default function ConnectorNodeEditor({
     return () => {
       live = false;
     };
-  }, [node.type, environment]);
+  }, [node.type, environment, node.credential_reference]);
   const action =
-    connector?.actions.find((a) => a.id === node.config.action) ||
-    connector?.actions[0];
+    node.config.action ? connector?.actions.find((a) => a.id === node.config.action) : connector?.actions[0];
+  const connection = connections.find((c) => String(c.id) === node.credential_reference && c.connector_id === connector?.id);
+  const actionInput = Object.fromEntries(Object.entries((node.config.input || {}) as Record<string, unknown>).filter(([key]) => key in (action?.input_schema.properties || {})));
+  const actionMutates = Boolean(action?.mutates || (connector?.id === "http" && !["GET", "HEAD"].includes(String(actionInput.method || "GET"))));
+  if (settingsOnly) return <>
+    {error && <p role="alert">{error}</p>}
+    {connector ? <ModuleConnectionSettings key={`${node.id}-${connector.id}-${environment}`} connector={connector} connection={connection} environment={environment} readOnly={readOnly} onSaved={(saved) => {
+      setConnections((rows) => [saved, ...rows.filter((row) => row.id !== saved.id)]);
+      onChange({ ...node, credential_reference: String(saved.id) });
+    }} /> : !error && <p role="status">Loading module settings...</p>}
+    <Link target="_blank" rel="noreferrer" to={`/power-apps/connectors?environment=${environment}`}>Manage all module connections</Link>
+  </>;
   return (
     <section aria-label="Integration configuration">
       <p>
@@ -53,6 +77,7 @@ export default function ConnectorNodeEditor({
         into the action.
       </p>
       {error && <p role="alert">{error}</p>}
+      {onOpenSettings && <button type="button" className="ic-module-test" onClick={onOpenSettings}>Module settings / add connection</button>}
       <label className="as-basic-field">
         Connection
         <select
@@ -110,6 +135,7 @@ export default function ConnectorNodeEditor({
                 })
               }
             >
+              <option value="">Choose an action</option>
               {connector.actions.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
@@ -121,7 +147,7 @@ export default function ConnectorNodeEditor({
             <ActionFields
               connector={connector.id}
               action={action}
-              value={(node.config.input || {}) as Record<string, unknown>}
+              value={actionInput}
               disabled={readOnly}
               onChange={(input) =>
                 onChange({
@@ -131,7 +157,8 @@ export default function ConnectorNodeEditor({
               }
             />
           )}
-          {action?.mutates && (
+          {connector.id === "telegram" && action?.id === "send_message" && <p className="as-config-note">Enter a numeric Chat ID (including the minus sign for groups) or @channelusername. Start a conversation with your bot first, or add it to your group/channel with permission to send messages.</p>}
+          {action && actionMutates && (
             <label className="as-basic-field">
               <input
                 type="checkbox"
@@ -142,7 +169,7 @@ export default function ConnectorNodeEditor({
                     ...node,
                     config: {
                       ...node.config,
-                      action: action.id,
+                      action: action?.id || String(node.config.action || ""),
                       confirm_write: e.target.checked,
                     },
                   })
@@ -151,10 +178,27 @@ export default function ConnectorNodeEditor({
               Authorize this external write when the published workflow runs
             </label>
           )}
+          {action && <div className="ic-module-action-test">
+            {actionMutates && <label className="ic-module-toggle"><input type="checkbox" disabled={readOnly || testBusy || !connection?.writes_enabled} checked={testConfirmed} onChange={(e) => setTestConfirmed(e.target.checked)} />{connector.id === "telegram" ? "Send this test message to the specified chat now" : `Run ${action.name.toLowerCase()} against this account now`}</label>}
+            {actionMutates && connection && !connection.writes_enabled && <p className="as-config-note">Enable the required write access in Module settings before testing this action.</p>}
+            <button type="button" className="ic-module-test" disabled={readOnly || testBusy || !connection?.enabled || (actionMutates && (!testConfirmed || !connection.writes_enabled))} onClick={async () => {
+              if (!connection) return;
+              setTestBusy(true); setError(""); setTestStatus("");
+              try {
+                await integrationApi.execute(environment, {
+                  connection_id: connection.id, action_id: action.id,
+                  input: actionInput,
+                  confirm_side_effect: testConfirmed, request_id: requestKey.current,
+                });
+                setTestStatus(connector.id === "telegram" ? (actionMutates ? "Test message sent successfully." : "Bot verified successfully.") : `${action.name} test completed.`);
+              } catch (e) { setError(message(e)); } finally { setTestBusy(false); }
+            }}>{testBusy ? "Testing..." : connector.id === "telegram" ? (actionMutates ? "Send test message" : "Verify bot token") : `Test: ${action.name}`}</button>
+            {testStatus && <p role="status" className="ic-module-success">{testStatus}</p>}
+          </div>}
           <p className="as-config-note">
-            Secrets remain server-side. Test this connection in Integration
-            Studio. Publish and run through the existing execution worker; local
-            preview does not send requests.
+            Secrets remain server-side. Verify your account in Module settings.
+            Local workflow previews do not send requests; the explicit test
+            buttons above call the provider directly.
           </p>
         </>
       )}

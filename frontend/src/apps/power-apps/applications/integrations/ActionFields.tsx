@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fieldLabels, providerFields, type Action } from "./integrationApi";
+import { fieldLabels, type Action } from "./integrationApi";
 export default function ActionFields({
   connector,
   action,
@@ -17,28 +17,31 @@ export default function ActionFields({
     <>
       {Object.entries(action.input_schema.properties || {})
         .filter(
-          ([key]) =>
-            !providerFields[connector] ||
-            providerFields[connector].includes(key),
+          ([, schema]) => schema.const === undefined,
         )
-        .map(([key, schema]) => {
-          const label = fieldLabels[key] || key.replace(/_/g, " ");
-          const raw = value[key] ?? schema.default ?? "";
+        .map(([key, property]) => {
+          const schema = property.anyOf?.find((option) => option.type && option.type !== "null") || property;
+          const label = fieldLabels[key] || schema.title || key.replace(/_/g, " ");
+          const raw = value[key] ?? schema.default ?? (schema.type === "array" ? [] : schema.type === "object" || !schema.type ? {} : "");
           const edit = (v: unknown) => onChange({ ...value, [key]: v });
           return (
-            <label className="ic-field" key={action.id + key}>
+            <label className="ic-field" key={connector + action.id + key}>
               {label}
               {action.input_schema.required?.includes(key) ? " *" : ""}
-              {schema.type === "object" || schema.type === "array" ? (
+              {schema.type === "object" || schema.type === "array" || (!schema.type && !schema.enum) ? (
                 <JsonField
                   value={raw}
                   disabled={disabled}
                   label={label}
+                  array={schema.type === "array"}
                   onChange={edit}
                 />
+              ) : schema.type === "boolean" ? (
+                <input type="checkbox" aria-label={label} disabled={disabled} checked={raw === true} onChange={(e) => edit(e.target.checked)} />
               ) : schema.enum ? (
                 <select
                   disabled={disabled}
+                  aria-label={label}
                   value={String(raw)}
                   onChange={(e) => edit(e.target.value)}
                 >
@@ -51,6 +54,7 @@ export default function ActionFields({
                   rows={key === "prompt" || key === "text" ? 4 : 1}
                   disabled={disabled}
                   aria-label={label}
+                  maxLength={schema.maxLength}
                   value={String(raw)}
                   placeholder={
                     key === "model"
@@ -59,7 +63,7 @@ export default function ActionFields({
                   }
                   onChange={(e) =>
                     edit(
-                      schema.type === "number" || schema.type === "integer"
+                      (schema.type === "number" || schema.type === "integer") && e.target.value.trim() && !e.target.value.includes("{{")
                         ? Number(e.target.value)
                         : e.target.value,
                     )
@@ -77,22 +81,25 @@ function JsonField({
   onChange,
   disabled,
   label,
+  array = false,
 }: {
   value: unknown;
   onChange: (v: unknown) => void;
   disabled: boolean;
   label: string;
+  array?: boolean;
 }) {
-  const [text, setText] = useState(JSON.stringify(value || {}, null, 2));
+  const empty = array ? [] : {};
+  const [text, setText] = useState(typeof value === "string" ? value : JSON.stringify(value ?? empty, null, 2));
   const [error, setError] = useState("");
   useEffect(
     () =>
       setText(
         typeof value === "string"
           ? value
-          : JSON.stringify(value || {}, null, 2),
+          : JSON.stringify(value ?? (array ? [] : {}), null, 2),
       ),
-    [value],
+    [value, array],
   );
   return (
     <>
