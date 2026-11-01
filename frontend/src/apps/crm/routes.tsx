@@ -5,6 +5,7 @@ import type { FrontendRoute } from "@/appRegistry";
 
 const CRMStatisticsWorklist=React.lazy(()=>import("./CRMStatisticsWorklist"));
 const CRMSalesHome = React.lazy(() => import("./CRMSalesHome"));
+const CRMActivitiesWorkspace = React.lazy(() => import("./CRMActivitiesWorkspace"));
 const CRMWorkspacePage = React.lazy(() => import("./CRMWorkspacePage"));
 const CRMRecordDetailPage = React.lazy(() => import("./CRMRecordDetailPage"));
 const LeadManagementPage = React.lazy(() => import("./leads/LeadManagementPage"));
@@ -38,7 +39,7 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/pipelines", element: <CRMWorkspacePage kind="pipelineSettings" /> },
   { path: "crm/pipelines/:id", element: <CRMWorkspacePage kind="pipelineSettings" /> },
   { path: "crm/activities", element: <CRMWorkspacePage kind="activities" /> },
-  { path: "crm/tasks", element: <CRMWorkspacePage kind="tasks" /> },
+  { path: "crm/tasks", element: <CRMActivitiesWorkspace /> },
   { path: "crm/calendar", element: <CRMWorkspacePage kind="calendar" /> },
   { path: "crm/calendar-integrations", element: <CRMWorkspacePage kind="calendarIntegrations" /> },
   { path: "crm/webhooks", element: <CRMWorkspacePage kind="webhooks" /> },
