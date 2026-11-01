@@ -4,8 +4,9 @@ import MoveBoard from "@/components/interaction/MoveBoard";
 import { richTextPlainText } from "@/components/rich-text/content";
 import NoteEditor from "./NoteEditor";
 import "./workspace.css";
+import TaskCreationForm, { type TaskCreationDraft } from "./TaskCreationForm";
 
-type Entry = { id: string; kind: "note" | "task"; title: string; content: string; notebook: string; status: string; favorite: boolean; updated: string; due: string };
+type Entry = { id: string; kind: "note" | "task"; title: string; content: string; notebook: string; status: string; favorite: boolean; updated: string; due: string; taskDetails?: TaskCreationDraft };
 type Notebook = { id: string; name: string };
 type Snapshot = { entries: Entry[]; notebooks: Notebook[] };
 const statuses = ["To Do", "In Progress", "Done"];
@@ -20,6 +21,7 @@ function read(key: string): Snapshot {
 
 /** UI-only workspace. Each host supplies its own isolated user/module storage key. */
 export default function ProductivityWorkspace({ storageKey, initialKind = "task", onKindChange }: { storageKey: string; initialKind?: "task" | "note"; onKindChange?: (kind: "task" | "note") => void }) {
+  const [creatingTask, setCreatingTask] = useState(false);
   const [snapshot, setSnapshot] = useState(() => read(storageKey));
   const [kind, setKind] = useState(initialKind);
   const [scope, setScope] = useState("all");
@@ -42,11 +44,16 @@ export default function ProductivityWorkspace({ storageKey, initialKind = "task"
     setSnapshot(s => ({ ...s, entries: s.entries.map(e => e.id === id ? { ...e, ...changes, updated: new Date().toISOString() } : e) }));
   }
   function create() {
+    if (kind === "task") { setCreatingTask(true); return; }
     const entry: Entry = { id: crypto.randomUUID(), kind, title: "", content: "", notebook: snapshot.notebooks.some(n => n.id === scope) ? scope : "inbox", status: "To Do", favorite: false, updated: new Date().toISOString(), due: "" };
     setSnapshot(s => ({ ...s, entries: [entry, ...s.entries] })); setSelected(entry.id); setBoard(false);
   }
   function changeKind(next: "task" | "note") { setKind(next); setSelected(null); setBoard(false); onKindChange?.(next); }
   function remove() { if (!current) return; setRemoved(current); setSnapshot(s => ({ ...s, entries: s.entries.filter(e => e.id !== current.id) })); setSelected(null); }
+  if (creatingTask) return <TaskCreationForm draftKey={`${storageKey}:task-draft`} tasks={snapshot.entries.filter(e => e.kind === "task")} onCancel={() => setCreatingTask(false)} onCreate={(draft, another) => {
+    const entry: Entry = { id: crypto.randomUUID(), kind: "task", title: draft.title, content: draft.description, notebook: snapshot.notebooks.some(n => n.id === scope) ? scope : "inbox", status: draft.status, favorite: false, updated: new Date().toISOString(), due: draft.due, taskDetails: draft };
+    setSnapshot(s => ({ ...s, entries: [entry, ...s.entries] })); setSelected(entry.id); setBoard(false); setSearch(""); setScope("all"); if (!another) setCreatingTask(false);
+  }}/>;
   return <section className="productivity-workspace" aria-label="Tasks and notes workspace">
     <header className="pw-heading"><div><p className="pw-eyebrow">ACTIVITIES / YOUR WORKSPACE</p><h1>Tasks & notes</h1><p>Capture ideas. Organize your work. Keep everything in flow.</p></div><button className="pw-primary" onClick={create}><Plus size={16}/>New {kind}</button></header>
     <div className="pw-notice">UI workspace · Your drafts stay in this browser. CRM and PMS records are not loaded here.</div>
