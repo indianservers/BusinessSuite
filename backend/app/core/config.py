@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     INTERN_SIGNUP_FIREBASE_PROJECT_ID: str = ""
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_WEB_CONFIG: dict[str, str] = Field(default_factory=dict)
+    FIREBASE_GOOGLE_AUTH_DOMAIN: str = ""
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
     SERVERLESS: bool = False

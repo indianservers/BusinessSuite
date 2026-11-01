@@ -4,7 +4,7 @@ test("Google same-tab sign-in exchanges the result through the existing MFA gate
   const exchanges: unknown[] = [];
   await page.route("**/api/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path.endsWith("/firebase/config")) return route.fulfill({ json: { enabled: true, modules: ["crm"], firebase_config: { apiKey: "fixture-public-key", projectId: "fixture", authDomain: "fixture.firebaseapp.com" } } });
+    if (path.endsWith("/firebase/config")) return route.fulfill({ json: { enabled: true, modules: ["crm"], firebase_config: { apiKey: "fixture-public-key", projectId: "fixture", authDomain: "fixture.firebaseapp.com", googleAuthDomain: "app.fixture.example" } } });
     if (path.endsWith("/firebase/login")) {
       exchanges.push(route.request().postDataJSON());
       return route.fulfill({ json: { mfa_required: true, mfa_token: "fixture-mfa" } });
@@ -13,7 +13,7 @@ test("Google same-tab sign-in exchanges the result through the existing MFA gate
     if (path.includes("providers")) return route.fulfill({ json: [] });
     return route.fulfill({ json: {} });
   });
-  await page.route("**/node_modules/.vite/deps/firebase_app.js*", (route) => route.fulfill({ contentType: "application/javascript", body: `export const getApps=()=>[]; export const initializeApp=(config,name)=>({config,name});` }));
+  await page.route("**/node_modules/.vite/deps/firebase_app.js*", (route) => route.fulfill({ contentType: "application/javascript", body: `export const getApps=()=>[]; export const initializeApp=(config,name)=>{sessionStorage.setItem('fixture-auth-domain',config.authDomain);return {config,name}};` }));
   await page.route("**/node_modules/.vite/deps/firebase_auth.js*", (route) => route.fulfill({ contentType: "application/javascript", body: `
     export const getAuth=()=>({});
     export class GoogleAuthProvider { setCustomParameters(){} }
@@ -34,4 +34,9 @@ test("Google same-tab sign-in exchanges the result through the existing MFA gate
   expect(await page.evaluate(() => sessionStorage.getItem("suite-social-redirect-provider"))).toBeNull();
   expect(await page.evaluate(() => sessionStorage.getItem("suite-social-redirect-remember"))).toBeNull();
   expect(page.url()).not.toContain("fixture-provider-token");
+  expect(await page.evaluate(() => sessionStorage.getItem("fixture-auth-domain"))).toBe("app.fixture.example");
+  await page.getByRole("button", { name: "Back to login", exact: true }).click();
+  await page.getByRole("button", { name: "Continue with Microsoft", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("popup closed");
+  expect(await page.evaluate(() => sessionStorage.getItem("fixture-auth-domain"))).toBe("fixture.firebaseapp.com");
 });

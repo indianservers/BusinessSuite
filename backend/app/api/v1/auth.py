@@ -438,6 +438,8 @@ def firebase_login_config():
         "apiKey", "authDomain", "projectId", "appId", "storageBucket", "messagingSenderId",
     }}
     enabled = bool(project and config.get("projectId") == project and all(config.get(key) for key in ["apiKey", "authDomain", "appId"]))
+    if enabled and settings.FIREBASE_GOOGLE_AUTH_DOMAIN:
+        config["googleAuthDomain"] = settings.FIREBASE_GOOGLE_AUTH_DOMAIN
     return {"enabled":enabled, "firebase_config":config if enabled else None, "modules":[module for module in MODULE_ROLE_MAP if is_app_enabled(module)]}
 
 

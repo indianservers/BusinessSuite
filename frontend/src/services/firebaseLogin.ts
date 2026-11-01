@@ -3,10 +3,19 @@ import { getAuth, GoogleAuthProvider, OAuthProvider, inMemoryPersistence, setPer
 import { authApi } from "./api";
 
 export const SOCIAL_REDIRECT_KEY = "suite-social-redirect-provider";
+type SocialFirebaseOptions = FirebaseOptions & { googleAuthDomain?: string };
 
-export async function startGoogleRedirect(config: FirebaseOptions) {
-  const app = getApps().find(item => item.name === "suite-social-login") || initializeApp(config, "suite-social-login");
-  const auth = getAuth(app);
+function socialAuth(config: SocialFirebaseOptions, provider: "google" | "microsoft") {
+  const options = provider === "google" && config.googleAuthDomain
+    ? { ...config, authDomain: config.googleAuthDomain } : config;
+  // Provider-specific auth domains must not reuse an app configured for a
+  // different callback. Microsoft keeps its original Firebase callback.
+  const name = `suite-social-login-${options.authDomain || "default"}`;
+  return getAuth(getApps().find(app => app.name === name) || initializeApp(options, name));
+}
+
+export async function startGoogleRedirect(config: SocialFirebaseOptions) {
+  const auth = socialAuth(config, "google");
   await setPersistence(auth, inMemoryPersistence);
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
@@ -20,9 +29,8 @@ export async function startGoogleRedirect(config: FirebaseOptions) {
   }
 }
 
-export async function completeGoogleRedirect(config: FirebaseOptions) {
-  const app = getApps().find(item => item.name === "suite-social-login") || initializeApp(config, "suite-social-login");
-  const auth = getAuth(app);
+export async function completeGoogleRedirect(config: SocialFirebaseOptions) {
+  const auth = socialAuth(config, "google");
   try {
     const result = await getRedirectResult(auth);
     if (!result) throw new Error("Google did not return a sign-in result. Check that browser storage is available and try again.");
@@ -34,9 +42,8 @@ export async function completeGoogleRedirect(config: FirebaseOptions) {
   }
 }
 
-export async function socialFirebaseLogin(config: FirebaseOptions, module: "hrms" | "crm" | "project_management" | "srm" | "fam" | undefined, identityProvider: "google" | "microsoft" = "google") {
-  const app = getApps().find(item=>item.name === "suite-social-login") || initializeApp(config,"suite-social-login");
-  const auth = getAuth(app);
+export async function socialFirebaseLogin(config: SocialFirebaseOptions, module: "hrms" | "crm" | "project_management" | "srm" | "fam" | undefined, identityProvider: "google" | "microsoft" = "google") {
+  const auth = socialAuth(config, identityProvider);
   await setPersistence(auth,inMemoryPersistence);
   const provider = identityProvider === "google" ? new GoogleAuthProvider() : new OAuthProvider("microsoft.com");
   provider.setCustomParameters({prompt:"select_account"});
@@ -50,8 +57,7 @@ export async function socialFirebaseLogin(config: FirebaseOptions, module: "hrms
 
 export async function socialStepUp(identityProvider: "google" | "microsoft") {
   const { data } = await authApi.firebaseConfig();
-  const app = getApps().find(item => item.name === "suite-social-login") || initializeApp(data.firebase_config, "suite-social-login");
-  const auth = getAuth(app);
+  const auth = socialAuth(data.firebase_config, identityProvider);
   await setPersistence(auth, inMemoryPersistence);
   const provider = identityProvider === "google" ? new GoogleAuthProvider() : new OAuthProvider("microsoft.com");
   provider.setCustomParameters({ prompt: identityProvider === "google" ? "select_account" : "login", max_age: "0" });
