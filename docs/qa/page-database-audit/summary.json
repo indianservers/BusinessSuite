@@ -1,0 +1,45 @@
+{
+  "target": "app.indianservers.com",
+  "inventory": 1207,
+  "coverage": {
+    "page_read": 833,
+    "needs_required_filter": 62,
+    "needs_existing_resource": 213,
+    "excluded_non_page_or_side_effect": 99
+  },
+  "statuses": {
+    "200": 768,
+    "503": 2,
+    "401": 37,
+    "403": 17,
+    "404": 1,
+    "400": 4,
+    "422": 4
+  },
+  "runtime_schema": {
+    "checked_tables": 772,
+    "checked_columns": 9041,
+    "missing_tables": [],
+    "missing_columns": {},
+    "revision": "pg_20261101_049_arrangement"
+  },
+  "frozen_schema": {
+    "checked_tables": 774,
+    "missing_tables": [],
+    "missing_columns": {}
+  },
+  "database_errors_found": 0,
+  "service_limitations": [
+    {
+      "path": "/api/v1/access/enterprise/backups",
+      "status": 503,
+      "reason": "Full backups require a durable worker; serverless storage is not a backup destination."
+    },
+    {
+      "path": "/api/v1/project-management/data-backups",
+      "status": 503,
+      "reason": "Full backups require a durable worker; serverless storage is not a backup destination."
+    }
+  ],
+  "verification_limits": "Read APIs only. Auth-restricted, missing-record, required-filter and rejected-input requests are not certified as successful workflows. Schedulers, sends, mutations, callbacks, exports and streams were excluded."
+}

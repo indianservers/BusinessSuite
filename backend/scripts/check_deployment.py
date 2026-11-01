@@ -11,6 +11,8 @@ from alembic.config import Config
 from alembic.script import ScriptDirectory
 from app.core.config import settings
 from app.db.session import engine
+from app.db.base import Base
+from app.db.schema_health import require_model_schema
 from app.core.storage import persist_file, signed_file_url, storage_key, s3_client, blob_session
 
 
@@ -20,7 +22,8 @@ def check(api_url=None, *, timeout=60):
         revisions = db.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
         if revisions != [expected]:
             raise RuntimeError("Database migration revision does not match application head")
-    print("PostgreSQL schema: current")
+        require_model_schema(db, Base.metadata)
+    print("PostgreSQL schema: current; runtime model columns verified")
     check_storage(api_url, timeout=timeout)
     if api_url:
         check_api(api_url, timeout=timeout)

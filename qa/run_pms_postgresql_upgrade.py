@@ -16,7 +16,7 @@ if __name__=='__main__':
  target=source.set(database=name)
  env=dict(os.environ,TEST_DATABASE_URL=target.render_as_string(hide_password=False),FAST_TEST_PASSWORD_HASHES='1')
  try:
-  result=subprocess.call([sys.executable,'-m','pytest','tests/test_pms_postgresql_upgrade.py','tests/test_postgresql_configuration.py','-q','--disable-warnings','--tb=short'],cwd=ROOT/'backend',env=env)
+  result=subprocess.call([sys.executable,'-m','pytest','tests/test_pms_postgresql_upgrade.py','tests/test_postgresql_configuration.py',*sys.argv[1:],'-q','--disable-warnings','--tb=short'],cwd=ROOT/'backend',env=env)
  finally:
   # Exact locally generated disposable test DB; never reuse the configured app DB.
   with engine.connect() as c: c.exec_driver_sql(f'DROP DATABASE "{name}" WITH (FORCE)')

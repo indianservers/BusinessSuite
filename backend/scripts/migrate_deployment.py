@@ -12,6 +12,8 @@ def main():
     from sqlalchemy import create_engine, inspect, text
     from sqlalchemy.pool import NullPool
     from app.core.config import settings
+    from app.db.base import Base
+    from app.db.schema_health import require_model_schema
 
     engine = create_engine(settings.SQLALCHEMY_DATABASE_URI, poolclass=NullPool, pool_pre_ping=True,
         connect_args=settings.SQLALCHEMY_CONNECT_ARGS)
@@ -32,6 +34,8 @@ def main():
         actual = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
         if actual != [head]:
             raise RuntimeError("Database migration did not reach the application head")
+        report = require_model_schema(connection, Base.metadata)
+        print(f"Runtime schema verified: {report['checked_tables']} tables, {report['checked_columns']} columns.")
         connection.execute(text("SELECT pg_advisory_unlock(827460231)"))
         connection.commit()
     print(f"Production schema verified at {head}.")
