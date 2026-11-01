@@ -24,6 +24,6 @@ def test_google_auth_domain_is_opt_in_and_preserves_other_provider_config(monkey
 def test_auth_helper_proxy_precedes_spa_and_uses_the_configured_firebase_project():
     config = json.loads((Path(__file__).resolve().parents[2] / "vercel.json").read_text())
     routes = config["rewrites"]
-    auth = next(r for r in routes if r["source"] == "/__/auth/(.*)")
-    assert auth["destination"] == "https://mlvisualizationsaimersweb.firebaseapp.com/__/auth/$1"
+    auth = next(r for r in routes if r["source"] == "/__/auth/:path*")
+    assert auth["destination"] == "https://mlvisualizationsaimersweb.firebaseapp.com/__/auth/:path*"
     assert routes.index(auth) < next(i for i,r in enumerate(routes) if r["source"] == "/(.*)")
