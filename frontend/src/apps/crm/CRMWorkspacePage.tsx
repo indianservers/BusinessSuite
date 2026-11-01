@@ -3938,7 +3938,6 @@ function buildLeadPayload(draft: CRMApiRecord): CRMApiRecord {
     next_follow_up_at: followUp || undefined,
     notes: emptyToUndefined(draft.notes),
   };
-  if (draft.assigned_team_id) payload.assigned_team_id = Number(draft.assigned_team_id);
   if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
   if (draft.territoryId) payload.territoryId = Number(draft.territoryId);
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
@@ -6076,6 +6075,7 @@ function buildDealPayload(draft: CRMApiRecord, amount: number, customValues?: CR
   }
   if (draft.companyId) payload.company_id = Number(draft.companyId);
   if (draft.contactId) payload.contact_id = Number(draft.contactId);
+  if (draft.assigned_team_id) payload.assigned_team_id = Number(draft.assigned_team_id);
   if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
   if (draft.territoryId) payload.territoryId = Number(draft.territoryId);
   if (customValues && Object.keys(customValues).length) payload.customFields = cleanCustomFieldValues(customValues);
