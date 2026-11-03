@@ -86,8 +86,11 @@ def test_application_rejection_and_validation(client, db, superuser_headers, app
     assert client.post(f"{base}/applications/status",json={"email":"missing@example.com","password":"unknown-application"}).status_code==401
 
 
-def test_bulk_intake_with_legacy_all_header_uses_default_branch(client, db, superuser_headers, application_payload):
-    from app.models.company import Branch
+@pytest.mark.parametrize("decision_status", ["Correction Requested", "Approved"])
+def test_bulk_intake_with_legacy_all_header_uses_default_branch(client, db, superuser_headers, application_payload, monkeypatch, decision_status):
+    from unittest.mock import Mock
+    monkeypatch.setattr("app.apps.interns_hub.approval_email.notify_approval", Mock())
+    from app.models.company import Branch, Department, Designation
     from app.branches.models import BranchOwnership
     from app.apps.interns_hub.operations_models import WorkforceJob
     from tests.tenant_test_utils import assign_company
@@ -103,16 +106,34 @@ def test_bulk_intake_with_legacy_all_header_uses_default_branch(client, db, supe
     assert db.query(BranchOwnership).filter_by(resource_table=application.__tablename__,
         resource_key=str(application.id), branch_id=branch.id).count() == 1
     assert db.query(BranchOwnership).filter_by(resource_table="intern_application_events", branch_id=branch.id).count() >= 2
+    decision = {"status": decision_status, "review_note": "Please update the application details"}
+    if decision_status == "Approved":
+        from app.branches.migration import backfill
+        department = Department(name="Engineering", organization_id=1, branch_id=branch.id)
+        db.add(department)
+        db.flush()
+        designation = Designation(name="Intern", organization_id=1, department_id=department.id)
+        manager = Employee(user_id=admin.id, branch_id=branch.id, employee_id="DEFAULT-MANAGER",
+                           first_name="Test", last_name="Manager", date_of_joining=today())
+        db.add_all([designation, manager])
+        db.flush()
+        backfill(db.connection(), 1)
+        db.commit()
+        decision.update(branch_id=branch.id, department_id=department.id, designation_id=designation.id,
+                        reporting_manager_id=manager.id, date_of_joining=str(today()))
     headers = {**superuser_headers, "X-Suite-Branch": "all"}
     started = client.post(f"{base}/admin/application-jobs", headers=headers, json={
         "application_ids": [application.id], "request_key": "legacy-all-intake",
-        "decision": {"status": "Correction Requested", "review_note": "Please update the application details"}})
+        "decision": decision})
     assert started.status_code == 201, started.text
     assert started.json()["status"] == "Completed"
+    assert started.json()["result"]["succeeded"] == 1, started.text
     job = db.get(WorkforceJob, started.json()["id"])
     owner = db.query(BranchOwnership).filter_by(resource_table=job.__tablename__, resource_key=str(job.id)).one()
     assert owner.branch_id == branch.id
-    assert db.get(InternApplication, application.id).status == "Correction Requested"
+    assert db.get(InternApplication, application.id).status == decision_status
+    if decision_status == "Approved":
+        assert db.get(Employee, db.get(InternApplication, application.id).employee_id).branch_id == branch.id
 
 
 def test_status_attempts_are_limited_per_applicant(client, application_payload):

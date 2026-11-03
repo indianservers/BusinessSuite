@@ -27,6 +27,7 @@ export default function Inbox({scope,selected,onSelect,onClear,templates,admin,r
   const lastId=history.data?.items[history.data.items.length-1]?.id;
   useEffect(()=>{if(atBottom.current&&transcript.current)transcript.current.scrollTop=transcript.current.scrollHeight;},[lastId,selected]);
   const contact=history.data?.contact;
+  const contacts=[...(conversations.data?.items||[])].sort((a,b)=>new Date(b.lastMessage?.createdAt||b.lastMessageAt||0).getTime()-new Date(a.lastMessage?.createdAt||a.lastMessageAt||0).getTime());
   return <div className={`wa-inbox-layout ${selected?'wa-has-selection':''} ${contact?'wa-with-contact':''} ${detailsOpen?'wa-details-open':''}`}>
     <aside className="wa-conversations"><div className="wa-list-heading"><span className="wa-feature-icon"><InboxIcon size={20}/></span><div><h3>WhatsApp Inbox & Delivery</h3><p>Conversations, replies & delivery</p></div></div>
       <label className="wa-conversation-search"><Search size={15}/><input aria-label="Search conversations" placeholder="Search name or number…" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button aria-label="Clear conversation search" onClick={()=>setSearch('')}><X size={13}/></button>}</label>
@@ -34,7 +35,7 @@ export default function Inbox({scope,selected,onSelect,onClear,templates,admin,r
       <div className="wa-conversation-scroll">
         {conversations.isPending&&<p className="wa-empty-note">Loading conversations…</p>}
         {conversations.isError&&<p role="alert" className="wa-error">{whatsappError(conversations.error)}</p>}
-        {conversations.data?.items.map(item=><button key={item.id} className={`wa-conversation-row ${selected===item.id?'is-selected':''}`} onClick={()=>{onSelect(item.id);setHistoryBefore(undefined);setDetailsOpen(window.matchMedia('(min-width:1351px)').matches);}} aria-label={`Open conversation with ${contactName(item)}`} aria-current={selected===item.id?'true':undefined}>
+        {contacts.map(item=><button key={item.id} className={`wa-conversation-row ${selected===item.id?'is-selected':''}`} onClick={()=>{onSelect(item.id);setHistoryBefore(undefined);setDetailsOpen(window.matchMedia('(min-width:1351px)').matches);}} aria-label={`Open conversation with ${contactName(item)}`} aria-current={selected===item.id?'true':undefined}>
           <Avatar contact={item}/><span className="wa-conversation-copy"><span className="wa-conversation-name"><strong>{contactName(item)}</strong><time>{shortTime(item.lastMessage?.createdAt||item.lastMessageAt)}</time></span><span className="wa-conversation-phone">+{item.recipient}{item.entityType&&<b>{item.entityType}</b>}</span><span className="wa-conversation-snippet">{item.lastMessage?.direction==='outbound'&&<DeliveryMark status={item.lastMessage.status}/>}<span>{item.lastMessage?.body||'Open conversation'}</span></span></span>
         </button>)}
         {conversations.data&&!conversations.data.items.length&&<div className="wa-list-empty"><Search size={25}/><p>{term?'No matching conversations.':'No conversations in this view yet.'}</p><small>{term?'Try a name or international number.':'Incoming messages appear here when they reach this business number.'}</small></div>}
