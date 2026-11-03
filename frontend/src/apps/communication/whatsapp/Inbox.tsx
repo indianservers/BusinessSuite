@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, MessageCircle, Link2, UserRound, PanelRightOpen, X, ArrowLeft, ChevronLeft, ChevronRight, Check, CheckCheck, Clock3, Copy, ShieldCheck, Inbox as InboxIcon, ArrowUpRight } from 'lucide-react';
@@ -18,6 +18,13 @@ export default function Inbox({scope,selected,onSelect,onClear,templates,admin,r
   const [before,setBefore]=useState<number|undefined>(),[historyBefore,setHistoryBefore]=useState<number|undefined>();
   const [detailsOpen,setDetailsOpen]=useState(()=>window.matchMedia('(min-width:1351px)').matches);
   const transcript=useRef<HTMLDivElement>(null),atBottom=useRef(true);
+  const workspace=useRef<HTMLDivElement>(null);
+  const [workspaceHeight,setWorkspaceHeight]=useState<number>();
+  useLayoutEffect(()=>{
+    const fit=()=>{if(workspace.current)setWorkspaceHeight(Math.max(360,window.innerHeight-workspace.current.getBoundingClientRect().top-14));};
+    fit();window.addEventListener('resize',fit);
+    return()=>window.removeEventListener('resize',fit);
+  },[]);
   const navigate=useNavigate();
   useEffect(()=>{const media=window.matchMedia('(min-width:1351px)');const change=(event:MediaQueryListEvent)=>setDetailsOpen(event.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change);},[]);
   useEffect(()=>{const timer=setTimeout(()=>{setTerm(search);setBefore(undefined);},250);return()=>clearTimeout(timer);},[search]);
@@ -28,7 +35,7 @@ export default function Inbox({scope,selected,onSelect,onClear,templates,admin,r
   useEffect(()=>{if(atBottom.current&&transcript.current)transcript.current.scrollTop=transcript.current.scrollHeight;},[lastId,selected]);
   const contact=history.data?.contact;
   const contacts=[...(conversations.data?.items||[])].sort((a,b)=>new Date(b.lastMessage?.createdAt||b.lastMessageAt||0).getTime()-new Date(a.lastMessage?.createdAt||a.lastMessageAt||0).getTime());
-  return <div className={`wa-inbox-layout ${selected?'wa-has-selection':''} ${contact?'wa-with-contact':''} ${detailsOpen?'wa-details-open':''}`}>
+  return <div ref={workspace} style={workspaceHeight?{height:workspaceHeight}:undefined} className={`wa-inbox-layout ${selected?'wa-has-selection':''} ${contact?'wa-with-contact':''} ${detailsOpen?'wa-details-open':''}`}>
     <aside className="wa-conversations"><div className="wa-list-heading"><span className="wa-feature-icon"><InboxIcon size={20}/></span><div><h3>WhatsApp Inbox & Delivery</h3><p>Conversations, replies & delivery</p></div></div>
       <label className="wa-conversation-search"><Search size={15}/><input aria-label="Search conversations" placeholder="Search name or number…" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button aria-label="Clear conversation search" onClick={()=>setSearch('')}><X size={13}/></button>}</label>
       <div className="wa-list-filters" role="group" aria-label="Filter conversations">{[['all','All'],['linked','CRM linked'],['unlinked','Unlinked']].map(([key,label])=><button key={key} aria-pressed={filter===key} className={filter===key?'is-active':''} onClick={()=>{setFilter(key);setBefore(undefined);}}>{label}{filter===key&&conversations.data&&<span title="Conversations on this page">{conversations.data.items.length}</span>}</button>)}</div>
@@ -54,7 +61,7 @@ export default function Inbox({scope,selected,onSelect,onClear,templates,admin,r
       </>}
     </section>
     {contact&&<aside className="wa-contact-inspector"><div className="wa-inspector-heading"><LayersIcon/><h3>CRM & Contact Details</h3><button className="wa-icon-button wa-close-inspector" aria-label="Close contact details" onClick={()=>setDetailsOpen(false)}><X size={16}/></button></div>
-      {contact.entityId&&<Link className="wa-crm-record-link" to={`/crm/${contact.entityType==='lead'?'leads':contact.entityType==='deal'?'deals':'contacts'}/${contact.entityId}`}><Link2 size={17}/><span><small>Linked CRM record</small><strong>{contact.entityType} #{contact.entityId}</strong></span><ArrowUpRight size={15}/></Link>}
+      {contact.entityId&&<Link className="wa-crm-record-link" to={`/crm/${contact.entityType==='lead'?'leads':contact.entityType==='deal'?'deals':'contacts'}/${contact.entityId}`}><Link2 size={17}/><span><small>Linked {contact.entityType} #{contact.entityId}</small><strong>{contactName(contact)}</strong></span><ArrowUpRight size={15}/></Link>}
       <ContactDetails contact={contact}/>
       {admin&&<LinkConversation key={contact.id} contactId={contact.id} refresh={refresh}/>}
       <div className="wa-inspector-section"><h4><ShieldCheck size={14}/>Consent & reply window</h4><span className={`wa-window-badge ${contact.serviceWindowOpen?'is-open':''}`}><Clock3 size={12}/>{contact.serviceWindowOpen?'Reply window open':'Reply window closed'}</span>{contact.serviceWindowEndsAt&&<p className="wa-muted-note">{contact.serviceWindowOpen?'Until':'Last window ended'} {new Date(contact.serviceWindowEndsAt).toLocaleString()}</p>}<RecipientConsent to={'+'+contact.recipient} entityType={contact.entityType} entityId={contact.entityId} disabled={!admin&&!contact.entityId} refresh={refresh}/></div>

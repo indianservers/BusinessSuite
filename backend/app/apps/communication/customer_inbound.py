@@ -56,6 +56,8 @@ async def receive(organization_id: int, request: Request, db: Session = Depends(
     recipient = db.query(CustomerRecipient).filter_by(id=delivery.recipient_id, organization_id=organization_id).first() if delivery else None
     if not recipient or recipient.email.casefold() != data.from_email.casefold():
         raise HTTPException(422, 'Reply could not be matched to an authorized customer conversation')
+    from app.services.customer_identity import match_recipient
+    match_recipient(db,recipient,apply=True)
     from app.core.request_limits import insert_for
     from .customer_service import now
     identity = db.execute(insert_for(db, CustomerEmailReply).values(organization_id=organization_id,

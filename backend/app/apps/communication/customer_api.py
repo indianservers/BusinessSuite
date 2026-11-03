@@ -147,6 +147,17 @@ def save_recipient(db, user, data, row=None):
         setattr(row, key, value)
     row.consent_at, row.consent_history = service.now(), history[-100:]
     db.flush()
+    from app.services.customer_identity import match_recipient
+    matched = match_recipient(db, row)
+    if matched['status']=='matched':
+        from app.services import whatsapp_workspace as wa
+        candidate = matched['candidates'][0]
+        try:
+            wa.record_access(db,user,candidate['entityType'],candidate['entityId'])
+        except HTTPException as error:
+            if error.status_code not in {403,404}: raise
+        else:
+            match_recipient(db, row, apply=True)
     if row.phone:
         from app.services import whatsapp_workspace as wa
         contact = wa.contact_for(db, company(user), wa.number(row.phone))
@@ -569,13 +580,38 @@ def history(identity: int, db: Session = Depends(get_db), user=Depends(view)):
     from app.shared.whatsapp_models import WhatsAppContact, WhatsAppMessage
     messages = []
     if recipient.phone:
-        contact = db.query(WhatsAppContact).filter_by(organization_id=company(user), recipient=recipient.phone.lstrip('+')).first()
-        if contact:
+        from app.services.customer_identity import phone_key
+        from app.services import whatsapp_workspace as wa
+        contact = db.query(WhatsAppContact).filter_by(organization_id=company(user), recipient=phone_key(recipient.phone),erased_at=None).first()
+        bindings = {(r.source_type,r.source_id) for r in db.query(CustomerBinding).filter_by(organization_id=company(user),recipient_id=identity).filter(CustomerBinding.source_type.in_(['contact','lead']))}
+        if recipient.crm_contact_id:
+            bindings.add(('contact',recipient.crm_contact_id))
+        visible = bool(contact and wa.branch_ownership(db,contact)==recipient.branch_id and
+            (not bindings or (contact.entity_type,contact.entity_id) in bindings))
+        if visible:
+            try:
+                wa.contact_access(db,user,contact)
+            except HTTPException as error:
+                if error.status_code not in {403,404}: raise
+                visible=False
+        if visible:
             messages = [serialize(r) for r in db.query(WhatsAppMessage).filter_by(organization_id=company(user), contact_id=contact.id).order_by(WhatsAppMessage.id.desc()).limit(100)]
     from .customer_models import CustomerEmailReply, CustomerEmailConnection
     replies = db.query(CustomerEmailReply).filter_by(organization_id=company(user), recipient_id=identity).order_by(CustomerEmailReply.id.desc()).limit(100).all()
     inbox = db.query(CustomerEmailConnection).filter_by(organization_id=company(user), active=True).first()
-    return {'deliveries': [serialize(r) for r in db.query(CustomerDelivery).filter_by(organization_id=company(user), recipient_id=identity).order_by(CustomerDelivery.id.desc()).limit(100)],
+    from app.services.customer_identity import match_recipient
+    crm_match = match_recipient(db,recipient)
+    # Customer communication permission alone does not grant CRM field access.
+    from app.services import whatsapp_workspace as wa
+    visible = []
+    for candidate in crm_match['candidates']:
+        try:
+            wa.record_access(db,user,candidate['entityType'],candidate['entityId'])
+            visible.append(candidate)
+        except HTTPException as error:
+            if error.status_code not in {403,404}: raise
+    crm_match['candidates'] = visible
+    return {'crm_match':crm_match, 'deliveries': [serialize(r) for r in db.query(CustomerDelivery).filter_by(organization_id=company(user), recipient_id=identity).order_by(CustomerDelivery.id.desc()).limit(100)],
             'email_replies': [serialize(r) for r in replies], 'unread_email_count': sum(1 for r in replies if not recipient.last_read_at or service.utc(r.received_at) > service.utc(recipient.last_read_at)),
             'assigned_user_id': recipient.assigned_user_id,
             'whatsapp': messages, 'internal_notes': [serialize(r) for r in db.query(CustomerConversationNote).filter_by(organization_id=company(user), recipient_id=identity).order_by(CustomerConversationNote.id.desc()).limit(100)],

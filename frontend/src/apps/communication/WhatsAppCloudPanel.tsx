@@ -11,6 +11,7 @@ import ProfilePanel from './whatsapp/ProfilePanel';
 import SentMessages from './whatsapp/SentMessages';
 import { whatsappBase as base, whatsappError, type Status, type Template } from './whatsapp/types';
 import './whatsapp/whatsapp.css';
+import CustomerMatchButton from './CustomerMatchButton';
 
 export default function WhatsAppCloudPanel() {
   const user=useAuthStore(state=>state.user);
@@ -39,6 +40,7 @@ function WhatsAppWorkspace({scope}:{scope:string}) {
     {templates.isError&&tab!=='settings'&&<p role="alert" className="wa-error">Templates could not load: {whatsappError(templates.error)}</p>}
     {templates.data?.hasMore&&tab!=='settings'&&<p className="wa-muted-note">Showing the first 100 Meta templates.</p>}
     {account.configured&&tab==='send'&&<Composer scope={scope} templates={templates.data?.items||[]} admin={account.canAdmin} refresh={refresh} businessName={account.connection?.businessName||'Your business'}/>}
+    {account.configured&&tab==='inbox'&&account.canAdmin&&<div className="mb-2"><CustomerMatchButton/></div>}
     {account.configured&&tab==='inbox'&&<Inbox scope={scope} selected={selected} onSelect={id=>setParams({conversation:String(id)})} onClear={()=>setParams({})} templates={templates.data?.items||[]} admin={account.canAdmin} refresh={refresh}/>}
     {account.configured&&tab==='templates'&&<TemplatesPanel templates={templates.data?.items||[]} admin={account.canAdmin} refresh={refresh}/>}
     {account.configured&&tab==='sent'&&<SentMessages scope={scope}/>}

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import CustomerEmailSettings from "./CustomerEmailSettings";
+import CustomerMatchButton from './CustomerMatchButton';
 
 type Row = Record<string, any>;
 const base = "/communication/customers";
@@ -497,6 +498,9 @@ export default function CustomerCommunications() {
                   <h3 className="font-semibold">
                     Customer history & record links
                   </h3>
+                  <CustomerMatchButton/>
+                  {history.data?.crm_match?.status==='ambiguous'&&<p className="text-xs text-amber-700">Multiple CRM records match this customer. Review the record links below.</p>}
+                  {history.data?.crm_match?.status==='conflict'&&<p className="text-xs text-amber-700">The phone and email match different CRM records. Review before linking.</p>}
                   <p className="text-xs text-muted-foreground">
                     Email replies appear when a receiving-service adapter is
                     connected. Open WhatsApp in the Communication Hub to reply

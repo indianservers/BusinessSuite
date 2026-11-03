@@ -417,6 +417,66 @@ def conversations(before: int | None = Query(None, gt=0), limit: int = Query(50,
     return {'items':items,'nextBefore':rows[-1].id if len(rows)==limit else None}
 
 
+@router.post('/conversations/match-customers')
+def match_customers(after: int = Query(0, ge=0), recipient_after: int = Query(0, ge=0), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.services.customer_identity import CustomerIndex, match_whatsapp, match_recipient
+    from app.shared.whatsapp_models import WhatsAppContact
+    from app.apps.communication.customer_models import CustomerRecipient
+    context = db.info.get('branch_context')
+    if not context or not context.branch_id or context.branch_id not in context.writable:
+        raise HTTPException(403, 'Select a writable branch before matching customers')
+    company, branch = wa.organization(user), context.branch_id
+    index = CustomerIndex(db, company, branch)
+    result = {'matched':0, 'ambiguous':0, 'conflict':0, 'unmatched':0, 'linked':0}
+    # Pagination prevents a large backlog from monopolizing a request. Matched
+    # rows disappear from the next batch; unresolved rows are returned for review.
+    rows = db.query(WhatsAppContact).filter_by(organization_id=company, erased_at=None, entity_id=None).filter(WhatsAppContact.id>after).order_by(WhatsAppContact.id).limit(500).all()
+    for row in rows:
+        if wa.branch_ownership(db,row) != branch:
+            continue
+        match = match_whatsapp(db,row,index)
+        if match['status']=='matched' and not _match_visible(db,user,match['candidates'][0]):
+            continue
+        state = match_whatsapp(db,row,index,apply=True)['status']
+        result[state] += 1
+    recipients = db.query(CustomerRecipient).filter_by(organization_id=company, branch_id=branch, active=True).filter(CustomerRecipient.id>recipient_after).order_by(CustomerRecipient.id).limit(500).all()
+    for row in recipients:
+        match = match_recipient(db,row,index)
+        if match['status']=='matched' and not _match_visible(db,user,match['candidates'][0]):
+            continue
+        result[match_recipient(db,row,index,apply=True)['status']] += 1
+    from app.access.service import audit
+    audit(db,user,company,'communication.customer_match','Matched conversations to existing customer records',after=result)
+    db.commit()
+    result['nextAfter'] = rows[-1].id if len(rows)==500 else None
+    result['nextRecipientAfter'] = recipients[-1].id if len(recipients)==500 else None
+    return result
+
+
+@router.get('/conversations/{contact_id}/matches')
+def conversation_matches(contact_id: int, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.services.customer_identity import match_whatsapp
+    from app.shared.whatsapp_models import WhatsAppContact
+    row = db.query(WhatsAppContact).filter_by(id=contact_id,organization_id=wa.organization(user),erased_at=None).first()
+    if not row: raise HTTPException(404,'Conversation not found')
+    wa.contact_access(db,user,row)
+    result = match_whatsapp(db,row)
+    result['candidates'] = [candidate for candidate in result['candidates'] if _match_visible(db,user,candidate)]
+    return result
+
+
+def _match_visible(db,user,candidate):
+    from app.services import whatsapp_workspace as wa
+    try:
+        wa.record_access(db,user,candidate['entityType'],candidate['entityId'])
+        return True
+    except HTTPException as error:
+        if error.status_code not in {403,404}: raise
+        return False
+
+
 @router.get('/conversations/{contact_id}/messages')
 def history(contact_id: int, before: int | None = Query(None, gt=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
     from app.services import whatsapp_workspace as wa
@@ -427,7 +487,12 @@ def history(contact_id: int, before: int | None = Query(None, gt=0), limit: int 
     query = db.query(WhatsAppMessage).filter_by(organization_id=wa.organization(user), contact_id=contact_id)
     if before: query = query.filter(WhatsAppMessage.id < before)
     rows = query.order_by(WhatsAppMessage.id.desc()).limit(limit).all()
-    return {'contact':wa.contact_data(contact),'items':[wa.message_data(r) for r in reversed(rows)],'nextBefore':rows[-1].id if len(rows)==limit else None}
+    detail = wa.contact_data(contact)
+    if contact.entity_id:
+        record = wa.record_access(db,user,contact.entity_type,contact.entity_id)
+        detail['crmName'] = getattr(record,'full_name',None) or getattr(record,'name',None) or getattr(record,'title',None)
+        detail['crmEmail'] = getattr(record,'email',None)
+    return {'contact':detail,'items':[wa.message_data(r) for r in reversed(rows)],'nextBefore':rows[-1].id if len(rows)==limit else None}
 
 
 class LinkInput(BaseModel):

@@ -311,6 +311,7 @@ def send_message(db, user, data):
 def ingest(db, payload):
     if payload.get('object') != 'whatsapp_business_account':
         return
+    identity_indexes = {}
     for entry in payload.get('entry', []):
         for change in entry.get('changes', []):
             value = change.get('value', {})
@@ -346,6 +347,12 @@ def ingest(db, payload):
                 contact = contact_for(db, company, recipient)
                 stamp_inbound(db, contact, connection.inbound_branch_id)
                 branch = branch_ownership(db, contact)
+                if not contact.entity_id and branch:
+                    from app.services.customer_identity import CustomerIndex, match_whatsapp
+                    key = (company,branch)
+                    if key not in identity_indexes:
+                        identity_indexes[key] = CustomerIndex(db,company,branch)
+                    match_whatsapp(db, contact, identity_indexes[key], apply=True)
                 kind = str(event.get('type', 'unknown'))[:30]
                 body = str(event.get('text', {}).get('body', ''))[:10000] if kind == 'text' else '['+kind+' message]'
                 try:

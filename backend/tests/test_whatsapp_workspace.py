@@ -48,6 +48,32 @@ def test_signed_event_routing_dedup_and_stop(workspace):
     assert error.value.status_code == 404
 
 
+def test_existing_conversation_customer_mapping_is_branch_safe_and_idempotent(workspace):
+    from app.models.company import Branch
+    from app.apps.crm.models import CRMContact
+    from app.branches.models import BranchOwnership
+    from app.branches.service import BranchContext
+    from app.branches.boundary import install
+    from app.api.v1.whatsapp_cloud import match_customers
+    db,user,companies,connections=workspace
+    branch=Branch(name='Match branch',company_id=companies[0].id);db.add(branch);db.flush()
+    record=CRMContact(organization_id=companies[0].id,branch_id=branch.id,first_name='Matched',full_name='Matched Customer',phone='9876543210',phone_country_code='91')
+    db.add(record);db.flush()
+    db.add(BranchOwnership(resource_table='crm_contacts',resource_key=str(record.id),company_id=companies[0].id,branch_id=branch.id,source='test'))
+    connections[0].inbound_branch_id=branch.id;db.commit()
+    wa.ingest(db,incoming(connections[0]));db.commit()
+    contact=db.query(WhatsAppContact).filter_by(organization_id=companies[0].id).one()
+    contact.entity_id=None;contact.entity_type=None;db.commit()
+    company,branch_id=companies[0].id,branch.id
+    cleanup=install(db,user,BranchContext(company,branch_id,frozenset({branch_id}),frozenset({branch_id}),True,True,True))
+    try:
+        result=match_customers(after=0,recipient_after=0,db=db,user=user)
+        assert result['matched']==1 and result['nextAfter'] is None
+        assert contact.entity_id==record.id
+        assert match_customers(after=0,recipient_after=0,db=db,user=user)['matched']==0
+    finally:cleanup()
+
+
 def test_durable_send_idempotency_and_receipt_race(workspace, monkeypatch):
     db,user,companies,connections = workspace
     wa.ingest(db,incoming(connections[0])); db.commit()
