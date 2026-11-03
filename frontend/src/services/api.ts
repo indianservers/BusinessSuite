@@ -84,19 +84,28 @@ api.interceptors.response.use(
             refreshPromise = axios
               .post<RefreshResponse>(`${BASE_URL}/auth/refresh`, {
                 refresh_token: refreshToken,
-              })
+              }, { timeout: 60000 })
               .then((res) => res.data)
               .finally(() => {
                 refreshPromise = null;
               });
           }
           const { access_token, refresh_token } = await refreshPromise;
-          setTokens(access_token, refresh_token);
+          // A sign-out or account change may finish while refresh is in flight.
+          // Never restore the old account over the newer session.
+          const current = useAuthStore.getState();
+          const alreadyRefreshed = current.refreshToken === refresh_token && current.accessToken === access_token;
+          if (current.refreshToken !== refreshToken && !alreadyRefreshed) {
+            return Promise.reject(error);
+          }
+          if (!alreadyRefreshed) setTokens(access_token, refresh_token);
           original.headers = original.headers || {};
           original.headers.Authorization = `Bearer ${access_token}`;
           return api(original);
-        } catch {
-          if (useAuthStore.getState().refreshToken === refreshToken) {
+        } catch (refreshError) {
+          const status = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined;
+          // Temporary outages and offline requests do not revoke a session.
+          if ((status === 401 || status === 403) && useAuthStore.getState().refreshToken === refreshToken) {
             logout();
           }
         }

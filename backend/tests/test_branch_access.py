@@ -13,6 +13,39 @@ from app.apps.srm.models import SRMSalesOrder, SRMSalesOrderLine
 from tests.tenant_test_utils import assign_company
 
 
+def test_backfill_repairs_legacy_null_company_stamps_only_with_local_parent_evidence(db):
+    from app.models.company import Department, Designation
+    company = Company(name="Legacy organization", is_active=True)
+    foreign = Company(name="Other organization", is_active=True)
+    db.add_all([company, foreign]); db.flush()
+    branch = Branch(company_id=company.id, name="Legacy branch")
+    db.add(branch); db.flush()
+    department = Department(name="Legacy department", branch_id=branch.id)
+    conflict = Department(name="Foreign stamp", branch_id=branch.id, organization_id=foreign.id)
+    db.add_all([department, conflict]); db.flush()
+    designation = Designation(name="Legacy designation", department_id=department.id)
+    db.add(designation); db.commit()
+    result = backfill(db.connection(), company.id, table_names={"branches", "departments", "designations"})
+    assert result == {"branches": 1, "departments": 1, "designations": 1}
+    assert db.query(BranchOwnership).filter_by(resource_table="departments", resource_key=str(conflict.id)).count() == 0
+    assert backfill(db.connection(), company.id, table_names={"branches", "departments", "designations"}) == {}
+
+
+def test_targeted_backfill_keeps_other_tables_untouched_and_is_repeatable(db):
+    company = Company(name="Evidence repair", is_active=True)
+    db.add(company); db.flush()
+    branch = Branch(company_id=company.id, name="Verified branch", code="REPAIR")
+    db.add(branch); db.flush()
+    customer = CRMCompany(organization_id=company.id, branch_id=branch.id, name="Known owner")
+    unknown = CRMCompany(organization_id=company.id, name="No branch evidence")
+    db.add_all([customer, unknown]); db.commit()
+    assert backfill(db.connection(), company.id, table_names={"branches"}) == {"branches": 1}
+    assert db.query(BranchOwnership).filter_by(resource_table="crm_companies").count() == 0
+    assert backfill(db.connection(), company.id, table_names={"branches"}) == {}
+    assert backfill(db.connection(), company.id, table_names={"crm_companies"}) == {"crm_companies": 1}
+    assert db.query(BranchOwnership).filter_by(resource_table="crm_companies", resource_key=str(unknown.id)).count() == 0
+
+
 def test_same_person_crm_in_one_branch_srm_in_another_and_company_revocation(db):
     from app.branches.roles import effective_grants
     from app.access.models import AccessPolicy
