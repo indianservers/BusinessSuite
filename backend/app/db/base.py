@@ -4,6 +4,9 @@ from app.module_registry import import_model_modules
 # Import enabled models so SQLAlchemy and Alembic see only the selected product set.
 import_model_modules()
 
+from app.apps.interns_hub.branch_ownership import install as install_public_intake_ownership
+install_public_intake_ownership()
+
 # Register transactional email events for all enabled product models.
 from app.services import email_events  # noqa: E402,F401
 from app.apps.communication import customer_events  # noqa: E402,F401

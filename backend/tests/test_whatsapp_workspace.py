@@ -289,3 +289,28 @@ def test_upload_session_cannot_redirect_credentials(monkeypatch):
     monkeypatch.setattr(settings,'CRM_WHATSAPP_APP_ID','123456')
     monkeypatch.setattr(WhatsAppGraph,'request',lambda *a,**kw:{'id':'https://evil.invalid/steal'})
     with pytest.raises(MetaError):WhatsAppGraph('secret-token').upload_profile_jpeg(b'jpeg')
+
+
+def test_conversation_search_and_previews_respect_company_and_link_filter(workspace):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.core.deps import get_current_user,get_db
+    from app.api.v1.whatsapp_cloud import router
+    db,user,companies,connections=workspace
+    wa.ingest(db,incoming(connections[0],text='Latest customer message'))
+    wa.ingest(db,incoming(connections[1],message_id='other-company',text='Private other company'))
+    db.flush()
+    own=db.query(WhatsAppContact).filter_by(organization_id=companies[0].id).one();own.name='Alice Operations'
+    other=db.query(WhatsAppContact).filter_by(organization_id=companies[1].id).one();other.name='Alice Private'
+    db.add(WhatsAppContact(organization_id=companies[0].id,recipient='918888888888',name='Bob',consent='unknown'))
+    db.commit()
+    app=FastAPI();app.include_router(router);app.dependency_overrides[get_db]=lambda:db;app.dependency_overrides[get_current_user]=lambda:user
+    client=TestClient(app)
+    result=client.get('/integrations/whatsapp/conversations',params={'search':'Alice','linked':'false'}).json()
+    assert len(result['items'])==1
+    assert result['items'][0]['name']=='Alice Operations'
+    assert result['items'][0]['lastMessage']['body']=='Latest customer message'
+    assert result['items'][0]['lastMessage']['direction']=='inbound'
+    assert not client.get('/integrations/whatsapp/conversations',params={'search':'%'}).json()['items']
+    assert len(client.get('/integrations/whatsapp/conversations',params={'search':'+91 9876543210'}).json()['items'])==1
+    assert not client.get('/integrations/whatsapp/conversations',params={'linked':'true'}).json()['items']

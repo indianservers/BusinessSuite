@@ -436,3 +436,26 @@ def test_definitive_rejection_can_be_retried_but_unknown_cannot(client, db, supe
     assert delivery.status == 'accepted'
     sender.assert_called_once()
     assert client.post(BASE+f'/deliveries/{delivery.id}/retry', headers=superuser_headers).status_code == 409
+
+
+def test_pause_after_queue_does_not_consume_provider_attempts(client, db, superuser_headers, monkeypatch):
+    recipient(client, superuser_headers)
+    automation = rule(client, superuser_headers, trigger='campaign', purpose='marketing', subject='Hello {{name}}', body='Synthetic campaign')
+    client.post(BASE+f"/automations/{automation['id']}/launch", headers=superuser_headers, json={})
+    monkeypatch.setattr('app.core.email.email_configured', lambda: True)
+    sender = Mock(return_value='synthetic-pause-accepted')
+    monkeypatch.setattr('app.core.email.send_email', sender)
+    service.process_customer_communications(db)
+    assert client.put(BASE+'/settings', headers=superuser_headers, json={'paused':True}).status_code == 200
+    from app.services.email_dispatch import drain_outbox
+    assert drain_outbox(db)['processed'] == 1
+    delivery = db.query(CustomerDelivery).one()
+    outbox = db.get(EmailOutbox, delivery.email_outbox_id)
+    assert outbox.status == 'retry_wait' and outbox.attempts == 0
+    assert drain_outbox(db)['processed'] == 0
+    sender.assert_not_called()
+    client.put(BASE+'/settings', headers=superuser_headers, json={'paused':False})
+    delivery.due_at = service.now()-timedelta(seconds=1); db.commit()
+    service.process_customer_communications(db)
+    drain_outbox(db)
+    sender.assert_called_once()

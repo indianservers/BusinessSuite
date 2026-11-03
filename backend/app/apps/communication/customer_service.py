@@ -279,7 +279,9 @@ def email_policy(db, outbox):
     if state:
         outbox.error = reason
         row.error = reason
-        row.status = state if state != 'defer' else 'queued'
+        row.status = state if state != 'defer' else 'retry_wait'
+        if state == 'defer':
+            row.due_at = now()+timedelta(minutes=1)
         return False
     return True
 

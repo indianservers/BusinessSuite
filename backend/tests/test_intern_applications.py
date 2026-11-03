@@ -100,9 +100,9 @@ def test_bulk_intake_with_legacy_all_header_uses_default_branch(client, db, supe
     submitted = client.post(f"{base}/applications", json=application_payload)
     assert submitted.status_code == 201, submitted.text
     application = db.query(InternApplication).filter_by(email=application_payload["email"]).one()
-    db.add(BranchOwnership(resource_table=application.__tablename__, resource_key=str(application.id),
-                           company_id=1, branch_id=branch.id, source="test"))
-    db.commit()
+    assert db.query(BranchOwnership).filter_by(resource_table=application.__tablename__,
+        resource_key=str(application.id), branch_id=branch.id).count() == 1
+    assert db.query(BranchOwnership).filter_by(resource_table="intern_application_events", branch_id=branch.id).count() >= 2
     headers = {**superuser_headers, "X-Suite-Branch": "all"}
     started = client.post(f"{base}/admin/application-jobs", headers=headers, json={
         "application_ids": [application.id], "request_key": "legacy-all-intake",

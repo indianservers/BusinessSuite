@@ -75,6 +75,9 @@ def _deliver(db, row, *, notification=None):
         try:
             with actor_scope(db, delivery.created_by, delivery.organization_id, delivery.branch_id, module='srm' if delivery.reminder_id else 'communication'):
                 if not email_policy(db, row):
+                    # A policy deferral is not a provider attempt. Keep the
+                    # message out of this drain batch until its next due time.
+                    row.attempts = max(0, row.attempts - 1)
                     row.status = 'queued' if delivery.status == 'queued' else delivery.status
                     db.commit()
                     return

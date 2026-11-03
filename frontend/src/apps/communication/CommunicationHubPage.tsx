@@ -62,10 +62,10 @@ export default function CommunicationHubPage() {
   const alias:Record<string,SectionKey>={customers:"customers",templates:"templates","email-templates":"templates",emails:"emails",campaigns:"campaigns",logs:"delivery-logs","delivery-logs":"delivery-logs",timeline:"timeline"};
   const active = requested?(sections.find(s=>s.path===requested)?.key||alias[requested]||activeSection(location.pathname)):activeSection(location.pathname);
   return (
-    <div className="space-y-6">
-      <div className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
-        <p className="text-sm font-medium uppercase text-muted-foreground">CRM</p>
-        <h1 className="text-2xl font-semibold">Communication Hub</h1>
+    <div className={active === "whatsapp" ? "wa-communication-page" : "space-y-6"}>
+      <div className={active === "whatsapp" ? "wa-hub-heading" : "border-b bg-background px-4 py-5 sm:px-6 lg:px-8"}>
+        <p className={active === "whatsapp" ? "sr-only" : "text-sm font-medium uppercase text-muted-foreground"}>CRM</p>
+        <h1 className="text-2xl font-semibold">{active === "whatsapp" && <span className="wa-hub-icon"><MessageCircle size={25}/></span>}Communication Hub</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">Templates, individual emails, public webforms, auto-responses, campaigns, consent, WhatsApp messaging, timeline, and delivery analytics.</p>
         <nav aria-label="Communication sections" className="mt-4 flex gap-2 overflow-x-auto pb-1">
           {sections.filter(item => canAccessRoute(item.path.split('?')[0], user?.role, user?.is_superuser)).map((item) => {
@@ -74,7 +74,7 @@ export default function CommunicationHubPage() {
           })}
         </nav>
       </div>
-      <div className="px-4 pb-8 sm:px-6 lg:px-8">
+      <div className={active === "whatsapp" ? "wa-hub-content" : "px-4 pb-8 sm:px-6 lg:px-8"}>
         {active === "hub" ? <Hub /> : null}
         {active === 'customers' ? <CustomerCommunications /> : null}
         {active === "templates" ? <Templates /> : null}

@@ -16,24 +16,25 @@ function dayLabel(value:string) {const date=new Date(value);return date.toDateSt
 export default function Inbox({scope,selected,onSelect,onClear,templates,admin,refresh}:{scope:string;selected:number|null;onSelect:(id:number)=>void;onClear:()=>void;templates:Template[];admin:boolean;refresh:()=>Promise<void>}) {
   const [search,setSearch]=useState(''),[term,setTerm]=useState(''),[filter,setFilter]=useState('all');
   const [before,setBefore]=useState<number|undefined>(),[historyBefore,setHistoryBefore]=useState<number|undefined>();
-  const [detailsOpen,setDetailsOpen]=useState(false);
+  const [detailsOpen,setDetailsOpen]=useState(()=>window.matchMedia('(min-width:1351px)').matches);
   const transcript=useRef<HTMLDivElement>(null),atBottom=useRef(true);
   const navigate=useNavigate();
+  useEffect(()=>{const media=window.matchMedia('(min-width:1351px)');const change=(event:MediaQueryListEvent)=>setDetailsOpen(event.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change);},[]);
   useEffect(()=>{const timer=setTimeout(()=>{setTerm(search);setBefore(undefined);},250);return()=>clearTimeout(timer);},[search]);
   useEffect(()=>{setHistoryBefore(undefined);atBottom.current=true;},[selected]);
   const conversations=useQuery({queryKey:['whatsapp',scope,'conversations',before,term,filter],queryFn:async()=>(await api.get<{items:Contact[];nextBefore:number|null}>(base+'/conversations',{params:{before,search:term,linked:filter==='all'?undefined:filter==='linked'}})).data,refetchInterval:15000});
   const history=useQuery({queryKey:['whatsapp',scope,'history',selected,historyBefore],enabled:selected!==null,queryFn:async()=>(await api.get<{contact:Contact;items:Message[];nextBefore:number|null}>(base+`/conversations/${selected}/messages`,{params:{before:historyBefore}})).data,refetchInterval:10000});
-  const lastId=history.data?.items.at(-1)?.id;
+  const lastId=history.data?.items[history.data.items.length-1]?.id;
   useEffect(()=>{if(atBottom.current&&transcript.current)transcript.current.scrollTop=transcript.current.scrollHeight;},[lastId,selected]);
   const contact=history.data?.contact;
-  return <div className={`wa-inbox-layout ${selected?'wa-has-selection':''} ${detailsOpen?'wa-details-open':''}`}>
+  return <div className={`wa-inbox-layout ${selected?'wa-has-selection':''} ${contact?'wa-with-contact':''} ${detailsOpen?'wa-details-open':''}`}>
     <aside className="wa-conversations"><div className="wa-list-heading"><span className="wa-feature-icon"><InboxIcon size={20}/></span><div><h3>WhatsApp Inbox & Delivery</h3><p>Conversations, replies & delivery</p></div></div>
       <label className="wa-conversation-search"><Search size={15}/><input aria-label="Search conversations" placeholder="Search name or number…" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button aria-label="Clear conversation search" onClick={()=>setSearch('')}><X size={13}/></button>}</label>
       <div className="wa-list-filters" role="group" aria-label="Filter conversations">{[['all','All'],['linked','CRM linked'],['unlinked','Unlinked']].map(([key,label])=><button key={key} aria-pressed={filter===key} className={filter===key?'is-active':''} onClick={()=>{setFilter(key);setBefore(undefined);}}>{label}{filter===key&&conversations.data&&<span title="Conversations on this page">{conversations.data.items.length}</span>}</button>)}</div>
       <div className="wa-conversation-scroll">
         {conversations.isPending&&<p className="wa-empty-note">Loading conversations…</p>}
         {conversations.isError&&<p role="alert" className="wa-error">{whatsappError(conversations.error)}</p>}
-        {conversations.data?.items.map(item=><button key={item.id} className={`wa-conversation-row ${selected===item.id?'is-selected':''}`} onClick={()=>{onSelect(item.id);setHistoryBefore(undefined);setDetailsOpen(false);}} aria-label={`Open conversation with ${contactName(item)}`} aria-current={selected===item.id?'true':undefined}>
+        {conversations.data?.items.map(item=><button key={item.id} className={`wa-conversation-row ${selected===item.id?'is-selected':''}`} onClick={()=>{onSelect(item.id);setHistoryBefore(undefined);setDetailsOpen(window.matchMedia('(min-width:1351px)').matches);}} aria-label={`Open conversation with ${contactName(item)}`} aria-current={selected===item.id?'true':undefined}>
           <Avatar contact={item}/><span className="wa-conversation-copy"><span className="wa-conversation-name"><strong>{contactName(item)}</strong><time>{shortTime(item.lastMessage?.createdAt||item.lastMessageAt)}</time></span><span className="wa-conversation-phone">+{item.recipient}{item.entityType&&<b>{item.entityType}</b>}</span><span className="wa-conversation-snippet">{item.lastMessage?.direction==='outbound'&&<DeliveryMark status={item.lastMessage.status}/>}<span>{item.lastMessage?.body||'Open conversation'}</span></span></span>
         </button>)}
         {conversations.data&&!conversations.data.items.length&&<div className="wa-list-empty"><Search size={25}/><p>{term?'No matching conversations.':'No conversations in this view yet.'}</p><small>{term?'Try a name or international number.':'Incoming messages appear here when they reach this business number.'}</small></div>}
