@@ -29,7 +29,9 @@ export default function ConnectionPanel({ status, refresh }: { status: Status; r
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={busy} onClick={() => void act(() => api.post(base + "/connection/environment"), "Deployment account verified and connected")}>Use deployment account</Button>
         <Button variant="outline" disabled={busy || !status.connection} onClick={() => void act(() => api.post(base + "/connection/check"), "Account checked with Meta")}>Verify connection</Button>
+        <Button variant="outline" disabled={busy || !status.configured} onClick={() => void act(() => api.post(base + "/connection/inbound-branch"), "New inbound conversations will route to the selected branch")}>Route inbox to selected branch</Button>
       </div>
+      <p className="text-sm">{status.connection?.inboundBranchId ? `New inbound conversations route to branch ${status.connection.inboundBranchId}.` : "Choose a writable branch in the top bar, then configure inbox routing. Until then, incoming conversations are retained privately for an administrator to assign."} Existing conversations keep their branch.</p>
       <p className="break-all text-xs text-muted-foreground">Webhook: {window.location.origin}{status.webhookPath}</p>
     </div>
     <details className="rounded-xl border p-4">

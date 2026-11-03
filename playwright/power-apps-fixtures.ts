@@ -121,6 +121,7 @@ export async function setupPowerApps(
   options: {
     allowed?: boolean;
     readOnly?: boolean;
+    pmsAccess?: boolean;
     records?: ReturnType<typeof fixtureRow>[];
   } = {},
 ) {
@@ -131,6 +132,9 @@ export async function setupPowerApps(
     managed: true,
     companyId: 1,
     grants: {
+      ...(options.pmsAccess ? { project_management: {
+        enabled: true, role: "viewer", scope: "own", permissions: ["pms_view"], actions: ["view"],
+      } } : {}),
       power_apps: {
         enabled: options.allowed !== false,
         role: options.readOnly ? "viewer" : "admin",
@@ -139,7 +143,8 @@ export async function setupPowerApps(
         actions: ["view", "create", "edit", "delete"],
       },
     },
-    modules: [{ key: "power_apps", route: "/power-apps", label: "Power Apps" }],
+    modules: [{ key: "power_apps", route: "/power-apps", label: "Power Apps" },
+      { key: "project_management", route: "/pms", label: "PMS" }],
     isAccessAdmin: false,
     isGlobalAdmin: false,
     memberships: [1],
@@ -211,6 +216,10 @@ export async function setupPowerApps(
     const body =
       method === "GET" || method === "DELETE" ? {} : req.postDataJSON();
     if (path.endsWith("/access/me")) return route.fulfill({ json: access });
+    if (path.endsWith("/branches/context")) return route.fulfill({ json: {
+      company_id: 1, selected: 1, all_branches: false, manage_access: false,
+      branches: [{ id: 1, name: "Power Apps test branch", code: "POWER", can_write: true, is_active: true }],
+    } });
     if (path.endsWith("/business-os/modules"))
       return route.fulfill({
         json: {

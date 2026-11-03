@@ -409,3 +409,34 @@ def test_default_all_access_context_has_writable_destination(db):
         cleanup()
     assert context(db, user, 1, str(b.id)).branch_id == b.id
     assert context(db, user, 1, "all").branch_id is None
+
+
+def test_legacy_all_selection_writes_use_default_and_preserve_explicit_scope(db):
+    from app.apps.interns_hub.operations_models import WorkforceJob
+    user, a, b, *_ = setup(db)
+    db.info["security_write_request"] = True
+    try:
+        # A stale aggregate selection must not widen grants, even without an
+        # all-branches policy. The selected default is still the allowed branch.
+        ctx = context(db, user, 1, "all")
+        assert ctx.branch_id == a.id and ctx.branch_id in ctx.writable
+        with pytest.raises(HTTPException):
+            context(db, user, 1, str(b.id))
+        cleanup = install(db, user, ctx)
+        try:
+            customer = CRMCompany(organization_id=1, name="Default branch activity")
+            job = WorkforceJob(organization_id=1, created_by=user.id,
+                               operation="onboard", request_key="legacy-all", payload_hash="0" * 64,
+                               recipients=[], payload={}, result={})
+            db.add_all([customer, job])
+            db.flush()
+            assert customer.branch_id == a.id
+            for item in (customer, job):
+                owner = db.connection().execute(select(BranchOwnership.branch_id).where(
+                    BranchOwnership.resource_table == item.__tablename__,
+                    BranchOwnership.resource_key == str(item.id))).scalar_one()
+                assert owner == a.id
+        finally:
+            cleanup()
+    finally:
+        db.info.pop("security_write_request", None)

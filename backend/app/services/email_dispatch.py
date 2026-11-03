@@ -4,6 +4,7 @@ from uuid import uuid4
 import time
 
 from sqlalchemy import or_, update
+from fastapi import HTTPException
 
 from app.core.config import settings
 from app.core import email
@@ -63,6 +64,34 @@ def branch_recipient_allowed(db, record, user_id, company_id):
 
 
 def _deliver(db, row, *, notification=None):
+    if isinstance(row, EmailOutbox) and row.module == 'customer_communication':
+        from app.apps.communication.customer_models import CustomerDelivery
+        from app.apps.communication.customer_service import actor_scope, email_policy, sync_delivery
+        delivery = db.query(CustomerDelivery).filter_by(email_outbox_id=row.id, organization_id=row.organization_id).first()
+        if not delivery:
+            row.status, row.error = 'suppressed', 'Customer delivery intent is unavailable'
+            db.commit()
+            return
+        try:
+            with actor_scope(db, delivery.created_by, delivery.organization_id, delivery.branch_id, module='srm' if delivery.reminder_id else 'communication'):
+                if not email_policy(db, row):
+                    row.status = 'queued' if delivery.status == 'queued' else delivery.status
+                    db.commit()
+                    return
+                # The shared send path below performs provider acceptance tracking.
+                _deliver_authorized(db, row, notification=notification)
+                sync_delivery(db, delivery)
+                db.commit()
+        except (ValueError, HTTPException):
+            db.rollback()
+            row.status, row.error = 'blocked', 'Owner authorization unavailable; review before retry'
+            delivery.status, delivery.error = row.status, row.error
+            db.commit()
+        return
+    _deliver_authorized(db, row, notification=notification)
+
+
+def _deliver_authorized(db, row, *, notification=None):
     try:
         if isinstance(row, EmailOutbox):
             recipient, subject, body = row.recipient, row.subject, row.body
@@ -110,6 +139,9 @@ def _deliver(db, row, *, notification=None):
                 message.set_content(plain)
                 message.add_alternative(formatted, subtype="html")
                 message_id = email.send_message(message, [recipient])
+            elif isinstance(row, EmailOutbox) and row.module == 'customer_communication':
+                from app.apps.communication.customer_transport import send
+                message_id = send(db, row.organization_id, recipient, subject, body)
             else:
                 message_id = email.send_email(recipient, subject, body)
             if not message_id:
@@ -133,6 +165,14 @@ def _deliver(db, row, *, notification=None):
         error = "Provider rejected request; review configuration before retry" if rejected else "Provider outcome uncertain; reconcile before retry"
         if isinstance(row, EmailOutbox):
             row.error = error
+            temporary = isinstance(exc, smtplib.SMTPResponseException) and 400 <= exc.smtp_code < 500 or isinstance(exc, ClientError) and exc.response.get('Error', {}).get('Code') in {'Throttling', 'ThrottlingException', 'TooManyRequestsException'}
+            if row.module == 'customer_communication' and rejected and temporary and row.attempts < 3:
+                from datetime import timedelta
+                from app.apps.communication.customer_models import CustomerDelivery
+                delivery = db.query(CustomerDelivery).filter_by(email_outbox_id=row.id, organization_id=row.organization_id).first()
+                if delivery:
+                    row.status, row.error = 'retry_wait', 'Provider temporarily rejected request; retry scheduled'
+                    delivery.due_at = datetime.now(timezone.utc)+timedelta(minutes=2 ** row.attempts)
         else:
             row.error_message = error
     if isinstance(row, EmailOutbox) and row.module == "campaign":
@@ -142,14 +182,16 @@ def _deliver(db, row, *, notification=None):
 
 
 def drain_outbox(db, limit=25, *, deadline=float("inf")):
-    if not email.email_configured():
-        return {"processed": 0, "status": "unconfigured"}
+    configured = email.email_configured()
     processed = 0
     # Claim one row at a time; commits never release locks on unsent batch rows.
     for _ in range(limit):
         if time.monotonic() >= deadline:
             break
-        row = db.query(EmailOutbox).filter_by(status="queued").order_by(EmailOutbox.id).with_for_update(skip_locked=True).first()
+        query = db.query(EmailOutbox).filter_by(status='queued')
+        if not configured:
+            query = query.filter(EmailOutbox.module == 'customer_communication')
+        row = query.order_by(EmailOutbox.id).with_for_update(skip_locked=True).first()
         if not row:
             break
         claimed = db.execute(update(EmailOutbox).where(EmailOutbox.id == row.id,
@@ -161,7 +203,7 @@ def drain_outbox(db, limit=25, *, deadline=float("inf")):
         db.refresh(row)
         _deliver(db, row)
         processed += 1
-    return {"processed": processed, "status": "processed"}
+    return {"processed": processed, "status": 'unconfigured' if not configured and not processed else 'processed'}
 
 
 def drain_notifications(db, limit=25, *, deadline=float("inf")):
@@ -202,11 +244,14 @@ def process_email(db, limit=25):
     from app.services.email_schedules import prepare_scheduled_email, prepare_engagement_email
     from app.module_registry import is_app_enabled
     deadline = time.monotonic() + 180
+    from app.apps.communication.customer_service import process_customer_communications
+    customer = process_customer_communications(db, limit)
     scheduled = prepare_scheduled_email(db, limit=5)
     engagement = prepare_engagement_email(db, limit=limit) if is_app_enabled("hrms") else 0
     reminders = enqueue_due_reminders(db, limit=limit)
     result = drain_outbox(db, limit, deadline=deadline)
     result["reminders_queued"] = reminders
+    result['customer_communications'] = customer
     result["scheduled"] = scheduled
     result["engagement_queued"] = engagement
     result["notifications"] = drain_notifications(db, limit, deadline=deadline)

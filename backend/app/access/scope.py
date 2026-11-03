@@ -12,6 +12,11 @@ from app.db.base_class import Base
 
 
 def model_module(model):
+    # The shared transactional outbox belongs to its originating module, not
+    # HRMS. Tenant/branch boundaries and each producer's permission checks still
+    # protect it; classifying it as HRMS breaks non-HRMS background delivery.
+    if model.__tablename__ == 'email_outbox':
+        return None
     source = model.__module__
     if source == "app.models.approval_os":
         return "approvals"

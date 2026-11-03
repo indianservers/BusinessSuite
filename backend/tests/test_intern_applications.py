@@ -86,6 +86,35 @@ def test_application_rejection_and_validation(client, db, superuser_headers, app
     assert client.post(f"{base}/applications/status",json={"email":"missing@example.com","password":"unknown-application"}).status_code==401
 
 
+def test_bulk_intake_with_legacy_all_header_uses_default_branch(client, db, superuser_headers, application_payload):
+    from app.models.company import Branch
+    from app.branches.models import BranchOwnership
+    from app.apps.interns_hub.operations_models import WorkforceJob
+    from tests.tenant_test_utils import assign_company
+    admin = db.query(User).filter_by(email="testadmin@test.com").one()
+    assign_company(db, admin, 1)
+    branch = Branch(company_id=1, name="Main", code="MAIN", is_active=True)
+    db.add(branch)
+    db.commit()
+    base = "/api/v1/interns-hub"
+    submitted = client.post(f"{base}/applications", json=application_payload)
+    assert submitted.status_code == 201, submitted.text
+    application = db.query(InternApplication).filter_by(email=application_payload["email"]).one()
+    db.add(BranchOwnership(resource_table=application.__tablename__, resource_key=str(application.id),
+                           company_id=1, branch_id=branch.id, source="test"))
+    db.commit()
+    headers = {**superuser_headers, "X-Suite-Branch": "all"}
+    started = client.post(f"{base}/admin/application-jobs", headers=headers, json={
+        "application_ids": [application.id], "request_key": "legacy-all-intake",
+        "decision": {"status": "Correction Requested", "review_note": "Please update the application details"}})
+    assert started.status_code == 201, started.text
+    assert started.json()["status"] == "Completed"
+    job = db.get(WorkforceJob, started.json()["id"])
+    owner = db.query(BranchOwnership).filter_by(resource_table=job.__tablename__, resource_key=str(job.id)).one()
+    assert owner.branch_id == branch.id
+    assert db.get(InternApplication, application.id).status == "Correction Requested"
+
+
 def test_status_attempts_are_limited_per_applicant(client, application_payload):
     base="/api/v1/interns-hub"
     assert client.post(f"{base}/applications",json=application_payload).status_code==201

@@ -25,6 +25,10 @@ class Application:
         return {**asdict(self), "route": "/power-apps/" + self.id}
 
 APPLICATIONS = (
+    Application("calendar", "Calendar", "CalendarDays", "Scheduling integration reference; connect application events and permissions.", "reference"),
+    Application("notes", "Notes", "FileText", "Notes integration reference; connect application persistence and attachments.", "reference"),
+    Application("tasks", "Tasks", "ClipboardList", "Task integration reference; retain application columns and business rules.", "reference"),
+    Application("workflow-automation", "Workflow Automation", "Workflow", "PMS workflow integration reference; connect host triggers and authorized actions.", "reference"),
     Application("automations", "Automations", "Workflow", "Build reliable workflows, one thoughtful step at a time.", "drafts"),
     Application("approvals", "Approvals", "BadgeCheck", "Give every decision a clear path forward.", "available"),
     Application("forms", "Forms", "ClipboardList", "Turn questions into structured business information."),

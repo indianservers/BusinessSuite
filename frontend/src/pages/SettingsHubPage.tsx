@@ -37,7 +37,7 @@ export default function SettingsHubPage() {
   if(!isAuthenticated) return <Navigate to={`/login?next=${encodeURIComponent(section ? `/settings/${section}` : "/settings")}`} replace/>;
   const matches=(catalog.data?.options || []).filter(o=>`${o.title} ${o.description} ${o.group}`.toLowerCase().includes(search.toLowerCase()));
   return <div className="settings-hub">
-    <header className="settings-header"><Link to="/dashboard"><ArrowLeft size={18}/>Home</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><div className="settings-branch-context"><BranchSwitcher/></div><button aria-label="Refresh settings" onClick={()=>{void catalog.refetch();void selected.refetch();}}><RefreshCw size={18}/></button></header>
+    <header className="suite-app-bar settings-header"><Link to="/dashboard"><ArrowLeft size={18}/>Home</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><div className="settings-branch-context"><BranchSwitcher/></div><button aria-label="Refresh settings" onClick={()=>{void catalog.refetch();void selected.refetch();}}><RefreshCw size={18}/></button></header>
     <main>
       <div className="settings-heading"><div><p className="settings-eyebrow"><Settings size={16}/>WORKSPACE SETTINGS</p><h1>{section && option ? option.title : "Settings"}</h1><p>Manage your account and the configuration available to you in this company.</p></div><div className="settings-access-note"><ShieldCheck size={20}/>Permissions apply to every change</div></div>
       {section && <Link className="settings-back" to="/settings"><ArrowLeft size={16}/>All settings</Link>}

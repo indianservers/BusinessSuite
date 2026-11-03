@@ -119,8 +119,16 @@ def test_legacy_notification_queue_is_delivered_once(db, monkeypatch):
     monkeypatch.setattr(email, "send_email", sender)
     user = User(email="notify@example.com", hashed_password="unused", is_active=True)
     db.add(user); db.flush()
-    notification = Notification(user_id=user.id, title="Private HR details", message="Confidential", channels=["in_app", "email"], module="hrms")
+    from test_identity_utils import attach_test_identity
+    from app.models.company import Branch
+    from app.branches.models import BranchGrant, BranchOwnership
+    attach_test_identity(db, user)
+    branch = Branch(company_id=1, name='Synthetic notification branch', code='NOTIFY', is_active=True)
+    db.add(branch); db.flush()
+    db.add(BranchGrant(user_id=user.id, company_id=1, branch_id=branch.id, can_write=True))
+    notification = Notification(company_id=1, user_id=user.id, title="Private HR details", message="Confidential", channels=["in_app", "email"], module="hrms")
     db.add(notification); db.flush()
+    db.add(BranchOwnership(resource_table='notifications', resource_key=str(notification.id), company_id=1, branch_id=branch.id, source='synthetic-test'))
     log = NotificationDeliveryLog(notification_id=notification.id, channel="email", status="queued")
     db.add(log); db.commit()
     assert drain_notifications(db) == 1

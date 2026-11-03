@@ -3,6 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
 import { beginProgress } from "@/lib/async-progress";
 import { trackPageRefreshRead } from "@/lib/page-refresh";
+import { selectedBranch } from "@/lib/branch-context";
 
 declare module "axios" {
   interface AxiosRequestConfig {
@@ -33,7 +34,7 @@ api.interceptors.request.use((config) => {
     config._finishPageRefresh = trackPageRefreshRead();
   }
   if (organization && !config.headers["X-Suite-Organization"]) config.headers["X-Suite-Organization"] = organization;
-  const branch = sessionStorage.getItem("suite-branch");
+  const branch = selectedBranch();
   if (branch && !config.headers["X-Suite-Branch"]) config.headers["X-Suite-Branch"] = branch;
   if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {

@@ -81,13 +81,14 @@ def current_context(request: Request, db: Session = Depends(get_db), user: User 
     # Ignore a stale branch header only for discovery; business requests reject it.
     ctx = context(db, user, user.organization_id)
     rows = db.connection().execute(select(Branch.id, Branch.name, Branch.code, Branch.is_active).where(Branch.company_id == ctx.company_id, Branch.id.in_(ctx.allowed)).order_by(Branch.name)).mappings().all()
+    default_branch_id = ctx.branch_id if ctx.branch_id in ctx.writable else None
     selected = request.headers.get("X-Suite-Branch")
-    if selected:
+    if selected and selected != "all":
         try:
             ctx = context(db, user, user.organization_id, selected)
         except HTTPException:
             pass
-    return {"company_id": ctx.company_id, "selected": ctx.branch_id or ("all" if ctx.all_branches else None), "all_branches": ctx.all_branches, "manage_access": ctx.manage_access,
+    return {"company_id": ctx.company_id, "default_branch_id": default_branch_id, "selected": ctx.branch_id, "all_branches": ctx.all_branches, "manage_access": ctx.manage_access,
             "branches": [{**row, "can_write": row["id"] in ctx.writable} for row in rows]}
 
 

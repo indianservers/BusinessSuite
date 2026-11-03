@@ -1,4 +1,5 @@
 import { api } from "@/services/api";
+import QuickAddCustomer, { type PosCustomerRecord } from "../components/QuickAddCustomer";
 import { ScheduleFields, defaultSchedule, type Schedule } from "@/shared/follow-ups/ScheduleFields";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -67,6 +68,7 @@ type Customer = {
   id: number;
   name: string;
   phone: string;
+  email?: string;
   type: "Walk-in" | "Retail" | "Wholesale" | "Credit";
   creditLimit: number;
   outstanding: number;
@@ -120,12 +122,8 @@ type PosStoreProfile = {
   features: string[];
 };
 
-const customers: Customer[] = [
-  { id: 1, name: "Cash Customer", phone: "9999999999", type: "Walk-in", creditLimit: 0, outstanding: 0, loyaltyPoints: 0 },
-  { id: 2, name: "Gowthama Main Campus", phone: "9848012345", type: "Credit", creditLimit: 250000, outstanding: 32000, loyaltyPoints: 1400 },
-  { id: 3, name: "GreenField Stores", phone: "9000011122", type: "Wholesale", creditLimit: 150000, outstanding: 42000, loyaltyPoints: 820 },
-  { id: 4, name: "Walk-in Parent", phone: "9888877776", type: "Retail", creditLimit: 0, outstanding: 0, loyaltyPoints: 80 },
-];
+const walkInCustomer: Customer = { id: 0, name: "Walk-in customer", phone: "", type: "Walk-in", creditLimit: 0, outstanding: 0, loyaltyPoints: 0 };
+const savedCustomer = (item: PosCustomerRecord): Customer => ({ id: item.id, name: item.name, phone: item.phone ? `${item.phone_country_code || ""} ${item.phone}`.trim() : "", email: item.email || "", type: "Retail", creditLimit: 0, outstanding: 0, loyaltyPoints: 0 });
 
 const posStoreProfiles: PosStoreProfile[] = [
   {
@@ -201,7 +199,7 @@ function heldBillFromRecord(item: SRMRecord): HeldBill {
   return {
     id: (item.id as string | number) || uid("hold"),
     holdNo: String(item.holdNo || item.hold_number || "HOLD"),
-    customerId: recordNumber(item.customer_id, 1),
+    customerId: recordNumber(item.customer_id, 0),
     notes: String(item.notes || ""),
     cart: ((item.cart || item.cart_json || []) as CartLine[]),
     amount: recordNumber(item.amount),
@@ -294,7 +292,26 @@ export default function SRMPOSPage() {
   const [productView, setProductView] = usePersistedState<ProductViewMode>("business-suite-srm-pos-product-view", "tiles");
   const activeStoreProfile = useMemo(() => posStoreProfiles.find((profile) => profile.id === activeProfileId) || defaultStoreProfile, [activeProfileId]);
   const mode = activeStoreProfile.mode;
-  const [customerId, setCustomerId] = useState(1);
+  const [customerId, setCustomerId] = useState(0);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const customersQuery = useQuery<Customer[]>({ queryKey: ["srm", "posCustomers"], queryFn: async () => {
+    const items: Customer[] = [];
+    let after: number | null = 0;
+    while (after !== null) {
+      const { data }: { data: { items: PosCustomerRecord[]; next: number | null } } = await api.get("/srm/business/customers", { params: { after }, progress: false });
+      items.push(...data.items.map(savedCustomer));
+      after = data.next;
+    }
+    return items;
+  } });
+  const customers = [walkInCustomer, ...(customersQuery.data || [])];
+  function customerCreated(record: PosCustomerRecord) {
+    queryClient.setQueryData<Customer[]>(["srm", "posCustomers"], current => [...(current || []).filter(c => c.id !== record.id), savedCustomer(record)]);
+    setCustomerId(record.id);
+    setQuickAddOpen(false);
+    void queryClient.invalidateQueries({ queryKey: ["follow-up-options"] });
+    toast({ title: "Customer added", description: `${record.name} is selected for this sale and its follow-ups.` });
+  }
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [cart, setCart] = usePersistedState<CartLine[]>("business-suite-srm-pos-cart", []);
@@ -318,7 +335,6 @@ export default function SRMPOSPage() {
   const heldBillsQuery = useQuery({ queryKey: ["srm", "posHeldBills"], queryFn: () => srmApi.posHeldBills(), refetchInterval: 5000, refetchIntervalInBackground: true, refetchOnWindowFocus: true });
 
   const followUpOptions = useQuery({queryKey:["follow-up-options"],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
-  const [followUpCustomer, setFollowUpCustomer] = useState("");
   const [checkoutKey, setCheckoutKey] = useState(() => crypto.randomUUID());
   const checkoutBusy = useRef(false);
   const customer = customers.find((item) => item.id === customerId) || customers[0];
@@ -421,6 +437,10 @@ export default function SRMPOSPage() {
 
   async function completeSale(after: "done" | "print" | "whatsapp" | "email") {
     if (!cart.length) return;
+    if (customerId && customer.id !== customerId) {
+      toast({ title: "Select a customer", description: "The selected customer is unavailable. Reload customers or select another customer.", variant: "destructive" });
+      return;
+    }
     if (paymentMode === "Credit" && customer.type === "Walk-in") {
       toast({ title: "Customer required", description: "Credit sale needs a registered customer." });
       return;
@@ -440,7 +460,7 @@ export default function SRMPOSPage() {
       }
     }
     if (checkoutBusy.current) return;
-    if (cart.some(line=>line.followUp?.required) && !followUpCustomer) {toast({title:"Select a registered follow-up customer",variant:"destructive"});return;}
+    if (cart.some(line=>line.followUp?.required) && !customerId) {toast({title:"Select a registered follow-up customer",variant:"destructive"});return;}
     checkoutBusy.current = true;
     const sale: Sale = {
       id: checkoutKey,
@@ -457,7 +477,7 @@ export default function SRMPOSPage() {
       const postedOrder = await srmApi.createSalesOrder({
         order_number: `POS-${checkoutKey}`,
         title: `POS sale - ${customer.name}`,
-        customer_id: Number(followUpCustomer) || customer.id,
+        customer_id: customer.id || undefined,
         currency: "INR",
         subtotal: totals.subtotal,
         discount_amount: totals.lineDiscount + totals.billDiscount + totals.couponDiscount,
@@ -543,7 +563,7 @@ export default function SRMPOSPage() {
       const posSession = (activeSession as { session?: { id?: number } | null })?.session || null;
       const saved = await srmApi.createPosHeldBill({
         session_id: posSession?.id,
-        customer_id: customerId,
+        customer_id: customerId || undefined,
         customer_name: customer.name,
         notes: held.notes,
         cart_json: cart,
@@ -667,7 +687,7 @@ export default function SRMPOSPage() {
         </div>
       </header>
 
-      <section className="grid gap-3 border-b border-white/70 bg-white/75 px-4 py-3 backdrop-blur xl:grid-cols-[minmax(20rem,1fr)_18rem_auto]">
+      <section className="grid gap-3 border-b border-white/70 bg-white/75 px-4 py-3 backdrop-blur xl:grid-cols-[minmax(20rem,1fr)_24rem_auto]">
         <div className="relative">
           <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
           <Input
@@ -681,14 +701,13 @@ export default function SRMPOSPage() {
             placeholder="Search or scan product, SKU, barcode [F2]"
           />
         </div>
-        <Select value={String(customerId)} onValueChange={(value) => setCustomerId(Number(value))}>
-          <SelectTrigger className="h-11 border-slate-200 bg-white text-slate-950">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {customers.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="min-w-0"><div className="flex gap-2">
+          <Select value={String(customerId)} onValueChange={(value) => setCustomerId(Number(value))}>
+            <SelectTrigger aria-label="Sale customer" className="h-11 min-w-0 border-slate-200 bg-white text-slate-950"><SelectValue /></SelectTrigger>
+            <SelectContent>{customers.map(item => <SelectItem key={item.id} value={String(item.id)}>{item.name}{item.phone ? ` Â· ${item.phone}` : ""}</SelectItem>)}</SelectContent>
+          </Select>
+          <Button type="button" variant="outline" className="h-11 shrink-0 border-slate-200 bg-white text-slate-950" onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add</Button>
+        </div>{customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <button type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</button></p>}</div>
         <Button className="h-11 bg-[#3157d8] px-6 text-white hover:bg-[#2748b8]" onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />Payment [F7]</Button>
       </section>
 
@@ -789,7 +808,7 @@ export default function SRMPOSPage() {
                         <span className="block truncate text-xs text-slate-400">{product.barcode}</span>
                       </span>
                     </button>
-                    <span className="truncate text-slate-500">{product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
+                    <span className="truncate text-slate-500">{product.sku} Â· {product.category} Â· Tax {product.taxRate}% {product.duration}</span>
                     <span className="truncate text-slate-500">{product.category}</span>
                     <span className={lowStock ? "font-medium text-red-600" : "text-slate-600"}>{product.trackInventory ? product.stock : "Service"}</span>
                     <strong className="text-[#3157d8]">{currency(product.rate)}</strong>
@@ -809,7 +828,7 @@ export default function SRMPOSPage() {
                       <ProductMark product={product} lowStock={lowStock} />
                       <span className="min-w-0 flex-1">
                         <strong className="block truncate text-sm text-slate-950">{product.name}</strong>
-                        <span className="block truncate text-xs text-slate-400">{product.sku} / {product.category} · Tax {product.taxRate}% {product.duration && `· ${product.duration}`}</span>
+                        <span className="block truncate text-xs text-slate-400">{product.sku} / {product.category} Â· Tax {product.taxRate}% {product.duration && `Â· ${product.duration}`}</span>
                       </span>
                       <span className={`hidden rounded-full px-2 py-1 text-xs md:inline-flex ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>Stock {product.trackInventory ? product.stock : "Service"}</span>
                       <strong className="w-24 text-right text-[#3157d8]">{currency(product.rate)}</strong>
@@ -829,7 +848,7 @@ export default function SRMPOSPage() {
                     <button type="button" className="block w-full text-left" onClick={() => addProduct(product)}>
                       <ProductVisual product={product} lowStock={lowStock} density={tileDensity} />
                       <span className="mt-2 block truncate px-2 text-xs font-semibold text-slate-950">{product.name}</span>
-                      <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
+                      <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{product.sku} Â· {product.category} Â· Tax {product.taxRate}% {product.duration}</span>
                       <span className="mt-2 flex items-center justify-between gap-2 px-2 pb-2">
                         <strong className="text-sm text-[#3157d8]">{shortCurrency(product.rate)}</strong>
                         <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{product.trackInventory ? product.stock : "Svc"}</span>
@@ -922,13 +941,14 @@ export default function SRMPOSPage() {
         <Button className="bg-[#3157d8] text-white hover:bg-[#2748b8]" onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />Payment</Button>
       </footer>
 
+      {quickAddOpen && <QuickAddCustomer onClose={() => setQuickAddOpen(false)} onCreated={customerCreated}/>}
       {activeModal === "payment" ? (
         <Overlay title="Complete Payment" onClose={() => setActiveModal(null)} wide>
           <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
             <div className="space-y-4">
               <div className="space-y-3 rounded-lg bg-background p-3 text-foreground">
-                <label className="text-xs">Registered customer for follow-ups<select aria-label="Follow-up customer" className="block w-full rounded border bg-background p-2" value={followUpCustomer} onChange={e=>setFollowUpCustomer(e.target.value)}><option value="">Choose customer when scheduling</option>{followUpOptions.data?.customers.map((c:{id:number;name:string})=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-                {cart.map(line=><details key={line.lineId}><summary className="cursor-pointer text-sm">{line.name} · {line.followUp?.required?`${line.followUp.interval_days} day follow-up`:"Configure follow-up"}</summary><ScheduleFields value={line.followUp||defaultSchedule} employees={followUpOptions.data?.employees} teams={followUpOptions.data?.teams} onChange={value=>setCart(current=>current.map(l=>l.lineId===line.lineId?{...l,followUp:value}:l))}/></details>)}
+                <div className="flex flex-wrap items-end gap-2"><label className="flex-1 text-xs">Customer for this sale & follow-ups<select aria-label="Follow-up customer" className="block w-full rounded border bg-background p-2 text-foreground" value={customerId || ""} onChange={e => setCustomerId(Number(e.target.value))}><option value="">Walk-in â€” select a customer to schedule</option>{customers.filter(c => c.id).map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` Â· ${c.phone}` : ""}</option>)}</select></label><Button type="button" variant="outline" onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add customer</Button></div>
+                {cart.map(line=><details key={line.lineId}><summary className="cursor-pointer text-sm">{line.name} Â· {line.followUp?.required?`${line.followUp.interval_days} day follow-up`:"Configure follow-up"}</summary><ScheduleFields template value={line.followUp||defaultSchedule} employees={followUpOptions.data?.employees} teams={followUpOptions.data?.teams} onChange={value=>setCart(current=>current.map(l=>l.lineId===line.lineId?{...l,followUp:value}:l))}/></details>)}
               </div>
               <div className="rounded-lg bg-slate-950 p-4">
                 <span className="text-xs uppercase text-slate-400">Grand total</span>

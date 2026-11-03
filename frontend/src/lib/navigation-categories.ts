@@ -34,7 +34,7 @@ const categories: Record<string, readonly Category[]> = {
     { name: "Sales & pipeline", paths: ["/crm/deals", "/crm/pipeline", "/crm/templates", "/crm/lead-to-cash", "/crm/products-services", "/crm/products", "/crm/services", "/crm/quotations", "/crm/my-approvals"] },
     { name: "Activities & planning", paths: ["/crm/follow-ups", "/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"] },
     { name: "Marketing & campaigns", paths: ["/crm/campaigns", "/crm/webforms", "/crm/forms", "/crm/consents"] },
-    { name: "Communication", paths: ["/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/whatsapp", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline", "/crm/messages"] },
+    { name: "Communication", paths: ["/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/whatsapp", "/crm/whatsapp/inbox", "/crm/whatsapp/sent", "/crm/whatsapp/templates", "/crm/whatsapp/profile", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline", "/crm/messages"] },
     { name: "Support & files", paths: ["/crm/tickets", "/crm/files"] },
     { name: "Reports & forecasts", paths: ["/crm/reports", "/crm/forecasting"] },
     { name: "Settings & administration", paths: ["/crm/automation", "/crm/import-export", "/crm/settings", "/crm/approval-settings", "/crm/webhooks", "/crm/feature-checklist", "/crm/admin"] },

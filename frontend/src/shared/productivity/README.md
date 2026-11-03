@@ -1,5 +1,19 @@
 # Shared productivity UI
 
+## Integration references in Power Apps
+
+Calendar, Notes, Tasks and Workflow Automation are available as integration references. Each reference explains host requirements and links to PMS when the user has access. References do not load PMS records, create drafts or install subscriptions. Studio environments do not create separate copies of PMS data.
+
+`references.ts` exports the catalog and `ProductivityIntegration<Record, Column, Action>` contract. Generic types preserve the receiving application's full records and columns. This is an integration contract, not an executable adapter. Hosts implement APIs, persistence, tenant scope and server authorization.
+
+To integrate another application:
+
+1. Use the referenced source as the behavioral starting point and reuse shared presentation where appropriate.
+2. Supply host records, columns, statuses, assignments, actions and linked entities through an explicit adapter.
+3. Connect persistence, attachments, notifications, realtime and workflow triggers/actions. Verify tenant boundaries and business rules before enabling writes or execution.
+
+PMS remains the integrated implementation. Its database columns, task columns, saved views, calendar settings, note persistence and workflow subscriptions are preserved. The PMS Workflow Automation reference is separate from the existing Power Apps Automations builder.
+
 `NoteEditor` is the single rich notes editor used by PMS and CRM. It includes block dragging, slash commands, formatting, tables, outline and focus mode. It has no module API dependency. Pass `value` and `onChange` to use it in another module. Optional attachment/reference callbacks enable host-specific features.
 
 PMS keeps its existing `NoteRichEditor` import as a thin adapter that injects `PrivateNoteImage`. PMS owns attachment loading and all existing note persistence. PMS tasks are unchanged.

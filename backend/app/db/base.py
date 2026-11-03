@@ -6,4 +6,5 @@ import_model_modules()
 
 # Register transactional email events for all enabled product models.
 from app.services import email_events  # noqa: E402,F401
+from app.apps.communication import customer_events  # noqa: E402,F401
 

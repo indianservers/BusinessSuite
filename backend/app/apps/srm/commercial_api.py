@@ -7,11 +7,12 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app.core.deps import get_current_user, get_db
+from app.core.input_validation import NationalPhone, CallingCode, EmailAddress
 from app.models.user import User
 from app.models.company import Company
 from app.apps.crm.models import CRMCompany, CRMContact, CRMTeam, CRMOwner
@@ -75,6 +76,7 @@ def customer_profile(value):
             "country",
             "email",
             "phone",
+            "phone_country_code",
         )
     }
 
@@ -113,11 +115,42 @@ def customers(
     rows = query.order_by(CRMCompany.id).limit(51).all()
     return {
         "items": [
-            {"id": r.id, "name": r.name, "email": r.email, "address": r.address}
+            {"id": r.id, "name": r.name, "email": r.email, "phone": r.phone, "phone_country_code": r.phone_country_code, "address": r.address}
             for r in rows[:50]
         ],
         "next": rows[49].id if len(rows) > 50 else None,
     }
+
+
+class QuickCustomerInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=1, max_length=180)
+    phone: NationalPhone | None = None
+    phone_country_code: CallingCode = "+91"
+    email: EmailAddress | None = Field(default=None, max_length=150)
+
+
+@router.post("/business/customers", status_code=201)
+def quick_add_customer(data: QuickCustomerInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    require(user, "srm_manage", "srm_admin")
+    lock_tenant(db, user)
+    matches = []
+    if data.email:
+        matches.append(func.lower(CRMCompany.email) == str(data.email).lower())
+    if data.phone:
+        matches.append((CRMCompany.phone == data.phone) & (CRMCompany.phone_country_code == data.phone_country_code))
+    if matches and db.query(CRMCompany).filter(scoped(CRMCompany.organization_id, user), CRMCompany.deleted_at.is_(None), or_(*matches)).first():
+        raise HTTPException(409, "A customer with this phone or email already exists. Select the existing customer.")
+    value = CRMCompany(organization_id=tenant(user), name=data.name, phone=data.phone, phone_country_code=data.phone_country_code if data.phone else None,
+                       email=str(data.email) if data.email else None, account_type="Customer", status="Active",
+                       owner_user_id=user.id, created_by_user_id=user.id, updated_by_user_id=user.id)
+    db.add(value)
+    db.flush()
+    from app.apps.srm.api.router import _audit
+    _audit(db, user, "customer", value.id, "quick_added", after=customer_profile(value))
+    db.commit()
+    db.refresh(value)
+    return customer_profile(value)
 
 
 @router.get("/business/customers/{customer_id}")

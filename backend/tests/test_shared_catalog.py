@@ -229,3 +229,25 @@ def test_catalog_migration_preserves_legacy_records(path, parent):
             assert connection.execute(sa.text(f"SELECT name FROM {name} WHERE id=1")).scalar() == "Existing"
     engine.dispose()
 
+
+
+def test_all_branches_catalog_creation_uses_discovered_default(client, db, headers):
+    from sqlalchemy import select
+    from app.branches.models import BranchOwnership
+    from app.models.company import Branch
+
+    db.add(Branch(company_id=1, organization_id=1, name="Default catalog branch", code="CAT-DEFAULT", is_active=True))
+    db.commit()
+    overview = client.get("/api/v1/branches/context", headers={**headers, "X-Suite-Branch": "all"})
+    assert overview.status_code == 200, overview.text
+    data = overview.json()
+    assert data["selected"] == data["default_branch_id"]
+    destination = data["default_branch_id"]
+    assert destination in {branch["id"] for branch in data["branches"] if branch["can_write"]}
+    product = create(client, {**headers, "X-Suite-Branch": "all"}, source="srm")
+    assert db.get(SRMProduct, product["id"]) is not None
+    # Catalog definitions are shared; their business audit trail needs a branch.
+    owners = db.connection().execute(select(BranchOwnership.branch_id).where(
+        BranchOwnership.resource_table == "audit_logs")).scalars().all()
+    assert owners and set(owners) == {destination}
+    assert client.get("/api/v1/branches/context", headers={**headers, "X-Suite-Branch": "all"}).json()["selected"] == destination

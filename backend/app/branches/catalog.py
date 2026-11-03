@@ -11,6 +11,11 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     "suite_branch_record_shares", "suite_branch_lifecycle",
     # Personal reminder configuration is user-scoped by its API, not a branch transaction.
     "service_follow_up_preferences",
+    # Account authorization is company-level configuration. Conversations,
+    # messages and receipts remain private business activity with branch ownership.
+    "suite_whatsapp_connections", "suite_whatsapp_onboarding",
+    "communication_customer_settings",
+    "communication_customer_email_connections",
     "users", "user_sessions", "mfa_methods", "trusted_devices", "login_attempts",
     "common_people", "common_profiles", "sso_providers", "sso_domains",
     "crm_products", "crm_services", "srm_products", "shared_catalog_details", "shared_catalog_links",

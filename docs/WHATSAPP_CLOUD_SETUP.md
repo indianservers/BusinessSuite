@@ -100,6 +100,10 @@ CRM permissions; do not share Meta credentials with software customers. See the
 deployment's OpenAPI documentation for these `/api/v1/integrations/whatsapp` APIs:
 
 - `GET /status`, `POST /connection`, `/connection/environment`, `/connection/check`, `/connection/register`.
+- `POST /connection/inbound-branch`: select a writable branch in the top bar,
+  then route new inbound conversations there. Existing conversations retain
+  their branch. Without a route, signed inbound data is retained privately,
+  unresolved, for a global administrator to link to a permitted CRM record.
 - `POST /onboarding/start` and `/onboarding/complete`: actor/company-bound,
   ten-minute, single-use server session; codes and registration PINs are not stored.
 - `GET|POST /templates`: actual Meta templates and text-template review submission.
@@ -210,10 +214,10 @@ Configuration creation does not grant Advanced Access or onboard a customer.
 
 Before submission:
 
-- Implement and demonstrate customer authorization, server-side code exchange,
+- Demonstrate the implemented customer authorization, server-side code exchange,
   tenant-specific encrypted credential/asset storage, account subscription,
   disconnect/revocation, and webhook routing to the correct customer account.
-- Implement the account/template management operations demonstrated in review.
+- Demonstrate the implemented account/template management operations in review.
 - Record a genuine end-to-end screencast for each requested permission and
   supply a working reviewer login/instructions for the demo environment.
 - Complete provider names and processing-country declarations from the actual
@@ -222,12 +226,112 @@ Before submission:
   each permission and says successful calls can take up to 24 hours to appear.
 - Review and accept Meta's allowed-usage declarations before final submission.
 
-The present adapter is one sender/company per deployment. It does not yet
-implement a shared multi-customer WhatsApp API product, customer API keys,
-metering/billing, customer Embedded Signup callback, or an inbound inbox.
-Do not describe those capabilities as shipped in the review submission.
+The customer workspace now implements one account/sender per company, Embedded
+Signup code exchange, encrypted customer credentials, inbound inbox, persisted
+consent, template management, and durable delivery receipts. It uses Business
+Suite's existing bearer authentication and CRM permissions. Separate customer
+API keys, billing/metering, attachment download, and number-less BSUID recipients
+are not implemented. Do not describe those as shipped in the review submission.
+
+Saved `https://app.indianservers.com/` in Meta's JavaScript SDK domain allowlist
+with the owner's explicit approval; Login with the JavaScript SDK is enabled.
+Meta's Login settings additionally require Advanced Access for `public_profile`.
+This requirement and WhatsApp Advanced Access are still outstanding.
+
+Migration rehearsal on production child branch `br-calm-tree-b7ezsnzk` upgraded
+`pg_20261103_064_follow_ups` to `pg_20261103_065_whatsapp`, verified all 792 model
+tables, created five new WhatsApp tables, and preserved existing record counts.
+The branch auto-expires after one day.
+The follow-up rehearsal upgraded the same branch to
+`pg_20261103_066_wa_branch`, adding explicit inbound branch routing. Account
+connections/signup sessions are company configuration; contacts and messages
+retain branch ownership in addition to CRM record visibility. Switching to
+all-branches mode is for inspection; choose a writable branch before sending.
 
 ## Validation
 
-`backend/venv/Scripts/python.exe -m pytest tests/test_whatsapp_cloud.py -q`
-from `backend`, and `npx tsc --noEmit` from `frontend`.
+From `backend`, `venv/Scripts/python.exe scripts/run_postgres_tests.py
+tests/test_whatsapp_cloud.py tests/test_whatsapp_workspace.py -q` passed 20 tests
+against an isolated PostgreSQL database. The same tests passed on SQLite.
+`npm run build` from `frontend` passed. Tests mock external sends; live checks
+only read token validity and sender metadata and do not message recipients.
+
+## Customer workspace release, 3 November 2026
+
+Deployment `dpl_6uFcoF2FQZu8mYtWpSGRKEN8v8fa` is ready and promoted to
+`app.indianservers.com`. Production reached `pg_20261103_066_wa_branch` and
+verified 792 tables / 9235 columns. Candidate and live health returned 200 with
+database `ok`; webhook verification returned the exact challenge, unsigned
+callbacks returned 403, and signed empty callbacks returned 200.
+
+In the signed-in live UI, verified the Indian Servers sender with Meta, loaded
+the actual approved `hello_world` template, and routed new inbound conversations
+to company 1's Main branch (branch 1). Embedded Signup preparation returned a
+one-use session and loaded the Meta SDK successfully; canceled before any new
+business authorization. This is not an end-to-end customer onboarding approval.
+
+Submitted `indianservers_service_update` (`en_US`, Utility) through the live
+template screen. Meta returned `PENDING`. Body: “Hello {{1}}, your Indian Servers
+service request {{2}} is now {{3}}. Reply to this message if you need assistance.”
+Samples were fictitious values. No extra outbound messages were sent.
+
+The owner approved requesting `public_profile` Advanced Access and explicitly
+agreed to Meta's allowed-usage declaration. Usage confirmation is complete, but
+the request remains on the data-handling step and has NOT been submitted/granted.
+No national-security disclosures and no implemented public-authority request
+policies were selected, based on the owner's answers. The old prefilled legality
+review checkbox was cleared. Processor details still need confirmation: the
+form lists “Indian Servers” and “ISPL”, and needs actual Vercel/Neon processing
+countries including remote access. Do not claim US-only merely from the hosting
+region. WhatsApp App Review still needs genuine screencasts/reviewer access and
+the remaining declarations; do not claim customer production approval.
+
+The local database's separate schema-health check found pre-existing missing
+follow-up columns at its old revision. The WhatsApp migration applied, but local
+runtime was not restarted over that unrelated schema drift. Production and the
+isolated PostgreSQL test database passed schema checks.
+
+## Messaging visibility and profile hotfix
+
+The owner reported a delivered message paired with the old form's generic failure
+banner, and a 403 from its separate local-template button. Production contained
+no CRM or durable WhatsApp message record for that old request; its exact provider
+outcome cannot be reconstructed from the application database. Do not resend it
+or manufacture a delivered/failed record. The durable composer now looks up its
+original request after response errors and distinguishes unknown outcomes from
+provider-reported failures. The obsolete local-template creation button was
+removed from the WhatsApp workspace; use the actual Meta template page.
+
+Dedicated routes are `/crm/whatsapp/inbox`, `/crm/whatsapp/sent`,
+`/crm/whatsapp/templates`, and `/crm/whatsapp/profile`. Received messages and
+delivery records retain company, branch and CRM record visibility checks.
+`GET /integrations/whatsapp/messages/by-request/{request_id}` reconciles a recorded
+send without sending again; `GET /integrations/whatsapp/messages` lists outbound
+records. `GET /integrations/whatsapp/profile` reads the actual Meta profile and
+administrator `POST /integrations/whatsapp/profile/picture` accepts a square JPEG
+up to 2 MB, 192–4096 pixels, with a provider-pinned resumable upload.
+
+Meta initially returned no `profile_picture_url`. Uploaded the existing square
+Indian Servers JPEG logo from the company's public website and updated the
+connected WhatsApp business profile. Meta returned success and a profile photo
+URL afterward. This is separate from the Facebook app logo and Suite avatar.
+
+The owner sent a real inbound “Hi”; production saved inbound message 1 as received
+and stamped Main branch 1. No additional outbound WhatsApp message was sent.
+The isolated WhatsApp release passed 24 tests on PostgreSQL and a frontend build.
+It excludes the unrelated in-progress customer-communication migration 067.
+Deployment `dpl_24HnB3tpP7LYUFDekYksjixCEoG5` was promoted to the live domain.
+
+Live UI confirmation: the received “Hi” is visible in its conversation. Submitted
+`indianservers_request_received` through the Meta template form while in All
+branches; Meta returned PENDING without a 403. The previous
+`indianservers_service_update` template is now APPROVED. The optional outgoing
+retest requires a separate owner approval; do not reuse the initial one-message
+hello_world authorization.
+
+The owner subsequently approved exactly one new text reply to the existing
+inbound conversation. Sent through the live app: “Indian Servers WhatsApp test:
+your message was received and the integration is working.” Durable message 17
+was accepted, then updated to delivered by Meta callbacks and shown as delivered
+in the conversation. Do not send further test messages under that approval.
+Private validation metadata is in ignored `.local/whatsapp-hotfix-live-validation.json`.

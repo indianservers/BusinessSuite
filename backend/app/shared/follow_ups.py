@@ -1,6 +1,6 @@
 """Shared CRM/Sales service commitments, with transactional reminders and history."""
 from datetime import datetime, timedelta, timezone
-from typing import Literal
+from typing import ClassVar, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel, Field, model_validator
@@ -58,6 +58,7 @@ class FollowUpReminder(Base):
     next_attempt_at = Column(DateTime(timezone=True))
 
 class Schedule(BaseModel):
+    event_template: ClassVar[bool] = False
     required: bool = True
     type: Literal['days', 'date', 'recurring'] = 'days'
     reference: Literal['purchase', 'delivery', 'completion'] = 'purchase'
@@ -85,9 +86,20 @@ class Schedule(BaseModel):
                 raise ValueError('Dates must include a time zone offset')
         if self.required and self.type == 'date' and (not self.due_at):
             raise ValueError('Choose a follow-up date')
-        if self.required and self.type != 'date' and (self.reference != 'purchase') and (not self.reference_at):
+        if not self.event_template and self.required and self.type != 'date' and (self.reference != 'purchase') and (not self.reference_at):
             raise ValueError('Provide the delivery/completion reference date')
         return self
+
+class ScheduleTemplate(Schedule):
+    # A catalog default refers to a future customer's transaction, not today.
+    event_template: ClassVar[bool] = True
+
+    @model_validator(mode='after')
+    def relative_to_each_customer(self):
+        if self.type != 'date':
+            self.reference_at = None
+        return self
+
 
 class CreateFollowUp(Schedule):
     lead_id: int | None = Field(default=None, gt=0)
@@ -305,9 +317,14 @@ def change(ident: int, data: Change, db=Depends(get_db), user=Depends(get_curren
     db.commit()
     return output(db, row)
 
-def create_for_order(db, order, user):
-    if (order.metadata_json or {}).get('source') != 'pos':
+def create_for_order(db, order, user, event=None):
+    is_pos = (order.metadata_json or {}).get('source') == 'pos'
+    if order.status == 'cancelled':
         return
+    if not is_pos and event is None and order.status not in ('confirmed', 'closed'):
+        return
+    event = event or ('delivery' if order.status == 'closed' else 'purchase')
+    happened_at = datetime.now(timezone.utc)
     for line in order.lines:
         if not line.product_id:
             continue
@@ -315,9 +332,30 @@ def create_for_order(db, order, user):
         config = (line.metadata_json or {}).get('follow_up', (p.metadata_json or {}).get('follow_up'))
         if not config or not config.get('required'):
             continue
-        data = CreateFollowUp(**{**config, 'title': f"{p.item_name} · {config.get('purpose', 'General')}", 'customer_id': order.customer_id, 'product_id': p.id})
+        reference = config.get('reference', 'purchase')
+        # POS completes the purchase/service at checkout. Other sales wait for
+        # confirmation, delivery (order closure), or service completion.
+        if not is_pos and not config.get('reference_at') and config.get('type') != 'date':
+            if reference != 'purchase' and reference != event:
+                continue
+        if not order.customer_id:
+            raise HTTPException(422, 'Select a registered customer to schedule product or service follow-ups')
+        values = {**config, 'title': f"{p.item_name} · {config.get('purpose', 'General')}", 'customer_id': order.customer_id, 'product_id': p.id}
+        if not values.get('reference_at') and values.get('type') != 'date':
+            values['reference_at'] = happened_at
+        data = CreateFollowUp(**values)
         row = create(db, user, data, order.id, f'order:{order.id}:line:{line.id}')
         row.order_line_id = line.id
+
+
+def create_for_engagement(db, engagement, user):
+    if engagement.status not in ('completed', 'closed') or not engagement.sales_order_id:
+        return
+    from app.apps.srm.models import SRMSalesOrder
+    from app.apps.srm.services.commercial import record
+    order = record(db, SRMSalesOrder, engagement.sales_order_id, user)
+    create_for_order(db, order, user, event='completion')
+
 
 def cancel_for_order(db, order_id, user):
     for row in db.query(FollowUp).filter_by(organization_id=tenant(user), order_id=order_id).with_for_update().all():

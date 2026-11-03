@@ -82,7 +82,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const passwordStrength = getPasswordStrength(newPassword);
 
   return (
-    <header className="kf-topbar z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 md:px-6 lg:px-8">
+    <header className="suite-app-bar kf-topbar z-40 flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 md:px-6 lg:px-8">
       {/* Mobile menu button */}
       <Button
         variant="ghost"

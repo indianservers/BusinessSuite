@@ -10,7 +10,7 @@ import "./suite.css";
 export default function SuiteContextBar() {
   const { pathname } = useLocation();
   return (
-    <nav className="suite-context-bar" aria-label="Business Suite navigation">
+    <nav className="suite-app-bar suite-context-bar" aria-label="Business Suite navigation">
       <div>
         <Link
           className="suite-home"

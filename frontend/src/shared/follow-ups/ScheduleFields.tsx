@@ -34,7 +34,9 @@ export function ScheduleFields({
   onChange,
   employees = [],
   teams = [],
+  template = false,
 }: {
+  template?: boolean;
   value: Schedule;
   onChange: (v: Schedule) => void;
   employees?: { id: number; name: string }[];
@@ -59,7 +61,7 @@ export function ScheduleFields({
     <label className="text-xs">
       {label}
       <Input
-        required={key === "due_at" || value.reference !== "purchase"}
+        required={key === "due_at" || (!template && value.reference !== "purchase")}
         type="datetime-local"
         value={value[key] ? dateInputInZone(value[key]!, value.timezone) : ""}
         onChange={(e) => {
@@ -85,7 +87,7 @@ export function ScheduleFields({
   );
   return (
     <fieldset className="space-y-3 rounded-lg border bg-muted/20 p-3">
-      <label className="flex items-center gap-2 text-sm font-medium">
+      <label className="follow-up-toggle flex items-center gap-2 text-sm font-medium">
         <input
           type="checkbox"
           checked={value.required}
@@ -118,7 +120,7 @@ export function ScheduleFields({
             )}
             {value.type === "date"
               ? date("Follow-up date & time", "due_at")
-              : date("Reference date & time", "reference_at")}
+              : !template && date("Reference date & time", "reference_at")}
             <label className="text-xs">
               Reminder (days before)
               <Input
@@ -204,7 +206,9 @@ export function ScheduleFields({
             />
           </label>
           <p className="text-xs text-muted-foreground">
-            {value.type !== "date" && value.reference_at
+            {template && value.type !== "date"
+              ? `A follow-up is created ${value.interval_days} days after each customer's ${value.reference === "completion" ? "service completion" : value.reference}.`
+              : value.type !== "date" && value.reference_at
               ? `Next follow-up: ${new Date(new Date(value.reference_at).getTime() + value.interval_days * 86400000).toLocaleString()}`
               : "Purchase reference uses the successful purchase time unless overridden."}
           </p>

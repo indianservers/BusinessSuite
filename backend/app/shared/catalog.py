@@ -37,11 +37,11 @@ class Price(BaseModel):
     interval: Literal["once", "day", "week", "month", "year"] = "once"
 
 
-from app.shared.follow_ups import Schedule
+from app.shared.follow_ups import ScheduleTemplate
 
 class ItemInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    follow_up: Schedule | None = None
+    follow_up: ScheduleTemplate | None = None
     kind: Kind
     name: str = Field(min_length=1, max_length=180)
     code: str = Field(min_length=1, max_length=80)

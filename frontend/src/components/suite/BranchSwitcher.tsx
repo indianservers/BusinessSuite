@@ -2,14 +2,15 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Building2, Settings2 } from "lucide-react";
+import { Building2, ChevronDown, Settings2 } from "lucide-react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
+import "./app-bar.css";
 
 type Branch = { id: number; name: string; code: string; can_write: boolean; is_active?: boolean };
-type Context = { company_id: number; selected: number | "all" | null; all_branches: boolean; manage_access: boolean; branches: Branch[] };
+type Context = { company_id: number; selected: number | null; all_branches: boolean; manage_access: boolean; branches: Branch[] };
 
 const detail = (error: any) => error?.response?.data?.detail || "Unable to complete this action.";
 
@@ -43,18 +44,18 @@ export default function BranchSwitcher() {
     else window.location.assign('/dashboard');
   }
   if (!user) return null;
-  return <div className="flex min-w-0 items-center gap-1">
-    <label className="flex min-w-0 items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-sm">
-      <Building2 size={16} className="shrink-0" />
-      <span className="sr-only">Current branch</span>
-      <select aria-label="Current branch" className="max-w-[160px] bg-transparent text-sm" value={context?.selected ?? ""} disabled={busy || !context} onChange={e => void switchBranch(e.target.value)}>
+  return <div className="suite-branch-control">
+    <label className="suite-branch-field">
+      <Building2 size={16} className="suite-branch-icon" aria-hidden="true" />
+      <span className="suite-branch-label">Branch</span>
+      <select aria-label="Current branch" className="suite-branch-select" value={context?.selected ?? ""} disabled={busy || !context || !context.branches.length} onChange={e => void switchBranch(e.target.value)}>
         {!context && <option value="">{current.isError ? "Branch unavailable" : "Loading branches…"}</option>}
-        {context?.all_branches && <option value="all">All branches</option>}
-        {context && !context.all_branches && !context.branches.length && <option value="">No branch access</option>}
+        {context && context.selected === null && <option value="">No branch access</option>}
         {context?.branches.map(b => <option key={b.id} value={b.id}>{b.name}{b.is_active === false ? " (archived)" : ""}{b.can_write ? "" : " · read only"}</option>)}
       </select>
+      <ChevronDown size={14} className="suite-branch-chevron" aria-hidden="true" />
     </label>
-    {context?.manage_access && <Link to="/settings/branches" aria-label="Manage branches" className="rounded p-2"><Settings2 size={16} /></Link>}
+    {context?.manage_access && <Link to="/settings/branches" aria-label="Manage branches" title="Manage branches" className="suite-branch-settings"><Settings2 size={16} /></Link>}
     {current.isError && <button className="text-xs text-destructive" onClick={() => { sessionStorage.removeItem("suite-branch"); window.location.reload(); }}>Retry</button>}
     {error && <p role="alert" className="max-w-48 text-xs text-destructive">{error}</p>}
     {staleBranch && <button role="alert" className="max-w-40 text-xs text-destructive" onClick={() => { sessionStorage.removeItem("suite-branch"); qc.clear(); window.location.reload(); }}>Previous branch access changed. Reload available branches.</button>}

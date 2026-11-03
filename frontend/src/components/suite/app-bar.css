@@ -1,0 +1,107 @@
+/* Shared chrome for the suite, module, settings and workspace headers. */
+.suite-app-bar.suite-app-bar {
+  box-sizing: border-box;
+  min-height: 64px;
+  height: auto;
+  flex-shrink: 0;
+  gap: 16px;
+  padding: 10px 24px;
+  border-bottom: 1px solid hsl(var(--border));
+  border-radius: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.03);
+}
+
+.suite-branch-control {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  min-width: 0;
+}
+
+.suite-branch-control .suite-branch-field {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 8px;
+  height: 38px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--muted) / 0.35);
+  color: hsl(var(--foreground));
+  transition: border-color 150ms, background-color 150ms;
+}
+
+.suite-branch-field:hover {
+  background: hsl(var(--muted) / 0.65);
+}
+
+.suite-branch-field:focus-within {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.suite-branch-icon,
+.suite-branch-chevron {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
+.suite-branch-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.suite-branch-control .suite-branch-select {
+  appearance: none;
+  width: auto;
+  min-width: 72px;
+  max-width: 168px;
+  height: 100%;
+  margin: 0;
+  padding: 0 22px 0 10px;
+  border: 0;
+  border-left: 1px solid hsl(var(--border));
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.suite-branch-select:disabled { cursor: wait; opacity: 0.65; }
+.suite-branch-select option { background: hsl(var(--background)); color: hsl(var(--foreground)); }
+.suite-branch-chevron { position: absolute; right: 10px; }
+
+.suite-branch-control .suite-branch-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 7px;
+  color: hsl(var(--muted-foreground));
+  transition: background-color 150ms, color 150ms;
+}
+
+.suite-branch-settings:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.suite-branch-settings:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+
+@media (max-width: 767px) {
+  .suite-app-bar.suite-app-bar { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
+  .suite-app-bar.suite-app-bar > nav,
+  .suite-app-bar.suite-app-bar > div { max-width: 100%; flex-wrap: wrap; gap: 8px; }
+  .suite-branch-control .suite-branch-select { max-width: 128px; }
+}

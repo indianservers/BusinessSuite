@@ -10,6 +10,7 @@ class WhatsAppConnection(Base):
     waba_id = Column(String(100), nullable=False, index=True)
     phone_number_id = Column(String(100), nullable=False, index=True)
     routing_key = Column(String(100), unique=True, nullable=True)
+    inbound_branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)
     display_number = Column(String(80))
     business_name = Column(String(250))
     token_ciphertext = Column(Text)

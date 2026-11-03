@@ -386,7 +386,7 @@ export default function TasksReferencePage() {
       )}
       <Sidebar embedded open={menu} collapsed={navCollapsed} onClose={() => setMenu(false)} onToggleCollapse={() => setNavCollapsed(value => !value)} />
       <div className="tr-body">
-        <header className="tr-topbar">
+        <header className="suite-app-bar tr-topbar">
           <button
             className="tr-mobile"
             aria-label="Open navigation"

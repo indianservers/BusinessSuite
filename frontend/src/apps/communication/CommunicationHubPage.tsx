@@ -1,5 +1,6 @@
 import CompactForm from "@/components/forms/CompactForm";
 import WhatsAppCloudPanel from "./WhatsAppCloudPanel";
+import CustomerCommunications from './CustomerCommunications';
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { contentToHtml, RICH_TEXT_PREFIX } from "@/components/rich-text/content";
 import { Input } from "@/components/ui/input";
@@ -17,10 +18,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { canAccessRoute } from "@/lib/roles";
 
-type SectionKey = "hub" | "templates" | "emails" | "webforms" | "campaigns" | "consents" | "whatsapp" | "auto-responses" | "delivery-logs" | "timeline";
+type SectionKey = "hub" | "customers" | "templates" | "emails" | "webforms" | "campaigns" | "consents" | "whatsapp" | "auto-responses" | "delivery-logs" | "timeline";
 
 const sections: Array<{ key: SectionKey; label: string; path: string; icon: typeof Mail }> = [
   { key: "hub", label: "Hub", path: "/crm/communication-hub", icon: TableProperties },
+  { key: 'customers', label: 'Customer communications', path: '/crm/communication-hub?section=customers', icon: Users },
   { key: "templates", label: "Templates", path: "/crm/email-templates", icon: FileText },
   { key: "emails", label: "Emails", path: "/crm/emails", icon: Send },
   { key: "webforms", label: "Webforms", path: "/crm/webforms", icon: Users },
@@ -57,7 +59,7 @@ export default function CommunicationHubPage() {
   const params = useParams();
   const query = new URLSearchParams(location.search);
   const requested=query.get("section")||query.get("tab")||query.get("operation")||"";
-  const alias:Record<string,SectionKey>={templates:"templates","email-templates":"templates",emails:"emails",campaigns:"campaigns",logs:"delivery-logs","delivery-logs":"delivery-logs",timeline:"timeline"};
+  const alias:Record<string,SectionKey>={customers:"customers",templates:"templates","email-templates":"templates",emails:"emails",campaigns:"campaigns",logs:"delivery-logs","delivery-logs":"delivery-logs",timeline:"timeline"};
   const active = requested?(sections.find(s=>s.path===requested)?.key||alias[requested]||activeSection(location.pathname)):activeSection(location.pathname);
   return (
     <div className="space-y-6">
@@ -66,14 +68,15 @@ export default function CommunicationHubPage() {
         <h1 className="text-2xl font-semibold">Communication Hub</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">Templates, individual emails, public webforms, auto-responses, campaigns, consent, WhatsApp messaging, timeline, and delivery analytics.</p>
         <nav aria-label="Communication sections" className="mt-4 flex gap-2 overflow-x-auto pb-1">
-          {sections.filter(item => canAccessRoute(item.path, user?.role, user?.is_superuser)).map((item) => {
+          {sections.filter(item => canAccessRoute(item.path.split('?')[0], user?.role, user?.is_superuser)).map((item) => {
             const Icon = item.icon;
-            return <Button key={item.key} aria-current={active === item.key ? "page" : undefined} variant={active === item.key ? "default" : "outline"} size="sm" onClick={() => navigate(item.path)}><Icon className="h-4 w-4" />{item.label}</Button>;
+            return <Button key={item.key} className="shrink-0 whitespace-nowrap" aria-current={active === item.key ? "page" : undefined} variant={active === item.key ? "default" : "outline"} size="sm" onClick={() => navigate(item.path)}><Icon className="h-4 w-4" />{item.label}</Button>;
           })}
         </nav>
       </div>
       <div className="px-4 pb-8 sm:px-6 lg:px-8">
         {active === "hub" ? <Hub /> : null}
+        {active === 'customers' ? <CustomerCommunications /> : null}
         {active === "templates" ? <Templates /> : null}
         {active === "emails" ? <Emails /> : null}
         {active === "webforms" ? <Webforms selectedId={params.id} /> : null}
@@ -187,7 +190,7 @@ function Consents() {
 }
 
 function WhatsApp() {
-  return <div className="space-y-6"><WhatsAppCloudPanel /><GenericSection title="Local WhatsApp Templates" description="Local drafts are separate from approved Meta templates. Webform auto-responses still record queued placeholders." queryKey="communication-whatsapp" queryFn={communicationApi.whatsappTemplates} action="Create WhatsApp Template" mutation={() => communicationApi.createWhatsAppTemplate({ name: "Reminder", template_key: "crm_reminder", body_text: "Hello {{name}}, this is a CRM reminder.", active: true })} /></div>;
+  return <WhatsAppCloudPanel />;
 }
 
 function AutoResponses() {

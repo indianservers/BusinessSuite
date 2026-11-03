@@ -559,7 +559,10 @@ def test_all_crm_record_scopes(
     g = {**grant(client, headers), "scope": scope}
     assert apply(client, headers, access_account, {"crm": g}).status_code == 200
     branch_scenario(db, db.query(CRMLead).all())
-    response = client.get("/api/v1/crm/lead-management/leads", headers=login(client))
+    # The fixture deliberately puts every lead in ACCESS-TEST. Employee home
+    # branches below test module scope, not the independently selected branch.
+    selected = db.query(Branch).filter_by(company_id=1, code='ACCESS-TEST').one()
+    response = client.get("/api/v1/crm/lead-management/leads", headers={**login(client), 'X-Suite-Branch':str(selected.id)})
     assert response.status_code == 200, response.text
     assert len(response.json()["items"]) == expected
 

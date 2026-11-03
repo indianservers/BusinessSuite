@@ -1,3 +1,5 @@
+import { ProductivityReference } from "./shared/ProductivityReference";
+import { productivityReferences } from "@/shared/productivity/references";
 import ModuleNavigation from "@/components/layout/ModuleNavigation";
 import { AutomationList } from "./applications/automations/AutomationList";
 import {
@@ -48,6 +50,7 @@ export default function PowerAppsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const section = location.pathname.split("/")[2];
+  const isReference = productivityReferences.some(item => item.id === section);
   const [catalog, setCatalog] = useState<Catalog>();
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [environment, setEnvironment] = useState<Environment>(() =>
@@ -69,6 +72,14 @@ export default function PowerAppsPage() {
     setOverview(undefined);
     setActivities([]);
     (async () => {
+      // References are documentation, independent of Studio environments and metrics.
+      if (isReference) {
+        const cat = await powerApi.catalog();
+        if (!active) return;
+        setCatalog(cat);
+        setBusy(false);
+        return;
+      }
       const [cat, envs] = await Promise.all([
         powerApi.catalog(),
         powerApi.environments(),
@@ -104,12 +115,12 @@ export default function PowerAppsPage() {
     return () => {
       active = false;
     };
-  }, [environment, section, location.pathname, refresh]);
+  }, [environment, section, isReference, location.pathname, refresh]);
   const move = (route: string) =>
     navigate(
       route.startsWith("/power-apps") ? studioPath(route, environment) : route,
     );
-  const toolkitGroup = (id: string) => ["automations", "approvals"].includes(id) ? "Workflows & approvals"
+  const toolkitGroup = (id: string) => productivityReferences.some(item => item.id === id) ? "Productivity references" : ["automations", "approvals"].includes(id) ? "Workflows & approvals"
     : ["forms", "tables", "app-builder", "documents"].includes(id) ? "Build & customize"
     : ["notifications", "search", "connectors", "ai-agents"].includes(id) ? "Connections & AI" : "Reports & activity";
   const toolkitItems = [{ to: studioPath("/power-apps", environment), label: "Overview", icon: Layers3, group: "Overview" },
@@ -250,7 +261,9 @@ export default function PowerAppsPage() {
             <p role="status" className="pa-loading">
               Loading your environment...
             </p>
-          ) : !catalog ? null : !environments.length ? (
+          ) : !catalog ? null : isReference ? (
+            selected ? <ProductivityReference section={section} /> : <Empty title="Application unavailable">This reference is not available to your account.</Empty>
+          ) : !environments.length ? (
             <section className="pa-panel">
               <Empty title="Set up your first environment">
                 An environment administrator must enable a workspace for this
@@ -313,6 +326,8 @@ export default function PowerAppsPage() {
                             <span className={`pa-status ${app.status}`}>
                               {app.status === "drafts"
                                 ? "Draft workspace"
+                                : app.status === "reference"
+                                  ? "Integration reference"
                                 : app.status === "available"
                                   ? "Available"
                                   : "Coming next"}
@@ -416,7 +431,7 @@ export default function PowerAppsPage() {
                 ))}
               {section &&
                 section !== "automations" &&
-                section !== "activity" && (
+                section !== "activity" && !isReference && (
                   <PlannedApplication
                     section={section}
                     name={selected?.name}

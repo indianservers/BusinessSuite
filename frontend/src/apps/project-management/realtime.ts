@@ -1,3 +1,4 @@
+import { selectedBranch } from "@/lib/branch-context";
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import { notificationsMuted } from "@/store/personalStore";
@@ -83,7 +84,7 @@ function wsUrl(token: string) {
   const url = new URL(`${base.replace(/\/$/, "")}/project-management/realtime`);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.searchParams.set("token", token);
-  const branch = sessionStorage.getItem("suite-branch");
+  const branch = selectedBranch();
   const company = sessionStorage.getItem("suite-organization");
   if (branch) url.searchParams.set("branch", branch);
   if (company) url.searchParams.set("company", company);

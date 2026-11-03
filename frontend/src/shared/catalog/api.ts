@@ -28,7 +28,7 @@ export function useDebounced(value: string) {
 export const catalogApi = {
   list: (source: CatalogSource, params: Record<string, string | number | undefined> = {}) => api.get<{ items: CatalogItem[]; total: number; pages: number; permissions: Partial<Record<CatalogKind, boolean>> }>("/catalog/items", { params: { source, ...params }, progress: false }),
   get: (source: CatalogSource, kind: CatalogKind, id: number) => api.get<CatalogItem>(`/catalog/items/${kind}/${id}`, { params: { source } }),
-  save: (source: CatalogSource, item: Omit<CatalogItem, "id"> & { id?: number }) => { const { id, ...data } = item; return id ? api.put<CatalogItem>(`/catalog/items/${item.kind}/${id}`, data, { params: { source } }) : api.post<CatalogItem>("/catalog/items", data, { params: { source } }); },
+  save: (source: CatalogSource, item: Omit<CatalogItem, "id"> & { id?: number }, branchId?: number) => { const { id, ...data } = item; return id ? api.put<CatalogItem>(`/catalog/items/${item.kind}/${id}`, data, { params: { source } }) : api.post<CatalogItem>("/catalog/items", data, { params: { source }, ...(branchId ? { headers: { "X-Suite-Branch": String(branchId) } } : {}) }); },
 };
 export function catalogError(error: unknown): string { const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail; return typeof detail === "string" ? detail : "Unable to save or load the catalog. Check the fields and your access, then try again."; }
 export const money = (value: number, currency: string) => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(value); } catch { return `${currency} ${value.toFixed(2)}`; } };

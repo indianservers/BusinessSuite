@@ -1,5 +1,6 @@
 import { api } from "./api";
 import { useAuthStore } from "@/store/authStore";
+import { selectedBranch } from "@/lib/branch-context";
 
 /** Real SSE stages/results, not a simulated typewriter or invented progress. */
 export async function assistantStream(
@@ -9,6 +10,7 @@ export async function assistantStream(
   onStage: (stage: string) => void,
 ) {
   const token = useAuthStore.getState().accessToken;
+  const branch = selectedBranch();
   const response = await fetch(`${api.defaults.baseURL}${path}`, {
     method: "POST",
     signal,
@@ -17,7 +19,7 @@ export async function assistantStream(
       "Content-Type": "application/json",
       Accept: "text/event-stream",
       ...(sessionStorage.getItem("suite-organization") ? { "X-Suite-Organization": sessionStorage.getItem("suite-organization")! } : {}),
-      ...(sessionStorage.getItem("suite-branch") ? { "X-Suite-Branch": sessionStorage.getItem("suite-branch")! } : {}),
+      ...(branch ? { "X-Suite-Branch": branch } : {}),
     },
     body: JSON.stringify(payload),
   });

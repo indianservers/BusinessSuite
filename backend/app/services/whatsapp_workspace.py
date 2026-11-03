@@ -67,7 +67,33 @@ def contact_for(db, company, recipient):
             db.flush()
         return row
     except IntegrityError:
-        return db.query(WhatsAppContact).filter_by(organization_id=company, recipient=recipient).with_for_update().one()
+        row = db.query(WhatsAppContact).filter_by(organization_id=company, recipient=recipient).with_for_update().first()
+        if not row:
+            raise HTTPException(409, 'Recipient is outside the selected branch; choose its authorized branch') from None
+        return row
+
+
+def branch_ownership(db, row):
+    from sqlalchemy import select
+    from app.branches.models import BranchOwnership
+    table = BranchOwnership.__table__
+    return db.connection().execute(select(table.c.branch_id).where(table.c.resource_table == row.__tablename__, table.c.resource_key == str(row.id), table.c.company_id == row.organization_id)).scalar()
+
+
+def stamp_inbound(db, row, branch):
+    """Trusted HMAC ingestion has no user session; retain normal branch ownership."""
+    if not branch or branch_ownership(db, row): return
+    from app.branches.models import BranchOwnership
+    from app.models.company import Branch
+    from app.branches.models import BranchLifecycle
+    from sqlalchemy import select
+    table = BranchOwnership.__table__
+    if not db.connection().execute(select(Branch.id).where(Branch.id == branch, Branch.company_id == row.organization_id, Branch.is_active.is_(True), ~Branch.id.in_(select(BranchLifecycle.branch_id).where(BranchLifecycle.deleted_at.is_not(None))))).first():
+        return  # Retain unresolved privately; never guess another branch.
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+    insert = pg_insert if db.bind.dialect.name == 'postgresql' else sqlite_insert
+    db.connection().execute(insert(table).values(resource_table=row.__tablename__,resource_key=str(row.id),company_id=row.organization_id,branch_id=branch,source='whatsapp_signed_webhook').on_conflict_do_nothing())
 
 
 def environment_available(company):
@@ -110,7 +136,7 @@ def connection_token(row):
 def connection_data(row):
     return {'id':row.id, 'wabaId':row.waba_id, 'phoneNumberId':row.phone_number_id,
         'displayNumber':row.display_number, 'businessName':row.business_name, 'source':row.source,
-        'status':row.status, 'subscribed':row.subscribed, 'verifiedAt':row.verified_at}
+        'status':row.status, 'subscribed':row.subscribed, 'verifiedAt':row.verified_at, 'inboundBranchId':row.inbound_branch_id}
 
 
 def verify_assets(token, waba, phone):
@@ -158,6 +184,9 @@ def save_connection(db, user, token, waba, phone, source='embedded_signup', regi
     row.display_number, row.business_name = details.get('display_phone_number'), details.get('verified_name')
     row.token_ciphertext = None if source == 'environment' else protect(token)
     row.source, row.status, row.subscribed, row.verified_at = source, ('connected' if details.get('status') == 'CONNECTED' else 'registration_required'), True, now()
+    context = db.info.get('branch_context')
+    if context and context.branch_id in context.writable:
+        row.inbound_branch_id = context.branch_id
     try:
         db.flush()
     except IntegrityError:
@@ -265,8 +294,11 @@ def send_message(db, user, data):
         row.provider_message_id = provider_id
         update_status(db, row, state)
         # Preserve delivery events that raced the provider response/local commit.
-        for receipt in db.query(WhatsAppReceipt).filter_by(connection_id=connection.id, provider_message_id=provider_id).order_by(WhatsAppReceipt.id).all():
-            update_status(db, row, receipt.status, receipt.error_code)
+        # Exact message-scoped receipt lookup: a receipt may precede its sender
+        # response, so its branch ownership cannot always be known on arrival.
+        table = WhatsAppReceipt.__table__
+        for receipt in db.connection().execute(table.select().where(table.c.organization_id == company, table.c.connection_id == connection.id, table.c.provider_message_id == provider_id).order_by(table.c.id)).mappings():
+            update_status(db, row, receipt['status'], receipt['error_code'])
     except MetaError as error:
         row.status = 'reconciliation_required' if error.uncertain else 'failed'
         row.error_code = error.code or ('uncertain' if error.uncertain else 'provider_error')
@@ -312,13 +344,17 @@ def ingest(db, payload):
                 except HTTPException:
                     continue
                 contact = contact_for(db, company, recipient)
+                stamp_inbound(db, contact, connection.inbound_branch_id)
+                branch = branch_ownership(db, contact)
                 kind = str(event.get('type', 'unknown'))[:30]
                 body = str(event.get('text', {}).get('body', ''))[:10000] if kind == 'text' else '['+kind+' message]'
                 try:
                     with db.begin_nested():
-                        db.add(WhatsAppMessage(organization_id=company, connection_id=connection.id, contact_id=contact.id,
-                            direction='inbound', kind=kind, body=body, status='received', provider_message_id=provider_id))
+                        message = WhatsAppMessage(organization_id=company, connection_id=connection.id, contact_id=contact.id,
+                            direction='inbound', kind=kind, body=body, status='received', provider_message_id=provider_id)
+                        db.add(message)
                         db.flush()
+                        stamp_inbound(db, message, branch)
                 except IntegrityError:
                     continue
                 timestamp = None

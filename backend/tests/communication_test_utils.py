@@ -30,6 +30,22 @@ def communication_headers(client, db, email: str = "communication-admin@example.
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user, company_id)
+    # Workflow fixtures explicitly authorize the shared module and a branch;
+    # production access defaults intentionally do not infer this from a role name.
+    from app.access.models import AccessPolicy
+    from app.models.company import Branch
+    from app.branches.models import BranchPolicy
+    policy = db.query(AccessPolicy).filter_by(user_id=user.id, company_id=company_id).first()
+    grants = {'communication': {'enabled': True, 'role': 'admin', 'scope': 'organization',
+        'permissions': ALL_COMMUNICATION_PERMISSIONS if permissions is None else permissions,
+        'actions': ['view', 'create', 'edit', 'delete', 'approve']}}
+    if policy:
+        policy.grants = grants
+    else:
+        db.add(AccessPolicy(user_id=user.id, company_id=company_id, grants=grants, status='active', version=1))
+    if not db.query(Branch).filter_by(company_id=company_id).first():
+        db.add(Branch(company_id=company_id, name='Communication test branch', code='COMM', is_active=True))
+    db.add(BranchPolicy(user_id=user.id, company_id=company_id, all_branches=True, use_home_branch=False))
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text

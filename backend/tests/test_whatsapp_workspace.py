@@ -160,3 +160,132 @@ def test_connection_credentials_cannot_fall_back_after_deployment_change(workspa
     monkeypatch.setattr(settings,'CRM_WHATSAPP_ACCESS_TOKEN','other-deployment-secret')
     with pytest.raises(HTTPException) as error: wa.connection_token(row)
     assert error.value.status_code==409
+
+
+def test_account_api_auth_and_secret_serialization(workspace):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.core.deps import get_current_user,get_db
+    from app.api.v1.whatsapp_cloud import router
+    db,user,_,_=workspace
+    app=FastAPI();app.include_router(router)
+    app.dependency_overrides[get_db]=lambda:db
+    client=TestClient(app)
+    assert client.get('/integrations/whatsapp/status').status_code==403
+    app.dependency_overrides[get_current_user]=lambda:user
+    result=client.get('/integrations/whatsapp/status')
+    assert result.status_code==200 and result.json()['configured']
+    assert 'token' not in result.text.lower() and 'ciphertext' not in result.text.lower()
+    user.is_superuser=False
+    assert client.post('/integrations/whatsapp/connection/check').status_code==403
+
+
+def test_branch_guard_keeps_configuration_shared_and_conversations_private(workspace):
+    from app.models.company import Branch
+    from app.branches.service import BranchContext
+    from app.branches.boundary import install
+    db,user,companies,connections=workspace
+    branches=[Branch(name='WhatsApp inbox A',company_id=companies[0].id),Branch(name='WhatsApp inbox B',company_id=companies[0].id)]
+    db.add_all(branches);db.flush()
+    connections[0].inbound_branch_id=branches[0].id;db.commit()
+    wa.ingest(db,incoming(connections[0]));db.commit()
+    contact=db.query(WhatsAppContact).one()
+    assert wa.branch_ownership(db,contact)==branches[0].id
+    message=db.query(WhatsAppMessage).one()
+    assert wa.branch_ownership(db,message)==branches[0].id
+    ids=[branch.id for branch in branches];company=companies[0].id
+    for index,expected in [(1,0),(0,1)]:
+        context=BranchContext(company,ids[index],frozenset(ids),frozenset(ids),True,True,True)
+        cleanup=install(db,user,context)
+        try:
+            assert wa.connection_for(db,company) is not None
+            assert db.query(WhatsAppContact).count()==expected
+            assert db.query(WhatsAppMessage).count()==expected
+        finally:cleanup()
+
+
+def test_account_bootstrap_does_not_require_a_sales_destination(workspace,monkeypatch):
+    from app.branches.service import BranchContext
+    from app.branches.boundary import install
+    db,user,companies,connections=workspace
+    db.delete(connections[0]);db.commit()
+    monkeypatch.setattr(settings,'CRM_WHATSAPP_PROVIDER','meta')
+    monkeypatch.setattr(settings,'CRM_WHATSAPP_ORGANIZATION_ID',companies[0].id)
+    monkeypatch.setattr(settings,'CRM_WHATSAPP_PHONE_NUMBER_ID','12345678')
+    monkeypatch.setattr(settings,'CRM_WHATSAPP_BUSINESS_ACCOUNT_ID','87654321')
+    monkeypatch.setattr(settings,'CRM_WHATSAPP_ACCESS_TOKEN','test-only-token')
+    cleanup=install(db,user,BranchContext(companies[0].id,None,frozenset(),frozenset(),True,True,True))
+    try:
+        assert wa.connection_for(db,companies[0].id,bootstrap=True).source=='environment'
+        db.commit()
+    finally:cleanup()
+
+
+def test_linked_send_finishes_after_meta_acceptance_with_branch_guard(workspace,monkeypatch):
+    from app.models.company import Branch
+    from app.apps.crm.models import CRMLead,CRMMessage
+    from app.branches.models import BranchOwnership
+    from app.branches.service import BranchContext
+    from app.branches.boundary import install
+    db,user,companies,connections=workspace
+    branch=Branch(name='Send regression',company_id=companies[0].id);db.add(branch);db.flush()
+    lead=CRMLead(organization_id=companies[0].id,first_name='Test',full_name='Test',branch_id=branch.id)
+    db.add(lead);db.flush()
+    db.add(BranchOwnership(resource_table='crm_leads',resource_key=str(lead.id),company_id=companies[0].id,branch_id=branch.id,source='test'))
+    connections[0].inbound_branch_id=branch.id;db.commit()
+    wa.ingest(db,incoming(connections[0]));db.commit()
+    contact=db.query(WhatsAppContact).one();contact.entity_type,contact.entity_id='lead',lead.id;db.commit()
+    company,branch_id,lead_id=companies[0].id,branch.id,lead.id
+    monkeypatch.setattr(wa.MetaWhatsAppProvider,'send',lambda *a,**kw:('accepted','wamid.branch-regression'))
+    cleanup=install(db,user,BranchContext(company,branch_id,frozenset({branch_id}),frozenset({branch_id}),True,True,True))
+    try:
+        row=wa.send_message(db,user,SendInput(requestId='branch-send-regression',to='919876543210',body='Reply',entityType='lead',entityId=lead_id))
+        assert row.status=='accepted' and row.provider_message_id=='wamid.branch-regression'
+        assert db.get(CRMMessage,row.crm_message_id).status=='accepted'
+        assert wa.branch_ownership(db,row)==branch_id
+    finally:cleanup()
+
+
+def test_send_lookup_and_history_never_cross_company(workspace):
+    from app.api.v1.whatsapp_cloud import message_by_request,outbound_messages
+    db,user,companies,connections=workspace
+    wa.ingest(db,incoming(connections[0]));db.commit()
+    contact=db.query(WhatsAppContact).one()
+    row=WhatsAppMessage(organization_id=companies[0].id,connection_id=connections[0].id,contact_id=contact.id,direction='outbound',body='Test',status='accepted',idempotency_key='lookup-test-request')
+    db.add(row);db.commit()
+    assert message_by_request('lookup-test-request',db,user)['status']=='accepted'
+    assert len(outbound_messages(None,50,db,user)['items'])==1
+    other=SimpleNamespace(id=user.id,organization_id=companies[1].id,is_superuser=True)
+    with pytest.raises(HTTPException) as error:message_by_request('lookup-test-request',db,other)
+    assert error.value.status_code==404
+    assert outbound_messages(None,50,db,other)['items']==[]
+
+
+def test_profile_photo_validates_before_meta_and_returns_provider_profile(workspace,monkeypatch):
+    from io import BytesIO
+    from PIL import Image
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.core.deps import get_current_user,get_db
+    from app.api.v1.whatsapp_cloud import router
+    db,user,_,_=workspace
+    app=FastAPI();app.include_router(router);app.dependency_overrides[get_db]=lambda:db;app.dependency_overrides[get_current_user]=lambda:user
+    client=TestClient(app);calls=[]
+    monkeypatch.setattr(wa.WhatsAppGraph,'upload_profile_jpeg',lambda self,data:calls.append('upload') or 'private-handle')
+    def graph(self,method,path,**kwargs):
+        calls.append(method)
+        return {'success':True} if method=='POST' else {'data':[{'profile_picture_url':'https://example.invalid/photo.jpg'}]}
+    monkeypatch.setattr(wa.WhatsAppGraph,'request',graph)
+    response=client.post('/integrations/whatsapp/profile/picture',files={'file':('fake.jpg',b'not-an-image','image/jpeg')})
+    assert response.status_code==422 and not calls
+    photo=BytesIO();Image.new('RGB',(192,192),'white').save(photo,format='JPEG')
+    response=client.post('/integrations/whatsapp/profile/picture',files={'file':('photo.jpg',photo.getvalue(),'image/jpeg')})
+    assert response.status_code==200 and response.json()['profile_picture_url'].endswith('photo.jpg')
+    assert calls==['upload','POST','GET'] and 'private-handle' not in response.text
+
+
+def test_upload_session_cannot_redirect_credentials(monkeypatch):
+    from app.services.whatsapp import WhatsAppGraph
+    monkeypatch.setattr(settings,'CRM_WHATSAPP_APP_ID','123456')
+    monkeypatch.setattr(WhatsAppGraph,'request',lambda *a,**kw:{'id':'https://evil.invalid/steal'})
+    with pytest.raises(MetaError):WhatsAppGraph('secret-token').upload_profile_jpeg(b'jpeg')

@@ -2288,6 +2288,9 @@ def update_sales_order(sales_order_id: int, data: SRMSalesOrderUpdate, db: Sessi
     if item.status == 'cancelled':
         from app.shared.follow_ups import cancel_for_order
         cancel_for_order(db, item.id, current_user)
+    if item.status in {'confirmed', 'closed'}:
+        from app.shared.follow_ups import create_for_order
+        create_for_order(db, item, current_user)
     _audit(db, current_user, "sales_order", item.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
     db.commit()
     db.refresh(item)
@@ -2623,6 +2626,8 @@ def update_engagement(engagement_id: int, data: SRMEngagementUpdate, db: Session
         if key == "status":
             _assert_status(value, ENGAGEMENT_STATUSES, "engagement")
         setattr(item, key, value)
+    from app.shared.follow_ups import create_for_engagement
+    create_for_engagement(db, item, current_user)
     _audit(db, current_user, "engagement", item.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
     db.commit()
     db.refresh(item)
@@ -2655,6 +2660,8 @@ def update_engagement_status(engagement_id: int, target_status: str, db: Session
     item = get_engagement_for_user(db, engagement_id, current_user)
     before = item.status
     item.status = target_status
+    from app.shared.follow_ups import create_for_engagement
+    create_for_engagement(db, item, current_user)
     _audit(db, current_user, "engagement", item.id, "status_changed", before={"status": before}, after={"status": item.status})
     db.commit()
     db.refresh(item)
@@ -3483,20 +3490,38 @@ def customer_collections(customer_id: int, db: Session = Depends(get_db), curren
 @router.post("/collections/reminders/send")
 def send_collection_reminder(data: SRMReminderRequest, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
     invoice = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.id == data.invoice_id).first() if data.invoice_id else None
+    if not invoice:
+        raise HTTPException(404, 'An authorized invoice is required for a payment reminder')
+    if data.customer_id and data.customer_id != invoice.customer_id:
+        raise HTTPException(422, 'Customer does not match the invoice')
+    if invoice.status in {'paid', 'cancelled', 'draft'} or float(invoice.balance_amount or 0) <= 0:
+        raise HTTPException(409, 'Only an issued invoice with an outstanding balance can be reminded')
+    from app.apps.communication.customer_models import CustomerRecipient
+    from app.apps.communication.customer_service import binding_matches, queue_delivery, preference_allowed
+    from app.apps.communication.customer_events import values
+    recipients = [r for r in db.query(CustomerRecipient).filter_by(organization_id=_org(current_user), active=True)
+        if r.role in {'billing', 'primary'} and binding_matches(db, r.id, 'invoice', invoice.id, invoice, _org(current_user))
+        and preference_allowed(db, r, 'email', 'transactional')]
+    if not recipients:
+        raise HTTPException(409, 'Link an opted-in billing recipient to this invoice or its sales order in Customer communications')
     item = SRMCollectionReminder(
         organization_id=_org(current_user),
         customer_id=data.customer_id or (invoice.customer_id if invoice else None),
         invoice_id=invoice.id if invoice else None,
-        status="sent",
+        status="queued",
         reminder_type="email",
         scheduled_at=datetime.now(timezone.utc),
-        sent_at=datetime.now(timezone.utc),
+        sent_at=None,
         message=data.message or "Payment reminder",
         created_by=current_user.id,
     )
     db.add(item)
     db.flush()
-    _audit(db, current_user, "collection_reminder", item.id, "sent", after=_serialize(item))
+    for recipient in recipients:
+        queue_delivery(db, recipient, key=f'collection:{item.id}:{recipient.id}', kind='invoice', identity=invoice.id,
+            snapshot=values(invoice), actor=current_user.id, reminder_id=item.id,
+            subject='Payment reminder: {{reference}}', body=data.message or 'Hello {{name}}, payment of {{amount}} {{currency}} is pending for invoice {{reference}}.')
+    _audit(db, current_user, "collection_reminder", item.id, "queued", after=_serialize(item))
     db.commit()
     db.refresh(item)
     return _serialize(item)

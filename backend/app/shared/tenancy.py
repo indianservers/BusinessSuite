@@ -5,7 +5,7 @@ automation APIs cannot edit versioned definitions through their mutable routes.
 """
 
 from fastapi import HTTPException
-from sqlalchemy import event, func, select, and_, or_
+from sqlalchemy import event, func, select, and_, or_, inspect
 from sqlalchemy.orm import with_loader_criteria
 from app.db.base_class import Base
 
@@ -84,8 +84,12 @@ def install(db, company, module):
 
     def get(model, ident, **kwargs):
         if model in clauses:
+            keys = inspect(model).primary_key
+            values = tuple(ident.get(key.key) for key in keys) if isinstance(ident, dict) else ident if isinstance(ident, tuple) else (ident,)
+            if len(keys) != len(values):
+                raise ValueError('Incorrect number of primary-key values')
             with db.no_autoflush:
-                row = db.query(model).filter(model.id == ident, clauses[model]).first()
+                row = db.query(model).filter(*(getattr(model, key.key) == value for key, value in zip(keys, values)), clauses[model]).first()
             return row
         return original_get(model, ident, **kwargs)
 

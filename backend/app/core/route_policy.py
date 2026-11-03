@@ -12,12 +12,14 @@ from fastapi.dependencies.utils import get_parameterless_sub_dependant
 
 PUBLIC_CAPABILITIES = (
     r"/integrations/whatsapp/webhook",
+    r"/integrations/customer-email/[^/]+",
     r"/power-apps/hooks/[^/]+",
     r"/power-apps/integrations/oauth/callback",
     r"/auth/(branding|login|refresh|forgot-password|reset-password|mfa/verify|firebase/(config|login))",
     r"/auth/sso/(providers/active|initiate/[^/]+|callback/oidc/[^/]+|complete/[^/]+)",
     r"/forms/public/[^/]+(?:/(?:challenge|submit))?",
     r"/public/webforms/[^/]+(?:/submit)?",
+    r"/public/customer-preferences/[^/]+",
     r"/access/services/webhooks/[^/]+/receive",
     r"/internal/(?:cron|intern-correction-reminders|email-dispatch)",
     r"/(?:customer|partner)-portal(?:/.*)?",

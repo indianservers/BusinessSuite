@@ -47,6 +47,12 @@ def context(db, user, company, selected=None):
     if not user.is_superuser and company not in company_ids(db, user):
         raise HTTPException(403, "Verified company membership is required")
     allowed, writable, all_access, manager = access(db, user, company)
+    # Older clients can retain the retired "all" selection in session storage.
+    # Resolve writes before authorization too, so module roles and ownership use
+    # the same concrete branch. Explicit all-branch reads remain available to
+    # authorized reporting/control-plane callers.
+    if selected == "all" and db.info.get("security_write_request"):
+        selected = None
     if selected == "all":
         if not all_access:
             raise HTTPException(403, "All-branches access is required")
@@ -60,7 +66,7 @@ def context(db, user, company, selected=None):
     else:
         home = db.connection().execute(select(Employee.branch_id).where(Employee.user_id == user.id, Employee.branch_id.in_(allowed), Employee.deleted_at.is_(None))).scalar()
         # Default to a concrete destination, including for administrators.
-        # The explicit "all" selection remains available for cross-branch reads.
+        # Cross-branch reports can still request an explicit read-only scope.
         branch_id = home if home in writable else min(writable) if writable else home if home in allowed else min(allowed) if allowed else None
     return BranchContext(company, branch_id, frozenset(allowed), frozenset(writable), all_access, manager, bool(user.is_superuser))
 

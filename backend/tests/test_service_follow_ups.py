@@ -226,3 +226,73 @@ def test_calendar_day_interval_preserves_local_time_across_dst(db, setup):
     payload = CreateFollowUp(customer_id=c.id, product_id=p.id, title='DST follow-up', reference_at=reference, timezone='America/New_York', interval_days=7)
     row=create(db,u,payload)
     assert row.due_at.astimezone(ZoneInfo('America/New_York')).hour==9
+
+
+def test_catalog_template_waits_for_customer_event(db, setup):
+    from app.shared.catalog import ItemInput
+    from app.shared.follow_ups import create_for_order, create_for_engagement
+    from app.apps.srm.models import SRMSalesOrder, SRMSalesOrderLine, SRMEngagement
+    u, c, p = setup
+    template = ItemInput(kind="service", name="Consultation", code="CONSULT", follow_up={
+        "required": True, "reference": "completion", "interval_days": 7})
+    assert template.follow_up.reference_at is None
+    old_template = ItemInput(kind="service", name="Consultation", code="CONSULT", follow_up={
+        "required": True, "reference_at": "2026-01-01T09:00:00Z"})
+    assert old_template.follow_up.reference_at is None
+    p.metadata_json = {"follow_up": template.follow_up.model_dump(mode="json")}
+    order = SRMSalesOrder(organization_id=1, order_number="SERVICE-EVENT", title="Consultation", customer_id=c.id, status="draft")
+    db.add(order)
+    db.flush()
+    line = SRMSalesOrderLine(sales_order_id=order.id, product_id=p.id, description="Consultation")
+    db.add(line)
+    db.flush()
+    create_for_order(db, order, u)
+    assert db.query(FollowUp).count() == 0
+    order.status = "confirmed"
+    create_for_order(db, order, u)
+    assert db.query(FollowUp).count() == 0
+    engagement = SRMEngagement(organization_id=1, engagement_number="ENG-EVENT", sales_order_id=order.id, customer_id=c.id, name="Consultation", status="completed")
+    db.add(engagement)
+    db.flush()
+    before = datetime.now(timezone.utc)
+    create_for_engagement(db, engagement, u)
+    create_for_engagement(db, engagement, u)
+    row = db.query(FollowUp).one()
+    assert row.customer_id == c.id and row.order_line_id == line.id
+    from app.shared.follow_ups import utc
+    assert before + timedelta(days=7) <= utc(row.due_at) <= datetime.now(timezone.utc) + timedelta(days=7)
+
+
+def test_confirmed_purchase_creates_follow_up_and_draft_cancelled_do_not(db, setup):
+    from app.shared.follow_ups import create_for_order
+    from app.apps.srm.models import SRMSalesOrder, SRMSalesOrderLine
+    u, c, p = setup
+    p.metadata_json = {"follow_up": {"required": True, "interval_days": 3}}
+    order = SRMSalesOrder(organization_id=1, order_number="PURCHASE-EVENT", title="Purchase", customer_id=c.id, status="draft")
+    db.add(order)
+    db.flush()
+    db.add(SRMSalesOrderLine(sales_order_id=order.id, product_id=p.id, description="Purchase"))
+    db.flush()
+    create_for_order(db, order, u)
+    assert db.query(FollowUp).count() == 0
+    order.status = "cancelled"
+    create_for_order(db, order, u)
+    assert db.query(FollowUp).count() == 0
+    order.status = "confirmed"
+    create_for_order(db, order, u)
+    create_for_order(db, order, u)
+    assert db.query(FollowUp).count() == 1
+
+
+def test_line_can_disable_catalog_follow_up(db, setup):
+    from app.shared.follow_ups import create_for_order
+    from app.apps.srm.models import SRMSalesOrder, SRMSalesOrderLine
+    u, c, p = setup
+    p.metadata_json = {"follow_up": {"required": True}}
+    order = SRMSalesOrder(organization_id=1, order_number="NO-FOLLOW", title="Opt out", customer_id=c.id, status="confirmed")
+    db.add(order)
+    db.flush()
+    db.add(SRMSalesOrderLine(sales_order_id=order.id, product_id=p.id, metadata_json={"follow_up": {"required": False}}))
+    db.flush()
+    create_for_order(db, order, u)
+    assert db.query(FollowUp).count() == 0

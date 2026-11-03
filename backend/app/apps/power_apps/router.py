@@ -157,9 +157,11 @@ def delete_draft(resource_id: int, expected_version: int = Query(ge=1), environm
     from app.apps.power_apps.runtime_models import AutomationDeployment, AutomationRun
     if db.query(AutomationDeployment).filter_by(resource_id=row.id).filter(AutomationDeployment.version_id.is_not(None)).first() or db.query(PowerExecution).filter_by(resource_id=row.id).first():
         raise HTTPException(409, "Published workflows and execution histories must be retained; archive instead")
-    db.query(AutomationDeployment).filter_by(resource_id=row.id).delete()
+    for deployment in db.query(AutomationDeployment).filter_by(resource_id=row.id).all():
+        db.delete(deployment)
     record_change(db, user, row, "draft_deleted", snapshot=False)
-    db.query(PowerVersion).filter_by(organization_id=row.organization_id, resource_id=row.id).delete()
+    for version in db.query(PowerVersion).filter_by(organization_id=row.organization_id, resource_id=row.id).all():
+        db.delete(version)
     db.delete(row)
     db.commit()
 

@@ -10,7 +10,7 @@ import BranchSwitcher from "./BranchSwitcher";
 export default function SuiteHeader() {
   const authenticated = useAuthStore((s) => s.isAuthenticated);
   return (
-    <header className="suite-header">
+    <header className="suite-app-bar suite-header">
       <SuiteBrand
         to={authenticated ? "/dashboard" : "/"}
         subtitle={

@@ -594,3 +594,8 @@ def list_delivery_logs(db: Session = Depends(get_db), current_user: User = Depen
 
 router.include_router(communication_router)
 router.include_router(public_router)
+from app.apps.communication.customer_api import router as customer_router, public_router as customer_public_router
+router.include_router(customer_router)
+router.include_router(customer_public_router)
+from app.apps.communication.customer_inbound import router as customer_inbound_router
+router.include_router(customer_inbound_router)

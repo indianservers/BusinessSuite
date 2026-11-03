@@ -5,6 +5,8 @@ from app.core.security import create_access_token
 from app.apps.power_apps.registry import PERMISSIONS
 from app.apps.power_apps.models import PowerEnvironment, PowerResource, PowerVersion, PowerExecution, PowerActivity
 from tests.tenant_test_utils import assign_company
+from app.models.company import Branch
+from app.branches.models import BranchPolicy
 
 ROOT = "/api/v1/power-apps"
 
@@ -24,7 +26,9 @@ def actors(db):
     for i, company in enumerate([1, 2, 1, 1, 1]):
         user = User(email=f"power-{i}@example.com", hashed_password="unused", role_id=viewer.id if i == 2 else role.id, is_active=True)
         db.add(user); db.flush(); assign_company(db, user, company); users.append(user)
+        db.add(BranchPolicy(user_id=user.id, company_id=company, all_branches=True, use_home_branch=False))
     for company in [1, 2]:
+        db.add(Branch(company_id=company, name="Power Apps test branch", code=f"POWER-{company}", is_active=True))
         for environment in ["development", "testing"]:
             db.add(PowerEnvironment(organization_id=company, key=environment, enabled=True))
     # Exercise central policy + ORM ownership in addition to unmanaged roles.
@@ -45,8 +49,9 @@ def create(client, headers, name="Customer welcome", env="development"):
 def test_catalog_real_empty_counts_and_auth(client, actors):
     assert client.get(ROOT + "/catalog").status_code in [401, 403]
     catalog = client.get(ROOT + "/catalog", headers=actors[0]).json()
-    assert len(catalog["applications"]) == 12
-    assert len({a["icon"] for a in catalog["applications"]}) == 12
+    assert len(catalog["applications"]) == 16
+    references = {a["id"] for a in catalog["applications"] if a["status"] == "reference"}
+    assert references == {"calendar", "notes", "tasks", "workflow-automation"}
     assert catalog["execution_enabled"] is True
     assert all(a["route"] == "/power-apps/" + a["id"] for a in catalog["applications"])
     result = client.get(ROOT + "/overview", headers=actors[0])
@@ -54,6 +59,25 @@ def test_catalog_real_empty_counts_and_auth(client, actors):
     assert all(value == 0 for value in result.json()["counts"].values())
     assert result.json()["recent"] == []
     assert client.get(ROOT + "/activity", headers=actors[0]).json()["items"] == []
+
+
+def test_reference_catalog_needs_branch_access_but_no_environment(client, db, actors):
+    # Reference discovery must not create resources or require Studio setup.
+    for environment in db.query(PowerEnvironment).all():
+        db.delete(environment)
+    db.commit()
+    response = client.get(ROOT + "/catalog", headers=actors[2])
+    assert response.status_code == 200, response.text
+    assert {item["id"] for item in response.json()["applications"] if item["status"] == "reference"} == {
+        "calendar", "notes", "tasks", "workflow-automation"
+    }
+    assert db.query(PowerResource).count() == 0
+    assert db.query(PowerExecution).count() == 0
+    viewer = db.query(User).filter_by(email="power-2@example.com").one()
+    policy = db.query(BranchPolicy).filter_by(user_id=viewer.id, company_id=1).one()
+    policy.all_branches = False
+    db.commit()
+    assert client.get(ROOT + "/catalog", headers=actors[2]).status_code == 403
 
 def test_draft_versions_conflicts_and_activity(client, db, actors):
     row = create(client, actors[0])
@@ -145,10 +169,19 @@ def test_power_apps_remains_separate_from_existing_automation_registry():
 
 def test_database_backed_metrics_are_scoped_to_environment_and_owner(client, db, actors):
     draft = create(client, actors[0])
-    db.add(PowerResource(organization_id=1, environment="development", application_id="app-builder", name="Fixture app", description="", owner_user_id=draft["owner_user_id"], status="draft", version=1, definition={}))
-    db.add(PowerResource(organization_id=1, environment="testing", application_id="app-builder", name="Other environment app", description="", owner_user_id=draft["owner_user_id"], status="draft", version=1, definition={}))
-    # Historical run fixture verifies aggregation; no executor is invoked.
-    db.add(PowerExecution(organization_id=1, environment="development", resource_id=draft["id"], owner_user_id=draft["owner_user_id"], workflow_version=1, actor_user_id=draft["owner_user_id"], idempotency_key="fixture-only", status="failed", attempt=1))
+    resources = [
+        PowerResource(organization_id=1, environment=env, application_id="app-builder", name="Fixture app", description="", owner_user_id=draft["owner_user_id"], status="draft", version=1, definition={})
+        for env in ["development", "testing"]
+    ]
+    execution = PowerExecution(organization_id=1, environment="development", resource_id=draft["id"], owner_user_id=draft["owner_user_id"], workflow_version=1, actor_user_id=draft["owner_user_id"], idempotency_key="fixture-only", status="failed", attempt=1)
+    db.add_all([*resources, execution])
+    db.flush()
+    # These historical fixtures bypass HTTP writes; give them explicit ownership
+    # instead of relying on the removed implicit creator/home-branch fallback.
+    from app.branches.models import BranchOwnership
+    branch = db.query(Branch).filter_by(company_id=1).one()
+    for record in [*resources, execution]:
+        db.add(BranchOwnership(resource_table=record.__tablename__, resource_key=str(record.id), company_id=1, branch_id=branch.id, source="test-fixture"))
     db.commit()
     result = client.get(ROOT + "/overview", headers=actors[0]).json()["counts"]
     assert result["total_apps"] == 1

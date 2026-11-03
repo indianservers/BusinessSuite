@@ -1,4 +1,6 @@
 import {
+  CalendarDays,
+  FileText,
   Workflow,
   BadgeCheck,
   ClipboardList,
@@ -20,12 +22,14 @@ export type Application = {
   icon: string;
   route: string;
   description: string;
-  status: "drafts" | "planned" | "available";
+  status: "drafts" | "planned" | "available" | "reference";
   required_permissions: string[];
   feature_flags: string[];
   environments: Environment[];
 };
 export const applicationIcons: Record<string, LucideIcon> = {
+  CalendarDays,
+  FileText,
   Workflow,
   BadgeCheck,
   ClipboardList,
@@ -75,6 +79,10 @@ export type Overview = {
   unsupported_metrics: string[];
 };
 export const applicationRoutes = [
+  "calendar",
+  "notes",
+  "tasks",
+  "workflow-automation",
   "automations",
   "approvals",
   "forms",

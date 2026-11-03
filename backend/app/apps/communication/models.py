@@ -2,6 +2,7 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, Str
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
+from . import customer_models  # noqa: F401 - register customer journey tables
 
 
 class CommunicationEmailTemplate(Base):

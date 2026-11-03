@@ -2,7 +2,7 @@
 import hashlib
 import hmac
 import json
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, UploadFile, File
 from pydantic import BaseModel, Field, SecretStr, model_validator
 from typing import Literal
 from datetime import timedelta
@@ -148,6 +148,13 @@ class ConsentInput(BaseModel):
     entityType: Literal['lead','contact','deal'] | None = None
     entityId: int | None = Field(default=None, gt=0)
 
+    @model_validator(mode='after')
+    def valid_consent(self):
+        self.source = self.source.strip()
+        if len(self.source) < 3 or bool(self.entityType) != bool(self.entityId):
+            raise ValueError('Supply consent evidence and both CRM record fields when linking a record')
+        return self
+
 
 class TemplateInput(BaseModel):
     name: str = Field(pattern=r'^[a-z0-9_]{1,512}$')
@@ -170,6 +177,48 @@ def provider_error(error):
     if isinstance(error, MetaError):
         raise HTTPException(502, str(error)) from None
     raise error
+
+
+@router.get('/profile')
+def business_profile(db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.services.whatsapp import WhatsAppGraph
+    row = wa.live_connection(db,wa.organization(user))
+    try:
+        result = WhatsAppGraph(wa.connection_token(row)).request('GET',row.phone_number_id+'/whatsapp_business_profile',params={'fields':'profile_picture_url,about,description,address,email,websites,vertical'})
+    except RuntimeError as error: provider_error(error)
+    db.commit()
+    profile = (result.get('data') or [{}])[0]
+    return {key:profile.get(key) for key in ['profile_picture_url','about','description','address','email','websites','vertical']}
+
+
+@router.post('/profile/picture')
+async def update_profile_picture(file: UploadFile = File(...), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from io import BytesIO
+    from PIL import Image, UnidentifiedImageError
+    from app.services import whatsapp_workspace as wa
+    from app.services.whatsapp import WhatsAppGraph
+    content = await file.read(2*1024*1024+1)
+    await file.close()
+    if len(content)>2*1024*1024:
+        raise HTTPException(422,'Use a JPEG profile photo no larger than 2 MB')
+    try:
+        with Image.open(BytesIO(content)) as picture:
+            if picture.format!='JPEG' or picture.width!=picture.height or not 192<=picture.width<=4096:
+                raise ValueError()
+            picture.verify()
+    except (UnidentifiedImageError,ValueError,OSError,Image.DecompressionBombError):
+        raise HTTPException(422,'Use a square JPEG image between 192 and 4096 pixels') from None
+    row = wa.live_connection(db,wa.organization(user))
+    graph = WhatsAppGraph(wa.connection_token(row))
+    try:
+        handle=graph.upload_profile_jpeg(content)
+        graph.request('POST',row.phone_number_id+'/whatsapp_business_profile',payload={'messaging_product':'whatsapp','profile_picture_handle':handle})
+    except RuntimeError as error: provider_error(error)
+    from app.access.service import audit
+    audit(db,user,wa.organization(user),'whatsapp.profile_picture_updated','WhatsApp profile photo submitted to Meta',after={'connection_id':row.id})
+    db.commit()
+    return business_profile(db,user)
 
 
 @router.post('/connection')
@@ -290,6 +339,38 @@ def send(data: SendInput, db: Session = Depends(get_db), user=Depends(RequirePer
         provider_error(error)
 
 
+@router.get('/messages/by-request/{request_id}')
+def message_by_request(request_id: str, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppMessage, WhatsAppContact
+    row=db.query(WhatsAppMessage).filter_by(organization_id=wa.organization(user),idempotency_key=request_id,direction='outbound').first()
+    if not row: raise HTTPException(404,'No recorded send found for this request')
+    contact=db.query(WhatsAppContact).filter_by(id=row.contact_id,organization_id=wa.organization(user),erased_at=None).first()
+    if not contact: raise HTTPException(404,'Conversation not found')
+    wa.contact_access(db,user,contact)
+    return wa.message_data(row)
+
+
+@router.get('/messages')
+def outbound_messages(before: int | None = Query(None,gt=0), limit: int = Query(50,ge=1,le=100), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppMessage, WhatsAppContact
+    company=wa.organization(user)
+    query=db.query(WhatsAppMessage).filter_by(organization_id=company,direction='outbound')
+    if before:query=query.filter(WhatsAppMessage.id<before)
+    rows=query.order_by(WhatsAppMessage.id.desc()).limit(limit).all()
+    items=[]
+    for row in rows:
+        contact=db.query(WhatsAppContact).filter_by(id=row.contact_id,organization_id=company,erased_at=None).first()
+        if not contact:continue
+        try:wa.contact_access(db,user,contact)
+        except HTTPException as error:
+            if error.status_code in {403,404}:continue
+            raise
+        items.append({**wa.message_data(row),'recipient':contact.recipient,'name':contact.name})
+    return {'items':items,'nextBefore':rows[-1].id if len(rows)==limit else None}
+
+
 @router.post('/consent')
 def consent(data: ConsentInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_manage','crm_admin'))):
     from app.services import whatsapp_workspace as wa
@@ -306,10 +387,16 @@ def consent(data: ConsentInput, db: Session = Depends(get_db), user=Depends(Requ
 
 
 @router.get('/conversations')
-def conversations(before: int | None = Query(None, gt=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+def conversations(before: int | None = Query(None, gt=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin')), search: str = Query('', max_length=100), linked: bool | None = Query(None)):
     from app.services import whatsapp_workspace as wa
-    from app.shared.whatsapp_models import WhatsAppContact
+    from app.shared.whatsapp_models import WhatsAppContact, WhatsAppMessage
+    from sqlalchemy import or_, func
     query = db.query(WhatsAppContact).filter_by(organization_id=wa.organization(user), erased_at=None)
+    if search.strip():
+        term=search.strip().replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
+        query=query.filter(or_(WhatsAppContact.name.ilike('%'+term+'%',escape='\\'),WhatsAppContact.recipient.ilike('%'+term.replace('+','').replace(' ','')+'%',escape='\\')))
+    if linked is not None:
+        query=query.filter(WhatsAppContact.entity_id.is_not(None) if linked else WhatsAppContact.entity_id.is_(None))
     if before: query = query.filter(WhatsAppContact.id < before)
     rows = query.order_by(WhatsAppContact.id.desc()).limit(limit).all()
     items = []
@@ -319,6 +406,14 @@ def conversations(before: int | None = Query(None, gt=0), limit: int = Query(50,
             items.append(wa.contact_data(row))
         except HTTPException as error:
             if error.status_code not in {403,404}: raise
+    # One bounded query for previews, after record visibility has been checked.
+    # Never fetch a preview for a contact omitted by company/branch/CRM access.
+    if items:
+        latest=db.query(func.max(WhatsAppMessage.id).label('id')).filter(WhatsAppMessage.organization_id==wa.organization(user),WhatsAppMessage.contact_id.in_([item['id'] for item in items])).group_by(WhatsAppMessage.contact_id).subquery()
+        messages={message.contact_id:message for message in db.query(WhatsAppMessage).join(latest,WhatsAppMessage.id==latest.c.id).all()}
+        for item in items:
+            message=messages.get(item['id'])
+            item['lastMessage']={'body':message.body[:180],'direction':message.direction,'status':message.status,'createdAt':message.created_at} if message else None
     return {'items':items,'nextBefore':rows[-1].id if len(rows)==limit else None}
 
 
@@ -342,6 +437,20 @@ class LinkInput(BaseModel):
 
 class RegistrationInput(BaseModel):
     pin: SecretStr
+
+
+@router.post('/connection/inbound-branch')
+def configure_inbound_branch(db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    context = db.info.get('branch_context')
+    if not context or not context.branch_id or context.branch_id not in context.writable:
+        raise HTTPException(409, 'Select a writable destination branch in the top bar first')
+    row = wa.live_connection(db, wa.organization(user))
+    row.inbound_branch_id = context.branch_id
+    from app.access.service import audit
+    audit(db,user,wa.organization(user),'whatsapp.inbound_branch','Inbound conversation branch configured',after={'connection_id':row.id,'branch_id':context.branch_id})
+    db.commit()
+    return wa.connection_data(row)
 
 
 @router.post('/connection/check')
@@ -380,7 +489,22 @@ def link_conversation(contact_id: int, data: LinkInput, db: Session = Depends(ge
     from app.shared.whatsapp_models import WhatsAppContact
     row = db.query(WhatsAppContact).filter_by(id=contact_id, organization_id=wa.organization(user), erased_at=None).first()
     if not row: raise HTTPException(404, 'Conversation not found')
-    wa.record_access(db, user, data.entityType, data.entityId)
+    record = wa.record_access(db, user, data.entityType, data.entityId)
+    from app.branches.models import BranchOwnership
+    from sqlalchemy import select
+    ownership = BranchOwnership.__table__
+    branch = db.connection().execute(select(ownership.c.branch_id).where(ownership.c.resource_table == record.__tablename__, ownership.c.resource_key == str(record.id), ownership.c.company_id == wa.organization(user))).scalar()
+    context = db.info.get('branch_context')
+    if context and (not branch or branch not in context.writable):
+        raise HTTPException(403, 'The linked CRM record requires a writable branch')
+    existing_branch = wa.branch_ownership(db,row)
+    if existing_branch and branch and existing_branch != branch:
+        raise HTTPException(409, 'Choose a CRM record in the conversation’s existing branch')
+    if branch and not wa.branch_ownership(db,row):
+        wa.stamp_inbound(db,row,branch)
+        from app.shared.whatsapp_models import WhatsAppMessage
+        for message in db.query(WhatsAppMessage).filter_by(contact_id=row.id,organization_id=wa.organization(user)).all():
+            wa.stamp_inbound(db,message,branch)
     row.entity_type, row.entity_id = data.entityType, data.entityId
     db.commit()
     return wa.contact_data(row)

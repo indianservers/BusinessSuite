@@ -49,6 +49,29 @@ class WhatsAppGraph:
             raise MetaError(f'Meta rejected request (HTTP {response.status_code}, code {code})', code=code, uncertain=response.status_code>=500)
         return result
 
+    def upload_profile_jpeg(self, content):
+        """Meta's resumable upload is separate from ordinary JSON Graph requests."""
+        if not settings.CRM_WHATSAPP_APP_ID.isdecimal():
+            raise MetaError('Configure the Meta app ID before uploading a profile photo')
+        result = self.request('POST', settings.CRM_WHATSAPP_APP_ID+'/uploads', params={
+            'file_name':'whatsapp-profile.jpg','file_length':len(content),'file_type':'image/jpeg'})
+        session = result.get('id','')
+        # The provider may append a signed query. Accept only its upload ID/signature
+        # grammar and always pin the host; never treat it as an arbitrary URL.
+        if not isinstance(session,str) or not re.fullmatch(r'upload:[A-Za-z0-9_+=%/.-]+(?:\?sig=[A-Za-z0-9_+=%/.-]+)?',session):
+            raise MetaError('Meta did not return a valid upload session')
+        try:
+            response = httpx.post('https://graph.facebook.com/'+settings.CRM_WHATSAPP_API_VERSION+'/'+session,
+                headers={'Authorization':'OAuth '+self.token,'file_offset':'0','Content-Type':'application/octet-stream'},content=content,timeout=30)
+            data = response.json()
+        except httpx.TransportError:
+            raise MetaError('Profile photo upload could not be confirmed; refresh the profile before retrying',uncertain=True) from None
+        except ValueError:
+            raise MetaError('Meta returned an unreadable upload response') from None
+        if response.is_error or not isinstance(data,dict) or not isinstance(data.get('h'),str):
+            raise MetaError('Meta rejected the profile photo upload')
+        return data['h']
+
 
 class MetaWhatsAppProvider:
     name = 'meta'
