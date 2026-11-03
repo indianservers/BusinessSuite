@@ -10,15 +10,20 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 const eventName = "suite:record-preview";
 type Preview = { record: unknown; path: string };
+export function openRecordPreview(record: unknown, path?: string) {
+  const value = record as { entity?: string } | undefined;
+  const resolved = path || (value?.entity && ["leads", "contacts", "companies", "deals"].includes(value.entity) ? `/crm/${value.entity}` : window.location.pathname.replace(/^\/crm\/vendors/, "/crm/companies"));
+  window.dispatchEvent(new CustomEvent<Preview>(eventName, { detail: { record, path: resolved } }));
+}
 export function recordPreviewProps(record: unknown, path?: string) {
   return {
     onDoubleClickCapture: (event: MouseEvent<HTMLElement>) => {
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"], [role="checkbox"], [role="switch"], [data-cell-editable="true"]')) return;
       const action = (event.target as HTMLElement).closest('button, a, [role="button"], [role="menuitem"]');
-      if (action && action !== event.currentTarget) return;
+      if (action && action !== event.currentTarget && !action.hasAttribute('data-record-open')) return;
       event.stopPropagation();
       event.preventDefault();
-      window.dispatchEvent(new CustomEvent<Preview>(eventName, { detail: { record: record && typeof record === "object" && "original" in record ? (record as { original: unknown }).original : record, path: path || window.location.pathname } }));
+      openRecordPreview(record && typeof record === "object" && "original" in record ? (record as { original: unknown }).original : record, path);
     },
   };
 }

@@ -22,7 +22,7 @@ def attach_workflow_branch(db, user, company_id=1):
     from app.models.company import Branch
     from app.branches.models import BranchGrant
     from app.branches.migration import backfill
-    branch = db.query(Branch).filter(Branch.company_id == company_id, Branch.code.in_(["WORKFLOW-TEST", "DIR"])).order_by(Branch.id).first()
+    branch = db.query(Branch).filter(Branch.company_id == company_id, Branch.code.in_(["WORKFLOW-TEST", "DIR", "ACCESS-TEST"])).order_by(Branch.id).first()
     if branch is None:
         branch = Branch(company_id=company_id, name="Workflow test branch", code="WORKFLOW-TEST")
         db.add(branch); db.flush()
@@ -43,7 +43,10 @@ def own_workflow_records(db, *rows, company_id=1):
     assert branch is not None, "Workflow fixture requires an explicit branch"
     for row in rows:
         table = row.__table__
+        explicit_branch = getattr(row, "branch_id", None)
+        row_branch = db.query(Branch).filter_by(id=explicit_branch, company_id=company_id).first() if explicit_branch is not None else branch
+        assert row_branch is not None, "Synthetic record branch must belong to its fixture company"
         key = resource_key(table, {c.name: getattr(row, c.name) for c in table.primary_key})
         if not db.query(BranchOwnership).filter_by(resource_table=table.name, resource_key=key).first():
-            db.add(BranchOwnership(resource_table=table.name, resource_key=key, company_id=company_id, branch_id=branch.id, source="explicit-test-fixture"))
+            db.add(BranchOwnership(resource_table=table.name, resource_key=key, company_id=company_id, branch_id=row_branch.id, source="explicit-test-fixture"))
     db.flush()

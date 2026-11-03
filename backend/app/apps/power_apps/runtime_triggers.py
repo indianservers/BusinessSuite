@@ -187,6 +187,7 @@ def configure(db, row, user, kind, enabled, config):
         if n["type"]
         in {
             "manual_trigger",
+            "telegram_trigger",
             "scheduled_trigger",
             "webhook_trigger",
             "record_created",

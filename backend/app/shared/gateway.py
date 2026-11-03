@@ -45,7 +45,7 @@ def business_snapshot(value, depth=0):
     return value
 
 
-async def canonical(user, company, method, path, payload=None):
+async def canonical(user, company, method, path, payload=None, *, branch=None):
     from app.main import app
 
     token = create_access_token(str(user.id), expires_delta=timedelta(minutes=1))
@@ -56,6 +56,7 @@ async def canonical(user, company, method, path, payload=None):
         headers={
             "Authorization": "Bearer " + token,
             "X-Suite-Organization": str(company),
+            **({"X-Suite-Branch": str(branch)} if branch is not None else {}),
         },
     ) as client:
         response = await client.request(
@@ -76,6 +77,13 @@ async def canonical(user, company, method, path, payload=None):
     return response.json()
 
 
+def selected_branch(db, company):
+    context = db.info.get("branch_context")
+    if context is not None and context.company_id != company:
+        raise HTTPException(403, "Shared action company does not match the selected branch context")
+    return context.branch_id if context is not None else None
+
+
 def read_record(db, user, company, module, entity, entity_id):
     contract = RECORDS.get((module, entity))
     if not contract:
@@ -87,7 +95,7 @@ def read_record(db, user, company, module, entity, entity_id):
     if type(entity_id) is not int or entity_id < 1:
         raise HTTPException(422, "A positive record identifier is required")
     return asyncio.run(
-        canonical(user, company, "GET", contract.read_path.format(id=entity_id))
+        canonical(user, company, "GET", contract.read_path.format(id=entity_id), branch=selected_branch(db, company))
     )
 
 
@@ -138,7 +146,8 @@ def invoke_tool(db, user, company, name, payload, record_id=None):
         )
     return asyncio.run(
         canonical(
-            user, company, tool.method, tool.path.format(record_id=record_id), payload
+            user, company, tool.method, tool.path.format(record_id=record_id), payload,
+            branch=selected_branch(db, company),
         )
     )
 

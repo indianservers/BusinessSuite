@@ -52,6 +52,16 @@ def model_module(model):
 
 def install_scope(db, user, company, grants):
     def scoped_model_module(model):
+        if model.__tablename__ in {"crm_companies", "crm_contacts", "suite_contact_identity_links"}:
+            source = getattr(user, "_suite_current_module", None)
+            if source in {"crm", "srm", "project_management"}:
+                # Public business identities belong to the authorized consuming
+                # module. Using them from Sales/PMS does not grant CRM access.
+                return source
+        if model.__tablename__ == "schedule_boards":
+            source = getattr(user, "_suite_current_module", None)
+            if source in {"crm", "srm", "hrms", "fam"}:
+                return source
         # The same persisted catalog belongs to either application, never to a
         # second copy. Apply the calling application's central scope/actions.
         if model.__tablename__ in {"srm_products", "crm_products", "crm_services", "shared_catalog_details", "shared_catalog_links"}:

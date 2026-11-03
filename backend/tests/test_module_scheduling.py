@@ -1,3 +1,4 @@
+from tests.test_contact_directory import directory_identity
 from datetime import date, datetime, timezone
 from decimal import Decimal
 import pytest
@@ -20,10 +21,13 @@ def seed(db, module, source):
         rows = [FAMFinancialYear(company_id=1, name=f"FY {2026+i*2}", start_date=date(2026+i*2, 1, 1), end_date=date(2026+i*2, 12, 31), status="open") for i in range(2)]
         native = "end_date"
     elif module == "hrms":
-        emp = Employee(employee_id="SCHEDULE-1", first_name="Maya", last_name="Rao", date_of_joining=date(2025, 1, 1))
+        from app.models.company import Branch
+        branch=db.query(Branch).filter_by(company_id=1).first()
+        emp = Employee(branch_id=branch.id,employee_id="SCHEDULE-1", first_name="Maya", last_name="Rao", date_of_joining=date(2025, 1, 1))
         leave_type = LeaveType(name="Annual", code="SCHED", days_allowed=100)
         db.add_all([emp, leave_type]); db.flush()
-        db.add(LeaveBalance(employee_id=emp.id, leave_type_id=leave_type.id, year=2026, allocated=100, pending=6, used=0, carried_forward=0))
+        balance=LeaveBalance(employee_id=emp.id, leave_type_id=leave_type.id, year=2026, allocated=100, pending=6, used=0, carried_forward=0)
+        db.add(balance)
         rows = [LeaveRequest(employee_id=emp.id, leave_type_id=leave_type.id, from_date=date(2026, 10, 10+i*10), to_date=date(2026, 10, 12+i*10), days_count=3, status="Pending") for i in range(2)]
         native = "to_date"
     elif module == "inventory":
@@ -38,7 +42,12 @@ def seed(db, module, source):
     else:
         rows = [SRMEngagement(engagement_number=f"ENG-{i}", name=f"Engagement {i}", planned_start_date=date(2026, 10, 10+i*10), planned_end_date=date(2026, 10, 12+i*10)) for i in range(2)]
         native = "planned_end_date"
-    db.add_all(rows); db.commit()
+    db.add_all(rows)
+    from test_identity_utils import own_workflow_records
+    if module=="hrms":own_workflow_records(db,emp,leave_type,balance)
+    own_workflow_records(db,*rows)
+    from app.branches.migration import backfill
+    backfill(db.connection(),1);db.commit()
     return rows, [f"tasks:{row.id}" if module == "crm" else str(row.id) for row in rows], native
 
 
@@ -128,8 +137,10 @@ def test_finance_and_inventory_history_locks(client, db, superuser_headers):
     body.update(start="2026-01-02", end="2026-12-30")
     assert client.patch(url + f"/records/{keys[0]}", headers=superuser_headers, json=body).status_code == 403
     orders, order_keys, _ = seed(db, "inventory", "purchase-orders")
-    db.add(SRMGoodsReceipt(grn_number="GRN-1", purchase_order_id=orders[0].id, receipt_date=date(2026, 10, 12)))
-    db.commit()
+    receipt=SRMGoodsReceipt(grn_number="GRN-1", purchase_order_id=orders[0].id, receipt_date=date(2026, 10, 12))
+    db.add(receipt)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,receipt);db.commit()
     assert not read(client, superuser_headers, "/api/v1/scheduling/inventory/purchase-orders", order_keys)["records"][order_keys[0]]["can_edit"]
 
 
@@ -141,8 +152,12 @@ def test_viewer_cannot_mutate_dates_or_dependencies(client, db, superuser_header
     SharedIdentityService.ensure_person_for_user(db, user, organization_id=1)
     read(client, superuser_headers, "/api/v1/scheduling/crm/calendar", keys)
     user.is_superuser = False; user.role.name = "crm_viewer"
-    view = db.query(Permission).filter_by(name="crm_view").first() or Permission(name="crm_view")
+    view = db.query(Permission).filter_by(name="crm_view").first() or Permission(name="crm_view",module="crm")
     user.role.permissions = [view]
+    from app.branches.models import BranchGrant
+    from app.models.company import Branch
+    branch=db.query(Branch).filter_by(company_id=1).first()
+    db.add(BranchGrant(company_id=1,user_id=user.id,branch_id=branch.id,can_write=False))
     for row in rows: row.owner_user_id = user.id
     db.commit()
     url = "/api/v1/scheduling/crm/calendar"

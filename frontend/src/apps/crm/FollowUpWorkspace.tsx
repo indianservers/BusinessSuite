@@ -1,3 +1,7 @@
+import { openRecordPreview } from "@/components/RecordQuickPreview";
+import { Eye } from "lucide-react";
+import { WhatsAppIcon } from "@/components/actions/BrandIcons";
+import { RecordMessageDraft, whatsappNumber, communicationBlocked } from "@/shared/records/RecordWorkspace";
 import CompactActions from "@/components/actions/CompactActions";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -63,6 +67,7 @@ export default function FollowUpWorkspace() {
 
   const [params, setParams] = useSearchParams();
 
+  const [draft,setDraft]=useState<{record:Relationship;channel:"email"|"whatsapp"}>();
   const [revision, setRevision] = useState(0), [focus, setFocus] = useState<Relationship>(), [editing, setEditing] = useState<Relationship | "new">();
 
   const [selected, setSelected] = useState<Relationship[]>([]), [result, setResult] = useState<GridResult<Relationship>>(), [notice, setNotice] = useState("");
@@ -138,7 +143,7 @@ export default function FollowUpWorkspace() {
 
   const columns = useMemo<GridColumn<Relationship>[]>(() => ([
 
-    { id: "name", title: "Relationship", width: 220, minWidth: 150, render: row => <button className="fu-relationship" onClick={() => setFocus(row)}><strong>{row.name}</strong><small>{row.company || row.email || "No company recorded"}</small></button> },
+    { id: "name", title: "Relationship", width: 220, minWidth: 150, render: row => <button data-record-open className="fu-relationship" onClick={() => setFocus(row)}><strong>{row.name}</strong><small>{row.company || row.email || "No company recorded"}</small></button> },
 
     { id: "entity", title: "Type / status", width: 148, render: row => <div className="fu-type"><span>{labels[row.entity]}</span><small>{row.status || "No status"}</small></div> },
 
@@ -183,10 +188,11 @@ export default function FollowUpWorkspace() {
 
       {selected.length > 0 && <div className="fu-bulk"><strong>{selected.length} selected</strong><Button size="sm" variant="outline" disabled={selected.length > 50 || selected.some(row => !row.can_edit)} onClick={() => setBulk("schedule")}>Schedule selected</Button><Button size="sm" variant="outline" disabled={selected.length > 50 || selected.some(row => !row.can_edit)} onClick={() => setBulk("assign")}>Assign follow-ups</Button><Button size="sm" variant="ghost" onClick={() => setSelected([])}>Clear</Button>{selected.length > 50 && <span>Select at most 50 relationships.</span>}</div>}
 
-      <SharedDataGrid<Relationship> key={JSON.stringify([mobile, entity, bucket, scope, kind, item, owner, from, to])} gridId={`crm-relationship-followups-v1-${mobile ? "mobile" : "desktop"}`} title="Relationships" userId={user?.id} organizationId={user?.access?.companyId} workspaceId={context} dataSource={source} columns={columns} getRowId={row => row.key} initialQuery={{ pageSize: 25 }} viewContext={{ entity, bucket, scope, kind, item_id: item, product_name: productName, owner_id: owner, from, to }} onViewContextChange={values => update(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, String(value || "")])))} initialLayout={{ view: mobile ? "cards" : "grid", density: "compact", rowHeight: 56, visibility: { priority: false, last_contact: false, status: false } }} refreshKey={revision} selectedIds={selected.map(row => row.key)} onSelectionChange={rows => setSelected(rows)} onResult={setResult} onOpen={setFocus} statistics={() => null} height={600} rowActions={[{ id: "follow", label: "Follow up", icon: CalendarClock, quick: true, visible: row => row.can_edit, run: row => setEditing(row) }, { id: "message", label: "Message", icon: Mail, quick: true, run: message }, { id: "open", label: "Open full record", run: row => navigate(row.url) }]} renderCard={row => <div className="fu-mobile-card"><strong>{row.name}</strong><span>{labels[row.entity]} · {row.status}</span><span>{row.email || row.phone || "No contact details recorded"}</span><Due value={row.due} /></div>} />
+      <SharedDataGrid<Relationship> key={JSON.stringify([mobile, entity, bucket, scope, kind, item, owner, from, to])} gridId={`crm-relationship-followups-v1-${mobile ? "mobile" : "desktop"}`} title="Relationships" userId={user?.id} organizationId={user?.access?.companyId} workspaceId={context} dataSource={source} columns={columns} getRowId={row => row.key} initialQuery={{ pageSize: 25 }} viewContext={{ entity, bucket, scope, kind, item_id: item, product_name: productName, owner_id: owner, from, to }} onViewContextChange={values => update(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, String(value || "")])))} initialLayout={{ view: mobile ? "cards" : "grid", density: "compact", rowHeight: 56, visibility: { priority: false, last_contact: false, status: false } }} refreshKey={revision} selectedIds={selected.map(row => row.key)} onSelectionChange={rows => setSelected(rows)} onResult={setResult} onOpen={setFocus} onSelectRecord={setFocus} onOpenPopup={row=>openRecordPreview(row,`/crm/${row.entity}`)} statistics={() => null} height={600} rowActions={[{ id: "follow", label: "Follow up", icon: CalendarClock, quick: true, visible: row => row.can_edit, run: row => setEditing(row) }, { id: "message", label: "Email", icon: Mail, quick: true, disabled:row=>!row.email||communicationBlocked(row), run: row=>setDraft({record:row,channel:"email"}) }, {id:"whatsapp",label:"WhatsApp",icon:WhatsAppIcon,quick:true,disabled:row=>!whatsappNumber(row)||communicationBlocked(row),run:row=>setDraft({record:row,channel:"whatsapp"})},{id:"popup",label:"Open popup",icon:Eye,quick:true,run:row=>openRecordPreview(row,`/crm/${row.entity}`)}, { id: "open", label: "Open full record", run: row => navigate(row.url) }]} renderCard={row => <div className="fu-mobile-card"><strong>{row.name}</strong><span>{labels[row.entity]} · {row.status}</span><span>{row.email || row.phone || "No contact details recorded"}</span><Due value={row.due} /></div>} />
 
     </section>{focus && <RelationshipPanel key={`${context}:${focus.key}`} record={focus} close={closeFocus} edit={() => setEditing(focus)} message={() => message(focus)} revision={revision} changed={refresh} />}</div>
 
+    {draft&&<RecordMessageDraft record={draft.record} channel={draft.channel} close={()=>setDraft(undefined)}/>}
     {editing && <Editor key={editing === "new" ? "new" : editing.key} initial={editing === "new" ? undefined : editing} owners={owners.data || []} close={() => setEditing(undefined)} saved={saved} />}
 
     {bulk && <BulkEditor changed={refresh} action={bulk} records={selected} owners={owners.data || []} close={() => setBulk(undefined)} saved={message => { setNotice(message); setBulk(undefined); setSelected([]); refresh(); }} />}

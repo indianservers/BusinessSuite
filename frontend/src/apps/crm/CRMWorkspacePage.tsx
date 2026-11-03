@@ -1,3 +1,4 @@
+import { RecordQuickActions, RecordMessageDraft } from "@/shared/records/RecordWorkspace";
 import FinancialDataTab, { type FinancialData } from "./FinancialDataTab";
 import SharedCompanySelect from "@/shared/master-data/CompanySelect";
 import { SharedNumberConfirmation } from "@/shared/master-data/CompanySelect";
@@ -10,7 +11,7 @@ import { useMobileSessionState } from "@/components/mobile/useMobileSessionState
 import { useMobile } from "@/components/mobile/useMobile";
 import { FormSectionTabs } from "@/components/forms/CompactForm";
 import MergeWizardModal from "./MergeWizardModal";
-import { recordPreviewProps } from "@/components/RecordQuickPreview";
+import { openRecordPreview, recordPreviewProps } from "@/components/RecordQuickPreview";
 import CRMDataTransfer, { CRMTransferHub } from "./CRMDataTransfer";
 import CatalogAssociations, { CatalogLinesEditor } from "@/shared/catalog/CatalogLinesEditor";
 import { linePayload, type CatalogLine, type CatalogItem } from "@/shared/catalog/api";
@@ -56,6 +57,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, Res
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
+  Eye,
   AlertTriangle,
   ArrowUpDown,
   BarChart3,
@@ -4077,6 +4079,7 @@ const contactSortableColumns: Record<string, string> = {
 };
 
 export function CRMContactsPage() {
+  const [messageDraft,setMessageDraft]=useState<{record:CRMContact;channel:"email"|"whatsapp"}>();
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
   const [search, setSearch] = useMobileSessionState("crm:contacts:search", "");
@@ -4318,6 +4321,7 @@ export function CRMContactsPage() {
               visibleColumns={visibleColumns}
               onSort={setSort}
               onSelect={setSelected}
+              onMessage={(record,channel)=>setMessageDraft({record,channel})}
               onEdit={openEdit}
               onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})}
               onToggleRow={(contact, checked) => setSelectedIds((current) => ({ ...current, [String(contact.id)]: checked }))}
@@ -4343,6 +4347,7 @@ export function CRMContactsPage() {
         </main>
 
         <ContactDetailDrawer
+          onMessage={(record,channel)=>setMessageDraft({record,channel})}
           contact={selected}
           onClose={() => setSelected(null)}
           onEdit={openEdit}
@@ -4350,6 +4355,7 @@ export function CRMContactsPage() {
           onAddTask={() => navigate("/crm/tasks")}
         />
       </div>
+      {messageDraft && <RecordMessageDraft record={messageDraft.record} channel={messageDraft.channel} close={()=>setMessageDraft(undefined)}/>}
       {manualMerge && <MergeWizardModal group={manualMerge} onClose={() => setManualMerge(null)} onMerged={(winnerId, count) => { setManualMerge(null); setSelectedIds({}); setSelected(null); refresh(); toast({ title: "Contacts merged", description: `${count + 1} contacts combined into record #${winnerId}.` }); }}/>}
       {formMode ? (
         <ContactFormModal
@@ -4403,12 +4409,12 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
           </button>
         ))}
       </div>
-      <CompactActions className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
-      </CompactActions>
+      </div>
       {showColumns ? (
         <div className="absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-border bg-card p-2 shadow-xl">
           {columns.map(([key, label]) => (
@@ -4437,13 +4443,13 @@ function ContactFilterPanel({ filters, owners, companies, statuses, stages, sour
   );
 }
 
-function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMContact[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (contact: CRMContact) => void; onEdit: (contact: CRMContact) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (contact: CRMContact, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onMessage, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMContact[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (contact: CRMContact) => void; onEdit: (contact: CRMContact) => void; onMessage:(record:CRMContact,channel:"email"|"whatsapp")=>void; onToggleAll: (checked: boolean) => void; onToggleRow: (contact: CRMContact, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
   const toggleSort = (key: string) => {
     onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
   };
   const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
   return (
-    <div>
+    <div className="record-directory">
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1040px] text-left text-sm">
@@ -4459,7 +4465,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
               {visibleColumns.owner ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("owner")}>Owner<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.nextFollowUp ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("nextFollowUp")}>Next follow-up<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.updatedAt ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("updatedAt")}>Updated<ArrowUpDown className="h-3 w-3" /></button></th> : null}
-              <th className="px-3 py-3 font-semibold">Actions</th>
+              <th className="sticky right-0 z-20 w-48 bg-muted px-3 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -4467,7 +4473,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
             {!loading && rows.map((contact) => (
               <tr {...recordPreviewProps(contact)} data-context-record="Contact" data-context-open="Open contact details" key={contact.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === contact.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(contact)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(contact.id)])} onChange={(event) => onToggleRow(contact, event.target.checked)} aria-label={`Select ${contact.name}`} /></td>
-                <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={contact.name} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={contact.name} onDoubleClick={(event) => { event.stopPropagation(); openRecordPreview(contact, "/crm/contacts"); }} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
                 {visibleColumns.company ? <td className="px-3 py-3 text-muted-foreground"><span title={contact.companyName || "No company linked"}>{contact.companyName || "No company linked"}</span></td> : null}
                 {visibleColumns.email ? <td className="px-3 py-3 text-muted-foreground"><span title={contact.email || "No email"}>{contact.email || "No email"}</span></td> : null}
                 {visibleColumns.phone ? <td className="px-3 py-3 text-muted-foreground">{formatContactPhone(contact.phone)}</td> : null}
@@ -4476,7 +4482,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(contact.owner || "U")}</span>{contact.owner || "Unassigned"}</span></td> : null}
                 {visibleColumns.nextFollowUp ? <td className="px-3 py-3"><FollowUpCell value={contact.nextFollowUp} /></td> : null}
                 {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{contact.updatedAt ? formatDate(contact.updatedAt) : "-"}</td> : null}
-                <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+                <td className="sticky right-0 z-10 bg-card px-2 py-3 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]" onClick={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={()=>onEdit(contact)}/></td>
               </tr>
             ))}
             {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
@@ -4496,7 +4502,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
   );
 }
 
-function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAddTask }: { contact: CRMContact | null; onClose: () => void; onEdit: (contact: CRMContact) => void; onOpenActivities: () => void; onAddTask: () => void }) {
+function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivities, onAddTask }: { contact: CRMContact | null; onClose: () => void; onEdit: (contact: CRMContact) => void; onMessage:(contact:CRMContact,channel:"email"|"whatsapp")=>void; onOpenActivities: () => void; onAddTask: () => void }) {
   const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -4520,12 +4526,7 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAdd
         <div className="flex min-w-0 items-center gap-3"><ContactAvatar contact={contact} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{contact.name}</h2><p className="truncate text-sm text-muted-foreground">{contact.companyName || "No company linked"}</p></div></div>
         <div className="flex items-center gap-1"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close contact details"><X className="h-4 w-4" /></Button></div>
       </div>
-      <CompactActions className="mt-4 flex flex-wrap gap-2">
-        {contact.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${contact.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
-        {contact.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${contact.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
-        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
-        <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
-      </CompactActions>
+      <div className="mt-4 flex flex-wrap items-center gap-2"><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={()=>onEdit(contact)}/><Button size="sm" variant="outline" onClick={onAddTask}><CalendarDays size={14}/>Add task</Button></div>
       <CatalogAssociations key={contact.id} source="crm" target="contact" id={contact.id}/>
       <LeadDrawerSection title="Contact">
         <LeadInfo label="Email" value={contact.email || "No email"} />
@@ -4567,6 +4568,15 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
     if (dirty && !window.confirm("Discard unsaved contact changes?")) return;
     onClose();
   };
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || saving) return;
+      event.preventDefault();
+      if (!dirty || window.confirm("Discard unsaved contact changes?")) onClose();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [dirty, saving, onClose]);
   const submit = () => {
     const validation = validateContactDraft(draft);
     setFieldErrors(validation);

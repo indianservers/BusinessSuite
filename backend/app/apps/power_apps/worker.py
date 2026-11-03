@@ -35,6 +35,8 @@ def worker_tick(db, worker_id):
     ) > timedelta(seconds=5):
         tick(db)
         scheduler_tick(db)
+        from app.apps.power_apps.telegram import poll_tick
+        poll_tick(db)
         from app.apps.power_apps.runtime_retention import purge_payloads
 
         purge_payloads(db)
@@ -43,7 +45,18 @@ def worker_tick(db, worker_id):
     work = claim(db, worker_id)
     if not work:
         return False
-    result = process(db, *work)
+    from app.apps.power_apps.runtime_models import AutomationJob, AutomationRun, AutomationTrigger
+    job = db.get(AutomationJob, work[0])
+    run = db.get(AutomationRun, job.run_id)
+    if run.trigger_kind == 'telegram':
+        from app.apps.power_apps.runtime import authority
+        from app.access.service import background_scope
+        trigger = db.get(AutomationTrigger, run.trigger_id)
+        actor = authority(db, run.effective_user_id, run.organization_id, run.environment, run.owner_user_id)
+        with background_scope(db, actor, 'power_apps', 'create', branch_id=trigger.config.get('branch_id')):
+            result = process(db, *work)
+    else:
+        result = process(db, *work)
     record = db.get(AutomationWorker, worker_id)
     record.processed += 1
     record.heartbeat_at = now()

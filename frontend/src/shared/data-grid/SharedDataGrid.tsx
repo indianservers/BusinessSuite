@@ -784,11 +784,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
               table.getLeftTotalSize()),
         )
       : 0;
-  const actionWidth = rowActions.length
-    ? mobile ? 48 : rowActions.some((a) => a.quick)
-      ? 88
-      : 40
-    : 0;
+  const actionWidth = rowActions.length ? Math.min(4, rowActions.filter(action => action.quick).length) * 34 + 40 : 0;
   const totalWidth = table.getTotalSize() + 40 + actionWidth;
   function style(
     column: Column<Node<T>, unknown>,
@@ -974,6 +970,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
     visibleRecords.length > 0 &&
     visibleRecords.every((row) => selection.includes(getRowId(row)));
   async function runAction(action: GridAction<T>, row: T) {
+    if (action.disabled?.(row)) { setActionError(action.disabledReason || "This action is unavailable for this record."); return; }
     try {
       setActionError("");
       await action.run(row);
@@ -987,6 +984,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       .map((action) => (
         <Context.Item
           key={action.id}
+          disabled={action.disabled?.(row)}
           className={action.danger ? "danger" : ""}
           onSelect={() => void runAction(action, row)}
         >
@@ -1813,6 +1811,15 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                             className={`udg-row ${edit?.row === node.id ? "is-editing" : ""} ${virtual.index % 2 ? "udg-row-alt" : ""} ${selection.includes(node.id) ? "is-selected" : ""}`}
                             style={position}
                             {...recordPreviewProps(record)}
+                            onClick={event => {
+                              if (!(event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]')) props.onSelectRecord?.(record);
+                            }}
+                            onDoubleClickCapture={event => {
+                              const action = (event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]');
+                              if (action && !action.hasAttribute('data-record-open')) return;
+                              if (props.onOpenPopup) { event.preventDefault(); event.stopPropagation(); props.onOpenPopup(record); }
+                              else recordPreviewProps(record).onDoubleClickCapture(event);
+                            }}
                             draggable={!!props.manualOrder}
                             onDragStart={(e) => {
                               if (props.manualOrder)
@@ -1879,16 +1886,18 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                                 {rowActions
                                   .filter(
                                     (a) =>
-                                      !mobile && a.quick &&
+                                      a.quick &&
                                       (!a.visible || a.visible(record)),
                                   )
-                                  .slice(0, 2)
+                                  .slice(0, 4)
                                   .map((action) => (
                                     <button
                                       key={action.id}
                                       className="udg-hover-action"
+                                      data-action={action.id}
                                       aria-label={`${action.label} ${textFor(record, columns[0])}`}
-                                      title={action.label}
+                                      disabled={action.disabled?.(record)}
+                                      title={action.disabled?.(record) ? action.disabledReason || action.label : action.label}
                                       onClick={() =>
                                         void runAction(action, record)
                                       }
@@ -1918,6 +1927,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                                         )
                                         .map((action) => (
                                           <Dropdown.Item
+                                            disabled={action.disabled?.(record)}
                                             key={action.id}
                                             className={
                                               action.danger ? "danger" : ""
@@ -1979,7 +1989,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                       .map((r) => (
                         <article
                           key={getRowId(r)}
-                          {...recordPreviewProps(r)}
+                          {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))props.onSelectRecord?.(r);}} onDoubleClickCapture={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}
                         >
                           {props.renderCard?.(r) ||
                             columns
@@ -1996,7 +2006,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                   </section>
                 ))
               : visibleRecords.map((r) => (
-                  <article key={getRowId(r)} {...recordPreviewProps(r)}>
+                  <article key={getRowId(r)} {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))props.onSelectRecord?.(r);}} onDoubleClickCapture={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}>
                     {props.renderCard?.(r) ||
                       columns
                         .filter((c) => layout.visibility[c.id] !== false)
@@ -2007,6 +2017,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                             {c.render?.(r) || textFor(r, c)}
                           </p>
                         ))}
+                    <div className="udg-card-actions">{rowActions.filter(action=>action.quick&&(!action.visible||action.visible(r))).map(action=><button key={action.id} title={action.disabled?.(r)?action.disabledReason:action.label} aria-label={`${action.label} ${textFor(r,columns[0])}`} disabled={action.disabled?.(r)} onClick={event=>{event.stopPropagation();void runAction(action,r);}}>{action.icon&&<action.icon size={16}/>}</button>)}</div>
                   </article>
                 ))}
             {query.grouping.length > 0 && !visibleRecords.length && (

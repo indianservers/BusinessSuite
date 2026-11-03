@@ -26,6 +26,10 @@ class Executor:
         return NODES[self.node_type]["output_schema"]
 
     def execute(self, node, config, payload, previous):
+        if self.node_type == "telegram_trigger":
+            return {"input": payload}, {"out"}
+        if self.node_type == "telegram_enquiry":
+            return {"chat_id": payload["chat_id"], "text": payload["reply"]}, {"out"}
         if self.node_type == "error_handler":
             return {"value": config.get("message") or "Error handled"}, {"out"}
         if self.node_type == "scheduled_trigger":
@@ -70,6 +74,8 @@ class Executor:
 
 
 PURE = {
+    "telegram_trigger",
+    "telegram_enquiry",
     "error_handler",
     "manual_trigger",
     "if_else",

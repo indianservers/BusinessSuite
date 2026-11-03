@@ -236,6 +236,7 @@ export default function App() {
 
   return (
     <>
+      <SetupReadiness />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/f/:slug" element={<PublicFormPage />} />
@@ -283,7 +284,6 @@ export default function App() {
       </Suspense>
       {isHydrated && isAuthenticated ? <PMSRealtimeBridge /> : null}
       <SuiteNavigationTracker />
-      <SetupReadiness />
       <Toaster />
       <ActionTooltipProvider />
       {isAuthenticated && <Suspense fallback={null}><PersonManagementHost /></Suspense>}

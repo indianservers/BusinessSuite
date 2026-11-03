@@ -266,7 +266,7 @@ def apply_edit(db, actor, row, data):
             core()._assert_record_visible(db, core()._get_resource("companies"), data.companyId, actor.organization_id, actor)
         row.company_id = data.companyId
     parts = name.split(" ", 1)
-    row.first_name, row.last_name = parts[0], parts[1] if len(parts) > 1 else None
+    row.first_name, row.last_name = parts[0][:100], parts[1][:100] if len(parts) > 1 else None
     row.email, row.phone, row.phone_country_code = data.email or None, data.phone or None, data.phoneCountryCode if data.phone else None
     row.company_name, row.status = data.organization, data.status
     if row.company_id:

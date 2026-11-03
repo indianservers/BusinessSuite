@@ -182,6 +182,15 @@ def install(db, user, ctx, *, identity_administration=False):
     def validate(session, *args):
         for item in session.new | session.dirty | session.deleted:
             table = inspect(item).mapper.local_table
+            # Own-account password changes are identity operations. Their trusted
+            # security notification must not require business-branch membership.
+            # No business email, other recipient or existing row is exempted.
+            if (table.name == "email_outbox" and item in session.new
+                    and session.info.get("account_security_change") == user.id
+                    and item.module == "security" and item.recipient_user_id == user.id
+                    and item.recipient.casefold() == user.email.casefold()
+                    and item.organization_id in {None, ctx.company_id}):
+                continue
             if table.name in SHARED:
                 if ctx.branch_id is not None and ctx.branch_id not in ctx.writable and table.name not in {"users", "user_sessions", "mfa_methods", "trusted_devices", "login_attempts"} and not table.name.startswith(("suite_access_", "suite_branch_", "security_")):
                     deny("The selected branch is read-only")

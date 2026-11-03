@@ -594,6 +594,7 @@ def enqueue(db, row, user, data, key, kind="manual", trigger=None):
     trigger_node = next(n for n in graph.nodes if NODES[n.type]["trigger"])
     allowed = {
         "manual": {"manual_trigger"},
+        "telegram": {"telegram_trigger"},
         "scheduled": {"scheduled_trigger"},
         "webhook": {"webhook_trigger"},
         "internal": {"record_created", "record_updated", "status_changed"},

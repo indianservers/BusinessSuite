@@ -67,7 +67,7 @@ def link_source(db, source, kind):
         # These are CRM business fields; HR and login profiles are excluded.
         email = getattr(source, "email", None)
         contact = CRMContact(organization_id=company, branch_id=getattr(source, "branch_id", None) or (ctx.branch_id if ctx else None),
-            full_name=name, first_name=getattr(source, "first_name", None) or name,
+            full_name=name, first_name=(getattr(source, "first_name", None) or name.split(" ", 1)[0])[:100],
             last_name=getattr(source, "last_name", None), email=email,
             phone=getattr(source, "phone", None), phone_country_code=getattr(source, "phone_country_code", None),
             company_name=getattr(source, "company_name", None), owner_user_id=getattr(source, "owner_user_id", None),

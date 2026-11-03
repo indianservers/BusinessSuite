@@ -30,17 +30,24 @@ ROOT = "/api/v1/access/services"
 @pytest.fixture
 def shared_setup(client, db, access_account, superuser_headers):
     headers = secure(client, superuser_headers)
+    from test_identity_utils import attach_test_identity, attach_workflow_branch
+    attach_test_identity(db,access_account)
+    branch=attach_workflow_branch(db,access_account)
+    headers={**headers,"X-Suite-Branch":str(branch.id)}
+    db.commit()
     crm = grant(client, headers, "crm", "admin")
     assert apply(client, headers, access_account, {"crm": crm}).status_code == 200
     lead = CRMLead(
         organization_id=1,
         owner_user_id=access_account.id,
+        branch_id=branch.id,
         first_name="Service",
         full_name="Shared Service Lead",
         status="New",
     )
     db.add(lead)
-    db.commit()
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,lead);db.commit()
     return headers, access_account, lead
 
 
@@ -256,6 +263,10 @@ def test_approval_snapshot_self_approval_and_real_decision(client, db, shared_se
             status="active",
         )
     )
+    reviewer_policy = next(row for row in db.new if isinstance(row, AccessPolicy) and row.user_id == reviewer.id)
+    reviewer_policy.grants = {**reviewer_policy.grants, "crm": {**reviewer_policy.grants["crm"], "scope": "organization"}}
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, reviewer)
     db.commit()
     with pytest.raises(HTTPException):
         ModuleServices(db, user, 1, "crm").approval(

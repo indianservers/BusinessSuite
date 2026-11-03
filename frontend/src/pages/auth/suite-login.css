@@ -308,7 +308,6 @@
 .suite-login .suite-secondary{min-height:39px;border:1px solid #d0cae7;border-radius:12px;background:#ffffff55;display:flex;justify-content:center;align-items:center;gap:20px;color:#0d1035;font-size:14px;font-weight:650;padding:6px 12px}
 .suite-login .suite-secondary:hover{background:#fff9;border-color:#a38add}
 .suite-provider-mark{height:23px;width:23px;flex:none}
-.suite-login .suite-same-tab{width:100%;margin-top:8px;gap:16px}
 .suite-login-card>.suite-login-note:last-child{padding:11px 16px;background:#e3dfffaa;border-radius:11px;margin-top:22px;gap:16px;color:#333860;font-size:12px;flex-wrap:nowrap}
 .suite-login-card>.suite-login-note:last-child svg{color:#652cff;width:22px;height:22px}
 .suite-login-card>.suite-login-context{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);padding:0}

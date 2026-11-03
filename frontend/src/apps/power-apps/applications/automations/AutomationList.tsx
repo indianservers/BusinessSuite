@@ -1,4 +1,5 @@
 import CompactActions from "@/components/actions/CompactActions";
+import { TelegramAutomations } from './TelegramAutomations';
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { GraphProposalPreview } from "./builder/IntelligencePanels";
@@ -146,6 +147,7 @@ export function AutomationList({
           </button>
         ))}
       </div>
+      {view === 'all' && <TelegramAutomations environment={environment} can={can} onCreated={() => setRefresh(value => value + 1)} />}
       <div className="al-controls">
         <label>
           <Search size={16} />

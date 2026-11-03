@@ -35,6 +35,7 @@ export default function BranchSwitcher() {
   }
   async function confirmSwitch() {
     if (!pendingSwitch) return;
+    if (!window.dispatchEvent(new Event("suite:before-context-change", {cancelable:true}))) return;
     setBusy(true);
     await qc.cancelQueries();
     try {

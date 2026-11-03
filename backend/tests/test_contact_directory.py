@@ -408,3 +408,11 @@ def test_shared_customer_vendor_financial_identity_and_columns(client, superuser
 
     exported = client.post("/api/v1/master-data/company-directory/export", headers=superuser_headers, params={"source":"crm","role":"Customer"}, json={"columns":["name","gstNumber","bankAccountCount","upiCount"]})
     assert exported.status_code == 200 and "27ABCDE1234F1Z5" in exported.text, exported.text
+
+
+def test_long_display_names_fit_canonical_identity_columns(client, superuser_headers):
+    for name in ["N" * 180, "A " + "N" * 178]:
+        contact = client.post(ROOT, headers=superuser_headers, json={"name":name})
+        assert contact.status_code == 200 and contact.json()["name"] == name, contact.text
+    company = client.post("/api/v1/master-data/companies", headers=superuser_headers, json={"name":"B" * 180,"roles":["Customer"]})
+    assert company.status_code == 201 and company.json()["name"] == "B" * 180, company.text

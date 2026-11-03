@@ -57,7 +57,7 @@ def purge_payloads(db, limit=50):
         for entry in db.query(Event).filter_by(
             run_id=run.id, organization_id=run.organization_id
         ):
-            if entry.kind == "structured_log":
+            if entry.kind in {"structured_log", "telegram_message"}:
                 entry.details = {"payloads_purged": True}
         db.add(
             Event(

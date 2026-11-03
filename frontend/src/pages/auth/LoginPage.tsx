@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, ShieldCheck, Headphones, UsersRound, Layers, Mail, LockKeyhole, LogIn, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck, Headphones, UsersRound, Layers, Mail, LockKeyhole, LogIn } from "lucide-react";
 import { type FirebaseOptions } from "firebase/app";
 import { setRememberSession, useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
@@ -296,19 +296,6 @@ export default function LoginPage() {
               ),
       );
     } finally {
-      setSsoBusy(false);
-    }
-  }
-  async function googleSameTab() {
-    if (!firebase.data?.firebase_config) return;
-    setError("");
-    setSsoBusy(true);
-    try {
-      const { startGoogleRedirect } = await import("@/services/firebaseLogin");
-      sessionStorage.setItem("suite-social-redirect-remember", String(remember));
-      await startGoogleRedirect(firebase.data.firebase_config);
-    } catch (err: unknown) {
-      setError(errorMessage(err, "Google sign-in could not start. Please try again."));
       setSsoBusy(false);
     }
   }
@@ -708,12 +695,6 @@ export default function LoginPage() {
                         </button>
                       ))}
                 </div>
-              )}
-              {firebase.data?.enabled && firebase.data.firebase_config && firebase.data.modules.length > 0 && (
-                <button type="button" className="suite-secondary suite-same-tab" disabled={busy} onClick={() => void googleSameTab()}>
-                  <ExternalLink size={19}/>
-                  Continue with Google in this tab
-                </button>
               )}
               {(firebase.isPending || providers.isPending) && (
                 <p role="status" className="suite-login-note">

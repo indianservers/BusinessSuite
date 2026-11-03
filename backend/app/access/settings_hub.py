@@ -142,8 +142,33 @@ def require_option(db, actor, key):
 def list_settings(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     ctx = context(db, actor)
     company = db.get(Company, ctx["company"])
-    return dict(companyId=ctx["company"], companyName=company.name if company else "Company",
-                options=[item(o, ctx) for o in OPTIONS if allows(o, ctx)])
+    options = [item(o, ctx) for o in OPTIONS if allows(o, ctx)]
+    allowed = {o["id"] for o in options}
+    states = {}
+    if company:
+        if "company-profile" in allowed:
+            complete = bool(company.name and company.email and company.country)
+            states["company-profile"] = {"state": "ready" if complete else "attention", "label": "Complete" if complete else "Needs attention", "detail": "Company name, email and country are filled in." if complete else "Add your company name, email and country."}
+        if "business-defaults" in allowed:
+            complete = bool(company.default_currency and company.default_timezone and company.fiscal_year_start_month)
+            states["business-defaults"] = {"state": "ready" if complete else "attention", "label": "Configured" if complete else "Not configured", "detail": "Currency, timezone and financial year defaults."}
+        if "branches" in allowed:
+            from app.models.company import Branch
+            count = db.query(Branch).filter(Branch.company_id == company.id, Branch.is_active.is_(True)).count()
+            states["branches"] = {"state": "ready" if count else "attention", "label": f"{count} active" if count else "Not configured", "detail": "Active company access branches."}
+        if "connections" in allowed:
+            from app.models.platform import IntegrationCredential
+            rows = db.query(IntegrationCredential.status).filter(IntegrationCredential.organization_id == company.id).all()
+            active = sum(1 for (status,) in rows if status == "Active")
+            states["connections"] = {"state": "ready" if active else "attention", "label": "Configured" if active else "Needs attention" if rows else "Not configured", "detail": f"{active} active connection configurations. Live connectivity is checked in Connected applications."}
+    if "communication" in allowed:
+        from app.shared.communications import provider_status
+        configured = any(row["channel"] == "email" and row["status"] == "configured-unverified" for row in provider_status())
+        states["communication"] = {"state": "ready" if configured else "attention", "label": "Configured" if configured else "Not configured", "detail": "Email provider configuration only; live delivery has not been verified."}
+    for option in options:
+        option["status"] = states.get(option["id"])
+        option["historyAvailable"] = option["id"] in {"company-profile", "business-defaults"} and can_edit_company(ctx)
+    return dict(companyId=ctx["company"], companyName=company.name if company else "Company", options=options)
 
 
 class ProfileUpdate(CompanyUpdate):
@@ -199,6 +224,26 @@ def update_company_profile(data: ProfileUpdate, request: Request, db: Session = 
     service.audit(db, actor, company.id, "settings.company.updated", "Company profile configuration", before, changes, request=request)
     db.commit()
     return {"saved": True, "companyId": company.id}
+
+
+@router.get("/history/{key}")
+def setting_history(key: str, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    _, ctx = require_option(db, actor, key)
+    if key not in {"company-profile", "business-defaults"} or not can_edit_company(ctx):
+        raise HTTPException(403, "Change history requires company configuration access")
+    from app.access.models import AccessAudit
+    defaults = {"default_timezone", "default_currency", "working_days_per_week", "fiscal_year_start_month"}
+    rows = db.query(AccessAudit).filter(AccessAudit.company_id == ctx["company"], AccessAudit.operation == "settings.company.updated").order_by(AccessAudit.created_at.desc(), AccessAudit.id.desc()).limit(200).all()
+    result = []
+    for row in rows:
+        changed = sorted(k for k in (row.after_json or {}) if k in Company.__table__.c and ((k in defaults) == (key == "business-defaults")))
+        if not changed:
+            continue
+        user = db.get(User, row.actor_id)
+        result.append({"id": row.id, "actor": user.email if user else "Former user", "at": row.created_at, "fields": changed, "outcome": row.outcome})
+        if len(result) == 30:
+            break
+    return {"items": result}
 
 
 @router.get("/{key}")

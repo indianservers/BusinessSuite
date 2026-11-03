@@ -273,11 +273,13 @@ def test_financial_permissions_and_tenant_boundaries(client, db, superuser_heade
     )
     u = db.query(User).filter_by(email="finance2@example.com").one()
     if not db.get(Company, 2):
-        db.add(Company(id=2, name="Other real tenant"))
+        db.add(Company(id=2, name="Other real tenant",email="other@example.com",country="India"))
         db.flush()
     u.person.organization_id = 2
     u.person.display_name = "Other tenant"
-    other.pop("X-Suite-Branch", None)
+    from test_identity_utils import attach_workflow_branch
+    other_branch=attach_workflow_branch(db,u,company_id=2)
+    other["X-Suite-Branch"]=str(other_branch.id)
     db.commit()
     assert (
         client.get(f"/api/v1/srm/invoices/{inv['id']}", headers=other).status_code

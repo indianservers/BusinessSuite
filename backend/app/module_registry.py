@@ -27,6 +27,7 @@ COMMON_ROUTER_MODULES = (
     "app.services.metrics.api",
     "app.apps.power_apps.integrations.api",
     "app.apps.power_apps.approvals.api",
+    "app.apps.power_apps.telegram_api",
     "app.apps.power_apps.runtime_api",
     "app.apps.power_apps.intelligence_api",
     "app.apps.power_apps.studio_api",

@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
     : undefined;
 
   return {
+    cacheDir: env.VITE_CACHE_DIR || "node_modules/.vite",
     plugins: [react()],
     optimizeDeps: { include: ['@tensorflow/tfjs', '@tensorflow/tfjs-backend-wasm', '@huggingface/tokenizers', '@tensorflow/tfjs-core', '@tensorflow/tfjs-layers', '@tensorflow/tfjs-backend-cpu'] },
     resolve: {

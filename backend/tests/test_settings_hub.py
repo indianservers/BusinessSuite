@@ -14,7 +14,7 @@ def actor(db, role="employee", permissions=(), superuser=False, grants=None, adm
     existing = {p.name:p for p in db.query(Permission)}
     selected=[]
     definitions={p[0]:p for p in SYSTEM_PERMISSIONS}
-    for name in permissions:
+    for name in dict.fromkeys(permissions):
         if name not in existing:
             value=definitions.get(name,(name,name,"hrms"))
             existing[name]=Permission(name=name,description=value[1],module=value[2]);db.add(existing[name])
@@ -130,3 +130,79 @@ def test_view_only_and_disabled_grants_never_offer_configuration():
     for definition in SYSTEM_ROLES:
         ctx={"super":False,"admin":False,"managed":True,"permissions":set(),"grants":{m:{"enabled":True,"scope":"organization","actions":["view"],"permissions":definition["permissions"]} for m in ["hrms","crm","project_management","srm","fam","ai","interns_hub"]}}
         assert {o[0] for o in OPTIONS if allows(o,ctx)}=={"account","preferences","company-profile"}
+
+
+def test_settings_catalog_statuses_are_real_and_permission_scoped(client, db):
+    headers, user = actor(db, admin=True)
+    company = db.get(Company, 1)
+    company.email = None
+    company.country = None
+    db.commit()
+    response = client.get(BASE, headers=headers)
+    assert response.status_code == 200, response.text
+    options = {o["id"]: o for o in response.json()["options"]}
+    assert options["company-profile"]["status"]["state"] == "attention"
+    assert options["company-profile"]["historyAvailable"] is True
+    assert "connections" not in options
+    company.email = "company@example.com"
+    company.country = "India"
+    db.commit()
+    options = {o["id"]: o for o in client.get(BASE, headers=headers).json()["options"]}
+    assert options["company-profile"]["status"]["state"] == "ready"
+
+
+def test_settings_change_history_is_tenant_scoped_and_omits_values(client, db):
+    from app.access.models import AccessAudit
+    headers, user = actor(db, admin=True)
+    response = client.patch(BASE+"/company-profile", headers=headers, json={"name":"History company", "default_currency":"INR"})
+    assert response.status_code == 200, response.text
+    db.add(Company(id=78, name="Other history tenant")); db.flush()
+    db.add(AccessAudit(actor_id=user.id,company_id=78,operation="settings.company.updated",reason="Other tenant",after_json={"name":"Private other tenant"}))
+    db.commit()
+    response = client.get(BASE+"/history/company-profile", headers=headers)
+    assert response.status_code == 200, response.text
+    entries = response.json()["items"]
+    assert len(entries) == 1
+    assert entries[0]["fields"] == ["name"]
+    assert entries[0]["actor"] == user.email
+    assert "Private other tenant" not in response.text and "History company" not in response.text
+    defaults = client.get(BASE+"/history/business-defaults", headers=headers)
+    assert defaults.status_code == 200
+    assert defaults.json()["items"][0]["fields"] == ["default_currency"]
+    assert client.get(BASE+"/history/security", headers=headers).status_code == 403
+
+
+def test_read_only_settings_user_cannot_read_company_change_history(client, db):
+    headers, user = actor(db)
+    options = client.get(BASE, headers=headers).json()["options"]
+    assert all(o["historyAvailable"] is False for o in options)
+    assert client.get(BASE+"/history/company-profile", headers=headers).status_code == 403
+
+
+def test_connection_configuration_badge_counts_current_company_only(client, db):
+    from app.models.platform import IntegrationCredential
+    headers, user = actor(db, superuser=True)
+    db.add(Company(id=79, name="Other connection tenant")); db.flush()
+    db.add(IntegrationCredential(provider="preview",credential_name="Other active",organization_id=79,secret_ref="private-not-for-output",status="Active"))
+    db.commit()
+    options = {o["id"]:o for o in client.get(BASE,headers=headers).json()["options"]}
+    assert options["connections"]["status"]["label"] == "Not configured"
+    db.add(IntegrationCredential(provider="preview",credential_name="Local active",organization_id=1,secret_ref="private-not-for-output",status="Active")); db.commit()
+    response=client.get(BASE,headers=headers)
+    options={o["id"]:o for o in response.json()["options"]}
+    assert options["connections"]["status"]["label"] == "Configured"
+    assert "1 active" in options["connections"]["status"]["detail"]
+    assert "private-not-for-output" not in response.text
+
+
+def test_email_configuration_status_does_not_claim_live_delivery(client, db, monkeypatch):
+    headers, user = actor(db, superuser=True)
+    monkeypatch.setattr("app.shared.communications.provider_status", lambda: [{"channel":"email", "status":"configured-unverified"}])
+    response = client.get(BASE, headers=headers)
+    assert response.status_code == 200
+    option = next(o for o in response.json()["options"] if o["id"] == "communication")
+    assert option["status"]["label"] == "Configured"
+    assert "not been verified" in option["status"]["detail"]
+    monkeypatch.setattr("app.shared.communications.provider_status", lambda: [{"channel":"email", "status":"unconfigured"}])
+    option = next(o for o in client.get(BASE, headers=headers).json()["options"] if o["id"] == "communication")
+    assert option["status"]["label"] == "Not configured"

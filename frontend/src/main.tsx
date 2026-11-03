@@ -1,3 +1,4 @@
+import "./pages/settings/settingsNavigationGuard";
 import "./components/forms/compact-forms.css";
 import RecordQuickPreview from "./components/RecordQuickPreview";
 import React from "react";

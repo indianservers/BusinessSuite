@@ -35,6 +35,7 @@ export default defineConfig({
       env: {
         VITE_DEV_API_PROXY_TARGET: "http://127.0.0.1:1551",
         VITE_SUPPRESS_PROXY_ERRORS: "true",
+        VITE_CACHE_DIR: "../.local/vite-suite-navigation",
       },
     },
   ],

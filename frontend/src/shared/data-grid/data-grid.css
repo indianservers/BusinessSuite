@@ -374,7 +374,7 @@
   place-items: center;
   border-radius: 4px;
   padding: 4px;
-  opacity: 0.5;
+  opacity: 1;
 }
 .udg-row:hover .udg-action-cell button,
 .udg-action-cell button:focus {
@@ -1139,8 +1139,8 @@
   z-index: 14;
 }
 .udg-action-cell .udg-hover-action {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 .udg-row:hover .udg-hover-action,
 .udg-row:focus-within .udg-hover-action,
@@ -1150,3 +1150,7 @@
 }
 
 @media(max-width:639px){.udg-action-cell>button{min-height:44px;min-width:44px;opacity:1}.udg-menu [role=menuitem]{min-height:44px}}
+
+.udg-card-actions{display:flex;gap:6px;margin-top:10px}.udg-card-actions button{display:grid;place-items:center;width:32px;height:32px;border:1px solid hsl(var(--border));border-radius:8px;color:hsl(var(--primary));background:hsl(var(--background))}.udg-card-actions button:disabled{opacity:.4;cursor:not-allowed}
+
+.udg-action-cell .udg-hover-action{width:29px;height:29px;border:1px solid var(--udg-border);border-radius:7px;margin-right:4px;color:hsl(var(--primary));background:hsl(var(--background))}.udg-action-cell .udg-hover-action[data-action=whatsapp]{color:#16854d;background:#edf9f2}.udg-action-cell .udg-hover-action:disabled{opacity:.38;cursor:not-allowed}.udg-hover-action:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}.dark .udg-action-cell .udg-hover-action[data-action=whatsapp]{color:#6ee7a0;background:#143322}

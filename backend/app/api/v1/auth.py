@@ -659,9 +659,17 @@ def change_password(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
     _validate_password_policy(db, data.new_password)
 
-    current_user.hashed_password = get_password_hash(data.new_password)
-    _revoke_user_sessions(db, current_user.id, except_token=_bearer_token(request))
-    db.commit()
+    previous_security_change = db.info.get("account_security_change")
+    db.info["account_security_change"] = current_user.id
+    try:
+        current_user.hashed_password = get_password_hash(data.new_password)
+        _revoke_user_sessions(db, current_user.id, except_token=_bearer_token(request))
+        db.commit()
+    finally:
+        if previous_security_change is None:
+            db.info.pop("account_security_change", None)
+        else:
+            db.info["account_security_change"] = previous_security_change
     return {"message": "Password changed successfully."}
 
 

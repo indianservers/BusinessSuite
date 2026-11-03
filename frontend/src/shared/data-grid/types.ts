@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { ReactNode, ComponentType } from "react";
+import type { LucideProps } from "lucide-react";
 import type {
   SortingState,
   ColumnPinningState,
@@ -111,7 +111,7 @@ export type GridColumn<T> = {
     | "status"
     | "owner"
     | "category";
-  icon?: LucideIcon;
+  icon?: ComponentType<LucideProps>;
   width?: number;
   minWidth?: number;
   align?: "left" | "right" | "center";
@@ -146,9 +146,11 @@ export type GridSavedView = {
 export type GridAction<T> = {
   id: string;
   label: string;
-  icon?: LucideIcon;
+  icon?: ComponentType<LucideProps>;
   danger?: boolean;
   quick?: boolean;
+  disabled?: (row: T) => boolean;
+  disabledReason?: string;
   visible?: (row: T) => boolean;
   run: (row: T) => void | Promise<void>;
 };
@@ -175,6 +177,8 @@ export type SharedDataGridProps<T> = {
   onRestoreView?: (view: GridSavedView) => void;
   onResult?: (result: GridResult<T>) => void;
   onOpen?: (row: T) => void;
+  onSelectRecord?: (row: T) => void;
+  onOpenPopup?: (row: T) => void;
   onEdit?: (row: T, column: string, value: string) => Promise<void>;
   rowActions?: GridAction<T>[];
   toolbarExtra?: ReactNode;

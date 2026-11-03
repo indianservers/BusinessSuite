@@ -161,6 +161,9 @@ def register_routes(router, source, default=None):
 
 
 def request_module(request):
+    if request.url.path.startswith("/api/v1/scheduling/"):
+        source = request.url.path.split("/")[4]
+        return {"crm": "crm", "srm": "srm", "inventory": "srm", "hrms": "hrms", "fam": "fam"}.get(source)
     if request.url.path.startswith("/api/v1/master-data/"):
         source = request.query_params.get("source", "crm")
         return source if source in {"crm", "srm", "project_management", "hrms"} else None

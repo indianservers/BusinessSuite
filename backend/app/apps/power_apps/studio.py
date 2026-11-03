@@ -149,7 +149,11 @@ def compare(config):
 def local_node(node_type, config, test_input, incoming_outputs):
     """An explicit allowlist of pure transformations, never integration adapters."""
     routes = None
-    if node_type == "manual_trigger":
+    if node_type == "telegram_trigger":
+        output = {"input": test_input}
+    elif node_type == "telegram_enquiry":
+        output = {"chat_id": str(test_input.get("chat_id", "123")), "text": test_input.get("reply", "Welcome! Choose Sales, Support, or Order status.")}
+    elif node_type == "manual_trigger":
         output = {"input": test_input, "record": test_input.get("record", {})}
     elif node_type in {"if_else", "filter", "compare_values", "check_empty", "and_or"}:
         if config.get("condition"):

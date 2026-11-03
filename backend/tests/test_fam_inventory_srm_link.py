@@ -1,7 +1,7 @@
 from tests.fam_inventory_test_utils import create_stock_item, inventory_headers, post_opening_stock
 
 
-def test_inventory_srm_link_shows_reservations_and_movements(client, db):
+def test_inventory_srm_link_shows_reservations_and_movements(client, db, superuser_headers):
     headers = inventory_headers(client, db, "phase9-srm@example.com")
     item, warehouse = create_stock_item(client, headers, "P9-SRM")
     post_opening_stock(client, headers, item, warehouse, quantity=10, rate=100, suffix="P9-SRM")

@@ -197,6 +197,8 @@ def permitted_matches(db, actor, source, phone=None, country_code=None, email=No
                 q = companies(db, actor, source)
             else:
                 authorize(actor, source, entity="contacts")
+                if source == "hrms":
+                    crm()._assert_entity_permission("contacts", actor, "view")
                 q = db.query(model).filter(model.organization_id == actor.organization_id, model.deleted_at.is_(None))
                 if source == "crm":
                     q = crm()._apply_record_visibility(q, crm()._get_resource(entity), actor, db)
@@ -653,12 +655,13 @@ def birthday_owner(db, actor, kind, ident, source, write=False):
     row = owner(db, actor, kind, ident, source, write)
     if kind == "contact":
         from app.apps.crm.contact_identity import ContactIdentityLink
-        linked = db.query(ContactIdentityLink).filter(ContactIdentityLink.contact_id == ident, ContactIdentityLink.employee_id.is_not(None)).first()
-        if linked:
+        links = ContactIdentityLink.__table__
+        employee_id = db.connection().execute(select(links.c.employee_id).where(links.c.organization_id == actor.organization_id, links.c.contact_id == ident, links.c.employee_id.is_not(None)).limit(1)).scalar()
+        if employee_id:
             # Linked employee birthdays always resolve to the HR-owned master;
             # having CRM contact access does not expose private HR information.
-            birthday_owner(db, actor, "employee", linked.employee_id, source, write)
-            return db.get(__import__("app.models.employee", fromlist=["Employee"]).Employee, linked.employee_id)
+            birthday_owner(db, actor, "employee", employee_id, source, write)
+            return db.get(__import__("app.models.employee", fromlist=["Employee"]).Employee, employee_id)
     return row
 
 
@@ -724,7 +727,8 @@ def upcoming_birthdays(source: Source = "crm", days: int = Query(30, ge=0, le=36
     else:
         records = db.query(CRMContact).filter(CRMContact.organization_id == actor.organization_id, CRMContact.deleted_at.is_(None))
         from app.apps.crm.contact_identity import ContactIdentityLink
-        records = records.filter(~CRMContact.id.in_(select(ContactIdentityLink.contact_id).where(ContactIdentityLink.employee_id.is_not(None))))
+        links = ContactIdentityLink.__table__
+        records = records.filter(~CRMContact.id.in_(select(links.c.contact_id).where(links.c.organization_id == actor.organization_id, links.c.employee_id.is_not(None))))
         if source == "crm":
             records = crm()._apply_record_visibility(records, crm()._get_resource("contacts"), actor, db)
         else:

@@ -37,9 +37,9 @@ export default function BranchSettings() {
         finally { setSaving(false); }
       }}>
         <div className="settings-form-grid">
-          <label>Branch name<input required maxLength={150} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Chennai" /></label>
-          <label>Branch code<input required maxLength={20} pattern="[A-Za-z0-9_\-]+" value={code} onChange={e => setCode(e.target.value)} placeholder="e.g. CHN" /><small>Unique within this company. Letters, numbers, underscores or hyphens.</small></label>
-          <label>Reason for creating branch<input required minLength={5} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. New Chennai office" /></label>
+          <label>Branch name *<input required maxLength={150} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Chennai" /></label>
+          <label>Branch code *<input required maxLength={20} pattern="[A-Za-z0-9_\-]+" value={code} onChange={e => setCode(e.target.value)} placeholder="e.g. CHN" /><small>Unique within this company. Letters, numbers, underscores or hyphens.</small></label>
+          <label>Reason for creating branch *<input required minLength={5} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. New Chennai office" /></label>
         </div>
         <button className="settings-primary" disabled={saving || !name.trim() || reason.trim().length < 5}>{saving ? "Creating…" : "Create branch"}</button>
       </CompactForm> : <p>You need branch administration access to create branches.</p>}
