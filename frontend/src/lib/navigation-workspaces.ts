@@ -40,7 +40,7 @@ const workspaces: [string, string[]][] = [
   ["Deals", ["/crm/deals", "/crm/pipeline", "/crm/templates"]],
   ["Activities & Planning", ["/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"]],
   ["Communication & Campaigns", ["/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/forms", "/crm/webforms", "/crm/campaigns", "/crm/consents", "/crm/whatsapp", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline"]],
-  ["Catalog", ["/crm/products", "/crm/services", "/crm/price-books"]],
+  ["Catalog", ["/crm/products-services", "/crm/products", "/crm/services", "/crm/price-books"]],
   ["Quoting", ["/crm/quotes", "/crm/cpq", "/crm/guided-selling", "/crm/quote-approvals"]],
   ["Sales Insights", ["/crm/reports", "/crm/forecasting", "/crm/targets", "/crm/sales-performance", "/crm/funnel", "/crm/lost-analysis"]],
   ["CRM Administration", ["/crm/settings", "/crm/pipeline-settings", "/crm/approval-settings", "/crm/webhooks", "/crm/import-export", "/crm/automation", "/crm/admin", "/crm/feature-checklist"]],

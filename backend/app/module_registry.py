@@ -21,6 +21,8 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.branches.api",
+    "app.shared.data_transfer",
     "app.services.metrics.api",
     "app.apps.power_apps.integrations.api",
     "app.apps.power_apps.approvals.api",
@@ -55,6 +57,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.branches.models",
     "app.models.email_outbox",
     "app.apps.power_apps.models",
     "app.apps.power_apps.runtime_models",
@@ -211,6 +214,8 @@ def iter_enabled_modules() -> Iterable[AppModule]:
 def import_model_modules() -> None:
     for module_name in COMMON_MODEL_MODULES:
         import_module(module_name)
+    if is_app_enabled("crm") or is_app_enabled("project_management"):
+        import_module("app.shared.catalog_models")
     for module in iter_enabled_modules():
         for module_name in module.model_modules:
             import_module(module_name)
@@ -223,6 +228,10 @@ def build_api_router() -> APIRouter:
         module = import_module(module_name)
         register_routes(module.router, module_name)
         api_router.include_router(module.router)
+    if is_app_enabled("crm") or is_app_enabled("project_management"):
+        from app.shared.catalog import router as catalog_router
+        register_routes(catalog_router, "app.shared.catalog")
+        api_router.include_router(catalog_router)
     for app_module in iter_enabled_modules():
         for module_name in app_module.router_modules:
             module = import_module(module_name)

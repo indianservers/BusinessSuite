@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, ValidationError
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, select
 
 from app.common.models import CommonPerson, CommonProfile
 from app.common.services.identity import SharedIdentityService
@@ -206,6 +206,11 @@ def authorized_user(db, actor, ident=None, employee_id=None, write=False):
     if not target or tenant(target) != tenant(actor):
         raise HTTPException(404, "Profile not found")
     if target.id != actor.id:
+        linked_employee = db.connection().execute(select(Employee.id).where(Employee.user_id == target.id, Employee.deleted_at.is_(None))).first()
+        if linked_employee and employee_for(db, target) is None:
+            # A CRM/PMS membership in this branch cannot turn a hidden employee
+            # into an account-only profile and expose their home-branch HR data.
+            raise HTTPException(404, 'Profile not found in your permitted scope')
         if not can_manage(actor) and (
             write
             or not permissions(actor).intersection(
@@ -213,6 +218,16 @@ def authorized_user(db, actor, ident=None, employee_id=None, write=False):
             )
         ):
             raise HTTPException(403, "HR profile management access is required")
+        # Explicit HR module grants use the installed central record scope and
+        # branch boundary. A native "manager" label must not silently reduce an
+        # authorized branch HR head to only their direct reporting employees.
+        grants = getattr(actor, '_suite_grants', None)
+        hr = grants.get('hrms', {}) if grants is not None else {}
+        if hr.get('enabled') and getattr(actor, '_suite_scope_active', False):
+            employee = employee_for(db, target)
+            if not employee and (hr.get('scope') != 'organization' or not can_manage(actor)):
+                raise HTTPException(404, 'Profile not found in your permitted scope')
+            return target
         # Department/project managers retain their established employee visibility scope.
         if not actor.is_superuser and (
             actor.role.name if actor.role else ""

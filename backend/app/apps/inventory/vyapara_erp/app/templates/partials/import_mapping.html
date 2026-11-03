@@ -1,0 +1,15 @@
+<div class="panel">
+  <h2 class="h5">Map spreadsheet columns</h2>
+  <p>{{ transfer.filename }} · {{ transfer.rows|length }} rows. Choose your uploaded column for each field. Unmapped columns are ignored.</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="mapped_rows" value="{{ transfer.rows|tojson|forceescape }}">
+    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Our field</th><th>Your uploaded column</th><th>Sample</th></tr></thead><tbody>
+    {% for field in transfer.fields %}<tr><td>{{ field.key|replace('_',' ')|title }}{% if field.required %} *{% endif %}</td><td><select class="form-select" name="map_{{ field.key }}" {% if field.required %}required{% endif %}><option value="">Do not import</option>{% for header in transfer.headers %}<option value="{{ header }}" {% if transfer.suggestions[field.key] == header %}selected{% endif %}>{{ header }}</option>{% endfor %}</select></td><td class="small text-muted">{{ transfer.sample[0].get(transfer.suggestions[field.key], '') }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    <details><summary>Review first five uploaded rows</summary><div class="table-responsive"><table class="table table-sm"><thead><tr>{% for header in transfer.headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in transfer.sample %}<tr>{% for header in transfer.headers %}<td>{{ row.get(header,'') }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></details>
+    <p class="small text-muted mt-3">Check column mappings and sample values before saving. Existing validation and duplicate rules apply.</p>
+    <button class="btn btn-primary mt-2">Confirm import · {{ transfer.rows|length }} rows</button>
+    <a href="{{ request.path }}" class="btn btn-outline-secondary mt-2">Start over</a>
+  </form>
+</div>

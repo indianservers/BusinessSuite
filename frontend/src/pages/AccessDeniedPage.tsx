@@ -4,13 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuthStore } from "@/store/authStore";
 import { getRequiredPermissionForPath, getRoleLabel } from "@/lib/roles";
-import { getDefaultPathForUser } from "@/lib/products";
 
 export default function AccessDeniedPage() {
   const location = useLocation();
   const { user } = useAuthStore();
   const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
-  const home = getDefaultPathForUser(user?.role, user?.is_superuser);
+  const home = "/dashboard";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">

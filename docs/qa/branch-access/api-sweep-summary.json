@@ -1,0 +1,27 @@
+{
+  "operations_in_inventory": 2730,
+  "bearer_operations_invalid_credentials_rejected": 2678,
+  "public_or_custom_credential_operations_checked": 52,
+  "foreign_branch_get_checks": 1212,
+  "foreign_branch_denied_403": 1211,
+  "context_discovery_exception": "200; independently verified only authorized Chennai branch returned, selected branch reset to Chennai",
+  "authenticated_static_get_checks_per_branch": 747,
+  "bengaluru_status_counts": {
+    "200": 715,
+    "403": 11,
+    "400": 15,
+    "404": 4,
+    "422": 2
+  },
+  "bengaluru_server_errors": 0,
+  "fixed_initial_configuration_conflicts": 5,
+  "targeted_retests_passed": 26,
+  "regression_tests": {
+    "passed": 124,
+    "skipped": 1,
+    "skip_reason": "Concurrent administrator row-lock test requires PostgreSQL; not included in PostgreSQL subset"
+  },
+  "postgresql_subset_passed": 60,
+  "typescript": "passed",
+  "scope_limit": "All inventoried HTTP operations received credential-boundary probes. Authenticated successful mutations, every parameterized record workflow, disabled feature packs, intern workflows, independent SQL/worker integrations and production rollout are not fully certified."
+}

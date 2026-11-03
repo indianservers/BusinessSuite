@@ -1,3 +1,4 @@
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import DashboardsPage from "./pages/DashboardsPage";
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
@@ -77,7 +78,10 @@ const BatchWorkspacePage=React.lazy(()=>import("./pages/BatchWorkspacePage"));
 const MyAssignmentsPage=React.lazy(()=>import("./pages/MyAssignmentsPage"));
 const AssignmentControlsPage=React.lazy(()=>import("./pages/AssignmentControlsPage"));
 const WorkReviewsPage = React.lazy(() => import("./pages/WorkReviewsPage"));
+const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
+ {path:"pms/products-services",element:<SharedCatalogPage source="pms"/>},
+ {path:"pms/products",element:<SharedCatalogPage source="pms"/>},
  {path:"pms/management",element:<ManagementHomePage/>},
  {path:"pms/admin/configuration",element:<AdminPage/>},
  {path:"pms/my-work",element:<MyWorkPage/>},
@@ -199,7 +203,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/timesheets", element: <TimesheetsPage /> },
   { path: "pms/reports", element: <ReportsPage /> },
   { path: "pms/client-portal", element: <ClientPortalPage /> },
-  { path: "pms/settings", element: <SettingsPage /> },
+  { path: "pms/settings", element: <CentralSettingsRedirect section="pms" /> },
   { path: "pms/admin", element: <ManagementHomePage /> },
 ];
 

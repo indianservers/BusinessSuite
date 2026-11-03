@@ -1,3 +1,4 @@
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
@@ -19,14 +20,14 @@ export const famRoutes: FrontendRoute[] = [
   route("fam", "dashboard"),
   route("fam/dashboard", "dashboard"),
   { path: "fam/profile", element: <ModuleProfilePage /> },
-  route("fam/settings", "settings"),
-  route("fam/financial-years", "financialYears"),
+  { path: "fam/settings", element: <CentralSettingsRedirect section="finance" /> },
+  { path: "fam/financial-years", element: <CentralSettingsRedirect section="financial-years" /> },
   route("fam/chart-of-accounts", "chartOfAccounts"),
   route("fam/ledger-groups", "ledgerGroups"),
   route("fam/ledgers", "ledgers"),
   route("fam/ledgers/:id/entries", "ledgerDetailEntries"),
   route("fam/opening-balances", "openingBalances"),
-  route("fam/voucher-types", "voucherTypes"),
+  { path: "fam/voucher-types", element: <CentralSettingsRedirect section="voucher-types" /> },
   route("fam/vouchers", "vouchers"),
   route("fam/vouchers/new", "voucherNew"),
   route("fam/vouchers/:id", "voucherDetail"),
@@ -51,7 +52,7 @@ export const famRoutes: FrontendRoute[] = [
   route("fam/posting-rules", "postingRules"),
   route("fam/banking", "banking"),
   route("fam/bank-accounts", "bankAccounts"),
-  route("fam/payment-modes", "paymentModes"),
+  { path: "fam/payment-modes", element: <CentralSettingsRedirect section="payment-modes" /> },
   route("fam/bank-statements", "bankStatements"),
   route("fam/bank-statements/:id", "bankStatementDetail"),
   route("fam/bank-reconciliation", "bankReconciliation"),
@@ -60,7 +61,7 @@ export const famRoutes: FrontendRoute[] = [
   route("fam/contra", "contra"),
   route("fam/bank-charges", "bankCharges"),
   route("fam/gst", "gst"),
-  route("fam/gst/settings", "gstSettings"),
+  { path: "fam/gst/settings", element: <CentralSettingsRedirect section="tax-settings" /> },
   route("fam/gst/registrations", "gstRegistrations"),
   route("fam/gst/rates", "gstRates"),
   route("fam/gst/hsn-sac", "gstHsnSac"),
@@ -126,7 +127,7 @@ export const famRoutes: FrontendRoute[] = [
   route("fam/inventory/reorder-alerts", "inventoryReorderAlerts"),
   route("fam/inventory/reports", "inventoryReports"),
   route("fam/inventory/ai", "inventoryAI"),
-  route("fam/cost-centers", "costCenters"),
-  route("fam/branches", "branches"),
+  { path: "fam/cost-centers", element: <CentralSettingsRedirect section="cost-centers" /> },
+  { path: "fam/branches", element: <CentralSettingsRedirect section="accounting-branches" /> },
   route("fam/audit", "audit"),
 ];

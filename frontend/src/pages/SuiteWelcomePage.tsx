@@ -1,6 +1,7 @@
+import { SettingsHomeEntry } from "./SettingsHubPage";
 import { useRef, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { modules } from "@/lib/moduleCatalog";
 import SuiteHeader from "@/components/suite/SuiteHeader";
 import "./module-dashboard.css";
@@ -40,10 +41,9 @@ export default function SuiteWelcomePage() {
             account. Your organization determines which applications you can
             access.
           </p>
-          <Link className="suite-primary" to="/login">
-            Sign in to your workspace <ArrowRight size={17} />
-          </Link>
+          <p>Use the single Sign in link above to access all your applications.</p>
         </section>
+        <SettingsHomeEntry />
         <div className="md-section-head">
           <h2>Explore applications</h2>
           <label className="md-search">
@@ -71,13 +71,7 @@ export default function SuiteWelcomePage() {
                 <h3>{m.name}</h3>
                 <p className="md-category">{m.label}</p>
                 <p className="md-description">{m.description}</p>
-                <Link
-                  className="md-open"
-                  to={`/login?next=${encodeURIComponent(m.homePath)}`}
-                  aria-label={`Sign in to ${m.name}`}
-                >
-                  Sign in to open <ArrowRight size={16} />
-                </Link>
+
               </article>
             );
           })}

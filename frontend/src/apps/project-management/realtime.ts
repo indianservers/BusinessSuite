@@ -35,8 +35,6 @@ type RealtimeState = {
   setConnected: (connected: boolean) => void;
 };
 
-const CHANNEL = "karyaflow-realtime";
-const channel = typeof window !== "undefined" && "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL) : null;
 
 function actorName(actor: PMSRealtimeEvent["actor"]) {
   return typeof actor === "string" ? actor : actor?.name;
@@ -72,14 +70,10 @@ export const useRealtimeStore = create<RealtimeState>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
     set({ events: [fullEvent, ...get().events].slice(0, 50) });
-    channel?.postMessage(fullEvent);
   },
   setConnected: (connected) => set({ connected }),
 }));
 
-channel?.addEventListener("message", (message) => {
-  useRealtimeStore.getState().receive(message.data as PMSRealtimeEvent);
-});
 
 function wsUrl(token: string) {
   const apiBase = getApiBaseUrl();
@@ -89,6 +83,10 @@ function wsUrl(token: string) {
   const url = new URL(`${base.replace(/\/$/, "")}/project-management/realtime`);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.searchParams.set("token", token);
+  const branch = sessionStorage.getItem("suite-branch");
+  const company = sessionStorage.getItem("suite-organization");
+  if (branch) url.searchParams.set("branch", branch);
+  if (company) url.searchParams.set("company", company);
   return url.toString();
 }
 

@@ -1226,6 +1226,8 @@ def create_srm_warehouse(data: SRMWarehouseCreate, db: Session = Depends(get_db)
 def list_srm_products(search: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     org_id = _org(current_user)
     query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None))
+    from app.shared.catalog import restrict_workspaces
+    query = restrict_workspaces(query, SRMProduct, db, current_user)
     if search:
         normalized = f"%{search.lower()}%"
         query = query.filter(
@@ -1260,6 +1262,9 @@ def create_srm_product(data: SRMProductCreate, db: Session = Depends(get_db), cu
 def get_srm_product(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     org_id = _org(current_user)
     product = _product_or_404(db, org_id, product_id)
+    from app.shared.catalog import metadata, workspace_access
+    detail = metadata(db, "service" if product.product_type == "service" else "product", product.id)
+    workspace_access(db, current_user, detail.workspace_id if detail else None)
     movements = db.query(SRMInventoryMovement).filter(SRMInventoryMovement.organization_id == org_id, SRMInventoryMovement.product_id == product.id).order_by(SRMInventoryMovement.id.desc()).limit(25).all()
     balances = db.query(SRMInventoryBalance).filter(SRMInventoryBalance.organization_id == org_id, SRMInventoryBalance.product_id == product.id).all()
     return {**_product_payload(product), "ledger": [_serialize(row) for row in movements], "balances": [_serialize(row) for row in balances]}
@@ -1270,8 +1275,16 @@ def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = De
     org_id = _org(current_user)
     product = _product_or_404(db, org_id, product_id)
     before = _product_payload(product)
+    from app.shared.catalog import metadata, workspace_access
+    kind = "service" if product.product_type == "service" else "product"
+    detail = metadata(db, kind, product.id)
+    workspace_access(db, current_user, detail.workspace_id if detail else None, True)
+    if data.product_type is not None and (data.product_type == "service") != (kind == "service") and detail:
+        raise HTTPException(422, "An item's catalog type cannot be changed")
     for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(product, key, value)
+        setattr(product, key, {**(product.metadata_json or {}), **(value or {})} if key == "metadata_json" else value)
+    if detail:
+        detail.version += 1
     if not product.mrp:
         product.mrp = product.sales_rate
     _audit(db, current_user, "product", product.id, "UPDATE", before, _product_payload(product))

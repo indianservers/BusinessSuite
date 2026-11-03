@@ -1,3 +1,4 @@
+import { ImportWizard, csvText } from "@/shared/data-transfer";
 import { useEffect, useState } from "react";
 import { Upload, Download } from "lucide-react";
 import { api } from "@/services/api";
@@ -97,34 +98,7 @@ export default function DirectoryImport({
       title="Import people"
       description="Preview invitation emails before sending. This uses existing workspace invitations and registration rules; accounts are never silently created."
     >
-      <label className="pd-file-upload">
-        <Upload />
-        <strong>Choose CSV with an Email column</strong>
-        <small>
-          Up to 100 invitations per import. Other columns are ignored.
-        </small>
-        <input
-          aria-label="Import people CSV"
-          type="file"
-          accept=".csv,text/csv"
-          disabled={busy}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            if (file.size > 250000) {
-              setError("Choose a CSV under 250 KB");
-              return;
-            }
-            const parsed = parse(await file.text());
-            if (parsed.length > 100) {
-              setError("Split this file into imports of at most 100 rows.");
-              return;
-            }
-            setRows(parsed);
-            setError("");
-          }}
-        />
-      </label>
+      <ImportWizard title="Map people to invite" label="Choose spreadsheet" confirmLabel="Prepare invitation preview" maxRows={100} maxBytes={250000} fields={[{key:"email",type:"email",required:true}]} onImport={async({rows:incoming})=>{const parsed=parse(csvText(incoming,["email"]));setRows(parsed);setError("");return {created:parsed.filter(r=>!r.error).length,message:"Emails prepared. Close this dialog, choose a workspace, then send valid invitations."};}}/>
       <label>
         Destination workspace
         <select

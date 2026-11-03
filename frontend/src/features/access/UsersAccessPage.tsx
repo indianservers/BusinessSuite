@@ -1,6 +1,7 @@
 import {useQuery} from "@tanstack/react-query";
 import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
 import SuperAdminManager from "./SuperAdminManager";
+import BranchRoleAssignments from "@/components/suite/BranchRoleAssignments";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Check,
@@ -279,7 +280,7 @@ function ModuleEditor({
   );
 }
 
-export default function UsersAccessPage() {
+export default function UsersAccessPage({ embedded = false, initialTab }: { embedded?: boolean; initialTab?: string }) {
   const actor = useAuthStore((s) => s.user);
   const [company, setCompany] = useState(
     Number(
@@ -288,12 +289,13 @@ export default function UsersAccessPage() {
         1,
     ),
   );
+  const branchChoices = useQuery({queryKey:["user-management-branches",company], queryFn:()=>api.get<{branches:{id:number;name:string}[]}>("/branches/context",{headers:{"X-Suite-Organization":String(company)}}).then(r=>r.data)});
   const [catalog, setCatalog] = useState<Catalog>();
   const [data, setData] = useState<any>();
   const [templates, setTemplates] = useState<any[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("Matrix");
+  const [tab, setTab] = useState(initialTab || (embedded ? "User listing" : "Matrix"));
   const identityStatistics=useQuery({queryKey:["suite-metrics","access-statistics",actor?.id,company],staleTime:0,queryFn:()=>api.get<Record<string,number>>("/access/statistics",{params:{companyId:company}}).then(r=>r.data)});
   const [filters, setFilters] = useState({
     search: "",
@@ -588,10 +590,10 @@ export default function UsersAccessPage() {
   const virtualUsers = users.slice(first, first + 24);
   return (
     <div className="ua-root">
-      <ControlNav />
+      {!embedded && <ControlNav />}
       <header className="ua-header">
         <div>
-          <span className="ua-eyebrow">MASTER SUITE / SUPER ADMIN</span>
+          <span className="ua-eyebrow">{embedded ? "COMPANY ADMINISTRATION" : "MASTER SUITE / SUPER ADMIN"}</span>
           <h1>
             <ShieldCheck size={23} /> Users & Access
           </h1>
@@ -757,14 +759,10 @@ export default function UsersAccessPage() {
                 <option key={s}>{s}</option>
               ))}
             </select>
-            <input
-              aria-label="Filter branch ID"
-              type="number"
-              min={1}
-              placeholder="Branch ID"
-              value={filters.branch}
-              onChange={(e) => changeFilter("branch", e.target.value)}
-            />
+            <select aria-label="Filter branch" value={filters.branch} onChange={e=>changeFilter("branch",e.target.value)}>
+              <option value="">All authorized branches</option>
+              {branchChoices.data?.branches.map(branch=><option key={branch.id} value={branch.id}>{branch.name}</option>)}
+            </select>
             <input
               aria-label="Filter department ID"
               type="number"
@@ -1388,6 +1386,7 @@ export default function UsersAccessPage() {
         >
           <DialogContent className="ua-root ua-drawer">
             <DialogTitle>{opened.name} · Access</DialogTitle>
+            {actor?.is_superuser && !opened.isSuperuser && opened.id !== actor.id && <BranchRoleAssignments key={`${company}-${opened.id}`} userId={opened.id} companyId={company} enabledModules={Object.entries(opened.grants).filter(([,g]) => g.enabled).map(([key]) => key)} />}
             <p>
               {opened.email} · {opened.department || "No department"} ·{" "}
               {opened.status}

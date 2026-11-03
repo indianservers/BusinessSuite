@@ -61,6 +61,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         sessionStorage.removeItem("suite-organization");
+        sessionStorage.removeItem("suite-branch");
         set({
           accessToken: null,
           refreshToken: null,

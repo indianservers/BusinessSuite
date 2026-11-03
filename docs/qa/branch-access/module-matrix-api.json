@@ -1,0 +1,174 @@
+[
+  {
+    "scenario": "branch switcher discovery",
+    "branch": null,
+    "path": "/branches/context",
+    "expected": 200,
+    "actual": 200,
+    "passed": true
+  },
+  {
+    "scenario": "same person CRM",
+    "branch": 3,
+    "path": "/crm/companies",
+    "expected": 200,
+    "actual": 200,
+    "passed": true
+  },
+  {
+    "scenario": "same person SRM",
+    "branch": 3,
+    "path": "/srm/sales-orders",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "effective branch roles",
+    "branch": 3,
+    "path": "/access/me",
+    "expected": 200,
+    "actual": 200,
+    "passed": true,
+    "enabled_modules": [
+      "crm"
+    ]
+  },
+  {
+    "scenario": "same person CRM",
+    "branch": 4,
+    "path": "/crm/companies",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "same person SRM",
+    "branch": 4,
+    "path": "/srm/sales-orders",
+    "expected": 200,
+    "actual": 200,
+    "passed": true
+  },
+  {
+    "scenario": "effective branch roles",
+    "branch": 4,
+    "path": "/access/me",
+    "expected": 200,
+    "actual": 200,
+    "passed": true,
+    "enabled_modules": [
+      "srm"
+    ]
+  },
+  {
+    "scenario": "forbidden branch",
+    "branch": 5,
+    "path": "/crm/companies",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "ordinary All denied",
+    "branch": "all",
+    "path": "/crm/companies",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "guessed other branch customer",
+    "branch": 3,
+    "path": "/crm/companies/21",
+    "expected": 404,
+    "actual": 404,
+    "passed": true
+  },
+  {
+    "scenario": "CRM only user correct branch",
+    "branch": 3,
+    "path": "/crm/companies",
+    "expected": 200,
+    "actual": 200,
+    "passed": true
+  },
+  {
+    "scenario": "CRM only user other branch",
+    "branch": 4,
+    "path": "/crm/companies",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "no branch user",
+    "branch": null,
+    "path": "/crm/companies",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "no branch user forged header",
+    "branch": 3,
+    "path": "/crm/companies",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "readonly module write",
+    "branch": 4,
+    "path": "/srm/sales-orders",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "dashboard metadata for CRM only",
+    "branch": 3,
+    "path": "/business-os/modules",
+    "expected": 200,
+    "actual": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Bengaluru orders exclude Chennai sale",
+    "branch": 4,
+    "path": "/srm/sales-orders",
+    "expected": 200,
+    "actual": 200,
+    "passed": true
+  },
+  {
+    "scenario": "guessed Chennai sale ID denied in Bengaluru",
+    "branch": 4,
+    "path": "/srm/sales-orders/2",
+    "expected": 404,
+    "actual": 404,
+    "passed": true
+  },
+  {
+    "scenario": "role change requires administrator verification",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "role revoked existing token",
+    "branch": 4,
+    "path": "/srm/sales-orders",
+    "expected": 403,
+    "actual": 403,
+    "passed": true
+  },
+  {
+    "scenario": "restored role existing token",
+    "branch": 4,
+    "path": "/srm/sales-orders",
+    "expected": 200,
+    "actual": 200,
+    "passed": true
+  }
+]

@@ -734,6 +734,7 @@ export default function LoginPage() {
           </p>
         </section>
         <footer>
+          <Link to="/login?next=%2Fsettings">Company settings</Link>
           <Link to="/help">Help & support</Link>
           <span>© {new Date().getFullYear()} Business Suite</span>
         </footer>

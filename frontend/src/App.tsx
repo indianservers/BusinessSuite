@@ -1,3 +1,4 @@
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import OperationsWorkspace from "@/components/layout/OperationsWorkspace";
 import { getOperationWorkspace } from "@/lib/navigation-workspaces";
 import { PendingPageProgress } from "./components/app/RouteProgress";
@@ -171,12 +172,13 @@ export default function App() {
     ...["edit", "versions", "settings"].map(section => ({ path: `power-apps/automations/:resourceId/${section}`, element: <AutomationEditorPage /> })),
     { path: "power-apps/automations/:resourceId", element: <AutomationEditorPage /> },
     ...applicationRoutes.filter(id => id !== "connectors").map(id => ({ path: `power-apps/${id}`, element: <PowerAppsPage /> })),
-    { path: "admin/access", element: <UsersAccessPage /> },
+    { path: "admin/access", element: <CentralSettingsRedirect section="users" /> },
     { path: "admin/control/statistics", element: <StatisticsAuditPage /> },
     { path: "admin/control/ai-security", element: <AiSecurityPage /> },
     { path: "admin/control/enterprise/:section", element: <EnterprisePage /> },
+    ...[{path:"connections",section:"connections"},{path:"delivery",section:"communication"},{path:"settings",section:"global"},{path:"webhooks",section:"webhooks"}].map(item=>({path:`admin/control/services/${item.path}`,element:<CentralSettingsRedirect section={item.section}/>})),
     { path: "admin/control/services/:section", element: <SharedServicesPage /> },
-    ...["dashboard", "organizations", "modules", "security", "audit"].map(page => ({ path: `admin/control/${page}`, element: <ControlCenter /> })),
+    ...["dashboard", "organizations", "modules", "security", "audit"].map(page => ({ path: `admin/control/${page}`, element: ["modules", "security", "audit"].includes(page) ? <CentralSettingsRedirect section={page}/> : <ControlCenter /> })),
     { path: "admin/control/users/:id", element: <UserAccess360 /> },
     ...["pms","crm","srm","hrms","fam"].flatMap(module=>["published","responses","custom-fields","new",":formId/edit",":formId/responses"].map(path=>({path:`${module}/forms/${path}`,element:<SharedFormsPage/>}))),
     ...["pms","crm","srm","hrms","fam"].map(module=>({path:`${module}/forms/:formId/view`,element:<PublicFormPage internal/>})),

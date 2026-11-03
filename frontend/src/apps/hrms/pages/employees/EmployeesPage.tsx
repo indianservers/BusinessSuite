@@ -1,3 +1,5 @@
+import { ImportWizard, DataExportButton } from "@/shared/data-transfer";
+import { employeeImportFields } from "@/shared/data-transfer/fields";
 import {useHRSession} from "../../workbench/useHRSession";
 import {HRQuickAdd} from "../../workbench/shared";
 import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
@@ -134,33 +136,6 @@ export default function EmployeesPage() {
     onError: () => toast({ title: "Could not upload photo", variant: "destructive" }),
   });
 
-  const importMutation = useMutation({
-    mutationFn: (file: File) => {
-      const form = new FormData();
-      form.append("file", file);
-      return employeeApi.importCsv(form);
-    },
-    onSuccess: (response) => {
-      const { created, failed } = response.data;
-      toast({ title: "Import completed", description: `${created} created, ${failed} failed` });
-      qc.invalidateQueries({ queryKey: ["employees"] });
-    },
-    onError: (error: unknown) => {
-      const msg = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Could not import employees";
-      toast({ title: "Import failed", description: msg, variant: "destructive" });
-    },
-  });
-
-  async function exportEmployees() {
-    const response = await employeeApi.exportCsv(queryFilters);
-    const url = URL.createObjectURL(response.data);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "employees_export.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
   const columns = [
     columnHelper.display({
       id: "avatar",
@@ -291,23 +266,8 @@ export default function EmployeesPage() {
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <label className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
-            Import CSV
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) importMutation.mutate(file);
-                event.currentTarget.value = "";
-              }}
-            />
-          </label>
-          <Button variant="outline" size="sm" onClick={exportEmployees}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          <ImportWizard title="Import employees" fields={employeeImportFields} onImport={async ({file}) => { const form = new FormData(); form.append("file", file); const response = await employeeApi.importCsv(form); qc.invalidateQueries({queryKey:["employees"]}); return {...response.data, errors: response.data.errors?.map((e: {row:number;errors:string[]})=>({...e,row:e.row-1}))}; }}/>
+          <DataExportButton filename="employees" description="All employees matching the current filters, subject to your export permissions." load={async()=> (await employeeApi.exportCsv(queryFilters)).data}/>
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
           <Button size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Quick Add Employee</Button><Link className="p-2 text-sm underline" to="/hrms/employees/new">Full employee form</Link>

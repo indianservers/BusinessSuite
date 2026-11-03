@@ -1,0 +1,44 @@
+{
+  "focused-tests.xml": {
+    "tests": 22,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "postgresql-tests.xml": {
+    "tests": 22,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "regression-tests.xml": {
+    "tests": 82,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "runtime_schema": {
+    "tables": 781,
+    "missing_tables_or_columns": {}
+  },
+  "live_api_module_matrix": {
+    "checks": 21,
+    "passed": 21
+  },
+  "browser_checks": [
+    "Settings user drawer saved per-branch roles after administrator verification",
+    "Mixed user: Chennai CRM customer visible, Bengaluru customer absent",
+    "Mixed user: Bengaluru SRM draft visible, Chennai draft absent, workflow actions hidden",
+    "Switching to a branch without current module access returns to dashboard",
+    "No-branch user: no branch access and zero applications"
+  ],
+  "main_migration": {
+    "tables": 697,
+    "counts_totals_and_links_match": true,
+    "differences": [],
+    "before_digest": "ad68ee1fb13bc98c8e41f6f7cd1355b531413d9df2012dd4902eb22358f9569f",
+    "after_digest": "ad68ee1fb13bc98c8e41f6f7cd1355b531413d9df2012dd4902eb22358f9569f"
+  },
+  "typescript": "npx tsc --noEmit passed",
+  "deployment": "local only"
+}

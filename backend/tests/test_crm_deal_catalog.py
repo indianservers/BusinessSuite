@@ -1,5 +1,6 @@
 import pytest
-from app.apps.crm.models import CRMDeal, CRMProduct
+from app.apps.crm.models import CRMDeal
+from app.apps.srm.models import SRMProduct
 from app.models.company import Company
 
 
@@ -52,13 +53,13 @@ def test_catalog_rejects_invalid_lines(client, db, superuser_headers, override):
 
 def test_catalog_rejects_foreign_and_inactive_items(client, db, superuser_headers):
     payload, product, _ = seed(client, db, superuser_headers)
-    foreign = CRMProduct(name="Other tenant product", organization_id=999, active=True)
+    foreign = SRMProduct(item_name="Other tenant product", sku="OTHER", organization_id=999, active=True, product_type="stock")
     db.add(foreign)
     db.commit()
     payload["catalog_items"] = [{"kind": "product", "item_id": foreign.id, "quantity": 1, "unit_price": 100}]
     response = client.post("/api/v1/crm/deals", headers=superuser_headers, json=payload)
     assert response.status_code == 404, response.text
-    own = db.get(CRMProduct, product)
+    own = db.get(SRMProduct, product)
     own.active = False
     db.commit()
     payload["catalog_items"][0]["item_id"] = product

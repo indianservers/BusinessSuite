@@ -34,7 +34,7 @@ import { getWowFeaturesForContext } from "@/lib/wowFeatures";
 
 type Result = { type: string; title: string; subtitle?: string; url: string };
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ compact = false }: { compact?: boolean } = {}) {
   const navigate = useNavigate();
 
   const location = useLocation();
@@ -618,7 +618,7 @@ export default function GlobalSearch() {
       <button
         type="button"
         aria-label="Open command palette"
-        className="relative hidden max-w-md flex-1 sm:flex"
+        className={compact ? "hidden" : "relative hidden max-w-md flex-1 sm:flex"}
         onClick={() => setOpen(true)}
       >
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -636,7 +636,7 @@ export default function GlobalSearch() {
 
       <button
         type="button"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-background text-muted-foreground sm:hidden"
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-md border bg-background text-muted-foreground ${compact ? "" : "sm:hidden"}`}
         onClick={() => setOpen(true)}
         aria-label="Open search"
         title="Search"

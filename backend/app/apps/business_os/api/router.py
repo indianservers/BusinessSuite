@@ -33,20 +33,26 @@ def admin_user(current_user: User = Depends(RequirePermission("settings_view", "
 @router.get("/modules")
 def get_modules(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     company_id = company_id_for(current_user)
-    ensure_business_os_seed(db, company_id)
-    rows = (
-        db.query(BOSEnabledModule)
-        .filter(BOSEnabledModule.company_id == company_id, BOSEnabledModule.module_key.in_(CORE_MODULES.keys()))
-        .order_by(BOSEnabledModule.module_key)
-        .all()
-    )
-    enabled = sorted(enabled_module_keys(db, company_id))
+    # Login metadata must be read-only and available without Business OS roles.
+    # Seeding configuration during this GET used to attempt unauthorized writes.
+    from sqlalchemy import select
+    from types import SimpleNamespace
+    from app.apps.business_os.services.module_service import DEFAULT_ENABLED_MODULES
+    stored = {r['module_key']: r for r in db.connection().execute(select(BOSEnabledModule.__table__).where(BOSEnabledModule.company_id == company_id)).mappings()}
+    rows = [SimpleNamespace(**stored[key]) if key in stored else SimpleNamespace(
+        module_key=key, display_name=meta['display_name'], enabled=key in DEFAULT_ENABLED_MODULES,
+        is_financial_backbone=bool(meta.get('is_financial_backbone')), enabled_at=None, disabled_at=None,
+        metadata_json={'home_path': meta.get('home_path'), 'optional': meta.get('optional', True)}
+    ) for key, meta in sorted(CORE_MODULES.items())]
+    enabled = sorted(r.module_key for r in rows if r.enabled)
     return {"company_id": company_id, "modules": [serialize_module(row) for row in rows], "enabled_modules": enabled, "supported_combinations": SUPPORTED_COMBINATIONS}
 
 
 @router.put("/modules")
 def put_modules(payload: BOSModulesUpdate, db: Session = Depends(get_db), current_user: User = Depends(admin_user)):
     company_id = company_id_for(current_user)
+    from app.access.api import company_access
+    company_access(db, current_user, company_id)
     ensure_business_os_seed(db, company_id)
     rows = update_enabled_modules(db, company_id, payload.enabled_modules, current_user)
     db.commit()

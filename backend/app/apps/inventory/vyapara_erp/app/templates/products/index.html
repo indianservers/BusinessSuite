@@ -8,7 +8,7 @@
   </div>
   <div class="hero-actions">
     <a class="btn btn-outline-secondary" href="{{ url_for('products.import_products') }}"><i class="bi bi-upload"></i> Import</a>
-    <a class="btn btn-outline-secondary" href="{{ url_for('products.export', format='xlsx') }}"><i class="bi bi-file-earmark-excel"></i> Export</a>
+    <details class="position-relative"><summary class="btn btn-outline-secondary"><i class="bi bi-download"></i> Export</summary><div class="position-absolute bg-body border rounded p-2 shadow" style="z-index:10;min-width:180px"><a class="btn btn-light d-block" href="{{ url_for('products.export', format='xlsx') }}">Excel (.xlsx)</a><a class="btn btn-light d-block" href="{{ url_for('products.export', format='csv') }}">CSV spreadsheet</a></div></details>
     <a class="btn btn-outline-secondary" href="{{ url_for('products.barcode_labels') }}"><i class="bi bi-upc-scan"></i> Barcode Labels</a>
     <a class="btn btn-primary" href="{{ url_for('products.create') }}"><i class="bi bi-plus-lg"></i> New Product</a>
   </div>

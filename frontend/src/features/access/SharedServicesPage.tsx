@@ -107,9 +107,10 @@ function DraggableNode({
   );
 }
 
-export default function SharedServicesPage() {
+export default function SharedServicesPage({ section: requestedSection, embedded = false }: { section?: string; embedded?: boolean }) {
   const actor = useAuthStore((s) => s.user);
-  const section = useLocation().pathname.split("/").pop() || "services";
+  const location = useLocation();
+  const section = requestedSection || location.pathname.split("/").pop() || "services";
   const [company, setCompany] = useState(
     Number(
       sessionStorage.getItem("suite-organization") ||
@@ -376,7 +377,7 @@ export default function SharedServicesPage() {
           Refresh
         </Button>
       </div>
-      <ControlNav />
+      {!embedded && <ControlNav />}
       <nav className="cc-nav" aria-label="Shared services">
         {sections.map(([key, label]) => (
           <Link

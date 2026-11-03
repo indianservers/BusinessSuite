@@ -20,6 +20,7 @@ class PMSRealtimeConnection:
     task_ids: set[int] = field(default_factory=set)
     session_id: int | None = None
     token_expires_at: float | None = None
+    branch_selection: str | None = None
 
 
 class PMSRealtimeManager:
@@ -37,6 +38,7 @@ class PMSRealtimeManager:
         accessible_project_ids: set[int],
         session_id: int | None = None,
         token_expires_at: float | None = None,
+        branch_selection: str | None = None,
     ) -> None:
         await websocket.accept()
         async with self._lock:
@@ -47,6 +49,7 @@ class PMSRealtimeManager:
                 accessible_project_ids=accessible_project_ids,
                 session_id=session_id,
                 token_expires_at=token_expires_at,
+                branch_selection=branch_selection,
             )
 
     async def disconnect(self, websocket: WebSocket) -> None:
@@ -69,7 +72,7 @@ class PMSRealtimeManager:
             connection.project_ids = project_ids
             connection.task_ids = task_ids
 
-    def _authorized(self, user_id, project_id, session_id=None, token_expires_at=None, task_id=None):
+    def _authorized(self, user_id, project_id, session_id=None, token_expires_at=None, task_id=None, branch_selection=None, company_id=None):
         from app.db.session import SessionLocal
         from app.models.user import User, UserSession
         from .access import accessible_project_query
@@ -88,6 +91,8 @@ class PMSRealtimeManager:
             user = db.get(User, user_id)
             if not user or not user.is_active:
                 return False
+            if company_id is not None:
+                user.organization_id = company_id
             employee=getattr(user,'employee',None)
             if user.role and user.role.name.lower()=='intern' or employee and (employee.employment_type or '').lower()=='intern':
                 return False
@@ -96,7 +101,7 @@ class PMSRealtimeManager:
             if not user.is_superuser and not company_ids(db, user):
                 return False
             try:
-                with background_scope(db, user, "project_management", "view"):
+                with background_scope(db, user, "project_management", "view", branch_id=branch_selection):
                     if task_id:
                         from app.access.service import policy_for, resolved_grants, primary_company
                         policy = policy_for(db, user, primary_company(user))
@@ -141,7 +146,7 @@ class PMSRealtimeManager:
             # active identity and project access before delivering sensitive events.
             try:
                 from starlette.concurrency import run_in_threadpool
-                allowed = await run_in_threadpool(self._authorized, connection.user_id, project_id, connection.session_id, connection.token_expires_at, task_id)
+                allowed = await run_in_threadpool(self._authorized, connection.user_id, project_id, connection.session_id, connection.token_expires_at, task_id, connection.branch_selection, connection.organization_id)
                 if not allowed:
                     continue
                 await connection.websocket.send_text(payload)

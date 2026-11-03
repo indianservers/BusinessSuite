@@ -206,11 +206,11 @@ def my_access(
         select(Company.id, Company.name).where(Company.id.in_(memberships)).order_by(Company.name)
     ).all()
     return {
-        "managed": bool(policy and not actor.is_superuser),
+        "managed": actor._suite_grants is not None and not actor.is_superuser,
         "companyId": company,
         "grants": (
-            service.resolved_grants(db, policy)
-            if policy and not actor.is_superuser
+            actor._suite_grants
+            if actor._suite_grants is not None and not actor.is_superuser
             else service.legacy_grants(db, actor)
         ),
         "permissions": sorted(permission_names(actor)),

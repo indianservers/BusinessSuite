@@ -1,0 +1,386 @@
+[
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "account",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "preferences",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "company-profile",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "branches",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "departments",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "designations",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "shifts",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "holidays",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "leaveTypes",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "salaryComponents",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "internships",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "documents",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "users",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "security",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "audit",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "modules",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "connections",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "communication",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "global",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "pms",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "task-packs",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "crm",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "sales",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "finance",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "ai",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "api-credentials",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "webhooks",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "crm-webhooks",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "crm-scoring",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "crm-territories",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "crm-automation",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "business-defaults",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "crm-pipelines",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "crm-approvals",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "financial-years",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "cost-centers",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "accounting-branches",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "voucher-types",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "payment-modes",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "tax-settings",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "branch": 3,
+    "setting": "roles",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "account",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "preferences",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "company-profile",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "crm",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "crm-webhooks",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "crm-scoring",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "crm-territories",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "crm-automation",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "crm-pipelines",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "crm-approvals",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "roles",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "financial-years",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "setting": "api-credentials",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "setting": "account",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "setting": "preferences",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "setting": "company-profile",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "setting": "roles",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "setting": "financial-years",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "setting": "api-credentials",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "setting": "crm-pipelines",
+    "status": 403
+  },
+  {
+    "actor": "none",
+    "branch": null,
+    "setting": "account",
+    "status": 200
+  },
+  {
+    "actor": "none",
+    "branch": null,
+    "setting": "preferences",
+    "status": 200
+  },
+  {
+    "actor": "none",
+    "branch": null,
+    "setting": "company-profile",
+    "status": 200
+  }
+]

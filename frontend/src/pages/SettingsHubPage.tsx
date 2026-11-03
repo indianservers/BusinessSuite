@@ -1,3 +1,4 @@
+import CentralSettingsEditor, { centralEditorKeys } from "./settings/CentralSettingsEditor";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,16 +7,19 @@ import { api, authApi } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
 import "./settings-hub.css";
+import BranchSwitcher from "@/components/suite/BranchSwitcher";
 
+const BranchSettings = lazy(() => import("./settings/BranchSettings"));
+const UsersAccess = lazy(() => import("@/features/access/UsersAccessPage"));
 const SetupMasters = lazy(() => import("@/apps/hrms/pages/settings/SettingsPage"));
 type Option = {id:string;title:string;group:string;description:string;destination:string|null;scope:string;editable:boolean};
 type Catalog = {companyId:number;companyName:string;options:Option[]};
 const base = "/access/settings";
-const masterKeys = new Set(["branches", "departments", "designations", "shifts", "holidays", "leaveTypes", "salaryComponents"]);
+const masterKeys = new Set(["departments", "designations", "shifts", "holidays", "leaveTypes", "salaryComponents"]);
 const errorMessage = (e: any) => typeof e?.response?.data?.detail === "string" ? e.response.data.detail : "Could not load settings. Please try again.";
 
 export function SettingsHomeEntry() {
-  return <Link to="/settings" className="settings-home-entry"><span><Settings size={24}/></span><div><strong>Settings</strong><small>Your account, company and authorized application settings</small></div><ArrowRight size={20}/></Link>;
+  return <Link to="/settings" className="settings-home-entry"><span><Settings size={24}/></span><div><strong>Settings</strong><small>Company details, branches, users and permissions</small></div><ArrowRight size={20}/></Link>;
 }
 
 export default function SettingsHubPage() {
@@ -29,10 +33,10 @@ export default function SettingsHubPage() {
   const selected = useQuery({queryKey:["shared-setting",user?.id,company,section],queryFn:()=>api.get<Option>(`${base}/${section}`).then(r=>r.data),enabled:!!section&&!!option,retry:false,staleTime:0});
   useEffect(()=>{document.title=section ? `${option?.title || "Settings"} · Settings` : "Settings";},[section,option?.title]);
   if(!isHydrated) return <main className="settings-hub" role="status">Loading your account…</main>;
-  if(!isAuthenticated) return <Navigate to="/login" replace/>;
+  if(!isAuthenticated) return <Navigate to={`/login?next=${encodeURIComponent(section ? `/settings/${section}` : "/settings")}`} replace/>;
   const matches=(catalog.data?.options || []).filter(o=>`${o.title} ${o.description} ${o.group}`.toLowerCase().includes(search.toLowerCase()));
   return <div className="settings-hub">
-    <header className="settings-header"><Link to="/dashboard"><ArrowLeft size={18}/>Home</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><button aria-label="Refresh settings" onClick={()=>{void catalog.refetch();void selected.refetch();}}><RefreshCw size={18}/></button></header>
+    <header className="settings-header"><Link to="/dashboard"><ArrowLeft size={18}/>Home</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><div className="settings-branch-context"><BranchSwitcher/></div><button aria-label="Refresh settings" onClick={()=>{void catalog.refetch();void selected.refetch();}}><RefreshCw size={18}/></button></header>
     <main>
       <div className="settings-heading"><div><p className="settings-eyebrow"><Settings size={16}/>WORKSPACE SETTINGS</p><h1>{section && option ? option.title : "Settings"}</h1><p>Manage your account and the configuration available to you in this company.</p></div><div className="settings-access-note"><ShieldCheck size={20}/>Permissions apply to every change</div></div>
       {section && <Link className="settings-back" to="/settings"><ArrowLeft size={16}/>All settings</Link>}
@@ -46,14 +50,14 @@ export default function SettingsHubPage() {
       </>}
       {section && option && selected.isPending && <p role="status">Checking access…</p>}
       {section && option && selected.isSuccess && <>
-        {section==="company-profile" ? <CompanyProfile key={catalog.data?.companyId}/> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></section>}
+        {["company-profile","business-defaults"].includes(section) ? <CompanyProfile key={`${catalog.data?.companyId}-${section}`} defaultsOnly={section==="business-defaults"}/> : section==="branches" ? <Suspense fallback={<p role="status">Loading branches�</p>}><BranchSettings/></Suspense> : section==="users" ? <Suspense fallback={<p role="status">Loading users�</p>}><UsersAccess embedded/></Suspense> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : centralEditorKeys.has(section) ? <CentralSettingsEditor key={section} section={section}/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></section>}
       </>}
     </main>
   </div>;
 }
 
 const fields: [string,string,string?][] = [["name","Company name"],["legal_name","Legal name"],["website","Website"],["email","Company email","email"],["phone","Phone"],["address","Address"],["city","City"],["state","State"],["country","Country"],["pincode","Postal code"],["logo_url","Logo URL","url"],["registration_number","Registration number"],["cin_number","CIN"],["pan_number","PAN"],["tan_number","TAN"],["gstin","GSTIN"],["default_timezone","Default timezone"],["default_currency","Default currency"],["working_days_per_week","Working days per week","number"],["fiscal_year_start_month","Financial year start month","number"]];
-function CompanyProfile() {
+function CompanyProfile({ defaultsOnly = false }: { defaultsOnly?: boolean }) {
   const qc=useQueryClient();const [form,setForm]=useState<Record<string,any>>({});const [message,setMessage]=useState("");const [saving,setSaving]=useState(false);
   const user=useAuthStore(s=>s.user);
   const company=sessionStorage.getItem("suite-organization") || user?.access?.companyId;
@@ -61,9 +65,9 @@ function CompanyProfile() {
   useEffect(()=>{if(profile.data) setForm(profile.data.profile);},[profile.data]);
   if(profile.isPending) return <p role="status">Loading company profile…</p>;
   if(profile.isError) return <p role="alert">{errorMessage(profile.error)}</p>;
-  return <form className="settings-panel" onSubmit={async e=>{e.preventDefault();setSaving(true);setMessage("");try{await api.patch(base+"/company-profile",form);await qc.invalidateQueries({queryKey:["shared-settings"]});await qc.invalidateQueries({queryKey:["login-branding"]});setMessage("Company profile saved.");}catch(err){setMessage(errorMessage(err));}finally{setSaving(false);}}}>
+  return <form className="settings-panel" onSubmit={async e=>{e.preventDefault();setSaving(true);setMessage("");try{await api.patch(base+"/company-profile",Object.fromEntries(Object.entries(form).filter(([key])=>["default_timezone","default_currency","working_days_per_week","fiscal_year_start_month"].includes(key)===defaultsOnly)));await qc.invalidateQueries({queryKey:["shared-settings"]});await qc.invalidateQueries({queryKey:["login-branding"]});await qc.invalidateQueries({queryKey:["shared-company-profile"]});await qc.invalidateQueries({queryKey:["companies"]});setMessage("Company profile saved.");}catch(err){setMessage(errorMessage(err));}finally{setSaving(false);}}}>
     <p>{profile.data.editable ? "Updates are saved to this company’s shared database record." : "Company information is read-only for your account."}</p>
-    <div className="settings-form-grid">{fields.filter(([key])=>key in form).map(([key,label,type])=><label key={key}>{label}<input name={key} type={type||"text"} value={form[key]??""} disabled={!profile.data.editable} required={key==="name"} min={type==="number"?1:undefined} max={key==="working_days_per_week"?7:key==="fiscal_year_start_month"?12:undefined} onChange={e=>setForm({...form,[key]:type==="number"?Number(e.target.value):e.target.value})}/></label>)}</div>
+    <div className="settings-form-grid">{fields.filter(([key])=>key in form && (["default_timezone","default_currency","working_days_per_week","fiscal_year_start_month"].includes(key)===defaultsOnly)).map(([key,label,type])=><label key={key}>{label}<input name={key} type={type||"text"} value={form[key]??""} disabled={!profile.data.editable} required={key==="name"} min={type==="number"?1:undefined} max={key==="working_days_per_week"?7:key==="fiscal_year_start_month"?12:undefined} onChange={e=>setForm({...form,[key]:type==="number"?Number(e.target.value):e.target.value})}/></label>)}</div>
     {profile.data.editable&&<button className="settings-primary" disabled={saving}>{saving?"Saving…":"Save company profile"}</button>} {message&&<p role="status">{message}</p>}
   </form>;
 }

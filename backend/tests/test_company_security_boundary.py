@@ -4,7 +4,8 @@ from sqlalchemy import text
 from app.core.security import create_access_token
 from app.core.tenant_boundary import install
 from app.models.user import User, Role, Permission
-from app.models.company import Company
+from app.models.company import Company, Branch
+from app.branches.models import BranchGrant, BranchOwnership
 from app.apps.crm.models import CRMLead
 from app.apps.project_management.models import PMSProject, PMSTask, PMSComment
 from tests.tenant_test_utils import assign_company
@@ -67,8 +68,17 @@ def tenants(db):
     ]
     db.add_all(users)
     db.flush()
+    # These tests isolate the company boundary. Explicitly provision a valid
+    # branch scenario so positive-access assertions also satisfy the branch
+    # boundary, rather than relying on unrestricted legacy null ownership.
+    branches = [Branch(company_id=company, name=f"Company {company} test branch", code=f"BOUNDARY-{company}") for company in (1, 2)]
+    db.add_all(branches)
+    db.flush()
     for user, company in zip(users, [1, 2, 1]):
         assign_company(db, user, company)
+        branch = branches[company - 1]
+        user._suite_branch_id = branch.id
+        db.add(BranchGrant(company_id=company, user_id=user.id, branch_id=branch.id, can_write=user.role_id == admin.id))
     leads = [
         CRMLead(
             organization_id=company,
@@ -109,9 +119,13 @@ def tenants(db):
         for index, task in enumerate(tasks)
     ]
     db.add_all(comments)
+    db.flush()
+    for company, branch in enumerate(branches, 1):
+        for item in (branch, leads[company - 1], projects[company - 1], tasks[company - 1], comments[company - 1]):
+            db.add(BranchOwnership(company_id=company, branch_id=branch.id, resource_table=item.__tablename__, resource_key=str(item.id), source="explicit-test-fixture"))
     db.commit()
     headers = [
-        {"Authorization": "Bearer " + create_access_token(user.id)} for user in users
+        {"Authorization": "Bearer " + create_access_token(user.id), "X-Suite-Branch": str(user._suite_branch_id)} for user in users
     ]
     return dict(
         users=users,
@@ -120,6 +134,7 @@ def tenants(db):
         tasks=tasks,
         comments=comments,
         headers=headers,
+        branches=branches,
     )
 
 
@@ -450,7 +465,7 @@ def test_customer_portal_is_company_scoped_even_with_a_tainted_old_link(
     from app.apps.saas.models import PortalCustomerLink
 
     customers = [
-        CRMCompany(name=f"Customer {index}", organization_id=index) for index in [1, 2]
+        CRMCompany(name=f"Customer {index}", organization_id=index, branch_id=tenants["branches"][index - 1].id) for index in [1, 2]
     ]
     db.add_all(customers)
     db.flush()
@@ -462,6 +477,10 @@ def test_customer_portal_is_company_scoped_even_with_a_tainted_old_link(
                 invoice_number=f"PORTAL-{index}",
             )
         )
+    db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1)
+    backfill(db.connection(), 2)
     db.commit()
     response = client.post(
         "/api/v1/portals/invite",

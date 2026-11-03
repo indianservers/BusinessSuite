@@ -32,7 +32,9 @@ api.interceptors.request.use((config) => {
   if ((config.method || "get").toLowerCase() === "get" && !config._finishPageRefresh) {
     config._finishPageRefresh = trackPageRefreshRead();
   }
-  if (organization) config.headers["X-Suite-Organization"] = organization;
+  if (organization && !config.headers["X-Suite-Organization"]) config.headers["X-Suite-Organization"] = organization;
+  const branch = sessionStorage.getItem("suite-branch");
+  if (branch && !config.headers["X-Suite-Branch"]) config.headers["X-Suite-Branch"] = branch;
   if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {
     const maxBytes = config.uploadLimitBytes ?? Number(import.meta.env.VITE_MAX_UPLOAD_MB || 3) * 1024 * 1024;
@@ -61,6 +63,9 @@ api.interceptors.request.use((config) => {
 // Response interceptor: handle token refresh
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    if (response.config.url === "/branches/context" && response.data?.selected != null && !sessionStorage.getItem("suite-branch") && (!response.config.headers?.["X-Suite-Organization"] || String(response.config.headers["X-Suite-Organization"]) === (sessionStorage.getItem("suite-organization") || "1"))) {
+      sessionStorage.setItem("suite-branch", String(response.data.selected));
+    }
     const method=(response.config.method||"get").toLowerCase();
     if(!["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
     return response;

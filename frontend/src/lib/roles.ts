@@ -505,7 +505,7 @@ const pmsDeliveryOnlyPaths = [
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (["/pms/management", "/pms/my-work"].includes(pathname)) return true;
-  if (["/pms/projects", "/pms/tasks"].includes(pathname) || /^\/pms\/projects\/\d+(?:\/(?:board|members))?$/.test(pathname)) return true;
+  if (["/pms/projects", "/pms/tasks", "/pms/products-services", "/pms/products"].includes(pathname) || /^\/pms\/projects\/\d+(?:\/(?:board|members))?$/.test(pathname)) return true;
   if (pathname === "/pms/members" || /^\/pms\/projects\/\d+\/members\/?$/.test(pathname)) return true;
   if (["/pms/people-work", "/pms/my-notices"].includes(pathname.replace(/\/$/, ""))) return true;
   if (pathname.replace(/\/$/, "") === "/pms/notes" || /^\/pms\/projects\/\d+\/notes\/?$/.test(pathname)) return true;
@@ -850,7 +850,7 @@ const crmNav: RoleNavItem[] = [
   { label: "Auto Responses", icon: Send, to: "/crm/auto-responses", group: "Growth" },
   { label: "Delivery Logs", icon: ScrollText, to: "/crm/delivery-logs", group: "Growth" },
   { label: "Communication Timeline", icon: TableProperties, to: "/crm/communication-timeline", group: "Growth" },
-  { label: "Products", icon: Package, to: "/crm/products", group: "Growth" },
+  { label: "Products & Services", icon: Package, to: "/crm/products-services", group: "Growth" },
   { label: "Quotations", icon: FileText, to: "/crm/quotations", group: "Growth" },
   { label: "My Approvals", icon: FileCheck2, to: "/crm/my-approvals", group: "Growth" },
   { label: "Lead Scoring", icon: Gauge, to: "/crm/lead-scoring", group: "Growth" },
@@ -892,6 +892,7 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Dashboards", icon: BarChart3, to: "/pms/dashboards", group: "Reports & finances" },
   { label: "Workspaces", icon: Briefcase, to: "/pms/workspaces", group: "Projects & tasks" },
   { label: "Projects", icon: Briefcase, to: "/pms/projects", group: "Projects & tasks" },
+  { label: "Products & Services", icon: Package, to: "/pms/products-services", group: "Projects & tasks" },
   { label: "Goals", icon: Trophy, to: "/pms/goals", group: "Planning & delivery" },
   { label: "Roadmap", icon: CalendarDays, to: "/pms/roadmap", group: "Planning & delivery" },
   { label: "Timeline Plus", icon: CalendarDays, to: "/pms/timeline-plus", group: "Planning & delivery", badge: "Deps" },
@@ -964,7 +965,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Customer 360", icon: Users, to: "/srm/customer-360", group: "Revenue" },
   { label: "Inventory Dashboard", icon: Package, to: "/srm/inventory/dashboard", group: "Sales & Inventory" },
   { label: "Stock Items", icon: Package, to: "/srm/inventory/items", group: "Sales & Inventory" },
-  { label: "Products & Barcodes", icon: Package, to: "/srm/inventory/products", group: "Sales & Inventory" },
+  { label: "Products & Services", icon: Package, to: "/srm/inventory/products", group: "Sales & Inventory" },
   { label: "Price Lists", icon: Receipt, to: "/srm/inventory/price-lists", group: "Sales & Inventory" },
   { label: "Warehouses", icon: Building2, to: "/srm/inventory/warehouses", group: "Sales & Inventory" },
   { label: "Stock Summary", icon: BookOpen, to: "/srm/inventory/stock-summary", group: "Sales & Inventory" },

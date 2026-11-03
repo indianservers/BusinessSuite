@@ -1,0 +1,18 @@
+[
+  {
+    "check": "branch hard delete",
+    "blocked": true
+  },
+  {
+    "check": "recovery hard delete",
+    "blocked": true
+  },
+  {
+    "check": "44-day retention",
+    "blocked": true
+  },
+  {
+    "check": "45 days after protected recovery",
+    "blocked": true
+  }
+]

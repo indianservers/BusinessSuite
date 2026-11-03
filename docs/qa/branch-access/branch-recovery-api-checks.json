@@ -1,0 +1,156 @@
+[
+  {
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches",
+    "expected": 201,
+    "status": 201
+  },
+  {
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/29",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/29",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "expected": 201,
+    "status": 201
+  },
+  {
+    "actor": "crm",
+    "method": "GET",
+    "path": "/crm/companies/23",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "none",
+    "method": "POST",
+    "path": "/branches/8/trash",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "actor": "crm",
+    "method": "PATCH",
+    "path": "/branches/8",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "actor": "admin",
+    "method": "PATCH",
+    "path": "/branches/8",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches/8/trash",
+    "expected": 409,
+    "status": 409
+  },
+  {
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches/8/trash",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "crm",
+    "method": "GET",
+    "path": "/crm/companies/23",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "actor": "crm",
+    "method": "GET",
+    "path": "/branches/context",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/29",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/29",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches/8/protect",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/manage",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "GET",
+    "path": "/crm/companies/23",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches/8/restore",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "crm",
+    "method": "GET",
+    "path": "/crm/companies/23",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/manage",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/29",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/29",
+    "expected": 200,
+    "status": 200
+  }
+]

@@ -1,0 +1,19 @@
+......................................................................   [100%]
+============================== warnings summary ===============================
+venv\Lib\site-packages\starlette\testclient.py:53
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+venv\Lib\site-packages\reportlab\lib\rl_safe_eval.py:12
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\reportlab\lib\rl_safe_eval.py:12: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    haveNameConstant = hasattr(ast,'NameConstant')
+
+tests/test_branch_access.py::test_write_stamps_legacy_root_and_children_and_blocks_cross_branch_links
+tests/test_branch_access.py::test_cached_foreign_object_cannot_be_updated_or_deleted
+tests/test_branch_access.py::test_profile_sharing_does_not_share_sales_or_allow_profile_edits
+tests/test_branch_access.py::test_superadmin_cannot_stamp_another_companys_record_into_selected_branch
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\conftest.py:112: SAWarning: transaction already deassociated from connection
+    transaction.rollback()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+70 passed, 6 warnings in 215.51s (0:03:35)

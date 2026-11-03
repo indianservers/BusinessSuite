@@ -1,6 +1,7 @@
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   Banknote,
   Calculator,
@@ -39,6 +40,7 @@ type ProductViewMode = "tiles" | "list" | "details";
 type Product = {
   id: number;
   name: string;
+  image?: string;
   sku: string;
   barcode: string;
   category: string;
@@ -112,18 +114,6 @@ type PosStoreProfile = {
   categories: string[];
   features: string[];
 };
-
-const fallbackProducts: Product[] = [
-  { id: 1, name: "Sample Product", sku: "SKU-001", barcode: "890000000001", category: "General", rate: 150, mrp: 175, taxRate: 18, stock: 50, reorderLevel: 10, trackInventory: true },
-  { id: 2, name: "School Notebook A4", sku: "STN-A4-100", barcode: "890000000102", category: "Stationery", rate: 64, mrp: 75, taxRate: 12, stock: 112, reorderLevel: 25, trackInventory: true },
-  { id: 3, name: "Blue Ball Pen Pack", sku: "PEN-BL-10", barcode: "890000000103", category: "Stationery", rate: 90, mrp: 100, taxRate: 12, stock: 8, reorderLevel: 20, trackInventory: true },
-  { id: 4, name: "USB Keyboard", sku: "EL-KBD-USB", barcode: "890000000201", category: "Electronics", rate: 699, mrp: 799, taxRate: 18, stock: 16, reorderLevel: 5, trackInventory: true, serialTracking: true, serials: ["KBD-2401", "KBD-2402", "KBD-2403"] },
-  { id: 5, name: "WiFi Router", sku: "EL-RTR-4G", barcode: "890000000202", category: "Electronics", rate: 2499, mrp: 2799, taxRate: 18, stock: 7, reorderLevel: 4, trackInventory: true, serialTracking: true, serials: ["RTR-9101", "RTR-9102"] },
-  { id: 6, name: "Printer Paper Bundle", sku: "PPR-A4-500", barcode: "890000000301", category: "Office Supplies", rate: 310, mrp: 350, taxRate: 12, stock: 45, reorderLevel: 12, trackInventory: true },
-  { id: 7, name: "Lab Coat", sku: "UNI-LAB-M", barcode: "890000000401", category: "Garments", rate: 540, mrp: 620, taxRate: 5, stock: 22, reorderLevel: 10, trackInventory: true },
-  { id: 8, name: "Consultation Service", sku: "SRV-CONSULT", barcode: "SRV-CONSULT", category: "Services", rate: 1200, mrp: 1200, taxRate: 18, stock: 999, reorderLevel: 0, trackInventory: false, decimalAllowed: true },
-  { id: 9, name: "Pharmacy First Aid Kit", sku: "MED-FAK-01", barcode: "890000000501", category: "Pharmacy", rate: 420, mrp: 475, taxRate: 5, stock: 18, reorderLevel: 8, trackInventory: true, batchTracking: true, batch: "MED-JUN26" },
-];
 
 const customers: Customer[] = [
   { id: 1, name: "Cash Customer", phone: "9999999999", type: "Walk-in", creditLimit: 0, outstanding: 0, loyaltyPoints: 0 },
@@ -218,6 +208,8 @@ function productFromRecord(item: SRMRecord): Product {
   return {
     id: recordNumber(item.id),
     name: String(item.item_name || item.name || "Unnamed product"),
+    image: ((item.metadata_json as { images?: string[] } | undefined)?.images || [])[0],
+    active: item.active !== false,
     sku: String(item.sku || ""),
     barcode: String(item.barcode || item.sku || ""),
     category: String(item.category_name || (item.category as SRMRecord | undefined)?.category_name || "General"),
@@ -317,7 +309,7 @@ export default function SRMPOSPage() {
   const serverHeldBills = useMemo(() => listItems(heldBillsQuery.data).map(heldBillFromRecord), [heldBillsQuery.data]);
   const heldBills = useMemo(() => [...serverHeldBills, ...localHeldBills], [localHeldBills, serverHeldBills]);
   const dbProducts = useMemo(() => listItems(productsQuery.data).map(productFromRecord).filter((item) => item.active !== false), [productsQuery.data]);
-  const productSource = dbProducts.length ? dbProducts : fallbackProducts;
+  const productSource = dbProducts;
   const storeProducts = useMemo(() => {
     const templateProducts = productSource.filter((item) => activeStoreProfile.categories.includes(item.category));
     return templateProducts.length ? templateProducts : productSource;
@@ -737,12 +729,16 @@ export default function SRMPOSPage() {
               <p className="text-xs text-slate-500">{filteredProducts.length} visible in {activeStoreProfile.name}</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline"><Link to="/srm/inventory/products">Manage products & services</Link></Button>
               <ViewModeButton active={productView === "tiles"} icon={LayoutGrid} label="Tiles" onClick={() => setProductView("tiles")} />
               <ViewModeButton active={productView === "list"} icon={List} label="List" onClick={() => setProductView("list")} />
               <ViewModeButton active={productView === "details"} icon={Table2} label="Details" onClick={() => setProductView("details")} />
             </div>
           </div>
 
+          {productsQuery.isLoading && <p role="status">Loading products and services…</p>}
+          {productsQuery.isError && <p role="alert">Unable to load the catalog. <button type="button" className="underline" onClick={() => void productsQuery.refetch()}>Retry</button></p>}
+          {!productsQuery.isLoading && !productsQuery.isError && !filteredProducts.length && <p className="rounded-lg border border-dashed p-6 text-sm text-slate-600">No active products or services match this view. Add an item in the shared catalog or change your filters.</p>}
           {productView === "details" ? (
             <div className="overflow-hidden rounded-2xl border border-white bg-white shadow-sm">
               <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr_0.9fr_8rem] border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase text-slate-500">
@@ -1059,7 +1055,7 @@ function ProductMark({ product, lowStock }: { product: Product; lowStock: boolea
   const initials = product.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   return (
     <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xs font-bold ${lowStock ? "border-red-100 bg-red-50 text-red-600" : "border-slate-100 bg-slate-50 text-slate-600"}`}>
-      {initials}
+      {product.image ? <img src={product.image} alt={product.name} className="h-full w-full rounded-lg object-cover" referrerPolicy="no-referrer" /> : initials}
     </span>
   );
 }
@@ -1087,7 +1083,7 @@ function ProductVisual({ product, lowStock, density }: { product: Product; lowSt
   return (
     <span className={`relative flex ${density === "compact" ? "h-14" : "h-20"} items-center justify-center bg-gradient-to-br ${tone[product.category] || "from-slate-100 to-slate-50 text-slate-600"}`}>
       {lowStock ? <span className="absolute right-1.5 top-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">Low</span> : null}
-      <span className={`${density === "compact" ? "h-9 w-9 text-sm" : "h-12 w-12 text-base"} flex items-center justify-center rounded-full border border-white/80 bg-white/80 font-bold shadow-sm`}>{initials}</span>
+      {product.image ? <img src={product.image} alt={product.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : <span className={`${density === "compact" ? "h-9 w-9 text-sm" : "h-12 w-12 text-base"} flex items-center justify-center rounded-full border border-white/80 bg-white/80 font-bold shadow-sm`}>{initials}</span>}
     </span>
   );
 }

@@ -1,0 +1,48 @@
+[
+  {
+    "check": "admin scope 3",
+    "status": 200,
+    "total": 1
+  },
+  {
+    "check": "admin scope 4",
+    "status": 200,
+    "total": 1
+  },
+  {
+    "check": "admin scope all",
+    "status": 200,
+    "total": 21
+  },
+  {
+    "check": "employee scope 3",
+    "status": 200,
+    "total": 1
+  },
+  {
+    "check": "employee scope 4",
+    "status": 403,
+    "total": null
+  },
+  {
+    "check": "employee scope all",
+    "status": 403,
+    "total": null
+  },
+  {
+    "check": "Bengaluru API creation stamped correctly",
+    "status": 201
+  },
+  {
+    "check": "Read-only grant permits Bengaluru reads",
+    "status": 200
+  },
+  {
+    "check": "Read-only grant blocks writes",
+    "status": 403
+  },
+  {
+    "check": "Revocation rejects the existing employee token in Bengaluru",
+    "status": 403
+  }
+]

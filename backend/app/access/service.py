@@ -379,6 +379,16 @@ def bind_authorization(db, user, request):
         reset_authorization(user)
         raise HTTPException(403, "Access to this organization is " + policy.status)
     module = request_module(request)
+    from app.branches.roles import effective_grants
+    control = request.url.path.startswith(("/api/v1/access/", "/api/v1/branches/", "/api/v1/auth/"))
+    # Access discovery returns the selected branch's effective role. Control-plane
+    # administration otherwise retains its company-level authority.
+    if not control or request.url.path == "/api/v1/access/me":
+        user._suite_grants = effective_grants(db, user, company, request.headers.get("X-Suite-Branch"), user._suite_grants)
+    if request.url.path == "/api/v1/business-os/modules" and request.method == "GET":
+        module = None
+    if request.url.path.startswith('/api/v1/branches/') or request.url.path == '/api/v1/branches':
+        module = None  # Branch discovery/admin has its own explicit authority checks.
     from app.access.entitlements import enforce
 
     enforce(db, company, module)
@@ -403,7 +413,7 @@ def bind_authorization(db, user, request):
         if action not in grant.get("actions", []):
             reset_authorization(user)
             raise HTTPException(403, f"Module action denied: {module}/{action}")
-    if request.url.path.startswith("/api/v1/access/"):
+    if request.url.path.startswith(("/api/v1/access/", "/api/v1/branches")):
         return lambda: reset_authorization(user)
     from app.access.scope import install_scope
 
@@ -449,7 +459,7 @@ def effective_objects(db, grants, module=None):
     return result
 
 
-def check_background_access(db, user, module, action="view"):
+def check_background_access(db, user, module, action="view", *, branch_id=None):
     company = getattr(user, "organization_id", None) or primary_company(user)
     from app.access.entitlements import enforce
 
@@ -459,6 +469,14 @@ def check_background_access(db, user, module, action="view"):
     policy = policy_for(db, user, company)
     if user.is_superuser:
         return None
+    from app.branches.roles import effective_grants
+    current = db.info.get('branch_context')
+    selected = branch_id if branch_id is not None else (current.branch_id or 'all') if current else db.info.get('background_branch')
+    branch_grants = effective_grants(db, user, company, selected, resolved_grants(db, policy) if policy else None)
+    if branch_grants is not None:
+        grant = branch_grants.get(module, {})
+        if (policy and policy.status != 'active') or not grant.get('enabled') or action not in grant.get('actions', []):
+            raise HTTPException(403, 'Current branch module role does not authorize this operation')
     if not policy:
         from app.access.catalog import permission_objects, permission_module
         relevant = [p.name for p in permission_objects(user) if permission_module(p) == module]
@@ -483,22 +501,33 @@ from contextlib import contextmanager
 
 
 @contextmanager
-def background_scope(db, user, module, action="view"):
+def background_scope(db, user, module, action="view", *, branch_id=None):
     from contextlib import ExitStack
     from app.core.tenant_boundary import install as install_boundary
     if not user.is_active:
         raise HTTPException(403, "Background actor is inactive")
     company = getattr(user, "organization_id", None) or primary_company(user)
     with ExitStack() as stack:
-        policy = check_background_access(db, user, module, action)
-        if policy and not getattr(user, "_suite_scope_active", False):
+        policy = check_background_access(db, user, module, action, branch_id=branch_id)
+        from app.branches.roles import effective_grants
+        current = db.info.get('branch_context')
+        selected = branch_id if branch_id is not None else (current.branch_id or 'all') if current else db.info.get('background_branch')
+        grants = effective_grants(db, user, company, selected, resolved_grants(db, policy) if policy else None)
+        if grants is not None and not getattr(user, "_suite_scope_active", False):
             from app.access.scope import install_scope
-            grants = resolved_grants(db, policy)
             user._suite_grants = grants
             user._suite_current_module = module
             user._suite_permission_objects = None
-            stack.callback(install_scope(db, user, policy.company_id, grants))
+            stack.callback(install_scope(db, user, company, grants))
         stack.callback(install_boundary(db, user, company))
+        from app.branches.service import context as branch_context
+        from app.branches.boundary import install as install_branch_boundary
+        current = db.info.get("branch_context")
+        selected = branch_id if branch_id is not None else db.info.get("background_branch")
+        if current is None:
+            stack.callback(install_branch_boundary(db, user, branch_context(db, user, company, selected)))
+        elif selected is not None and str(current.branch_id or "all") != str(selected):
+            raise HTTPException(403, "Background operation must retain its original branch")
         yield
 
 

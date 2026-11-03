@@ -1,0 +1,3534 @@
+[
+  {
+    "path": "/api/v1/branches/context",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/branches/access/users",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/branches/ownership/inventory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/metrics/definitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/metrics/inventory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/metrics/audits",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/integrations/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/integrations/connections",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/integrations/monitor",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/approvals/policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/approvals/templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/approvals/requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/approvals/delegations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/approvals/capabilities",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/approvals/analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/executions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/automations/blocks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/automations/node-catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/automations/templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/environments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/overview",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/activity",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/automations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/settings/company-profile",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/power-apps/approvals/people",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/statistics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/me",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/audit",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/control/organizations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/users",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/control/security",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/report",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/control/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/control/audit",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/overview",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/workflows",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/executions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/events",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/connections",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/delivery",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/webhooks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/documents",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/services/ai",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/collaboration/unread",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/collaboration/workspaces",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/collaboration/events",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/plans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/subscription",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/flags",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/health",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/errors",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/branding",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/tickets",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/diagnostics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/enterprise/actions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/ai-security/context",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/control/modules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/ai-security",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/access/ai-security/logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/profiles/me",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/profiles/directory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/forms",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/forms/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/internal/email-status",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/internal/jobs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/approval-os/inbox",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/approval-os/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/logs/requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/logs/audit",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/logs/field-audit",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/logs/errors",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/users/search",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/logs/analysis",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/users/directory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/workflow-engine/definitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/workflow-engine/tasks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/workflow-engine/inbox",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/workflow-engine/delegations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/workflows",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/blueprints",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/approvals",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/assignment-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/cadences",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/automation/webhooks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/modules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/fields",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/layouts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/views",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/kanban",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/validation-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/related-lists",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/buttons",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/formulas",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/rollups",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/picklists",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/customization/audit-logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/email-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/webforms",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/auto-response-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/campaigns",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/whatsapp-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/consents",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/communication/delivery-logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/reports",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/dashboards",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/schedules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/funnel",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/forecast",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/profitability",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/collections",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/anomalies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/analytics/campaigns",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai/provider-settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai/prompt-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai/action-log",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/security",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/profiles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/roles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/field-security",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/record-sharing-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/data-sharing-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/ip-restrictions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/audit-logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/duplicate-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/duplicates/candidates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/compliance",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/data-retention",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/portals/users",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/mobile/check-in",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/developer/api-keys",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/developer/webhooks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/developer/api-logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/developer/docs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/marketplace/apps",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/marketplace/installed",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/sandbox",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/company-settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/feature-flags",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/subscription-plans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/subscription",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/admin/usage",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/business-os/modules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/business-os/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/business-os/dependencies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/business-os/reports/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/business-os/rbac/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/business-os/customer-720",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/business-os/integration-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/config",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/conversations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/approvals/pending",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/usage/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/usage/limits",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/security/settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/security/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/security/events",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/security/permissions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/analytics/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/analytics/by-module",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/analytics/by-agent",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/analytics/by-user",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/analytics/cost",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/cost/by-agent",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/cost/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/cost/by-user",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-agents/feedback",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/catalog/items",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/me",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/ai-agents/handoff-notes",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/profile",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/overview",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/submissions",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/tasks",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/reports",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/attendance",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/leaderboard",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/learning",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/certificates",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/support",
+    "branch": 4,
+    "status": 403,
+    "detail": "Interns Hub is available only to active HRMS interns with an intern or employee account"
+  },
+  {
+    "path": "/api/v1/interns-hub/admin/interns",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/admin/applications",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/admin/application-settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/admin/reporting-managers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/options",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/interns",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/access",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batches",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/distributions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/reports",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/completions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/reviews",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/legacy",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/schedules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/management/batch-analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/operations/managers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/operations/people",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/operations/jobs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/operations/inbox-count",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/operations/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/admin/application-jobs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/operations/inbox",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/interns-hub/admin/application-intake",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai/attrition-risk",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/assets/employees",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/assets/capabilities",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/assets/assignments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/assets/categories",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/assets/exit-clearance",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/assets/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/assets/my",
+    "branch": 4,
+    "status": 400,
+    "detail": "Employee profile is required"
+  },
+  {
+    "path": "/api/v1/attendance/shifts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/today-summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/holidays",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/weekly-offs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/punches",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/biometric/devices",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/locks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/geo/policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/regularize/pending",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/team",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/background-verification/vendors",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/background-verification/requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/plans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/enrollments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/enrollment-windows",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/dependants",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/flexi-policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/claims",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/esop/plans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/benefits/esop/grants",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/branches/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/departments/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/designations/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/business-units",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/cost-centers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/locations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/grade-bands",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/job-families",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/job-profiles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/positions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/org-chart",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/manager-hierarchy/validate",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/company/headcount-plans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/custom-fields/definitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/custom-fields/forms",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/documents/studio/metadata",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/attendance/today",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile linked to this user"
+  },
+  {
+    "path": "/api/v1/documents/studio/templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/documents/studio/letterheads",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/documents/studio/recipients",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/documents/studio/issued",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/documents/templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/documents/policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/documents/certificates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/engagement/announcements",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/engagement/surveys",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/engagement/recognitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/engagement/recognition-wall",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/accounts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/accounts/options",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/workbench/search",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/workbench/approvals",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/workbench/duplicate-check",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/workbench/home",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/workbench/onboarding-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/directory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/directory/filters",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/recent-joiners",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/work-anniversaries",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/birthdays",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/org-search",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/filter-options",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/reporting-managers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/stats",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/count",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/documents/expiring",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/me",
+    "branch": 4,
+    "status": 404,
+    "detail": "Employee profile not linked"
+  },
+  {
+    "path": "/api/v1/employees/me/completeness",
+    "branch": 4,
+    "status": 404,
+    "detail": "Employee profile not linked"
+  },
+  {
+    "path": "/api/v1/employees/change-requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/employees/user-options",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/expenses/employees",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/expenses/claims",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/expenses/claims/my",
+    "branch": 4,
+    "status": 400,
+    "detail": "Employee profile is required"
+  },
+  {
+    "path": "/api/v1/exit/employees",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/exit/records",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/hrms/fnf-settlements",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/helpdesk/categories",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/helpdesk/tickets",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/helpdesk/sla/breaches",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/helpdesk/analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/helpdesk/knowledge",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/helpdesk/escalation-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/holidays",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/holidays/upcoming",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/leave/types",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/leave/pending-count",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/leave/balance",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile"
+  },
+  {
+    "path": "/api/v1/leave/ledger",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile"
+  },
+  {
+    "path": "/api/v1/leave/my-requests",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile"
+  },
+  {
+    "path": "/api/v1/leave/requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/leave/today-absences",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/hrms/leave-encashment",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/lms/courses",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/lms/assignments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/lms/certifications",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/lms/certification-renewals",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/notifications/unread-count",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/notifications/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/notifications/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/onboarding/templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/onboarding/my",
+    "branch": 4,
+    "status": 404,
+    "detail": "Employee profile not linked"
+  },
+  {
+    "path": "/api/v1/onboarding/employees",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/designations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/departments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/branches",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/locations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/grade-bands",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/cost-centers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/business-units",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/org/positions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/employee-options",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/department-options",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/setup/pay-groups",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/component-categories",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/setup/statutory-profiles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/setup/periods",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/setup/calendars",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/setup/compliance-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/pf-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/esi-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/pt-slabs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/gratuity-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/lwf-slabs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/inputs/lop-adjustments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/inputs/overtime-policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/inputs/overtime-lines",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/contribution-lines",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/inputs/attendance",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/employee-profiles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/inputs/leave-encashment-policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/inputs/leave-encashment-lines",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/challans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/statutory/return-files",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/setup/bank-advice-formats",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/components",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/component-formula-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/structures",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/salary-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/salary-revisions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/salary-audit",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/last-run",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/arrear-runs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/off-cycle-runs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/payments/batches",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/accounting/ledgers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/accounting/gl-mappings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/tax/regimes",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/tax/sections",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/tax/cycles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/tax/declarations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/reimbursements",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/loans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/settlements",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/payslip-queries",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/salary-advances",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/bonus-policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/exchange-rates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/reports",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/payroll/analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/cycles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/goals",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile"
+  },
+  {
+    "path": "/api/v1/performance/goals/my",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile"
+  },
+  {
+    "path": "/api/v1/performance/reviews/my",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile"
+  },
+  {
+    "path": "/api/v1/performance/reviews/pending",
+    "branch": 4,
+    "status": 400,
+    "detail": "No employee profile"
+  },
+  {
+    "path": "/api/v1/performance/calibration/sessions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/nine-box",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/one-on-ones",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/review-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/360-feedback-requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/360/requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/competencies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/succession/critical-roles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/compensation/cycles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/compensation/pay-bands",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/compensation/merit-recommendations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/performance/compensation/worksheet",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/hrms/profile-change-requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/hrms/probation/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/hrms/probation/due-list",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/recruitment/requisitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/recruitment/jobs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/recruitment/candidates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/recruitment/applications",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/my-team/availability",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/my-team",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/field-catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/definitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/schedules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/schedule-capabilities",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/analytics/metric-definitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/ess-summary",
+    "branch": 4,
+    "status": 404,
+    "detail": "Employee profile not linked"
+  },
+  {
+    "path": "/api/v1/reports/manager-dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/people-moments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/headcount-by-department",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/dei-analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/attendance-trend",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/leave-trend",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/payroll-summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/recruitment-funnel",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/employee-report",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/reimbursement-report",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/loan-outstanding-report",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/employee-turnover",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/fnf-report",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/reports/audit-log-report",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/integration-credentials",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/webhooks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/integration-events",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/consents",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/privacy-requests",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/retention-policies",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/legal-holds",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/metrics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/domain-packs/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/domain-packs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/enterprise/domain-packs/manufacturing/safety-incidents",
+    "branch": 4,
+    "status": 400,
+    "detail": "manufacturing domain pack is not enabled"
+  },
+  {
+    "path": "/api/v1/enterprise/domain-packs/manufacturing/ppe-issuances",
+    "branch": 4,
+    "status": 400,
+    "detail": "manufacturing domain pack is not enabled"
+  },
+  {
+    "path": "/api/v1/enterprise/domain-packs/manufacturing/medical-fitness",
+    "branch": 4,
+    "status": 400,
+    "detail": "manufacturing domain pack is not enabled"
+  },
+  {
+    "path": "/api/v1/enterprise/domain-packs/manufacturing/contract-labor-batches",
+    "branch": 4,
+    "status": 400,
+    "detail": "manufacturing domain pack is not enabled"
+  },
+  {
+    "path": "/api/v1/hrms/shift-roster/my",
+    "branch": 4,
+    "status": 400,
+    "detail": "Employee profile is required"
+  },
+  {
+    "path": "/api/v1/statutory/calendar",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/statutory/submissions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/statutory/compliance-summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/statutory-compliance/pt-slabs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/statutory-compliance/legal-entities",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/statutory-compliance/form16",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/statutory-compliance/portal-submissions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/statutory-compliance/calendar",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/hrms/tax-declarations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/timesheets/projects",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/timesheets/",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/whatsapp-ess/configs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/whatsapp-ess/templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/whatsapp-ess/messages",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/workflow/definitions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/workflow/inbox",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lead-management/capture-settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lead-management/leads",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lead-management/analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lead-management/excel/fields",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lead-management/settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lead-management/excel/template",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/productivity/shared-views",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/permissions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/pipelines",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/pipeline-stages",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/query",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/productivity/home",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/productivity/duplicate-check",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/conversion",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/teams",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/loss-analysis",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/email-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/message-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/webhooks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/approval-workflows",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/approvals/my-pending",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/approvals",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/calendar-integrations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/assignees",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/calendar",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lead-scoring-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/custom-fields",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/forecast",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/forecast/by-owner",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/forecast/by-team",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/forecast/by-territory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/targets",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/targets/performance",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/funnel",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/lost-analysis",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/sales-performance",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/win-loss",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/sales-funnel",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/revenue-trend",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/lead-source",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/lead-conversion",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/sales-pipeline",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/deal-stage",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/salesperson-performance",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/follow-up-overdue",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/monthly-revenue-forecast",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/reports/territories",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/territories",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/roles",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/audit-logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deals/kanban",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/dashboards/overdue-activities",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/workspace-invitations/mine",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/file-workspace",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/crm/deal-workspace/grid/query",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/workspaces",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/people-management/options",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/people-management/directory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/management/home",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/admin/workspaces",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/data-backups",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/custom-fields",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/tag-manager",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/task-types",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/timer",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/docs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/notes",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/note-folders",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/people-directory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/analytics/overview",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/planner/preferences",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/planner",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/planner/connections",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/dashboards/catalog",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/dashboards",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/messaging/unread",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/clients",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/intake",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/projects",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/project-templates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/roadmap",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/tasks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/gantt",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/tags",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/users/search",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/notifications",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/task-distribution",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/cumulative-flow",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/cycle-time",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/time-in-status",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/project-health",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/team-performance",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/status-dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/overdue-tasks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/milestone-progress",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/planned-vs-actual",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/timesheet",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/resource-utilization",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/budget-vs-actual",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/client-profitability",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/reports/dependency-delays",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/files",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/timesheets",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/time-logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/saved-views",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/workload",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/dev-integrations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/risks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/portfolio/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/portfolio/projects",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/portfolio/health-trend",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/trash/projects",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/trash/tasks",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/business/customers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/business/teams",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/business/sellers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/business/related-projects",
+    "branch": 4,
+    "status": 422,
+    "detail": "Select an order or engagement"
+  },
+  {
+    "path": "/api/v1/project-management/business/collection-invoices",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/work/submissions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/work/assignments",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/operations/managers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/operations/people",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/operations/summary",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/operations/inbox-count",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/operations/jobs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/operations/inbox",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/task-studio/projects",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/people-workspace/people",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/people-workspace/reference",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/people-workspace/groups",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/project-management/people-workspace/views",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-operator/portfolio",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-operator/assistant/tools",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-operator/assistant/conversations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-operator/suite/tools",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-operator/providers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-operator/capabilities",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/ai-operator/analytics",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/sales-orders",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/inventory/categories",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/inventory/warehouses",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/inventory/items",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/inventory/batches",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/inventory/serial-numbers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/inventory/manufacturing/bom",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/inventory/manufacturing/orders",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/procurement/purchase-orders",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/procurement/grn",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/pricing/price-lists",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/pos/sessions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/pos/sessions/active",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/pos/held-bills",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/pos/returns",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/contracts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/engagements",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/billing-plans",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/invoice-drafts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/invoices",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/receipts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/collections/aging",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/profitability",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/reports",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/customer-360",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/reports/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/reports/lead-to-cash",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/business/customers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/business/teams",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/business/sellers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/srm/business/related-projects",
+    "branch": 4,
+    "status": 422,
+    "detail": "Select an order or engagement"
+  },
+  {
+    "path": "/api/v1/srm/business/collection-invoices",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/module-info",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/financial-years",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/ledger-groups",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/opening-balances",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/ledgers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/cost-centers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/branches",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/audit-logs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/voucher-types",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/chart-of-accounts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/vouchers",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/ledger-entries",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/day-book",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/parties",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/bill-references",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/bill-allocations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/party-credit-terms",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/ar/aging",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/ap/aging",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/ar/outstanding",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/ap/outstanding",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/integrations/srm/status",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/posting-jobs",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/posting-rules",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/bank-accounts",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/payment-modes",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/bank-book",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/cash-book",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/bank-statements",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/bank-reconciliation",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/registrations",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/rates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/hsn-sac",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/sales-register",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/purchase-register",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/gstr1",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/gstr3b",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/reconciliation",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/einvoice-settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/gst/ewaybill-settings",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/purchase-bills",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/expenses",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/tds/sections",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/tds/rates",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/tds/transactions",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/tds/payable",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/purchase-register",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/expense-register",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/inventory/source-audit",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/payables/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/inventory",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/inventory/dashboard",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/inventory/stock-groups",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/inventory/categories",
+    "branch": 4,
+    "status": 200
+  },
+  {
+    "path": "/api/v1/fam/inventory/units",
+    "branch": 4,
+    "status": 200
+  }
+]

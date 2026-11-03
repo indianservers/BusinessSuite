@@ -1,0 +1,55 @@
+[
+  {
+    "actor": "admin",
+    "setting": "branches",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "setting": "users",
+    "status": 200
+  },
+  {
+    "actor": "admin",
+    "setting": "company-profile",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "setting": "branches",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "setting": "users",
+    "status": 403
+  },
+  {
+    "actor": "mixed",
+    "setting": "company-profile",
+    "status": 200
+  },
+  {
+    "actor": "mixed",
+    "create_branch": 403
+  },
+  {
+    "actor": "none",
+    "setting": "branches",
+    "status": 403
+  },
+  {
+    "actor": "none",
+    "setting": "users",
+    "status": 403
+  },
+  {
+    "actor": "none",
+    "setting": "company-profile",
+    "status": 200
+  },
+  {
+    "actor": "none",
+    "create_branch": 403
+  }
+]

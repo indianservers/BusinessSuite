@@ -47,6 +47,7 @@ import {
 import GlobalSearch from "@/components/app/GlobalSearch";
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
 import PMSProfileMenu from "@/components/layout/PMSProfileMenu";
+import BranchSwitcher from "@/components/suite/BranchSwitcher";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import { tasksAPI, savedViewsAPI } from "../services/api";
@@ -434,6 +435,7 @@ export default function TasksReferencePage() {
             >
               <RefreshCw size={20} />
             </button>
+            <BranchSwitcher />
             <PMSProfileMenu
               onCreateTask={() => (studio ? navigate("/pms/tasks/new") : add())}
             />

@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from sqlalchemy.exc import IntegrityError
 from app.services.metrics.queries import count_rows_before_page
 from app.access.catalog import permission_objects
 
@@ -1594,6 +1596,9 @@ def _assert_entity_permission(entity: str, current_user: User, action: str) -> N
 
 
 def _apply_record_visibility(query, resource: Resource, current_user: User, db: Session):
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import restrict_workspaces
+        query = restrict_workspaces(query, resource.model, db, current_user)
     if _crm_has_full_visibility(current_user):
         return query
     if resource.model is CRMQuoteApproval:
@@ -1622,6 +1627,12 @@ def _apply_record_visibility(query, resource: Resource, current_user: User, db: 
 
 
 def _assert_record_visible(db: Session, resource: Resource, record_id: int, organization_id: int, current_user: User, include_deleted: bool = False) -> None:
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import catalog_resource, metadata, workspace_access
+        _assert_record_visible(db, catalog_resource(), record_id, organization_id, current_user, include_deleted)
+        detail = metadata(db, "product" if resource.model is CRMProduct else "service", record_id)
+        workspace_access(db, current_user, detail.workspace_id if detail else None)
+        return
     visible = (
         _apply_record_visibility(_base_query(db, resource, organization_id, include_deleted), resource, current_user, db)
         .filter(resource.model.id == record_id)
@@ -1999,6 +2010,8 @@ def _serialize_territory(territory: CRMTerritory, db: Session | None = None, org
 def _serialize(record: Any) -> dict[str, Any]:
     from app.core.orm_validation import contact_issues
     item: dict[str, Any] = {'phone_validation_issues':contact_issues(record)}
+    from app.branches.presentation import record_branch_name
+    item["branchName"] = record_branch_name(record)
     for column in sa_inspect(record.__class__).columns:
         value = getattr(record, column.key)
         if isinstance(value, datetime):
@@ -2518,6 +2531,13 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
             data["priority"] = 100
         if "is_active" in data and "status" not in data:
             data["status"] = "Active" if data["is_active"] else "Inactive"
+    if resource.model is CRMTask:
+        if "task_details" in data and data["task_details"] is not None and not isinstance(data["task_details"], dict):
+            raise HTTPException(422, "Task details must be an object")
+        if data.get("import_key") is not None and (not isinstance(data["import_key"], str) or not 1 <= len(data["import_key"]) <= 100):
+            raise HTTPException(422, "Import key must contain 1 to 100 characters")
+        if partial and "import_key" in data:
+            raise HTTPException(422, "Import key cannot be changed")
     columns = _columns(resource.model)
     unknown = sorted(key for key in data if key not in columns and key not in {"owner_id", "assigned_user_id", "team_id", "created_by", "updated_by", "organization_id", "custom_fields", "custom_field_values"})
     if unknown:
@@ -2542,6 +2562,18 @@ def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bo
 
 
 def _get_record(db: Session, resource: Resource, record_id: int, organization_id: int, include_deleted: bool = False):
+    if resource.model in {CRMProduct, CRMService}:
+        from app.apps.srm.models import SRMProduct
+        query = db.query(SRMProduct).filter(SRMProduct.id == record_id, func.coalesce(SRMProduct.organization_id, 1) == organization_id)
+        query = query.filter(SRMProduct.product_type == "service" if resource.model is CRMService else func.coalesce(SRMProduct.product_type, "stock") != "service")
+        if not include_deleted:
+            query = query.filter(SRMProduct.deleted_at.is_(None))
+        if db.info.get("security_write_request"):
+            query = query.with_for_update()
+        record = query.first()
+        if not record:
+            raise HTTPException(404, "Catalog item not found")
+        return record
     query = _base_query(db, resource, organization_id, include_deleted).filter(resource.model.id == record_id)
     if db.info.get("security_write_request"):
         query = query.with_for_update(of=resource.model)
@@ -3251,15 +3283,25 @@ def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: i
         existing = next((entry for entry in (getattr(record, "catalog_items", None) or []) if entry["kind"] == line["kind"] and entry["item_id"] == item_id), None)
         if not existing and record and line["kind"] == "product" and record.catalog_items is None:
             existing = db.query(CRMDealProduct).filter_by(deal_id=record.id, product_id=item_id).first()
-        item = _get_record(db, resource, item_id, organization_id, include_deleted=bool(existing))
-        _assert_record_visible(db, resource, item_id, organization_id, current_user, include_deleted=bool(existing))
+        from app.shared.catalog import item_record, output as catalog_output
+        item, catalog_details = item_record(db, current_user, "crm", line["kind"], item_id)
+        catalog_item = catalog_output(item, line["kind"], catalog_details)
         if not existing and (not item.active or str(getattr(item, "status", "Active")).lower() == "inactive"):
             raise HTTPException(422, "Select an active catalog item")
-        if (getattr(item, "currency", None) or "INR") != currency:
+        item_currency = catalog_item["currency"]
+        if line.get("pricing_id"):
+            from app.shared.catalog import metadata, workspace_access
+            details = metadata(db, line["kind"], item_id)
+            workspace_access(db, current_user, details.workspace_id if details else None)
+            option = next((p for p in (details.pricing_options if details else []) if p["id"] == line["pricing_id"]), None)
+            if not option:
+                raise HTTPException(422, "Pricing option no longer exists")
+            item_currency = option["currency"]
+        if item_currency != currency:
             raise HTTPException(422, "Catalog item currency must match the deal currency")
         price = price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         line_total = (price * quantity * (1 - discount / 100)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        normalized.append({"kind": line["kind"], "item_id": item_id, "name": item.name, "quantity": int(quantity), "unit_price": float(price), "discount": float(discount), "total_amount": float(line_total), "currency": currency})
+        normalized.append({"kind": line["kind"], "item_id": item_id, "name": catalog_item["name"], "quantity": int(quantity), "unit_price": float(price), "discount": float(discount), "total_amount": float(line_total), "currency": currency, **({"pricing_id": line["pricing_id"]} if line.get("pricing_id") else {})})
         total += line_total
     if total > Decimal("9999999999.99"):
         raise HTTPException(422, "Deal total exceeds the supported amount")
@@ -3275,10 +3317,9 @@ def _deal_products_for(db: Session, deal_id: int, organization_id: int) -> list[
         return deal.catalog_items
     deal_products = db.query(CRMDealProduct).filter(CRMDealProduct.deal_id == deal_id).limit(50).all()
     product_ids = [item.product_id for item in deal_products if item.product_id]
-    products = {
-        product.id: _serialize(product)
-        for product in _base_query(db, _get_resource("products"), organization_id).filter(CRMProduct.id.in_(product_ids)).all()
-    } if product_ids else {}
+    from app.apps.srm.models import SRMProduct
+    from app.shared.catalog import output, metadata, legacy_output
+    products = {product.id: legacy_output(output(product, "product", metadata(db, "product", product.id))) for product in db.query(SRMProduct).filter(SRMProduct.id.in_(product_ids), func.coalesce(SRMProduct.organization_id, 1) == organization_id).all()} if product_ids else {}
     return [{**_serialize(item), "product": products.get(item.product_id)} for item in deal_products]
 
 
@@ -7850,6 +7891,21 @@ def convert_lead(
     }
 
 
+@router.get("/{entity}/import-fields")
+def import_fields(entity: str, current_user: User = Depends(RequirePermission("crm_manage", "crm_admin"))):
+    resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "manage")
+    excluded = {"id", "organization_id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "created_by_user_id", "updated_by_user_id", "version", "is_deleted", "is_superuser", "role_id", "permissions", "password", "hashed_password", "paid_amount", "amount_paid", "balance_due", "payment_status", "provider_message_id", "storage_path", "file_path", "folder_id"}
+    result = []
+    for name, column in _columns(resource.model).items():
+        if name in excluded or name in {"planning", "catalog_items"}:
+            continue
+        kind = "boolean" if isinstance(column.type, Boolean) else "number" if isinstance(column.type, (Integer, Numeric)) else "date" if isinstance(column.type, Date) and not isinstance(column.type, DateTime) else "email" if name == "email" else "text"
+        required = name in resource.required and not (name == "first_name" and "full_name" in resource.required)
+        result.append({"key": name, "required": required, "type": kind, "hint": "Existing record ID" if name.endswith("_id") else ""})
+    return result
+
+
 @router.post("/{entity}/import")
 def import_records(
     entity: str,
@@ -7858,6 +7914,20 @@ def import_records(
     current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
 ):
     resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "manage")
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import save_legacy
+        items = []
+        try:
+            with db.begin_nested():
+                for row in payload.rows:
+                    values = _validate_and_build(resource, dict(row), partial=False)
+                    items.append(save_legacy(db, current_user, "products" if resource.model is CRMProduct else "services", values, persist=False))
+            db.commit()
+        except (HTTPException, IntegrityError) as exc:
+            db.rollback()
+            return {"created": 0, "errors": [{"row": len(items) + 1, "error": str(getattr(exc, "detail", "Duplicate item code"))}]}
+        return {"created": len(items), "items": items, "errors": []}
     organization_id = _organization_id(db, current_user)
     created = []
     errors = []
@@ -8202,6 +8272,21 @@ def export_records(
 ):
     resource = _get_resource(entity)
     _assert_entity_permission(entity, current_user, "view")
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import list_items, legacy_output
+        items = []
+        selected = "product" if resource.model is CRMProduct else "service"
+        for page in range(1, 51):
+            result = list_items(source="crm", kind=selected, search="", category="", status="all", workspace_id=None, sort="name", direction="asc", page=page, per_page=100, db=db, user=current_user)
+            items.extend(legacy_output(item, db) for item in result["items"])
+            if page >= result["pages"]:
+                break
+        stream = io.StringIO()
+        columns = ["name", "sku", "service_code", "category", "description", "list_price", "default_rate", "currency", "tax_rate", "unit_of_measure", "status"]
+        writer = csv.DictWriter(stream, fieldnames=columns, extrasaction="ignore"); writer.writeheader()
+        for item in items:
+            writer.writerow({key: "'" + value if isinstance(value, str) and value.startswith(("=", "+", "-", "@")) else value for key, value in item.items()})
+        return Response(stream.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{entity}.csv"'})
     organization_id = _organization_id(db, current_user)
     rows = _apply_record_visibility(_base_query(db, resource, organization_id), resource, current_user, db).limit(5000).all()
     columns = [column.key for column in resource.model.__table__.columns if column.key not in {"deleted_at"}]
@@ -8218,6 +8303,9 @@ def export_records(
     )
 
 
+
+from ..deal_grid import router as deal_grid_router
+router.include_router(deal_grid_router)
 
 from ..file_workspace import router as file_workspace_router
 router.include_router(file_workspace_router)
@@ -8252,6 +8340,12 @@ def list_records(
 ):
     resource = _get_resource(entity)
     _assert_entity_permission(entity, current_user, "view")
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import list_items, legacy_output
+        selected = "product" if resource.model is CRMProduct else "service"
+        sort = {"sku": "code", "service_code": "code", "list_price": "price", "default_rate": "price"}.get(sort_by, sort_by)
+        result = list_items(source="crm", kind=selected, search=search or q or "", category="", status="all", workspace_id=None, sort=sort if sort in {"name", "price", "category", "code"} else "name", direction=sort_order, page=page, per_page=per_page, db=db, user=current_user)
+        return {**result, "items": [legacy_output(item, db) for item in result["items"]], "page": page, "per_page": per_page}
     organization_id = _organization_id(db, current_user)
     query = _base_query(db, resource, organization_id, include_deleted)
     query = _apply_record_visibility(query, resource, current_user, db)
@@ -8302,6 +8396,9 @@ def get_record(
 ):
     resource = _get_resource(entity)
     _assert_entity_permission(entity, current_user, "view")
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import get_item, legacy_output
+        return legacy_output(get_item("product" if resource.model is CRMProduct else "service", record_id, "crm", db, current_user), db)
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
@@ -8348,7 +8445,11 @@ def create_record(
 ):
     resource = _get_resource(entity)
     _assert_entity_permission(entity, current_user, "manage")
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import save_legacy
+        return save_legacy(db, current_user, "products" if resource.model is CRMProduct else "services", _validate_and_build(resource, payload.model_dump(exclude_unset=True), partial=False))
     raw_payload = payload.model_dump()
+    catalog_lines = raw_payload.pop("catalog_lines", None)
     deal_contacts_payload = None
     if resource.model is CRMDeal:
         for key in ("contacts", "dealContacts", "deal_contacts", "stakeholders"):
@@ -8409,13 +8510,29 @@ def create_record(
         data["rating"] = data["lead_score_label"]
         data["lead_score_mode"] = "manual"
 
+    if resource.model is CRMTask and data.get("import_key"):
+        # Include deleted tasks so a retried import cannot resurrect them.
+        existing = db.query(CRMTask).filter_by(organization_id=organization_id, created_by_user_id=current_user.id, import_key=data["import_key"]).first()
+        if existing:
+            _assert_record_visible(db, resource, existing.id, organization_id, current_user, include_deleted=True)
+            return _serialize(existing)
     record = resource.model(**data)
     if resource.model is CRMDeal:
         _apply_deal_close_fields(record, data)
     if resource.model is CRMTicket:
         _apply_ticket_csat_flow(record, data)
     db.add(record)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        if resource.model is not CRMTask or not data.get("import_key"):
+            raise
+        db.rollback()
+        existing = db.query(CRMTask).filter_by(organization_id=organization_id, created_by_user_id=current_user.id, import_key=data["import_key"]).first()
+        if not existing:
+            raise
+        _assert_record_visible(db, resource, existing.id, organization_id, current_user, include_deleted=True)
+        return _serialize(existing)
     if resource.model in {CRMActivity, CRMTask, CRMNote, CRMCallLog, CRMMeeting, CRMEmailLog} and getattr(record, "deal_id", None):
         linked = _get_record(db, _get_resource("deals"), record.deal_id, organization_id)
         linked.last_activity_at = datetime.now(timezone.utc)
@@ -8439,6 +8556,8 @@ def create_record(
     if resource.model is CRMLead:
         from app.apps.crm.lead_management import after_existing_api
         after_existing_api(db, current_user, record, owner_was_provided=owner_was_provided)
+    from app.shared.catalog import save_form_links
+    save_form_links(db, current_user, record, catalog_lines)
     if resource.model is CRMDeal: db.flush()
     else: db.commit()
     db.refresh(record)
@@ -8462,11 +8581,20 @@ def update_record(
 ):
     resource = _get_resource(entity)
     _assert_entity_permission(entity, current_user, "manage")
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import save_legacy
+        return save_legacy(db, current_user, "products" if resource.model is CRMProduct else "services", _validate_and_build(resource, payload.model_dump(exclude_unset=True), partial=True), record_id)
     organization_id = _organization_id(db, current_user)
     record = _get_record(db, resource, record_id, organization_id)
     _assert_record_visible(db, resource, record_id, organization_id, current_user)
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import metadata, workspace_access
+        detail = metadata(db, "product" if resource.model is CRMProduct else "service", record.id)
+        workspace_access(db, current_user, detail.workspace_id if detail else None, True)
+        if detail: detail.version += 1
     before = {key: getattr(record, key) for key in _columns(resource.model) if key in IMPORTANT_UPDATE_FIELDS}
     raw_payload = payload.model_dump(exclude_unset=True)
+    catalog_lines = raw_payload.pop("catalog_lines", None)
     if resource.model is CRMDeal:
         db.refresh(record, with_for_update=True)
         expected = raw_payload.pop("expected_version", None)
@@ -8567,6 +8695,8 @@ def update_record(
     if resource.model is CRMLead:
         from app.apps.crm.lead_management import after_existing_api
         after_existing_api(db, current_user, record, before)
+    from app.shared.catalog import save_form_links
+    save_form_links(db, current_user, record, catalog_lines)
     if resource.model is CRMDeal: db.flush()
     else: db.commit()
     db.refresh(record)
@@ -8630,6 +8760,10 @@ def delete_record(
 ):
     resource = _get_resource(entity)
     _assert_entity_permission(entity, current_user, "manage")
+    if resource.model in {CRMProduct, CRMService}:
+        from app.shared.catalog import archive
+        archive("product" if resource.model is CRMProduct else "service", record_id, "crm", db, current_user)
+        return {"success": True}
     record = _get_record(db, resource, record_id, _organization_id(db, current_user), include_deleted=True)
     organization_id = _organization_id(db, current_user)
     _assert_record_visible(db, resource, record_id, organization_id, current_user, include_deleted=True)

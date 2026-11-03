@@ -1,3 +1,4 @@
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import React from "react";
 const UserAccountsPage = React.lazy(() => import("@/apps/hrms/pages/employees/UserAccountsPage"));
 import { CommunicationWorkspace } from "@/shared/communication";
@@ -119,7 +120,7 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "reports", element: <ReportsPage /> },
   { path: "advanced-analytics", element: <AdvancedAnalyticsPage /> },
   { path: "logs", element: <AdminLogsPage /> },
-  { path: "company", element: <CompanyPage /> },
+  { path: "company", element: <CentralSettingsRedirect section="company-profile" /> },
   { path: "org-chart", element: <OrgChartPage /> },
   { path: "settings", element: <Navigate to="/settings" replace /> },
   { path: "assets", element: <AssetsPage /> },

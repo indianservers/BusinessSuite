@@ -131,17 +131,16 @@ def ensure_business_os_seed(db: Session, company_id: int = 1) -> None:
 
 
 def enabled_module_keys(db: Session, company_id: int = 1) -> set[str]:
-    ensure_business_os_seed(db, company_id)
-    rows = (
-        db.query(BOSEnabledModule)
-        .filter(
-            BOSEnabledModule.company_id == company_id,
-            BOSEnabledModule.enabled.is_(True),
-            BOSEnabledModule.module_key.in_(CORE_MODULES.keys()),
-        )
-        .all()
-    )
-    return {row.module_key for row in rows}
+    # Read paths must not mutate global configuration under a branch user's
+    # credentials. Explicit administration/startup owns seeding; absent rows
+    # retain the same documented defaults without inserting anything.
+    from sqlalchemy import select
+    rows = db.connection().execute(select(BOSEnabledModule.module_key, BOSEnabledModule.enabled).where(
+        BOSEnabledModule.company_id == company_id,
+        BOSEnabledModule.module_key.in_(CORE_MODULES.keys()),
+    )).all()
+    states = {row.module_key: row.enabled for row in rows}
+    return {key for key in CORE_MODULES if states.get(key, key in DEFAULT_ENABLED_MODULES)}
 
 
 def is_module_enabled(db: Session, module_key: str, company_id: int = 1) -> bool:
@@ -165,7 +164,10 @@ def update_enabled_modules(db: Session, company_id: int, module_keys: Iterable[s
             db.add(row)
         next_enabled = module_key in normalized
         if row.enabled != next_enabled:
-            db.add(BOSLifecycleEvent(
+            # This is a company configuration audit event, not a branch
+            # transaction. Write through the trusted control plane just like
+            # access-policy audit, including when the administrator selects All.
+            db.connection().execute(BOSLifecycleEvent.__table__.insert().values(
                 company_id=company_id,
                 module_key=module_key,
                 entity_type="module",

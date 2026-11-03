@@ -42,10 +42,10 @@ function activeSection(pathname: string): Section {
   return "mobile";
 }
 
-export default function SaaSWorkspacePage() {
+export default function SaaSWorkspacePage({ section }: { section?: Section }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const active = activeSection(location.pathname);
+  const active = section || activeSection(location.pathname);
   return (
     <div className="space-y-6">
       <div className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">

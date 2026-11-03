@@ -28,6 +28,7 @@ export function safeSuiteDestination(
       return null;
     const known = [
       "/dashboard",
+      "/settings",
       "/account",
       "/notifications",
       "/help",
@@ -37,7 +38,7 @@ export function safeSuiteDestination(
       !known.some(
         (path) =>
           url.pathname === path ||
-          (modules.some((m) => m.homePath === path) &&
+          ((path === "/settings" || modules.some((m) => m.homePath === path)) &&
             url.pathname.startsWith(path + "/")),
       )
     )

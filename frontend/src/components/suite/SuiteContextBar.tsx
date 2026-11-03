@@ -4,6 +4,7 @@ import GlobalSearch from "@/components/app/GlobalSearch";
 import ModuleSwitcher from "@/components/layout/ModuleSwitcher";
 import SuiteProfileMenu from "./SuiteProfileMenu";
 import SuiteNotificationBell from "./SuiteNotificationBell";
+import BranchSwitcher from "./BranchSwitcher";
 import "./suite.css";
 
 export default function SuiteContextBar() {
@@ -22,6 +23,7 @@ export default function SuiteContextBar() {
         <ModuleSwitcher />
       </div>
       <div className="suite-context-actions">
+        <BranchSwitcher />
         {!pathname.startsWith("/pms") && <GlobalSearch />}
         <SuiteNotificationBell />
         <SuiteProfileMenu />

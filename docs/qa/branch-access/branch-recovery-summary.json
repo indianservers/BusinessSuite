@@ -1,0 +1,30 @@
+{
+  "migration": "pg_20261103_062_branch_trash",
+  "initial_regression_passed": 70,
+  "final_regression_passed": 44,
+  "live_api_checks": 22,
+  "postgres_guard_checks": 4,
+  "typescript": "passed",
+  "browser_actions": [
+    "rename",
+    "trash",
+    "delete from trash into protected recovery",
+    "restore"
+  ],
+  "retention_minimum_days": 45,
+  "automatic_purge": false,
+  "permanent_delete": false,
+  "qa_branch_final_state": {
+    "id": 8,
+    "name": "QA Browser Recovery Office",
+    "code": "QA-REC-3650988",
+    "is_active": true,
+    "deleted_at": null,
+    "protected_at": null,
+    "retain_until": null,
+    "version": 8,
+    "can_manage": true,
+    "can_trash": true,
+    "state": "active"
+  }
+}

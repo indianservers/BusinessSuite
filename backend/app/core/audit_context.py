@@ -9,7 +9,8 @@ def set_audit_actor(user):
     if value is not None:
         value['actor'] = {'user_id': user.id, 'email': user.email, 'role': user.role.name if user.role else 'superuser' if user.is_superuser else 'unassigned', 'authenticated': True}
         if getattr(user, 'organization_id', None) is not None:
-            value['actor'].update(access_policy_version=getattr(user, '_suite_policy_version', None), access_role_id=user.role_id, access_permissions=permission_fingerprint(user), access_module=getattr(user, '_suite_current_module', None), access_company=getattr(user, 'organization_id', None), access_session=getattr(user, '_suite_session_id', None))
+            value['actor']['access_branch_roles'] = getattr(user, '_suite_branch_roles_fingerprint', None)
+            value['actor'].update(access_policy_version=getattr(user, '_suite_policy_version', None), access_role_id=user.role_id, access_permissions=permission_fingerprint(user), access_module=getattr(user, '_suite_current_module', None), access_company=getattr(user, 'organization_id', None), access_session=getattr(user, '_suite_session_id', None), access_branch=getattr(user, '_suite_branch_id', None))
 
 
 def set_audit_entity(project_id=None, task_id=None, changed_fields=None):

@@ -166,20 +166,31 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                            description=json.dumps({'actor_id': actor_id, 'safe_query': safe_query, 'changed_fields': sorted(value.get('changed_fields', set())),
                                                    'error_location': location, 'outcome': 'server_error' if status_code >= 500 else 'rejected' if status_code >= 400 else 'success'}),
                            created_at=datetime.now(timezone.utc))
-            db.add(row)
-            db.flush()
+            def store_audit(item):
+                # Audit persistence is a trusted control-plane operation and
+                # must also work for denied requests and All branches reads.
+                table = item.__table__
+                values = {column.name: getattr(item, column.name) for column in table.c if not column.primary_key and getattr(item, column.name, None) is not None}
+                item.id = db.connection().execute(table.insert().values(**values).returning(table.c.id)).scalar_one()
+                branch = actor.get('access_branch')
+                company = getattr(request.state, 'observed_company_id', None)
+                if isinstance(branch, int) and company:
+                    from app.branches.models import BranchOwnership
+                    db.connection().execute(BranchOwnership.__table__.insert().values(resource_table=table.name, resource_key=str(item.id), company_id=company, branch_id=branch, source='request-audit'))
+                return item
+            store_audit(row)
             from app.ai_agents.models import AiAuditLog
             ai_context = value.get("ai_context") or {}
             if (ai_context.get("is_ai") or path.startswith(("/api/v1/ai/", "/api/v1/ai-agents/", "/api/v1/ai-operator/"))) and not value.get("ai_events"):
-                db.add(AiAuditLog(event_key=uuid4().hex, organization_id=ai_context.get("company_id") or getattr(request.state,"observed_company_id",None),
+                store_audit(AiAuditLog(event_key=uuid4().hex, organization_id=ai_context.get("company_id") or getattr(request.state,"observed_company_id",None),
                     user_id=retained_actor_id, session_id=ai_context.get("session_id"), correlation_id=request_id[:64], module="AI",
                     action="AI_HTTP_DENIED" if status_code>=400 else "AI_HTTP_COMPLETED", status="failed" if status_code>=400 else "success",
                     input_json={}, output_json={"status":status_code}))
             for entry in value.get("ai_events",[]):
                 if not db.connection().execute(AiAuditLog.__table__.select().where(AiAuditLog.__table__.c.event_key==entry["event_key"])).first():
-                    db.add(AiAuditLog(**entry))
+                    store_audit(AiAuditLog(**entry))
             for tid in sorted(task_ids):
-                db.add(AuditLogTask(audit_log_id=row.id, task_id=tid))
+                db.connection().execute(AuditLogTask.__table__.insert().values(audit_log_id=row.id, task_id=tid))
             if commit:
                 db.commit()
             else:

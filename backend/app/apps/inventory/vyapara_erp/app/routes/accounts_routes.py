@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+from app.utils.tabular_import import prepare_import
 import csv
 from datetime import date, datetime, timedelta
 from io import StringIO
@@ -245,12 +247,22 @@ def reconcile(id):
 @login_required
 def import_bank_statement(id):
     bank = BankAccount.query.get_or_404(id)
-    file = request.files.get("statement")
-    if not file:
-        flash("Upload a CSV file.", "warning"); return redirect(url_for("accounts.reconcile", id=id))
-    rows = list(csv.DictReader(StringIO(file.read().decode("utf-8-sig"))))
-    if request.form.get("preview"):
-        return render_template("accounts/reconcile.html", title=f"Import Preview {bank.account_name}", bank=bank, lines=BankStatementLine.query.filter_by(bank_account_id=id).all(), preview=rows, payments=[], receipts=[])
+    fields = [{"key": key, "required": key == "date", "aliases": {"date":["transaction date","txn_date"],"description":["narration","particulars"],"reference_no":["reference","ref"]}.get(key, [])} for key in ["date","description","debit","credit","balance","reference_no"]]
+    try:
+        rows, transfer = prepare_import(request.files.get("statement"), fields)
+        if transfer:
+            return render_template("accounts/reconcile.html", title=f"Map statement {bank.account_name}", bank=bank, lines=[], payments=[], receipts=[], transfer=transfer)
+        for row in rows:
+            date.fromisoformat(str(row.get("date", "")))
+            for field in ["debit", "credit", "balance"]:
+                if row.get(field) not in (None, ""):
+                    value = Decimal(str(row[field]).replace(",", ""))
+                    if not value.is_finite():
+                        raise ValueError(f"{field} must be a finite number")
+                    row[field] = value
+    except (ValueError, TypeError, KeyError, InvalidOperation) as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("accounts.reconcile", id=id))
     imported = 0
     for row in rows:
         norm = {k.lower().strip(): v for k, v in row.items()}

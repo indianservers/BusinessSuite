@@ -156,9 +156,10 @@ function Events({ rows }: { rows: any[] }) {
   );
 }
 
-export default function ControlCenter() {
+export default function ControlCenter({ section: requestedSection, embedded = false }: { section?: string; embedded?: boolean }) {
   const actor = useAuthStore((s) => s.user);
-  const section = useLocation().pathname.split("/").pop() || "dashboard";
+  const location = useLocation();
+  const section = requestedSection || location.pathname.split("/").pop() || "dashboard";
   const [company, setCompany] = useState(
     Number(
       sessionStorage.getItem("suite-organization") ||
@@ -360,7 +361,7 @@ export default function ControlCenter() {
           Refresh
         </Button>
       </div>
-      <ControlNav />
+      {!embedded && <ControlNav />}
       {section !== "dashboard" && (
         <label className="cc-company">
           Company

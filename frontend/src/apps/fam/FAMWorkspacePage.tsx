@@ -1,3 +1,5 @@
+import { ImportWizard, DataExportButton, csvText } from "@/shared/data-transfer";
+import { bankStatementFields } from "@/shared/data-transfer/fields";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
@@ -201,37 +203,7 @@ function downloadTextFile(fileName: string, content: string, contentType = "text
   URL.revokeObjectURL(url);
 }
 
-function ExportButton({ exportType, label }: { exportType: string; label?: string }) {
-  const [message, setMessage] = useState("");
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const job = await famApi.createExport({ export_type: exportType, export_format: "csv", filters_json: {} }) as FAMRecord;
-      if (job.status !== "ready") throw new Error(text((job.error_json as FAMRecord | undefined)?.message || "Export is not ready"));
-      const file = await famApi.downloadExport(String(job.id || "")) as FAMRecord;
-      downloadTextFile(String(file.file_name || `${exportType}.csv`), String(file.file_content || ""), String(file.content_type || "text/csv"));
-      return file;
-    },
-    onSuccess: () => {
-      const textValue = `${label || exportType.replace(/_/g, " ")} exported`;
-      setMessage(textValue);
-      toast({ title: textValue });
-    },
-    onError: (err: unknown) => {
-      const textValue = apiErrorMessage(err, "Export failed");
-      setMessage(textValue);
-      toast({ title: "Export failed", description: textValue, variant: "destructive" });
-    },
-  });
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button variant="outline" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-        <FileText className="h-4 w-4" />{mutation.isPending ? "Exporting..." : label || "Export CSV"}
-      </Button>
-      {message ? <span className="text-xs text-muted-foreground">{message}</span> : null}
-    </div>
-  );
-}
+function ExportButton({exportType,label}:{exportType:string;label?:string}) { return <DataExportButton label={label||"Export"} filename={exportType} load={async()=>{const job=await famApi.createExport({export_type:exportType,export_format:"csv",filters_json:{}}) as FAMRecord;if(job.status!=="ready")throw Error(text((job.error_json as FAMRecord|undefined)?.message||"Export is not ready"));const file=await famApi.downloadExport(String(job.id)) as FAMRecord;return new Blob([String(file.file_content||"")],{type:"text/csv"});}}/>;}
 
 function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetching?: boolean; onRefresh?: () => void }) {
   const Icon = meta.icon;
@@ -695,7 +667,7 @@ function BankStatementsView() {
   const query = useQuery({ queryKey: ["fam", "bankStatements"], queryFn: famApi.bankStatements });
   const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: 1, statement_period_start: "2026-06-01", statement_period_end: "2026-06-30", imported_file_name: "hdfc-june.csv", file_content: "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000" });
   const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader><CardContent className="space-y-3">{["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("period") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Field label="CSV content"><textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={(event) => setDraft((current) => ({ ...current, file_content: event.target.value }))} /></Field><p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p><Button className="w-full" onClick={() => mutation.mutate()}>Import statement</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank statements</CardTitle></CardHeader><CardContent><State label="bank statements" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["id", "bank_account_id", "statement_period_start", "statement_period_end", "status", "imported_file_name"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/fam/bank-statements/${item.id}`}>Open statement #{text(item.id)}</Link></Button>)}</CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader><CardContent className="space-y-3">{["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("period") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<ImportWizard title="Map bank statement" label="Choose Excel or CSV" fields={bankStatementFields} confirmLabel="Use mapped statement" onImport={async({rows,filename})=>{setDraft(current=>({...current,imported_file_name:filename.replace(/\.[^.]+$/,".csv"),file_content:csvText(rows)}));return {created:rows.length,message:"Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted."};}}/><Field label="CSV content"><textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={(event) => setDraft((current) => ({ ...current, file_content: event.target.value }))} /></Field><p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p><Button className="w-full" onClick={() => mutation.mutate()}>Import statement</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank statements</CardTitle></CardHeader><CardContent><State label="bank statements" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["id", "bank_account_id", "statement_period_start", "statement_period_end", "status", "imported_file_name"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/fam/bank-statements/${item.id}`}>Open statement #{text(item.id)}</Link></Button>)}</CardContent></Card></div>;
 }
 
 function BankStatementDetailView() {

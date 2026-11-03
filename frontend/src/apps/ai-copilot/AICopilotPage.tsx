@@ -40,10 +40,10 @@ const endpointBySection: Partial<Record<SectionKey, string>> = {
   copilot: "summary",
 };
 
-export default function AICopilotPage() {
+export default function AICopilotPage({ section }: { section?: SectionKey }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const active = activeSection(location.pathname);
+  const active = section || activeSection(location.pathname);
   return (
     <div className="space-y-6">
       <div className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">

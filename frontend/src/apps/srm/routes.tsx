@@ -1,3 +1,4 @@
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
@@ -13,6 +14,7 @@ const SRMPOSPage = React.lazy(() => import("./pages/SRMPOSPage"));
 const FAMWorkspacePage = React.lazy(() => import("@/apps/fam/FAMWorkspacePage"));
 const InventoryBridgePage = React.lazy(() => import("@/apps/inventory/InventoryBridgePage"));
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
+const CatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
 
 const route = (path: string, kind: SRMViewKind): FrontendRoute => ({
   path,
@@ -52,20 +54,21 @@ export const srmRoutes: FrontendRoute[] = [
   route("srm/profitability", "profitability"),
   route("srm/customer-360", "customer360"),
   { path: "srm/pos", element: <SRMPOSPage /> },
+  ...["srm/products-services", "srm/products", "srm/services", "srm/pos/products"].map(path => ({ path, element: <CatalogPage source="srm" /> })),
   { path: "srm/pos/terminal", element: <SRMPOSPage /> },
   route("srm/pos/sessions", "posSessions"),
   route("srm/pos/cashier-closing", "cashierClosing"),
   route("srm/pos/returns", "posReturns"),
   inventoryRoute("srm/inventory", "inventory"),
   inventoryRoute("srm/inventory/dashboard", "inventoryDashboard"),
-  inventoryRoute("srm/inventory/items", "inventoryItems"),
+  { path: "srm/inventory/items", element: <CatalogPage source="srm" /> },
   inventoryRoute("srm/inventory/items/:id", "inventoryItemDetail"),
   inventoryRoute("srm/inventory/items/:id/ledger-mapping", "inventoryLedgerMapping"),
-  inventoryRoute("srm/inventory/products", "inventoryProducts"),
-  inventoryRoute("srm/inventory/products/create", "inventoryProducts"),
-  inventoryRoute("srm/inventory/products/import", "inventoryProducts"),
-  inventoryRoute("srm/inventory/products/export", "inventoryProducts"),
-  inventoryRoute("srm/inventory/products/barcodes", "inventoryProducts"),
+  { path: "srm/inventory/products", element: <CatalogPage source="srm" /> },
+  { path: "srm/inventory/products/create", element: <CatalogPage source="srm" /> },
+  { path: "srm/inventory/products/import", element: <CatalogPage source="srm" /> },
+  { path: "srm/inventory/products/export", element: <CatalogPage source="srm" /> },
+  { path: "srm/inventory/products/barcodes", element: <CatalogPage source="srm" /> },
   inventoryRoute("srm/inventory/price-lists", "inventoryPriceLists"),
   inventoryRoute("srm/inventory/stock-groups", "inventoryStockGroups"),
   inventoryRoute("srm/inventory/units", "inventoryUnits"),
@@ -114,5 +117,5 @@ export const srmRoutes: FrontendRoute[] = [
   inventorySourceRoute("srm/sales-inventory/source"),
   ...inventorySourceAppPaths.map((path) => inventorySourceRoute(path.replace(/^\//, ""))),
   route("srm/reports", "reports"),
-  route("srm/settings", "settings"),
+  { path: "srm/settings", element: <CentralSettingsRedirect section="sales" /> },
 ];

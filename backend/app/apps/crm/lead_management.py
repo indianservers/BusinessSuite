@@ -695,6 +695,7 @@ class DetailsPatch(Strict):
 
 
 class LeadPayload(Strict):
+    catalog_lines: list[dict[str, Any]] | None = Field(default=None, max_length=100)
     values: dict[str, Any] = Field(default_factory=dict)
     details: DetailsPatch = Field(default_factory=DetailsPatch)
     version: int | None = None
@@ -832,6 +833,8 @@ def create_lead(db, user, payload, settings):
     from app.apps.crm.lead_assignment import assignment_changed
 
     assignment_changed(db, lead, user, None)
+    from app.shared.catalog import save_form_links
+    save_form_links(db, user, lead, payload.catalog_lines)
     return lead
 
 
@@ -2646,6 +2649,12 @@ async def import_columns(file:UploadFile=File(...),db:Session=Depends(get_db),us
     content=await file.read(MAX_FILE+1)
     if len(content)>MAX_FILE:raise HTTPException(413,"Import file exceeds 3 MB")
     return {"headers":transfer_rows(content,file.filename or "",headers_only=True),"supported_fields":TRANSFER_FIELDS}
+
+
+@router.get("/excel/fields")
+def import_field_definitions(user: User = Depends(RequirePermission(*WRITE))):
+    core()._assert_entity_permission("leads", user, "manage")
+    return [{"key": key, "required": key == "full_name", "type": "email" if key == "email" else "text"} for key in TRANSFER_FIELDS]
 
 
 @router.post("/excel/preview")

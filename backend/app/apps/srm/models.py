@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
@@ -271,6 +271,32 @@ class SRMProduct(Base):
 
     category = relationship("SRMProductCategory")
     default_warehouse = relationship("SRMWarehouse")
+
+    # Compatibility names for existing CRM commercial workflows; one stored row.
+    name = synonym("item_name")
+    product_code = synonym("sku")
+    service_code = synonym("sku")
+    list_price = synonym("sales_rate")
+    unit_price = synonym("sales_rate")
+    default_rate = synonym("sales_rate")
+    cost_price = synonym("purchase_rate")
+    default_cost = synonym("purchase_rate")
+    tax_rate = synonym("gst_rate")
+    unit_of_measure = synonym("unit_code")
+    created_by_user_id = synonym("created_by")
+    owner_user_id = synonym("created_by")
+
+    @property
+    def currency(self):
+        return (self.metadata_json or {}).get("currency", "INR")
+
+    @property
+    def status(self):
+        return "Active" if self.active else "Archived"
+
+    @property
+    def billing_type(self):
+        return (self.metadata_json or {}).get("billing_type", "fixed")
 
 
 class SRMInventoryBalance(Base):

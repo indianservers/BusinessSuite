@@ -1,0 +1,213 @@
+[
+  {
+    "actor": "super",
+    "branch": 3,
+    "path": "/api/v1/admin/subscription",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "super",
+    "branch": 3,
+    "path": "/api/v1/ai-agents/security/settings",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "super",
+    "branch": 3,
+    "path": "/api/v1/ai-agents/security/summary",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "super",
+    "branch": 3,
+    "path": "/api/v1/ai-operator/portfolio",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "super",
+    "branch": 3,
+    "path": "/api/v1/ai-operator/suite/tools",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 4,
+    "path": "/api/v1/branches/context",
+    "expected": 200,
+    "status": 200,
+    "passed": true,
+    "scope_checked": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/assets/my",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/attendance/today",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/employees/me",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/employees/me/completeness",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/expenses/claims/my",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/leave/balance",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/leave/ledger",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/leave/my-requests",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/onboarding/my",
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/performance/goals",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/performance/goals/my",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/performance/reviews/my",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/performance/reviews/pending",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/reports/ess-summary",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/hrms/shift-roster/my",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "super",
+    "branch": 3,
+    "path": "/api/v1/srm/sales-orders",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/project-management/business/related-projects?sales_order_id=2",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "head",
+    "branch": 3,
+    "path": "/api/v1/srm/business/related-projects?sales_order_id=2",
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "actor": "mixed",
+    "branch": 4,
+    "path": "/api/v1/access/settings",
+    "expected": 200,
+    "status": 200,
+    "passed": true,
+    "scope_checked": true
+  },
+  {
+    "actor": "mixed",
+    "branch": 3,
+    "path": "/api/v1/access/settings",
+    "expected": 200,
+    "status": 200,
+    "passed": true,
+    "scope_checked": true
+  }
+]

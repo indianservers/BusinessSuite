@@ -1,5 +1,5 @@
 import OrderedList from "@/components/interaction/OrderedList";
-import { useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
   Suspense,
   lazy,
@@ -159,10 +159,10 @@ function Field({
   );
 }
 
-export default function DocumentStudioPage() {
+export default function DocumentStudioPage({ settingsOnly = false }: { settingsOnly?: boolean }) {
   const qc = useQueryClient();
   const [params] = useSearchParams();
-  const [tab, setTab] = useState(() => params.get("tab") === "templates" ? "Templates" : params.get("tab") === "letterheads" ? "Letterheads" : "Generate");
+  const [tab, setTab] = useState(() => settingsOnly ? (params.get("tab") === "letterheads" ? "Letterheads" : "Templates") : params.get("tab") === "templates" ? "Templates" : params.get("tab") === "letterheads" ? "Letterheads" : "Generate");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [templateId, setTemplateId] = useState("");
@@ -332,6 +332,7 @@ export default function DocumentStudioPage() {
     });
   }
   const failed = meta.isError || templates.isError || heads.isError;
+  if (!settingsOnly && ["templates", "letterheads"].includes(params.get("tab") || "")) return <Navigate replace to={`/settings/documents?${params.toString()}`}/>;
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -354,6 +355,7 @@ export default function DocumentStudioPage() {
           Refresh
         </Button>
       </div>
+      {!settingsOnly && meta.data?.can_edit_templates && <Link className="text-primary underline" to="/settings/documents">Manage document templates & letterheads in Settings</Link>}
       {notice && (
         <div
           role="alert"
@@ -377,11 +379,11 @@ export default function DocumentStudioPage() {
             aria-label="Document studio sections"
           >
             {[
-              "Generate",
-              ...(meta.data?.can_edit_templates
+              ...(!settingsOnly ? ["Generate"] : []),
+              ...(settingsOnly && meta.data?.can_edit_templates
                 ? ["Templates", "Letterheads"]
                 : []),
-              "Issued",
+              ...(!settingsOnly ? ["Issued"] : []),
             ].map((name) => (
               <Button
                 key={name}

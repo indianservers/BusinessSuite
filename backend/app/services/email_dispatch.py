@@ -41,11 +41,33 @@ def user_can_receive(db, user_id, recipient, organization_id):
     return True
 
 
+def branch_recipient_allowed(db, record, user_id, company_id):
+    """A queued notification is not a permanent cross-branch delivery grant."""
+    if not user_id:
+        return True  # External recipients are authorized by the originating operation.
+    user = db.get(User, user_id)
+    if not user or not user.is_active:
+        return False
+    if getattr(record, "module", None) in {"auth", "security"}:
+        return True  # Account recovery/security messages belong to the identity.
+    from sqlalchemy import select
+    from app.branches.models import BranchOwnership
+    from app.branches.service import access
+    branch = db.connection().execute(select(BranchOwnership.branch_id).where(BranchOwnership.resource_table == record.__tablename__, BranchOwnership.resource_key == str(record.id), BranchOwnership.company_id == company_id)).scalar()
+    if branch is None:
+        return bool(user.is_superuser)
+    try:
+        return branch in access(db, user, company_id)[0]
+    except Exception:
+        return False
+
+
 def _deliver(db, row, *, notification=None):
     try:
         if isinstance(row, EmailOutbox):
             recipient, subject, body = row.recipient, row.subject, row.body
             allowed = user_can_receive(db, row.recipient_user_id, recipient, row.organization_id)
+            allowed = allowed and branch_recipient_allowed(db, row, row.recipient_user_id, row.organization_id)
             if row.event_key.startswith("workspace-invite:"):
                 from app.apps.project_management.models import PMSWorkspaceInvitation
                 invitation = db.query(PMSWorkspaceInvitation).filter_by(token_hash=row.event_key.split(":", 1)[1]).first()
@@ -69,6 +91,7 @@ def _deliver(db, row, *, notification=None):
             user = db.get(User, notification.user_id)
             recipient = user.email if user else ""
             allowed = user_can_receive(db, notification.user_id, recipient, notification.company_id)
+            allowed = allowed and branch_recipient_allowed(db, notification, notification.user_id, notification.company_id)
             subject = "Business Suite notification"
             # Do not put private comments, HR data or approval details in an email preview.
             body = f"You have an update in {notification.module or 'Business Suite'}. Sign in to review it.\n"

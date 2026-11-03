@@ -1,0 +1,7701 @@
+{
+  "tables": [
+    {
+      "table": "accounting_ledgers",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_backup_requests",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_compliance_settings",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_data_retention_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_data_sharing_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_duplicate_candidates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "rule_id->admin_duplicate_rules.id"
+      ]
+    },
+    {
+      "table": "admin_duplicate_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_export_controls",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_field_security",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "profile_id->admin_profiles.id"
+      ]
+    },
+    {
+      "table": "admin_import_job_rows",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "import_job_id->admin_import_jobs.id"
+      ]
+    },
+    {
+      "table": "admin_import_jobs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_ip_restrictions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_manual_record_shares",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_merge_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_profile_permissions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "profile_id->admin_profiles.id"
+      ]
+    },
+    {
+      "table": "admin_profiles",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_record_sharing_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "admin_role_hierarchy",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "parent_role_id->admin_roles.id",
+        "child_role_id->admin_roles.id"
+      ]
+    },
+    {
+      "table": "admin_roles",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "profile_id->admin_profiles.id"
+      ]
+    },
+    {
+      "table": "ai_action_approvals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->ai_conversations.id"
+      ]
+    },
+    {
+      "table": "ai_action_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "prompt_run_id->ai_prompt_runs.id",
+        "agent_action_id->ai_agent_actions.id"
+      ]
+    },
+    {
+      "table": "ai_agent_actions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "prompt_run_id->ai_prompt_runs.id"
+      ]
+    },
+    {
+      "table": "ai_agent_permissions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_agent_settings",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_agent_tools",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_agents",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_conversations",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_cost_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->ai_conversations.id"
+      ]
+    },
+    {
+      "table": "ai_handoff_notes",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->ai_conversations.id"
+      ]
+    },
+    {
+      "table": "ai_message_feedback",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "message_id->ai_messages.id",
+        "conversation_id->ai_conversations.id"
+      ]
+    },
+    {
+      "table": "ai_messages",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->ai_conversations.id"
+      ]
+    },
+    {
+      "table": "ai_operator_api_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "suite_run_id->ai_suite_runs.id",
+        "run_id->ai_operator_runs.id"
+      ]
+    },
+    {
+      "table": "ai_operator_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->ai_operator_runs.id"
+      ]
+    },
+    {
+      "table": "ai_operator_jobs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->ai_operator_runs.id"
+      ]
+    },
+    {
+      "table": "ai_operator_monitors",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "ai_operator_proposals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "approval_id->ai_action_approvals.id"
+      ]
+    },
+    {
+      "table": "ai_operator_providers",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_operator_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "approval_id->ai_action_approvals.id"
+      ]
+    },
+    {
+      "table": "ai_operator_steps",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->ai_operator_runs.id"
+      ]
+    },
+    {
+      "table": "ai_prompt_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "prompt_template_id->ai_prompt_templates.id"
+      ]
+    },
+    {
+      "table": "ai_prompt_templates",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_provider_settings",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_recommendations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "prompt_run_id->ai_prompt_runs.id"
+      ]
+    },
+    {
+      "table": "ai_record_summaries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "prompt_run_id->ai_prompt_runs.id"
+      ]
+    },
+    {
+      "table": "ai_scores",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "prompt_run_id->ai_prompt_runs.id"
+      ]
+    },
+    {
+      "table": "ai_security_settings",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_suite_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "approval_id->ai_action_approvals.id"
+      ]
+    },
+    {
+      "table": "ai_usage_events",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_usage_limits",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "ai_user_feedback",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "prompt_run_id->ai_prompt_runs.id",
+        "recommendation_id->ai_recommendations.id"
+      ]
+    },
+    {
+      "table": "analytics_anomaly_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "analytics_dashboard_widgets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "dashboard_id->analytics_dashboards.id"
+      ]
+    },
+    {
+      "table": "analytics_dashboards",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "analytics_export_audit_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "export_id->analytics_exports.id",
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "analytics_exports",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "analytics_report_fields",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "analytics_report_filters",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "analytics_report_joins",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "analytics_report_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "analytics_report_sorts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "analytics_reports",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "analytics_scheduled_reports",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->analytics_reports.id"
+      ]
+    },
+    {
+      "table": "announcement_acknowledgements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "announcement_id->announcements.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "announcements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "target_department_id->departments.id",
+        "target_location_id->work_locations.id"
+      ]
+    },
+    {
+      "table": "appraisal_cycles",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "approval_comments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "request_id->approval_requests.id"
+      ]
+    },
+    {
+      "table": "approval_history",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "request_id->approval_requests.id"
+      ]
+    },
+    {
+      "table": "approval_requests",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "asset_assignments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "asset_id->assets.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "asset_categories",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "assets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "category_id->asset_categories.id"
+      ]
+    },
+    {
+      "table": "attendance_month_locks",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "attendance_punch_proofs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "punch_id->attendance_punches.id"
+      ]
+    },
+    {
+      "table": "attendance_punches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "attendance_regularizations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "attendance_id->attendances.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "attendances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "shift_id->shifts.id"
+      ]
+    },
+    {
+      "table": "audit_log_tasks",
+      "category": "inherited",
+      "primary_key": [
+        "audit_log_id",
+        "task_id"
+      ],
+      "ownership_parents": [
+        "audit_log_id->audit_logs.id"
+      ]
+    },
+    {
+      "table": "audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "automation_actions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->automation_workflows.id"
+      ]
+    },
+    {
+      "table": "automation_approval_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "rule_id->automation_approval_rules.id"
+      ]
+    },
+    {
+      "table": "automation_approval_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "automation_approval_steps",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "rule_id->automation_approval_rules.id"
+      ]
+    },
+    {
+      "table": "automation_assignment_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "automation_blueprint_stages",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "blueprint_id->automation_blueprints.id"
+      ]
+    },
+    {
+      "table": "automation_blueprint_transitions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "blueprint_id->automation_blueprints.id",
+        "automation_workflow_id->automation_workflows.id"
+      ]
+    },
+    {
+      "table": "automation_blueprints",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "automation_cadence_steps",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "cadence_id->automation_cadences.id"
+      ]
+    },
+    {
+      "table": "automation_cadences",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "automation_conditions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->automation_workflows.id"
+      ]
+    },
+    {
+      "table": "automation_execution_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->automation_workflows.id"
+      ]
+    },
+    {
+      "table": "automation_scheduled_jobs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "automation_triggers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->automation_workflows.id"
+      ]
+    },
+    {
+      "table": "automation_webhook_endpoints",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "automation_workflows",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "background_verification_checks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "request_id->background_verification_requests.id"
+      ]
+    },
+    {
+      "table": "background_verification_connector_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "request_id->background_verification_requests.id",
+        "vendor_id->background_verification_vendors.id"
+      ]
+    },
+    {
+      "table": "background_verification_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "vendor_id->background_verification_vendors.id",
+        "candidate_id->candidates.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "background_verification_vendors",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "bank_advice_formats",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "benefit_claims",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "benefit_plan_id->benefit_plans.id",
+        "policy_id->flexi_benefit_policies.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "benefit_dependents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "enrollment_id->employee_benefit_enrollments.id"
+      ]
+    },
+    {
+      "table": "benefit_enrollment_windows",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "benefit_payroll_deductions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "enrollment_id->employee_benefit_enrollments.id",
+        "employee_id->employees.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "benefit_plans",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "biometric_devices",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "biometric_import_batches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "device_id->biometric_devices.id"
+      ]
+    },
+    {
+      "table": "bonus_policies",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "grade_band_id->grade_bands.id"
+      ]
+    },
+    {
+      "table": "bos_enabled_modules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "bos_entity_links",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "bos_feature_flags",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "bos_integration_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "bos_lifecycle_events",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "bos_module_dependencies",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "bos_posting_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "branches",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "business_customer_links",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "customer_id->crm_companies.id"
+      ]
+    },
+    {
+      "table": "business_invoice_contexts",
+      "category": "inherited",
+      "primary_key": [
+        "invoice_id"
+      ],
+      "ownership_parents": [
+        "invoice_id->srm_invoices.id",
+        "project_id->pms_projects.id",
+        "contact_id->crm_contacts.id"
+      ]
+    },
+    {
+      "table": "business_invoice_deliveries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "invoice_id->srm_invoices.id",
+        "message_id->communication_email_messages.id"
+      ]
+    },
+    {
+      "table": "business_milestone_billing_sources",
+      "category": "inherited",
+      "primary_key": [
+        "pms_milestone_id"
+      ],
+      "ownership_parents": [
+        "pms_milestone_id->pms_milestones.id",
+        "billing_milestone_id->srm_billing_milestones.id"
+      ]
+    },
+    {
+      "table": "business_number_sequences",
+      "category": "shared",
+      "primary_key": [
+        "series"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "business_project_commercial",
+      "category": "inherited",
+      "primary_key": [
+        "project_id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "customer_id->crm_companies.id",
+        "contact_id->crm_contacts.id",
+        "team_id->crm_teams.id",
+        "opportunity_id->crm_deals.id",
+        "sales_order_id->srm_sales_orders.id",
+        "engagement_id->srm_engagements.id"
+      ]
+    },
+    {
+      "table": "business_receipt_contexts",
+      "category": "inherited",
+      "primary_key": [
+        "receipt_id"
+      ],
+      "ownership_parents": [
+        "receipt_id->srm_receipts.id",
+        "invoice_id->srm_invoices.id"
+      ]
+    },
+    {
+      "table": "business_sales_team_assignments",
+      "category": "inherited",
+      "primary_key": [
+        "sales_order_id"
+      ],
+      "ownership_parents": [
+        "sales_order_id->srm_sales_orders.id",
+        "team_id->crm_teams.id"
+      ]
+    },
+    {
+      "table": "business_seller_grants",
+      "category": "owned-root",
+      "primary_key": [
+        "organization_id",
+        "seller_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "business_time_billing_allocations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "time_log_id->pms_time_logs.id",
+        "invoice_id->srm_invoices.id"
+      ]
+    },
+    {
+      "table": "business_units",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "calendar_integrations",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "calibration_participants",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "session_id->calibration_sessions.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "calibration_sessions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "cycle_id->appraisal_cycles.id"
+      ]
+    },
+    {
+      "table": "candidates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "job_id->jobs.id",
+        "referred_by->employees.id"
+      ]
+    },
+    {
+      "table": "certificate_import_export_batches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "certification_renewals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "certification_id->learning_certifications.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "common_people",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "common_profiles",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "communication_auto_response_rules",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "template_id->communication_email_templates.id"
+      ]
+    },
+    {
+      "table": "communication_campaign_members",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "campaign_id->communication_campaigns.id"
+      ]
+    },
+    {
+      "table": "communication_campaign_sends",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "campaign_id->communication_campaigns.id",
+        "member_id->communication_campaign_members.id",
+        "email_message_id->communication_email_messages.id"
+      ]
+    },
+    {
+      "table": "communication_campaigns",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "template_id->communication_email_templates.id"
+      ]
+    },
+    {
+      "table": "communication_chat_contexts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "conversation_id->pms_chat_conversations.id"
+      ]
+    },
+    {
+      "table": "communication_chat_drafts",
+      "category": "inherited",
+      "primary_key": [
+        "conversation_id",
+        "user_id",
+        "thread_id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "conversation_id->pms_chat_conversations.id"
+      ]
+    },
+    {
+      "table": "communication_chat_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "conversation_id->pms_chat_conversations.id"
+      ]
+    },
+    {
+      "table": "communication_chat_followups",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "conversation_id->pms_chat_conversations.id",
+        "message_id->pms_chat_messages.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "communication_chat_meetings",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "conversation_id->pms_chat_conversations.id",
+        "event_id->pms_calendar_events.id"
+      ]
+    },
+    {
+      "table": "communication_chat_pins",
+      "category": "inherited",
+      "primary_key": [
+        "message_id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "message_id->pms_chat_messages.id"
+      ]
+    },
+    {
+      "table": "communication_chat_preferences",
+      "category": "inherited",
+      "primary_key": [
+        "conversation_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "conversation_id->pms_chat_conversations.id"
+      ]
+    },
+    {
+      "table": "communication_chat_presence",
+      "category": "inherited",
+      "primary_key": [
+        "conversation_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "conversation_id->pms_chat_conversations.id"
+      ]
+    },
+    {
+      "table": "communication_chat_reactions",
+      "category": "inherited",
+      "primary_key": [
+        "message_id",
+        "user_id",
+        "emoji"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "message_id->pms_chat_messages.id"
+      ]
+    },
+    {
+      "table": "communication_chat_revisions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "message_id->pms_chat_messages.id"
+      ]
+    },
+    {
+      "table": "communication_chat_saved",
+      "category": "inherited",
+      "primary_key": [
+        "message_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "message_id->pms_chat_messages.id"
+      ]
+    },
+    {
+      "table": "communication_consents",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "communication_delivery_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "communication_email_attachments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "message_id->communication_email_messages.id"
+      ]
+    },
+    {
+      "table": "communication_email_messages",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "communication_email_templates",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "communication_opt_outs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "communication_timeline_events",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "communication_webform_fields",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "webform_id->communication_webforms.id"
+      ]
+    },
+    {
+      "table": "communication_webform_submissions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "webform_id->communication_webforms.id"
+      ]
+    },
+    {
+      "table": "communication_webforms",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "auto_response_rule_id->communication_auto_response_rules.id"
+      ]
+    },
+    {
+      "table": "communication_whatsapp_templates",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "companies",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "company_policies",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "company_policy_versions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "policy_id->company_policies.id"
+      ]
+    },
+    {
+      "table": "compensation_cycles",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "compensation_worksheet_rows",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "compensation_cycle_id->compensation_cycles.id",
+        "employee_id->employees.id",
+        "pay_band_id->pay_bands.id"
+      ]
+    },
+    {
+      "table": "competencies",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "consent_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "cost_centers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "business_unit_id->business_units.id"
+      ]
+    },
+    {
+      "table": "critical_roles",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "designation_id->designations.id",
+        "incumbent_employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "crm_accounts",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_activities",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id",
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id",
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_approval_request_steps",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "request_id->crm_approval_requests.id",
+        "step_id->crm_approval_steps.id"
+      ]
+    },
+    {
+      "table": "crm_approval_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->crm_approval_workflows.id"
+      ]
+    },
+    {
+      "table": "crm_approval_steps",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->crm_approval_workflows.id"
+      ]
+    },
+    {
+      "table": "crm_approval_workflows",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_call_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id",
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id",
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_campaign_leads",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "campaign_id->crm_campaigns.id",
+        "lead_id->crm_leads.id"
+      ]
+    },
+    {
+      "table": "crm_campaigns",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_companies",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "territory_id->crm_territories.id"
+      ]
+    },
+    {
+      "table": "crm_contacts",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "company_id->crm_companies.id"
+      ]
+    },
+    {
+      "table": "crm_cpq_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_custom_field_values",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_custom_fields",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_deal_collaborators",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_deal_contacts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "deal_id->crm_deals.id",
+        "contact_id->crm_contacts.id"
+      ]
+    },
+    {
+      "table": "crm_deal_products",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_deals",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "territory_id->crm_territories.id",
+        "company_id->crm_companies.id",
+        "contact_id->crm_contacts.id"
+      ]
+    },
+    {
+      "table": "crm_email_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id",
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id",
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_email_templates",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_enrichment_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_file_assets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "folder_id->crm_file_folders.id",
+        "lead_id->crm_leads.id",
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id",
+        "deal_id->crm_deals.id",
+        "ticket_id->crm_tickets.id"
+      ]
+    },
+    {
+      "table": "crm_file_folders",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_forecast_snapshots",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "territory_id->crm_territories.id"
+      ]
+    },
+    {
+      "table": "crm_guided_selling_flows",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_lead_conversion_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id",
+        "converted_account_id->crm_companies.id",
+        "converted_contact_id->crm_contacts.id",
+        "converted_deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_lead_management_config",
+      "category": "shared",
+      "primary_key": [
+        "organization_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_lead_operating_states",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id"
+      ]
+    },
+    {
+      "table": "crm_lead_scoring_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_leads",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "territory_id->crm_territories.id",
+        "converted_contact_id->crm_contacts.id",
+        "converted_company_id->crm_companies.id",
+        "converted_deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_lost_reasons",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_meetings",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id",
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id",
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_message_templates",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_messages",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_note_mentions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "note_id->crm_notes.id",
+        "activity_id->crm_activities.id"
+      ]
+    },
+    {
+      "table": "crm_notes",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id",
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id",
+        "deal_id->crm_deals.id",
+        "ticket_id->crm_tickets.id"
+      ]
+    },
+    {
+      "table": "crm_owners",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "team_id->crm_teams.id",
+        "territory_id->crm_territories.id"
+      ]
+    },
+    {
+      "table": "crm_pipeline_stages",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_pipelines",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_price_book_items",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_price_books",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_products",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_quotation_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "quotation_id->crm_quotations.id",
+        "quote_id->crm_quotations.id"
+      ]
+    },
+    {
+      "table": "crm_quotations",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "deal_id->crm_deals.id",
+        "company_id->crm_companies.id",
+        "account_id->crm_companies.id",
+        "contact_id->crm_contacts.id"
+      ]
+    },
+    {
+      "table": "crm_quote_approvals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "quote_id->crm_quotations.id"
+      ]
+    },
+    {
+      "table": "crm_quote_srm_conversion_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "quote_id->crm_quotations.id",
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_quote_versions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "quote_id->crm_quotations.id"
+      ]
+    },
+    {
+      "table": "crm_sales_performance_snapshots",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "territory_id->crm_territories.id"
+      ]
+    },
+    {
+      "table": "crm_sales_targets",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_services",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_tags",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_tasks",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "lead_id->crm_leads.id",
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id",
+        "deal_id->crm_deals.id"
+      ]
+    },
+    {
+      "table": "crm_teams",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_territories",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_territory_assignments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "territory_id->crm_territories.id",
+        "team_id->crm_teams.id"
+      ]
+    },
+    {
+      "table": "crm_territory_users",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "territory_id->crm_territories.id"
+      ]
+    },
+    {
+      "table": "crm_tickets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "contact_id->crm_contacts.id",
+        "company_id->crm_companies.id"
+      ]
+    },
+    {
+      "table": "crm_timeline_events",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "crm_webhook_deliveries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "webhook_id->crm_webhooks.id"
+      ]
+    },
+    {
+      "table": "crm_webhooks",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "custom_field_definitions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "custom_field_values",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "definition_id->custom_field_definitions.id"
+      ]
+    },
+    {
+      "table": "custom_form_definitions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "custom_form_fields",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "form_id->custom_form_definitions.id",
+        "field_definition_id->custom_field_definitions.id"
+      ]
+    },
+    {
+      "table": "custom_form_submissions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "form_id->custom_form_definitions.id"
+      ]
+    },
+    {
+      "table": "customization_audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_buttons",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_field_options",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "field_id->customization_fields.id"
+      ]
+    },
+    {
+      "table": "customization_fields",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_formula_fields",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_global_picklist_values",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "picklist_id->customization_global_picklists.id"
+      ]
+    },
+    {
+      "table": "customization_global_picklists",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_kanban_views",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_layout_fields",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "layout_id->customization_layouts.id",
+        "section_id->customization_layout_sections.id",
+        "field_id->customization_fields.id"
+      ]
+    },
+    {
+      "table": "customization_layout_sections",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "layout_id->customization_layouts.id"
+      ]
+    },
+    {
+      "table": "customization_layouts",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_modules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_record_values",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "record_id->customization_records.id",
+        "field_id->customization_fields.id"
+      ]
+    },
+    {
+      "table": "customization_records",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_related_lists",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_rollup_fields",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_validation_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "customization_views",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "data_privacy_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "data_retention_policies",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "departments",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "designations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id"
+      ]
+    },
+    {
+      "table": "developer_api_keys",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "developer_api_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "api_key_id->developer_api_keys.id"
+      ]
+    },
+    {
+      "table": "developer_apps",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "developer_webhook_deliveries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "webhook_id->developer_webhooks.id"
+      ]
+    },
+    {
+      "table": "developer_webhooks",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "document_studio_assets",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "document_studio_documents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "template_id->document_studio_templates.id"
+      ]
+    },
+    {
+      "table": "document_studio_letterheads",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "logo_asset_id->document_studio_assets.id",
+        "background_asset_id->document_studio_assets.id",
+        "signature_asset_id->document_studio_assets.id"
+      ]
+    },
+    {
+      "table": "document_studio_templates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "letterhead_id->document_studio_letterheads.id"
+      ]
+    },
+    {
+      "table": "document_templates",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "domain_pack_registry",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "email_outbox",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "employee_benefit_enrollments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "benefit_plan_id->benefit_plans.id"
+      ]
+    },
+    {
+      "table": "employee_certificates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_certifications",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_change_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_competency_assessments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "competency_id->competencies.id"
+      ]
+    },
+    {
+      "table": "employee_documents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_educations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_experiences",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_family_members",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_flexi_benefit_allocations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "policy_id->flexi_benefit_policies.id"
+      ]
+    },
+    {
+      "table": "employee_lifecycle_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "from_branch_id->branches.id",
+        "to_branch_id->branches.id",
+        "from_department_id->departments.id",
+        "to_department_id->departments.id",
+        "from_designation_id->designations.id",
+        "to_designation_id->designations.id",
+        "from_manager_id->employees.id",
+        "to_manager_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_loan_installments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "loan_id->employee_loans.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "employee_loan_ledgers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "loan_id->employee_loans.id",
+        "employee_id->employees.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "employee_loans",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_onboarding_tasks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_onboarding_id->employee_onboardings.id",
+        "template_task_id->onboarding_template_tasks.id"
+      ]
+    },
+    {
+      "table": "employee_onboardings",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "template_id->onboarding_templates.id"
+      ]
+    },
+    {
+      "table": "employee_salaries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "structure_id->salary_structures.id"
+      ]
+    },
+    {
+      "table": "employee_salary_component_overrides",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "assignment_id->employee_salary_template_assignments.id",
+        "component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "employee_salary_template_assignments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "template_id->salary_templates.id"
+      ]
+    },
+    {
+      "table": "employee_skills",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_statutory_profiles",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_tax_declaration_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "declaration_id->employee_tax_declarations.id"
+      ]
+    },
+    {
+      "table": "employee_tax_declarations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_tax_proofs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "declaration_item_id->employee_tax_declaration_items.id"
+      ]
+    },
+    {
+      "table": "employee_tax_regime_elections",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employee_tax_worksheet_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "worksheet_id->employee_tax_worksheets.id"
+      ]
+    },
+    {
+      "table": "employee_tax_worksheets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "employees",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "designation_id->designations.id",
+        "business_unit_id->business_units.id",
+        "cost_center_id->cost_centers.id",
+        "location_id->work_locations.id",
+        "grade_band_id->grade_bands.id",
+        "position_id->positions.id",
+        "shift_id->shifts.id"
+      ]
+    },
+    {
+      "table": "engagement_survey_responses",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "survey_id->engagement_surveys.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "engagement_surveys",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "esi_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "esop_grants",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "esop_plan_id->esop_plans.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "esop_plans",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "esop_vesting_schedules",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "grant_id->esop_grants.id"
+      ]
+    },
+    {
+      "table": "exit_checklist_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "exit_record_id->exit_records.id"
+      ]
+    },
+    {
+      "table": "exit_interviews",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "exit_record_id->exit_records.id"
+      ]
+    },
+    {
+      "table": "exit_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "expense_claims",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "payroll_reimbursement_id->reimbursements.id",
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "fam_accounting_periods",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_ai_accounting_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_bank_accounts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_bank_reconciliation_matches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "statement_line_id->fam_bank_statement_lines.id",
+        "voucher_id->fam_vouchers.id",
+        "ledger_entry_id->fam_ledger_entries.id"
+      ]
+    },
+    {
+      "table": "fam_bank_reconciliation_sessions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "bank_account_id->fam_bank_accounts.id",
+        "statement_id->fam_bank_statements.id"
+      ]
+    },
+    {
+      "table": "fam_bank_statement_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "statement_id->fam_bank_statements.id",
+        "matched_voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_bank_statements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "bank_account_id->fam_bank_accounts.id"
+      ]
+    },
+    {
+      "table": "fam_bill_allocations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "party_id->fam_parties.id",
+        "from_bill_reference_id->fam_bill_references.id",
+        "to_bill_reference_id->fam_bill_references.id",
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_bill_references",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "party_id->fam_parties.id",
+        "ledger_id->fam_ledgers.id",
+        "voucher_id->fam_vouchers.id",
+        "voucher_line_id->fam_voucher_lines.id"
+      ]
+    },
+    {
+      "table": "fam_branches",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_cash_registers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_company_financial_settings",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_cost_centers",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_einvoice_jobs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_einvoice_settings",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_ewaybill_jobs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_ewaybill_settings",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_expense_claims",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payable_ledger_id->fam_ledgers.id",
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_expense_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "expense_claim_id->fam_expense_claims.id",
+        "expense_ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_export_jobs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_financial_years",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_gst_audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_gst_rates",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_gst_reconciliation_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "return_period_id->fam_gst_return_periods.id"
+      ]
+    },
+    {
+      "table": "fam_gst_return_periods",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_gst_transaction_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id",
+        "voucher_line_id->fam_voucher_lines.id",
+        "party_id->fam_parties.id"
+      ]
+    },
+    {
+      "table": "fam_gstr1_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "return_period_id->fam_gst_return_periods.id"
+      ]
+    },
+    {
+      "table": "fam_gstr3b_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "return_period_id->fam_gst_return_periods.id"
+      ]
+    },
+    {
+      "table": "fam_hsn_sac_codes",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_import_jobs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_integrity_runs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_inventory_ai_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_inventory_control_settings",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_inventory_integration_links",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "stock_item_id->fam_stock_items.id"
+      ]
+    },
+    {
+      "table": "fam_inventory_reports",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_inventory_reservations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "stock_item_id->fam_stock_items.id",
+        "warehouse_id->fam_warehouses.id"
+      ]
+    },
+    {
+      "table": "fam_inventory_valuation_layers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "stock_item_id->fam_stock_items.id",
+        "warehouse_id->fam_warehouses.id",
+        "movement_id->fam_stock_movements.id",
+        "movement_line_id->fam_stock_movement_lines.id"
+      ]
+    },
+    {
+      "table": "fam_ledger_entries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id",
+        "voucher_line_id->fam_voucher_lines.id",
+        "ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_ledger_groups",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_ledgers",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_opening_balances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_parties",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "crm_contact_id->crm_contacts.id",
+        "ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_party_contacts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "party_id->fam_parties.id"
+      ]
+    },
+    {
+      "table": "fam_party_credit_terms",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "party_id->fam_parties.id"
+      ]
+    },
+    {
+      "table": "fam_payment_modes",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "default_ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_payment_references",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id",
+        "voucher_line_id->fam_voucher_lines.id",
+        "bank_account_id->fam_bank_accounts.id"
+      ]
+    },
+    {
+      "table": "fam_period_close_runs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_posting_jobs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_posting_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "roundoff_ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_purchase_audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_purchase_bill_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "purchase_bill_id->fam_purchase_bills.id",
+        "expense_ledger_id->fam_ledgers.id"
+      ]
+    },
+    {
+      "table": "fam_purchase_bills",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "vendor_id->fam_parties.id",
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_srm_mapping",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_stock_adjustments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "warehouse_id->fam_warehouses.id",
+        "voucher_id->fam_vouchers.id",
+        "movement_id->fam_stock_movements.id"
+      ]
+    },
+    {
+      "table": "fam_stock_groups",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_stock_items",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "default_warehouse_id->fam_warehouses.id",
+        "inventory_ledger_id->fam_ledgers.id",
+        "purchase_ledger_id->fam_ledgers.id",
+        "sales_ledger_id->fam_ledgers.id",
+        "cogs_ledger_id->fam_ledgers.id",
+        "adjustment_gain_ledger_id->fam_ledgers.id",
+        "adjustment_loss_ledger_id->fam_ledgers.id",
+        "grni_ledger_id->fam_ledgers.id",
+        "cost_center_id->fam_cost_centers.id"
+      ]
+    },
+    {
+      "table": "fam_stock_movement_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "movement_id->fam_stock_movements.id",
+        "stock_item_id->fam_stock_items.id",
+        "warehouse_id->fam_warehouses.id"
+      ]
+    },
+    {
+      "table": "fam_stock_movements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_stock_opening_balances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "stock_item_id->fam_stock_items.id",
+        "warehouse_id->fam_warehouses.id",
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_stock_transfers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "from_warehouse_id->fam_warehouses.id",
+        "to_warehouse_id->fam_warehouses.id",
+        "movement_id->fam_stock_movements.id"
+      ]
+    },
+    {
+      "table": "fam_tax_registrations",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_tds_rates",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_tds_sections",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_tds_transactions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id",
+        "vendor_id->fam_parties.id"
+      ]
+    },
+    {
+      "table": "fam_units_of_measure",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_vendor_payment_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payment_run_id->fam_vendor_payment_runs.id",
+        "vendor_id->fam_parties.id",
+        "purchase_bill_id->fam_purchase_bills.id",
+        "bill_reference_id->fam_bill_references.id"
+      ]
+    },
+    {
+      "table": "fam_vendor_payment_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "bank_ledger_id->fam_ledgers.id",
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_voucher_audit_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id"
+      ]
+    },
+    {
+      "table": "fam_voucher_lines",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "voucher_id->fam_vouchers.id",
+        "ledger_id->fam_ledgers.id",
+        "cost_center_id->fam_cost_centers.id"
+      ]
+    },
+    {
+      "table": "fam_voucher_types",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_vouchers",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "fam_warehouses",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "feature_catalog",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "feature_plans",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "feedback_360_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "cycle_id->appraisal_cycles.id",
+        "employee_id->employees.id",
+        "reviewer_id->employees.id"
+      ]
+    },
+    {
+      "table": "field_audit_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "flexi_benefit_policies",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "form16_documents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "legal_entity_id->payroll_legal_entities.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "form16_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "form_12ba_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "full_final_settlement_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "settlement_id->full_final_settlements.id"
+      ]
+    },
+    {
+      "table": "full_final_settlements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "exit_record_id->exit_records.id"
+      ]
+    },
+    {
+      "table": "generated_documents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "template_id->document_templates.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "geo_attendance_policies",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "goal_check_ins",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "goal_id->performance_goals.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "grade_bands",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "gratuity_accruals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "gratuity_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "headcount_plans",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "business_unit_id->business_units.id",
+        "department_id->departments.id"
+      ]
+    },
+    {
+      "table": "helpdesk_categories",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "helpdesk_escalation_rules",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "category_id->helpdesk_categories.id"
+      ]
+    },
+    {
+      "table": "helpdesk_knowledge_articles",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "category_id->helpdesk_categories.id"
+      ]
+    },
+    {
+      "table": "helpdesk_replies",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "ticket_id->helpdesk_tickets.id"
+      ]
+    },
+    {
+      "table": "helpdesk_tickets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "category_id->helpdesk_categories.id"
+      ]
+    },
+    {
+      "table": "holidays",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "industry_targets",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "integration_credentials",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "integration_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "subscription_id->webhook_subscriptions.id"
+      ]
+    },
+    {
+      "table": "intern_application_documents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "application_id->intern_hub_applications.id"
+      ]
+    },
+    {
+      "table": "intern_application_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "application_id->intern_hub_applications.id"
+      ]
+    },
+    {
+      "table": "intern_batch_memberships",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "batch_id->intern_batches.id",
+        "employee_id->employees.id",
+        "previous_batch_id->intern_batches.id"
+      ]
+    },
+    {
+      "table": "intern_batches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "intern_completion_reviews",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "batch_id->intern_batches.id",
+        "employee_id->employees.id",
+        "certificate_id->intern_hub_certificates.id"
+      ]
+    },
+    {
+      "table": "intern_hub_applications",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "intern_hub_certificates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "document_certificate_id->employee_certificates.id"
+      ]
+    },
+    {
+      "table": "intern_hub_courses",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id"
+      ]
+    },
+    {
+      "table": "intern_hub_enrollments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "course_id->intern_hub_courses.id"
+      ]
+    },
+    {
+      "table": "intern_hub_files",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "intern_hub_reports",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "intern_hub_submissions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->intern_hub_tasks.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "intern_hub_tasks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "intern_hub_tickets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "intern_legacy_file_maps",
+      "category": "inherited",
+      "primary_key": [
+        "legacy_file_id",
+        "task_id"
+      ],
+      "ownership_parents": [
+        "legacy_file_id->intern_hub_files.id",
+        "task_id->pms_tasks.id",
+        "file_id->pms_file_assets.id"
+      ]
+    },
+    {
+      "table": "intern_legacy_task_maps",
+      "category": "inherited",
+      "primary_key": [
+        "legacy_task_id"
+      ],
+      "ownership_parents": [
+        "legacy_task_id->intern_hub_tasks.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "intern_report_reviews",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_id->intern_hub_reports.id"
+      ]
+    },
+    {
+      "table": "intern_task_distribution_jobs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "intern_task_schedules",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "interview_feedbacks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "interview_id->interviews.id",
+        "interviewer_id->employees.id"
+      ]
+    },
+    {
+      "table": "interviews",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "candidate_id->candidates.id"
+      ]
+    },
+    {
+      "table": "ip_access_policies",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "job_families",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "job_profiles",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "job_family_id->job_families.id",
+        "grade_band_id->grade_bands.id"
+      ]
+    },
+    {
+      "table": "jobs",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "designation_id->designations.id",
+        "hiring_manager_id->employees.id"
+      ]
+    },
+    {
+      "table": "learning_assignments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "course_id->learning_courses.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "learning_certifications",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "course_id->learning_courses.id"
+      ]
+    },
+    {
+      "table": "learning_courses",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "leave_balance_ledger",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "leave_balance_id->leave_balances.id",
+        "leave_request_id->leave_requests.id"
+      ]
+    },
+    {
+      "table": "leave_balances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "leave_encashment_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "period_id->payroll_periods.id",
+        "employee_id->employees.id",
+        "policy_id->leave_encashment_policies.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "leave_encashment_policies",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "pay_group_id->payroll_pay_groups.id",
+        "component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "leave_encashment_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "payroll_run_id->payroll_runs.id",
+        "leave_encashment_line_id->leave_encashment_lines.id"
+      ]
+    },
+    {
+      "table": "leave_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "handover_employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "leave_types",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "legal_holds",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "login_attempts",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "lop_adjustments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "period_id->payroll_periods.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "lwf_slabs",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "manufacturing_contract_labor_batches",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "manufacturing_medical_fitness_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "manufacturing_ppe_issuances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "manufacturing_safety_incidents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "marketplace_apps",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "marketplace_installs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "app_id->marketplace_apps.id"
+      ]
+    },
+    {
+      "table": "merit_recommendations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "compensation_cycle_id->compensation_cycles.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "metric_definitions",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "mfa_methods",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "mobile_sales_visit_checkins",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "notification_delivery_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "notification_id->notifications.id"
+      ]
+    },
+    {
+      "table": "notifications",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "off_cycle_payroll_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "pay_group_id->payroll_pay_groups.id",
+        "period_id->payroll_periods.id"
+      ]
+    },
+    {
+      "table": "offer_letters",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "candidate_id->candidates.id",
+        "template_id->document_templates.id"
+      ]
+    },
+    {
+      "table": "onboarding_template_tasks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "template_id->onboarding_templates.id"
+      ]
+    },
+    {
+      "table": "onboarding_templates",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "one_on_one_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "manager_id->employees.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "overtime_pay_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "period_id->payroll_periods.id",
+        "employee_id->employees.id",
+        "policy_id->overtime_policies.id",
+        "payroll_record_id->payroll_records.id",
+        "approved_overtime_request_id->overtime_requests.id"
+      ]
+    },
+    {
+      "table": "overtime_policies",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "pay_group_id->payroll_pay_groups.id",
+        "component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "overtime_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "password_policies",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pay_bands",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "grade_band_id->grade_bands.id",
+        "location_id->work_locations.id"
+      ]
+    },
+    {
+      "table": "payroll_arrear_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "arrear_run_id->payroll_arrear_runs.id",
+        "employee_id->employees.id",
+        "component_id->salary_components.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "payroll_arrear_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "period_id->payroll_periods.id"
+      ]
+    },
+    {
+      "table": "payroll_attendance_inputs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "period_id->payroll_periods.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_bank_exports",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "payroll_bank_file_validations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "payroll_bank_validations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_budgets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "cost_center_id->cost_centers.id"
+      ]
+    },
+    {
+      "table": "payroll_calculation_snapshots",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "run_employee_id->payroll_run_employees.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_calendars",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "pay_group_id->payroll_pay_groups.id"
+      ]
+    },
+    {
+      "table": "payroll_compliance_rules",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "payroll_components",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "record_id->payroll_records.id",
+        "component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "payroll_exchange_rates",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "payroll_export_batches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "payroll_gl_mappings",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "debit_ledger_id->accounting_ledgers.id",
+        "credit_ledger_id->accounting_ledgers.id",
+        "legal_entity_id->payroll_legal_entities.id",
+        "department_id->departments.id"
+      ]
+    },
+    {
+      "table": "payroll_journal_entries",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "legal_entity_id->payroll_legal_entities.id",
+        "department_id->departments.id"
+      ]
+    },
+    {
+      "table": "payroll_journal_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "journal_entry_id->payroll_journal_entries.id",
+        "ledger_id->accounting_ledgers.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_legal_entities",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "payroll_lwp_entries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "payroll_run_id->payroll_runs.id",
+        "payroll_attendance_input_id->payroll_attendance_inputs.id"
+      ]
+    },
+    {
+      "table": "payroll_manual_inputs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_pay_groups",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "legal_entity_id->payroll_legal_entities.id"
+      ]
+    },
+    {
+      "table": "payroll_payment_batches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "bank_format_id->bank_advice_formats.id"
+      ]
+    },
+    {
+      "table": "payroll_payment_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "batch_id->payroll_payment_batches.id",
+        "payroll_record_id->payroll_records.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_periods",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "pay_group_id->payroll_pay_groups.id"
+      ]
+    },
+    {
+      "table": "payroll_pre_run_checks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "affected_employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_records",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_report_definitions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "payroll_run_audit_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "payroll_run_employees",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "employee_id->employees.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "payroll_runs",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "pay_group_id->payroll_pay_groups.id"
+      ]
+    },
+    {
+      "table": "payroll_statutory_contribution_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_record_id->payroll_records.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payroll_statutory_profiles",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "legal_entity_id->payroll_legal_entities.id"
+      ]
+    },
+    {
+      "table": "payroll_unlock_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "payroll_variance_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "employee_id->employees.id",
+        "previous_payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "payslip_delivery_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_record_id->payroll_records.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "payslip_publish_batches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "payslip_queries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_record_id->payroll_records.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "performance_goals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "cycle_id->appraisal_cycles.id"
+      ]
+    },
+    {
+      "table": "performance_rating_criteria",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "review_id->performance_reviews.id"
+      ]
+    },
+    {
+      "table": "performance_reviews",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "reviewer_id->employees.id",
+        "cycle_id->appraisal_cycles.id"
+      ]
+    },
+    {
+      "table": "permissions",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pf_rules",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_activities",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id",
+        "sprint_id->pms_sprints.id"
+      ]
+    },
+    {
+      "table": "pms_assistant_artifacts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_assistant_conversations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_assistant_messages",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->pms_assistant_conversations.id"
+      ]
+    },
+    {
+      "table": "pms_assistant_signals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_board_columns",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "board_id->pms_boards.id"
+      ]
+    },
+    {
+      "table": "pms_boards",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_bulk_deadline_changes",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_calendar_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_chat_attachments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->pms_chat_conversations.id",
+        "message_id->pms_chat_messages.id",
+        "project_file_id->pms_file_assets.id"
+      ]
+    },
+    {
+      "table": "pms_chat_conversations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "legacy_dm_id->pms_direct_conversations.id"
+      ]
+    },
+    {
+      "table": "pms_chat_members",
+      "category": "inherited",
+      "primary_key": [
+        "conversation_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "conversation_id->pms_chat_conversations.id"
+      ]
+    },
+    {
+      "table": "pms_chat_messages",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->pms_chat_conversations.id",
+        "legacy_dm_message_id->pms_direct_messages.id",
+        "legacy_entry_id->pms_workspace_entries.id"
+      ]
+    },
+    {
+      "table": "pms_checklist_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_client_approvals",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "milestone_id->pms_milestones.id"
+      ]
+    },
+    {
+      "table": "pms_clients",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_collaboration_events",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_comment_reactions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "comment_id->pms_comments.id"
+      ]
+    },
+    {
+      "table": "pms_comments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id",
+        "milestone_id->pms_milestones.id"
+      ]
+    },
+    {
+      "table": "pms_components",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_custom_field_values",
+      "category": "inherited",
+      "primary_key": [
+        "field_id",
+        "task_id"
+      ],
+      "ownership_parents": [
+        "field_id->pms_custom_fields.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_custom_fields",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_dev_integrations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_dev_links",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_direct_conversations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_direct_messages",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "conversation_id->pms_direct_conversations.id"
+      ]
+    },
+    {
+      "table": "pms_document_revisions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "document_id->pms_documents.id"
+      ]
+    },
+    {
+      "table": "pms_documents",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_epics",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_file_assets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "folder_id->pms_file_folders.id",
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id",
+        "milestone_id->pms_milestones.id"
+      ]
+    },
+    {
+      "table": "pms_file_folders",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_intern_assignment_plans",
+      "category": "inherited",
+      "primary_key": [
+        "task_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id",
+        "run_id->pms_intern_pack_runs.id"
+      ]
+    },
+    {
+      "table": "pms_intern_pack_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "pack_id->pms_intern_task_packs.id"
+      ]
+    },
+    {
+      "table": "pms_intern_task_packs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_mentions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id",
+        "comment_id->pms_comments.id",
+        "notification_id->notifications.id"
+      ]
+    },
+    {
+      "table": "pms_milestones",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_note_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "note_id->pms_private_notes.id"
+      ]
+    },
+    {
+      "table": "pms_note_folders",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_note_shares",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "note_id->pms_private_notes.id"
+      ]
+    },
+    {
+      "table": "pms_planner_preferences",
+      "category": "owned-root",
+      "primary_key": [
+        "user_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_private_note_attachments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "note_id->pms_private_notes.id"
+      ]
+    },
+    {
+      "table": "pms_private_note_revisions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "note_id->pms_private_notes.id"
+      ]
+    },
+    {
+      "table": "pms_private_note_task_links",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "note_id->pms_private_notes.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_private_notes",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "folder_id->pms_note_folders.id",
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_project_custom_field_values",
+      "category": "inherited",
+      "primary_key": [
+        "field_id",
+        "project_id"
+      ],
+      "ownership_parents": [
+        "field_id->pms_custom_fields.id",
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_project_intakes",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "client_id->pms_clients.id",
+        "created_project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_project_members",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_projects",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "client_id->pms_clients.id",
+        "department_id->departments.id"
+      ]
+    },
+    {
+      "table": "pms_recovery_changes",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_recovery_points",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_recovery_policies",
+      "category": "inherited",
+      "primary_key": [
+        "workspace_id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_releases",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_risks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "linked_task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_running_timers",
+      "category": "inherited",
+      "primary_key": [
+        "user_id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id",
+        "log_id->pms_time_logs.id"
+      ]
+    },
+    {
+      "table": "pms_saved_filters",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_sprint_retro_action_items",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "sprint_id->pms_sprints.id",
+        "created_task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_sprints",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id"
+      ]
+    },
+    {
+      "table": "pms_tags",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_task_assignees",
+      "category": "inherited",
+      "primary_key": [
+        "task_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_task_dependencies",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id",
+        "depends_on_task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_task_execution",
+      "category": "inherited",
+      "primary_key": [
+        "task_id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_task_group_targets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_task_read_positions",
+      "category": "inherited",
+      "primary_key": [
+        "task_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_task_tags",
+      "category": "inherited",
+      "primary_key": [
+        "task_id",
+        "tag_id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id",
+        "tag_id->pms_tags.id"
+      ]
+    },
+    {
+      "table": "pms_task_types",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_task_update_entries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_task_watchers",
+      "category": "inherited",
+      "primary_key": [
+        "task_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_task_workspace_state",
+      "category": "inherited",
+      "primary_key": [
+        "task_id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_tasks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "project_id->pms_projects.id",
+        "board_id->pms_boards.id",
+        "column_id->pms_board_columns.id",
+        "milestone_id->pms_milestones.id",
+        "sprint_id->pms_sprints.id",
+        "epic_id->pms_epics.id",
+        "component_id->pms_components.id",
+        "release_id->pms_releases.id"
+      ]
+    },
+    {
+      "table": "pms_time_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "timesheet_id->pms_timesheets.id",
+        "project_id->pms_projects.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_timesheets",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_user_capacity",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "pms_work_reviews",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "submission_id->pms_work_submissions.id"
+      ]
+    },
+    {
+      "table": "pms_work_submissions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_workspace_archives",
+      "category": "inherited",
+      "primary_key": [
+        "workspace_id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_workspace_entries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id",
+        "task_id->pms_tasks.id"
+      ]
+    },
+    {
+      "table": "pms_workspace_invitations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_workspace_members",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_workspace_team_members",
+      "category": "inherited",
+      "primary_key": [
+        "team_id",
+        "user_id"
+      ],
+      "ownership_parents": [
+        "team_id->pms_workspace_teams.id"
+      ]
+    },
+    {
+      "table": "pms_workspace_teams",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "pms_workspaces",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "policy_acknowledgements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "portal_access_grants",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "portal_user_id->portal_users.id"
+      ]
+    },
+    {
+      "table": "portal_activity_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "portal_user_id->portal_users.id"
+      ]
+    },
+    {
+      "table": "portal_customer_links",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "portal_user_id->portal_users.id",
+        "crm_contact_id->crm_contacts.id"
+      ]
+    },
+    {
+      "table": "portal_partner_links",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "portal_user_id->portal_users.id"
+      ]
+    },
+    {
+      "table": "portal_roles",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "portal_sessions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "portal_user_id->portal_users.id"
+      ]
+    },
+    {
+      "table": "portal_users",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "positions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "business_unit_id->business_units.id",
+        "cost_center_id->cost_centers.id",
+        "location_id->work_locations.id",
+        "department_id->departments.id",
+        "designation_id->designations.id",
+        "job_profile_id->job_profiles.id",
+        "grade_band_id->grade_bands.id",
+        "incumbent_employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "power_approval_assignments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "request_id->approval_requests.id",
+        "step_id->power_automation_steps.id",
+        "delegation_id->power_approval_delegations.id"
+      ]
+    },
+    {
+      "table": "power_approval_attachments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "request_id->approval_requests.id"
+      ]
+    },
+    {
+      "table": "power_approval_delegations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "policy_id->power_approval_policies.id"
+      ]
+    },
+    {
+      "table": "power_approval_policies",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "resource_id->power_apps_resources.id",
+        "runtime_resource_id->power_apps_resources.id",
+        "published_version_id->power_apps_versions.id"
+      ]
+    },
+    {
+      "table": "power_approval_request_states",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "id->approval_requests.id",
+        "policy_id->power_approval_policies.id",
+        "version_id->power_apps_versions.id",
+        "run_id->power_apps_executions.id",
+        "active_step_id->power_automation_steps.id"
+      ]
+    },
+    {
+      "table": "power_apps_activity",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "power_apps_environments",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "power_apps_executions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "resource_id->power_apps_resources.id"
+      ]
+    },
+    {
+      "table": "power_apps_resources",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "power_apps_versions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "resource_id->power_apps_resources.id"
+      ]
+    },
+    {
+      "table": "power_automation_dead_letters",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->power_apps_executions.id",
+        "job_id->power_automation_jobs.id"
+      ]
+    },
+    {
+      "table": "power_automation_deployments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "resource_id->power_apps_resources.id",
+        "version_id->power_apps_versions.id"
+      ]
+    },
+    {
+      "table": "power_automation_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->power_apps_executions.id"
+      ]
+    },
+    {
+      "table": "power_automation_jobs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->power_apps_executions.id",
+        "step_id->power_automation_steps.id"
+      ]
+    },
+    {
+      "table": "power_automation_replays",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "trigger_id->power_automation_triggers.id"
+      ]
+    },
+    {
+      "table": "power_automation_run_states",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "id->power_apps_executions.id",
+        "version_id->power_apps_versions.id"
+      ]
+    },
+    {
+      "table": "power_automation_steps",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->power_apps_executions.id"
+      ]
+    },
+    {
+      "table": "power_automation_triggers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "resource_id->power_apps_resources.id"
+      ]
+    },
+    {
+      "table": "power_automation_waits",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->power_apps_executions.id",
+        "step_id->power_automation_steps.id"
+      ]
+    },
+    {
+      "table": "power_automation_workers",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "power_connector_audit",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "power_connector_connections",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "credential_id->power_connector_credentials.id"
+      ]
+    },
+    {
+      "table": "power_connector_credentials",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "power_connector_custom_actions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "connection_id->power_connector_connections.id"
+      ]
+    },
+    {
+      "table": "power_connector_egress_grants",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "power_connector_gates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "connection_id->power_connector_connections.id"
+      ]
+    },
+    {
+      "table": "power_connector_oauth_states",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "connection_id->power_connector_connections.id"
+      ]
+    },
+    {
+      "table": "power_connector_operations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "run_id->power_apps_executions.id",
+        "step_id->power_automation_steps.id",
+        "connection_id->power_connector_connections.id"
+      ]
+    },
+    {
+      "table": "power_connector_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "operation_id->power_connector_operations.id",
+        "connection_id->power_connector_connections.id"
+      ]
+    },
+    {
+      "table": "previous_employment_tax_details",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "probation_actions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "probation_reviews",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "manager_id->employees.id"
+      ]
+    },
+    {
+      "table": "professional_tax_slabs",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "projects",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "recognition_reactions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "recognition_id->recognitions.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "recognitions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "from_employee_id->employees.id",
+        "to_employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "recruitment_requisitions",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "department_id->departments.id",
+        "designation_id->designations.id",
+        "job_id->jobs.id"
+      ]
+    },
+    {
+      "table": "reimbursement_ledgers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "reimbursement_id->reimbursements.id",
+        "employee_id->employees.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "reimbursements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "report_definitions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "report_runs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_definition_id->report_definitions.id"
+      ]
+    },
+    {
+      "table": "report_schedules",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "report_definition_id->report_definitions.id"
+      ]
+    },
+    {
+      "table": "review_template_questions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "template_id->review_templates.id"
+      ]
+    },
+    {
+      "table": "review_templates",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "role_permissions",
+      "category": "shared",
+      "primary_key": [
+        "role_id",
+        "permission_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "role_skill_requirements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "designation_id->designations.id",
+        "job_profile_id->job_profiles.id",
+        "competency_id->competencies.id"
+      ]
+    },
+    {
+      "table": "roles",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "salary_advances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "payroll_record_id->payroll_records.id"
+      ]
+    },
+    {
+      "table": "salary_certificates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "salary_component_categories",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "salary_component_formula_rules",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "salary_components",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "category_id->salary_component_categories.id"
+      ]
+    },
+    {
+      "table": "salary_revision_batch_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "batch_id->salary_revision_batches.id",
+        "employee_id->employees.id",
+        "structure_id->salary_structures.id"
+      ]
+    },
+    {
+      "table": "salary_revision_batches",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "salary_revision_requests",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "current_salary_id->employee_salaries.id",
+        "proposed_structure_id->salary_structures.id"
+      ]
+    },
+    {
+      "table": "salary_structure_components",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "structure_id->salary_structures.id",
+        "component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "salary_structures",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "salary_template_components",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "template_id->salary_templates.id",
+        "component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "salary_templates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "pay_group_id->payroll_pay_groups.id",
+        "residual_component_id->salary_components.id"
+      ]
+    },
+    {
+      "table": "sandbox_copy_jobs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "sandbox_id->sandbox_environments.id"
+      ]
+    },
+    {
+      "table": "sandbox_environments",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "schedule_boards",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "scheduled_job_runs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "security_rate_buckets",
+      "category": "shared",
+      "primary_key": [
+        "key",
+        "window"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "security_resource_ownership",
+      "category": "shared",
+      "primary_key": [
+        "resource_table",
+        "resource_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "security_work_leases",
+      "category": "shared",
+      "primary_key": [
+        "key",
+        "slot"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "sensitive_salary_audit_logs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "shared_catalog_details",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workspace_id->pms_workspaces.id"
+      ]
+    },
+    {
+      "table": "shared_catalog_links",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "shift_roster_assignments",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "shift_id->shifts.id"
+      ]
+    },
+    {
+      "table": "shift_rosters",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "shift_id->shifts.id"
+      ]
+    },
+    {
+      "table": "shift_weekly_offs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "shift_id->shifts.id"
+      ]
+    },
+    {
+      "table": "shifts",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_audit_logs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_billing_milestones",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "billing_plan_id->srm_billing_plans.id"
+      ]
+    },
+    {
+      "table": "srm_billing_plans",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "engagement_id->srm_engagements.id"
+      ]
+    },
+    {
+      "table": "srm_bills_of_material",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_bom_components",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "bom_id->srm_bills_of_material.id",
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_collection_reminders",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "invoice_id->srm_invoices.id"
+      ]
+    },
+    {
+      "table": "srm_contracts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "sales_order_id->srm_sales_orders.id"
+      ]
+    },
+    {
+      "table": "srm_customer_aging",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_engagement_links",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "engagement_id->srm_engagements.id"
+      ]
+    },
+    {
+      "table": "srm_engagements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "sales_order_id->srm_sales_orders.id",
+        "contract_id->srm_contracts.id",
+        "crm_deal_id->crm_deals.id",
+        "crm_quote_id->crm_quotations.id"
+      ]
+    },
+    {
+      "table": "srm_goods_receipt_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "goods_receipt_id->srm_goods_receipts.id",
+        "purchase_order_line_id->srm_purchase_order_lines.id",
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_goods_receipts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "purchase_order_id->srm_purchase_orders.id"
+      ]
+    },
+    {
+      "table": "srm_inventory_balances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_inventory_batches",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_inventory_movements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_invoice_drafts",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "sales_order_id->srm_sales_orders.id",
+        "engagement_id->srm_engagements.id",
+        "billing_plan_id->srm_billing_plans.id"
+      ]
+    },
+    {
+      "table": "srm_invoice_history",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "invoice_id->srm_invoices.id"
+      ]
+    },
+    {
+      "table": "srm_invoice_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "invoice_id->srm_invoices.id"
+      ]
+    },
+    {
+      "table": "srm_invoices",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "invoice_draft_id->srm_invoice_drafts.id",
+        "sales_order_id->srm_sales_orders.id",
+        "engagement_id->srm_engagements.id"
+      ]
+    },
+    {
+      "table": "srm_pos_cash_movements",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "session_id->srm_pos_sessions.id"
+      ]
+    },
+    {
+      "table": "srm_pos_cashier_closings",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "session_id->srm_pos_sessions.id"
+      ]
+    },
+    {
+      "table": "srm_pos_held_bills",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "session_id->srm_pos_sessions.id"
+      ]
+    },
+    {
+      "table": "srm_pos_return_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "return_id->srm_pos_returns.id",
+        "sales_order_line_id->srm_sales_order_lines.id",
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_pos_returns",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "sales_order_id->srm_sales_orders.id",
+        "session_id->srm_pos_sessions.id"
+      ]
+    },
+    {
+      "table": "srm_pos_sessions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_price_list_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "price_list_id->srm_price_lists.id"
+      ]
+    },
+    {
+      "table": "srm_price_lists",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_product_categories",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_production_orders",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "bom_id->srm_bills_of_material.id",
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_products",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "default_warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_profitability_snapshots",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "engagement_id->srm_engagements.id"
+      ]
+    },
+    {
+      "table": "srm_purchase_order_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "purchase_order_id->srm_purchase_orders.id",
+        "warehouse_id->srm_warehouses.id"
+      ]
+    },
+    {
+      "table": "srm_purchase_orders",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_receipt_allocations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "receipt_id->srm_receipts.id",
+        "invoice_id->srm_invoices.id"
+      ]
+    },
+    {
+      "table": "srm_receipts",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_revenue_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "engagement_id->srm_engagements.id",
+        "invoice_id->srm_invoices.id"
+      ]
+    },
+    {
+      "table": "srm_sales_order_lines",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "sales_order_id->srm_sales_orders.id"
+      ]
+    },
+    {
+      "table": "srm_sales_orders",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "crm_deal_id->crm_deals.id",
+        "crm_quote_id->crm_quotations.id",
+        "crm_company_id->crm_companies.id",
+        "crm_contact_id->crm_contacts.id"
+      ]
+    },
+    {
+      "table": "srm_serial_numbers",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "warehouse_id->srm_warehouses.id",
+        "batch_id->srm_inventory_batches.id"
+      ]
+    },
+    {
+      "table": "srm_settings",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "srm_warehouses",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "sso_providers",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "sso_sessions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "statutory_challans",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "legal_entity_id->payroll_legal_entities.id",
+        "pay_group_id->payroll_pay_groups.id",
+        "period_id->payroll_periods.id"
+      ]
+    },
+    {
+      "table": "statutory_compliance_calendar",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "statutory_compliance_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "legal_entity_id->payroll_legal_entities.id"
+      ]
+    },
+    {
+      "table": "statutory_exports",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "statutory_file_validations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id",
+        "period_id->payroll_periods.id"
+      ]
+    },
+    {
+      "table": "statutory_filing_submissions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "payroll_run_id->payroll_runs.id"
+      ]
+    },
+    {
+      "table": "statutory_portal_submissions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "legal_entity_id->payroll_legal_entities.id"
+      ]
+    },
+    {
+      "table": "statutory_return_files",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "challan_id->statutory_challans.id"
+      ]
+    },
+    {
+      "table": "statutory_template_files",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "succession_candidates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "critical_role_id->critical_roles.id",
+        "employee_id->employees.id",
+        "mentor_employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "suite_access_audit",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_access_memberships",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_access_policies",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_access_roles",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_access_templates",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_accounting_branch_map",
+      "category": "shared",
+      "primary_key": [
+        "accounting_branch_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_branch_audit",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_branch_grants",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_branch_lifecycle",
+      "category": "shared",
+      "primary_key": [
+        "branch_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_branch_ownership",
+      "category": "shared",
+      "primary_key": [
+        "resource_table",
+        "resource_key"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_branch_policies",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_branch_record_shares",
+      "category": "shared",
+      "primary_key": [
+        "company_id",
+        "resource_table",
+        "resource_key",
+        "branch_id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_form_challenges",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "form_id->suite_forms.id"
+      ]
+    },
+    {
+      "table": "suite_form_files",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "reply_id->suite_form_replies.id"
+      ]
+    },
+    {
+      "table": "suite_form_rate_buckets",
+      "category": "shared",
+      "primary_key": [
+        "key"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_form_replies",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "form_id->suite_forms.id"
+      ]
+    },
+    {
+      "table": "suite_forms",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_service_documents",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_service_events",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_service_policies",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "suite_workflow_versions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->automation_workflows.id"
+      ]
+    },
+    {
+      "table": "tax_declaration_categories",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tax_declaration_cycles",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tax_declaration_proofs",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "declaration_id->tax_declarations.id"
+      ]
+    },
+    {
+      "table": "tax_declarations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "cycle_id->tax_declaration_cycles.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "tax_regimes",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tax_section_limits",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tax_sections",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tax_slabs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tds_26as_reconciliations",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "tds_return_filings",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "legal_entity_id->payroll_legal_entities.id"
+      ]
+    },
+    {
+      "table": "tenant_company_settings",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tenant_feature_flags",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tenant_subscription_plans",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tenant_subscriptions",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "tenant_usage_metrics",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "timesheet_entries",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "timesheet_id->timesheets.id"
+      ]
+    },
+    {
+      "table": "timesheets",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id",
+        "project_id->projects.id"
+      ]
+    },
+    {
+      "table": "user_sessions",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "users",
+      "category": "shared",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "webhook_subscriptions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "whatsapp_ess_configs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "whatsapp_ess_delivery_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "message_id->whatsapp_ess_messages.id"
+      ]
+    },
+    {
+      "table": "whatsapp_ess_messages",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "session_id->whatsapp_ess_sessions.id",
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "whatsapp_ess_opt_ins",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "whatsapp_ess_sessions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "employee_id->employees.id"
+      ]
+    },
+    {
+      "table": "whatsapp_ess_templates",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "config_id->whatsapp_ess_configs.id"
+      ]
+    },
+    {
+      "table": "work_locations",
+      "category": "direct",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "workflow_audit_events",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "instance_id->workflow_instances.id",
+        "task_id->workflow_tasks.id",
+        "step_definition_id->workflow_step_definitions.id"
+      ]
+    },
+    {
+      "table": "workflow_definitions",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "workflow_delegations",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "workflow_instances",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->workflow_definitions.id"
+      ]
+    },
+    {
+      "table": "workflow_step_definitions",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "workflow_id->workflow_definitions.id"
+      ]
+    },
+    {
+      "table": "workflow_tasks",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "instance_id->workflow_instances.id",
+        "step_definition_id->workflow_step_definitions.id"
+      ]
+    },
+    {
+      "table": "workforce_job_failures",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "job_id->workforce_jobs.id"
+      ]
+    },
+    {
+      "table": "workforce_jobs",
+      "category": "owned-root",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": []
+    },
+    {
+      "table": "workforce_messages",
+      "category": "inherited",
+      "primary_key": [
+        "id"
+      ],
+      "ownership_parents": [
+        "job_id->workforce_jobs.id",
+        "employee_id->employees.id"
+      ]
+    }
+  ]
+}

@@ -101,7 +101,7 @@ def key_for_source(source, default=None):
     if source in {
         "app.access.api",
         "app.access.control",
-        "app.shared.api", "app.shared.communication.gateway", "app.enterprise.api", "app.ai_agents.security_api",
+        "app.shared.data_transfer", "app.shared.api", "app.shared.catalog", "app.shared.communication.gateway", "app.enterprise.api", "app.ai_agents.security_api",
         "app.common.profile_api",
         "app.api.v1.auth",
         "app.api.v1.users",
@@ -161,6 +161,8 @@ def register_routes(router, source, default=None):
 
 
 def request_module(request):
+    if request.url.path.startswith("/api/v1/catalog/"):
+        return "project_management" if request.query_params.get("source", "crm") == "pms" else "crm"
     route = request.scope.get("route")
     if not route:
         return None
@@ -234,6 +236,10 @@ def permission_names(user):
 
 def action_for(request):
     path = request.url.path.lower()
+    if path == "/api/v1/crm/deal-workspace/grid/archive":
+        return "delete"
+    if path.startswith("/api/v1/catalog/") and path.endswith("/archive"):
+        return "edit"
     if (
         any(word in path for word in ("export", "/download", "/pdf", "/excel"))
         and "preview" not in path

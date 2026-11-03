@@ -5,6 +5,7 @@ import SuiteProfileMenu from "./SuiteProfileMenu";
 import SuiteNotificationBell from "./SuiteNotificationBell";
 import GlobalSearch from "@/components/app/GlobalSearch";
 import CompanySwitcher from "./CompanySwitcher";
+import BranchSwitcher from "./BranchSwitcher";
 
 export default function SuiteHeader() {
   const authenticated = useAuthStore((s) => s.isAuthenticated);
@@ -23,6 +24,7 @@ export default function SuiteHeader() {
               <GlobalSearch />
             </div>
             <CompanySwitcher />
+            <BranchSwitcher />
             <SuiteNotificationBell />
             <SuiteProfileMenu />
           </>

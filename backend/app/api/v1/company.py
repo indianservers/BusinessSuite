@@ -241,11 +241,29 @@ def update_branch(
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch:
         raise HTTPException(status_code=404, detail="Branch not found")
+    if data.company_id is not None and data.company_id != branch.company_id:
+        raise HTTPException(422, "Branches cannot be moved between companies")
     target_company_id = data.company_id if data.company_id is not None else branch.company_id
     _active_company(db, target_company_id)
     _ensure_branch_unique(db, data, target_company_id, exclude_id=branch_id)
-    for k, v in data.model_dump(exclude_unset=True).items():
-        setattr(branch, k, v)
+    from app.branches.lifecycle import change_branch, management_scope
+    from app.branches.models import BranchLifecycle
+    from sqlalchemy import select
+    if branch_id not in management_scope(db, current_user)[1]:
+        raise HTTPException(403, "Branch administration is required")
+    state = db.connection().execute(select(BranchLifecycle.__table__).where(BranchLifecycle.branch_id == branch_id)).mappings().first()
+    changes = data.model_dump(exclude_unset=True)
+    if state and state["deleted_at"] and changes.get("is_active") is not True:
+        raise HTTPException(409, "Restore this branch from Main Settings before editing it")
+    version = state["version"] if state else 0
+    if "is_active" in changes and changes["is_active"] != branch.is_active:
+        change_branch(db, current_user, branch_id, "restore" if changes["is_active"] else "trash", "Lifecycle change from legacy company settings", version, commit=False)
+        version += 1
+    if changes.get("name") is not None and changes["name"] != branch.name:
+        change_branch(db, current_user, branch_id, "rename", "Rename from legacy company settings", version, name=changes["name"], commit=False)
+    for k, v in changes.items():
+        if k not in {"name", "is_active"}:
+            setattr(branch, k, v)
     db.commit()
     db.refresh(branch)
     return branch
@@ -260,13 +278,12 @@ def delete_branch(
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch:
         raise HTTPException(status_code=404, detail="Branch not found")
-    active_departments = db.query(Department).filter(Department.branch_id == branch_id, Department.is_active == True).count()
-    active_employees = db.query(Employee).filter(Employee.branch_id == branch_id, Employee.deleted_at.is_(None)).count()
-    if active_departments or active_employees:
-        raise HTTPException(status_code=409, detail="Branch is used by departments or employees")
-    branch.is_active = False
-    db.commit()
-    return {"message": "Branch deactivated"}
+    from app.branches.lifecycle import change_branch
+    from app.branches.models import BranchLifecycle
+    from sqlalchemy import select
+    version = db.connection().execute(select(BranchLifecycle.version).where(BranchLifecycle.branch_id == branch_id)).scalar() or 0
+    return change_branch(db, current_user, branch_id, "trash", "Delete from legacy company settings", version)
+
 
 
 # ── Department ───────────────────────────────────────────────────────────────

@@ -1,3 +1,5 @@
+import { ImportWizard } from "@/shared/data-transfer";
+import { certificateImportFields } from "@/shared/data-transfer/fields";
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, RefreshCw, Upload, ShieldCheck, FileSpreadsheet, Search, UserRound } from "lucide-react";
@@ -72,7 +74,6 @@ export default function DocumentsPage() {
   const [issueDate, setIssueDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [importFile, setImportFile] = useState<File | null>(null);
 
   const employeeFilters = {
     search: employeeSearch.trim() || undefined,
@@ -147,22 +148,6 @@ export default function DocumentsPage() {
       qc.invalidateQueries({ queryKey: ["certificates"] });
     },
     onError: (error) => toast({ title: "Upload failed", description: apiError(error), variant: "destructive" }),
-  });
-
-  const importMutation = useMutation({
-    mutationFn: () => {
-      if (!importFile) throw new Error("Choose a CSV/XLSX file");
-      const form = new FormData();
-      if (effectiveEmployeeId) form.append("employee_id", effectiveEmployeeId);
-      form.append("remarks", "Certificate import from Documents page");
-      form.append("file", importFile);
-      return documentsApi.importCertificates(form);
-    },
-    onSuccess: () => {
-      toast({ title: "Import file uploaded" });
-      setImportFile(null);
-    },
-    onError: (error) => toast({ title: "Import failed", description: apiError(error), variant: "destructive" }),
   });
 
   const verifyMutation = useMutation({
@@ -448,18 +433,9 @@ export default function DocumentsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Bulk import</CardTitle>
-            <CardDescription>Upload CSV/XLS/XLSX import files for certificate records.</CardDescription>
+            <CardDescription>Map Excel or CSV columns and upload a certificate import batch.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-2">
-              <Label>Import file</Label>
-              <Input type="file" accept=".csv,.xls,.xlsx" onChange={(event) => setImportFile(event.target.files?.[0] || null)} />
-            </div>
-            <Button variant="outline" onClick={() => importMutation.mutate()} disabled={!importFile || importMutation.isPending}>
-              <FileSpreadsheet className="h-4 w-4" />
-              {importMutation.isPending ? "Uploading..." : "Upload import"}
-            </Button>
-          </CardContent>
+          <CardContent><ImportWizard title="Prepare certificate import" label="Import spreadsheet" fields={certificateImportFields} onImport={async({file})=>{const form=new FormData();if(effectiveEmployeeId)form.append("employee_id",effectiveEmployeeId);form.append("remarks","Mapped certificate import from Documents page");form.append("file",file);await documentsApi.importCertificates(form);return {message:"Mapped file uploaded as a certificate import batch. It is queued for processing; certificates have not been created by this upload."};}}/></CardContent>
         </Card>
       )}
     </div>

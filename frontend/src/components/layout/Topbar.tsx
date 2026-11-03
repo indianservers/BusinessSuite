@@ -1,4 +1,5 @@
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
+import BranchSwitcher from "@/components/suite/BranchSwitcher";
 import PageRefreshButton from "@/components/app/PageRefreshButton";
 import RefreshPagesCatalog from "@/components/app/RefreshPagesCatalog";
 import DensityControl from "./DensityControl";
@@ -9,7 +10,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { Briefcase, Eye, EyeOff, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Sun, UserCircle } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,17 +92,19 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="flex min-w-0 flex-1 [&>button]:min-w-0 [&>button]:max-w-full"><GlobalSearch /></div>
+      <div className="flex min-w-0 flex-1"><GlobalSearch compact /></div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <BranchSwitcher />
+        <Link to="/settings" className="rounded-md border px-3 py-2 text-sm font-medium" aria-label="Main settings">Settings</Link>
         <span className="hidden sm:contents">{location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}<RefreshPagesCatalog /></span>
         <ModuleNewMenu />
-        <Button className="hidden sm:inline-flex" variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span>AI operator</span></Button>
+        <Button className="hidden xl:inline-flex" variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span>AI operator</span></Button>
         <div className="hidden max-w-48 truncate rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
           {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
         </div>
         <SuiteNotificationBell />
-        <span className="hidden sm:contents"><KeyboardShortcuts /><DensityControl /></span>
+        <span className="hidden xl:contents"><KeyboardShortcuts /><DensityControl /></span>
 
         {/* Theme toggle */}
         <Button

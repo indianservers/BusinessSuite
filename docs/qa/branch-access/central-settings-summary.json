@@ -1,0 +1,13 @@
+{
+  "settings_regression_passed": 45,
+  "live_access_checks": 64,
+  "typescript": "passed",
+  "browser_verified": [
+    "finance legacy redirect and editor",
+    "CRM pipeline redirect and editor",
+    "security redirect and editor",
+    "document letterhead deep link and editor",
+    "central catalog search"
+  ],
+  "data_migration": false
+}

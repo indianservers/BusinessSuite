@@ -86,6 +86,18 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
                 raise HTTPException(403, "File company is unavailable")
             if not user or not user.is_active or (not user.is_superuser and company not in company_ids(db, user)):
                 raise HTTPException(403, "File access changed; open the record again")
+            if payload.get("access_branch") is not None:
+                from app.branches.service import context as branch_context
+                file_branch_context = branch_context(db, user, company, str(payload["access_branch"]))
+                from app.branches.roles import effective_grants
+                from app.access.service import resolved_grants
+                effective = effective_grants(db, user, company, str(payload['access_branch']), resolved_grants(db, policy) if policy else None)
+                if payload.get('access_branch_roles') != getattr(user, '_suite_branch_roles_fingerprint', None):
+                    raise HTTPException(403, 'Branch roles changed; open the record again')
+                if effective is not None and payload.get('access_module') and not effective.get(payload['access_module'], {}).get('enabled'):
+                    raise HTTPException(403, 'Branch module access changed; open the record again')
+            elif not user.is_superuser:
+                raise HTTPException(403, "Open the record again to obtain a branch-scoped file link")
             from app.core.audit_context import permission_fingerprint
             if payload.get("access_permissions") != permission_fingerprint(user):
                 raise HTTPException(403, "File permissions changed; open the record again")
@@ -117,6 +129,9 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
                             user._suite_permission_objects = effective_objects(db, grants, "project_management")
                             stack.callback(install_scope(db, user, company, grants))
                         stack.callback(install(db, user, company))
+                        if payload.get("access_branch") is not None:
+                            from app.branches.boundary import install as install_branch_boundary
+                            stack.callback(install_branch_boundary(db, user, file_branch_context))
                         if payload.get("access_task"):
                             get_task_project_for_action(db, int(payload["access_task"]), user)
                         elif payload.get("access_project"):
@@ -200,7 +215,8 @@ def signed_file_url(path: str) -> str:
         if actor.get("portal_user_id") is not None:
             claims = {"access_portal_user": actor["portal_user_id"], "access_portal_session": actor.get("access_portal_session"), "access_portal_grants": actor.get("access_portal_grants"), "access_company": actor["access_company"]}
         elif actor.get("access_company") is not None:
-            claims = {"access_user": actor["user_id"], "access_company": actor["access_company"], "access_session": actor.get("access_session"), "access_policy_version": actor.get("access_policy_version"), "access_role_id": actor.get("access_role_id"), "access_permissions": actor.get("access_permissions"), "access_module": actor.get("access_module")}
+            claims = {"access_user": actor["user_id"], "access_company": actor["access_company"], "access_session": actor.get("access_session"), "access_policy_version": actor.get("access_policy_version"), "access_role_id": actor.get("access_role_id"), "access_permissions": actor.get("access_permissions"), "access_module": actor.get("access_module"), "access_branch": actor.get("access_branch")}
+            claims['access_branch_roles'] = actor.get('access_branch_roles')
         evidence = context.get() or {}
         if actor.get("access_module") == "project_management":
             projects, tasks = evidence.get("project_ids", set()), evidence.get("task_ids", set())

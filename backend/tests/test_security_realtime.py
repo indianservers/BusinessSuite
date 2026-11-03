@@ -21,6 +21,12 @@ def test_open_realtime_identity_is_rechecked_after_becoming_an_intern(db):
     db.add(user);db.flush()
     from tests.tenant_test_utils import assign_company
     assign_company(db,user,1)
+    # Positive websocket access requires a branch as well as a module role.
+    from app.models.company import Branch
+    from app.branches.models import BranchGrant
+    branch=Branch(company_id=1,name='Realtime test branch',code='RT-TEST')
+    db.add(branch);db.flush()
+    db.add(BranchGrant(company_id=1,user_id=user.id,branch_id=branch.id,can_write=False))
     db.commit()
     @contextmanager
     def factory():

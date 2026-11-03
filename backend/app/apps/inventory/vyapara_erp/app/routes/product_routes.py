@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+from app.utils.tabular_import import prepare_import
 import base64
 import csv
 from pathlib import Path
@@ -169,14 +171,20 @@ def export():
         "sales_price", "mrp", "current_stock", "average_cost", "opening_stock",
         "min_stock", "max_stock", "reorder_level", "rack_bin", "is_active",
     ]
-    rows = [[getattr(product, field) for field in headers] for product in products]
+    def safe(value):
+        return "\'" + value if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")) else value
+    rows = [[safe(getattr(product, field)) for field in headers] for product in products]
     if fmt == "xlsx":
         workbook = Workbook()
         sheet = workbook.active
         sheet.title = "Products"
+        sheet.freeze_panes = "A2"
         sheet.append(headers)
         for row in rows:
             sheet.append(row)
+        sheet.auto_filter.ref = sheet.dimensions
+        for column in sheet.columns:
+            sheet.column_dimensions[column[0].column_letter].width = 20
         output = BytesIO()
         workbook.save(output)
         output.seek(0)
@@ -201,16 +209,25 @@ def export():
 @login_required
 def import_products():
     if request.method == "POST":
-        upload = request.files.get("file")
-        if not upload or not upload.filename:
-            flash("Choose a CSV or Excel file.", "danger")
+        fields = [{"key": key, "required": key in {"sku", "name"}, "aliases": {"sku":["code","product code"],"name":["product name"],"sales_price":["price","selling price"]}.get(key, [])} for key in ["sku","name","barcode","description","hsn_code","purchase_price","sales_price","mrp","current_stock","average_cost","opening_stock","min_stock","max_stock","reorder_level","rack_bin","is_active"]]
+        try:
+            rows, transfer = prepare_import(request.files.get("file"), fields)
+            if transfer:
+                return render_template("products/import.html", title="Map product columns", transfer=transfer)
+            for number, row in enumerate(rows, 2):
+                for field in ["purchase_price", "sales_price", "mrp", "current_stock", "average_cost", "opening_stock", "min_stock", "max_stock", "reorder_level"]:
+                    if row.get(field) not in (None, ""):
+                        value = Decimal(str(row[field]).replace(",", ""))
+                        if not value.is_finite():
+                            raise ValueError(f"Row {number}: {field} must be a finite number")
+                        row[field] = value
+        except (ValueError, TypeError, KeyError, InvalidOperation) as exc:
+            flash(str(exc), "danger")
             return redirect(url_for("products.import_products"))
-
         created = updated = 0
-        rows = _read_product_rows(upload)
         for row in rows:
-            sku = (row.get("sku") or "").strip()
-            name = (row.get("name") or "").strip()
+            sku = str(row.get("sku") or "").strip()
+            name = str(row.get("name") or "").strip()
             if not sku or not name:
                 continue
             product = Product.query.filter_by(sku=sku).first()
@@ -225,21 +242,6 @@ def import_products():
         flash(f"Import complete. Created {created}, updated {updated}.", "success")
         return redirect(url_for("products.index"))
     return render_template("products/import.html", title="Import Products")
-
-
-def _read_product_rows(upload):
-    filename = upload.filename.lower()
-    if filename.endswith(".xlsx"):
-        workbook = load_workbook(upload, read_only=True, data_only=True)
-        sheet = workbook.active
-        rows = list(sheet.iter_rows(values_only=True))
-        if not rows:
-            return []
-        headers = [str(value).strip() if value is not None else "" for value in rows[0]]
-        return [dict(zip(headers, row)) for row in rows[1:]]
-
-    stream = StringIO(upload.stream.read().decode("utf-8-sig"))
-    return list(csv.DictReader(stream))
 
 
 def _apply_import_row(product, row):

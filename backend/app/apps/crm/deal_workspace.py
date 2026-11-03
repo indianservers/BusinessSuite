@@ -243,6 +243,10 @@ def query(search: str = Query("", max_length=180), currency: str = "", pipeline_
 @router.get("/summary")
 def summary(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
     q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
+    return summarize_query(q, db, user)
+
+
+def summarize_query(q, db, user):
     now = datetime.now(timezone.utc)
     month = now.date().replace(day=1)
     next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
@@ -277,10 +281,14 @@ def summary(currency: str = "", pipeline_id: int | None = None, owner_id: int | 
 
 
 @router.get("/conversion")
-def conversion(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+def conversion(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", grid_state: str = Query("{}", max_length=16000), db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
 
     """Observed forward progression from recorded stage entries, using current stage order."""
     q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, status, priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
+    if grid_state != "{}":
+        from app.shared.data_grid import parse_query, apply_filters
+        from .deal_grid import fields
+        q = apply_filters(q, parse_query(grid_state), fields())
     org = lm.core()._organization_id(db, user)
     history = db.query(CRMTimelineEvent).filter(CRMTimelineEvent.organization_id == org, CRMTimelineEvent.record_type == "deal", CRMTimelineEvent.event_type == "stage_change", CRMTimelineEvent.record_id.in_(q.with_entities(CRMDeal.id)))
     new_stage = cast(CRMTimelineEvent.metadata_json["new"].as_string(), Integer)
@@ -293,10 +301,14 @@ def conversion(currency: str = "", pipeline_id: int | None = None, owner_id: int
 
 
 @router.get("/loss-analysis")
-def loss_analysis(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
+def loss_analysis(currency: str = "", pipeline_id: int | None = None, owner_id: int | None = None, stage_id: int | None = None, status: str = "", priority: str = "", deal_type: str = "", industry: str = "", source: str = "", team_id: int | None = None, search: str = "", start: date | None = None, end: date | None = None, no_next: bool = False, entered_stage_id: int | None = None, lost_reason: str = "", grid_state: str = Query("{}", max_length=16000), db: Session = Depends(get_db), user: User = Depends(RequirePermission(*READ))):
 
     """Loss reasons and competitors from actual closed Lost records, by currency."""
     q = filtered(db, user, search, currency, pipeline_id, owner_id, stage_id, "Lost", priority, deal_type, start, end, no_next, industry, source, team_id, entered_stage_id, lost_reason)
+    if grid_state != "{}":
+        from app.shared.data_grid import parse_query, apply_filters
+        from .deal_grid import fields
+        q = apply_filters(q, parse_query(grid_state), fields())
     reason = func.coalesce(func.nullif(CRMDeal.lost_reason, ""), func.nullif(CRMDeal.loss_reason, ""), "No reason recorded")
     competitor = func.coalesce(func.nullif(CRMDeal.planning["closure"]["competitor"].as_string(), ""), func.nullif(CRMDeal.planning["qualification"]["competitor"].as_string(), ""), "No competitor recorded")
     reasons = q.with_entities(reason, CRMDeal.currency, func.count(CRMDeal.id), func.sum(CRMDeal.amount)).group_by(reason, CRMDeal.currency).all()
@@ -550,8 +562,11 @@ def secure_detail(db, user, payload):
     products = related.get("products", [])
     nested_ids = [line["product"]["id"] for line in products if isinstance(line.get("product"), dict) and line["product"].get("id")]
     if nested_ids:
-        from .models import CRMProduct
-        permitted_products = {item[0] for item in rows(db, user, "products").with_entities(CRMProduct.id).filter(CRMProduct.id.in_(nested_ids)).all()} if allowed(user, "products", "view") else set()
+        from app.apps.srm.models import SRMProduct
+        from app.shared.catalog import catalog_resource, restrict_workspaces
+        from .api.router import _apply_record_visibility
+        query = restrict_workspaces(db.query(SRMProduct), SRMProduct, db, user)
+        permitted_products = {item[0] for item in _apply_record_visibility(query, catalog_resource(), user, db).with_entities(SRMProduct.id).filter(SRMProduct.id.in_(nested_ids)).all()} if allowed(user, "products", "view") else set()
         related["products"] = [{**line, "product": {"name": line["product"].get("name")}} if isinstance(line.get("product"), dict) and line["product"].get("id") not in permitted_products else line for line in products]
     payload["related"] = related
     timeline = []

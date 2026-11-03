@@ -7,7 +7,7 @@ catalogues are read-only to ordinary accounts; unknown ownership fails closed.
 import logging
 import re
 from fastapi import HTTPException
-from sqlalchemy import and_, or_, false, select, event, inspect, func, literal, cast, String
+from sqlalchemy import and_, or_, false, select, event, inspect, func, literal, cast, String, exists
 from sqlalchemy.orm import with_loader_criteria, Session
 from app.db.base_class import Base
 
@@ -272,16 +272,32 @@ def install(db, user, company, *, verified_portal=False):
             result = table.c.user_id == user.id
         else:
             direct = []
+            def company_marker(column, *, legacy_fallback=False):
+                if not column.nullable:
+                    return column == company
+                # A migration-approved branch owner establishes the company of
+                # a legacy null marker without rewriting company-unique rows.
+                # A non-null marker can never be overridden by this register.
+                from app.branches.models import BranchOwnership
+                from app.branches.catalog import key_expression
+                ownership = BranchOwnership.__table__
+                identity = (ownership.c.resource_table == table.name, ownership.c.resource_key == key_expression(table))
+                approved = exists(select(1).where(*identity, ownership.c.company_id == company)).correlate(table)
+                null_guard = approved
+                if legacy_fallback and company == 1:
+                    unassigned = ~exists(select(1).where(*identity)).correlate(table)
+                    null_guard = or_(approved, unassigned)
+                return or_(column == company, and_(column.is_(None), null_guard))
             if "organization_id" in table.c:
                 # Newly scoped history/forms may have ambiguous historical rows.
                 # Those rows must not inherit the legacy company-1 fallback.
                 if table.name in {"ai_prompt_runs", "ai_action_logs", "ai_agent_actions", "ai_user_feedback", "communication_webforms", "communication_auto_response_rules", "communication_whatsapp_templates", "projects"}:
-                    direct.append(table.c.organization_id == company)
+                    direct.append(company_marker(table.c.organization_id))
                 else:
-                    direct.append(func.coalesce(table.c.organization_id, 1) == company)
+                    direct.append(company_marker(table.c.organization_id, legacy_fallback=True))
             # FK targets decide whether company_id is a tenant or CRM customer.
             if tenant_company_column(model):
-                direct.append(table.c.company_id == company)
+                direct.append(company_marker(table.c.company_id))
             if direct:
                 result = and_(*direct)
                 cache[model] = result

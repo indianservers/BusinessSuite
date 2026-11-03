@@ -1,3 +1,4 @@
+import CatalogAssociations from "@/shared/catalog/CatalogLinesEditor";
 import AddExistingPeopleDialog from "../components/people/AddExistingPeopleDialog";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { RecordCustomFields } from "../components/CustomFields";
@@ -86,6 +87,7 @@ export default function ProjectDashboard() {
       </div>
 
       <p className="text-xs text-muted-foreground">Unique live task records, including subtasks. {dashboard?.assignment_count} individual assignments. The status chart includes the full permitted project; task previews below may be paginated.</p>
+      <CatalogAssociations source="pms" target="project" id={id}/>
       <RecordCustomFields entity="project" id={id}/>
       <SecondaryDetails title="Task status and project details">
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">

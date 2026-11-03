@@ -1,3 +1,4 @@
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
@@ -12,7 +13,7 @@ export const aiCopilotRoutes: FrontendRoute[] = [
   { path: "ai/workflow-builder", element: <AICopilotPage /> },
   { path: "ai/report-explainer", element: <AICopilotPage /> },
   { path: "ai/prompt-templates", element: <AICopilotPage /> },
-  { path: "ai/provider-settings", element: <AICopilotPage /> },
+  { path: "ai/provider-settings", element: <CentralSettingsRedirect section="ai" /> },
   { path: "ai/action-log", element: <AICopilotPage /> },
 ];
 

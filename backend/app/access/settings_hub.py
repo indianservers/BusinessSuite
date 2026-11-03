@@ -16,8 +16,8 @@ router = APIRouter(prefix="/settings", tags=["Shared Settings"])
 OPTIONS = [
     ("account", "My account & security", "Personal", "Your account details and password.", None, None, (), False),
     ("preferences", "Display preferences", "Personal", "Your theme and display density on this browser.", None, None, (), False),
-    ("company-profile", "Company profile", "Company", "Company identity, branding, contacts and shared defaults.", None, None, (), False),
-    ("branches", "Branches", "Organization", "Company offices and locations.", None, "hrms", ("company_manage",), True),
+    ("company-profile", "Company name & details", "Company & access", "Company identity, branding, contacts and shared defaults.", None, None, (), False),
+    ("branches", "Branches", "Company & access", "Create branches and assign users to their authorized locations.", None, None, (), True),
     ("departments", "Departments", "Organization", "Departments and business units.", None, "hrms", ("company_manage",), True),
     ("designations", "Designations", "Organization", "Job titles, grades and reporting levels.", None, "hrms", ("company_manage",), True),
     ("shifts", "Shifts", "HR", "Work timings and attendance rules.", None, "hrms", ("attendance_manage",), False),
@@ -26,7 +26,7 @@ OPTIONS = [
     ("salaryComponents", "Salary components", "HR", "Payroll earnings, deductions and statutory flags.", None, "hrms", ("payroll_run",), True),
     ("internships", "Internship administration", "HR", "Batches, applications, corrections and program configuration.", "/hrms/interns/batches", "hrms", ("employee_update", "intern_management_manage"), False),
     ("documents", "Letterheads & document templates", "Company", "Letterheads, signatories, placeholders and certificate templates.", "/hrms/letters-certificates?tab=templates", "hrms", ("company_manage", "settings_manage"), True),
-    ("users", "Users & access", "Access & security", "Company users, roles and delegated module access.", "/admin/access", None, (), True),
+    ("users", "Users & permissions", "Company & access", "Company users, roles and delegated module access.", "/admin/access", None, (), True),
     ("security", "Security policies", "Access & security", "Login policies and security controls.", "/admin/control/security", None, (), True),
     ("audit", "Audit history", "Access & security", "Review configuration and access changes.", "/admin/control/audit", None, (), True),
     ("modules", "Applications & modules", "Applications", "Company module availability.", "/admin/control/modules", None, (), True),
@@ -40,8 +40,27 @@ OPTIONS = [
     ("finance", "Finance configuration", "Application settings", "Financial years, currency and accounting configuration.", "/fam/settings", "fam", ("fam_settings_manage", "fam_admin"), True),
     ("ai", "AI providers & models", "Integrations", "Provider configuration and model access.", "/ai/provider-settings", "ai", ("settings_manage",), True),
 ]
-ADMIN_ONLY = {"users", "security", "audit", "modules", "connections", "communication", "global"}
-GLOBAL_ONLY = {"security", "connections", "communication", "global", "ai"}
+# Reuse native module authorization and storage for these central editors.
+OPTIONS += [
+    ("api-credentials", "API credentials", "Integrations", "API keys for approved integrations.", None, None, (), True),
+    ("webhooks", "Integration webhooks", "Integrations", "Outbound event subscriptions and delivery configuration.", None, None, (), True),
+    ("crm-webhooks", "CRM webhooks", "CRM", "CRM event subscriptions.", None, "crm", ("crm_admin",), True),
+    ("crm-scoring", "Lead scoring", "CRM", "Rules for lead qualification and scoring.", None, "crm", ("crm_admin",), True),
+    ("crm-territories", "Sales territories", "CRM", "Sales territory definitions and assignments.", None, "crm", ("crm_admin",), True),
+    ("crm-automation", "CRM automation", "CRM", "CRM triggers and automated actions.", None, "crm", ("crm_admin",), True),
+    ("business-defaults", "Business defaults", "Business defaults", "Company currency, timezone, financial year and working-week defaults.", None, None, (), False),
+    ("crm-pipelines", "CRM pipelines", "CRM", "Deal stages and sales pipelines.", None, "crm", ("crm_admin",), True),
+    ("crm-approvals", "CRM approval rules", "CRM", "Approval rules for CRM operations.", None, "crm", ("crm_admin",), True),
+    ("financial-years", "Financial years", "Finance", "Accounting periods and financial year configuration.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
+    ("cost-centers", "Cost centers", "Finance", "Accounting cost center definitions.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
+    ("accounting-branches", "Accounting branches", "Finance", "Finance branch registrations; distinct from company access branches.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
+    ("voucher-types", "Voucher types & numbering", "Finance", "Accounting document types and numbering configuration.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
+    ("payment-modes", "Payment modes", "Finance", "Shared finance payment mode definitions.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
+    ("tax-settings", "GST & tax settings", "Finance", "GST defaults and statutory configuration.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
+    ("roles", "Roles & permission templates", "Company & access", "Custom module roles and reusable permission templates.", None, None, (), True),
+]
+ADMIN_ONLY = {"roles", "users", "security", "audit", "modules", "connections", "communication", "global"}
+GLOBAL_ONLY = {"api-credentials", "webhooks", "security", "connections", "communication", "global", "ai"}
 HR_SECTIONS = {"branches", "departments", "designations", "shifts", "holidays", "leaveTypes", "salaryComponents"}
 
 
@@ -50,6 +69,8 @@ def context(db, actor):
     policy = service.policy_for(db, actor, company)
     grants = (service.resolved_grants(db, policy) if policy and not actor.is_superuser
               else service.legacy_grants(db, actor, company))
+    from app.branches.roles import effective_grants
+    grants = effective_grants(db, actor, company, getattr(actor, '_suite_branch_id', None), grants)
     is_admin = actor.is_superuser or (service.schema_ready(db) and bool(db.query(AccessMembership).filter_by(
         user_id=actor.id, company_id=company, active=True, is_admin=True).first()))
     from app.apps.interns_hub.management_access import require_admin
@@ -58,7 +79,9 @@ def context(db, actor):
         intern_admin = True
     except HTTPException:
         intern_admin = False
-    return {"intern_admin": intern_admin, "company": company, "grants": grants, "admin": is_admin, "managed": bool(policy),
+    from app.branches.service import access as branch_access
+    branch_manager = branch_access(db, actor, company)[3]
+    return {"branch_manager": branch_manager, "intern_admin": intern_admin, "company": company, "grants": grants, "admin": is_admin, "managed": bool(policy or getattr(actor, '_suite_branch_roles_fingerprint', None)),
             "permissions": permission_names(actor), "super": actor.is_superuser}
 
 
@@ -66,6 +89,10 @@ def allows(option, ctx):
     key, _, _, _, _, module, required, org = option
     if key in {"internships", "task-packs"} and not ctx.get("intern_admin", False):
         return False
+    if key == "business-defaults":
+        return can_edit_company(ctx)
+    if key == "branches":
+        return ctx.get("branch_manager", False)
     if key in GLOBAL_ONLY:
         return ctx["super"]
     if key in ADMIN_ONLY:
@@ -98,7 +125,7 @@ def item(option, ctx):
     key, title, group, description, destination, module, _, _ = option
     return dict(id=key, title=title, group=group, description=description, destination=destination,
                 module=module, scope=ctx["grants"].get(module, {}).get("scope", "organization" if ctx["admin"] else "own"),
-                editable=can_edit_company(ctx) if key == "company-profile" else True)
+                editable=can_edit_company(ctx) if key in {"company-profile", "business-defaults"} else True)
 
 
 def require_option(db, actor, key):

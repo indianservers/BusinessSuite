@@ -1,3 +1,4 @@
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import Deal360Page from "./deals/Deal360Page";
 import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
@@ -13,7 +14,9 @@ const LeadManagementPage = React.lazy(() => import("./leads/LeadManagementPage")
 const CommunicationHubPage = React.lazy(() => import("@/apps/communication/CommunicationHubPage"));
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
+const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
 export const crmRoutes: FrontendRoute[] = [
+  {path:"crm/products-services",element:<SharedCatalogPage source="crm"/>},
   {path:"crm/statistics/:kind",element:<CRMStatisticsWorklist/>},
  { path: "crm/messages", element: <CommunicationWorkspace module="CRM" /> },
   { path: "crm/gantt", element: <ModuleGanttPage key="crm" module="crm" /> },
@@ -36,14 +39,14 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/deals/:id", element: <Deal360Page /> },
   { path: "crm/pipeline", element: <CRMWorkspacePage kind="pipeline" /> },
   { path: "crm/templates", element: <CRMWorkspacePage kind="pipeline" /> },
-  { path: "crm/pipeline-settings", element: <CRMWorkspacePage kind="pipelineSettings" /> },
+  { path: "crm/pipeline-settings", element: <CentralSettingsRedirect section="crm-pipelines" /> },
   { path: "crm/pipelines", element: <CRMWorkspacePage kind="pipelineSettings" /> },
   { path: "crm/pipelines/:id", element: <CRMWorkspacePage kind="pipelineSettings" /> },
   { path: "crm/activities", element: <CRMWorkspacePage kind="activities" /> },
   { path: "crm/tasks", element: <CRMActivitiesWorkspace /> },
   { path: "crm/calendar", element: <CRMWorkspacePage kind="calendar" /> },
   { path: "crm/calendar-integrations", element: <CRMWorkspacePage kind="calendarIntegrations" /> },
-  { path: "crm/webhooks", element: <CRMWorkspacePage kind="webhooks" /> },
+  { path: "crm/webhooks", element: <CentralSettingsRedirect section="crm-webhooks" /> },
   { path: "crm/communication-hub", element: <CommunicationHubPage /> },
   { path: "crm/email-templates", element: <CommunicationHubPage /> },
   { path: "crm/emails", element: <CommunicationHubPage /> },
@@ -56,10 +59,10 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/auto-responses", element: <CommunicationHubPage /> },
   { path: "crm/delivery-logs", element: <CommunicationHubPage /> },
   { path: "crm/communication-timeline", element: <CommunicationHubPage /> },
-  { path: "crm/products", element: <CRMWorkspacePage kind="products" /> },
-  { path: "crm/products/:id", element: <CRMWorkspacePage kind="products" /> },
-  { path: "crm/services", element: <CRMWorkspacePage kind="services" /> },
-  { path: "crm/services/:id", element: <CRMWorkspacePage kind="services" /> },
+  { path: "crm/products", element: <SharedCatalogPage source="crm" /> },
+  { path: "crm/products/:id", element: <SharedCatalogPage source="crm" /> },
+  { path: "crm/services", element: <SharedCatalogPage source="crm" /> },
+  { path: "crm/services/:id", element: <SharedCatalogPage source="crm" /> },
   { path: "crm/price-books", element: <CRMWorkspacePage kind="priceBooks" /> },
   { path: "crm/price-books/:id", element: <CRMWorkspacePage kind="priceBooks" /> },
   { path: "crm/quotes", element: <CRMWorkspacePage kind="quotes" /> },
@@ -70,14 +73,14 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/guided-selling", element: <CRMWorkspacePage kind="guidedSelling" /> },
   { path: "crm/quotations", element: <CRMWorkspacePage kind="quotations" /> },
   { path: "crm/quotations/:id", element: <CRMRecordDetailPage kind="quotations" /> },
-  { path: "crm/approval-settings", element: <CRMWorkspacePage kind="approvalSettings" /> },
+  { path: "crm/approval-settings", element: <CentralSettingsRedirect section="crm-approvals" /> },
   { path: "crm/my-approvals", element: <CRMWorkspacePage kind="myApprovals" /> },
   { path: "crm/duplicates", element: <CRMWorkspacePage kind="duplicates" /> },
-  { path: "crm/territories", element: <CRMWorkspacePage kind="territories" /> },
+  { path: "crm/territories", element: <CentralSettingsRedirect section="crm-territories" /> },
   { path: "crm/tickets", element: <CRMWorkspacePage kind="tickets" /> },
   { path: "crm/files", element: <CRMWorkspacePage kind="files" /> },
   { path: "crm/reports", element: <CRMWorkspacePage kind="reports" /> },
-  { path: "crm/automation", element: <CRMWorkspacePage kind="automation" /> },
+  { path: "crm/automation", element: <CentralSettingsRedirect section="crm-automation" /> },
   { path: "crm/lead-to-cash", element: <CRMWorkspacePage kind="leadCash" /> },
   { path: "crm/forecasting", element: <CRMWorkspacePage kind="forecasting" /> },
   { path: "crm/forecasts", element: <CRMWorkspacePage kind="forecasting" /> },
@@ -87,8 +90,8 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/lost-analysis", element: <CRMWorkspacePage kind="lostAnalysis" /> },
   { path: "crm/customer-360", element: <CRMWorkspacePage kind="customer360" /> },
   { path: "crm/import-export", element: <CRMWorkspacePage kind="importExport" /> },
-  { path: "crm/settings", element: <CRMWorkspacePage kind="settings" /> },
-  { path: "crm/lead-scoring", element: <CRMWorkspacePage kind="leadScoring" /> },
+  { path: "crm/settings", element: <CentralSettingsRedirect section="crm" /> },
+  { path: "crm/lead-scoring", element: <CentralSettingsRedirect section="crm-scoring" /> },
   { path: "crm/feature-checklist", element: <CRMWorkspacePage kind="featureChecklist" /> },
   { path: "crm/admin", element: <CRMWorkspacePage kind="admin" /> },
 ];

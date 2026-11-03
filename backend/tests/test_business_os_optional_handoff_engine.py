@@ -3,6 +3,24 @@ from app.apps.crm.models import CRMDeal, CRMPipeline, CRMPipelineStage
 from app.apps.srm.models import SRMEngagement, SRMSalesOrder
 from app.main import app
 from app.models.user import User
+import pytest
+from app.models.company import Company,Branch
+from app.branches.models import BranchOwnership
+
+
+@pytest.fixture(autouse=True)
+def branch_context(db, superuser_headers):
+    if not db.get(Company,1):db.add(Company(id=1,name='Handoff test tenant'))
+    db.flush()
+    branch=Branch(company_id=1,name='Handoff test office',code='BOS-HANDOFF')
+    db.add(branch);db.flush()
+    superuser_headers['X-Suite-Branch']=str(branch.id)
+
+
+def own(db,*rows):
+    branch=db.query(Branch).filter_by(code='BOS-HANDOFF').one()
+    for row in rows:db.add(BranchOwnership(company_id=1,branch_id=branch.id,resource_table=row.__tablename__,resource_key=str(row.id),source='handoff-test-fixture'))
+    db.flush()
 
 
 def _set_modules(client, headers, modules):
@@ -20,6 +38,7 @@ def _crm_deal(db, user_id=1):
     db.flush()
     deal = CRMDeal(organization_id=1, owner_user_id=user_id, pipeline_id=pipeline.id, stage_id=stage.id, name="Business OS Won Deal", amount=125000, currency="INR", status="Closed Won")
     db.add(deal)
+    db.flush();own(db,deal)
     db.commit()
     db.refresh(deal)
     return deal
@@ -31,6 +50,7 @@ def _srm_engagement(db, user_id=1):
     db.flush()
     engagement = SRMEngagement(organization_id=1, engagement_number="BOS-ENG-001", sales_order_id=order.id, assigned_user_id=user_id, project_manager_user_id=user_id, name="Business OS Delivery", status="created", budget_amount=50000, created_by=user_id)
     db.add(engagement)
+    db.flush();own(db,order,engagement)
     db.commit()
     db.refresh(engagement)
     return engagement
@@ -47,7 +67,7 @@ def test_business_os_optional_handoff_combinations(client, db, superuser_headers
         db.commit()
         _set_modules(client, superuser_headers, ["crm"])
         skipped = client.post("/api/v1/business-os/handoffs/crm/deals/9001/won", headers=superuser_headers)
-        assert skipped.status_code == 200
+        assert skipped.status_code == 200, skipped.text
         assert skipped.json()["status"] == "skipped"
         assert skipped.json()["message"] == "SRM not enabled"
 

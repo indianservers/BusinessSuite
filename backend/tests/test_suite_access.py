@@ -3,11 +3,24 @@ import pytest
 from datetime import datetime, timezone
 from app.access.models import AccessPolicy, AccessAudit, AccessMembership, AccessRole
 from app.models.user import User, Role, Permission
-from app.models.company import Company
+from app.models.company import Company, Branch
+from app.branches.models import BranchPolicy, BranchOwnership
 from app.common.models import CommonPerson
 from app.core.security import get_password_hash
 
 ROOT = "/api/v1/access"
+
+
+def branch_scenario(db, rows=()):
+    """Explicit branch assignment for synthetic module-RBAC fixtures only."""
+    from app.branches.migration import backfill
+    branch = db.query(Branch).filter_by(company_id=1, code="ACCESS-TEST").one()
+    for item in rows:
+        if not db.get(BranchOwnership, (item.__tablename__, str(item.id))):
+            db.add(BranchOwnership(company_id=1, branch_id=branch.id, resource_table=item.__tablename__, resource_key=str(item.id), source="explicit-access-fixture"))
+    db.flush()
+    backfill(db.connection(), 1)
+    db.commit()
 
 
 @pytest.fixture
@@ -42,6 +55,13 @@ def access_account(db):
     )
     db.add(user)
     db.flush()
+    branch = Branch(company_id=1, name="Access regression branch", code="ACCESS-TEST")
+    db.add(branch)
+    db.flush()
+    # Module scope tests intentionally have branch access to the whole company;
+    # dedicated branch tests separately prove that this cannot be implicit.
+    db.add(BranchPolicy(company_id=1, user_id=user.id, all_branches=True, use_home_branch=False))
+    db.add(BranchOwnership(company_id=1, branch_id=branch.id, resource_table="branches", resource_key=str(branch.id), source="explicit-access-fixture"))
     db.add(
         CommonPerson(
             user_id=user.id,
@@ -181,6 +201,7 @@ def test_granular_actions_and_record_scope_are_enforced(
     )
     assert response.status_code == 200, response.text
     own = login(client)
+    branch_scenario(db, db.query(CRMLead).all())
     listed = client.get("/api/v1/crm/lead-management/leads", headers=own)
     assert listed.status_code == 200, listed.text
     assert [r["full_name"] for r in listed.json()["items"]] == ["Own"]
@@ -376,6 +397,12 @@ def test_company_memberships_are_explicit_and_policies_independent(
         },
     )
     assert membership.status_code == 200, membership.text
+    # Company module roles become usable only after explicit branch membership.
+    from app.branches.models import BranchGrant
+    branch = Branch(company_id=2, name='Second company office', code='CO2-TEST')
+    db.add(branch); db.flush()
+    db.add(BranchGrant(company_id=2, user_id=access_account.id, branch_id=branch.id, can_write=True))
+    db.commit()
     response = client.post(
         ROOT + "/changes/apply",
         headers=headers,
@@ -531,6 +558,7 @@ def test_all_crm_record_scopes(
     headers = secure(client, superuser_headers)
     g = {**grant(client, headers), "scope": scope}
     assert apply(client, headers, access_account, {"crm": g}).status_code == 200
+    branch_scenario(db, db.query(CRMLead).all())
     response = client.get("/api/v1/crm/lead-management/leads", headers=login(client))
     assert response.status_code == 200, response.text
     assert len(response.json()["items"]) == expected
@@ -691,6 +719,7 @@ def test_assigned_pms_tasks_and_other_submission_rows_are_filtered(
         ).status_code
         == 200
     )
+    branch_scenario(db, [project])
     with background_scope(db, access_account, "project_management", "view"):
         assert [row.id for row in db.query(PMSTask).all()] == [own.id]
         assert [row.user_id for row in db.query(PMSTaskAssignee).all()] == [
@@ -736,6 +765,7 @@ def test_managed_file_links_stop_working_after_access_revocation(
     db.commit()
     headers = secure(client, superuser_headers)
     g = grant(client, headers, "hrms")
+    branch_scenario(db, db.query(Employee).all())
     saved = apply(client, headers, access_account, {"hrms": g})
     assert saved.status_code == 200, saved.text
     own = login(client)

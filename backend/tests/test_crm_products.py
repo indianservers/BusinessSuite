@@ -1,7 +1,10 @@
-from app.apps.crm.models import CRMProduct
+from app.apps.srm.models import SRMProduct as CRMProduct
 
 
 def test_crm_product_crud_api_database_and_validation(client, db, superuser_headers):
+    from app.models.user import User
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, db.query(User).filter_by(email="testadmin@test.com").one()); db.commit()
     response = client.post("/api/v1/crm/products", headers=superuser_headers, json={
         "name": "CRM Enterprise",
         "productCode": "CRM-ENT",

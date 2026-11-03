@@ -544,7 +544,7 @@ def realtime_events(response: Response, cursor: int | None = Query(None, ge=0), 
 
 
 @router.websocket("/realtime")
-async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
+async def pms_realtime_socket(websocket: WebSocket, token: str | None = None, branch: str | None = None, company: int | None = None):
     """Authenticated PMS realtime channel with organization and project access scoping."""
     if not token:
         await websocket.close(code=1008)
@@ -559,13 +559,21 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
         return
 
     db = SessionLocal()
+    branch_cleanup = None
     try:
         current_user = db.query(User).filter(User.id == int(user_id)).first()
         if not current_user or not current_user.is_active:
             await websocket.close(code=1008)
             return
         from starlette.concurrency import run_in_threadpool
-        if not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, None, payload.get("sid"), payload.get("exp")):
+        if company is not None:
+            current_user.organization_id = company
+        from app.branches.service import context as branch_context
+        from app.branches.boundary import install as install_branch_boundary
+        from app.access.service import primary_company
+        selected_company = company or primary_company(current_user)
+        branch_cleanup = install_branch_boundary(db, current_user, branch_context(db, current_user, selected_company, branch))
+        if not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, None, payload.get("sid"), payload.get("exp"), None, branch, selected_company):
             await websocket.close(code=1008)
             return
         accessible_ids = _accessible_project_ids(db, current_user)
@@ -576,6 +584,7 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
             accessible_project_ids=accessible_ids,
             session_id=payload.get("sid"),
             token_expires_at=payload.get("exp"),
+            branch_selection=branch,
         )
         await websocket.send_json({
             "type": "connected",
@@ -589,7 +598,7 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
             message = await websocket.receive_json()
             db.rollback()
             db.expire_all()
-            if not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, None, payload.get("sid"), payload.get("exp")):
+            if not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, None, payload.get("sid"), payload.get("exp"), None, branch, selected_company):
                 await websocket.close(code=1008)
                 return
             accessible_ids = _accessible_project_ids(db, current_user)
@@ -624,7 +633,7 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
                     try: task_id = int(task_id)
                     except (TypeError, ValueError): continue
                     item = db.query(PMSTask).filter_by(id=task_id, project_id=int(project_id), deleted_at=None).first()
-                    if not item or not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, project_id, payload.get("sid"), payload.get("exp"), task_id): continue
+                    if not item or not await run_in_threadpool(pms_realtime_manager._authorized, current_user.id, project_id, payload.get("sid"), payload.get("exp"), task_id, branch, selected_company): continue
                 await broadcast_pms_event({
                     "type": "user.presence" if action == "presence" else "user.typing",
                     "organizationId": organization_id_for(current_user),
@@ -640,6 +649,8 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None):
         await pms_realtime_manager.disconnect(websocket)
         await websocket.close(code=1011)
     finally:
+        if branch_cleanup:
+            branch_cleanup()
         db.close()
 
 

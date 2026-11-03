@@ -1,3 +1,4 @@
+import { ImportWizard, DataExportButton } from "@/shared/data-transfer";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -83,7 +84,7 @@ export default function AdminSecurityPage() {
         {active === "data-sharing" ? <DataSharing /> : null}
         {active === "ip-restrictions" ? <IPRestrictions /> : null}
         {active === "audit-logs" ? <AuditLogs /> : null}
-        {active === "import" ? <ImportWizard /> : null}
+        {active === "import" ? <AdminImportWizard /> : null}
         {active === "duplicates" ? <DuplicateManagement /> : null}
         {active === "export-control" ? <ExportControl /> : null}
         {active === "backups" ? <Backups /> : null}
@@ -219,37 +220,10 @@ function AuditLogs() {
   return <ListSection title="Audit logs" description="Profile, role, sharing, import, duplicate, export, backup, and compliance actions write audit evidence." query={query}><Button variant="outline" onClick={() => window.open("/api/v1/admin/audit-logs/export", "_blank", "noopener,noreferrer")}>Export audit CSV</Button></ListSection>;
 }
 
-function ImportWizard() {
-  const { toast } = useToast();
-  const [jobId, setJobId] = useState<number | null>(null);
-  const upload = useMutation({
-    mutationFn: () => adminSecurityApi.importsUpload({ module_name: "leads", filename: "phase8-leads.csv", rows: [{ company_name: "Phase 8 Lead", email: "phase8@example.com", status: "New" }] }),
-    onSuccess: (job) => {
-      setJobId(Number(job.id));
-      toast({ title: "Import uploaded" });
-    },
-    onError: (error) => toast({ title: errorText(error), variant: "destructive" }),
-  });
-  const map = useMutation({
-    mutationFn: () => adminSecurityApi.importsMap(Number(jobId), { mapping: { company_name: "company_name", email: "email", status: "status" } }),
-    onSuccess: () => toast({ title: "Fields mapped" }),
-  });
-  const run = useMutation({
-    mutationFn: () => adminSecurityApi.importsRun(Number(jobId)),
-    onSuccess: (job) => toast({ title: `Import ${String(job.status)}` }),
-    onError: (error) => toast({ title: errorText(error), variant: "destructive" }),
-  });
-  const errors = useQuery({ queryKey: ["admin-import-errors", jobId], queryFn: () => adminSecurityApi.importErrors(Number(jobId)), enabled: Boolean(jobId) });
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={() => upload.mutate()}>Upload CSV</Button>
-        <Button variant="outline" disabled={!jobId} onClick={() => map.mutate()}>Map fields</Button>
-        <Button variant="outline" disabled={!jobId} onClick={() => run.mutate()}>Run import</Button>
-      </div>
-      <ListCard title="Import errors and duplicate rows" items={errors.data?.items || []} />
-    </div>
-  );
+function AdminImportWizard() {
+ const [jobId,setJobId]=useState<number|null>(null);
+ const errors=useQuery({queryKey:["admin-import-errors",jobId],queryFn:()=>adminSecurityApi.importErrors(Number(jobId)),enabled:!!jobId});
+ return <div className="space-y-4"><p className="text-sm text-muted-foreground">Upload and map leads for the administrative validation queue. This checks field access and duplicate rows; it does not create CRM records. Use CRM Import & Export to save leads.</p><ImportWizard title="Validate lead spreadsheet" confirmLabel="Upload & validate" fields={[{key:"full_name",required:true,aliases:["name"]},{key:"email",type:"email"},{key:"company_name"},{key:"phone"},{key:"status"}]} onImport={async({rows,filename})=>{setJobId(null);const job=await adminSecurityApi.importsUpload({module_name:"leads",filename,rows});const id=Number(job.id);const keys=Array.from(new Set(rows.flatMap(Object.keys)));await adminSecurityApi.importsMap(id,{mapping:Object.fromEntries(keys.map(key=>[key,key]))});const result=await adminSecurityApi.importsRun(id);setJobId(id);return {created:Number(result.success_rows||0),message:`Validation job #${id}: ${result.success_rows||0} accepted, ${result.failed_rows||0} failed, ${result.duplicate_rows||0} duplicates. No CRM records were created.`};}}/><ListCard title="Import errors and duplicate rows" items={errors.data?.items||[]}/>{!!errors.data?.items?.length&&<DataExportButton label="Download errors" filename="admin-import-errors" load={async()=>errors.data?.items||[]}/>}</div>;
 }
 
 function DuplicateManagement() {

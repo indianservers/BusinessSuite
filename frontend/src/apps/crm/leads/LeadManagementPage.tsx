@@ -1,3 +1,7 @@
+import { DataExportButton } from "@/shared/data-transfer";
+import { LeadSpreadsheetImport } from "../CRMDataTransfer";
+import CatalogAssociations, { CatalogLinesEditor } from "@/shared/catalog/CatalogLinesEditor";
+import { linePayload, type CatalogLine } from "@/shared/catalog/api";
 import {CRMInteractionDialog} from "../SalesActions";
 import { api } from "@/services/api";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -295,27 +299,6 @@ export default function LeadManagementPage() {
       setBusy(false);
     }
   };
-  const exportExcel = async () => {
-    setBusy(true);
-    try {
-      const response = await leadsApi.export(
-        selected.length
-          ? { ids: selected.join(",") }
-          : { search, stage, ...(owner ? { owner } : {}) },
-      );
-      download(response.data, "leads.xlsx");
-      toast({
-        title: "Excel export ready",
-        description: selected.length
-          ? `${selected.length} selected leads`
-          : "All permitted leads matching search, stage and owner filters. Includes archived leads.",
-      });
-    } catch (err) {
-      report(err);
-    } finally {
-      setBusy(false);
-    }
-  };
   const previewBulk = async () => {
     let patch: LeadPatch;
     if (bulkAction.startsWith("owner:")) {
@@ -377,10 +360,8 @@ export default function LeadManagementPage() {
           <p>Know where every enquiry stands. Make the next move.</p>
         </div>
         <div className="lm-actions">
-          <Button variant="outline" onClick={exportExcel} disabled={busy}>
-            <Download size={16} />
-            Export Excel
-          </Button>
+          <DataExportButton filename="leads.xlsx" description={selected.length?`${selected.length} selected leads`:"All permitted leads matching search, stage and owner filters. Includes archived leads."} load={async()=> (await leadsApi.export(selected.length?{ids:selected.join(",")}:{search,stage,...(owner?{owner}:{})})).data}/>
+
           {bootstrap?.canManage && (
             <>
               <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -1095,6 +1076,7 @@ export function CaptureDialog({
       return { full_name: "", source: "Manual" };
     }
   });
+  const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [duplicate,setDuplicate]=useState<{matched:boolean;items:{id:number;name:string}[];message:string}>();
@@ -1140,6 +1122,7 @@ export function CaptureDialog({
             setError("");
             try {
               const response = await leadsApi.create({
+                catalog_lines: catalogLines.map(linePayload),
                 values: Object.fromEntries(
                   Object.entries({
                     ...values,
@@ -1173,6 +1156,7 @@ export function CaptureDialog({
             {step === 2 && <div className="lead-create-grid">{field("company_name", "Company", "Company name")}{field("industry", "Industry", "e.g. Technology")}{field("city", "City")}{field("country", "Country")}</div>}
             {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><select value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</select></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}</>}
             {duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
+            {step === 3 && <CatalogLinesEditor value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
             {error && <ErrorNotice message={error}/>}
           </div>
           <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}<Button type="submit" disabled={saving || (step === 3 && !!duplicate?.matched && bootstrap.settings.preventDuplicates)}>{saving ? "Saving…" : step === 3 ? "Create lead" : "Next"}<ArrowRight size={19}/></Button></div></footer>
@@ -1405,7 +1389,7 @@ export function LeadDrawer({
               disabled={!bootstrap.canManage || busy}
             >
               {tab === "overview" && (
-                <>
+                <><CatalogAssociations source="crm" target="lead" id={id}/>
                   <div className="lm-form-grid">
                     <Field label="Current stage">
                       <select
@@ -2170,166 +2154,7 @@ export function LeadDrawer({
   );
 }
 
-function ExcelDialog({
-  close,
-  imported,
-}: {
-  close: () => void;
-  imported: () => void;
-}) {
-  const { toast } = useToast();
-  const [preview, setPreview] = useState<ImportPreview>();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const input = useRef<HTMLInputElement>(null);
-  const [file,setFile]=useState<File>();const [columns,setColumns]=useState<{headers:string[];supported_fields:string[]}>();const [mapping,setMapping]=useState<Record<string,string>>({});
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !busy) close();
-      }}
-    >
-      <DialogContent className="lm-dialog lm-excel-dialog">
-        <DialogTitle>Import leads from Excel</DialogTitle>
-        <p>
-          Upload .xlsx or UTF-8 .csv, up to 3 MB / 5,000 rows. Duplicate emails
-          and phone numbers are skipped. No leads are saved until you review and
-          import.
-        </p>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={async () => {
-            try {
-              download(
-                (await leadsApi.template()).data,
-                "lead-import-template.xlsx",
-              );
-            } catch (err) {
-              setError(errorMessage(err));
-            }
-          }}
-        >
-          <Download size={16} />
-          Download Excel template
-        </Button>
-        <label className="lm-upload">
-          Choose an Excel workbook
-          <input
-            ref={input}
-            type="file"
-            accept=".xlsx,.csv"
-            disabled={busy}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setPreview(undefined);
-              setError("");
-              if (file.size > 3 * 1024 * 1024) {
-                setError("Choose a file smaller than 3 MB");
-                return;
-              }
-              setBusy(true);
-              try {
-                setFile(file);const form=new FormData();form.append("file",file);const {data}=await api.post<{headers:string[];supported_fields:string[]}>("/crm/lead-management/excel/columns",form);setColumns(data);setMapping(Object.fromEntries(data.headers.map(h=>[h,data.supported_fields.includes(h)?h:""])));
-              } catch (err) {
-                setError(errorMessage(err));
-              } finally {
-                setBusy(false);
-              }
-            }}
-          />
-        </label>
-        {columns&&<section className="space-y-3 rounded border p-3"><h3 className="font-semibold">Map source columns to lead fields</h3>{columns.headers.map((h,i)=><label className="block text-sm" key={`${h}-${i}`}>{h.replace(/_/g," ")}<select className="block w-full rounded border p-2" value={mapping[h]||""} onChange={e=>{setMapping(v=>({...v,[h]:e.target.value}));setPreview(undefined);}}><option value="">Ignore this column</option>{columns.supported_fields.map(f=><option key={f} value={f}>{f.replace(/_/g," ")}</option>)}</select></label>)}<Button disabled={busy||!file} onClick={()=>{if(!file)return;setBusy(true);setError("");void leadsApi.previewImport(file,mapping).then(r=>setPreview(r.data)).catch(e=>setError(errorMessage(e))).finally(()=>setBusy(false));}}>Preview mapped rows</Button><p className="text-xs">Duplicates are skipped by matching email or phone. Preview and errors include only mapped data; import does not begin until you confirm.</p></section>}
-        {busy && <p role="status">Processing workbook…</p>}
-        {error && <ErrorNotice message={error} />}
-        {preview&&!!preview.errors.length&&<Button variant="outline" onClick={()=>{const lines=[["row","error"],...preview.errors.map(e=>[e.row,typeof e.error==="string"?e.error:JSON.stringify(e.error)])];const csv=lines.map(row=>row.map(cell=>'"'+String(cell).replace(/"/g,'""')+'"').join(",")).join("\r\n");download(new Blob([csv],{type:"text/csv;charset=utf-8"}),"lead-import-row-errors.csv");}}>Download row errors</Button>}
-        {preview && (
-          <>
-            <div className="lm-import-summary">
-              <strong>{preview.ready} ready</strong>
-              <span>{preview.skipped.length} duplicates skipped</span>
-              <span>{preview.errors.length} errors</span>
-            </div>
-            {preview.errors.length > 0 && (
-              <div className="lm-error">
-                Correct the listed rows and upload the workbook again. No
-                records have been imported.
-                <ul>
-                  {preview.errors.map((e) => (
-                    <li key={e.row}>
-                      Row {e.row}:{" "}
-                      {typeof e.error === "string"
-                        ? e.error
-                        : JSON.stringify(e.error)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {preview.skipped.length > 0 && (
-              <details>
-                <summary>Review skipped duplicate rows</summary>
-                <ul>
-                  {preview.skipped.map((s) => (
-                    <li key={s.row}>
-                      Row {s.row}: {s.reason}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-            <div className="lm-table-scroll">
-              <table className="lm-table">
-                <caption>Preview of the first 10 valid leads</caption>
-                <thead>
-                  <tr>
-                    <th>Row</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Company</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.validRows.slice(0, 10).map((row) => (
-                    <tr key={row.row}>
-                      <td>{row.row}</td>
-                      <td>{String(row.values.full_name || "")}</td>
-                      <td>{String(row.values.email || "")}</td>
-                      <td>{String(row.values.company_name || "")}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Button
-              disabled={busy || !preview.ready || preview.errors.length > 0}
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                try {
-                  const response = await leadsApi.import(preview.rows);
-                  toast({
-                    title: `${response.data.created} leads imported`,
-                    description: `${response.data.skipped.length} duplicates skipped.`,
-                  });
-                  imported();
-                } catch (err) {
-                  setError(errorMessage(err));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Import {preview.ready} leads
-            </Button>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
+function ExcelDialog({close,imported}:{close:()=>void;imported:()=>void}) {return <LeadSpreadsheetImport autoOpen onClose={()=>{imported();close();}}/>;}
 
 function WorkflowSettings({
   bootstrap,

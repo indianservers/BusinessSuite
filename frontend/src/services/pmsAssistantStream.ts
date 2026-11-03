@@ -16,6 +16,8 @@ export async function assistantStream(
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       Accept: "text/event-stream",
+      ...(sessionStorage.getItem("suite-organization") ? { "X-Suite-Organization": sessionStorage.getItem("suite-organization")! } : {}),
+      ...(sessionStorage.getItem("suite-branch") ? { "X-Suite-Branch": sessionStorage.getItem("suite-branch")! } : {}),
     },
     body: JSON.stringify(payload),
   });

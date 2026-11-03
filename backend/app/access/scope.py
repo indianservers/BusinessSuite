@@ -46,6 +46,15 @@ def model_module(model):
 
 
 def install_scope(db, user, company, grants):
+    def scoped_model_module(model):
+        # The same persisted catalog belongs to either application, never to a
+        # second copy. Apply the calling application's central scope/actions.
+        if model.__tablename__ in {"srm_products", "crm_products", "crm_services", "shared_catalog_details", "shared_catalog_links"}:
+            source = getattr(user, "_suite_current_module", None)
+            if source in {"crm", "project_management", "srm"}:
+                return source
+        return model_module(model)
+
     from app.models.employee import Employee
     from app.models.company import Branch
     from app.models.user import User
@@ -183,7 +192,7 @@ def install_scope(db, user, company, grants):
         # is independently enforced by Power Apps services.
         if model.__module__ == "app.apps.power_apps.models" and model.__tablename__ == "power_apps_environments":
             return model.organization_id == company
-        key = model_module(model)
+        key = scoped_model_module(model)
         if key is None:
             return None
         grant = grants.get(key, {})
@@ -314,6 +323,7 @@ def install_scope(db, user, company, grants):
             "approval_id",
             "quote_id",
             "quotation_id",
+            *(("product_id", "service_id") if model.__tablename__ in {"shared_catalog_details", "shared_catalog_links"} else ()),
         ):
             if field not in columns:
                 continue
@@ -385,7 +395,7 @@ def install_scope(db, user, company, grants):
             protected = [
                 name
                 for name, model in all_models.items()
-                if model_module(model) is not None
+                if scoped_model_module(model) is not None
                 or model.__module__ == "app.models.company"
             ]
             if any(
@@ -431,7 +441,7 @@ def install_scope(db, user, company, grants):
                     raise HTTPException(
                         403, "Global configuration requires a global Super Admin"
                     )
-            key = model_module(type(item))
+            key = scoped_model_module(type(item))
             if key is None:
                 continue
             grant = grants.get(key, {})

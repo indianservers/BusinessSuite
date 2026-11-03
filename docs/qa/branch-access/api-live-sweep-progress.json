@@ -1,0 +1,21 @@
+{
+  "inventory_operations": 2730,
+  "protected_operations": 2678,
+  "planned_checks": 4637,
+  "completed": 4637,
+  "modes": {
+    "invalid_token": 2678,
+    "foreign_branch": 1212,
+    "privileged_read": 747
+  },
+  "failed_checks": 1,
+  "statuses": {
+    "401": 2678,
+    "200": 711,
+    "403": 1222,
+    "409": 5,
+    "400": 15,
+    "404": 4,
+    "422": 2
+  }
+}

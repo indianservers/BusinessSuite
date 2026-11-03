@@ -1,0 +1,583 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/power-apps/integrations/oauth/callback",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "query",
+          "state"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "query",
+          "code"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/power-apps/hooks/{endpoint}",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "Webhook is unavailable"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/access/services/webhooks/{endpoint_id}/receive",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "Webhook not found"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/forms/public/{slug}",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "Public form not found"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/forms/public/{slug}/challenge",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "Public form not found"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/forms/public/{slug}/submit",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "request_id"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "version"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/internal/email-dispatch",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Invalid scheduler credentials"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/internal/intern-correction-reminders",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Invalid scheduler credentials"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/internal/cron",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Invalid scheduler credentials"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "email"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "password"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/branding",
+    "status": 200,
+    "no_server_error": true
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/firebase/config",
+    "status": 200,
+    "no_server_error": true
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/firebase/login",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "token"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/verify",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "mfa_token"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "code"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "refresh_token"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/forgot-password",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "email"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/reset-password",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "token"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "new_password"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/public/webforms/{slug}",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "Webform not found"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/public/webforms/{slug}/submit",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "values"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer-portal/me",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer-portal/quotes",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer-portal/quotes/{quote_id}/accept",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer-portal/invoices",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer-portal/projects",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/partner-portal/leads",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/partner-portal/leads",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/partner-portal/dashboard",
+    "status": 403,
+    "no_server_error": true,
+    "detail": "Portal session required"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/interns-hub/application-options",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Sign in with Google to continue your application"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/interns-hub/applications",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Sign in with Google to continue your application"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/interns-hub/applications/receipt",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Check your application status again to download a receipt"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/interns-hub/applications/status",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "email"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "password"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/interns-hub/application-uploads",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Sign in with Google to continue your application"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/interns-hub/applications/corrections",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Sign in with Google to continue your application"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/interns-hub/signup/session",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Sign in with Google to continue your application"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/interns-hub/signup/login",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Sign in with Google to continue your application"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/interns-hub/signup/providers",
+    "status": 200,
+    "no_server_error": true
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/interns-hub/signup/firebase",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "token"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/background-verification/webhooks/{vendor_id}",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "vendor_reference"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/sso/providers/active",
+    "status": 200,
+    "no_server_error": true
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/sso/initiate/{provider_id}",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "SSO provider not found"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/sso/callback/oidc/{provider_id}",
+    "status": 307,
+    "no_server_error": true
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/sso/complete/{provider_id}",
+    "status": 401,
+    "no_server_error": true,
+    "detail": "Invalid or expired SSO handoff"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/crm/lead-management/capture/{org}/{token}",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "This enquiry form is unavailable"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/crm/lead-management/capture/{org}/{token}",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "full_name"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "email"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "message"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/crm/lead-management/booking/{org}/{ident}/{token}",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "This booking link is unavailable or has expired"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/crm/lead-management/booking/{org}/{ident}/{token}",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "start_time"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "offset"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/project-management/workspace-invitations/preview",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "query",
+          "token"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/project-management/workspace-invitations/activate",
+    "status": 422,
+    "no_server_error": true,
+    "detail": [
+      {
+        "loc": [
+          "body",
+          "token"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      },
+      {
+        "loc": [
+          "body",
+          "password"
+        ],
+        "msg": "Field required",
+        "type": "missing"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/project-management/dev-integrations/webhook/github",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "GitHub repository integration not found"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/project-management/dev-integrations/webhook/gitlab",
+    "status": 404,
+    "no_server_error": true,
+    "detail": "GitLab repository integration not found"
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "status": 200,
+    "no_server_error": true
+  },
+  {
+    "method": "GET",
+    "path": "/health",
+    "status": 200,
+    "no_server_error": true
+  }
+]

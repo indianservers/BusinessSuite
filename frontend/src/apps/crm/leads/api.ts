@@ -105,6 +105,7 @@ export type Lead = {
   scoreReasons?: { name: string; matched: boolean; points: number }[];
 };
 export type LeadPatch = {
+  catalog_lines?: {kind: "product" | "service"; item_id: number; pricing_id?: string | null; quantity: number; unit_price: number; discount: number}[];
   values?: Record<string, unknown>;
   details?: Partial<LeadDetails>;
   version?: number;

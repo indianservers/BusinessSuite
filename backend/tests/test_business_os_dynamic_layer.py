@@ -1,4 +1,15 @@
 from app.apps.business_os.models import BOSEnabledModule
+import pytest
+from app.models.company import Company, Branch
+
+
+@pytest.fixture(autouse=True)
+def branch_context(db, superuser_headers):
+    if not db.get(Company, 1): db.add(Company(id=1, name='Business OS test tenant'))
+    db.flush()
+    branch=Branch(company_id=1,name='Business OS test office',code='BOS-DYNAMIC')
+    db.add(branch);db.flush()
+    superuser_headers['X-Suite-Branch']=str(branch.id)
 
 
 def _set_modules(client, headers, db, modules):

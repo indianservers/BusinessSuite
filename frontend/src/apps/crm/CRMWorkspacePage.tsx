@@ -1,3 +1,6 @@
+import CRMDataTransfer, { CRMTransferHub } from "./CRMDataTransfer";
+import CatalogAssociations, { CatalogLinesEditor } from "@/shared/catalog/CatalogLinesEditor";
+import { linePayload, type CatalogLine, type CatalogItem } from "@/shared/catalog/api";
 import DealCatalogSelect from "./deals/DealCatalogSelect";
 import * as DealDialog from "@radix-ui/react-dialog";
 import PipelinePolicyPanel from "./deals/PipelinePolicyPanel";
@@ -132,6 +135,7 @@ type CRMContact = {
 
 type CRMAccount = {
   id: number;
+  branchName?: string;
   name: string;
   industry?: string;
   type: string;
@@ -3518,7 +3522,7 @@ function CRMLeadsPage() {
               onView={setView}
               onFilters={() => setShowFilters((value) => !value)}
               onExport={exportServerRows}
-              onImport={() => navigate("/crm/import-export")}
+              onImport={() => navigate("/crm/import-export?entity=leads")}
             />
             {showFilters ? (
               <LeadFilterPanel
@@ -4253,7 +4257,7 @@ function CRMContactsPage() {
               onColumns={() => setShowColumns((value) => !value)}
               onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))}
               onExport={exportServerRows}
-              onImport={() => navigate("/crm/import-export")}
+              onImport={() => navigate("/crm/import-export?entity=contacts")}
             />
             {showFilters ? (
               <ContactFilterPanel
@@ -4930,7 +4934,7 @@ function CRMAccountsPage() {
               onColumns={() => setShowColumns((value) => !value)}
               onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))}
               onExport={exportServerRows}
-              onImport={() => navigate("/crm/import-export")}
+              onImport={() => navigate("/crm/import-export?entity=companies")}
             />
             {showFilters ? (
               <AccountFilterPanel
@@ -5082,7 +5086,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
             {!loading && rows.map((account) => (
               <tr data-context-record="Account" data-context-open="Open account details" key={account.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(account.id)])} onChange={(event) => onToggleRow(account, event.target.checked)} aria-label={`Select ${account.name}`} /></td>
-                <td className="px-3 py-3"><div className="flex items-center gap-3"><AccountAvatar account={account} /><button type="button" className="max-w-52 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={account.name} onClick={(event) => { event.stopPropagation(); onSelect(account); }}>{account.name}</button></div></td>
+                <td className="px-3 py-3"><div className="flex items-center gap-3"><AccountAvatar account={account} /><div><button type="button" className="max-w-52 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={account.name} onClick={(event) => { event.stopPropagation(); onSelect(account); }}>{account.name}</button>{account.branchName && <div className="text-xs text-muted-foreground">{account.branchName}</div>}</div></div></td>
                 {visibleColumns.industry ? <td className="px-3 py-3 text-muted-foreground">{account.industry || "Not provided"}</td> : null}
                 {visibleColumns.type ? <td className="px-3 py-3"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /></td> : null}
                 {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></td> : null}
@@ -5189,6 +5193,7 @@ function AccountRelatedTile({ icon, label, value, onClick }: { icon: React.React
 
 function AccountFormModal({ mode, account, saving, error, owners, territories, industries, types, statuses, onClose, onSave }: { mode: AccountFormMode; account: CRMAccount | null; saving: boolean; error: string | null; owners: CRMRecord[]; territories: CRMRecord[]; industries: string[]; types: string[]; statuses: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
   const initial = useMemo(() => accountFormInitial(account), [account?.id]);
+  const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   useEffect(() => setDraft(initial), [initial]);
@@ -5203,6 +5208,7 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
     setFieldErrors(validation);
     if (Object.keys(validation).length) return;
     const fullPayload = buildAccountPayload(draft);
+    if (mode === "create" && catalogLines.length) fullPayload.catalog_lines = catalogLines.map(linePayload);
     const dirtyPayload = buildAccountDirtyPayload(draft, initial);
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
   };
@@ -5215,6 +5221,7 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
         </div>
         <div className="max-h-[calc(92vh-8rem)] space-y-4 overflow-y-auto px-5 py-4">
           {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
+          {mode === "create" ? <CatalogLinesEditor value={catalogLines} onChange={setCatalogLines} disabled={saving}/> : account && <CatalogAssociations source="crm" target="customer" id={account.id}/>}
           <div className="grid gap-4 lg:grid-cols-2">
             <LeadFormSection title="Company details">
               <LeadFormField label="Company name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter company name" /></LeadFormField>
@@ -5305,6 +5312,7 @@ function recordToAccount(record: CRMRecord, ownerNames = new Map<number, string>
   const territoryId = Number(record.territoryId || record.territory_id || 0) || undefined;
   return {
     id: Number(record.id || 0),
+    branchName: String(record.branchName || ""),
     name: String(record.name || "Account"),
     industry: String(record.industry || ""),
     type: String(record.type || record.account_type || "Prospect"),
@@ -5352,7 +5360,7 @@ function TagIcon() {
 
 type DealViewKey = "all" | "mine" | "closing" | "no_follow_up";
 type DealFormMode = "create" | "edit";
-type DealLineItem = { name?: string; key: string; productId: string; unitPrice: string; quantity: string; discount: string };
+type DealLineItem = { catalogItem?: CatalogItem; pricingId?: string | null; name?: string; key: string; productId: string; unitPrice: string; quantity: string; discount: string };
 type DealFilters = { stageId: string; ownerId: string; companyId: string; contactId: string; territoryId: string; status: string; source: string; minAmount: string; maxAmount: string; minProbability: string; maxProbability: string };
 type DealsState = { rows: CRMDealRow[]; total: number; page: number; pages: number; loading: boolean; error: string | null };
 
@@ -5547,7 +5555,7 @@ function CRMDealsPage() {
           </div>
 
           <section className="rounded-md border border-border bg-card">
-            <DealsToolbar search={search} view={view} activeFilters={activeFilters} showColumns={showColumns} visibleColumns={visibleColumns} onSearch={setSearch} onView={setView} onFilters={() => setShowFilters((value) => !value)} onColumns={() => setShowColumns((value) => !value)} onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))} onExport={exportServerRows} onImport={() => navigate("/crm/import-export")} />
+            <DealsToolbar search={search} view={view} activeFilters={activeFilters} showColumns={showColumns} visibleColumns={visibleColumns} onSearch={setSearch} onView={setView} onFilters={() => setShowFilters((value) => !value)} onColumns={() => setShowColumns((value) => !value)} onColumnToggle={(key) => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))} onExport={exportServerRows} onImport={() => navigate("/crm/import-export?entity=deals")} />
             {showFilters ? <DealFilterPanel filters={filters} owners={owners} companies={companies} contacts={contacts} territories={territories} stages={stages} statuses={statusOptions} sources={sourceOptions} onChange={setFilters} onClear={() => setFilters(emptyDealFilters)} /> : null}
             <DealTable rows={rows} loading={state.loading} error={state.error} selectedId={selected?.id} selectedIds={selectedIds} allSelected={allSelected} sort={sort} page={state.page} pages={state.pages} pageSize={pageSize} total={state.total} visibleColumns={visibleColumns} onSort={setSort} onSelect={setSelected} onEdit={openEdit} onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})} onToggleRow={(deal, checked) => setSelectedIds((current) => ({ ...current, [String(deal.id)]: checked }))} onPage={setPage} onPageSize={setPageSize} />
           </section>
@@ -5796,7 +5804,7 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
   const restored = useMemo(() => {try {return JSON.parse(sessionStorage.getItem(draftKey) || "null");} catch {return null;}}, [draftKey]);
   const [draft, setDraft] = useState<CRMApiRecord>(restored?.draft || initial);
   const [customValues, setCustomValues] = useState<CRMApiRecord>(restored?.customValues || initialCustomValues);
-  const initialLines = useMemo<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({name: String(line.name || ""), key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0)})), [deal?.id]);
+  const initialLines = useMemo<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({name: String(line.name || ""), key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0), pricingId: line.pricing_id ? String(line.pricing_id) : null})), [deal?.id]);
   const [lines, setLines] = useState<DealLineItem[]>(restored?.lines || initialLines);
   const [addedCompanies, setAddedCompanies] = useState<CRMRecord[]>([]);
   const [addedContacts, setAddedContacts] = useState<CRMRecord[]>([]);
@@ -5850,7 +5858,7 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
     setAdvancedTab(0);
     const fullPayload = buildDealPayload(draft, effectiveAmount, customValues);
     const dirtyPayload = buildDealDirtyPayload(draft, initial, effectiveAmount, customValues, initialCustomValues);
-    const catalogItems = lines.map(line => {const [kind, id] = line.productId.split(":");return {kind, item_id: Number(id), unit_price: Number(line.unitPrice), quantity: Number(line.quantity), discount: Number(line.discount)};});
+    const catalogItems = lines.map(line => {const [kind, id] = line.productId.split(":");return {kind, item_id: Number(id), unit_price: Number(line.unitPrice), quantity: Number(line.quantity), discount: Number(line.discount), ...(line.pricingId ? {pricing_id: line.pricingId} : {})};});
     if (mode === "create" || JSON.stringify(lines) !== JSON.stringify(initialLines)) {fullPayload.catalog_items = catalogItems;dirtyPayload.catalog_items = catalogItems;}
     if (mode === "edit") dirtyPayload.expected_version = restored?.baseVersion || deal?.version;
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
@@ -5904,16 +5912,7 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
                 })}
               </LeadFormSection>
             ) : null}
-            {(formTab === "simple" || advancedTab === 1) && <LeadFormSection title="Products & services">
-              <div className="flex flex-wrap gap-2 md:col-span-2"><Button size="sm" variant="outline" onClick={() => {setInlineError(null);setInlineKind("products");}}><Plus size={14}/>Create product</Button><Button size="sm" variant="outline" onClick={() => {setInlineError(null);setInlineKind("services");}}><Plus size={14}/>Create service</Button><a className="px-2 py-1 text-sm text-emerald-700 dark:text-emerald-300 underline" href="/crm/products" target="_blank" rel="noreferrer">Manage products</a><a className="px-2 py-1 text-sm text-emerald-700 dark:text-emerald-300 underline" href="/crm/services" target="_blank" rel="noreferrer">Manage services</a></div>
-              {fieldErrors.catalog && <p role="alert" className="text-sm text-destructive md:col-span-2">{fieldErrors.catalog}</p>}
-              <div className="min-w-0 md:col-span-2">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">Add products or services to auto-calculate deal value.</p><Button size="sm" variant="outline" className="h-8 border-emerald-400/40 bg-transparent text-emerald-700 dark:text-emerald-200 hover:bg-emerald-500/10" onClick={() => setLines((current) => [...current, { key: crypto.randomUUID(), productId: "", unitPrice: "0", quantity: "1", discount: "0" }])}><Plus className="h-3.5 w-3.5" />Add line</Button></div>
-                <div className="overflow-x-auto rounded-md border border-border">
-                  <table className="min-w-full text-sm"><thead className="bg-white/[0.035] text-xs uppercase text-muted-foreground"><tr className="[&>th]:px-3 [&>th]:py-2"><th>Product / service</th><th>List price</th><th>Qty</th><th>Discount %</th><th>Line total</th><th></th></tr></thead><tbody className="divide-y divide-white/10">{lines.length ? lines.map((line) => <DealProductLine key={line.key} line={line} products={allProducts} onChange={(next) => setLines((current) => current.map((item) => item.key === line.key ? next : item))} onRemove={() => setLines((current) => current.filter((item) => item.key !== line.key))} />) : <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">No products or services added yet.</td></tr>}</tbody></table>
-                </div>
-              </div>
-            </LeadFormSection>}
+            {(formTab === "simple" || advancedTab === 1) && <LeadFormSection title="Products & services"><div className="md:col-span-2"><CatalogLinesEditor currency={String(draft.currency || "INR")} disabled={saving} value={lines.filter(line => line.productId).map(line => ({kind: line.productId.split(":")[0] as "product" | "service", item_id: Number(line.productId.split(":")[1]), name: line.name, item: line.catalogItem, pricing_id: line.pricingId, quantity: Number(line.quantity), unit_price: Number(line.unitPrice), discount: Number(line.discount), currency: String(draft.currency || "INR")}))} onChange={selected => setLines(selected.map((line, index) => ({key: `${line.kind}:${line.item_id}:${index}`, productId: `${line.kind}:${line.item_id}`, name: line.name, catalogItem: line.item, pricingId: line.pricing_id, quantity: String(line.quantity), unitPrice: String(line.unit_price), discount: String(line.discount)})))}/></div></LeadFormSection>}
             {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Sales team"><LeadFormField label="Assigned sales team"><select className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.assigned_team_id)} onChange={e => patch("assigned_team_id", e.target.value)}><option value="">No team assigned</option>{teams.map(team => <option key={String(team.id)} value={String(team.id)}>{String(team.name)}</option>)}</select></LeadFormField><p className="text-sm text-muted-foreground">Secondary owners, lead originators, collaborators, and watchers are managed in the saved deal's Contacts tab, where their record access can be verified.</p></LeadFormSection>}
             {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Related contacts & decision roles"><div className="space-y-3 sm:col-span-2">{visibleContacts.map(person => {const links = (draft.related_contacts || []) as CRMApiRecord[];const selected = links.find(link => Number(link.contactId) === Number(person.id));return <div className="flex flex-wrap items-center gap-3" key={String(person.id)}><label className="flex min-w-0 flex-1 items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(selected)} onChange={e => patch("related_contacts", e.target.checked ? [...links, {contactId: Number(person.id), role: "Stakeholder", isPrimary: false}] : links.filter(link => Number(link.contactId) !== Number(person.id)))}/>{String(person.name || person.full_name || person.email)}</label>{selected && <select aria-label={`Role for ${person.name || person.full_name}`} className="rounded border bg-background p-2 text-sm" value={String(selected.role)} onChange={e => patch("related_contacts", links.map(link => link === selected ? {...link, role: e.target.value} : link))}>{["Stakeholder", "Decision Maker", "Influencer", "Technical Contact", "Procurement", "Finance", "Champion", "Economic Buyer"].map(role => <option key={role}>{role}</option>)}</select>}</div>;})}</div></LeadFormSection>}
             {formTab === "advanced" && <DealPlanningFields tab={advancedTab} planning={(draft.planning || {}) as CRMApiRecord} update={value => patch("planning", value)} amount={effectiveAmount} currency={String(draft.currency || "INR")}/>}
@@ -6295,6 +6294,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
         onViewChange={setSelectedView}
         onToggleFilters={() => setShowFilters((value) => !value)}
         contacts={contacts}
+        importEntity={apiEntity || undefined}
         onImportContacts={importRows}
         onExportServer={exportServerRows}
         importLabel={`Import ${pageTitles[kind].replace("CRM ", "")}`}
@@ -6438,6 +6438,7 @@ function ProductCatalogPage() {
           contacts={[]}
           onImportContacts={importRows}
           onExportServer={exportProducts}
+          importEntity="products"
           importLabel="Import Products"
           exportLabel="Export Products"
         />
@@ -6472,7 +6473,7 @@ function ProductCatalogPage() {
             <ProductCatalogSidePanel record={selectedRecord || rows[0]} />
           </div>
         ) : (
-          <ProductCatalogEmptyState onCreate={() => setShowCreate(true)} onImport={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()} />
+          <ProductCatalogEmptyState onCreate={() => setShowCreate(true)} onImport={() => navigate("/crm/import-export?entity=products")} />
         )}
       </main>
       {showCreate ? <CreateRecordDialog kind="products" saving={createSaving} error={createError} onClose={() => setShowCreate(false)} onCreate={createProduct} /> : null}
@@ -7896,60 +7897,7 @@ function Customer360Page() {
   );
 }
 
-function ImportExportPage() {
-  const imports = [
-    { file: "crm-contacts-may.csv", rows: 428, duplicates: 12, valid: 409, status: "Preview ready" },
-    { file: "partner-leads.xlsx", rows: 96, duplicates: 4, valid: 88, status: "Imported" },
-    { file: "company-cleanup.csv", rows: 74, duplicates: 9, valid: 61, status: "Rolled back" },
-  ];
-  const mapping = [
-    ["Full Name", "name", "Required"],
-    ["Email Address", "email", "Duplicate key"],
-    ["Mobile", "phone", "Normalize"],
-    ["Company", "company", "Create if missing"],
-    ["Owner Email", "owner", "Assign user"],
-  ];
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Import & Export Engine" description="Field mapping, duplicate detection, validation preview, rollback, and import history for CRM data." action="Upload import" />
-      <div className="grid gap-3 md:grid-cols-5">
-        <Metric icon={Upload} label="Imports" value={imports.length} tone="blue" />
-        <Metric icon={FileCheck2} label="Valid rows" value={imports.reduce((sum, row) => sum + row.valid, 0)} tone="emerald" />
-        <Metric icon={AlertTriangle} label="Duplicates" value={imports.reduce((sum, row) => sum + row.duplicates, 0)} tone="amber" />
-        <Metric icon={Download} label="Exports" value="12" tone="violet" />
-        <Metric icon={Clock} label="Rollback window" value="24h" tone="red" />
-      </div>
-      <div className="grid gap-4 xl:grid-cols-[1fr_24rem]">
-        <Card>
-          <CardHeader><CardTitle>Import History</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {imports.map((row) => (
-              <div key={row.file} className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_7rem_7rem_7rem_auto] md:items-center">
-                <p className="font-medium">{row.file}</p>
-                <span className="text-sm">{row.rows} rows</span>
-                <span className="text-sm text-amber-700">{row.duplicates} dupes</span>
-                <span className="text-sm text-emerald-700">{row.valid} valid</span>
-                <Button variant="outline" size="sm">{row.status === "Imported" ? "Rollback" : "Open"}</Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Field Mapping Preview</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {mapping.map(([source, target, rule]) => (
-              <div key={source} className="rounded-lg border p-3 text-sm">
-                <div className="flex items-center justify-between gap-2"><span className="font-medium">{source}</span><span>{target}</span></div>
-                <p className="mt-1 text-xs text-muted-foreground">{rule}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
+function ImportExportPage() { return <CRMTransferHub/>; }
 
 function Toolbar({
   search,
@@ -7960,6 +7908,7 @@ function Toolbar({
   contacts,
   onImportContacts,
   onExportServer,
+  importEntity,
   importLabel = "Import Contacts",
   exportLabel = "Export Contacts",
 }: {
@@ -7971,19 +7920,10 @@ function Toolbar({
   contacts?: CRMRecord[];
   onImportContacts?: (rows: CRMRecord[]) => void;
   onExportServer?: () => void;
+  importEntity?: string;
   importLabel?: string;
   exportLabel?: string;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const handleImport = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !onImportContacts) return;
-    file.text().then((text) => {
-      const imported = parseCsv(text);
-      if (imported.length) onImportContacts(imported);
-    });
-    event.target.value = "";
-  };
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 xl:flex-row xl:items-center">
@@ -8001,9 +7941,8 @@ function Toolbar({
         </div>
       ) : null}
       <Button variant="outline" onClick={onToggleFilters}><Filter className="h-4 w-4" />Filters</Button>
-      <Button variant="outline" onClick={onExportServer || (() => exportRows("crm-contacts.csv", contacts || []))}><Download className="h-4 w-4" />{exportLabel}</Button>
-      <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
-      <Button variant="outline" onClick={() => inputRef.current?.click()}><Upload className="h-4 w-4" />{importLabel}</Button>
+      {importEntity ? <CRMDataTransfer entity={importEntity} importLabel={importLabel} exportLabel={exportLabel} /> : <Button variant="outline" onClick={onExportServer || (() => exportRows("crm-contacts.csv", contacts || []))}><Download className="h-4 w-4"/>{exportLabel}</Button>}
+
     </div>
   );
 }
@@ -9166,7 +9105,7 @@ function normalizeApiRecord(kind: string, record: CRMApiRecord): CRMRecord {
     return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Contact"), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), companyId: Number(record.companyId || record.company_id || 0), companyName: String(record.companyName || record.company_name || ""), title: String(record.job_title || ""), stage: String(record.lifecycle_stage || "Lead"), source: String(record.source || ""), status: String(record.status || "Active"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
   }
   if (kind === "companies") {
-    return { id, name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || record.type || "Prospect"), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || record.revenue || 0), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), website: String(record.website || ""), notes: String(record.notes || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || "") };
+    return { id, branchName: String(record.branchName || ""), name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || record.type || "Prospect"), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || record.revenue || 0), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), website: String(record.website || ""), notes: String(record.notes || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || "") };
   }
   if (kind === "deals") {
     return { ...record, id, name: String(record.name || "Deal"), companyId: Number(record.company_id || 0), contactId: Number(record.contact_id || 0), owner: String(record.ownerId || record.owner_user_id || ""), territoryId: Number(record.territoryId || record.territory_id || 0), stageId: Number(record.stage_id || 0), pipelineId: Number(record.pipeline_id || 0), stage: String(record.stage || record.status || "Open"), amount: Number(record.amount || 0), probability: Number(record.probability || 0), closeDate: String(record.expected_close_date || ""), nextStep: String(record.description || record.status || ""), status: String(record.status || "Open") };

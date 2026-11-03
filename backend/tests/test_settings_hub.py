@@ -72,6 +72,14 @@ def test_company_admin_only_company_settings_and_audited_profile(client,db):
 def test_managed_grants_need_enabled_module_action_and_scope(client,db,scope,actions,enabled,expected):
     grants={"project_management":{"enabled":enabled,"role":"custom","permissions":["pms_admin"],"actions":actions,"scope":scope}}
     headers,u=actor(db,permissions=["pms_admin"],grants=grants)
+    # Company grants are a ceiling; an actual branch membership is also required.
+    from app.models.company import Branch
+    from app.branches.models import BranchPolicy, BranchGrant
+    branch = Branch(name="Settings scope branch", code="SET-SCOPE", company_id=1, organization_id=1, is_active=True)
+    db.add(branch); db.flush()
+    db.add(BranchPolicy(user_id=u.id, company_id=1, use_home_branch=False))
+    db.add(BranchGrant(user_id=u.id, company_id=1, branch_id=branch.id, can_write=True))
+    db.commit()
     ids={o["id"] for o in client.get(BASE,headers=headers).json()["options"]}
     assert ("pms" in ids)==expected
     assert client.get(BASE+"/pms",headers=headers).status_code==(200 if expected else 403)
@@ -80,6 +88,42 @@ def test_managed_grants_need_enabled_module_action_and_scope(client,db,scope,act
 def test_anonymous_denied(client):
     assert client.get(BASE).status_code in (401,403)
     assert client.get(BASE+"/company-profile").status_code in (401,403)
+
+
+def test_central_integrations_require_superuser_and_roles_require_company_admin(client, db):
+    headers, _ = actor(db, admin=True)
+    assert client.get(BASE + "/roles", headers=headers).status_code == 200
+    assert client.get(BASE + "/business-defaults", headers=headers).status_code == 200
+    for key in ("api-credentials", "webhooks", "financial-years", "cost-centers", "crm-pipelines"):
+        assert client.get(BASE + "/" + key, headers=headers).status_code == 403
+
+
+def test_central_finance_settings_honor_branch_and_company_module_ceiling(client, db):
+    from app.models.company import Branch
+    from app.branches.models import BranchPolicy, BranchGrant
+    grant = {"enabled": True, "role": "admin", "permissions": ["fam_admin"], "actions": ["view", "configure"], "scope": "organization"}
+    headers, user = actor(db, permissions=["fam_admin"], grants={"fam": grant})
+    # No branch membership must not expose module configuration.
+    assert client.get(BASE + "/financial-years", headers=headers).status_code == 403
+    branch = Branch(name="Finance settings", code="FIN-SET", company_id=1, organization_id=1, is_active=True)
+    db.add(branch); db.flush()
+    db.add(BranchPolicy(user_id=user.id, company_id=1, use_home_branch=False))
+    db.add(BranchGrant(user_id=user.id, company_id=1, branch_id=branch.id, can_write=True))
+    db.commit()
+    for key in ("financial-years", "cost-centers", "accounting-branches", "voucher-types", "payment-modes", "tax-settings"):
+        assert client.get(BASE + "/" + key, headers=headers).status_code == 200
+    assert client.get(BASE + "/crm-pipelines", headers=headers).status_code == 403
+
+
+def test_branch_settings_requires_branch_administration_not_hr_role(client, db):
+    from app.branches.models import BranchPolicy
+    headers, user = actor(db, permissions=["company_manage"])
+    assert client.get(BASE + "/branches", headers=headers).status_code == 403
+    db.add(BranchPolicy(user_id=user.id, company_id=1, manage_access=True, use_home_branch=False))
+    db.commit()
+    assert client.get(BASE + "/branches", headers=headers).status_code == 200
+    # A delegated branch administrator does not become a company access administrator.
+    assert client.get(BASE + "/users", headers=headers).status_code == 403
 
 
 def test_view_only_and_disabled_grants_never_offer_configuration():

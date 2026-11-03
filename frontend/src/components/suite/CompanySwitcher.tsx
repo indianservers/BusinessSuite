@@ -36,6 +36,7 @@ export default function CompanySwitcher() {
           setBusy(true);
           await qc.cancelQueries();
           sessionStorage.setItem("suite-organization", String(companyId));
+          sessionStorage.removeItem("suite-branch");
           setUser({ ...user, access: undefined });
           qc.clear();
           window.location.assign("/dashboard");

@@ -3,7 +3,7 @@ import { api } from "@/services/api";
 import { groupPmsRecents, pmsPageLabel, pmsPageResource } from "@/lib/pms-page-labels";
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowDown, ArrowUp, CheckSquare, Clock3, FileText, Folder, Pin, Star, TrendingUp, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckSquare, Clock3, FileText, Folder, Package, Pin, Star, TrendingUp, Users } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute, getRoleNav } from "@/lib/roles";
 import { emptyPmsNavigation, usePmsNavigation, type PmsPage } from "@/store/pmsNavigation";
@@ -14,6 +14,7 @@ export const pmsPrimaryPages = [
   { path: "/pms/my-work", label: "My Tasks", icon: CheckSquare },
   { path: "/pms/notes", label: "Notes", icon: FileText },
   { path: "/pms/projects", label: "Projects", icon: Folder },
+  { path: "/pms/products-services", label: "Products & Services", icon: Package },
   { path: "/pms/members", label: "People", icon: Users },
 ];
 export default function PMSPersonalNavigation({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {

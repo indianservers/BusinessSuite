@@ -267,7 +267,8 @@ def serialize(record: Any) -> dict[str, Any]:
             output[column.name] = value.isoformat()
         else:
             output[column.name] = value
-    return output
+    from app.branches.accounting import protect_serialized
+    return protect_serialized(record, output)
 
 
 def audit(db: Session, request: Request, user: User, company_id: int, record_type: str, record_id: int | None, action: str, old: dict[str, Any] | None, new: dict[str, Any] | None) -> None:
@@ -647,7 +648,8 @@ def ledger_book_payload(db: Session, company_id: int, ledger_types: set[str], le
     ledgers = ledger_query.order_by(FAMLedger.ledger_name).all()
     ledger_ids = [item.id for item in ledgers]
     entries = db.query(FAMLedgerEntry).filter(FAMLedgerEntry.company_id == company_id, FAMLedgerEntry.ledger_id.in_(ledger_ids)).order_by(FAMLedgerEntry.voucher_date, FAMLedgerEntry.id).all() if ledger_ids else []
-    opening = sum((Decimal(item.opening_balance_dr or 0) - Decimal(item.opening_balance_cr or 0)) for item in ledgers)
+    from app.branches.accounting import ledger_amounts
+    opening = sum((Decimal(ledger_amounts(db, item)["opening_balance_dr"] or 0) - Decimal(ledger_amounts(db, item)["opening_balance_cr"] or 0)) for item in ledgers)
     debit = sum(Decimal(item.debit_amount or 0) for item in entries)
     credit = sum(Decimal(item.credit_amount or 0) for item in entries)
     return {
@@ -1081,10 +1083,16 @@ def dashboard(db: Session = Depends(get_db), current_user: User = Depends(Requir
     today=business_day(db,current_user)
     current_fy = get_current_financial_year(db, company_id)
     def total_for(nature: str, side: str) -> float:
+        from app.branches.accounting import scoped, ledger_amounts
+        if scoped(db):
+            return float(sum(ledger_amounts(db, ledger)[f"current_balance_{side}"] or 0 for ledger in db.query(FAMLedger).filter(FAMLedger.company_id == company_id, FAMLedger.nature == nature, FAMLedger.active.is_(True))))
         column = FAMLedger.current_balance_dr if side == "dr" else FAMLedger.current_balance_cr
         return float(db.query(func.coalesce(func.sum(column), 0)).filter(FAMLedger.company_id == company_id, FAMLedger.nature == nature, FAMLedger.active == True).scalar() or 0)
 
     cash_bank = db.query(func.coalesce(func.sum(FAMLedger.current_balance_dr - FAMLedger.current_balance_cr), 0)).filter(FAMLedger.company_id == company_id, FAMLedger.ledger_type.in_(["cash", "bank"]), FAMLedger.active == True).scalar() or 0
+    from app.branches.accounting import scoped, ledger_amounts
+    if scoped(db):
+        cash_bank = sum((amounts["current_balance_dr"] or 0) - (amounts["current_balance_cr"] or 0) for ledger in db.query(FAMLedger).filter(FAMLedger.company_id == company_id, FAMLedger.ledger_type.in_(["cash", "bank"]), FAMLedger.active.is_(True)) for amounts in [ledger_amounts(db, ledger)])
     receivable_types = ["invoice", "debit_note", "opening"]
     payable_types = ["bill", "credit_note", "opening"]
     receivables = db.query(func.coalesce(func.sum(FAMBillReference.outstanding_amount), 0)).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(receivable_types), FAMBillReference.outstanding_amount > 0).scalar() or 0
@@ -1405,9 +1413,18 @@ def list_branches(db: Session = Depends(get_db), current_user: User = Depends(Re
 def create_branch(payload: BranchPayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_BRANCH_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     assert_tax_format_placeholders(payload)
-    item = FAMBranch(company_id=company_id, **payload.model_dump())
-    db.add(item)
-    db.flush()
+    from app.branches.service import assert_manager
+    from app.branches.models import AccountingBranchMap, BranchOwnership
+    assert_manager(db, current_user)
+    branch_context = db.info.get("branch_context")
+    if not branch_context or branch_context.branch_id is None or branch_context.branch_id not in branch_context.writable:
+        raise HTTPException(403, "Select the suite branch for this accounting registration")
+    # Accounting IDs and suite branch IDs are independent. Persist the mapping
+    # before exposing the new accounting branch to ordinary scoped queries.
+    identifier = db.connection().execute(FAMBranch.__table__.insert().values(company_id=company_id, **payload.model_dump()).returning(FAMBranch.id)).scalar_one()
+    db.connection().execute(AccountingBranchMap.__table__.insert().values(accounting_branch_id=identifier, company_id=company_id, branch_id=branch_context.branch_id))
+    db.connection().execute(BranchOwnership.__table__.insert().values(resource_table="fam_branches", resource_key=str(identifier), company_id=company_id, branch_id=branch_context.branch_id, source="accounting-registration"))
+    item = db.get(FAMBranch, identifier)
     audit(db, request, current_user, company_id, "branch", item.id, "CREATE", None, serialize(item))
     db.commit()
     return serialize(item)
@@ -1728,7 +1745,9 @@ def ledger_entries_for_ledger(id: int, db: Session = Depends(get_db), current_us
     entries = db.query(FAMLedgerEntry).filter(FAMLedgerEntry.company_id == company_id, FAMLedgerEntry.ledger_id == id).order_by(FAMLedgerEntry.voucher_date, FAMLedgerEntry.id).all()
     debit = sum(Decimal(item.debit_amount or 0) for item in entries)
     credit = sum(Decimal(item.credit_amount or 0) for item in entries)
-    opening = Decimal(ledger.opening_balance_dr or 0) - Decimal(ledger.opening_balance_cr or 0)
+    from app.branches.accounting import ledger_amounts
+    amounts = ledger_amounts(db, ledger)
+    opening = Decimal(amounts["opening_balance_dr"] or 0) - Decimal(amounts["opening_balance_cr"] or 0)
     return {"ledger": serialize(ledger), "items": [serialize(item) for item in entries], "openingBalance": float(opening), "debitMovement": float(debit), "creditMovement": float(credit), "closingBalance": float(opening + debit - credit)}
 
 
@@ -4299,6 +4318,11 @@ def export_rows(db: Session, company_id: int, export_type: str) -> tuple[str, li
 def fam_integrity_results(db: Session, company_id: int) -> list[dict[str, Any]]:
     ledger_debits = Decimal(db.query(func.coalesce(func.sum(FAMLedger.current_balance_dr), 0)).filter(FAMLedger.company_id == company_id).scalar() or 0)
     ledger_credits = Decimal(db.query(func.coalesce(func.sum(FAMLedger.current_balance_cr), 0)).filter(FAMLedger.company_id == company_id).scalar() or 0)
+    from app.branches.accounting import scoped, ledger_amounts
+    if scoped(db):
+        amounts = [ledger_amounts(db, ledger) for ledger in db.query(FAMLedger).filter(FAMLedger.company_id == company_id)]
+        ledger_debits = sum((a["current_balance_dr"] or 0) for a in amounts)
+        ledger_credits = sum((a["current_balance_cr"] or 0) for a in amounts)
     unbalanced_vouchers = 0
     for voucher in db.query(FAMVoucher).filter(FAMVoucher.company_id == company_id).all():
         totals = db.query(func.coalesce(func.sum(FAMVoucherLine.debit_amount), 0), func.coalesce(func.sum(FAMVoucherLine.credit_amount), 0)).filter(FAMVoucherLine.voucher_id == voucher.id).first()

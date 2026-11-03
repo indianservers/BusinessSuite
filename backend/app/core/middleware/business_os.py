@@ -42,6 +42,9 @@ class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         module_key = next((module for prefix, module in API_MODULE_PREFIXES if path.startswith(prefix)), None)
+        if path.startswith("/api/v1/catalog/"):
+            source = request.query_params.get("source", "crm")
+            module_key = "project_management" if source == "pms" else "srm" if source == "srm" else "crm"
         if not module_key:
             return await call_next(request)
 

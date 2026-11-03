@@ -45,6 +45,12 @@ def has_any_permission(user: User, permissions: set[str]) -> bool:
 
 
 def can_view_all_srm(user: User) -> bool:
+    grants = getattr(user, '_suite_grants', None)
+    if grants is not None and not user.is_superuser:
+        grant = grants.get('srm', {})
+        # Central scope is authoritative; the ORM still narrows to the branch
+        # and any team/department constraints. Native role labels cannot widen it.
+        return bool(grant.get('enabled') and grant.get('scope') in {'organization', 'branch', 'department', 'team'})
     role = normalize_role(user.role.name if user.role else None)
     return user.is_superuser or role in {
         "srm_admin",

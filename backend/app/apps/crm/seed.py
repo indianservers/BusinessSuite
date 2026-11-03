@@ -153,13 +153,13 @@ def seed_crm_demo_data(db: Session, organization_id: int = 1) -> None:
         db.add(contact)
     db.flush()
 
+    from app.apps.srm.models import SRMProduct
     products = [
-        CRMProduct(organization_id=organization_id, name="CRM Starter", sku="CRM-ST", category="Software", unit_price=49999, status="Active"),
-        CRMProduct(organization_id=organization_id, name="Implementation Package", sku="IMP-PRO", category="Services", unit_price=175000, status="Active"),
+        SRMProduct(organization_id=organization_id, item_name="CRM Starter", sku="CRM-ST", category_name="Software", sales_rate=49999, active=True, product_type="stock"),
+        SRMProduct(organization_id=organization_id, item_name="Implementation Package", sku="IMP-PRO", category_name="Services", sales_rate=175000, active=True, product_type="service", track_inventory=False),
     ]
     for product in products:
         product.created_by_user_id = admin_id
-        product.updated_by_user_id = admin_id
         db.add(product)
 
     deal = CRMDeal(

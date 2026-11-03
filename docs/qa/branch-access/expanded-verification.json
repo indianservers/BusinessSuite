@@ -1,0 +1,120 @@
+{
+  "created_at": "2026-11-02T15:07:37.296892+00:00",
+  "environment": "local only",
+  "junit": {
+    "expanded-regression-tests.xml": {
+      "tests": 121,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 120,
+      "skipped_tests": [
+        "test_concurrent_administrators_cannot_overwrite_each_other"
+      ]
+    },
+    "expanded-postgresql-tests.xml": {
+      "tests": 56,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 56,
+      "skipped_tests": []
+    }
+  },
+  "expanded-live-api.json": {
+    "checks": 89,
+    "passed": 89
+  },
+  "module-matrix-api.json": {
+    "checks": 21,
+    "passed": 21
+  },
+  "browser": {
+    "Chennai branch head": "3 Chennai employees visible; no Bengaluru employees. Assignment controls offer authorized members and Chennai only.",
+    "Bengaluru branch head": "2 Bengaluru employees visible; no Chennai employees.",
+    "screenshots": [
+      "head-chennai-employees.png",
+      "head-bengaluru-employees.png",
+      "head-chennai-user-access.png"
+    ]
+  },
+  "coverage": {
+    "runtime_tables": 781,
+    "private_tables": 697,
+    "mapped_private_tables_query_sweep": 697,
+    "persisted_representative_tables": [
+      "audit_logs",
+      "ai_prompt_runs",
+      "analytics_dashboards",
+      "approval_requests",
+      "automation_execution_logs",
+      "bos_lifecycle_events",
+      "communication_campaigns",
+      "crm_companies",
+      "customization_records",
+      "fam_integrity_runs",
+      "suite_forms",
+      "power_apps_resources",
+      "pms_workspaces",
+      "developer_apps",
+      "schedule_boards",
+      "admin_audit_logs",
+      "srm_sales_orders",
+      "srm_collection_reminders",
+      "notifications"
+    ],
+    "employee_and_identity_tables": [
+      "employees",
+      "users",
+      "common_people",
+      "common_profiles"
+    ],
+    "record_module_groups": [
+      "ai",
+      "analytics",
+      "approvals",
+      "automation",
+      "business_os",
+      "communication",
+      "crm",
+      "customization",
+      "fam",
+      "forms",
+      "hrms",
+      "power_apps",
+      "project_management",
+      "saas",
+      "scheduling",
+      "security",
+      "shared_services",
+      "srm"
+    ],
+    "branches": 3,
+    "scenarios": [
+      "branch head A",
+      "branch head B",
+      "employee A",
+      "employee B",
+      "multi-branch identity",
+      "all-branch reader",
+      "Super Admin all/selected",
+      "no branch access"
+    ],
+    "checks": [
+      "lists/counts/aliases/cached IDs",
+      "foreign cached deletion",
+      "branch-head roster/grant privacy",
+      "no self/all-branch/delegation escalation",
+      "hidden grants preserved",
+      "cross-membership identity cannot expose home HR profile",
+      "explicit SRM/HR role scope",
+      "read-only module metadata",
+      "company-module administration denied to branch heads",
+      "skipped lifecycle evidence stays branch-owned"
+    ]
+  },
+  "limits": [
+    "All mapped private tables are checked for the ORM ownership predicate; representative persisted rows are tested per module group. This does not certify every business workflow.",
+    "Independent standalone Flask inventory, direct independent Core connections, external integrations, public ingestion and recurring workers still require separate workflow certification."
+  ]
+}

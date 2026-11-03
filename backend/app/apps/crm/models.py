@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Index, JSON, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -370,7 +370,7 @@ class CRMDealProduct(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     deal_id = Column(Integer, ForeignKey("crm_deals.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("crm_products.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("srm_products.id", ondelete="CASCADE"), nullable=False, index=True)
     quantity = Column(Integer, default=1)
     unit_price = Column(Numeric(12, 2), default=0)
     discount_amount = Column(Numeric(12, 2))
@@ -430,8 +430,8 @@ class CRMPriceBookItem(Base):
     organization_id = Column(Integer, nullable=True, index=True)
     price_book_id = Column(Integer, ForeignKey("crm_price_books.id", ondelete="CASCADE"), nullable=False, index=True)
     item_type = Column(String(30), default="product", index=True)
-    product_id = Column(Integer, ForeignKey("crm_products.id", ondelete="CASCADE"), nullable=True, index=True)
-    service_id = Column(Integer, ForeignKey("crm_services.id", ondelete="CASCADE"), nullable=True, index=True)
+    product_id = Column(Integer, ForeignKey("srm_products.id", ondelete="CASCADE"), nullable=True, index=True)
+    service_id = Column(Integer, ForeignKey("srm_products.id", ondelete="CASCADE"), nullable=True, index=True)
     unit_price = Column(Numeric(14, 2), default=0)
     cost_price = Column(Numeric(14, 2), default=0)
     tax_rate = Column(Numeric(5, 2), default=0)
@@ -507,8 +507,8 @@ class CRMQuotationItem(Base):
     quote_id = Column(Integer, ForeignKey("crm_quotations.id", ondelete="CASCADE"), nullable=True, index=True)
     sort_order = Column(Integer, nullable=False, default=0, server_default="0")
     item_type = Column(String(30), default="product", index=True)
-    product_id = Column(Integer, ForeignKey("crm_products.id", ondelete="SET NULL"), nullable=True, index=True)
-    service_id = Column(Integer, ForeignKey("crm_services.id", ondelete="SET NULL"), nullable=True, index=True)
+    product_id = Column(Integer, ForeignKey("srm_products.id", ondelete="SET NULL"), nullable=True, index=True)
+    service_id = Column(Integer, ForeignKey("srm_products.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(180), nullable=False)
     description = Column(Text)
     quantity = Column(Numeric(12, 2), default=1)
@@ -640,6 +640,10 @@ class CRMActivity(Base):
 
 class CRMTask(Base):
     __tablename__ = "crm_tasks"
+    __table_args__ = (Index("uq_crm_tasks_creator_import", "organization_id", "created_by_user_id", "import_key", unique=True),)
+
+    task_details = Column(JSON, nullable=True)
+    import_key = Column(String(100), nullable=True)
 
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(Integer, nullable=True, index=True)
