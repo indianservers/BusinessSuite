@@ -207,10 +207,10 @@ test("dashboard favorites, real badges, compact view and profile menu", async ({
   await expect(
     page.getByRole("menuitem", { name: "My profile", exact: true }),
   ).toBeVisible();
-  await page.getByRole("menuitem", { name: "Account settings" }).click();
-  await expect(page).toHaveURL(/\/account#security$/);
+  await page.getByRole("menuitem", { name: "Settings" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
   await expect(
-    page.getByRole("heading", { name: "Account settings" }),
+    page.getByRole("heading", { name: "Settings" }),
   ).toBeVisible();
   await page
     .getByRole("link", { name: "All applications", exact: true })
@@ -264,14 +264,15 @@ test("feature links, recent pages, breadcrumbs, groups and mobile drawer", async
     .getByRole("link", { name: "All applications", exact: true })
     .click();
   await expect(
-    page.getByRole("region", { name: "Continue working" }),
+    page.locator(".launcher-recents"),
   ).toBeVisible();
+  await page.locator(".launcher-recents summary").click();
   await expect(
-    page.getByRole("link", { name: "Resume", exact: true }),
+    page.locator(".launcher-recents").getByRole("link").first(),
   ).toHaveAttribute("href", "/crm/contacts");
   await page.getByRole("button", { name: "Clear recent pages" }).click();
   await expect(
-    page.getByRole("region", { name: "Continue working" }),
+    page.locator(".launcher-recents"),
   ).toHaveCount(0);
   await noOverflow(page);
 });
@@ -504,7 +505,7 @@ test("reset success returns to sign in and account settings change the password"
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByRole("button", { name: "Open account menu" }).click();
   await page
-    .getByRole("menuitem", { name: "Account settings", exact: true })
+    .getByRole("menuitem", { name: "Settings", exact: true })
     .click();
   await page.getByLabel("Current password", { exact: true }).fill(nextPassword);
   await page

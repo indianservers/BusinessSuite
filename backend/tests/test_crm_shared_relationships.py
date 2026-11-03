@@ -1,6 +1,6 @@
 """CRM relationship pages use one canonical master, including Sales customers."""
 import json
-from app.apps.crm.models import CRMCompany, CRMLead
+from app.apps.crm.models import CRMCompany, CRMLead, CRMContact
 from tests.test_master_data import company, ROOT
 from tests.test_contact_directory import directory_identity
 
@@ -49,6 +49,7 @@ def test_individual_lead_conversion_becomes_same_sales_customer(client, db, supe
     db.expire_all()
     ident = db.get(CRMLead, lead.id).converted_company_id
     assert ident
+    assert db.query(CRMContact).filter(CRMContact.full_name == "Converted buyer").count() == 1
     assert [x["id"] for x in grid(client, superuser_headers, role="Customer")] == [ident]
     assert not grid(client, superuser_headers, entity_kind="companies")
     sales = client.get("/api/v1/srm/business/customers", headers=superuser_headers)

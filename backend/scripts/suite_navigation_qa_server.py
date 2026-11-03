@@ -71,6 +71,15 @@ with SessionLocal() as db:
     from app.branches.migration import backfill
     backfill(db.connection(), 1)
     backfill(db.connection(), 2)
+    # These synthetic notifications explicitly belong to their company's QA branch.
+    from app.branches.models import BranchOwnership
+    for notification in db.query(Notification).all():
+        branch = db.query(Branch).filter_by(company_id=notification.company_id, code="NAVQA").one()
+        existing = db.get(BranchOwnership, ("notifications", str(notification.id)))
+        if existing:
+            existing.company_id, existing.branch_id = notification.company_id, branch.id
+        else:
+            db.add(BranchOwnership(resource_table="notifications", resource_key=str(notification.id), company_id=notification.company_id, branch_id=branch.id, source="explicit QA fixture"))
     db.commit()
 
 # These navigation tests do not need schedulers, external workers, or production

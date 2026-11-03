@@ -29,7 +29,7 @@ export default function CompanySelect({value,onChange,source="crm",initial=[],pl
   const [page,setPage]=useState(1);const [accumulated,setAccumulated]=useState<Company[]>([]);
   const [creating,setCreating]=useState(false);const [editing,setEditing]=useState(false);
   const [profile,setProfile]=useState(false);const [added,setAdded]=useState<Company[]>([]);
-  const query=useQuery<{items:Company[];total:number;canCreate:boolean}>({queryKey:["master-companies",masterScope(),source,term,page],queryFn:async()=>(await api.get("/master-data/companies",{params:{source,search:term,page,per_page:50}})).data,staleTime:60000});
+  const query=useQuery<{items:Company[];total:number;canCreate:boolean}>({queryKey:["master-companies",masterScope(),source,term,page],queryFn:async()=>(await api.get("/master-data/companies",{params:{source,entity_kind:"companies",search:term,page,per_page:50}})).data,staleTime:60000});
   const selected=useQuery<Company>({queryKey:["master-company",masterScope(),source,value],enabled:!!value,queryFn:async()=>(await api.get(`/master-data/companies/${value}`,{params:{source}})).data,staleTime:60000});
   useEffect(()=>{setPage(1);setAccumulated([]);},[term,source]);
   useEffect(()=>{if(query.data)setAccumulated(previous=>page===1?query.data.items:[...new Map([...previous,...query.data.items].map(x=>[x.id,x])).values()]);},[query.data,page]);

@@ -7881,7 +7881,17 @@ def convert_lead(
                 updated_by_user_id=current_user.id,
             )
             db.add(company)
-            db.flush()
+            # Conversion already owns a verified lead contact. Link the account
+            # to that identity below instead of publishing a second person.
+            prior_sync = db.info.get("contact_identity_sync")
+            db.info["contact_identity_sync"] = True
+            try:
+                db.flush()
+            finally:
+                if prior_sync is None:
+                    db.info.pop("contact_identity_sync", None)
+                else:
+                    db.info["contact_identity_sync"] = prior_sync
             created_customer = True
 
     from sqlalchemy import inspect as inspect_connection
@@ -7954,6 +7964,8 @@ def convert_lead(
                 identity.contact = contact
             else:
                 db.add(ContactIdentityLink(organization_id=organization_id, contact=contact, lead=lead))
+            if created_customer:
+                db.add(ContactIdentityLink(organization_id=organization_id, contact=contact, account=company))
     if company:
         company.account_type = "Customer"
         if created_customer and individual_customer:
