@@ -1054,18 +1054,19 @@ export default function CustomerCommunications() {
                       Cancel
                     </Button>
                   )}
-                  {(d.status === 'failed' || (d.status === "blocked" &&
-                    !d.email_outbox_id &&
-                    !d.whatsapp_message_id)) && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          run(() => save(`/deliveries/${d.id}/retry`, {}))
-                        }
-                      >
-                        Retry
-                      </Button>
-                    )}
+                  {(d.status === "failed" ||
+                    (d.status === "blocked" &&
+                      !d.email_outbox_id &&
+                      !d.whatsapp_message_id)) && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        run(() => save(`/deliveries/${d.id}/retry`, {}))
+                      }
+                    >
+                      Retry
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
