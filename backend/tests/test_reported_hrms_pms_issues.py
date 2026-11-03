@@ -112,8 +112,12 @@ def test_active_member_count_separates_registered_and_disabled_people(db,actor):
     db.add(inactive);db.flush()
     person(db,'MEMBER-DISABLED',user_id=inactive.id,employment_type='Intern')
     person(db,'MEMBER-NO-LOGIN',employment_type='Intern')
-    result=dashboard(f={},user=actor,db=db)
-    assert result['total_interns']==3 and result['member_count']==1
+    staff=User(email='active-staff@example.test',hashed_password='unused',is_active=True)
+    db.add(staff);db.flush()
+    person(db,'MEMBER-STAFF',user_id=staff.id,employment_type='Full-time')
+    result=dashboard(f={"include_employees":True},user=actor,db=db)
+    assert result['total_interns']==4 and result['member_count']==2
+    assert result['active_intern_count']==1 and result['active_employee_count']==1
 
 def test_workspace_overview_loads_real_projects_tasks_and_members(client,db,superuser_headers):
     from tests.tenant_test_utils import assign_company

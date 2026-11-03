@@ -59,7 +59,9 @@ def context(db, user, company, selected=None):
             raise HTTPException(403, "Branch access is unavailable or revoked")
     else:
         home = db.connection().execute(select(Employee.branch_id).where(Employee.user_id == user.id, Employee.branch_id.in_(allowed), Employee.deleted_at.is_(None))).scalar()
-        branch_id = None if all_access else home if home in allowed else min(allowed) if allowed else None
+        # Default to a concrete destination, including for administrators.
+        # The explicit "all" selection remains available for cross-branch reads.
+        branch_id = home if home in writable else min(writable) if writable else home if home in allowed else min(allowed) if allowed else None
     return BranchContext(company, branch_id, frozenset(allowed), frozenset(writable), all_access, manager, bool(user.is_superuser))
 
 

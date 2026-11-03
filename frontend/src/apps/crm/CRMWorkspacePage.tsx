@@ -842,7 +842,7 @@ type InlineEditConfig = { type: InlineFieldType; apiField: string; options?: str
 const customFieldEntities = [
   { value: "leads", label: "Leads" },
   { value: "contacts", label: "Contacts" },
-  { value: "companies", label: "Accounts" },
+  { value: "companies", label: "Companies" },
   { value: "deals", label: "Deals" },
   { value: "quotations", label: "Quotations" },
   { value: "tasks", label: "Tasks" },
@@ -2662,8 +2662,10 @@ function PipelineStageSettingsRow({ stage, stages, dealCount, onUpdate, onDelete
   );
 }
 
-function CustomFieldsSettingsPage() {
-  const [entity, setEntity] = useState("leads");
+export function CustomFieldsSettingsPage() {
+  const location = useLocation();
+  const requestedEntity = new URLSearchParams(location.search).get("entity");
+  const [entity, setEntity] = useState(customFieldEntities.some(item => item.value === requestedEntity) ? requestedEntity! : "leads");
   const [fields, setFields] = useState<CRMApiRecord[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>({ entityType: "leads", fieldName: "", fieldKey: "", fieldType: "text", options: "", isRequired: false, isUnique: false, isVisible: true, isFilterable: false, displayOrder: 1 });
   const [loading, setLoading] = useState(true);
@@ -4168,6 +4170,7 @@ export function CRMContactsPage() {
     setEditingContact(contact);
     setFormMode("edit");
   };
+  useCreateIntent(kind => { if (kind === "contacts") openCreate(); });
   const closeForm = () => {
     setFormMode(null);
     setEditingContact(null);
@@ -4853,6 +4856,7 @@ function CRMAccountsPage() {
     setEditingAccount(account);
     setFormMode("edit");
   };
+  useCreateIntent(kind => { if (kind === "companies" || kind === "accounts") openCreate(); });
   const closeForm = () => {
     setFormMode(null);
     setEditingAccount(null);

@@ -140,6 +140,8 @@ class Settings(BaseSettings):
     CRM_WHATSAPP_APP_SECRET: str = Field(default="", repr=False)
     CRM_WHATSAPP_VERIFY_TOKEN: str = Field(default="", repr=False)
     CRM_WHATSAPP_ORGANIZATION_ID: int | None = None
+    CRM_WHATSAPP_APP_ID: str = ""
+    CRM_WHATSAPP_EMBEDDED_CONFIG_ID: str = ""
     CRM_GOOGLE_CALENDAR_CLIENT_ID: str = ""
     CRM_GOOGLE_CALENDAR_CLIENT_SECRET: str = ""
     CRM_GOOGLE_CALENDAR_REDIRECT_URI: str = ""

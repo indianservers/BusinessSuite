@@ -194,6 +194,7 @@ class CRMMessageSendPayload(BaseModel):
     whatsappTemplateName: str | None = None
     whatsappTemplateLanguage: str = "en_US"
     whatsappTemplateComponents: list[dict[str, Any]] | None = None
+    requestId: str | None = None
 
 
 class CRMMessageTemplatePayload(BaseModel):
@@ -5208,6 +5209,15 @@ def send_crm_message(
     if not body:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Message body is required")
 
+    from app.services import whatsapp_workspace as whatsapp_workspace
+    if channel == "whatsapp" and (whatsapp_workspace.connection_for(db, organization_id) is not None or settings.CRM_WHATSAPP_PROVIDER in {"meta", "meta_cloud", "cloud_api"}):
+        from app.api.v1.whatsapp_cloud import SendInput
+        meta_template = None
+        if payload.whatsappTemplateName:
+            meta_template = {"name":payload.whatsappTemplateName,"language":{"code":payload.whatsappTemplateLanguage}}
+            if payload.whatsappTemplateComponents: meta_template["components"] = payload.whatsappTemplateComponents
+        sent = whatsapp_workspace.send_message(db, current_user, SendInput(requestId=payload.requestId or secrets.token_hex(24), to=to_number, body=body, template=meta_template, entityType=entity_type, entityId=payload.entityId))
+        return _serialize(db.get(CRMMessage, sent.crm_message_id))
     provider = _message_provider(channel)
     if channel == "whatsapp" and provider.name == "meta" and settings.CRM_WHATSAPP_ORGANIZATION_ID != organization_id:
         raise HTTPException(403, "WhatsApp sender is not assigned to this organization")
@@ -8438,6 +8448,7 @@ def list_records(
     sort_by: str | None = None,
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     include_deleted: bool = False,
+    deleted_only: bool = False,
     owner_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
@@ -8451,7 +8462,13 @@ def list_records(
         result = list_items(source="crm", kind=selected, search=search or q or "", category="", status="all", workspace_id=None, sort=sort if sort in {"name", "price", "category", "code"} else "name", direction=sort_order, page=page, per_page=per_page, db=db, user=current_user)
         return {**result, "items": [legacy_output(item, db) for item in result["items"]], "page": page, "per_page": per_page}
     organization_id = _organization_id(db, current_user)
-    query = _base_query(db, resource, organization_id, include_deleted)
+    if deleted_only and _canonical_entity(entity) not in {"leads", "contacts", "companies", "deals"}:
+        raise HTTPException(422, "Recycle bin is available for leads, contacts, companies and deals")
+    if deleted_only:
+        _assert_entity_permission(entity, current_user, "manage")
+    query = _base_query(db, resource, organization_id, include_deleted or deleted_only)
+    if deleted_only:
+        query = query.filter(resource.model.deleted_at.isnot(None))
     query = _apply_record_visibility(query, resource, current_user, db)
     query = _apply_filters(query, resource, request, owner_id)
     query = _apply_custom_field_filters(db, query, resource, request, organization_id)
@@ -8489,6 +8506,51 @@ def list_records(
         "per_page": per_page,
         "pages": ceil(total / per_page) if total else 0,
     }
+
+
+@router.post("/{entity}/{record_id}/restore")
+def restore_record(
+    entity: str,
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
+):
+    canonical = _canonical_entity(entity)
+    if canonical not in {"leads", "contacts", "companies", "deals"}:
+        raise HTTPException(422, "Restore is available for leads, contacts, companies and deals")
+    resource = _get_resource(entity)
+    _assert_entity_permission(entity, current_user, "manage")
+    organization_id = _organization_id(db, current_user)
+    record = _get_record(db, resource, record_id, organization_id, include_deleted=True)
+    _assert_record_visible(db, resource, record_id, organization_id, current_user, include_deleted=True)
+    if record.deleted_at is None:
+        return _serialize(record)
+    # A merge transfers relationships to the survivor; restoring its source is not an undo.
+    merged = db.query(CRMActivity).filter(
+        CRMActivity.organization_id == organization_id,
+        CRMActivity.entity_type == _duplicate_entity_type(canonical),
+        CRMActivity.entity_id == record.id,
+        CRMActivity.activity_type == "duplicate_merge",
+    ).all()
+    if any((item.metadata_json or {}).get("loserId") == record.id for item in merged):
+        raise HTTPException(409, "This record was merged. Use the surviving record; merged records cannot be restored.")
+    before = _serialize(record)
+    # Restore only while its linked records remain valid and visible.
+    related = {key: getattr(record, key) for key in RELATED_RESOURCE_BY_FIELD if hasattr(record, key) and getattr(record, key) is not None}
+    _validate_related_records(db, related, organization_id)
+    for key, value in related.items():
+        _assert_record_visible(db, _get_resource(RELATED_RESOURCE_BY_FIELD[key]), value, organization_id, current_user)
+    record.deleted_at = None
+    record.updated_at = datetime.now(timezone.utc)
+    record.updated_by_user_id = current_user.id
+    if resource.model is CRMDeal:
+        record.version = (record.version or 0) + 1
+    _create_crm_audit_log(db, user_id=current_user.id, entity_type=canonical,
+                        entity_id=record.id, action="RESTORE", old_values=before,
+                        new_values=_serialize(record), description="CRM record restored from recycle bin")
+    db.commit()
+    db.refresh(record)
+    return _serialize(record)
 
 
 @router.get("/{entity}/{record_id}")

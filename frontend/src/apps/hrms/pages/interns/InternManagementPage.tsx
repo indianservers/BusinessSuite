@@ -768,6 +768,8 @@ export default function InternManagementPage({ page }: { page: Page }) {
               note={`${d.total_interns ?? 0} registered people across all statuses`}
               icon={Users}
             />
+            <Metric label="Active Interns" value={d.active_intern_count ?? "—"} note="Active or probation interns with active accounts" icon={Users} />
+            <Metric label="Active Employees" value={d.active_employee_count ?? "—"} note="Active members outside the intern employment type" icon={Users} />
             <Metric
               label="Active Batches"
               value={d.active_batches}

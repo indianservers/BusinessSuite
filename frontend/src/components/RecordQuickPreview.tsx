@@ -8,13 +8,13 @@ type Preview = { record: unknown; path: string };
 const label = (key: string) => key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " ").replace(/^./, c => c.toUpperCase());
 const privateField = /password|secret|token|credential|authorization|api[_-]?key/i;
 
-export function recordPreviewProps(record: unknown) {
+export function recordPreviewProps(record: unknown, path?: string) {
   return {
     onDoubleClickCapture: (event: MouseEvent<HTMLElement>) => {
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"], [role="checkbox"], [role="switch"]')) return;
       event.stopPropagation();
       event.preventDefault();
-      window.dispatchEvent(new CustomEvent<Preview>(eventName, { detail: { record, path: window.location.pathname } }));
+      window.dispatchEvent(new CustomEvent<Preview>(eventName, { detail: { record, path: path || window.location.pathname } }));
     },
   };
 }

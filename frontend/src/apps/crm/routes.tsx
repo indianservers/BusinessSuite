@@ -18,7 +18,11 @@ const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
 const GrowthWorkspace = React.lazy(() => import("./GrowthWorkspace"));
 const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
+const CRMRecordsPage = React.lazy(() => import("./CRMRecordsPage"));
+const CRMMetadataPage = React.lazy(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
 export const crmRoutes: FrontendRoute[] = [
+  { path: "crm/records", element: <CRMRecordsPage /> },
+  { path: "crm/record-metadata", element: <CRMMetadataPage /> },
   {path:"crm/product-customers",element:<GrowthWorkspace key="audience" mode="audience"/>},
   {path:"crm/customer-follow-ups",element:<GrowthWorkspace key="followups" mode="followups"/>},
   {path:"crm/greetings",element:<GrowthWorkspace key="greetings" mode="greetings"/>},

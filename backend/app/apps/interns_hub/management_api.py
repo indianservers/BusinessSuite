@@ -381,7 +381,11 @@ def dashboard(f=Depends(filters),user=Depends(require_admin),db:Session=Depends(
     recent=db.query(PMSActivity).filter(PMSActivity.task_id.in_(assignments.with_entities(PMSTaskAssignee.task_id))).order_by(PMSActivity.id.desc()).limit(8).all()
     workload=assignments.filter(PMSTaskAssignee.execution_status=="In Review").with_entities(PMSTaskAssignee.reviewer_user_id,func.count(PMSTaskAssignee.task_id)).group_by(PMSTaskAssignee.reviewer_user_id).all()
     member_ids=people.filter(Employee.status.in_(["Active","Probation"]),Employee.user_id.in_(db.query(User.id).filter(User.is_active.is_(True)))).with_entities(Employee.id)
+    intern_type=func.lower(func.trim(func.coalesce(Employee.employment_type,"")))=="intern"
+    active_people=people.filter(Employee.id.in_(member_ids))
     return {"member_count":member_ids.distinct().count(),"total_interns":people.with_entities(Employee.id).distinct().count(),"active_interns":people.filter(Employee.status.in_(["Active","Probation"])).count(),"pending_applications":apps,
+        "active_intern_count":active_people.filter(intern_type).with_entities(Employee.id).distinct().count(),
+        "active_employee_count":active_people.filter(~intern_type).with_entities(Employee.id).distinct().count(),
         "active_batches":bq.filter(InternBatch.status=="Active").count(),"upcoming_batches":bq.filter(InternBatch.status=="Upcoming").count(),"completed_batches":bq.filter(InternBatch.status=="Completed").count(),
         "assigned_tasks":assignments.count(),"unique_parent_tasks":assignments.with_entities(PMSTaskAssignee.task_id).distinct().count(),"metric_notes":{"assigned_tasks":"Individual uncancelled recipient execution rows; not unique tasks","completed_tasks":"Completed individual recipient execution rows"},"completed_tasks":assignments.filter(PMSTaskAssignee.execution_status=="Done").count(),"overdue":assignments.filter(func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date)<day,PMSTaskAssignee.execution_status.notin_(["Done","Completed","Closed","Resolved","Cancelled","Canceled"])).count(),
         "submissions_today":subs.filter(func.date(PMSWorkSubmission.created_at)==day).count(),"pending_reviews":pending,"average_score":round(float(average),1) if average is not None else None,

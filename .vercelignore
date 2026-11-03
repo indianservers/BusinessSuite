@@ -16,3 +16,15 @@ qa/
 Mockup images/
 docs/
 Flutter-Apps/
+recovery_backups/
+**/recovery_backups/
+intern-hub-private/
+**/intern-hub-private/
+.tmp/
+.ruff_cache/
+**/.ruff_cache/
+**/*.dump
+**/*.out.log
+**/*.err.log
+**/dist/
+frontend/public/models/operator-llm/

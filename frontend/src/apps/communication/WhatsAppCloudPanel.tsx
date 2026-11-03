@@ -1,45 +1,63 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import ConnectionPanel from "./whatsapp/ConnectionPanel";
+import TemplatesPanel from "./whatsapp/TemplatesPanel";
+import Composer from "./whatsapp/Composer";
+import { whatsappBase as base, whatsappError, type Status, type Template, type Contact, type Message } from "./whatsapp/types";
 
 export default function WhatsAppCloudPanel() {
-  const connection = useQuery({ queryKey: ["whatsapp-cloud-status"], queryFn: async () => (await api.get<{provider:string;configured:boolean;webhookConfigured:boolean}>("/integrations/whatsapp/status")).data });
-  const [record, setRecord] = useState("");
-  const [entity, setEntity] = useState("lead");
-  const [number, setNumber] = useState("");
-  const [country, setCountry] = useState("+91");
-  const [body, setBody] = useState("");
-  const [template, setTemplate] = useState("");
-  const [language, setLanguage] = useState("en_US");
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState("");
-  async function send() {
-    setBusy(true); setResult("");
-    try {
-      const response = await api.post<{status:string;failureReason?:string;failure_reason?:string}>("/crm/messages/send", {
-        channel:"whatsapp", entityType:entity, entityId:Number(record), to:number, country_code:country,
-        body:body || `Template: ${template}`, whatsappTemplateName:template || null, whatsappTemplateLanguage:language,
-      });
-      setResult(`Status: ${response.data.status}. ${response.data.failureReason || response.data.failure_reason || "Provider acceptance does not confirm delivery."}`);
-    } catch { setResult("Send failed. Check record access, sender organization, credentials, and recipient number. Avoid retrying an uncertain send until reconciled."); }
-    finally { setBusy(false); }
-  }
-  return <section className="space-y-4 rounded-lg border p-5">
-    <h2 className="text-lg font-semibold">WhatsApp Business</h2>
-    <p className="text-sm text-muted-foreground">Send to a customer from an accessible CRM record. Use an approved Meta template to start a conversation; free text requires an open customer service window.</p>
-    <p role="status" className="text-sm">{connection.isError ? "Connection status unavailable" : !connection.data ? "Checking connection…" : `Provider: ${connection.data.provider} · ${connection.data.configured ? "Credentials configured" : "Setup required"} · Webhook ${connection.data.webhookConfigured ? "configured" : "setup required"}`}</p>
-    <fieldset disabled={busy} className="grid gap-3 sm:grid-cols-2">
-      <label>Record type<select className="block w-full rounded border p-2" value={entity} onChange={e=>setEntity(e.target.value)}><option value="lead">Lead</option><option value="contact">Contact</option><option value="deal">Deal</option></select></label>
-      <label>Record ID<Input type="number" min="1" value={record} onChange={e=>setRecord(e.target.value)}/></label>
-      <label>Country code<Input value={country} onChange={e=>setCountry(e.target.value)}/></label>
-      <label>Recipient national number<Input type="tel" value={number} onChange={e=>setNumber(e.target.value)}/></label>
-      <label>Approved Meta template name (optional)<Input value={template} onChange={e=>setTemplate(e.target.value)} placeholder="hello_world"/></label>
-      <label>Template language<Input value={language} onChange={e=>setLanguage(e.target.value)}/></label>
-      {!template && <label className="sm:col-span-2">Message<textarea className="block min-h-24 w-full rounded border p-2" maxLength={4096} value={body} onChange={e=>setBody(e.target.value)}/></label>}
-    </fieldset>
-    <Button disabled={busy || !connection.data?.configured || connection.data.provider !== "meta" || Number(record)<1 || !number || !(template || body.trim())} onClick={()=>void send()}>{busy ? "Sending…" : "Send WhatsApp message"}</Button>
-    {result && <p role="status" className="text-sm">{result}</p>}
+  const user = useAuthStore(state => state.user);
+  const scope = `${user?.id}:${sessionStorage.getItem("suite-organization") || "default"}`;
+  return <WhatsAppWorkspace key={scope} scope={scope} />;
+}
+function WhatsAppWorkspace({ scope }: { scope: string }) {
+  const cache = useQueryClient();
+  const [tab, setTab] = useState("send"), [selected, setSelected] = useState<number | null>(null);
+  const [before, setBefore] = useState<number | undefined>(), [historyBefore, setHistoryBefore] = useState<number | undefined>();
+  const status = useQuery({ queryKey: ["whatsapp", scope, "status"], queryFn: async () => (await api.get<Status>(base + "/status")).data });
+  const templates = useQuery({ queryKey: ["whatsapp", scope, "templates"], enabled: !!status.data?.configured,
+    queryFn: async () => (await api.get<{ items: Template[]; hasMore: boolean }>(base + "/templates")).data });
+  const conversations = useQuery({ queryKey: ["whatsapp", scope, "conversations", before], enabled: !!status.data?.configured && tab === "inbox", refetchInterval: tab === "inbox" ? 15000 : false,
+    queryFn: async () => (await api.get<{ items: Contact[]; nextBefore: number | null }>(base + "/conversations", { params: { before } })).data });
+  const history = useQuery({ queryKey: ["whatsapp", scope, "history", selected, historyBefore], enabled: selected !== null && tab === "inbox", refetchInterval: tab === "inbox" ? 10000 : false,
+    queryFn: async () => (await api.get<{ contact: Contact; items: Message[]; nextBefore: number | null }>(base + `/conversations/${selected}/messages`, { params: { before: historyBefore } })).data });
+  async function refresh() { await cache.invalidateQueries({ queryKey: ["whatsapp", scope] }); }
+  if (status.isPending) return <p className="p-4 text-sm">Loading WhatsApp account…</p>;
+  if (status.isError || !status.data) return <p role="alert" className="p-4 text-sm">{whatsappError(status.error)}</p>;
+  const account = status.data;
+  return <section className="space-y-5">
+    <header className="rounded-xl border bg-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">WhatsApp Business</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{account.connection?.businessName || "Business Suite"} · {account.connection?.displayNumber || (account.configured ? "Deployment sender connected" : "No active sender")}</p></div>
+        <span className="rounded-full border px-3 py-1 text-xs">{account.connection?.status.replace(/_/g, " ") || (account.configured ? "connected" : "setup required")}</span></div>
+      <p className="mt-3 text-sm text-muted-foreground">Connect each organization’s own account. Customers pay Meta for messaging; Indian Servers provides the CRM and API software.</p>
+      {!account.webhookConfigured && <p className="mt-2 text-sm text-destructive">Webhook verification settings are incomplete for this deployment.</p>}
+    </header>
+    <nav aria-label="WhatsApp workspace" className="flex flex-wrap gap-2">{[["send", "Send message"], ["inbox", "Inbox & delivery"], ["templates", "Meta templates"], ...(account.canAdmin ? [["settings", "Account settings"]] : [])].map(([key, label]) => <Button key={key} variant={tab === key ? "default" : "outline"} onClick={() => setTab(key)}>{label}</Button>)}<Button variant="ghost" onClick={() => void refresh()}>Refresh</Button></nav>
+    {!account.configured && tab !== "settings" && <p className="rounded-xl border p-4 text-sm">An organization administrator must connect and verify a WhatsApp sender in Account settings.</p>}
+    {templates.isError && tab !== "settings" && <p role="alert" className="text-sm">Templates could not load: {whatsappError(templates.error)}</p>}
+    {templates.data?.hasMore && tab !== "settings" && <p className="text-xs text-muted-foreground">Showing the first 100 Meta templates.</p>}
+    {account.configured && tab === "send" && <Composer scope={scope} templates={templates.data?.items || []} admin={account.canAdmin} refresh={refresh} />}
+    {account.configured && tab === "templates" && <TemplatesPanel templates={templates.data?.items || []} admin={account.canAdmin} refresh={refresh} />}
+    {tab === "settings" && account.canAdmin && <ConnectionPanel status={account} refresh={refresh} />}
+    {account.configured && tab === "inbox" && <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+      <aside className="space-y-2 rounded-xl border p-3"><h3 className="mb-3 font-medium">Conversations</h3>
+        {conversations.isPending && <p className="text-sm">Loading conversations…</p>}
+        {conversations.isError && <p role="alert" className="text-sm">{whatsappError(conversations.error)}</p>}
+        {conversations.data?.items.map(contact => <button key={contact.id} className={`block w-full rounded-lg border p-3 text-left text-sm ${selected === contact.id ? "bg-muted" : ""}`} onClick={() => { setSelected(contact.id); setHistoryBefore(undefined); }}><strong className="block">{contact.name || "+" + contact.recipient}</strong><span className="text-xs">+{contact.recipient} · {contact.consent.replace(/_/g, " ")}</span></button>)}
+        {!conversations.isPending && !conversations.data?.items.length && <p className="text-sm">No accessible conversations on this page.</p>}
+        <div className="flex gap-2">{before && <Button size="sm" variant="outline" onClick={() => setBefore(undefined)}>Latest</Button>}{conversations.data?.nextBefore && <Button size="sm" variant="outline" onClick={() => setBefore(conversations.data!.nextBefore!)}>Older</Button>}</div>
+      </aside>
+      <div className="space-y-4">{!selected && <p className="rounded-xl border p-4 text-sm">Choose a conversation to view replies and delivery updates.</p>}
+        {history.isError && <p role="alert" className="text-sm">{whatsappError(history.error)}</p>}
+        {history.data && <><div className="space-y-3 rounded-xl border p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-medium">{history.data.contact.name || "+" + history.data.contact.recipient}</h3><span className="text-xs">{history.data.contact.entityType ? `CRM ${history.data.contact.entityType} ${history.data.contact.entityId}` : "Unlinked conversation · administrator access"}</span></div>
+          <div className="flex gap-2">{historyBefore && <Button size="sm" variant="outline" onClick={() => setHistoryBefore(undefined)}>Latest messages</Button>}{history.data.nextBefore && <Button size="sm" variant="outline" onClick={() => setHistoryBefore(history.data!.nextBefore!)}>Older messages</Button>}</div>
+          {history.data.items.map(message => <article key={message.id} className={`max-w-[90%] rounded-xl border p-3 ${message.direction === "outbound" ? "ml-auto bg-muted" : ""}`}><p className="whitespace-pre-wrap break-words text-sm">{message.body}</p><p className="mt-2 text-xs text-muted-foreground">{message.direction} · {message.status.replace(/_/g, " ")} · {new Date(message.createdAt).toLocaleString()}{message.errorCode ? ` · Meta ${message.errorCode}` : ""}</p></article>)}
+        </div><Composer key={selected} scope={scope} contact={history.data.contact} templates={templates.data?.items || []} admin={account.canAdmin} refresh={refresh} /></>}
+      </div>
+    </div>}
   </section>;
 }

@@ -11,6 +11,7 @@ import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useCreateIntent } from "@/hooks/use-create-intent";
 import {
   UserRound, UserRoundPlus, Zap, BarChart3, Target, Flag, FileText, ChevronRight, Building2,
   ArrowRight,
@@ -157,6 +158,7 @@ export default function LeadManagementPage() {
   const [revision, setRevision] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  useCreateIntent(kind => { if (kind === "leads") setCreateOpen(true); });
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [insights, setInsights] = useState(false);

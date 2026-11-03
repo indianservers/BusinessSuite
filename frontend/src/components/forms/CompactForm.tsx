@@ -53,12 +53,13 @@ function analyse(children: ReactNode) {
     });
   }
   walk(children, "root", "");
-  const groups: string[] = [], assignments = new Map<string, number>(); const sizes = new Map<string, number>();
+  const groups: string[] = [], assignments = new Map<string, number>();
+  // Keep related fields together; overflow categories share the fourth tab.
+  const categories = [...new Set([...units.values()].map(unit => unit.section))];
+  const groupLabels = categories.length > 4 ? [...categories.slice(0, 3), "More details"] : categories;
+  groups.push(...groupLabels);
   for (const [key, unit] of units) {
-    const count = sizes.get(unit.section) || 0; sizes.set(unit.section, count + 1);
-    const label = count >= 8 ? `${unit.section} (${Math.floor(count / 8) + 1})` : unit.section;
-    if (!groups.includes(label)) groups.push(label);
-    assignments.set(key, groups.indexOf(label));
+    assignments.set(key, Math.min(categories.indexOf(unit.section), 3));
   }
   for (const [id, key] of linkedInputs) { const label=linkedLabels.get(id),group=assignments.get(key); if(label && group !== undefined)assignments.set(label.path,group); }
   return { groups, assignments, enabled: !existingNavigation && (units.size >= 9 || sectionCount >= 2) && groups.length > 1 };

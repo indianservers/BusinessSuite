@@ -832,6 +832,7 @@ const crmNav: RoleNavItem[] = [
   { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },
   { label: "Leads", icon: Users, to: "/crm/leads", group: "Core" },
   { label: "Contacts", icon: UserRound, to: "/crm/contacts", group: "Core" },
+  { label: "Records management", icon: TableProperties, to: "/crm/records", group: "Core" },
   { label: "Customers / Companies", icon: Building2, to: "/crm/companies", group: "Core" },
   { label: "Deals", icon: DollarSign, to: "/crm/deals", group: "Sales" },
   { label: "Pipeline", icon: GitBranch, to: "/crm/pipeline", group: "Sales", badge: "Drag" },

@@ -387,3 +387,25 @@ def test_all_branch_reports_include_archived_history_but_cannot_modify_it(db):
     finally: cleanup()
     db.expire_all()
     assert db.get(CRMCompany, second.id).status == "Active"
+
+
+def test_default_all_access_context_has_writable_destination(db):
+    user, a, b, *_ = setup(db)
+    db.add(BranchPolicy(user_id=user.id, company_id=1, all_branches=True))
+    db.commit()
+    ctx = context(db, user, 1)
+    assert ctx.branch_id in ctx.writable
+    cleanup = install(db, user, ctx)
+    try:
+        item = CRMCompany(organization_id=1, name="Default branch customer")
+        db.add(item)
+        db.flush()
+        assert item.branch_id == ctx.branch_id
+        owner = db.connection().execute(select(BranchOwnership.branch_id).where(
+            BranchOwnership.resource_table == "crm_companies",
+            BranchOwnership.resource_key == str(item.id))).scalar()
+        assert owner == ctx.branch_id
+    finally:
+        cleanup()
+    assert context(db, user, 1, str(b.id)).branch_id == b.id
+    assert context(db, user, 1, "all").branch_id is None

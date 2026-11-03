@@ -93,10 +93,13 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
         {expanded && <ul id={panel} className="module-menu-links">{children.map(item => {
           const pages = menuPages(item), label = menuLabel(item), selected = isCurrent(item.to) || (!query.trim() && current?.to === item.to);
           const submenuId = `${panel}-${encodeURIComponent(item.to)}`;
-          const submenuOpen = submenus[item.to] ?? pages.some(page => page.to !== item.to && isCurrent(page.to));
+          const submenuOpen = submenus[item.to] ?? (selected || pages.some(page => isCurrent(page.to)));
           return <li key={item.to + item.label}>
             <div className={`module-menu-row ${selected ? "is-active" : ""}`}>
-              <Link to={workspacePageHref(item.to, location.search, workspaceId)} onClick={onNavigate} title={label} aria-label={label} aria-current={selected ? "page" : undefined}>
+              <Link to={workspacePageHref(item.to, location.search, workspaceId)} onClick={() => {
+                if (pages.length > 1) setSubmenus(previous => ({ ...previous, [item.to]: true }));
+                onNavigate();
+              }} title={label} aria-label={label} aria-current={selected ? "page" : undefined}>
                 <item.icon size={17} />{!collapsed && <span>{label}</span>}
               </Link>
               {!collapsed && !query.trim() && pages.length > 1 && <button type="button" className="module-menu-subtoggle" aria-label={`${submenuOpen ? "Collapse" : "Expand"} ${label} pages`} aria-expanded={submenuOpen} aria-controls={submenuId}

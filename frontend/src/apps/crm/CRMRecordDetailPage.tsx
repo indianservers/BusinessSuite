@@ -82,8 +82,8 @@ const detailConfig: Record<DetailKind, { entity: string; listPath: string; label
   accounts: {
     entity: "companies",
     listPath: "/crm/companies",
-    label: "Accounts",
-    singular: "Account",
+    label: "Companies",
+    singular: "Company",
     nameKeys: ["name", "email"],
     statusKeys: ["status", "account_type"],
     keyFields: ["name", "industry", "account_type", "status", "territory_id", "email", "phone", "city", "annual_revenue"],

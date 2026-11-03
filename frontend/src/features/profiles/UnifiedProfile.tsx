@@ -1,4 +1,4 @@
-import CompactForm from "@/components/forms/CompactForm";
+import CompactForm from "../../components/forms/CompactForm";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { PhoneInput } from "../../lib/validation/PhoneInput";
 import "./profiles.css";

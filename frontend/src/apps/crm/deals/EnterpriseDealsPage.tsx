@@ -1,4 +1,5 @@
 import CRMDataTransfer from "../CRMDataTransfer";
+import { useCreateIntent } from "@/hooks/use-create-intent";
 import DealsDataGrid, { dealGridSource } from "./DealsDataGrid";
 import {
   emptyQuery,
@@ -133,6 +134,7 @@ export default function EnterpriseDealsPage() {
   const [create, setCreate] = useState(false),
     [editing, setEditing] = useState<number>(),
     [transition, setTransition] = useState<{ id: number; stage?: number }>();
+  useCreateIntent(kind => { if (kind === "deals") setCreate(true); });
   const [selected, setSelected] = useState<number[]>([]),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");

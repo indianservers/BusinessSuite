@@ -57,6 +57,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.shared.whatsapp_models",
     "app.branches.models",
     "app.models.email_outbox",
     "app.apps.power_apps.models",

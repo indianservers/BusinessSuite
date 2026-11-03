@@ -9,6 +9,7 @@ from app.db.session import SessionLocal
 
 
 API_MODULE_PREFIXES = (
+    ("/api/v1/integrations/whatsapp", "crm"),
     ("/api/v1/crm", "crm"),
     ("/api/v1/srm", "srm"),
     ("/api/v1/fam/inventory", "inventory"),
@@ -36,6 +37,8 @@ ALWAYS_ALLOWED_PREFIXES = (
 class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
+        if path == "/api/v1/integrations/whatsapp/webhook":
+            return await call_next(request)
         if not path.startswith("/api/v1/"):
             return await call_next(request)
         if any(path.startswith(prefix) for prefix in ALWAYS_ALLOWED_PREFIXES):

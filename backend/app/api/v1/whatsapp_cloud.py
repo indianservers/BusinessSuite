@@ -2,7 +2,11 @@
 import hashlib
 import hmac
 import json
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from pydantic import BaseModel, Field, SecretStr, model_validator
+from typing import Literal
+from datetime import timedelta
+import secrets
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from app.core.config import settings
@@ -13,11 +17,18 @@ router = APIRouter(prefix="/integrations/whatsapp", tags=["WhatsApp Cloud"])
 
 
 @router.get("/status")
-def connection_status(user=Depends(RequirePermission("crm_manage", "crm_admin"))):
+def connection_status(db: Session = Depends(get_db), user=Depends(RequirePermission("crm_view", "crm_manage", "crm_admin"))):
+    from app.services import whatsapp_workspace as wa
+    row = wa.connection_for(db, wa.organization(user))
+    active = row is not None and row.status == 'connected'
+    deployment = row is None and wa.environment_available(wa.organization(user))
     return {
-        "provider": settings.CRM_WHATSAPP_PROVIDER,
-        "configured": bool(settings.CRM_WHATSAPP_ACCESS_TOKEN and settings.CRM_WHATSAPP_PHONE_NUMBER_ID and settings.CRM_WHATSAPP_ORGANIZATION_ID),
-        "webhookConfigured": bool(settings.CRM_WHATSAPP_VERIFY_TOKEN and settings.CRM_WHATSAPP_APP_SECRET and settings.CRM_WHATSAPP_ORGANIZATION_ID),
+        "provider": 'meta' if active or deployment else 'none',
+        "configured": active or deployment,
+        "connection": wa.connection_data(row) if row else None,
+        "canAdmin": wa.admin(user),
+        "onboardingConfigured": bool(settings.CRM_WHATSAPP_APP_ID and settings.CRM_WHATSAPP_EMBEDDED_CONFIG_ID and settings.CRM_WHATSAPP_APP_SECRET),
+        "webhookConfigured": bool(settings.CRM_WHATSAPP_VERIFY_TOKEN and settings.CRM_WHATSAPP_APP_SECRET),
         "webhookPath": "/api/v1/integrations/whatsapp/webhook",
     }
 
@@ -71,7 +82,7 @@ def apply_statuses(db, payload):
 
 @router.post("/webhook")
 async def receive(request: Request, db: Session = Depends(get_db)):
-    if not settings.CRM_WHATSAPP_APP_SECRET or not settings.CRM_WHATSAPP_ORGANIZATION_ID or not settings.CRM_WHATSAPP_BUSINESS_ACCOUNT_ID or not settings.CRM_WHATSAPP_PHONE_NUMBER_ID:
+    if not settings.CRM_WHATSAPP_APP_SECRET:
         raise HTTPException(503, "WhatsApp webhook is not configured")
     body = await request.body()
     expected = "sha256=" + hmac.new(settings.CRM_WHATSAPP_APP_SECRET.encode(), body, hashlib.sha256).hexdigest()
@@ -82,8 +93,294 @@ async def receive(request: Request, db: Session = Depends(get_db)):
         if not isinstance(payload, dict):
             raise ValueError()
         apply_statuses(db, payload)
+        from app.services.whatsapp_workspace import ingest
+        ingest(db, payload)
     except (ValueError, TypeError, AttributeError):
         db.rollback()
         raise HTTPException(400, "Invalid webhook payload") from None
     db.commit()
     return {"status": "received"}
+
+
+class ConnectionInput(BaseModel):
+    wabaId: str = Field(pattern=r'^\d{3,100}$')
+    phoneNumberId: str = Field(pattern=r'^\d{3,100}$')
+    accessToken: SecretStr = Field(min_length=40, max_length=5000)
+    registrationPin: SecretStr | None = None
+
+
+class CompleteOnboarding(BaseModel):
+    state: str = Field(min_length=20, max_length=200)
+    code: SecretStr = Field(min_length=5, max_length=10000)
+    wabaId: str = Field(pattern=r'^\d{3,100}$')
+    phoneNumberId: str = Field(pattern=r'^\d{3,100}$')
+    registrationPin: SecretStr | None = None
+
+
+class SendInput(BaseModel):
+    requestId: str = Field(min_length=10, max_length=100, pattern=r'^[A-Za-z0-9_-]+$')
+    to: str = Field(min_length=7, max_length=30)
+    body: str = Field(default='', max_length=4096)
+    template: dict | None = None
+    entityType: Literal['lead','contact','deal'] | None = None
+    entityId: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode='after')
+    def validate_message(self):
+        import re
+        if bool(self.entityType) != bool(self.entityId):
+            raise ValueError('Provide both CRM record type and ID')
+        if self.template:
+            if set(self.template)-{'name','language','components'} or not re.fullmatch(r'[a-z0-9_]{1,512}', str(self.template.get('name',''))):
+                raise ValueError('Choose a valid Meta template name')
+            language = self.template.get('language')
+            if not isinstance(language, dict) or not re.fullmatch(r'[A-Za-z_]{2,15}', str(language.get('code',''))):
+                raise ValueError('Choose a valid template language')
+            if 'components' in self.template and not isinstance(self.template['components'], list):
+                raise ValueError('Template components must be a list')
+        return self
+
+
+class ConsentInput(BaseModel):
+    to: str
+    status: Literal['opted_in','opted_out']
+    source: str = Field(min_length=3, max_length=250)
+    entityType: Literal['lead','contact','deal'] | None = None
+    entityId: int | None = Field(default=None, gt=0)
+
+
+class TemplateInput(BaseModel):
+    name: str = Field(pattern=r'^[a-z0-9_]{1,512}$')
+    language: str = Field(pattern=r'^[A-Za-z_]{2,15}$')
+    category: Literal['UTILITY','MARKETING']
+    body: str = Field(min_length=1, max_length=1024)
+    sampleValues: list[str] = Field(default_factory=list, max_length=20)
+
+
+def pin_value(value):
+    import re
+    pin = value.get_secret_value() if value else None
+    if pin and not re.fullmatch(r'\d{6}', pin):
+        raise HTTPException(422, 'WhatsApp registration PIN must contain six digits')
+    return pin
+
+
+def provider_error(error):
+    from app.services.whatsapp import MetaError
+    if isinstance(error, MetaError):
+        raise HTTPException(502, str(error)) from None
+    raise error
+
+
+@router.post('/connection')
+def connect(data: ConnectionInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    try:
+        return wa.connection_data(wa.save_connection(db, user, data.accessToken.get_secret_value(), data.wabaId, data.phoneNumberId, 'manual', pin_value(data.registrationPin)))
+    except RuntimeError as error:
+        provider_error(error)
+
+
+@router.post('/connection/environment')
+def use_environment(db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    if not wa.environment_available(wa.organization(user)):
+        raise HTTPException(409, 'No deployment sender is assigned to this organization')
+    try:
+        return wa.connection_data(wa.save_connection(db, user, settings.CRM_WHATSAPP_ACCESS_TOKEN, settings.CRM_WHATSAPP_BUSINESS_ACCOUNT_ID, settings.CRM_WHATSAPP_PHONE_NUMBER_ID, 'environment'))
+    except RuntimeError as error:
+        provider_error(error)
+
+
+@router.delete('/connection')
+def disconnect(db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppConnection, WhatsAppOnboarding
+    row = wa.connection_for(db, wa.organization(user), bootstrap=True)
+    if not row:
+        return {'status':'disconnected'}
+    # Subscriptions belong to the entire WABA, which may contain other senders.
+    # A tenant disconnect must never remove another sender's provider subscription.
+    remote = False
+    row.token_ciphertext, row.routing_key, row.status, row.subscribed = None, None, 'disconnected', False
+    for attempt in db.query(WhatsAppOnboarding).filter_by(organization_id=wa.organization(user), consumed_at=None).all():
+        attempt.consumed_at = wa.now()
+    from app.access.service import audit
+    audit(db, user, wa.organization(user), 'whatsapp.disconnected', 'WhatsApp account disconnected', after={'connection_id':row.id,'providerUnsubscribed':remote})
+    db.commit()
+    return {'status':'disconnected','providerUnsubscribed':remote,'note':None if remote else 'Disconnected locally. Remove the app in Meta to finish revoking provider access.'}
+
+
+@router.post('/onboarding/start')
+def start_onboarding(db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppOnboarding
+    if not settings.CRM_WHATSAPP_APP_ID or not settings.CRM_WHATSAPP_EMBEDDED_CONFIG_ID or not settings.CRM_WHATSAPP_APP_SECRET:
+        raise HTTPException(503, 'Meta Embedded Signup is not configured for this deployment')
+    attempts = db.query(WhatsAppOnboarding).filter(WhatsAppOnboarding.organization_id == wa.organization(user), WhatsAppOnboarding.actor_id == user.id, WhatsAppOnboarding.expires_at > wa.now()).all()
+    if len(attempts) >= 10:
+        raise HTTPException(429, 'Too many onboarding attempts; wait ten minutes')
+    state = secrets.token_urlsafe(32)
+    db.add(WhatsAppOnboarding(organization_id=wa.organization(user), actor_id=user.id, state_digest=hashlib.sha256(state.encode()).hexdigest(), expires_at=wa.now()+timedelta(minutes=10)))
+    db.commit()
+    return {'state':state,'appId':settings.CRM_WHATSAPP_APP_ID,'configId':settings.CRM_WHATSAPP_EMBEDDED_CONFIG_ID,'apiVersion':settings.CRM_WHATSAPP_API_VERSION,'version':'v4'}
+
+
+@router.post('/onboarding/complete')
+def complete_onboarding(data: CompleteOnboarding, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppOnboarding
+    from app.services.whatsapp import WhatsAppGraph
+    attempt = db.query(WhatsAppOnboarding).filter_by(organization_id=wa.organization(user), actor_id=user.id, state_digest=hashlib.sha256(data.state.encode()).hexdigest(), consumed_at=None).with_for_update().first()
+    if not attempt or wa.utc(attempt.expires_at) <= wa.now():
+        raise HTTPException(409, 'This signup session expired or was already used; restart Connect WhatsApp')
+    pin = pin_value(data.registrationPin)
+    attempt.consumed_at = wa.now()
+    db.commit()  # A one-use code is never automatically replayed after an uncertain exchange.
+    try:
+        result = WhatsAppGraph('').request('GET','oauth/access_token', params={'client_id':settings.CRM_WHATSAPP_APP_ID,'client_secret':settings.CRM_WHATSAPP_APP_SECRET,'code':data.code.get_secret_value()})
+        token = result.get('access_token')
+        if not isinstance(token, str) or len(token)<40:
+            raise HTTPException(502, 'Meta did not return a usable account token; restart signup')
+        return wa.connection_data(wa.save_connection(db, user, token, data.wabaId, data.phoneNumberId, 'embedded_signup', pin))
+    except RuntimeError as error:
+        provider_error(error)
+
+
+@router.get('/templates')
+def templates(db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.services.whatsapp import WhatsAppGraph
+    row = wa.live_connection(db, wa.organization(user))
+    try:
+        result = WhatsAppGraph(wa.connection_token(row)).request('GET',row.waba_id+'/message_templates',params={'fields':'id,name,status,language,category,components','limit':100})
+    except RuntimeError as error:
+        provider_error(error)
+    db.commit()
+    return {'items':result.get('data',[]),'hasMore':bool(result.get('paging',{}).get('next'))}
+
+
+@router.post('/templates', status_code=201)
+def create_template(data: TemplateInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    import re
+    from app.services import whatsapp_workspace as wa
+    from app.services.whatsapp import WhatsAppGraph
+    row = wa.live_connection(db, wa.organization(user))
+    parameters = sorted(set(int(p) for p in re.findall(r'\{\{(\d+)\}\}', data.body)))
+    if re.search(r'\{\{(?!\d+\}\})', data.body) or parameters != list(range(1,len(parameters)+1)) or len(data.sampleValues) != len(parameters):
+        raise HTTPException(422, 'Supply one sample value for each sequential body placeholder {{1}}, {{2}}, …')
+    component = {'type':'BODY','text':data.body}
+    if parameters: component['example'] = {'body_text':[data.sampleValues]}
+    try:
+        result = WhatsAppGraph(wa.connection_token(row)).request('POST',row.waba_id+'/message_templates',payload={'name':data.name,'language':data.language,'category':data.category,'components':[component]})
+    except RuntimeError as error:
+        provider_error(error)
+    from app.access.service import audit
+    audit(db, user, wa.organization(user), 'whatsapp.template_created', 'Template submitted to Meta', after={'name':data.name,'language':data.language})
+    db.commit()
+    return result
+
+
+@router.post('/messages', status_code=201)
+def send(data: SendInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    try:
+        return wa.message_data(wa.send_message(db, user, data))
+    except RuntimeError as error:
+        provider_error(error)
+
+
+@router.post('/consent')
+def consent(data: ConsentInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    row = wa.contact_for(db, wa.organization(user), wa.number(data.to))
+    if data.entityType and data.entityId:
+        wa.record_access(db, user, data.entityType, data.entityId)
+        if not row.entity_id: row.entity_type, row.entity_id = data.entityType, data.entityId
+    wa.contact_access(db, user, row)
+    row.consent, row.consent_source, row.consent_at = data.status, data.source.strip(), wa.now()
+    from app.access.service import audit
+    audit(db, user, wa.organization(user), 'whatsapp.consent_changed', 'Recipient consent updated', after={'contact_id':row.id,'status':data.status})
+    db.commit()
+    return wa.contact_data(row)
+
+
+@router.get('/conversations')
+def conversations(before: int | None = Query(None, gt=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppContact
+    query = db.query(WhatsAppContact).filter_by(organization_id=wa.organization(user), erased_at=None)
+    if before: query = query.filter(WhatsAppContact.id < before)
+    rows = query.order_by(WhatsAppContact.id.desc()).limit(limit).all()
+    items = []
+    for row in rows:
+        try:
+            wa.contact_access(db, user, row)
+            items.append(wa.contact_data(row))
+        except HTTPException as error:
+            if error.status_code not in {403,404}: raise
+    return {'items':items,'nextBefore':rows[-1].id if len(rows)==limit else None}
+
+
+@router.get('/conversations/{contact_id}/messages')
+def history(contact_id: int, before: int | None = Query(None, gt=0), limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppContact, WhatsAppMessage
+    contact = db.query(WhatsAppContact).filter_by(id=contact_id, organization_id=wa.organization(user), erased_at=None).first()
+    if not contact: raise HTTPException(404, 'Conversation not found')
+    wa.contact_access(db, user, contact)
+    query = db.query(WhatsAppMessage).filter_by(organization_id=wa.organization(user), contact_id=contact_id)
+    if before: query = query.filter(WhatsAppMessage.id < before)
+    rows = query.order_by(WhatsAppMessage.id.desc()).limit(limit).all()
+    return {'contact':wa.contact_data(contact),'items':[wa.message_data(r) for r in reversed(rows)],'nextBefore':rows[-1].id if len(rows)==limit else None}
+
+
+class LinkInput(BaseModel):
+    entityType: Literal['lead','contact','deal']
+    entityId: int = Field(gt=0)
+
+
+class RegistrationInput(BaseModel):
+    pin: SecretStr
+
+
+@router.post('/connection/check')
+def check_connection(db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.services.whatsapp import WhatsAppGraph
+    row = wa.connection_for(db, wa.organization(user), bootstrap=True)
+    if not row or row.status == 'disconnected': raise HTTPException(409, 'Connect WhatsApp first')
+    try:
+        details = wa.verify_assets(wa.connection_token(row), row.waba_id, row.phone_number_id)
+        row.display_number, row.business_name = details.get('display_phone_number'), details.get('verified_name')
+        row.status = 'connected' if details.get('status') == 'CONNECTED' else 'registration_required'
+        row.verified_at = wa.now()
+        db.commit()
+        return wa.connection_data(row)
+    except RuntimeError as error:
+        provider_error(error)
+
+
+@router.post('/connection/register')
+def register_phone(data: RegistrationInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.services.whatsapp import WhatsAppGraph
+    row = wa.connection_for(db, wa.organization(user))
+    if not row or row.status == 'disconnected': raise HTTPException(409, 'Connect WhatsApp first')
+    try:
+        WhatsAppGraph(wa.connection_token(row)).request('POST',row.phone_number_id+'/register',payload={'messaging_product':'whatsapp','pin':pin_value(data.pin)})
+        return check_connection(db, user)
+    except RuntimeError as error:
+        provider_error(error)
+
+
+@router.post('/conversations/{contact_id}/link')
+def link_conversation(contact_id: int, data: LinkInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppContact
+    row = db.query(WhatsAppContact).filter_by(id=contact_id, organization_id=wa.organization(user), erased_at=None).first()
+    if not row: raise HTTPException(404, 'Conversation not found')
+    wa.record_access(db, user, data.entityType, data.entityId)
+    row.entity_type, row.entity_id = data.entityType, data.entityId
+    db.commit()
+    return wa.contact_data(row)

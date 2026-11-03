@@ -219,6 +219,7 @@ export const crmApi = {
     api.get<CRMPaginatedResponse<T>>(`/crm/${entity}`, { params }),
   get: <T = CRMApiRecord>(entity: string, id: number) => api.get<T>(`/crm/${entity}/${id}`),
   related: <T = CRMApiRecord>(entity: string, id: number) => api.get<T>(`/crm/${entity}/${id}/related`),
+  restore: (entity: string, id: number) => api.post<CRMApiRecord>(`/crm/${entity}/${id}/restore`, {}),
   create: <T = CRMApiRecord>(entity: string, data: CRMApiRecord) => api.post<T>(`/crm/${entity}`, data),
   createPipelineStage: <T = CRMApiRecord>(pipelineId: number, data: CRMApiRecord) => api.post<T>(`/crm/pipelines/${pipelineId}/stages`, data),
   convertLead: <T = CRMApiRecord>(leadId: number, data: CRMApiRecord) => api.post<T>(`/crm/leads/${leadId}/convert`, data),
