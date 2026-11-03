@@ -1027,12 +1027,20 @@ def people(
     environment: str = "development", db: Session = Depends(get_db), user=Depends(view)
 ):
     validate_environment(db, user, environment)
-    from app.models.user import User
+    from app.models.user import User, Role, Permission
+    from app.access.models import AccessPolicy
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
     from app.core.tenant_boundary import company_ids
 
     items = []
     for candidate in (
-        db.query(User).filter_by(is_active=True).order_by(User.id).limit(200)
+        db.query(User).options(joinedload(User.role).joinedload(Role.permissions), joinedload(User.person))
+        .filter(User.is_active.is_(True), or_(
+            User.is_superuser.is_(True),
+            User.role.has(Role.permissions.any(Permission.name == "power_apps_approval_decide")),
+            User.id.in_(select(AccessPolicy.user_id).where(AccessPolicy.company_id == organization(user))),
+        )).order_by(User.id).limit(200)
     ):
         if organization(user) not in company_ids(db, candidate):
             continue

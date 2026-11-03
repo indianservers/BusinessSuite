@@ -163,10 +163,10 @@ def can_manage(user):
     )
 
 
-def employee_for(db, user):
+def employee_for(db, user, *, directory=None):
     if not is_app_enabled("hrms"):
         return None
-    employee = (
+    employee = directory["employees"].get(user.id) if directory is not None else (
         db.query(Employee)
         .filter(Employee.user_id == user.id, Employee.deleted_at.is_(None))
         .first()
@@ -187,7 +187,7 @@ def employee_tenant(employee):
     return 1
 
 
-def authorized_user(db, actor, ident=None, employee_id=None, write=False):
+def authorized_user(db, actor, ident=None, employee_id=None, write=False, *, directory=None):
     if employee_id is not None:
         employee = (
             db.query(Employee)
@@ -202,12 +202,12 @@ def authorized_user(db, actor, ident=None, employee_id=None, write=False):
                 "Link this employee to an active login account before managing the shared profile",
             )
         ident = employee.user_id
-    target = db.get(User, ident or actor.id)
+    target = directory["users"].get(ident or actor.id) if directory is not None else db.get(User, ident or actor.id)
     if not target or tenant(target) != tenant(actor):
         raise HTTPException(404, "Profile not found")
     if target.id != actor.id:
-        linked_employee = db.connection().execute(select(Employee.id).where(Employee.user_id == target.id, Employee.deleted_at.is_(None))).first()
-        if linked_employee and employee_for(db, target) is None:
+        linked_employee = target.id in directory["linked"] if directory is not None else db.connection().execute(select(Employee.id).where(Employee.user_id == target.id, Employee.deleted_at.is_(None))).first()
+        if linked_employee and employee_for(db, target, directory=directory) is None:
             # A CRM/PMS membership in this branch cannot turn a hidden employee
             # into an account-only profile and expose their home-branch HR data.
             raise HTTPException(404, 'Profile not found in your permitted scope')
@@ -224,7 +224,7 @@ def authorized_user(db, actor, ident=None, employee_id=None, write=False):
         grants = getattr(actor, '_suite_grants', None)
         hr = grants.get('hrms', {}) if grants is not None else {}
         if hr.get('enabled') and getattr(actor, '_suite_scope_active', False):
-            employee = employee_for(db, target)
+            employee = employee_for(db, target, directory=directory)
             if not employee and (hr.get('scope') != 'organization' or not can_manage(actor)):
                 raise HTTPException(404, 'Profile not found in your permitted scope')
             return target
@@ -232,7 +232,7 @@ def authorized_user(db, actor, ident=None, employee_id=None, write=False):
         if not actor.is_superuser and (
             actor.role.name if actor.role else ""
         ).lower() not in {"admin", "super_admin", "hr", "hr_admin", "hr_company_admin"}:
-            employee = employee_for(db, target)
+            employee = employee_for(db, target, directory=directory)
             if not employee:
                 raise HTTPException(
                     403,

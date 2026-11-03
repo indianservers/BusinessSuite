@@ -24,6 +24,19 @@ def approval_actor_actions(request):
 ROOT = "/api/v1/power-apps/approvals"
 
 
+def test_people_keeps_central_approvers_and_skips_unprivileged_accounts(client, db, actors):
+    from app.models.user import Role
+    central = db.query(User).filter_by(email="power-3@example.com").one()
+    central.role_id = db.query(Role).filter_by(name="power_viewer").one().id
+    db.commit()
+    response = client.get(ROOT + "/people", headers=actors[0])
+    assert response.status_code == 200, response.text
+    ids = {item["id"] for item in response.json()["items"]}
+    assert central.id in ids
+    for email in ["power-1@example.com", "power-2@example.com", "power-4@example.com"]:
+        assert db.query(User).filter_by(email=email).one().id not in ids
+
+
 def users(db):
     return [
         db.query(User).filter_by(email=f"power-{i}@example.com").one().id
