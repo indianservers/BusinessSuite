@@ -201,6 +201,10 @@ def test_branch_guard_keeps_configuration_shared_and_conversations_private(works
             assert wa.connection_for(db,company) is not None
             assert db.query(WhatsAppContact).count()==expected
             assert db.query(WhatsAppMessage).count()==expected
+            from app.api.v1.whatsapp_cloud import conversations
+            result=conversations(before=None,limit=50,db=db,user=user,search='',linked=None)
+            assert len(result['items'])==expected
+            if expected: assert result['items'][0]['lastMessage']['body']=='Hello'
         finally:cleanup()
 
 
