@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
 import { LeadAnalytics, errorMessage, leadsApi } from "./api";
@@ -55,7 +56,7 @@ export function LeadAnalyticsPanel({
               </thead>
               <tbody>
                 {data.stageHistory.map((stage) => (
-                  <tr key={stage.stage}>
+                  <tr {...recordPreviewProps(stage)} key={stage.stage}>
                     <td>{stage.stage}</td>
                     <td>{stage.leadsEverInStage}</td>
                     <td>
@@ -83,7 +84,7 @@ export function LeadAnalyticsPanel({
               </thead>
               <tbody>
                 {data.byOwner.map((owner) => (
-                  <tr key={owner.key}>
+                  <tr {...recordPreviewProps(owner)} key={owner.key}>
                     <td>
                       {owners.find((o) => o.id === Number(owner.key))?.name ||
                         (owner.key === "unassigned"

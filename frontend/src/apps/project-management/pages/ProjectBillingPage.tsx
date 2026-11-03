@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useAuthStore } from "@/store/authStore";
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -147,7 +148,7 @@ export function CommercialIdentityForm({
       }),
   });
   return (
-    <form
+    <CompactForm
       className="grid gap-4 sm:grid-cols-2"
       onSubmit={(e) => {
         e.preventDefault();
@@ -283,7 +284,7 @@ export function CommercialIdentityForm({
         </p>
       )}
       {save.isSuccess && <p role="status">Billing identity saved.</p>}
-    </form>
+    </CompactForm>
   );
 }
 
@@ -407,7 +408,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
             <CardTitle>Create invoice draft</CardTitle>
           </CardHeader>
           <CardContent>
-            <form
+            <CompactForm
               className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -606,7 +607,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
                   </p>
                 )}
               </fieldset>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
       )}

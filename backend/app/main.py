@@ -98,6 +98,10 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
+    follow_up_worker = None
+    if is_app_enabled("crm") or is_app_enabled("srm"):
+        from app.shared.follow_ups import start_worker
+        follow_up_worker = start_worker()
     backup_worker = None
     email_worker = None
     if settings.EMAIL_WORKER_ENABLED:
@@ -109,6 +113,8 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        if follow_up_worker:
+            follow_up_worker[0].set()
         if email_worker:
             email_worker[0].set()
         if backup_worker:

@@ -88,6 +88,7 @@ export type CRMDuplicateGroup = CRMApiRecord & {
   reasons: string[];
   matchingFields: string[];
   recordIds: number[];
+  manualSelection?: boolean;
   records: CRMApiRecord[];
   pairs?: CRMApiRecord[];
 };

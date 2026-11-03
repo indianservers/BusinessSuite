@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
@@ -217,7 +218,7 @@ export default function AiSecurityPage() {
                 </thead>
                 <tbody>
                   {data.policy.tools.map((t: any) => (
-                    <tr key={t.id}>
+                    <tr {...recordPreviewProps(t)} key={t.id}>
                       <td>
                         {t.id}
                         <small className="block">v{t.version}</small>
@@ -301,7 +302,7 @@ export default function AiSecurityPage() {
                 </thead>
                 <tbody>
                   {data.logs.items.map((row: any) => (
-                    <tr key={row.id}>
+                    <tr {...recordPreviewProps(row)} key={row.id}>
                       <td>{new Date(row.created_at).toLocaleString()}</td>
                       <td>
                         #{row.user_id}

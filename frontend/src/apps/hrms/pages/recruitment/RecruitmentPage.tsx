@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
@@ -182,7 +184,7 @@ export default function RecruitmentPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">New Job Posting</CardTitle></CardHeader>
           <CardContent>
-            <form
+            <CompactForm
               onSubmit={handleJobSubmit((data) => createJobMutation.mutate(data))}
               className="grid grid-cols-1 sm:grid-cols-2 gap-4"
             >
@@ -224,7 +226,7 @@ export default function RecruitmentPage() {
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowJobForm(false)}>Cancel</Button>
               </div>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
       )}
@@ -340,7 +342,7 @@ export default function RecruitmentPage() {
                   <tbody>
                     {loadingCandidates ? (
                       Array.from({ length: 8 }).map((_, i) => (
-                        <tr key={i} className="border-b">
+                        <tr {...recordPreviewProps(_)} key={i} className="border-b">
                           <td colSpan={6} className="px-4 py-3"><div className="h-4 skeleton rounded" /></td>
                         </tr>
                       ))
@@ -353,7 +355,7 @@ export default function RecruitmentPage() {
                       </tr>
                     ) : (
                       (candidates as Candidate[]).map((c) => (
-                        <tr key={c.id} className="border-b hover:bg-muted/30">
+                        <tr {...recordPreviewProps(c)} key={c.id} className="border-b hover:bg-muted/30">
                           <td className="px-4 py-3">
                             <p className="font-medium">{c.name}</p>
                             <p className="text-xs text-muted-foreground">{c.email}</p>

@@ -1,3 +1,6 @@
+import CompactForm from "@/components/forms/CompactForm";
+import CustomerFollowUps from "@/shared/follow-ups/CustomerFollowUps";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import CatalogAssociations from "@/shared/catalog/CatalogLinesEditor";
 import {dealError} from "./deals/deal-utils";
 import {useAuthStore} from "@/store/authStore";
@@ -359,6 +362,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
         <span className="text-foreground">{title}</span>
       </nav>
 
+      {record && kind === "accounts" && <CustomerFollowUps customerId={recordId}/>}
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       {loading ? <div className="rounded-md border bg-card px-4 py-8 text-center text-sm text-muted-foreground">Loading {config.singular.toLowerCase()} details...</div> : null}
 
@@ -408,7 +412,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
             <main className="space-y-5">
-              {(["leads", "accounts", "deals"].includes(kind)) && <CatalogAssociations source="crm" target={kind === "leads" ? "lead" : kind === "deals" ? "deal" : "customer"} id={recordId} currency={kind === "deals" ? String(record.currency || "INR") : undefined}/>}
+              {(["leads", "contacts", "accounts", "deals"].includes(kind)) && <CatalogAssociations source="crm" target={kind === "leads" ? "lead" : kind === "contacts" ? "contact" : kind === "deals" ? "deal" : "customer"} id={recordId} currency={kind === "deals" ? String(record.currency || "INR") : undefined}/>}
               {(["accounts", "contacts", "deals"].includes(kind)) && <CustomerCommercialHistory customerId={Number(record.shared_customer_id || (kind === "accounts" ? recordId : 0) || record.company_id || record.companyId || 0)} />}
               <DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving} />
               {kind === "deals" ? <CommercialHandoff related={record.related || {}} /> : null}
@@ -556,12 +560,12 @@ function CustomPhoneField({field,onSave}:{field:CustomFieldDetail;onSave:(field:
   const [number,setNumber]=useState(valueText(pair?.national_number ?? field.value));
   const [code,setCode]=useState(valueText(pair?.country_code) || (field.value ? '' : '+91'));
   const [busy,setBusy]=useState(false);const [error,setError]=useState('');
-  return <form className="space-y-2 rounded-md border p-3" onSubmit={event=>{event.preventDefault();if(busy)return;setBusy(true);setError('');void onSave(field,{national_number:number,country_code:code}).catch(()=>setError('Check the phone number and country code.')).finally(()=>setBusy(false));}}>
+  return <CompactForm className="space-y-2 rounded-md border p-3" onSubmit={event=>{event.preventDefault();if(busy)return;setBusy(true);setError('');void onSave(field,{national_number:number,country_code:code}).catch(()=>setError('Check the phone number and country code.')).finally(()=>setBusy(false));}}>
     <label className="text-sm font-medium">{valueText(field.label || field.field_key)}</label>
     <PhoneInput label={valueText(field.label || field.field_key)} value={number} countryCode={code} onChange={setNumber} onCountryCodeChange={setCode} disabled={busy}/>
     {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
     <Button size="sm" disabled={busy}>Save phone</Button>
-  </form>;
+  </CompactForm>;
 }
 
 function CustomFields({ fields, onSave }: { fields: CustomFieldDetail[]; onSave: (field: CustomFieldDetail, value: CRMApiValue) => Promise<unknown> }) {
@@ -906,7 +910,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
                 </thead>
                 <tbody>
                   {preview.fields.map((field) => (
-                    <tr key={field.key} className="border-t">
+                    <tr {...recordPreviewProps(field)} key={field.key} className="border-t">
                       <td className="px-3 py-2"><input type="checkbox" disabled={!field.supported || !field.changed} checked={Boolean(selected[field.key])} onChange={(event) => setSelected((current) => ({ ...current, [field.key]: event.target.checked }))} /></td>
                       <td className="px-3 py-2 font-medium">{field.label}</td>
                       <td className="px-3 py-2">{valueText(field.oldValue) || "-"}</td>

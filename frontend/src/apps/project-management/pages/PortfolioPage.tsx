@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -169,7 +170,7 @@ export default function PortfolioPage() {
                 </thead>
                 <tbody>
                   {projects.map((project) => (
-                    <tr key={project.id} className="cursor-pointer border-b hover:bg-muted/50" onClick={() => navigate(`/pms/projects/${project.id}`)}>
+                    <tr {...recordPreviewProps(project)} key={project.id} className="cursor-pointer border-b hover:bg-muted/50" onClick={() => navigate(`/pms/projects/${project.id}`)}>
                       <td className="p-3">
                         <p className="font-semibold">{project.name}</p>
                         <p className="text-xs text-muted-foreground">{project.project_key}</p>

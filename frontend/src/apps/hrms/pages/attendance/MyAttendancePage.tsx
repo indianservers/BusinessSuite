@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Clock } from "lucide-react";
@@ -21,7 +22,7 @@ type AttendanceRow = {
 };
 
 function isoDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
 }
 
 export default function MyAttendancePage() {
@@ -130,7 +131,7 @@ export default function MyAttendancePage() {
               </thead>
               <tbody>
                 {rows.map((row, index) => (
-                  <tr key={row.id || `${row.date}-${index}`} className="border-b last:border-0">
+                  <tr {...recordPreviewProps(row)} key={row.id || `${row.date}-${index}`} className="border-b last:border-0">
                     <td className="py-3 pr-4">{row.attendance_date || row.date || "-"}</td>
                     <td className="py-3 pr-4"><Badge className={statusColor(row.status || "Not Marked")}>{row.status || "Not Marked"}</Badge></td>
                     <td className="py-3 pr-4">{row.hours_worked ?? "-"}</td>

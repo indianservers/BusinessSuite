@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -29,7 +30,7 @@ export default function DirectoryTable({ people, selected, onSelect, onTogglePag
       <thead className="sticky top-0 z-10 bg-background"><tr><th className="sticky left-0 bg-background p-3"><PageSelection people={people} selected={selected} onToggle={onTogglePage} /></th>
         <th className="p-3 capitalize" aria-sort={direction("name")}>{sortButton("name")}</th>
         {visible.map(c => <th key={c} className="p-3 capitalize" aria-sort={direction(c)}>{["email", "status"].includes(c) ? sortButton(c) : c}</th>)}
-      </tr></thead><tbody>{people.map(person => <tr key={person.id} className="border-t">
+      </tr></thead><tbody>{people.map(person => <tr {...recordPreviewProps(person)} key={person.id} className="border-t">
         <td className="sticky left-0 bg-background p-3"><input type="checkbox" aria-label={`Select ${person.email}`} disabled={person.status !== "active"} checked={selected.includes(person.id)} onChange={() => onSelect(person)} /></td>
         <td className="p-3"><Link className="font-semibold text-primary" to={`/pms/people/${person.id}?returnTo=${encodeURIComponent(backTo)}`}>{person.name}</Link><small className="block">{person.classification}</small></td>
         {visible.map(c => <td key={c} className="p-3">{c === "status" ? <><span>{person.status === "active" ? "Login enabled" : "Login disabled"}</span>{person.employment_status && <small className="block">{person.classification}: {person.employment_status}</small>}</> : ["teams", "batches", "workspaces"].includes(c) ? (person[c as "teams" | "batches" | "workspaces"] || []).map(p => p.name).join(", ") || "—" : String(person[c as "email" | "department"] || "—")}</td>)}

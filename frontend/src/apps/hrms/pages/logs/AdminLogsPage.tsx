@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
 import type React from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -150,7 +151,7 @@ export default function AdminLogsPage() {
               </thead>
               <tbody>
                 {(fieldAudit.data || []).map((event) => (
-                  <tr key={event.id} className="border-b">
+                  <tr {...recordPreviewProps(event)} key={event.id} className="border-b">
                     <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{new Date(event.created_at).toLocaleString()}</td>
                     <td className="px-3 py-2">{event.module}</td>
                     <td className="px-3 py-2">{event.employee_id ?? "-"}</td>
@@ -225,7 +226,7 @@ export default function AdminLogsPage() {
               </thead>
               <tbody>
                 {(logs.data || []).map((log) => (
-                  <tr key={log.id} className="border-b align-top">
+                  <tr {...recordPreviewProps(log)} key={log.id} className="border-b align-top">
                     <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{new Date(log.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3 font-medium">{log.method}</td>
                     <td className="max-w-[300px] truncate px-4 py-3">{log.endpoint}</td>

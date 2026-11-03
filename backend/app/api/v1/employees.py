@@ -815,7 +815,12 @@ def employee_filter_options(
     for key, column in {"city": Employee.present_city, "state": Employee.present_state,
                         "employment_type": Employee.employment_type, "worker_type": Employee.worker_type,
                         "work_location": Employee.work_location, "gender": Employee.gender, "status": Employee.status}.items():
-        result[key] = sorted({value.strip() for (value,) in query.with_entities(column).distinct() if value and value.strip()}, key=str.casefold)
+        labels = {}
+        for (value,) in query.with_entities(column).distinct():
+            if value and value.strip():
+                label = " ".join(value.split())
+                labels.setdefault(label.casefold(), label)
+        result[key] = sorted(labels.values(), key=str.casefold)
     education = db.query(EmployeeEducation).join(Employee).filter(Employee.deleted_at.is_(None))
     for key, column in {"passout_year": EmployeeEducation.pass_year, "college": EmployeeEducation.institution,
                         "degree": EmployeeEducation.degree, "specialization": EmployeeEducation.specialization}.items():

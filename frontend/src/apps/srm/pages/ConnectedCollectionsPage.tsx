@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -52,7 +53,7 @@ export function InvoicePaymentForm({
         {invoice.balance_amount}. The receipt uses this invoice's seller and
         currency.
       </p>
-      <form
+      <CompactForm
         className="flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault();
@@ -90,7 +91,7 @@ export function InvoicePaymentForm({
         <Button type="submit" disabled={save.isPending || !amount}>
           Record received payment
         </Button>
-      </form>
+      </CompactForm>
       {save.isError && (
         <p role="alert">
           {(save.error as any)?.response?.data?.detail ||

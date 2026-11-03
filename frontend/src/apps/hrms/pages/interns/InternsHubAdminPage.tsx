@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -194,7 +195,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   <CardTitle>Assign Task</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <form
+                  <CompactForm
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -280,7 +281,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       </div>
                     ))}
                     <Button disabled={mutation.isPending}>Assign Task</Button>
-                  </form>
+                  </CompactForm>
                 </CardContent>
               </Card>
               <Card>
@@ -363,7 +364,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                             </a>
                           ))}
                         </div>
-                        <form
+                        <CompactForm
                           className="grid gap-4 sm:grid-cols-2"
                           onSubmit={(e) => {
                             e.preventDefault();
@@ -420,7 +421,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                               Save Review
                             </Button>
                           </div>
-                        </form>
+                        </CompactForm>
                       </CardContent>
                     </Card>
                   );
@@ -471,7 +472,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   Publish learning resources and assessments for a department,
                   or make them available to all interns.
                 </p>
-                <form
+                <CompactForm
                   className="space-y-4"
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -705,7 +706,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       Publish Module
                     </Button>
                   </div>
-                </form>
+                </CompactForm>
               </CardContent>
             </Card>
           )}
@@ -715,7 +716,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                 <CardTitle>Issue Certificate</CardTitle>
               </CardHeader>
               <CardContent>
-                <form
+                <CompactForm
                   className="flex flex-wrap items-end gap-4"
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -763,7 +764,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   <Button disabled={mutation.isPending}>
                     Issue Certificate
                   </Button>
-                </form>
+                </CompactForm>
                 <p className="my-4 text-sm text-muted-foreground">
                   Final internship certificates require all assigned tasks to be
                   completed and reviewed.
@@ -787,7 +788,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   </CardHeader>
                   <CardContent>
                     <div className="mb-4 whitespace-pre-line text-sm"><RichTextContent legacyFormat="plain" value={t.message}/></div>
-                    <form
+                    <CompactForm
                       className="space-y-3"
                       onSubmit={(e) => {
                         e.preventDefault();
@@ -812,7 +813,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       <Button disabled={mutation.isPending}>
                         Reply & Resolve
                       </Button>
-                    </form>
+                    </CompactForm>
                   </CardContent>
                 </Card>
               ))}

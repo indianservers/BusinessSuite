@@ -28,10 +28,8 @@ def primary_company(user):
 def companies_for(db, user):
     if not schema_ready(db):
         return {primary_company(user)}
-    return {primary_company(user)} | {
-        row.company_id
-        for row in db.query(AccessMembership).filter_by(user_id=user.id, active=True)
-    }
+    memberships = db.query(AccessMembership).filter_by(user_id=user.id).all()
+    return ({primary_company(user)} | {row.company_id for row in memberships if row.active}) - {row.company_id for row in memberships if not row.active}
 
 
 def policy_for(db, user, company):
@@ -57,6 +55,9 @@ def legacy_grants(db, user, company=None):
     for module in catalog(db):
         module_names = {p["name"] for p in module["permissions"]}
         selected = sorted(names & module_names)
+        if module["key"] == "crm":
+            from app.access.feature_permissions import expand_crm_features
+            selected = expand_crm_features(selected)
         by_module[module["key"]] = {
             "enabled": bool(selected or user.is_superuser),
             "role": user.role.name if user.role else "Legacy",
@@ -110,6 +111,12 @@ def resolved_grants(db, policy):
                     actions=role.actions,
                     scope=grant.get("scope") or role.scope,
                 )
+    # Preserve native broad CRM semantics while allowing a branch to narrow
+    # those rights to individual features. A role label alone grants nothing.
+    crm = grants.get("crm", {})
+    if crm.get("enabled"):
+        from app.access.feature_permissions import expand_crm_features
+        crm["permissions"] = expand_crm_features(crm.get("permissions", []))
     from app.access.entitlements import apply
 
     return apply(db, policy.company_id, grants)

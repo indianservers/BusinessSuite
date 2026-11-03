@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Download, FileUp, Plus, RefreshCw, Send, ShieldCheck } from "lucide-react";
@@ -335,7 +336,7 @@ export default function InvestmentDeclarationPage() {
                     </thead>
                     <tbody>
                       {selected.items.map((item) => (
-                        <tr key={item.id} className="border-t align-top">
+                        <tr {...recordPreviewProps(item)} key={item.id} className="border-t align-top">
                           <td className="px-3 py-2">
                             <p className="font-medium">{item.categoryName}</p>
                             <p className="text-xs text-muted-foreground">{item.section}</p>

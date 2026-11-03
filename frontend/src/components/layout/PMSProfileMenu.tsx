@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
 import * as Menu from "@radix-ui/react-dropdown-menu";
@@ -446,7 +447,7 @@ export default function PMSProfileMenu({
               <X size={18} />
             </button>
             {panel === "status" && (
-              <form
+              <CompactForm
                 onSubmit={(e) => {
                   e.preventDefault();
                   save({
@@ -511,10 +512,10 @@ export default function PMSProfileMenu({
                   </button>
                   <button className="pms-profile-primary">Save status</button>
                 </footer>
-              </form>
+              </CompactForm>
             )}
             {panel === "notes" && (
-              <form
+              <CompactForm
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (save({ notes })) setPanel("");
@@ -541,7 +542,7 @@ export default function PMSProfileMenu({
                   </button>
                   <button className="pms-profile-primary">Save notes</button>
                 </footer>
-              </form>
+              </CompactForm>
             )}
             {panel === "notifications" && (
               <div className="pms-profile-alerts">

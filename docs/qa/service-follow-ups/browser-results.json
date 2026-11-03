@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "created": 1,
+  "errors": [],
+  "checks": [
+    "dashboard",
+    "manual creation",
+    "shared grid",
+    "POS category visibility",
+    "service tab filter",
+    "mobile layout"
+  ]
+}

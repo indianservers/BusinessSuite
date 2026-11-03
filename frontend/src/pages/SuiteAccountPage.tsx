@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
@@ -74,7 +75,7 @@ export default function SuiteAccountPage() {
         <p>
           Change your password. Your organization’s password policy applies.
         </p>
-        <form
+        <CompactForm
           className="suite-form"
           onSubmit={(event) => {
             event.preventDefault();
@@ -130,7 +131,7 @@ export default function SuiteAccountPage() {
           <button className="suite-primary" disabled={changePassword.isPending}>
             {changePassword.isPending ? "Saving…" : "Change password"}
           </button>
-        </form>
+        </CompactForm>
       </section>
     </SuitePageShell>
   );

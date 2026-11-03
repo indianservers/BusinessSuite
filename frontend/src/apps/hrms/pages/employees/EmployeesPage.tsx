@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { ImportWizard, DataExportButton } from "@/shared/data-transfer";
 import { employeeImportFields } from "@/shared/data-transfer/fields";
 import {useHRSession} from "../../workbench/useHRSession";
@@ -347,7 +348,7 @@ export default function EmployeesPage() {
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
+                <tr {...recordPreviewProps(headerGroup)} key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
@@ -362,7 +363,7 @@ export default function EmployeesPage() {
             <tbody>
               {isLoading ? (
                 Array.from({ length: 10 }).map((_, i) => (
-                  <tr key={i} className="border-b">
+                  <tr {...recordPreviewProps(_)} key={i} className="border-b">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 skeleton rounded-full" />
@@ -392,7 +393,7 @@ export default function EmployeesPage() {
                 </tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr
+                  <tr {...recordPreviewProps(row)}
                     key={row.id}
                     className="cursor-pointer border-b transition-colors hover:bg-muted/30"
                     onClick={() => setEmployeePopup({ employee: row.original, editing: false })}

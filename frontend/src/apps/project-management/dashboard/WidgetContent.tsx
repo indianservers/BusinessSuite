@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -125,7 +126,7 @@ export function DataTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={String(row.id ?? i)}>
+            <tr {...recordPreviewProps(row)} key={String(row.id ?? i)}>
               <td>
                 {row.url ? (
                   <Link to={row.url}>{row.title || row.name}</Link>
@@ -290,7 +291,7 @@ export default function WidgetContent({
           </thead>
           <tbody>
             {series.map((row) => (
-              <tr key={row.name}>
+              <tr {...recordPreviewProps(row)} key={row.name}>
                 <td>
                   <button onClick={() => onDrill(row.name)}>{row.name}</button>
                 </td>

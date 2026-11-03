@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { InvoicePaymentForm } from "./ConnectedCollectionsPage";
 import { useAuthStore } from "@/store/authStore";
@@ -227,7 +228,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           <Link className="text-primary underline" to="/fam/vouchers">
             Open Accounting vouchers
           </Link>
-          <form
+          <CompactForm
             className="mt-4 flex flex-wrap items-end gap-3"
             onSubmit={(e) => {
               e.preventDefault();
@@ -258,7 +259,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
                   "Unable to cancel this invoice"}
               </p>
             )}
-          </form>
+          </CompactForm>
         </details>
       )}
     </div>
@@ -282,7 +283,7 @@ function DraftLineEditor({
   return (
     <details className="mt-2">
       <summary className="cursor-pointer text-primary">Edit draft line</summary>
-      <form
+      <CompactForm
         className="mt-2 grid gap-2 sm:grid-cols-6"
         onSubmit={(event) => {
           event.preventDefault();
@@ -318,7 +319,7 @@ function DraftLineEditor({
               "Line could not be saved"}
           </p>
         )}
-      </form>
+      </CompactForm>
     </details>
   );
 }

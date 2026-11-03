@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
 import BranchSwitcher from "@/components/suite/BranchSwitcher";
 import PageRefreshButton from "@/components/app/PageRefreshButton";
@@ -171,7 +172,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <Dialog.Description className="mt-1 text-sm text-muted-foreground">
               Enter your current password and choose a new one.
             </Dialog.Description>
-            <form className="mt-5 space-y-4" onSubmit={submitPasswordChange}>
+            <CompactForm className="mt-5 space-y-4" onSubmit={submitPasswordChange}>
               <div className="space-y-1.5">
                 <Label htmlFor="current-password">Current Password</Label>
                 <div className="relative">
@@ -209,7 +210,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                   Save Password
                 </Button>
               </div>
-            </form>
+            </CompactForm>
           </Dialog.Content>
         </Dialog.Portal>
         </Dialog.Root>

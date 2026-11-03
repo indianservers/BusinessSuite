@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, FileCheck2, Loader2, TriangleAlert, Upload } from "lucide-react";
@@ -184,7 +185,7 @@ function CalendarTab() {
                   {(calendar.data || []).map((item) => {
                     const overdue = item.status !== "Filed" && new Date(item.due_date) < new Date();
                     return (
-                      <tr key={item.id} className="border-t">
+                      <tr {...recordPreviewProps(item)} key={item.id} className="border-t">
                         <td className="px-3 py-2"><TypeBadge type={item.statutory_type} /></td>
                         <td className="px-3 py-2">{item.description || "Statutory filing"}</td>
                         <td className="px-3 py-2">{item.period_start || "-"} to {item.period_end || "-"}</td>
@@ -472,7 +473,7 @@ function Form16Tab() {
                 </thead>
                 <tbody>
                   {(records.data || []).map((record) => (
-                    <tr key={record.id} className="border-t align-top">
+                    <tr {...recordPreviewProps(record)} key={record.id} className="border-t align-top">
                       <td className="px-3 py-2">
                         <p className="font-medium">{record.employee?.name || `Employee #${record.employeeId}`}</p>
                         <p className="text-xs text-muted-foreground">{record.employee?.employeeId || record.employeeId}</p>
@@ -549,7 +550,7 @@ function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; 
             <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Payroll Period</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Rows</th><th className="px-3 py-2 text-left">Amount</th><th className="px-3 py-2 text-left">Submission</th><th className="px-3 py-2 text-left">ACK Number</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-t">
+                <tr {...recordPreviewProps(row)} key={row.id} className="border-t">
                   <td className="px-3 py-2"><TypeBadge type={row.statutory_type} /></td>
                   <td className="px-3 py-2">{row.payroll_period || row.payroll_run_id}</td>
                   <td className="px-3 py-2"><StatusBadge status={row.filing_status || row.validation_status} />{row.validation_status === "invalid" && <Badge variant="outline" className="ml-2">{row.validation_errors_json?.length || 0} errors</Badge>}</td>
@@ -627,7 +628,7 @@ function CompliancePreviewCard({
             </thead>
             <tbody>
               {(preview?.rows || []).slice(0, 5).map((row, index) => (
-                <tr key={index} className="border-t">
+                <tr {...recordPreviewProps(row)} key={index} className="border-t">
                   {columns.map((column) => <td key={column} className="px-2 py-2">{String(row[column] ?? "-")}</td>)}
                 </tr>
               ))}

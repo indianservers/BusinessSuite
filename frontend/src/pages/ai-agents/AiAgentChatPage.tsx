@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Download, Send, Sparkles } from "lucide-react";
@@ -196,7 +197,7 @@ export default function AiAgentChatPage() {
               {responding ? <div className="text-sm text-muted-foreground">AI response is being prepared...</div> : null}
               <div ref={bottomRef} />
             </div>
-            <form onSubmit={submit} className="border-t p-4">
+            <CompactForm onSubmit={submit} className="border-t p-4">
               <SuggestedPromptChips agent={agent} onPick={setInput} />
               <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
                 <textarea
@@ -212,7 +213,7 @@ export default function AiAgentChatPage() {
                   Send
                 </Button>
               </div>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
 

@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -677,7 +678,7 @@ export default function OrgChartPage() {
                     </small>
                   </div>
                 </div>
-                <form
+                <CompactForm
                   onSubmit={(e) => {
                     e.preventDefault();
                     void save();
@@ -756,7 +757,7 @@ export default function OrgChartPage() {
                       </button>
                     )}
                   </div>
-                </form>
+                </CompactForm>
               </>
             )}
           </Dialog.Content>

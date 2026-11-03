@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -550,7 +551,7 @@ export default function ImportWizard({
                           </thead>
                           <tbody>
                             {prepared.rows.slice(0, 10).map((row, i) => (
-                              <tr key={i}>
+                              <tr {...recordPreviewProps(row)} key={i}>
                                 <td>{table.rowNumbers[i]}</td>
                                 {fields
                                   .filter(

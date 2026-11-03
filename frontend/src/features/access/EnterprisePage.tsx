@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import { assetUrl } from "@/lib/utils";
 import DashboardStudio from "./DashboardStudio";
@@ -846,7 +847,7 @@ export default function EnterprisePage() {
             </thead>
             <tbody>
               {data.plans.map((p: any) => (
-                <tr key={p.id}>
+                <tr {...recordPreviewProps(p)} key={p.id}>
                   <td>
                     {p.name}
                     <small>
@@ -895,7 +896,7 @@ export default function EnterprisePage() {
             </thead>
             <tbody>
               {(data || []).map((f: any) => (
-                <tr key={f.id}>
+                <tr {...recordPreviewProps(f)} key={f.id}>
                   <td>
                     {f.value_json?.name || f.flag_key}
                     <small>{f.flag_key}</small>
@@ -1088,7 +1089,7 @@ export default function EnterprisePage() {
             </thead>
             <tbody>
               {data?.items?.map((e: any) => (
-                <tr key={e.key}>
+                <tr {...recordPreviewProps(e)} key={e.key}>
                   <td>
                     {e.type || "HTTP 500"}
                     <small>{e.key}</small>
@@ -1175,7 +1176,7 @@ export default function EnterprisePage() {
             </thead>
             <tbody>
               {data.archives?.map((b: any) => (
-                <tr key={b.id}>
+                <tr {...recordPreviewProps(b)} key={b.id}>
                   <td>{b.id}</td>
                   <td>{stamp(b.created_at)}</td>
                   <td>{b.bytes.toLocaleString()} bytes</td>
@@ -1234,7 +1235,7 @@ export default function EnterprisePage() {
             </thead>
             <tbody>
               {(data || []).map((p: any) => (
-                <tr key={p.id}>
+                <tr {...recordPreviewProps(p)} key={p.id}>
                   <td>
                     {p.values_json.module} / {p.values_json.entity}
                   </td>
@@ -1303,7 +1304,7 @@ export default function EnterprisePage() {
             </thead>
             <tbody>
               {data?.items?.map((t: any) => (
-                <tr key={t.id}>
+                <tr {...recordPreviewProps(t)} key={t.id}>
                   <td>
                     {t.subject}
                     <small>
@@ -1386,7 +1387,7 @@ export default function EnterprisePage() {
           </thead>
           <tbody>
             {data.modules.map((m: any) => (
-              <tr key={m.key}>
+              <tr {...recordPreviewProps(m)} key={m.key}>
                 <td>
                   {m.label}
                   <small>{m.key}</small>

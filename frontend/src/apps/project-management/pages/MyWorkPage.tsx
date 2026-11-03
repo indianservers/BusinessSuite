@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { arrangeTask } from "../components/SprintMoveBoard";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -703,7 +705,7 @@ export default function MyWorkPage() {
         </div>
       </div>
       {savingView && (
-        <form
+        <CompactForm
           className="mw-save-view"
           onSubmit={(e) => {
             e.preventDefault();
@@ -726,7 +728,7 @@ export default function MyWorkPage() {
           <button type="submit" className="mw-primary">
             Save on this browser
           </button>
-        </form>
+        </CompactForm>
       )}
       {!!saved.length && (
         <div className="mw-chips">
@@ -1153,7 +1155,7 @@ export default function MyWorkPage() {
                 </thead>
                 <tbody>
                   {items.map((t) => (
-                    <tr key={t.id} data-selected={selected.includes(t.id)}>
+                    <tr {...recordPreviewProps(t)} key={t.id} data-selected={selected.includes(t.id)}>
                       <td>
                         <input
                           type="checkbox"

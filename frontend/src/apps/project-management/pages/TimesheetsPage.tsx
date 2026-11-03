@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Clock, Send, XCircle } from "lucide-react";
@@ -209,7 +210,7 @@ export default function TimesheetsPage() {
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.key} className="border-b">
+                    <tr {...recordPreviewProps(row)} key={row.key} className="border-b">
                       <Td>
                         <select value={row.projectId} disabled={!editable} onChange={(event) => { updateRow(row.key, { projectId: event.target.value, taskId: "" }); if (event.target.value) loadTasks(Number(event.target.value)); }} className="h-9 w-44 rounded-md border bg-background px-2">
                           <option value="">Project</option>

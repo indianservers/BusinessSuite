@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { api } from "@/services/api";
 import { type FieldRecord, fieldPath } from "../components/CustomFields";
 import { CustomFieldsForm, type FieldDraft } from "../components/CustomFields";
@@ -92,7 +93,7 @@ export default function CreateProjectPage() {
           <CardTitle>{editing ? "Edit project" : "Create project"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-5" onSubmit={submit}>
+          <CompactForm className="space-y-5" onSubmit={submit}>
             {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
             <fieldset disabled={loading || !canEdit || submitting} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -142,7 +143,7 @@ export default function CreateProjectPage() {
               <Button type="button" variant="outline" onClick={() => navigate("/pms/projects")}>Cancel</Button>
               <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : editing ? "Save changes" : "Create project"}</Button>
             </div>
-          </fieldset></form>
+          </fieldset></CompactForm>
         </CardContent>
       </Card>
     </div>

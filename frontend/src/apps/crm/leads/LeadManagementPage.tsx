@@ -1,3 +1,6 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { emailError, phoneError } from "@/lib/validation";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { DataExportButton } from "@/shared/data-transfer";
 import { LeadSpreadsheetImport } from "../CRMDataTransfer";
 import CatalogAssociations, { CatalogLinesEditor } from "@/shared/catalog/CatalogLinesEditor";
@@ -390,7 +393,7 @@ export default function LeadManagementPage() {
         <Link to="/crm/webforms">Website forms</Link>
         <Link to="/crm/communication-hub">Communications</Link>
         <Link to="/crm/calendar">Calendar & scheduling</Link>
-        <Link to="/crm/duplicates">Duplicate review & merge</Link>
+        <Link to="/crm/duplicates?entity=lead">Duplicate review & merge</Link>
       </nav>
       <section className="lm-metrics" aria-label="Lead health">
         {[
@@ -774,7 +777,7 @@ export default function LeadManagementPage() {
               </thead>
               <tbody>
                 {result.items.map((lead) => (
-                  <tr key={lead.id}>
+                  <tr {...recordPreviewProps(lead)} key={lead.id}>
                     <td>
                       {bootstrap?.canManage && (
                         <input
@@ -1076,7 +1079,8 @@ export function CaptureDialog({
       return { full_name: "", source: "Manual" };
     }
   });
-  const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
+  const [catalogLines, setCatalogLines] = useState<CatalogLine[]>(() => { try { const draft = JSON.parse(sessionStorage.getItem(`${key}:catalog`) || "[]"); return Array.isArray(draft) ? draft : []; } catch { return []; } });
+  useEffect(() => { sessionStorage.setItem(`${key}:catalog`, JSON.stringify(catalogLines)); }, [key, catalogLines]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [duplicate,setDuplicate]=useState<{matched:boolean;items:{id:number;name:string}[];message:string}>();
@@ -1095,6 +1099,8 @@ export function CaptureDialog({
       close();
   };
   const [step, setStep] = useState(0);
+  const captureForm = useRef<HTMLFormElement>(null);
+  const captureTabs = ["Basic Details", "Contact Info", "Company Details", "Additional", "Products & services"];
   const priority = values.capture_priority || "Medium";
   const setPriority = (priority: string) => setValues(v => ({...v, capture_priority: priority}));
   const update = (name: string, value: string) => setValues(v => ({...v, [name]: value}));
@@ -1114,10 +1120,18 @@ export function CaptureDialog({
           <div className="lead-art-check"><Check size={29}/></div>
         </div>
       </aside>
-      <form className="lead-create-main"
+      <CompactForm noValidate ref={captureForm} className="lead-create-main"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (step < 3) { setStep(step + 1); return; }
+            const nameMissing = !values.full_name?.trim();
+            const contactError = emailError(values.email) || phoneError(values.phone, values.phone_country_code);
+            if (nameMissing || contactError) {
+              setStep(nameMissing ? 0 : 1);
+              setError(nameMissing ? "Lead name is required. Everything else can be added later." : String(contactError));
+              requestAnimationFrame(() => captureForm.current?.querySelector<HTMLInputElement>(nameMissing ? '[aria-label="Lead Name *"]' : values.email ? '[aria-label="Email"]' : 'input[type="tel"]')?.focus());
+              return;
+            }
+            if (duplicate?.matched && bootstrap.settings.preventDuplicates) { setStep(1); setError("Review the matching lead before creating another record."); return; }
             setSaving(true);
             setError("");
             try {
@@ -1126,12 +1140,16 @@ export function CaptureDialog({
                 values: Object.fromEntries(
                   Object.entries({
                     ...values,
+                    full_name: values.full_name.trim(),
+                    source: values.source || "Manual",
+                    status: values.status || bootstrap.settings.stages[0]?.name || "New",
                     notes: [values.notes, `Priority: ${priority}`].filter(Boolean).join("\n"),
                     owner_user_id: values.owner_user_id ?? defaultOwner,
                   }).filter(([name, value]) => value !== "" && name !== "capture_priority"),
                 ),
               });
               sessionStorage.removeItem(key);
+              sessionStorage.removeItem(`${key}:catalog`);
               saved(response.data.id);
             } catch (err) {
               setError(errorMessage(err));
@@ -1141,13 +1159,13 @@ export function CaptureDialog({
           }}
         >
 
-          <nav className="lead-create-steps" aria-label="Lead creation progress">{["Basic Details", "Contact Info", "Company Details", "Additional"].map((title, index) => <React.Fragment key={title}>{index > 0 && <ChevronRight size={14}/>}<button type="button" disabled={index > step} onClick={() => setStep(index)} aria-current={step === index ? "step" : undefined}><span>{index < step ? <Check size={16}/> : index + 1}</span>{title}</button></React.Fragment>)}</nav>
-          <div className="lead-create-body">
-            <h3>{["Basic Information", "Contact Information", "Company Details", "Additional Information"][step]}</h3>
-            <p className="lead-create-subtitle">{["Start with the essential details about this lead.", "Add contact details to keep the conversation going.", "Tell us about the business behind this opportunity.", "Choose who will take this opportunity forward."][step]}</p>
+          <nav className="lead-create-steps" role="tablist" aria-label="Lead creation sections" onKeyDown={event => { const next = event.key === "ArrowRight" ? (step + 1) % captureTabs.length : event.key === "ArrowLeft" ? (step - 1 + captureTabs.length) % captureTabs.length : event.key === "Home" ? 0 : event.key === "End" ? captureTabs.length - 1 : -1; if (next >= 0) { event.preventDefault(); setStep(next); event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus(); } }}>{captureTabs.map((title, index) => <button key={title} type="button" role="tab" id={`lead-capture-tab-${index}`} aria-controls="lead-capture-panel" aria-selected={step === index} tabIndex={step === index ? 0 : -1} onClick={() => setStep(index)}><span aria-hidden="true">{index + 1}</span>{title}{index === 4 && catalogLines.length > 0 ? ` (${catalogLines.length})` : ""}</button>)}</nav>
+          <div className="lead-create-body" id="lead-capture-panel" role="tabpanel" aria-labelledby={`lead-capture-tab-${step}`}>
+            <h3>{["Basic Information", "Contact Information", "Company Details", "Additional Information", "Products & services"][step]}</h3>
+            <p className="lead-create-subtitle">{["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
-              <label className="lead-create-field">Lead Source <b>*</b><span className="lead-create-control"><Target size={20}/><select required value={values.source || "Manual"} onChange={e => update("source", e.target.value)}>{[...new Set(["Manual", "Website", "Referral", "Social Media", "Email", "Phone", "Event", ...(values.source ? [values.source] : [])])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</select></span></label>
+              <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><select value={values.source || "Manual"} onChange={e => update("source", e.target.value)}>{[...new Set(["Manual", "Website", "Referral", "Social Media", "Email", "Phone", "Event", ...(values.source ? [values.source] : [])])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</select></span></label>
               <label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><select value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</select></span></label>
               <label className="lead-create-field">Priority<span className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><select value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</select></span></label>
               <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label>
@@ -1156,11 +1174,11 @@ export function CaptureDialog({
             {step === 2 && <div className="lead-create-grid">{field("company_name", "Company", "Company name")}{field("industry", "Industry", "e.g. Technology")}{field("city", "City")}{field("country", "Country")}</div>}
             {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><select value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</select></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}</>}
             {duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
-            {step === 3 && <CatalogLinesEditor value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
+            {step === 4 && <CatalogLinesEditor selectionOnly value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
             {error && <ErrorNotice message={error}/>}
           </div>
-          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}<Button type="submit" disabled={saving || (step === 3 && !!duplicate?.matched && bootstrap.settings.preventDuplicates)}>{saving ? "Saving…" : step === 3 ? "Create lead" : "Next"}<ArrowRight size={19}/></Button></div></footer>
-        </form>
+          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={() => setStep(step + 1)} disabled={saving}>Next<ArrowRight size={16}/></Button>}<Button type="submit" disabled={saving}>{saving ? "Saving…" : "Create lead"}</Button></div></footer>
+        </CompactForm>
     </DialogContent>
   </Dialog>;
 }

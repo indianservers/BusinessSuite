@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -486,7 +487,7 @@ export default function AutomationRuntimePage() {
                 </thead>
                 <tbody>
                   {list?.items.map((row) => (
-                    <tr key={row.id}>
+                    <tr {...recordPreviewProps(row)} key={row.id}>
                       <td>
                         <Link
                           to={studioPath(

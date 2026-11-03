@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { DataExportButton } from "@/shared/data-transfer";
 import DirectoryDestinations, { type DestinationRequest } from "../components/people/DirectoryDestinations";
 import { useAuthStore } from "@/store/authStore";
@@ -872,7 +873,7 @@ export default function PeopleManagementDirectory() {
         title="Save people view"
         description="Store this directory's filters and layout against your own account."
       >
-        <form
+        <CompactForm
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -913,7 +914,7 @@ export default function PeopleManagementDirectory() {
               Save view
             </button>
           </div>
-        </form>
+        </CompactForm>
         <h3>My saved views</h3>
         {views.data?.map((view) => (
           <div className="pd-saved-view" key={view.id}>

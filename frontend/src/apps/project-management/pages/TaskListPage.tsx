@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { CustomFieldCell, useCustomFieldRecords, type CustomField } from "../components/CustomFields";
 import { api } from "@/services/api";
@@ -780,7 +781,7 @@ export default function TaskListPage() {
                           </td>
                         ))}
                       </tr>}</RecordActions>
-                      {createdChildren[task.id]?.map(child => <tr key={`child-${child.id}`} className="border-b bg-muted/20"><td /><td colSpan={visibleColumnList.length} className="px-6 py-2"><Link className="text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link><Badge className="ml-2">{child.status}</Badge></td></tr>)}
+                      {createdChildren[task.id]?.map(child => <tr {...recordPreviewProps(child)} key={`child-${child.id}`} className="border-b bg-muted/20"><td /><td colSpan={visibleColumnList.length} className="px-6 py-2"><Link className="text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link><Badge className="ml-2">{child.status}</Badge></td></tr>)}
                       {inlineParent === task.id && <tr><td /><td colSpan={visibleColumnList.length} className="p-3"><InlineSubtaskComposer key={task.id} parent={task} onCreated={child => subtaskCreated(task, child)} onCancel={() => setInlineParent(null)} /></td></tr>}
                       </Fragment>
                     ))}</Fragment>)}

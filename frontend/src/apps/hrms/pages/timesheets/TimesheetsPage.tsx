@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, FolderKanban, Plus, Send, XCircle } from "lucide-react";
@@ -316,7 +317,7 @@ export default function TimesheetsPage() {
                       (sheets as Timesheet[]).map((sheet) => {
                         const project = projectById.get(sheet.project_id);
                         return (
-                          <tr key={sheet.id} className="border-b hover:bg-muted/30">
+                          <tr {...recordPreviewProps(sheet)} key={sheet.id} className="border-b hover:bg-muted/30">
                             <td className="px-4 py-3">
                               <button className="font-medium text-left hover:text-primary" onClick={() => setSelectedSheetId(sheet.id)}>
                                 {project?.name || `Project #${sheet.project_id}`}
@@ -415,7 +416,7 @@ export default function TimesheetsPage() {
                         </tr>
                       ) : (
                         selectedSheet.entries.map((entry) => (
-                          <tr key={entry.id} className="border-b">
+                          <tr {...recordPreviewProps(entry)} key={entry.id} className="border-b">
                             <td className="px-4 py-3">{entry.work_date}</td>
                             <td className="px-4 py-3">{entry.task_name || "General work"}</td>
                             <td className="px-4 py-3">{Number(entry.hours).toFixed(1)}</td>

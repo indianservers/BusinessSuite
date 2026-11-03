@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { api } from "@/services/api";
 import { fieldPath, type FieldRecord } from "./CustomFields";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -463,6 +464,7 @@ export default function RecordActions({
         }}
       >
         <Context.Trigger
+          {...recordPreviewProps(record)}
           ref={contextTrigger}
           asChild
           aria-describedby={hoverOpen ? previewId : undefined}
@@ -631,3 +633,4 @@ export default function RecordActions({
     </>
   );
 }
+

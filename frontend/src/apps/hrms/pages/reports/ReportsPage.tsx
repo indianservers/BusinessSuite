@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { ReactNode, useMemo, useState } from "react";
 import ReportSchedules from "./ReportSchedules";
@@ -362,7 +363,7 @@ function SavedReports() {
                 </thead>
                 <tbody>
                   {result.data.rows.map((row, index) => (
-                    <tr key={index} className="border-t">
+                    <tr {...recordPreviewProps(row)} key={index} className="border-t">
                       {result.data!.columns.map((column) => <td key={column} className="px-3 py-2">{String(row[column] ?? "")}</td>)}
                     </tr>
                   ))}

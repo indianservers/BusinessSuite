@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import React, { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
@@ -135,7 +136,7 @@ function Widget({ widget, company }: { widget: any; company: number }) {
       <table>
         <tbody>
           {data.groups.map((g: any) => (
-            <tr key={g.label}>
+            <tr {...recordPreviewProps(g)} key={g.label}>
               <td>{g.label}</td>
               <td>{g.count}</td>
             </tr>

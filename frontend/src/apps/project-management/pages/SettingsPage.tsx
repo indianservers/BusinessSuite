@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Link } from "react-router-dom";
 import { FormEvent, useEffect, useState } from "react";
@@ -105,7 +106,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Github className="h-5 w-5" />Development integrations</CardTitle></CardHeader>
         <CardContent className="space-y-5">
-          <form className="grid gap-3 lg:grid-cols-6" onSubmit={submitIntegration}>
+          <CompactForm className="grid gap-3 lg:grid-cols-6" onSubmit={submitIntegration}>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Provider</span>
               <select className="input" value={provider} onChange={(event) => setProvider(event.target.value as "github" | "gitlab")}>
@@ -138,7 +139,7 @@ export default function SettingsPage() {
             <div className="lg:col-span-6">
               <Button disabled={saving || !projectId}>{saving ? "Saving..." : "Link repository"}</Button>
             </div>
-          </form>
+          </CompactForm>
           {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
           <div className="space-y-3">

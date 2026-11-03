@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useCommunicationScope } from "./scope";
 import { ContextualChat } from "./adapters";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -536,7 +537,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
       )}
       {!!wid && (
         <>
-          <form
+          <CompactForm
             className="chat-search ce-message-search"
             onSubmit={(e) => {
               e.preventDefault();
@@ -591,7 +592,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
               />
               Attachments
             </label>
-          </form>
+          </CompactForm>
           <div className="chat-layout">
             <aside aria-label="Channels and direct messages">
               <h2 className="ce-inbox-title">Messages</h2>
@@ -837,7 +838,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                       </div>
                       {presence.users.some(p => p.typing && p.id !== user?.id) && <p className="ce-typing" role="status">A teammate is typing…</p>}
                       {canWrite && activeTab === "chat" && (
-                        <form
+                        <CompactForm
                           className="chat-composer"
                           onPaste={e => { const images = Array.from(e.clipboardData.files).filter(f => f.type.startsWith("image/")); if (features.files !== false && images.length) { e.preventDefault(); void upload(images); } }}
                           onDragOver={(e) => e.preventDefault()}
@@ -941,7 +942,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                           <small>
                             <label className="ce-send-setting"><input type="checkbox" checked={enterSends} onChange={e => { setEnterSends(e.target.checked); localStorage.setItem("communication-enter-sends", String(e.target.checked)); }}/>Enter sends · Shift+Enter for a new line</label>
                           </small>
-                        </form>
+                        </CompactForm>
                       )}
                     </>
                   )}
@@ -976,7 +977,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
               unchanged.
             </Dialog.Description>
             {dialog === "create" && (
-              <form
+              <CompactForm
                 onSubmit={(e) => {
                   e.preventDefault();
                   void action(async () => {
@@ -1059,7 +1060,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                     ))}
                 </fieldset>
                 <button disabled={busy}>Create conversation</button>
-              </form>
+              </CompactForm>
             )}
             {dialog === "details" && room && (
               <>
@@ -1178,7 +1179,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                     </button>
                   )}
                 {canWrite && (
-                  <form
+                  <CompactForm
                     onSubmit={(e) => {
                       e.preventDefault();
                       const key = context;
@@ -1236,7 +1237,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                       </button>
                     )}
                     <button disabled={busy}>Attach project file</button>
-                  </form>
+                  </CompactForm>
                 )}
               </>
             )}

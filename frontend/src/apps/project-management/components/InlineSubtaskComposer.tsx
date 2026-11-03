@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ export default function InlineSubtaskComposer({ parent, onCreated, onCancel }: {
     } catch (error) { setError(workspaceError(error)); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <form aria-label={`Add subtask to ${parent.title}`} onSubmit={event => void save(event)} onClick={event => event.stopPropagation()} onKeyDown={event => {
+  return <CompactForm aria-label={`Add subtask to ${parent.title}`} onSubmit={event => void save(event)} onClick={event => event.stopPropagation()} onKeyDown={event => {
     event.stopPropagation();
     if (event.key === "Escape" && !busy) { event.preventDefault(); onCancel(); }
   }} className="space-y-3 rounded-md border border-primary/20 bg-primary/5 p-3">
@@ -39,5 +40,5 @@ export default function InlineSubtaskComposer({ parent, onCreated, onCancel }: {
       <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={inherit} onChange={event => setInherit(event.target.checked)} />Inherit parent assignees</label>
       <div className="flex flex-wrap gap-2 sm:col-span-2"><Button size="sm" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Save subtask"}</Button><Button type="button" size="sm" variant="outline" disabled={busy} onClick={onCancel}>Cancel</Button></div>
     </fieldset>
-  </form>;
+  </CompactForm>;
 }

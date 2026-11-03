@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import {
   RichTextField,
   RichTextContent,
@@ -230,7 +231,7 @@ export default function WorkReviewPanel({
         </div>
       )}
       {item.status === "Pending Review" && item.can_review !== false ? (
-        <form
+        <CompactForm
           className="grid gap-4 sm:grid-cols-2"
           onSubmit={(e) => {
             e.preventDefault();
@@ -358,7 +359,7 @@ export default function WorkReviewPanel({
           >
             Save PMS Review
           </Button>
-        </form>
+        </CompactForm>
       ) : item.status === "Pending Review" ? (
         <p className="text-sm text-muted-foreground">
           PMS approval permission and reviewer delegation are required. HRMS

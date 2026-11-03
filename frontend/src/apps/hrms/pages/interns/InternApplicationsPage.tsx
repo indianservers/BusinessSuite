@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useState, useDeferredValue, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -400,7 +401,7 @@ export default function InternApplicationsPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader><DialogTitle>{bulkReview?.status === "Approved" ? "Approve selected interns" : bulkReview?.status === "Rejected" ? "Reject selected applications" : "Request corrections for selected applications"}</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">This will update {bulkAll ? intake?.reviewable_total : bulkReview?.ids.length || 0} selected application(s). {bulkReview?.status === "Approved" ? "The same branch, department, designation, manager and joining date will apply to everyone selected." : "The reason or instructions below will apply to every selected applicant."}</p>
-          <form onSubmit={event => {
+          <CompactForm onSubmit={event => {
             event.preventDefault();
             if (bulkReview && (bulkReview.status === "Approved" || bulkDecision.review_note.trim())) bulkMutation.mutate({ ...bulkReview, values: { ...bulkDecision } });
           }}>
@@ -412,7 +413,7 @@ export default function InternApplicationsPage() {
               </div>
             </fieldset>
             {bulkMutation.isPending && <p role="status" className="mt-3 text-sm">Starting a resumable intake operation. Progress will be saved on the server.</p>}
-          </form>
+          </CompactForm>
         </DialogContent>
       </Dialog>
       {error ? (
@@ -504,7 +505,7 @@ export default function InternApplicationsPage() {
                     <CardTitle>Approve this intern</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form
+                    <CompactForm
                       className="grid gap-4 sm:grid-cols-2"
                       onSubmit={(e) => {
                         e.preventDefault();
@@ -532,7 +533,7 @@ export default function InternApplicationsPage() {
                         account and unique intern ID. No résumé or document
                         upload is required.
                       </p>
-                    </form>
+                    </CompactForm>
                   </CardContent>
                 </Card>
               ) : (

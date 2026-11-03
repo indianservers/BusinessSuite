@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import {
   lazy,
   Suspense,
@@ -2544,7 +2545,7 @@ function CanvasInspector({
           Drag between connection ports, or use the accessible connection form
           below.
         </p>
-        <form
+        <CompactForm
           onSubmit={(event) => {
             event.preventDefault();
             if (source && target)
@@ -2630,7 +2631,7 @@ function CanvasInspector({
             <GitBranch size={14} />
             Connect nodes
           </button>
-        </form>
+        </CompactForm>
         <h3>WORKFLOW STEPS</h3>
         <div className="as-overview-nodes">
           {graph.nodes.map((node) => (

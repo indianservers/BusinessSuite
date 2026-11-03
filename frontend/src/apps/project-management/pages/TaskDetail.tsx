@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import TaskExecutionPanel from "../components/TaskExecutionPanel";
 import { ManagePersonButton } from "../components/people/PersonIdentity";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -818,10 +819,10 @@ export default function TaskDetail() {
                   </div>
                 ))}
                 {!checklist.length ? <EmptyLine>No checklist items yet.</EmptyLine> : null}
-                <form onSubmit={addChecklistItem} className="flex gap-2">
+                <CompactForm onSubmit={addChecklistItem} className="flex gap-2">
                   <Input id="add-checklist-item" value={newChecklistItem} onChange={(event) => setNewChecklistItem(event.target.value)} placeholder="Add checklist item" />
                   <Button type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
-                </form>
+                </CompactForm>
               </CardContent>
             </Card>
 
@@ -849,10 +850,10 @@ export default function TaskDetail() {
                     {availableTags.filter((tag) => !tags.some((item) => item.id === tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
                   </select>
                 </div>
-                <form onSubmit={addTag} className="flex gap-2">
+                <CompactForm onSubmit={addTag} className="flex gap-2">
                   <Input value={newTag} onChange={(event) => setNewTag(event.target.value)} placeholder="Create and add tag" />
                   <Button type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
-                </form>
+                </CompactForm>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Story points">
                     <Input type="number" min="0" step="1" value={task.story_points ?? ""} onChange={(event) => setTask({ ...task, story_points: Number(event.target.value || 0) })} onBlur={saveStoryPoints} />
@@ -912,7 +913,7 @@ export default function TaskDetail() {
                 ))}
                 {!subtasks.length ? <EmptyLine>No sub-tasks yet.</EmptyLine> : null}
               </div>
-              <form onSubmit={addSubtask} className="rounded-md border p-3">
+              <CompactForm onSubmit={addSubtask} className="rounded-md border p-3">
                 <div className="grid gap-2 md:grid-cols-2">
                   <Input aria-label="Subtask title" maxLength={220} required id="add-subtask" value={newSubtask} onChange={(event) => setNewSubtask(event.target.value)} placeholder="Add sub-task title" />
                   <select aria-label="Subtask priority" value={newSubtaskPriority} onChange={(event) => setNewSubtaskPriority(event.target.value as TaskPriority)} className="h-10 rounded-md border bg-background px-3 text-sm">
@@ -928,7 +929,7 @@ export default function TaskDetail() {
                   <Button type="button" size="sm" variant="ghost" onClick={() => setNewSubtaskAssignees(taskAssignees(task))}>Inherit parent assignees</Button>
                   <RichTextField data-legacy-format="markdown" aria-label="Subtask description" placeholder="Description or acceptance criteria" value={newSubtaskDescription} onChange={e => setNewSubtaskDescription(e.target.value)} className="w-full rounded-md border bg-background p-2" />
                 </div>
-              </form>
+              </CompactForm>
             </CardContent>
           </Card>
 
@@ -1238,7 +1239,7 @@ function CommentsTab({
 }) {
   return (
     <>
-      <form onSubmit={addComment} className="space-y-3 rounded-md border p-3">
+      <CompactForm onSubmit={addComment} className="space-y-3 rounded-md border p-3">
         <MentionMarkdownTextarea taskId={taskId} projectId={projectId} value={comment} onChange={setComment} mentions={mentions} onMentionsChange={setMentions}/>
         {mentions.length ? (
           <div className="flex flex-wrap gap-2">
@@ -1248,7 +1249,7 @@ function CommentsTab({
         <div className="flex justify-end">
           <Button type="submit">Comment</Button>
         </div>
-      </form>
+      </CompactForm>
       {comments.map((item) => (
         <div key={item.id} className="rounded-md border p-3 text-sm">
           <MarkdownView value={item.body} />
@@ -1512,7 +1513,7 @@ function TimeTab({
         <TimeTotal label="Non-billable" value={nonBillableMinutes} />
       </div>
       {error ? <div className="rounded-md border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</div> : null}
-      <form onSubmit={logTime} className="rounded-md border p-3">
+      <CompactForm onSubmit={logTime} className="rounded-md border p-3">
         <div className="grid gap-3 md:grid-cols-[9rem_8rem_8rem_8rem_1fr]">
           <Field label="Date"><Input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></Field>
           <Field label="Start"><Input type="time" value={start} onChange={(event) => setStart(event.target.value)} /></Field>
@@ -1530,7 +1531,7 @@ function TimeTab({
             <Button type="submit">{editingId ? "Save time log" : "Log time"}</Button>
           </div>
         </div>
-      </form>
+      </CompactForm>
       <div className="space-y-2">
         {logs.map((item) => (
           <div key={item.id} className="rounded-md border p-3 text-sm">
@@ -1744,13 +1745,13 @@ function LinksTab({
 }) {
   return (
     <>
-      <form onSubmit={addDependency} className="rounded-md border p-3">
+      <CompactForm onSubmit={addDependency} className="rounded-md border p-3">
         <div className="grid gap-2 md:grid-cols-[1fr_auto]">
           <Input type="number" min="1" value={dependencyId} onChange={(event) => setDependencyId(event.target.value)} placeholder="Link blocker by task ID" />
           <Button type="submit"><Link2 className="h-4 w-4" />Add blocker</Button>
         </div>
         {dependencyError ? <p className="mt-2 text-sm text-red-600">{dependencyError}</p> : null}
-      </form>
+      </CompactForm>
       {links.map((item) => {
         const isBlockedBy = item.task_id === currentTaskId;
         return (

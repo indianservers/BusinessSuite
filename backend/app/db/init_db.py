@@ -238,6 +238,9 @@ SYSTEM_PERMISSIONS = [
     ("fam_final_certification_view", "View FAM final certification readiness", "fam"),
 ]
 
+from app.access.feature_permissions import CRM_FEATURE_PERMISSIONS
+SYSTEM_PERMISSIONS.extend(CRM_FEATURE_PERMISSIONS)
+
 SYSTEM_ROLES = [
     {"name": "intern", "description": "Interns Hub access only; requires an active intern employee", "permissions": []},
     {

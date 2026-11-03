@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { GraphProposalPreview } from "./builder/IntelligencePanels";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -234,7 +236,7 @@ export function AutomationList({
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id}>
+                <tr {...recordPreviewProps(row)} key={row.id}>
                   <td>
                     <div className="al-row-name">
                       <span>
@@ -242,7 +244,7 @@ export function AutomationList({
                       </span>
                       <div>
                         {renaming === row.id ? (
-                          <form
+                          <CompactForm
                             onSubmit={(event) => {
                               event.preventDefault();
                               void action(async () => {
@@ -276,7 +278,7 @@ export function AutomationList({
                             >
                               <X size={14} />
                             </button>
-                          </form>
+                          </CompactForm>
                         ) : (
                           <button
                             className="al-open-row"

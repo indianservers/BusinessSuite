@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import OrderedList from "@/components/interaction/OrderedList";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
@@ -424,7 +425,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
             <div className="grid gap-5 lg:grid-cols-2">
               <section className={panelClass}>
                 <h2 className="mb-4 font-semibold">Prepare a document</h2>
-                <form
+                <CompactForm
                   className="space-y-4"
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -624,7 +625,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                       Issue & download
                     </Button>
                   </div>
-                </form>
+                </CompactForm>
               </section>
               <section className={`${panelClass} min-h-[550px]`}>
                 <h2 className="mb-3 font-semibold">PDF preview</h2>
@@ -689,7 +690,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                 {!editTemplate ? (
                   <p>Select a template to edit, or create one.</p>
                 ) : (
-                  <form
+                  <CompactForm
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -993,7 +994,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                       <Save className="mr-2 h-4 w-4" />
                       Save template
                     </Button>
-                  </form>
+                  </CompactForm>
                 )}
               </section>
             </div>
@@ -1027,7 +1028,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                     Select a letterhead to configure your official branding.
                   </p>
                 ) : (
-                  <form
+                  <CompactForm
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -1270,7 +1271,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                       <Save className="mr-2 h-4 w-4" />
                       Save letterhead
                     </Button>
-                  </form>
+                  </CompactForm>
                 )}
               </section>
             </div>
@@ -1380,7 +1381,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
           aria-modal="true"
           aria-labelledby="revoke-title"
         >
-          <form
+          <CompactForm
             className="w-full max-w-md space-y-4 rounded-xl bg-background p-6"
             onSubmit={(e) => {
               e.preventDefault();
@@ -1426,7 +1427,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                 Revoke document
               </Button>
             </div>
-          </form>
+          </CompactForm>
         </div>
       )}
     </div>

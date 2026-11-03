@@ -1,0 +1,282 @@
+[
+  {
+    "scenario": "/access/step-up",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/step-up",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/catalog?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/catalog?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/branches",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/37?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/37?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/38?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/38?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/39?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/39?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 10,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 10,
+    "expected": 201,
+    "status": 409,
+    "passed": false
+  }
+]

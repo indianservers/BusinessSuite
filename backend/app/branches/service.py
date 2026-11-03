@@ -37,7 +37,8 @@ def access(db, user, company):
         home = connection.execute(select(Employee.branch_id).join(Branch, Branch.id == Employee.branch_id).where(Employee.user_id == user.id, Branch.company_id == company, Employee.deleted_at.is_(None))).scalars().first()
         if home in active_branches:
             allowed.add(home)
-            writable.add(home)
+            if home not in {r.branch_id for r in grants}:
+                writable.add(home)
     return allowed, writable, all_access, manager
 
 

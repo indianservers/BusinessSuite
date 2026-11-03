@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
@@ -32,10 +33,10 @@ export default function InternApplicationSettings() {
       {isLoading ? <p>Loading application roles…</p> : isError ? <p role="alert">Application role settings could not be loaded.</p> : <>
         <div className="flex flex-wrap gap-2">{roles.map((role,index)=><span key={role} className="inline-flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">{role}<button type="button" aria-label={`Remove ${role}`} disabled={save.isPending} onClick={()=>setDraft(roles.filter((_,i)=>i!==index))}><X className="h-4 w-4"/></button></span>)}</div>
         {!roles.length && <p className="text-sm text-muted-foreground">No roles are open for new applications.</p>}
-        <form className="flex max-w-xl gap-2" onSubmit={e=>{e.preventDefault();add();}}>
+        <CompactForm className="flex max-w-xl gap-2" onSubmit={e=>{e.preventDefault();add();}}>
           <Input aria-label="New internship role" placeholder="e.g. Cybersecurity Intern" value={name} maxLength={150} onChange={e=>setName(e.target.value)} disabled={save.isPending}/>
           <Button type="submit" variant="outline" disabled={!name.trim()||roles.length>=100||save.isPending}><Plus className="mr-1 h-4 w-4"/>Add role</Button>
-        </form>
+        </CompactForm>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <div className="flex gap-2"><Button disabled={draft===null||save.isPending} onClick={()=>save.mutate()}>{save.isPending?"Saving…":"Save roles"}</Button>{draft!==null && <Button variant="ghost" disabled={save.isPending} onClick={()=>{setDraft(null);setError("");}}>Cancel changes</Button>}</div>
       </>}

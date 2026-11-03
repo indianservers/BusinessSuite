@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "viewports": [
+    1440,
+    390
+  ],
+  "timezone": "Asia/Kolkata",
+  "checks": [
+    "profile cancel restores name",
+    "draft completion updates",
+    "saved completion updates",
+    "previous-date calendar selection",
+    "present filter",
+    "absent filter"
+  ],
+  "errors": []
+}

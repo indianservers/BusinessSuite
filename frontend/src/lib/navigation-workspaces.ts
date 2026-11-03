@@ -38,7 +38,7 @@ const workspaces: [string, string[]][] = [
   ["Insights", ["/hrms/reports", "/hrms/advanced-analytics"]],
   ["Intern Management", ["/hrms/interns", "/hrms/interns/applications", "/hrms/interns/batches", "/hrms/interns/tasks", "/hrms/interns/reviews", "/hrms/interns/performance"]],
   ["Deals", ["/crm/deals", "/crm/pipeline", "/crm/templates"]],
-  ["Activities & Planning", ["/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"]],
+  ["Activities & Planning", ["/crm/follow-ups", "/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"]],
   ["Communication & Campaigns", ["/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/forms", "/crm/webforms", "/crm/campaigns", "/crm/consents", "/crm/whatsapp", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline"]],
   ["Catalog", ["/crm/products-services", "/crm/products", "/crm/services", "/crm/price-books"]],
   ["Quoting", ["/crm/quotes", "/crm/cpq", "/crm/guided-selling", "/crm/quote-approvals"]],

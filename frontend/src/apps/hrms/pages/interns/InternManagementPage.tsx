@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import {
@@ -166,7 +168,7 @@ function Table({
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.id ?? i}>
+            <tr {...recordPreviewProps(r)} key={r.id ?? i}>
               {columns.map(([title, render]) => (
                 <td key={title}>{render(r)}</td>
               ))}
@@ -274,6 +276,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
   const [selected, setSelected] = useState<number[]>(initialRecipients);
   const [allFiltered, setAllFiltered] = useState(false);
   const [batchDialog, setBatchDialog] = useState<Row | null>(null);
+  const [showEmptyBatches, setShowEmptyBatches] = useState(false);
   const [membershipDialog, setMembershipDialog] = useState<Row | null>(null);
   const [history, setHistory] = useState<Row[] | null>(null);
   const [activeReview, setActiveReview] = useState<Row | null>(null);
@@ -327,12 +330,13 @@ export default function InternManagementPage({ page }: { page: Page }) {
     enabled: allowed && ["dashboard", "batches", "performance"].includes(page),
   });
   const { data: batches, error: batchesError } = useQuery<Row>({
-    queryKey: ["intern-management", "batches", params, current],
+    queryKey: ["intern-management", "batches", params, current, showEmptyBatches],
     queryFn: () =>
       api
         .get(root + "/batches", {
           params: {
             search: page === "batches" ? deferredSearch : undefined,
+            hide_empty: !showEmptyBatches,
             department_id: filter.department_id || undefined,
             mentor_id:filter.mentor_id||undefined,date_from:filter.date_from||undefined,date_to:filter.date_to||undefined,
             page: current,
@@ -759,8 +763,9 @@ export default function InternManagementPage({ page }: { page: Page }) {
         <>
           <div className="im-metrics">
             <Metric
-              label={location.pathname.endsWith("/list") ? "Total Interns" : "Total Participants"}
-              value={d.total_interns}
+              label="Active Members"
+              value={d.member_count ?? d.active_interns}
+              note={`${d.total_interns ?? 0} registered people across all statuses`}
               icon={Users}
             />
             <Metric
@@ -1056,9 +1061,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
               <Panel
                 title="Manage Batches"
                 action={
-                  <Button onClick={newBatch} size="sm">
-                    Create Batch
-                  </Button>
+                  <div className="flex items-center gap-3"><label className="text-xs"><input type="checkbox" checked={showEmptyBatches} onChange={e=>{setShowEmptyBatches(e.target.checked);setCurrent(1);}}/> Show empty batches</label><Button onClick={newBatch} size="sm">Create Batch</Button></div>
                 }
               >
                 <BatchTable
@@ -1148,7 +1151,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
           </div>
           <div className="im-assignment-layout">
             <Panel title="Create & Distribute PMS Task">
-              <form
+              <CompactForm
                 onSubmit={async (e) => {
                   e.preventDefault();
                   try {
@@ -1445,7 +1448,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                   <Search size={15} />
                   Preview Assignment
                 </Button>
-              </form>
+              </CompactForm>
             </Panel>
             <div className="im-stack">
               <Panel title="Assignment Preview">
@@ -2031,7 +2034,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
             </DialogTitle>
           </DialogHeader>
           {batchDialog && (
-            <form
+            <CompactForm
               className="im-form-grid"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -2248,7 +2251,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 Require PMS-approved task in the “Final Project” category
               </label>
               <Button disabled={busy}>Save Batch</Button>
-            </form>
+            </CompactForm>
           )}
         </DialogContent>
       </Dialog>
@@ -2260,7 +2263,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
           <DialogHeader>
             <DialogTitle>Batch Membership</DialogTitle>
           </DialogHeader>
-          <form
+          <CompactForm
             className="im-stack"
             onSubmit={(e) => {
               e.preventDefault();
@@ -2335,7 +2338,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
             <Button disabled={busy || (!selected.length && !allFiltered)}>
               Apply Membership Change
             </Button>
-          </form>
+          </CompactForm>
         </DialogContent>
       </Dialog>
       <Dialog
@@ -2357,6 +2360,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 (r) => (r.left_at ? new Date(r.left_at).toLocaleString() : "—"),
               ],
               ["Reason", (r) => r.reason || "—"],
+              ["Actions",(r)=>r.status!=="Active"?<button type="button" onClick={()=>{setSelected([r.employee_id]);setAllFiltered(false);setHistory(null);setMembershipDialog({batch_id:r.batch_id,action:"reactivate"});}}>Reactivate membership</button>:<span>Active</span>],
             ]}
           />
         </DialogContent>
@@ -2442,7 +2446,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
             {selected.length} explicitly selected intern recipients. Choose them
             in All Interns.
           </p>
-          <form
+          <CompactForm
             className="im-stack"
             onSubmit={(e) => {
               e.preventDefault();
@@ -2475,7 +2479,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
             <Button disabled={busy || !selected.length}>
               Send In-app Announcement
             </Button>
-          </form>
+          </CompactForm>
         </DialogContent>
       </Dialog>
       <Dialog
@@ -2641,7 +2645,7 @@ function BatchTable({
             </div>
           ),
         ],
-        ["Intern Count", (r) => `${r.members} / ${r.capacity}`],
+        ["Active members", (r) => `${r.members} / ${r.capacity}`],
         ["Mentor", (r) => r.mentor || "Unassigned"],
         [
           "Duration",

@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { PhoneInput } from "../../lib/validation/PhoneInput";
 import "./profiles.css";
@@ -19,6 +20,7 @@ type Profile = {
   values: Values;
   version: string;
   completeness: number;
+  completionFields?: string[];
   missingFields: string[];
   canEdit: boolean;
   canManage: boolean;
@@ -430,7 +432,7 @@ export function UnifiedProfile({
       .then((result) => {
         if (active) {
           setProfile(result);
-          setDraft(result.values);
+          setDraft(structuredClone(result.values));
           setPhotoFailed(false);
         }
       })
@@ -462,7 +464,7 @@ export function UnifiedProfile({
   }, [dirty]);
   const cancel = () => {
     if (dirty && !window.confirm("Discard unsaved profile changes?")) return;
-    if (profile) setDraft(profile.values);
+    if (profile) setDraft(structuredClone(profile.values));
     setEditing(false);
     setError("");
   };
@@ -487,7 +489,7 @@ export function UnifiedProfile({
         },
       });
       setProfile(result.profile);
-      setDraft(result.profile.values);
+      setDraft(structuredClone(result.profile.values));
       setEditing(false);
       setMessage(result.message);
       onSaved?.();
@@ -523,6 +525,13 @@ export function UnifiedProfile({
     ...(profile.application ? ["Application"] : []),
     ...(profile.pendingRequests.length ? ["Pending changes"] : []),
   ];
+  const completionFields = profile.completionFields || ["first_name","personal_email","phone_number","present_address","present_city","skills","education","emergency_contact_number","bio"];
+  const filled = (value: unknown) => Array.isArray(value) ? value.length>0 : typeof value === "string" ? value.trim().length>0 : !!value;
+  const draftMissing = completionFields.filter(key=>!filled(draft[key]));
+  const displayedCompletion = editing ? Math.round(100*(completionFields.length-draftMissing.length)/completionFields.length) : profile.completeness;
+  const displayedMissing = editing ? draftMissing : profile.missingFields;
+  const pendingValues = Object.assign({},profile.values,...[...profile.pendingRequests].reverse().map(p=>p.values));
+  const pendingCompletion = Math.round(100*completionFields.filter(key=>filled(pendingValues[key])).length/completionFields.length);
   const fieldSection = (name: string) => (
     <section className="up-section">
       <h2>
@@ -604,7 +613,7 @@ export function UnifiedProfile({
                       body,
                     });
                     setProfile(result);
-                    setDraft(result.values);
+                    setDraft(structuredClone(result.values));
                     setPhotoFailed(false);
                     setMessage(
                       "Profile photo updated across connected modules.",
@@ -655,20 +664,21 @@ export function UnifiedProfile({
       </header>
       <div className="up-summary">
         <div>
-          <strong>{profile.completeness}%</strong>
-          <span>Profile complete</span>
+          <strong>{displayedCompletion}%</strong>
+          <span>{editing ? "Draft profile complete" : "Saved profile complete"}</span>
         </div>
         <progress
           max={100}
-          value={profile.completeness}
+          value={displayedCompletion}
           aria-label="Profile completeness"
         />
         <p>
-          {profile.missingFields.length
+          {displayedMissing.length
             ? "To complete: " +
-              profile.missingFields.map((key) => labels[key] || key).join(", ")
+              displayedMissing.map((key) => labels[key] || key).join(", ")
             : "Your main profile details are complete."}
         </p>
+        {profile.pendingRequests.length>0 && <p role="status">Submitted details: {pendingCompletion}% complete. Name and employee record changes update the saved profile after HR approval; your pending changes are retained.</p>}
       </div>
       <p className="up-source-note">
         Login email connects your account. Employee and internship details come
@@ -719,7 +729,7 @@ export function UnifiedProfile({
           </button>
         ))}
       </nav>
-      <form onSubmit={save}>
+      <CompactForm onSubmit={save}>
         <fieldset className="up-fieldset" disabled={busy}>
           {tab === "Overview" && (
             <>
@@ -966,7 +976,7 @@ export function UnifiedProfile({
             </button>
           </footer>
         )}
-      </form>
+      </CompactForm>
       {preview && (
         <ConnectDialog
           preview={preview}
@@ -980,7 +990,7 @@ export function UnifiedProfile({
                 { method: "POST", body: { employeeId } },
               );
               setProfile(result);
-              setDraft(result.values);
+              setDraft(structuredClone(result.values));
               setPreview(undefined);
               setMessage("Employee and account profiles are connected.");
               onSaved?.();

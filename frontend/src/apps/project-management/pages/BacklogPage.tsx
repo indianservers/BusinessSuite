@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { arrangeTask } from "../components/SprintMoveBoard";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -179,14 +180,14 @@ export default function BacklogPage() {
         <Card>
           <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
           <CardContent>
-            <form onSubmit={createSprint} className="grid gap-3 md:grid-cols-[1fr_1fr_10rem_10rem_8rem_auto] md:items-end">
+            <CompactForm onSubmit={createSprint} className="grid gap-3 md:grid-cols-[1fr_1fr_10rem_10rem_8rem_auto] md:items-end">
               <Field label="Name"><Input name="name" required /></Field>
               <Field label="Goal"><Input name="goal" /></Field>
               <Field label="Start"><Input name="start_date" type="date" required /></Field>
               <Field label="End"><Input name="end_date" type="date" required /></Field>
               <Field label="Capacity"><Input name="capacity_hours" type="number" min="0" defaultValue="40" /></Field>
               <Button type="submit">Create</Button>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
       ) : null}

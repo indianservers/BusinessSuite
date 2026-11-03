@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -718,7 +719,7 @@ export function ApprovalForm({
   const form = p?.published_definition || p?.definition;
   const [requestKey] = useState(() => crypto.randomUUID());
   return (
-    <form
+    <CompactForm
       className="ap-panel ap-form"
       onSubmit={async (e) => {
         e.preventDefault();
@@ -842,7 +843,7 @@ export function ApprovalForm({
       <button className="ap-primary" disabled={!p || busy}>
         {busy ? "Submitting…" : "Submit for approval"}
       </button>
-    </form>
+    </CompactForm>
   );
 }
 export const ApprovalRequestForm = ApprovalForm;

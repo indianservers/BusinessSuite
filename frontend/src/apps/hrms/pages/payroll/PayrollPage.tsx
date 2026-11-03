@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useHRSession} from "../../workbench/useHRSession";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useState } from "react";
@@ -1162,7 +1163,7 @@ export default function PayrollPage() {
                     </thead>
                     <tbody>
                       {(runRecords as PayslipRecord[] | undefined || []).map((record) => (
-                        <tr key={record.id} className={`border-b ${selectedRecordId === record.id ? "bg-muted/40" : ""}`}>
+                        <tr {...recordPreviewProps(record)} key={record.id} className={`border-b ${selectedRecordId === record.id ? "bg-muted/40" : ""}`}>
                           <td className="px-4 py-3 font-medium">{record.employee?.first_name} {record.employee?.last_name}<p className="text-xs text-muted-foreground">{record.employee?.employee_id}</p></td>
                           <td className="px-4 py-3">{formatCurrency(record.gross_salary)}</td>
                           <td className="px-4 py-3">{formatCurrency(record.total_deductions)}</td>
@@ -1617,7 +1618,7 @@ export default function PayrollPage() {
                   <tbody>
                     {loadingRuns ? (
                       Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i} className="border-b">
+                        <tr {...recordPreviewProps(_)} key={i} className="border-b">
                           <td colSpan={6} className="px-4 py-3"><div className="h-4 skeleton rounded" /></td>
                         </tr>
                       ))
@@ -1629,7 +1630,7 @@ export default function PayrollPage() {
                       </tr>
                     ) : (
                       (runs as PayrollRun[]).map((run) => (
-                        <tr
+                        <tr {...recordPreviewProps(run)}
                           key={run.id}
                           className={`border-b hover:bg-muted/30 cursor-pointer ${selectedRun?.id === run.id ? "bg-muted/50" : ""}`}
                           onClick={() => setSelectedRun(selectedRun?.id === run.id ? null : run)}
@@ -1750,7 +1751,7 @@ export default function PayrollPage() {
                         </tr>
                       ) : (
                         (runVariance as PayrollVariance[]).map((item) => (
-                          <tr key={item.id} className="border-b hover:bg-muted/30">
+                          <tr {...recordPreviewProps(item)} key={item.id} className="border-b hover:bg-muted/30">
                             <td className="px-4 py-3">#{item.employee_id}</td>
                             <td className="px-4 py-3">
                               {formatCurrency(item.previous_gross)} to {formatCurrency(item.current_gross)}
@@ -1801,7 +1802,7 @@ export default function PayrollPage() {
                     </thead>
                     <tbody>
                       {(worksheetRows as PayrollWorksheetRow[] | undefined || []).map((row) => (
-                        <tr key={row.id} className="border-b">
+                        <tr {...recordPreviewProps(row)} key={row.id} className="border-b">
                           <td className="px-4 py-3">
                             <span className="font-medium">#{row.employee_id}</span>
                             <p className="text-xs text-muted-foreground">{row.status}</p>
@@ -1952,7 +1953,7 @@ export default function PayrollPage() {
                       </thead>
                       <tbody>
                         {bankAdviceRows.slice(0, 6).map((row) => (
-                          <tr key={row.payroll_record_id || row.payrollRecordId} className="border-t">
+                          <tr {...recordPreviewProps(row)} key={row.payroll_record_id || row.payrollRecordId} className="border-t">
                             <td className="px-2 py-2">{row.employee_name || row.employeeName}</td>
                             <td className="px-2 py-2">{row.bank_name || row.bankName || "-"}</td>
                             <td className="px-2 py-2">{row.account_number_masked || row.accountNumberMasked || "-"}</td>
@@ -2041,7 +2042,7 @@ export default function PayrollPage() {
                     </thead>
                     <tbody>
                       {(runRecords as PayslipRecord[]).map((r) => (
-                        <tr key={r.id} className="border-b hover:bg-muted/30">
+                        <tr {...recordPreviewProps(r)} key={r.id} className="border-b hover:bg-muted/30">
                           <td className="px-4 py-3">
                             <p className="font-medium">{r.employee?.first_name} {r.employee?.last_name}</p>
                             <p className="text-xs text-muted-foreground">{r.employee?.employee_id}</p>
@@ -2112,7 +2113,7 @@ export default function PayrollPage() {
                   </thead>
                   <tbody>
                     {(runVariance as PayrollVariance[] | undefined || []).map((item) => (
-                      <tr key={item.id} className="border-b hover:bg-muted/30">
+                      <tr {...recordPreviewProps(item)} key={item.id} className="border-b hover:bg-muted/30">
                         <td className="px-4 py-3">#{item.employee_id}</td>
                         <td className="px-4 py-3">{formatCurrency(item.previous_gross)}</td>
                         <td className="px-4 py-3">{formatCurrency(item.current_gross)}</td>
@@ -2234,7 +2235,7 @@ export default function PayrollPage() {
                       <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No LWP found for this month</td></tr>
                     ) : (
                       lwpFeed!.preview.map((row) => (
-                        <tr key={row.employeeId} className="border-b">
+                        <tr {...recordPreviewProps(row)} key={row.employeeId} className="border-b">
                           <td className="px-4 py-3">
                             <p className="font-medium">{row.employeeName}</p>
                             <p className="text-xs text-muted-foreground">{row.employeeCode || `#${row.employeeId}`}</p>
@@ -2310,7 +2311,7 @@ export default function PayrollPage() {
                   </thead>
                   <tbody>
                     {(payrollInputs as { id: number; employee_id: number; working_days: number; payable_days: number; paid_leave_days: number; lop_days: number; ot_hours: number; source_status: string }[] | undefined || []).map((item) => (
-                      <tr key={item.id} className="border-b">
+                      <tr {...recordPreviewProps(item)} key={item.id} className="border-b">
                         <td className="px-4 py-3">#{item.employee_id}</td>
                         <td className="px-4 py-3">{item.working_days}</td>
                         <td className="px-4 py-3">{item.payable_days}</td>

@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
   useCallback,
   useEffect,
@@ -1785,7 +1786,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                             }
                             className={`udg-row ${edit?.row === node.id ? "is-editing" : ""} ${virtual.index % 2 ? "udg-row-alt" : ""} ${selection.includes(node.id) ? "is-selected" : ""}`}
                             style={position}
-                            onDoubleClick={() => onOpen?.(record)}
+                            {...recordPreviewProps(record)}
                             draggable={!!props.manualOrder}
                             onDragStart={(e) => {
                               if (props.manualOrder)
@@ -1952,7 +1953,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                       .map((r) => (
                         <article
                           key={getRowId(r)}
-                          onDoubleClick={() => onOpen?.(r)}
+                          {...recordPreviewProps(r)}
                         >
                           {props.renderCard?.(r) ||
                             columns
@@ -1969,7 +1970,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                   </section>
                 ))
               : visibleRecords.map((r) => (
-                  <article key={getRowId(r)} onDoubleClick={() => onOpen?.(r)}>
+                  <article key={getRowId(r)} {...recordPreviewProps(r)}>
                     {props.renderCard?.(r) ||
                       columns
                         .filter((c) => layout.visibility[c.id] !== false)
@@ -2055,3 +2056,4 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
     </section>
   );
 }
+

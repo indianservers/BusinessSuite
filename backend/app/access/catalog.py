@@ -101,7 +101,7 @@ def key_for_source(source, default=None):
     if source in {
         "app.access.api",
         "app.access.control",
-        "app.shared.data_transfer", "app.shared.api", "app.shared.catalog", "app.shared.communication.gateway", "app.enterprise.api", "app.ai_agents.security_api",
+        "app.shared.data_transfer", "app.shared.api", "app.shared.catalog", "app.shared.follow_ups", "app.shared.communication.gateway", "app.enterprise.api", "app.ai_agents.security_api",
         "app.common.profile_api",
         "app.api.v1.auth",
         "app.api.v1.users",

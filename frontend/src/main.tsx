@@ -1,3 +1,5 @@
+import "./components/forms/compact-forms.css";
+import RecordQuickPreview from "./components/RecordQuickPreview";
 import React from "react";
 import { recoverChunkLoad } from "./lib/chunk-recovery";
 import ReactDOM from "react-dom/client";
@@ -6,7 +8,6 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import {useAuthStore} from "./store/authStore";
 import AsyncProgress from "./components/app/AsyncProgress";
-import RouteProgress from "./components/app/RouteProgress";
 import "./index.css";
 import "./design-system/premium.css";
 import { applyTheme, useThemeStore } from "./store/themeStore.ts";
@@ -50,8 +51,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AsyncProgress />
-        <RouteProgress />
         <App />
+        <RecordQuickPreview />
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>

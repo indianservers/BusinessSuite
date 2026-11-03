@@ -112,3 +112,15 @@ This local implementation and its tests do not certify every original suite-wide
 4. **Lifecycle and rollout coverage:** branch rename/Trash/restore are now implemented and locally verified. Mobile selection, profile-sharing UI, sustained performance checks, staged pilots and production rollout remain separate work.
 
 Keep this in local development/staging until the outstanding release gates are resolved. Do not label the entire suite or its production migration complete solely from these checks.
+
+## User permissions audit — 2026-11-03
+
+Settings → Users → open a user → **Branch-wise module permissions**. Select a branch, assign its modules and choose Viewer, Admin (this branch only), or Custom features. Save using the required verification. Company module permissions are the maximum ceiling; they do not grant every branch. Custom stored roles include their version when saved.
+
+The legacy accountant drawer failure came from inconsistent company rosters. The editor now uses the central roster. A verified save can link a legacy account as a standard member; an explicitly revoked company membership requires explicit restoration. The existing accountant was inspected without changing its permissions.
+
+Security fixes cover removed module-whitelist entries, unauthorized home-branch changes, explicit readonly home-branch grants, and company revocation overriding inferred person/employee membership. CRM granular feature permissions are registered by additive migration `pg_20261103_063_crm_features`, applied locally; existing broad rights retain equivalent feature ceilings without granting other branches. PMS board columns inherit their board/project boundary. Employee code allocation checks global allocation metadata under a lock, preventing duplicate codes in new branches.
+
+Four synthetic users and two branches exercised CRM, HRMS and PMS access combinations. Browser verification saved an East CRM Viewer role and confirmed the mixed user's West branch permits PMS Admin with CRM/HRMS disabled. API checks verified foreign branch denial, foreign record denial, readonly writes, feature grant/revoke and company membership revocation. QA policies were restored to their intended final matrix. Synthetic fixtures remain available locally; credentials are excluded from tracked evidence.
+
+Validation: **134 backend tests passed, 1 skipped**, TypeScript check passed, and **275 successful live HTTP checks** including setup/repeated requests. See `qa/branch-access/permission-audit-summary.json`, individual journals, screenshots and `permission-audit-tests.txt`. These focused checks do not certify all suite business workflows or production rollout. Changes and migration were local only.

@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import { useState } from "react";
@@ -237,7 +238,7 @@ export default function HelpdeskPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Raise a Ticket</CardTitle></CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CompactForm onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Subject *</Label>
                 <Input autoFocus {...register("subject", { required: "Required" })} placeholder="Brief description of the issue" />
@@ -265,7 +266,7 @@ export default function HelpdeskPage() {
                 <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Submitting..." : "Raise Ticket"}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
       )}

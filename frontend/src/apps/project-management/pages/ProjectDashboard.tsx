@@ -5,7 +5,7 @@ import { RecordCustomFields } from "../components/CustomFields";
 import { ConversationLauncher } from "@/shared/communication";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertTriangle, BarChart3, CheckCircle2, Clock, Kanban, ListChecks, Milestone, ShieldAlert, Timer } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -27,15 +27,17 @@ export default function ProjectDashboard() {
   const [addingPeople, setAddingPeople] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error,setError] = useState("");
+  const loadedProjectId = useRef<number>();
   const [retryVersion,setRetryVersion] = useState(0);
 
   useEffect(() => {
     let active=true;
-    setLoading(true);setError("");setSelectedProject(null);setDashboard(null);setTasks([]);
+    setLoading(true);setError("");
+    if(loadedProjectId.current!==id){setSelectedProject(null);setDashboard(null);setTasks([]);loadedProjectId.current=id;}
     if(!id){setLoading(false);setError("Choose a valid project.");return;}
     Promise.all([projectsAPI.get(id),projectsAPI.getDashboard(id),tasksAPI.list(id)])
       .then(([project,dashboardData,taskData])=>{if(!active)return;setSelectedProject(project);setDashboard(dashboardData);setTasks(taskData);})
-      .catch(err=>{if(active)setError(typeof err?.response?.data?.detail==="string"?err.response.data.detail:"Unable to load this project. Check your access and try again.");})
+      .catch(err=>{if(!active)return;if([401,403,404].includes(err?.response?.status)){setSelectedProject(null);setDashboard(null);setTasks([]);}setError(typeof err?.response?.data?.detail==="string"?err.response.data.detail:"Unable to load this project. Check your access and try again.");})
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[id,setSelectedProject,setTasks,retryVersion]);
@@ -46,11 +48,12 @@ export default function ProjectDashboard() {
   const taskChart=Object.entries(dashboard?.status_counts||{}).map(([status,tasks])=>({status,tasks}));
   const overdue = tasks.filter(isOverdue);
 
-  if (loading) return <div className="skeleton h-72 rounded-lg" />;
-  if (error || !project) return <div role="alert" className="rounded-xl border bg-card p-6 space-y-3"><h1 className="text-xl font-semibold">Project unavailable</h1><p className="text-sm text-muted-foreground">{error || "Project not found."}</p><div className="flex gap-3"><Button variant="outline" onClick={()=>setRetryVersion(version=>version+1)}>Retry</Button><Button asChild><Link to="/pms/projects">Back to projects</Link></Button></div></div>;
+  if (loading && !dashboard) return <div className="skeleton h-72 rounded-lg" />;
+  if (!project) return <div role="alert" className="rounded-xl border bg-card p-6 space-y-3"><h1 className="text-xl font-semibold">Project unavailable</h1><p className="text-sm text-muted-foreground">{error || "Project not found."}</p><div className="flex gap-3"><Button variant="outline" onClick={()=>setRetryVersion(version=>version+1)}>Retry</Button><Button asChild><Link to="/pms/projects">Back to projects</Link></Button></div></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={loading}>
+      {error && <p role="alert" className="rounded border border-destructive/30 p-3 text-sm">{error}</p>}
       <AddExistingPeopleDialog open={addingPeople} onClose={() => setAddingPeople(false)} projectId={id} workspaceId={project.workspace_id} />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>

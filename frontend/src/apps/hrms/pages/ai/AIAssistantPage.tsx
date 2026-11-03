@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { FormEvent, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Bot, Send, Sparkles, UserRound } from "lucide-react";
@@ -61,13 +62,13 @@ export default function AIAssistantPage() {
             {chat.isPending && <p className="text-sm text-muted-foreground">Thinking...</p>}
           </div>
 
-          <form onSubmit={submit} className="flex gap-2">
+          <CompactForm onSubmit={submit} className="flex gap-2">
             <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Ask a HR question..." />
             <Button type="submit" disabled={chat.isPending}>
               <Send className="h-4 w-4" />
               Send
             </Button>
-          </form>
+          </CompactForm>
         </CardContent>
       </Card>
     </div>

@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1212,7 +1213,7 @@ function Conversation({
                   </label>
                 ))}
                 {data.can_manage && (
-                  <form
+                  <CompactForm
                     onSubmit={(e) => {
                       e.preventDefault();
                       void run(async () => {
@@ -1233,7 +1234,7 @@ function Conversation({
                       <Plus size={15} />
                       Add
                     </button>
-                  </form>
+                  </CompactForm>
                 )}
               </>
             )}

@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, select, text
 from app.apps.hrms.services.identity import HrmsIdentityService
 from app.crud.base import CRUDBase
 from app.models.employee import (
@@ -20,9 +20,17 @@ from fastapi import HTTPException
 class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
 
     def generate_employee_id(self, db: Session) -> str:
-        last = db.query(Employee).order_by(Employee.id.desc()).first()
-        next_num = (last.id + 1) if last else 1
-        return f"EMP{next_num:05d}"
+        # The identifier is globally unique, even when the current ORM session
+        # can see only one branch. Read allocation metadata, never employee data.
+        connection = db.connection()
+        if connection.dialect.name == "postgresql":
+            connection.execute(text("SELECT pg_advisory_xact_lock(96604401)"))
+        next_num = (connection.execute(select(func.max(Employee.__table__.c.id))).scalar() or 0) + 1
+        while True:
+            candidate = f"EMP{next_num:05d}"
+            if connection.execute(select(Employee.__table__.c.id).where(Employee.__table__.c.employee_id == candidate).limit(1)).first() is None:
+                return candidate
+            next_num += 1
 
     def get_by_employee_id(self, db: Session, employee_id: str) -> Optional[Employee]:
         return db.query(Employee).filter(

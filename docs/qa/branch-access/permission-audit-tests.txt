@@ -1,0 +1,23 @@
+........................................................................ [ 53%]
+..........................s....................................          [100%]
+============================== warnings summary ===============================
+venv\Lib\site-packages\starlette\testclient.py:53
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+venv\Lib\site-packages\reportlab\lib\rl_safe_eval.py:12
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\reportlab\lib\rl_safe_eval.py:12: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    haveNameConstant = hasattr(ast,'NameConstant')
+
+tests/test_branch_permission_audit.py: 1 warning
+tests/test_branch_access.py: 4 warnings
+tests/test_branch_module_ownership.py: 19 warnings
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\conftest.py:112: SAWarning: transaction already deassociated from connection
+    transaction.rollback()
+
+tests/test_company_security_boundary.py::test_pms_nested_resources_and_atomic_bulk_are_scoped
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\project_management\api\router.py:3565: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    update_data = bulk_in.dict(exclude={"task_ids"}, exclude_unset=True)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+134 passed, 1 skipped, 27 warnings in 211.75s (0:03:31)

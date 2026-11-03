@@ -102,7 +102,7 @@ def analytics_overview(
     now = datetime.now(timezone.utc)
     def snapshot(items):
         done = sum(t.status in DONE for t in items)
-        return {'total': len(items), 'completed': done, 'open': len(items) - done,
+        return {'total': len(items), 'completed': done, 'open': sum(t.status not in TERMINAL for t in items),
                 'blocked': sum(t.status == 'Blocked' for t in items),
                 'overdue': sum(bool(t.due_date and t.due_date < today and t.status not in TERMINAL) for t in items),
                 'completion_percent': round(done / len(items) * 100, 1) if items else 0}

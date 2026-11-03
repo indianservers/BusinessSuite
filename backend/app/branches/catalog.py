@@ -9,6 +9,8 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     "suite_access_templates", "suite_access_audit", "suite_branch_policies", "suite_branch_grants",
     "suite_accounting_branch_map", "suite_branch_ownership", "suite_branch_audit",
     "suite_branch_record_shares", "suite_branch_lifecycle",
+    # Personal reminder configuration is user-scoped by its API, not a branch transaction.
+    "service_follow_up_preferences",
     "users", "user_sessions", "mfa_methods", "trusted_devices", "login_attempts",
     "common_people", "common_profiles", "sso_providers", "sso_domains",
     "crm_products", "crm_services", "srm_products", "shared_catalog_details", "shared_catalog_links",

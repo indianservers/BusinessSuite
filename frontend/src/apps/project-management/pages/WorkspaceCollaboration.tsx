@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { appendRichMarkdown } from "@/components/rich-text/content";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -75,11 +76,11 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
       </article>)}<div ref={end} />
     </div>
     {error && <p role="alert" className="ws-alert">{error}</p>}
-    {canEdit ? <form className="ws-collab-compose" onSubmit={e => { e.preventDefault(); void send(); }}>
+    {canEdit ? <CompactForm className="ws-collab-compose" onSubmit={e => { e.preventDefault(); void send(); }}>
       {tab === "note" && <div className="space-y-2"><button type="button" className="ws-button ws-outline" disabled={busy || richTextPlainText(drafts.note).length + meetingOutline.length + (drafts.note ? 2 : 0) > 20000} onClick={() => setDrafts(current => ({ ...current, note: appendRichMarkdown(current.note, meetingOutline) }))}>Insert meeting outline</button><p className="text-xs text-muted-foreground">Capture decisions and actions with owners and deadlines. Saved notes are shared with this workspace.</p></div>}
       <select aria-label="Link to task" value={taskId} onChange={e => setTaskId(e.target.value)}><option value="">Link a task (optional)</option>{tasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</select>
       <RichTextField data-legacy-format="markdown" aria-label={tab === "chat" ? "Message your team" : "Write a quick note"} placeholder={tab === "chat" ? "Share an update or ask a question…" : "Write a note…"} value={drafts[tab]} maxLength={20000} onChange={e => setDrafts(current => ({ ...current, [tab]: e.target.value }))} />
       <button className="ws-button ws-primary" disabled={busy || !drafts[tab].trim()}><Send size={14} />{busy ? "Saving…" : tab === "chat" ? "Send message" : "Save note"}</button>
-    </form> : <p className="ws-collab-sync">You have read-only access.</p>}
+    </CompactForm> : <p className="ws-collab-sync">You have read-only access.</p>}
   </aside>;
 }

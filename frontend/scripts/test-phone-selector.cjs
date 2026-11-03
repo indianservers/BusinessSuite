@@ -1,0 +1,10 @@
+const {buildSync}=require('esbuild');
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+const bundle=buildSync({stdin:{contents:`import React,{useState} from 'react';import{createRoot}from'react-dom/client';import{PhoneInput}from'./src/lib/validation/PhoneInput';function App(){const[c,C]=useState('');const[v,V]=useState('');return <><PhoneInput value={v} countryCode={c} onChange={V} onCountryCodeChange={C}/><output>{c}</output><button style={{position:"fixed",right:20,top:20}}>Outside</button></>};createRoot(document.getElementById('root')).render(<App/>);`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'}}).outputFiles[0].text;
+const browser=await chromium.launch({headless:true});try{const page=await browser.newPage();await page.setContent('<div id="root"></div>');await page.addScriptTag({content:bundle});await page.waitForFunction(()=>document.querySelector('output')?.textContent==='+91');const trigger=page.getByRole('button',{name:/country calling code/});assert.match(await trigger.innerText(),/IN \+91/);await trigger.click();const search=page.getByRole('combobox');await search.fill('India');assert.match(await page.getByRole('listbox').innerText(),/India/);await search.fill('GB');await search.press('Enter');assert.match(await trigger.innerText(),/GB \+44/);await trigger.click();await search.fill('+93');await search.press('Enter');assert.match(await trigger.innerText(),/AF \+93/);await trigger.click();await search.fill('zzzzzzz');assert.equal(await page.getByText('No countries found').innerText(),'No countries found');await search.press('Escape');assert.equal(await trigger.getAttribute('aria-expanded'),'false');await trigger.click();await page.getByRole('button',{name:'Outside',exact:true}).click();assert.equal(await trigger.getAttribute('aria-expanded'),'false');console.log('Phone selector browser checks passed: India default, name/ISO/dial-code search, selection, empty results, Escape and outside dismissal.');}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1)});
+
+
+

@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useId, useMemo, useRef, useState, type PointerEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -196,22 +197,22 @@ export default function ModuleGanttPage({ module }: { module: Module }) {
     </>}
     {schedule.data && !schedule.isError && <Card className="space-y-3 p-4">
       <h2 className="text-lg font-semibold">Dependencies</h2><p className="text-sm text-muted-foreground">Saved links between these records. Amber arrows flag unmet constraints. Linked records are not automatically rescheduled.</p>
-      {normalized.some(row => row.canEdit) && <form onSubmit={event => { event.preventDefault(); void mutateLink(); }}><fieldset disabled={busy} className="flex flex-wrap items-end gap-3">
+      {normalized.some(row => row.canEdit) && <CompactForm onSubmit={event => { event.preventDefault(); void mutateLink(); }}><fieldset disabled={busy} className="flex flex-wrap items-end gap-3">
         <label>Predecessor<select aria-label="Predecessor" className="block max-w-[250px] rounded border bg-background p-2" value={linkSource} onChange={event => setLinkSource(event.target.value)}><option value="">Choose a record</option>{normalized.filter(row => row.canEdit).map(row => <option key={row.id} value={row.id}>{row.title}</option>)}</select></label>
         <label>Successor<select aria-label="Successor" className="block max-w-[250px] rounded border bg-background p-2" value={linkTarget} onChange={event => setLinkTarget(event.target.value)}><option value="">Choose a record</option>{normalized.filter(row => row.canEdit && row.id !== linkSource).map(row => <option key={row.id} value={row.id}>{row.title}</option>)}</select></label>
         <label>Type<select aria-label="Dependency type" className="block rounded border bg-background p-2" value={linkType} onChange={event => setLinkType(event.target.value as Dependency["type"])}>{["FS", "SS", "FF", "SF"].map(type => <option key={type}>{type}</option>)}</select></label>
         <label>Lag days<Input aria-label="Lag days" type="number" step="1" min="-3650" max="3650" value={lag} onChange={event => setLag(event.target.value)} className="w-24" /></label><Button disabled={!linkSource || !linkTarget}>Add dependency</Button>
-      </fieldset></form>}
+      </fieldset></CompactForm>}
       <ul className="space-y-2">{schedule.data.dependencies.map(link => <li key={link.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2 text-sm"><span>{normalized.find(row => row.id === link.source_id)?.title} &rarr; {normalized.find(row => row.id === link.target_id)?.title} - {link.type} - {link.lag}d</span>{normalized.find(row => row.id === link.source_id)?.canEdit && normalized.find(row => row.id === link.target_id)?.canEdit && <Button variant="outline" size="sm" disabled={busy} onClick={() => void mutateLink(link.id)}>Remove dependency</Button>}</li>)}</ul>
       {!schedule.data.dependencies.length && <p className="text-sm text-muted-foreground">No dependencies yet.</p>}
     </Card>}
     <Dialog.Root open={!!editor} onOpenChange={open => { if (!open && !saving) setEditor(null); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" /><Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(90vw,420px)] -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-xl border bg-background p-6">
       <Dialog.Title className="text-lg font-semibold">Edit schedule</Dialog.Title><Dialog.Description>{editor?.row.title}</Dialog.Description>
-      <form className="space-y-4" onSubmit={event => { event.preventDefault(); void saveEditor(); }}>
+      <CompactForm className="space-y-4" onSubmit={event => { event.preventDefault(); void saveEditor(); }}>
         <label className="grid gap-1">Start date<Input required type="date" value={editor?.from || ""} disabled={saving} onChange={event => setEditor(current => current && { ...current, from: event.target.value })} /></label>
         <label className="grid gap-1">End date<Input required type="date" value={editor?.to || ""} disabled={saving} onChange={event => setEditor(current => current && { ...current, to: event.target.value })} /></label>
         {error && <p role="alert">{error}</p>}<div className="flex gap-2"><Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save schedule"}</Button><Button type="button" variant="outline" disabled={saving} onClick={() => { setEditor(null); setError(""); }}>Cancel</Button></div>
-      </form>
+      </CompactForm>
     </Dialog.Content></Dialog.Portal></Dialog.Root>
   </div>;
 }

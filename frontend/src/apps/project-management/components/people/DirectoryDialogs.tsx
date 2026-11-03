@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -181,7 +182,7 @@ export function TeamEditor({
       title={teamId ? "Manage team" : "Create team"}
       description="Organize existing workspace members. Team membership does not grant workspace administration access."
     >
-      <form
+      <CompactForm
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -396,7 +397,7 @@ export function TeamEditor({
             </button>
           </div>
         </fieldset>
-      </form>
+      </CompactForm>
     </PeopleDialog>
   );
 }

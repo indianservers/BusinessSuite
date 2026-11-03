@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import WhatsAppCloudPanel from "./WhatsAppCloudPanel";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { contentToHtml, RICH_TEXT_PREFIX } from "@/components/rich-text/content";
 import { Input } from "@/components/ui/input";
@@ -62,7 +64,7 @@ export default function CommunicationHubPage() {
       <div className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
         <p className="text-sm font-medium uppercase text-muted-foreground">CRM</p>
         <h1 className="text-2xl font-semibold">Communication Hub</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">Templates, individual emails, public webforms, auto-responses, campaigns, consent, WhatsApp placeholders, timeline, and delivery analytics.</p>
+        <p className="max-w-3xl text-sm text-muted-foreground">Templates, individual emails, public webforms, auto-responses, campaigns, consent, WhatsApp messaging, timeline, and delivery analytics.</p>
         <nav aria-label="Communication sections" className="mt-4 flex gap-2 overflow-x-auto pb-1">
           {sections.filter(item => canAccessRoute(item.path, user?.role, user?.is_superuser)).map((item) => {
             const Icon = item.icon;
@@ -120,14 +122,14 @@ function Templates() {
       {query.isLoading && <p role="status">Loading templates...</p>}{query.isError && <p role="alert">Could not load templates.</p>}
       {query.data?.items.map(item=><button type="button" key={item.id} className={`block w-full rounded-lg border p-3 text-left text-sm ${id===item.id ? "border-primary bg-primary/5" : "hover:bg-muted"}`} onClick={()=>{setId(item.id!);setDraft({name:String(item.name||""),subject:String(item.subject||""),content:item.body_html ? String(item.body_html) : RICH_TEXT_PREFIX + contentToHtml(String(item.body_text||""), "plain"),module_name:String(item.module_name||"lead")});setNotice("");setError("");}}><strong>{String(item.name)}</strong><span className="block text-xs text-muted-foreground">{String(item.subject||"")}</span></button>)}
     </CardContent></Card>
-    <Card><CardContent className="p-5"><form className="space-y-4" onSubmit={event=>{event.preventDefault();setNotice("");mutation.mutate();}}>
+    <Card><CardContent className="p-5"><CompactForm className="space-y-4" onSubmit={event=>{event.preventDefault();setNotice("");mutation.mutate();}}>
       <h2 className="text-lg font-semibold">{id ? "Edit email template" : "Create email template"}</h2>
       <p className="text-sm text-muted-foreground">Write a reusable message. Merge fields such as {"{{name}}"} remain available when composing an email.</p>
       <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-1 text-sm">Template name<Input required maxLength={180} minLength={2} value={draft.name} disabled={!canManage || mutation.isPending} onChange={event=>setDraft({...draft,name:event.target.value})}/></label><label className="space-y-1 text-sm">Subject<Input required maxLength={240} value={draft.subject} disabled={!canManage || mutation.isPending} onChange={event=>setDraft({...draft,subject:event.target.value})}/></label></div>
       <RichTextEditor key={id ?? "new"} label="Email template content" legacyFormat="html" variant="document" value={draft.content} onChange={content=>setDraft({...draft,content})} readOnly={!canManage} disabled={mutation.isPending} maxLength={20000}/>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
       <Button type="submit" disabled={!canManage || mutation.isPending}>{mutation.isPending ? "Saving..." : "Save template"}</Button>
-    </form></CardContent></Card>
+    </CompactForm></CardContent></Card>
   </div>;
 }
 
@@ -185,7 +187,7 @@ function Consents() {
 }
 
 function WhatsApp() {
-  return <GenericSection title="WhatsApp Placeholder" description="Template management only. Delivery remains placeholder-only until a real WhatsApp provider is configured." queryKey="communication-whatsapp" queryFn={communicationApi.whatsappTemplates} action="Create WhatsApp Template" mutation={() => communicationApi.createWhatsAppTemplate({ name: "Reminder", template_key: "crm_reminder", body_text: "Hello {{name}}, this is a CRM reminder.", active: true })} />;
+  return <div className="space-y-6"><WhatsAppCloudPanel /><GenericSection title="Local WhatsApp Templates" description="Local drafts are separate from approved Meta templates. Webform auto-responses still record queued placeholders." queryKey="communication-whatsapp" queryFn={communicationApi.whatsappTemplates} action="Create WhatsApp Template" mutation={() => communicationApi.createWhatsAppTemplate({ name: "Reminder", template_key: "crm_reminder", body_text: "Hello {{name}}, this is a CRM reminder.", active: true })} /></div>;
 }
 
 function AutoResponses() {

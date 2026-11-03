@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useSearchParams,Link} from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -348,7 +349,7 @@ export default function FnFSettlementPage() {
                       </thead>
                       <tbody>
                         {components.map((component, index) => (
-                          <tr key={`${component.id ?? "new"}-${index}`} className="border-t">
+                          <tr {...recordPreviewProps(component)} key={`${component.id ?? "new"}-${index}`} className="border-t">
                             <td className="px-3 py-2">
                               <select value={component.component_type} onChange={(event) => updateComponent(index, { component_type: event.target.value as FnFComponent["component_type"] })} className="h-9 rounded-md border bg-background px-2">
                                 <option value="earning">Earning</option>

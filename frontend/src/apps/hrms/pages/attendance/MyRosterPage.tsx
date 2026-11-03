@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays } from "lucide-react";
@@ -70,7 +71,7 @@ export default function MyRosterPage() {
               </thead>
               <tbody>
                 {rows.map((row, index) => (
-                  <tr key={row.id || `${row.roster_date}-${index}`} className="border-b last:border-0">
+                  <tr {...recordPreviewProps(row)} key={row.id || `${row.roster_date}-${index}`} className="border-b last:border-0">
                     <td className="py-3 pr-4">{row.roster_date || "-"}</td>
                     <td className="py-3 pr-4">{row.shift_name || "Weekly Off"}</td>
                     <td className="py-3 pr-4">{row.shift_code || "-"}</td>

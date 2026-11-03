@@ -24,7 +24,7 @@ from app.shared.catalog_models import CatalogDetails, CatalogLink
 router = APIRouter(prefix="/catalog", tags=["Shared products & services"])
 Kind = Literal["product", "service"]
 Source = Literal["pms", "crm", "srm"]
-Target = Literal["project", "lead", "customer", "account", "deal"]
+Target = Literal["project", "lead", "contact", "customer", "account", "deal"]
 CENT = Decimal("0.01")
 
 
@@ -37,8 +37,11 @@ class Price(BaseModel):
     interval: Literal["once", "day", "week", "month", "year"] = "once"
 
 
+from app.shared.follow_ups import Schedule
+
 class ItemInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    follow_up: Schedule | None = None
     kind: Kind
     name: str = Field(min_length=1, max_length=180)
     code: str = Field(min_length=1, max_length=80)
@@ -156,7 +159,7 @@ def item_record(db, user, source, kind, ident, write=False, archived=True):
 
 def output(row, kind, detail):
     attributes = row.metadata_json or {}
-    return {"id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
+    return {"follow_up": attributes.get("follow_up"), "id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
             "category": row.category_name or "", "description": row.description or "", "price": float(row.sales_rate or 0),
             "currency": attributes.get("currency", "INR"), "tax": float(row.gst_rate or 0), "unit": row.unit_code or "unit",
             "barcode": row.barcode or "", "hsn_code": row.hsn_code or "", "cost": float(row.purchase_rate or 0), "mrp": float(row.mrp or 0), "reorder_level": float(row.reorder_level or 0), "track_inventory": bool(row.track_inventory),
@@ -185,7 +188,7 @@ def save_item(db, user, source, data, ident=None):
             setattr(row, attribute, (value or None) if field in {"barcode", "hsn_code"} else value)
     if data.kind == "service":
         row.track_inventory = False
-    row.metadata_json = {**(row.metadata_json or {}), "currency": data.currency, "images": data.images}
+    row.metadata_json = {**(row.metadata_json or {}), "currency": data.currency, "images": data.images, **({"follow_up": data.follow_up.model_dump(mode="json")} if data.follow_up is not None else {})}
     db.flush()
     if detail is None:
         detail = CatalogDetails(organization_id=tenant(user), **{data.kind + "_id": row.id}, version=0)
@@ -442,7 +445,7 @@ def target_record(db, user, source, target, ident, write=False):
         return get_project_for_action(db, ident, user, "edit_project" if write else "browse")
     if source != "crm": raise HTTPException(403, "CRM access is required for customer records")
     from app.apps.crm.api.router import _get_record, _get_resource, _assert_entity_permission, _assert_record_visible, _assert_write_scope
-    entity = {"lead": "leads", "customer": "companies", "account": "accounts", "deal": "deals"}[target]
+    entity = {"lead": "leads", "contact": "contacts", "customer": "companies", "account": "accounts", "deal": "deals"}[target]
     _assert_entity_permission(entity, user, "manage" if write else "view")
     resource = _get_resource(entity)
     row = _get_record(db, resource, ident, tenant(user))
@@ -520,8 +523,8 @@ def put_links(target: Target, ident: int, data: LinesInput, source: Source = "cr
 
 def save_form_links(db, user, record, lines):
     if lines is None: return
-    from app.apps.crm.models import CRMLead, CRMCompany, CRMAccount
-    target = {CRMLead: "lead", CRMCompany: "customer", CRMAccount: "account"}.get(type(record))
+    from app.apps.crm.models import CRMLead, CRMContact, CRMCompany, CRMAccount
+    target = {CRMLead: "lead", CRMContact: "contact", CRMCompany: "customer", CRMAccount: "account"}.get(type(record))
     if not target: raise HTTPException(422, "Catalog associations are unavailable for this record type")
     try: payload = LinesInput.model_validate({"lines": lines})
     except ValidationError: raise HTTPException(422, "Invalid product/service lines")

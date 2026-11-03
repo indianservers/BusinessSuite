@@ -100,10 +100,10 @@ def attendance_counts(db,user):
     cohort=employee_records(db,user).filter(Employee.status.in_([*EMPLOYED,"On Leave"]))
     latest=db.query(func.max(Attendance.id)).filter(Attendance.employee_id.in_(cohort.with_entities(Employee.id)),Attendance.attendance_date==day).group_by(Attendance.employee_id)
     rows=dict(db.query(Attendance.status,func.count(func.distinct(Attendance.employee_id))).filter(Attendance.id.in_(latest)).group_by(Attendance.status).all())
-    present=sum(rows.get(status,0) for status in ["Present","WFH","Half-day"])
+    present=rows.get("Present",0)
     leave=sum(rows.get(status,0) for status in ["On Leave","Leave"])
     total=unique_count(cohort,Employee.id)
-    return {"date":day.isoformat(),"present":present,"on_leave":leave,"absent":max(total-present-leave,0),"total_employees":total}
+    return {"date":day.isoformat(),"present":present,"on_leave":leave,"absent":rows.get("Absent",0),"wfh":rows.get("WFH",0),"half_day":rows.get("Half-day",0),"not_marked":max(total-sum(rows.values()),0),"total_employees":total}
 
 
 def task_query(db, user, project_id=None, workspace_id=None):
@@ -143,3 +143,12 @@ def amounts_by_currency(query,currency,amount):
     """No exchange rate is assumed. Null/blank currency stays explicitly Unknown."""
     code=func.coalesce(func.nullif(func.upper(func.trim(currency)),""),"Unknown")
     return [{"currency":row[0],"amount":str(row[1] or 0)} for row in query.order_by(None).with_entities(code,func.sum(amount)).group_by(code).order_by(code).all()]
+
+
+def execution_counts(query):
+    """The same uncancelled recipient execution definition in HRMS and PMS."""
+    from app.apps.project_management.models import PMSTaskAssignee
+    q = query.filter(PMSTaskAssignee.cancelled_at.is_(None))
+    return {"total_tasks": q.count(), "completed": q.filter(PMSTaskAssignee.execution_status.in_(COMPLETED)).count(),
+            "open_tasks": q.filter(PMSTaskAssignee.execution_status.notin_(TERMINAL)).count(),
+            "cancelled_tasks": q.filter(PMSTaskAssignee.execution_status.in_(["Cancelled", "Canceled", "Rejected"])).count()}

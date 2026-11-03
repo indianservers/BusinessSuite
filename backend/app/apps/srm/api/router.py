@@ -1223,7 +1223,7 @@ def create_srm_warehouse(data: SRMWarehouseCreate, db: Session = Depends(get_db)
 
 
 @router.get("/inventory/items")
-def list_srm_products(search: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
+def list_srm_products(search: str | None = None, page: int | None = None, per_page: int = 200, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     org_id = _org(current_user)
     query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None))
     from app.shared.catalog import restrict_workspaces
@@ -1236,8 +1236,14 @@ def list_srm_products(search: str | None = None, db: Session = Depends(get_db), 
             | func.lower(SRMProduct.category_name).like(normalized)
             | func.lower(SRMProduct.barcode).like(normalized)
         )
-    rows = query.order_by(SRMProduct.item_name).all()
-    return {"items": [_product_payload(row) for row in rows], "total": len(rows)}
+    if (page is not None and page < 1) or per_page < 1 or per_page > 500:
+        raise HTTPException(422, "Invalid catalogue page")
+    total = query.count()
+    query = query.order_by(SRMProduct.item_name, SRMProduct.id)
+    if page is not None:
+        query = query.offset((page - 1) * per_page).limit(per_page)
+    rows = query.all()
+    return {"items": [_product_payload(row) for row in rows], "total": total, "page": page, "per_page": per_page}
 
 
 @router.post("/inventory/items", status_code=201)
@@ -2150,6 +2156,14 @@ def create_pos_return(data: SRMPOSReturnCreate, db: Session = Depends(get_db), c
         subtotal += requested * _decimal(line.unit_price)
         tax += _decimal(line.tax_amount)
         total += _decimal(line.line_total)
+    from app.shared.follow_ups import FollowUp, audit as follow_up_audit
+    for source_line in order.lines:
+        if _returned_quantity_for_order_line(db, source_line.id) >= _decimal(source_line.quantity):
+            linked_follow_ups = db.query(FollowUp).filter_by(organization_id=_org(current_user), order_id=order.id, order_line_id=source_line.id).with_for_update().all()
+            for follow_up in linked_follow_ups:
+                if follow_up.status not in {"Completed", "Cancelled"} and follow_up.configuration.get("cancellation_policy", "cancel") == "cancel":
+                    follow_up.status = "Cancelled"
+                    follow_up_audit(db, follow_up, current_user, "source_refunded", {"return_id": return_doc.id, "order_line_id": source_line.id})
     return_doc.subtotal = subtotal
     return_doc.tax_amount = tax
     return_doc.refund_amount = total
@@ -2172,9 +2186,14 @@ def get_pos_return(return_id: int, db: Session = Depends(get_db), current_user: 
 @router.post("/sales-orders", status_code=201)
 def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     org_id = _org(current_user)
+    if (data.metadata_json or {}).get("source") == "pos":
+        from app.apps.srm.services.commercial import lock_tenant
+        lock_tenant(db, current_user)
     if data.order_number:
         existing = db.query(SRMSalesOrder).filter(SRMSalesOrder.organization_id == org_id, SRMSalesOrder.order_number == data.order_number, SRMSalesOrder.deleted_at == None).first()
         if existing:
+            if (data.metadata_json or {}).get('source') == 'pos' and (existing.metadata_json or {}).get('pos_sale_id') == (data.metadata_json or {}).get('pos_sale_id') and existing.created_by == current_user.id:
+                return _serialize(existing) | {"lines": [_serialize(line) for line in existing.lines]}
             raise HTTPException(status_code=409, detail="Sales order number already exists")
     _validate_pos_stock_available(db, data, org_id)
     item = SRMSalesOrder(
@@ -2211,6 +2230,8 @@ def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db),
         item.tax_amount = tax
         item.total_amount = total
     issued_movements = _issue_inventory_for_sales_order(db, item, current_user)
+    from app.shared.follow_ups import create_for_order
+    create_for_order(db, item, current_user)
     _audit(db, current_user, "sales_order", item.id, "created", after=_serialize(item))
     for movement in issued_movements:
         _audit(db, current_user, "inventory_movement", movement.id, movement.movement_type.upper(), None, _serialize(movement))
@@ -2264,6 +2285,9 @@ def update_sales_order(sales_order_id: int, data: SRMSalesOrderUpdate, db: Sessi
             _assert_status(value, SALES_ORDER_STATUSES, "sales order")
             _transition(item.status, value, SALES_ORDER_TRANSITIONS, "sales order")
         setattr(item, key, value)
+    if item.status == 'cancelled':
+        from app.shared.follow_ups import cancel_for_order
+        cancel_for_order(db, item.id, current_user)
     _audit(db, current_user, "sales_order", item.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
     db.commit()
     db.refresh(item)
@@ -2386,6 +2410,8 @@ def confirm_sales_order(sales_order_id: int, db: Session = Depends(get_db), curr
         raise HTTPException(status_code=400, detail="Only approved sales orders can be confirmed")
     item.status = "confirmed"
     issued_movements = _issue_inventory_for_sales_order(db, item, current_user)
+    from app.shared.follow_ups import create_for_order
+    create_for_order(db, item, current_user)
     engagement = db.query(SRMEngagement).filter(SRMEngagement.sales_order_id == item.id).first()
     if not engagement:
         engagement = SRMEngagement(

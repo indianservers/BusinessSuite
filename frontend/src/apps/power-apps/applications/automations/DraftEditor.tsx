@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import type React from "react";
 import type { Resource } from "../../registry";
 type Props = {
@@ -31,7 +32,7 @@ export function DraftEditor({
   move,
 }: Props) {
   return (
-    <form className="pa-panel pa-editor" onSubmit={save}>
+    <CompactForm className="pa-panel pa-editor" onSubmit={save}>
       <div className="pa-section-title">
         <h2>
           {editing
@@ -95,6 +96,6 @@ export function DraftEditor({
           {dirty ? "Unsaved changes" : editing ? "Saved draft" : "Draft only"}
         </span>
       </div>
-    </form>
+    </CompactForm>
   );
 }

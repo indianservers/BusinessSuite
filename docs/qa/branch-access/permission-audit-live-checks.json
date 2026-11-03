@@ -1,0 +1,1432 @@
+[
+  {
+    "scenario": "/access/step-up",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/step-up",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/catalog?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/catalog?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/branches",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/branches",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/37?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/37?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/38?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/38?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/39?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/39?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/users",
+    "branch": null,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 10,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/access/step-up",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/step-up",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/catalog?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/catalog?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 10,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/project-management/projects",
+    "branch": 10,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/step-up",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/step-up",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/catalog?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/catalog?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Legacy accountant branch editor now loads",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/21",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies/24",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Guessed foreign customer ID denied",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies/25",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies/24",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Guessed foreign customer ID denied",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies/25",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies/24",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Guessed foreign customer ID denied",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/crm/companies/25",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "Branch CRM admin cannot enter unassigned branch",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": 10,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "CRM admin cannot use another module",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "CRM admin cannot use another module",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/?per_page=100",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/employees/?per_page=100",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/9",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/employees/9",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/8",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects/8",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "mixed",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "mixed",
+    "method": "POST",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/?per_page=100",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/employees/?per_page=100",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/9",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/employees/9",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/8",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/project-management/projects/8",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "reader",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "reader",
+    "method": "POST",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "West PMS admin has no CRM or HRMS",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": 10,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "West PMS admin has no CRM or HRMS",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/employees/",
+    "branch": 10,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/8",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects/8",
+    "branch": 10,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/7",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects/7",
+    "branch": 10,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "Explicit read-only beats home branch even with company CRM admin",
+    "actor": "reader",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "Restricted admin branch choices",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/branches/context",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "No branch or module means no data",
+    "actor": "none",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": null,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "No branch or module means no data",
+    "actor": "none",
+    "method": "GET",
+    "path": "/employees/",
+    "branch": null,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "No branch or module means no data",
+    "actor": "none",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": null,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/step-up",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/step-up",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/catalog?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/catalog?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/38",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/38",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/39",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/39",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Legacy accountant branch editor now loads",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/21",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies/24",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Guessed foreign customer ID denied",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies/25",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies/24",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Guessed foreign customer ID denied",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies/25",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies/24",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Guessed foreign customer ID denied",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/crm/companies/25",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "Branch CRM admin cannot enter unassigned branch",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": 10,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "CRM admin cannot use another module",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "CRM admin cannot use another module",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/?per_page=100",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/employees/?per_page=100",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/9",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/employees/9",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/8",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects/8",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "mixed",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "mixed",
+    "method": "POST",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/?per_page=100",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/employees/?per_page=100",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/9",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/employees/9",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/8",
+    "actor": "reader",
+    "method": "GET",
+    "path": "/project-management/projects/8",
+    "branch": 9,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "/employees/",
+    "actor": "reader",
+    "method": "POST",
+    "path": "/employees/",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects",
+    "actor": "reader",
+    "method": "POST",
+    "path": "/project-management/projects",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "West PMS admin has no CRM or HRMS",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": 10,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "West PMS admin has no CRM or HRMS",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/employees/",
+    "branch": 10,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/8",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects/8",
+    "branch": 10,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/project-management/projects/7",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/project-management/projects/7",
+    "branch": 10,
+    "expected": 404,
+    "status": 404,
+    "passed": true
+  },
+  {
+    "scenario": "Explicit read-only beats home branch even with company CRM admin",
+    "actor": "reader",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "Restricted admin branch choices",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/branches/context",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "No branch or module means no data",
+    "actor": "none",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": null,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "No branch or module means no data",
+    "actor": "none",
+    "method": "GET",
+    "path": "/employees/",
+    "branch": null,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "No branch or module means no data",
+    "actor": "none",
+    "method": "GET",
+    "path": "/project-management/projects",
+    "branch": null,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Custom customer-view feature granted",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Unpermitted CRM feature denied",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/contacts",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/crm/companies",
+    "actor": "crm_admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Customer manage feature allows customer creation only",
+    "actor": "crm_admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 201,
+    "status": 201,
+    "passed": true
+  },
+  {
+    "scenario": "Customer manage feature does not grant contact creation",
+    "actor": "crm_admin",
+    "method": "POST",
+    "path": "/crm/contacts",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Customer create feature revoked on existing session",
+    "actor": "crm_admin",
+    "method": "POST",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Revocation takes effect on existing session",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/branches/access/37",
+    "actor": "admin",
+    "method": "PUT",
+    "path": "/branches/access/37",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Module role re-granted to same session",
+    "actor": "crm_admin",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/38?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/38?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Company permission revocation revokes old session",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 401,
+    "status": 401,
+    "passed": true
+  },
+  {
+    "scenario": "Company ceiling wins over saved branch admin",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies",
+    "branch": 9,
+    "expected": 403,
+    "status": 403,
+    "passed": true
+  },
+  {
+    "scenario": "/access/users/38?companyId=1",
+    "actor": "admin",
+    "method": "GET",
+    "path": "/access/users/38?companyId=1",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/preview",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/preview",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "/access/changes/apply",
+    "actor": "admin",
+    "method": "POST",
+    "path": "/access/changes/apply",
+    "branch": null,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  },
+  {
+    "scenario": "Company permission granted back",
+    "actor": "mixed",
+    "method": "GET",
+    "path": "/crm/companies/24",
+    "branch": 9,
+    "expected": 200,
+    "status": 200,
+    "passed": true
+  }
+]

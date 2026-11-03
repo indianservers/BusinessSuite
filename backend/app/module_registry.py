@@ -216,6 +216,7 @@ def import_model_modules() -> None:
         import_module(module_name)
     if is_app_enabled("crm") or is_app_enabled("project_management"):
         import_module("app.shared.catalog_models")
+        import_module("app.shared.follow_ups")
     for module in iter_enabled_modules():
         for module_name in module.model_modules:
             import_module(module_name)
@@ -232,6 +233,9 @@ def build_api_router() -> APIRouter:
         from app.shared.catalog import router as catalog_router
         register_routes(catalog_router, "app.shared.catalog")
         api_router.include_router(catalog_router)
+        from app.shared.follow_ups import router as follow_up_router
+        register_routes(follow_up_router, "app.shared.follow_ups")
+        api_router.include_router(follow_up_router)
     for app_module in iter_enabled_modules():
         for module_name in app_module.router_modules:
             module = import_module(module_name)

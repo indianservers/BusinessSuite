@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -296,7 +297,7 @@ export default function PerformancePage() {
             <Card>
               <CardHeader><CardTitle className="text-base">New Goal</CardTitle></CardHeader>
               <CardContent>
-                <form
+                <CompactForm
                   onSubmit={submitGoal((data) => createGoalMutation.mutate(data))}
                   className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
@@ -339,7 +340,7 @@ export default function PerformancePage() {
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setShowGoalForm(false)}>Cancel</Button>
                   </div>
-                </form>
+                </CompactForm>
               </CardContent>
             </Card>
           )}
@@ -426,7 +427,7 @@ export default function PerformancePage() {
             <CardDescription>Submit your performance self-assessment</CardDescription>
           </CardHeader>
           <CardContent>
-            <form
+            <CompactForm
               onSubmit={submitReview((data) => submitReviewMutation.mutate(data))}
               className="space-y-6"
             >
@@ -468,7 +469,7 @@ export default function PerformancePage() {
               <Button type="submit" disabled={submitReviewMutation.isPending}>
                 {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
               </Button>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
       )}

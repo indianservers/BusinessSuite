@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import AssigneePicker from "./AssigneePicker";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useRef, useState } from "react";
@@ -47,7 +48,7 @@ export default function NoteTaskActions({ noteId, title, selection, projectId, p
     {!open && error && <p role="alert" className="text-destructive text-sm">{error}</p>}
     {tasks.map(task => <Link className="note-created-task" key={task.id} to={`/pms/tasks/${task.id}`}><strong>{task.task_key}</strong><span>{task.title}</span><small>{task.status}</small></Link>)}
     <Dialog.Root open={open} onOpenChange={value => { if (!busy) setOpen(value); }}><Dialog.Portal><Dialog.Overlay className="notes-modal-overlay" /><Dialog.Content className="notes-modal"><Dialog.Title>Create a project task</Dialog.Title><Dialog.Description>Review exactly what will be published. The task is visible to people with access to its destination project. Creating a task does not change the note audience or copy its attachments.</Dialog.Description><Dialog.Close asChild><Button className="notes-modal-close" disabled={busy} variant="ghost" aria-label="Close task creation"><X size={18} /></Button></Dialog.Close>
-      <form onSubmit={e => { e.preventDefault(); void create(); }}>
+      <CompactForm onSubmit={e => { e.preventDefault(); void create(); }}>
         <label>Destination project<select aria-label="Task destination project" required disabled={busy} value={project} onChange={e => { setProject(e.target.value); changed(); }}><option value="" disabled>Choose a work project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <label>Task title<Input aria-label="New task title" required maxLength={220} disabled={busy} value={taskTitle} onChange={e => { setTaskTitle(e.target.value); changed(); }} /></label>
         <label>Task description<RichTextField data-legacy-format="plain" aria-label="New task description" maxLength={10000} disabled={busy} value={description} placeholder="Only text entered here will be copied." onChange={e => { setDescription(e.target.value); changed(); }} /></label>
@@ -57,7 +58,7 @@ export default function NoteTaskActions({ noteId, title, selection, projectId, p
         <label className="notes-publish-confirm"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I understand that this task title and description will be visible in the selected project.</label>
         {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
         <div className="notes-task-submit"><Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" disabled={busy || !confirmed || !project || !taskTitle.trim()}>{busy ? "Creating…" : "Create project task"}</Button></div>
-      </form>
+      </CompactForm>
     </Dialog.Content></Dialog.Portal></Dialog.Root>
   </section>;
 }

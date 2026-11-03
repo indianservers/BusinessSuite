@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
   cloneElement,
   useEffect,
@@ -421,7 +423,7 @@ export default function InternTaskProgramsPanel({
                     original instructions and rubric.
                   </p>
                 ) : (
-                  <form
+                  <CompactForm
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -812,7 +814,7 @@ export default function InternTaskProgramsPanel({
                         Save task pack
                       </Button>
                     </div>
-                  </form>
+                  </CompactForm>
                 )}
               </div>
             </div>
@@ -1035,7 +1037,7 @@ export default function InternTaskProgramsPanel({
                       </thead>
                       <tbody>
                         {packPreview.schedule.map((entry: Row) => (
-                          <tr
+                          <tr {...recordPreviewProps(entry)}
                             className="border-t"
                             key={`${entry.step_key}:${entry.level}`}
                           >
@@ -1154,7 +1156,7 @@ export default function InternTaskProgramsPanel({
                     </thead>
                     <tbody>
                       {assignments.data?.items.map((a) => (
-                        <tr className="border-t" key={keyOf(a)}>
+                        <tr {...recordPreviewProps(a)} className="border-t" key={keyOf(a)}>
                           <td className="p-2">
                             <input
                               type="checkbox"

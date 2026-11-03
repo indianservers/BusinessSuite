@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useDeferredValue, useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
@@ -106,7 +108,7 @@ export default function UserAccountsPage() {
         <select aria-label="Filter account status" className={selectClass} value={status} onChange={e => {setStatus(e.target.value);setPage(1);}}><option value="">All statuses</option>{["active", "inactive", "suspended", "terminated"].map(s => <option key={s}>{s}</option>)}</select>
         <select aria-label="Filter account role" className={selectClass} value={roleFilter} onChange={e => {setRoleFilter(e.target.value);setPage(1);}}><option value="">All roles</option>{options.data?.roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
     </CardHeader><CardContent><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b">{["Account", "Employee", "Role", "Access", "Security", "Actions"].map(h => <th key={h} className="p-3">{h}</th>)}</tr></thead>
-      <tbody>{accounts.data?.items.map(user => <tr key={user.id} className="border-b"><td className="p-3 font-medium">{user.email}{user.id === actor?.id && <span className="ml-2 text-xs">(you)</span>}</td>
+      <tbody>{accounts.data?.items.map(user => <tr {...recordPreviewProps(user)} key={user.id} className="border-b"><td className="p-3 font-medium">{user.email}{user.id === actor?.id && <span className="ml-2 text-xs">(you)</span>}</td>
         <td className="p-3">{user.employee_name || "Not linked"}<div className="text-xs text-muted-foreground">{user.employee_code}</div></td>
         <td className="p-3">{user.role || "No role"}{user.is_superuser && <div className="font-semibold">Global Super Admin</div>}</td><td className="p-3 capitalize">{user.status}</td>
         <td className="p-3"><div>MFA {user.mfa_enabled ? "enabled" : "not enabled"}</div><div className="text-xs text-muted-foreground">Last login: {user.last_login ? new Date(user.last_login).toLocaleString() : "Never"}</div></td>
@@ -119,7 +121,7 @@ export default function UserAccountsPage() {
     </CardContent></Card> : <Card><CardHeader><div className="flex items-center justify-between"><CardTitle>Roles &amp; permissions</CardTitle><Button onClick={() => open("role")}>Create custom role</Button></div><p className="text-sm text-muted-foreground">Built-in roles are preserved. Clone one to customize its permissions, then assign the custom role to users.</p></CardHeader>
       <CardContent className="space-y-3">{options.data?.roles.map(role => <div key={role.id} className="flex flex-wrap justify-between gap-3 rounded border p-3"><div><strong>{role.name}</strong>{role.is_system && <span className="ml-2 text-xs">Built-in</span>}<p className="text-sm text-muted-foreground">{role.description}</p><p className="text-xs">{role.permission_ids.length} permissions</p></div><div className="flex gap-2">{!role.is_system && <Button variant="outline" onClick={() => open("role",undefined,role)}>Edit</Button>}<Button variant="outline" onClick={() => open("role",undefined,role,true)}>Clone role</Button></div></div>)}</CardContent></Card>}
     <Dialog open={!!editor} onOpenChange={value => {if(!value)close();}}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto"><DialogTitle>{editor ? titles[editor.kind] : "Manage account"}</DialogTitle>
-      {editor && <form onSubmit={save} className="space-y-4">
+      {editor && <CompactForm onSubmit={save} className="space-y-4">
         {editor.user && <p className="font-medium">{editor.user.email}</p>}
         {["create", "edit"].includes(editor.kind) && <>
           <label className="block space-y-1">Login email<Input type="email" autoComplete="off" required value={form.email} onChange={e => setForm({...form,email:e.target.value})} /></label>
@@ -142,7 +144,7 @@ export default function UserAccountsPage() {
         <AdminVerification value={verification} onChange={setVerification} />
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end gap-2"><Button type="button" variant="outline" disabled={busy} onClick={close}>Cancel</Button><Button disabled={busy || reason.trim().length < 3 || !options.data}>{busy ? "Saving…" : "Verify & save"}</Button></div>
-      </form>}
+      </CompactForm>}
     </DialogContent></Dialog>
     <Dialog open={!!historyUser} onOpenChange={value => {if(!value)setHistoryUser(null);}}><DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto"><DialogTitle>Account audit history</DialogTitle><p>{historyUser?.email}</p>
       {history.isLoading ? <p>Loading history…</p> : history.isError ? <p role="alert">Could not load history.</p> : <div className="space-y-3">{history.data?.map(row => <div key={row.id} className="rounded border p-3 text-sm"><strong>{row.action.replace(/_/g," ")}</strong><p>{row.reason}</p><p className="text-xs text-muted-foreground">{row.actor} · {new Date(row.created_at).toLocaleString()}</p></div>)}{!history.data?.length && <p>No account administration events recorded yet.</p>}</div>}

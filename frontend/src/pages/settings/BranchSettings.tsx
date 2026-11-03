@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import BranchLifecycleSettings from "./BranchLifecycleSettings";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -25,7 +26,7 @@ export default function BranchSettings() {
   return <div className="settings-stack">
     <section className="settings-panel"><h2>Create a branch</h2>
       <p>Each branch has its own customers, sales and other business records. Creating a branch does not give existing users access automatically.</p>
-      {context.data.manage_access ? <form onSubmit={async e => {
+      {context.data.manage_access ? <CompactForm onSubmit={async e => {
         e.preventDefault(); setSaving(true); setError(""); setMessage("");
         try {
           await api.post("/branches", { name: name.trim(), code: code.trim(), reason: reason.trim() });
@@ -41,7 +42,7 @@ export default function BranchSettings() {
           <label>Reason for creating branch<input required minLength={5} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. New Chennai office" /></label>
         </div>
         <button className="settings-primary" disabled={saving || !name.trim() || reason.trim().length < 5}>{saving ? "Creating…" : "Create branch"}</button>
-      </form> : <p>You need branch administration access to create branches.</p>}
+      </CompactForm> : <p>You need branch administration access to create branches.</p>}
       {error && <p role="alert">{error}</p>}{message && <p role="status">{message}</p>}
     </section>
     <BranchLifecycleSettings/>

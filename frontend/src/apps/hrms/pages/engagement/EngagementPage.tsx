@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent } from "@/components/rich-text/LazyRichText";
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -107,22 +108,22 @@ export default function EngagementPage() {
         {canManageEngagement && <Card>
           <CardHeader><CardTitle className="text-base">Post Announcement</CardTitle></CardHeader>
           <CardContent>
-            <form className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createAnnouncement.mutate(); }}>
+            <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createAnnouncement.mutate(); }}>
               <div className="space-y-2"><Label>Title</Label><Input value={announcement.title} onChange={(e) => setAnnouncement({ ...announcement, title: e.target.value })} required /></div>
               <div className="space-y-2"><Label>Message</Label><RichTextField value={announcement.body} onChange={(e) => setAnnouncement({ ...announcement, body: e.target.value })} required /></div>
               <Button type="submit" disabled={createAnnouncement.isPending}><Send className="h-4 w-4" />Publish</Button>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>}
 
         {canManageEngagement && <Card>
           <CardHeader><CardTitle className="text-base">Create Poll</CardTitle></CardHeader>
           <CardContent>
-            <form className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createPoll.mutate(); }}>
+            <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createPoll.mutate(); }}>
               <div className="space-y-2"><Label>Question</Label><Input value={pollTitle} onChange={(e) => setPollTitle(e.target.value)} required /></div>
               <div className="space-y-2"><Label>Options</Label><Input value={pollOptions} onChange={(e) => setPollOptions(e.target.value)} required /></div>
               <Button type="submit" disabled={createPoll.isPending}><Plus className="h-4 w-4" />Create poll</Button>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>}
 
@@ -173,7 +174,7 @@ export default function EngagementPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Team Shoutout</CardTitle></CardHeader>
           <CardContent>
-            <form className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createRecognition.mutate(); }}>
+            <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createRecognition.mutate(); }}>
               <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={recognition.to_employee_id} onChange={(e) => setRecognition({ ...recognition, to_employee_id: e.target.value })} required>
                 <option value="">Select employee</option>
                 {employees.data?.map((item: any) => <option key={item.id} value={item.id}>{item.first_name} {item.last_name} ({item.employee_id})</option>)}
@@ -181,7 +182,7 @@ export default function EngagementPage() {
               <Input placeholder="Recognition title" value={recognition.title} onChange={(e) => setRecognition({ ...recognition, title: e.target.value })} required />
               <RichTextField placeholder="Message" value={recognition.message} onChange={(e) => setRecognition({ ...recognition, message: e.target.value })} />
               <Button type="submit" disabled={createRecognition.isPending}><Trophy className="h-4 w-4" />Post shoutout</Button>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
         <Card>

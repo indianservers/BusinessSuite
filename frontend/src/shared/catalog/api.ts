@@ -1,10 +1,12 @@
+import type { Schedule } from "@/shared/follow-ups/ScheduleFields";
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 
 export type CatalogSource = "pms" | "crm" | "srm";
 export type CatalogKind = "product" | "service";
 export type CatalogPrice = { id: string; name: string; amount: number; currency: string; interval: "once" | "day" | "week" | "month" | "year" };
-export type CatalogItem = { id: number; kind: CatalogKind; name: string; code: string; description: string; category: string; price: number; currency: string; tax: number; unit: string; barcode?: string; hsn_code?: string; cost?: number; mrp?: number; reorder_level?: number; track_inventory?: boolean; status: "Active" | "Archived"; workspace_id: number | null; images: string[]; custom_fields: Record<string, string | number | boolean | null>; pricing_options: CatalogPrice[]; version: number };
+export type CatalogItem = {
+  follow_up?: Schedule; id: number; kind: CatalogKind; name: string; code: string; description: string; category: string; price: number; currency: string; tax: number; unit: string; barcode?: string; hsn_code?: string; cost?: number; mrp?: number; reorder_level?: number; track_inventory?: boolean; status: "Active" | "Archived"; workspace_id: number | null; images: string[]; custom_fields: Record<string, string | number | boolean | null>; pricing_options: CatalogPrice[]; version: number };
 export type CatalogLine = { kind: CatalogKind; item_id: number; name?: string; pricing_id?: string | null; quantity: number; unit_price: number; discount: number; currency?: string; tax_rate?: number; total_amount?: number; item?: CatalogItem };
 export const linePayload = (line: CatalogLine) => ({ kind: line.kind, item_id: line.item_id, pricing_id: line.pricing_id || null, quantity: line.quantity, unit_price: line.unit_price, discount: line.discount });
 const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("suite-shared-catalog") : null;

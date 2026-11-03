@@ -111,7 +111,8 @@ def company_ids(db, user):
         )
         .scalars()
     )
-    return {int(value) for value in ids if value is not None}
+    revoked = set(db.connection().execute(select(membership.c.company_id).where(membership.c.user_id == user.id, membership.c.active.is_(False))).scalars())
+    return {int(value) for value in ids if value is not None} - revoked
 
 
 def install(db, user, company, *, verified_portal=False):

@@ -51,6 +51,9 @@ def cron(response: Response, authorization: str = Header(""), db=Depends(get_db)
         raise HTTPException(401, "Invalid scheduler credentials")
     response.headers["Cache-Control"] = "no-store"
     result = run_cron_batch(db)
+    from app.shared.follow_ups import dispatch
+    dispatch(db)
+    result["service_follow_ups"] = "processed"
     from app.services.email_dispatch import process_email
     result["email"] = process_email(db, limit=25)
     from app.module_registry import is_app_enabled
@@ -77,3 +80,13 @@ def job_status(db=Depends(get_db), user=Depends(RequirePermission("settings_mana
              "cursor": r.cursor, "attempts": r.attempts, "updated_at": r.updated_at,
              "error": r.error, "result": r.result}
             for r in db.query(ScheduledJobRun).order_by(ScheduledJobRun.id.desc()).limit(100)]
+
+
+@router.get("/internal/service-follow-up-reminders")
+def service_follow_up_reminders(response: Response, authorization: str = Header(""), db=Depends(get_db)):
+    if not settings.CRON_SECRET or not secrets.compare_digest(authorization, f"Bearer {settings.CRON_SECRET}"):
+        raise HTTPException(401, "Invalid scheduler credentials")
+    response.headers["Cache-Control"] = "no-store"
+    from app.shared.follow_ups import dispatch
+    dispatch(db)
+    return {"status": "processed"}

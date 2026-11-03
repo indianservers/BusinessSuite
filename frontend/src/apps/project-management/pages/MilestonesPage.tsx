@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -79,7 +80,7 @@ export default function MilestonesPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Create milestone</CardTitle></CardHeader>
         <CardContent>
-          <form onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_12rem_12rem_auto] md:items-end">
+          <CompactForm onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_12rem_12rem_auto] md:items-end">
             <div className="space-y-2">
               <Label htmlFor="milestone-name">Name</Label>
               <Input id="milestone-name" value={name} onChange={(event) => setName(event.target.value)} />
@@ -95,7 +96,7 @@ export default function MilestonesPage() {
               </select>
             </div>
             <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Add"}</Button>
-          </form>
+          </CompactForm>
         </CardContent>
       </Card>
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}

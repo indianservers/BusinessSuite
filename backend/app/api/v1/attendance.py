@@ -87,6 +87,8 @@ def compute_attendance_summary(employee_id: int, work_date: date, db: Session) -
 def _display_attendance_status(status: str | None) -> str:
     if status == "Weekend":
         return "Weekly Off"
+    if status == "Half Day":
+        return "Half-day"
     return status or "Absent"
 
 
@@ -108,7 +110,7 @@ def _attendance_register_row(employee: Employee, attendance: Attendance | None, 
         "department": employee.department.name if employee.department else None,
         "branch": employee.branch.name if employee.branch else None,
         "date": work_date,
-        "status": _display_attendance_status(attendance.status if attendance else "Absent"),
+        "status": _display_attendance_status(attendance.status if attendance else "Not marked"),
         "hours_worked": Decimal(str(attendance.total_hours or 0)) if attendance else Decimal("0"),
         "ot_hours": Decimal(str(attendance.overtime_hours or 0)) if attendance else Decimal("0"),
         "remarks": attendance.remarks if attendance else None,
@@ -920,6 +922,7 @@ def unlock_attendance_month(
 def attendance_register(
     work_date: date = Query(..., alias="date"),
     search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
     branch_id: Optional[int] = Query(None),
     department_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
@@ -938,15 +941,19 @@ def attendance_register(
             | (Employee.last_name.ilike(term))
             | (Employee.work_email.ilike(term))
         )
-    employees = query.order_by(Employee.employee_id, Employee.first_name).limit(500).all()
+    query = query.filter(Employee.date_of_joining <= work_date, (Employee.date_of_exit.is_(None)) | (Employee.date_of_exit >= work_date))
+    employees = query.order_by(Employee.employee_id, Employee.first_name).all()
     attendance_rows = db.query(Attendance).filter(
         Attendance.employee_id.in_([employee.id for employee in employees] or [0]),
         Attendance.attendance_date == work_date,
-    ).all()
+    ).order_by(Attendance.id).all()
     by_employee = {row.employee_id: row for row in attendance_rows}
     items = [_attendance_register_row(employee, by_employee.get(employee.id), work_date) for employee in employees]
     summary = {
         "present": Decimal("0"),
+        "not_marked": Decimal("0"),
+        "on_leave": Decimal("0"),
+        "credited_present": Decimal("0"),
         "absent": Decimal("0"),
         "half_day": Decimal("0"),
         "holiday": Decimal("0"),
@@ -955,23 +962,29 @@ def attendance_register(
         "overtime_hours": Decimal("0"),
     }
     for item in items:
-        status = item["status"]
-        if status == "Present":
+        row_status = item["status"]
+        if row_status == "Present":
             summary["present"] += Decimal("1")
-        elif status == "Half-day":
+        elif row_status == "Half-day":
             summary["half_day"] += Decimal("1")
-            summary["present"] += Decimal("0.5")
-        elif status == "Holiday":
+            summary["credited_present"] += Decimal("0.5")
+        elif row_status == "Holiday":
             summary["holiday"] += Decimal("1")
-        elif status == "Weekly Off":
+        elif row_status == "Weekly Off":
             summary["weekly_off"] += Decimal("1")
-        elif status == "WFH":
+        elif row_status == "WFH":
             summary["wfh"] += Decimal("1")
-            summary["present"] += Decimal("1")
+            summary["credited_present"] += Decimal("1")
+        elif row_status == "Not marked":
+            summary["not_marked"] += Decimal("1")
+        elif row_status in {"On Leave", "Leave"}:
+            summary["on_leave"] += Decimal("1")
         else:
             summary["absent"] += Decimal("1")
         summary["overtime_hours"] += Decimal(str(item["ot_hours"] or 0))
-    return {"items": items, "total": len(items), **summary}
+    summary["credited_present"] += summary["present"]
+    matching = [item for item in items if not status or item["status"] == _display_attendance_status(_stored_attendance_status(status))]
+    return {"items": matching, "total": len(matching), "cohort_total": len(items), "date": work_date, **summary}
 
 
 @router.post("/bulk-entry", response_model=AttendanceBulkEntryResponse)
@@ -1253,7 +1266,7 @@ def team_attendance(
                 "employee_code": employee.employee_id,
                 "employee_name": f"{employee.first_name} {employee.last_name}",
                 "attendance_date": cursor,
-                "status": attendance.status if attendance else "Absent",
+                "status": attendance.status if attendance else "Not marked",
                 "check_in": attendance.check_in if attendance else None,
                 "check_out": attendance.check_out if attendance else None,
                 "total_hours": attendance.total_hours if attendance else None,

@@ -186,12 +186,14 @@ def assignment_changed(db, lead, actor, previous_owner, reason=None):
         else "Unassigned"
     )
     for model in (CRMActivity, CRMTask):
-        db.query(model).filter(
+        pending = db.query(model).filter(
             model.organization_id == lead.organization_id,
             model.lead_id == lead.id,
             model.owner_user_id == previous_owner,
             model.status.in_(["Pending", "To Do", "Open"]),
-        ).update({model.owner_user_id: lead.owner_user_id}, synchronize_session="fetch")
+        ).all()
+        for record in pending:
+            record.owner_user_id = lead.owner_user_id
     db.add(
         CRMTimelineEvent(
             organization_id=lead.organization_id,

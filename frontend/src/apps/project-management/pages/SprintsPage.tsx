@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import SprintMoveBoard from "../components/SprintMoveBoard";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -209,7 +210,7 @@ export default function SprintsPage() {
       <Card>
         <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
         <CardContent>
-          <form onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_8rem_11rem_11rem_auto] md:items-end">
+          <CompactForm onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_8rem_11rem_11rem_auto] md:items-end">
             <Field label="Project"><select value={projectId} onChange={(event) => switchProject(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></Field>
             <Field label="Sprint name"><Input value={name} onChange={(event) => setName(event.target.value)} /></Field>
             <Field label="Goal"><Input value={goal} onChange={(event) => setGoal(event.target.value)} /></Field>
@@ -217,7 +218,7 @@ export default function SprintsPage() {
             <Field label="Start"><Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></Field>
             <Field label="End"><Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></Field>
             <Button type="submit" disabled={creatingSprint}>{creatingSprint ? "Creating..." : "Create"}</Button>
-          </form>
+          </CompactForm>
         </CardContent>
       </Card>
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}

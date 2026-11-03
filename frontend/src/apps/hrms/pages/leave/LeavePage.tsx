@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import { useState } from "react";
@@ -439,7 +441,7 @@ export default function LeavePage() {
             <CardTitle className="text-base">Apply for Leave</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit((data) => applyMutation.mutate(data))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CompactForm onSubmit={handleSubmit((data) => applyMutation.mutate(data))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Leave Type *</Label>
                 <select
@@ -497,7 +499,7 @@ export default function LeavePage() {
                   Cancel
                 </Button>
               </div>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
       )}
@@ -603,7 +605,7 @@ export default function LeavePage() {
                   <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No leave encashment requests yet</td></tr>
                 ) : (
                   encashmentRequests.slice(0, 5).map((item) => (
-                    <tr key={item.id} className="border-b">
+                    <tr {...recordPreviewProps(item)} key={item.id} className="border-b">
                       <td className="px-4 py-3 font-medium">{item.leaveTypeName || "-"}</td>
                       <td className="px-4 py-3">{Number(item.daysToEncash).toFixed(2)}</td>
                       <td className="px-4 py-3">₹{Number(item.encashmentRate || 0).toLocaleString("en-IN")}</td>
@@ -698,7 +700,7 @@ export default function LeavePage() {
                 <tbody>
                   {loadingRequests ? (
                     Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="border-b">
+                      <tr {...recordPreviewProps(_)} key={i} className="border-b">
                         <td colSpan={9} className="px-4 py-3"><div className="h-4 skeleton rounded" /></td>
                       </tr>
                     ))
@@ -711,7 +713,7 @@ export default function LeavePage() {
                     </tr>
                   ) : (
                     myRequests.map((r) => (
-                      <tr key={r.id} className="border-b hover:bg-muted/30">
+                      <tr {...recordPreviewProps(r)} key={r.id} className="border-b hover:bg-muted/30">
                         <td className="px-4 py-3 font-medium">{r.leave_type?.name}</td>
                         <td className="px-4 py-3">{formatDate(r.from_date)}</td>
                         <td className="px-4 py-3">{formatDate(r.to_date)}</td>
@@ -872,7 +874,7 @@ export default function LeavePage() {
                     </tr>
                   ) : (
                     pendingApprovals.map((r) => (
-                      <tr key={r.id} className="border-b hover:bg-muted/30">
+                      <tr {...recordPreviewProps(r)} key={r.id} className="border-b hover:bg-muted/30">
                         <td className="px-4 py-3 font-medium">
                           {r.employee ? (
                             <span>

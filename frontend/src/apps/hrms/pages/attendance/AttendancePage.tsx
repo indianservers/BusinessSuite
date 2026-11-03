@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useHRSession} from "../../workbench/useHRSession";
 import {useSearchParams} from "react-router-dom";
 import { useState,useEffect } from "react";
@@ -28,6 +29,8 @@ function getMonthDays(year: number, month: number) {
   }
   return days;
 }
+
+const localDay = (date:Date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const REGISTER_STATUSES = ["Present", "Absent", "Half-day", "Holiday", "Weekly Off", "WFH"];
@@ -75,8 +78,10 @@ export default function AttendancePage() {
   useEffect(()=>{const m=Number(selectionParams.get("month")),y=Number(selectionParams.get("year"));if(m>=1&&m<=12)setViewMonth(m);if(y>=2000&&y<=2100)setViewYear(y);},[selectionParams.get("month"),selectionParams.get("year")]);
   const [lockReason, setLockReason] = useState("Payroll cutoff");
   const [unlockReason, setUnlockReason] = useState("Approved correction");
-  const [registerDate, setRegisterDate] = useState(today.toISOString().slice(0, 10));
+  const [registerDate, setRegisterDate] = useState(localDay(today));
   const [registerSearch, setRegisterSearch] = useHRSession("attendance-register-search","");
+  const [registerStatus, setRegisterStatus] = useState("");
+  useEffect(()=>setRegisterEdits({}),[registerDate]);
   const [bulkStatus, setBulkStatus] = useState("Present");
   const [registerEdits, setRegisterEdits] = useState<Record<number, RegisterEdit>>({});
 
@@ -114,8 +119,8 @@ export default function AttendancePage() {
     : undefined;
 
   const { data: attendanceRegister, isLoading: loadingRegister } = useQuery({
-    queryKey: ["attendance-register", registerDate, registerSearch],
-    queryFn: () => attendanceApi.register({ date: registerDate, search: registerSearch || undefined }).then((r) => r.data),
+    queryKey: ["attendance-register", registerDate, registerSearch, registerStatus],
+    queryFn: () => attendanceApi.register({ date: registerDate, search: registerSearch || undefined, status: registerStatus || undefined }).then((r) => r.data),
   });
 
   const lockMonthMutation = useMutation({
@@ -212,7 +217,8 @@ export default function AttendancePage() {
   }
 
   function updateRegisterRow(employeeId: number, patch: Partial<RegisterEdit>) {
-    setRegisterEdits((current) => ({ ...current, [employeeId]: { ...(current[employeeId] || { selected: false, status: "Present", hours_worked: "8", ot_hours: "0", remarks: "" }), ...patch } }));
+    const row=registerRows.find(item=>item.employee_id===employeeId);
+    setRegisterEdits((current) => ({ ...current, [employeeId]: { ...(current[employeeId] || (row ? editFor(row) : { selected: false, status: "Not marked", hours_worked: "0", ot_hours: "0", remarks: "" })), ...patch } }));
   }
 
   function saveRegisterRows(onlySelected = false) {
@@ -229,6 +235,7 @@ export default function AttendancePage() {
           remarks: edit.remarks || undefined,
         };
       });
+    if(rowsToSave.some(row=>row.status === "Not marked")){toast({title:"Choose an attendance status before saving unmarked rows",variant:"destructive"});return;}
     if (!rowsToSave.length) {
       toast({ title: "Select at least one row", variant: "destructive" });
       return;
@@ -378,6 +385,7 @@ export default function AttendancePage() {
               <CardDescription>HR can manually enter and bulk save attendance for payroll.</CardDescription>
             </div>
             <div className="grid gap-2 sm:grid-cols-[150px_220px_auto]">
+              <select aria-label="Filter attendance status" value={registerStatus} onChange={e=>setRegisterStatus(e.target.value)} className="rounded border bg-background px-3 py-2 text-sm"><option value="">All attendance statuses</option>{[...REGISTER_STATUSES,"Not marked","On Leave"].map(status=><option key={status}>{status}</option>)}</select>
               <Input type="date" value={registerDate} onChange={(event) => setRegisterDate(event.target.value)} />
               <Input value={registerSearch} onChange={(event) => setRegisterSearch(event.target.value)} placeholder="Search employee" />
               <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["attendance-register"] })}>
@@ -391,6 +399,7 @@ export default function AttendancePage() {
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
             {[
               ["Present", attendanceRegister?.present ?? 0],
+              ["Not marked", attendanceRegister?.not_marked ?? 0],
               ["Absent", attendanceRegister?.absent ?? 0],
               ["Half Day", attendanceRegister?.half_day ?? 0],
               ["Holiday", attendanceRegister?.holiday ?? 0],
@@ -437,9 +446,9 @@ export default function AttendancePage() {
                 ) : registerRows.map((row) => {
                   const edit = editFor(row);
                   return (
-                    <tr key={row.employee_id}>
+                    <tr {...recordPreviewProps(row)} key={row.employee_id}>
                       <td>
-                        <input aria-label={`Select ${row.employee_name}`} type="checkbox" checked={edit.selected} onChange={(event) => updateRegisterRow(row.employee_id, { selected: event.target.checked })} />
+                        <input aria-label={`Select ${row.employee_name}`} type="checkbox" checked={edit.selected} onChange={(event) => setRegisterEdits(current=>({...current,[row.employee_id]:{...editFor(row),selected:event.target.checked}}))} />
                       </td>
                       <td className="font-medium">{row.employee_code || "-"}</td>
                       <td>{row.employee_name}</td>
@@ -448,7 +457,7 @@ export default function AttendancePage() {
                       <td>{registerDate}</td>
                       <td>
                         <select aria-label={`Status for ${row.employee_name}`} value={edit.status} onChange={(event) => updateRegisterRow(row.employee_id, { status: event.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                          {REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                          {edit.status === "Not marked" && <option value="Not marked" disabled>Not marked</option>}{REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                         </select>
                       </td>
                       <td>
@@ -497,14 +506,15 @@ export default function AttendancePage() {
               <div key={`pad-${i}`} />
             ))}
             {days.map((day) => {
-              const key = day.toISOString().slice(0, 10);
+              const key = localDay(day);
               const rec = recordsByDate[key];
-              const isToday = key === today.toISOString().slice(0, 10);
+              const isToday = key === localDay(today);
               const isFuture = day > today;
               const dot = rec ? statusDotColor[rec.status] : null;
 
               return (
-                <div
+                <button
+                  type="button" aria-label={`Show attendance for ${key}`} aria-pressed={registerDate===key} onClick={()=>setRegisterDate(key)}
                   key={key}
                   className={`relative flex h-9 w-full flex-col items-center justify-center rounded-lg text-xs sm:h-10 sm:text-sm
                     ${isToday ? "bg-primary text-primary-foreground font-bold" : ""}
@@ -516,7 +526,7 @@ export default function AttendancePage() {
                   {dot && !isToday && (
                     <span className={`absolute bottom-1 h-1.5 w-1.5 rounded-full ${dot}`} />
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -565,7 +575,7 @@ export default function AttendancePage() {
                     check_out?: string;
                     total_hours?: number;
                   }) => (
-                    <tr key={r.id}>
+                    <tr {...recordPreviewProps(r)} key={r.id}>
                       <td>
                         {new Date(r.attendance_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
                       </td>

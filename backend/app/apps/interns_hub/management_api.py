@@ -66,8 +66,12 @@ def interns(f=Depends(filters),page:int=Query(1,ge=1),per_page:int=Query(50,ge=1
 
 
 @router.get("/batches")
-def batches(mentor_id:int|None=None,date_from:date|None=None,date_to:date|None=None,batch_type:str="",search:str="",status:str="",department_id:int|None=None,page:int=Query(1,ge=1),per_page:int=Query(50,ge=1,le=200),user=Depends(require_admin),db:Session=Depends(get_db)):
+def batches(mentor_id:int|None=None,date_from:date|None=None,date_to:date|None=None,batch_type:str="",search:str="",status:str="",hide_empty:bool=True,department_id:int|None=None,page:int=Query(1,ge=1),per_page:int=Query(50,ge=1,le=200),user=Depends(require_admin),db:Session=Depends(get_db)):
     q=batch_query(db,user)
+    eligible=employee_query(db,user,include_employees=True).filter(Employee.status.in_(["Active","Probation"]),Employee.user_id.in_(db.query(User.id).filter(User.is_active.is_(True)))).with_entities(Employee.id)
+    if hide_empty:
+        occupied=db.query(InternBatchMembership.batch_id).filter(InternBatchMembership.status=="Active",InternBatchMembership.employee_id.in_(eligible))
+        q=q.filter(InternBatch.id.in_(occupied))
     if search:q=q.filter(or_(InternBatch.name.ilike("%"+search+"%"),InternBatch.code.ilike("%"+search+"%")))
     if status:q=q.filter(InternBatch.status==status)
     if department_id:q=q.filter(InternBatch.department_id==department_id)
@@ -76,7 +80,7 @@ def batches(mentor_id:int|None=None,date_from:date|None=None,date_to:date|None=N
     if date_to:q=q.filter(InternBatch.start_date<=date_to)
     if batch_type:q=q.filter(InternBatch.batch_type==batch_type)
     total=q.count();items=q.order_by(InternBatch.id.desc()).offset((page-1)*per_page).limit(per_page).all()
-    counts=dict(db.query(InternBatchMembership.batch_id,func.count(InternBatchMembership.id)).filter(InternBatchMembership.batch_id.in_([b.id for b in items]),InternBatchMembership.status=="Active").group_by(InternBatchMembership.batch_id))
+    counts=dict(db.query(InternBatchMembership.batch_id,func.count(func.distinct(InternBatchMembership.employee_id))).filter(InternBatchMembership.batch_id.in_([b.id for b in items]),InternBatchMembership.employee_id.in_(eligible),InternBatchMembership.status=="Active").group_by(InternBatchMembership.batch_id))
     names={u.id:u.email for u in db.query(User).filter(User.id.in_({b.manager_user_id for b in items}|{b.mentor_user_id for b in items}))}
     return {"items":[{**encoded(b),"members":counts.get(b.id,0),"manager":names.get(b.manager_user_id),"mentor":names.get(b.mentor_user_id)} for b in items],"total":total,"page":page,"per_page":per_page}
 
@@ -190,14 +194,15 @@ def membership(batch_id:int,data:MembershipInput,user=Depends(require_admin),db:
     if any(e.status not in {"Active","Probation"} or not e.user or not e.user.is_active for e in chosen):raise HTTPException(409,"Batch members require an approved active account")
     if target.batch_type=="Intern" and any((e.employment_type or "").lower()!="intern" for e in chosen):raise HTTPException(422,"This batch accepts interns only")
     if target.batch_type=="Employee" and any((e.employment_type or "").lower()=="intern" for e in chosen):raise HTTPException(422,"This batch accepts regular employees only")
-    existing={m.employee_id:m for m in db.query(InternBatchMembership).filter_by(batch_id=source.id,status="Active").filter(InternBatchMembership.employee_id.in_(ids))}
+    existing_rows=db.query(InternBatchMembership).filter_by(batch_id=source.id,status="Active").filter(InternBatchMembership.employee_id.in_(ids)).all()
+    existing={m.employee_id:m for m in existing_rows}
     target_existing={r[0] for r in db.query(InternBatchMembership.employee_id).filter_by(batch_id=target.id,status="Active")}
     add=set(ids)-target_existing if data.action in {"add","transfer","reactivate"} else set()
     if data.action=="transfer" and set(existing)!=set(ids):raise HTTPException(409,"Transfer only active source members")
     if len(target_existing)+len(add)>target.capacity:raise HTTPException(409,"Batch capacity would be exceeded")
     now=datetime.now(timezone.utc)
     if data.action in {"remove","transfer","deactivate"}:
-        for m in existing.values():m.status="Transferred" if data.action=="transfer" else "Inactive";m.active_slot=None;m.left_at=now;m.reason=data.reason
+        for m in existing_rows:m.status="Transferred" if data.action=="transfer" else "Inactive";m.active_slot=None;m.left_at=now;m.reason=data.reason
     db.flush()
     db.bulk_insert_mappings(InternBatchMembership,[dict(batch_id=target.id,employee_id=eid,status="Active",active_slot=1,assigned_by=user.id,previous_batch_id=source.id if data.action=="transfer" else None,reason=data.reason) for eid in add])
     db.commit();return {"processed":len(ids),"added":len(add),"history_retained":True}
@@ -375,7 +380,8 @@ def dashboard(f=Depends(filters),user=Depends(require_admin),db:Session=Depends(
     apps=db.query(InternApplication).filter(InternApplication.status=="Pending").count() if organization_admin(user) and tenant(user)==1 else 0
     recent=db.query(PMSActivity).filter(PMSActivity.task_id.in_(assignments.with_entities(PMSTaskAssignee.task_id))).order_by(PMSActivity.id.desc()).limit(8).all()
     workload=assignments.filter(PMSTaskAssignee.execution_status=="In Review").with_entities(PMSTaskAssignee.reviewer_user_id,func.count(PMSTaskAssignee.task_id)).group_by(PMSTaskAssignee.reviewer_user_id).all()
-    return {"total_interns":people.count(),"active_interns":people.filter(Employee.status.in_(["Active","Probation"])).count(),"pending_applications":apps,
+    member_ids=people.filter(Employee.status.in_(["Active","Probation"]),Employee.user_id.in_(db.query(User.id).filter(User.is_active.is_(True)))).with_entities(Employee.id)
+    return {"member_count":member_ids.distinct().count(),"total_interns":people.with_entities(Employee.id).distinct().count(),"active_interns":people.filter(Employee.status.in_(["Active","Probation"])).count(),"pending_applications":apps,
         "active_batches":bq.filter(InternBatch.status=="Active").count(),"upcoming_batches":bq.filter(InternBatch.status=="Upcoming").count(),"completed_batches":bq.filter(InternBatch.status=="Completed").count(),
         "assigned_tasks":assignments.count(),"unique_parent_tasks":assignments.with_entities(PMSTaskAssignee.task_id).distinct().count(),"metric_notes":{"assigned_tasks":"Individual uncancelled recipient execution rows; not unique tasks","completed_tasks":"Completed individual recipient execution rows"},"completed_tasks":assignments.filter(PMSTaskAssignee.execution_status=="Done").count(),"overdue":assignments.filter(func.coalesce(PMSTaskAssignee.due_date,PMSTask.due_date)<day,PMSTaskAssignee.execution_status.notin_(["Done","Completed","Closed","Resolved","Cancelled","Canceled"])).count(),
         "submissions_today":subs.filter(func.date(PMSWorkSubmission.created_at)==day).count(),"pending_reviews":pending,"average_score":round(float(average),1) if average is not None else None,
@@ -475,10 +481,10 @@ def batch_analytics(f=Depends(filters),user=Depends(require_admin),db:Session=De
     if f.get("department_id"):scoped=scoped.filter(InternBatch.department_id==f["department_id"])
     if f.get("program"):scoped=scoped.filter(InternBatch.program==f["program"])
     selected=scoped.order_by(InternBatch.id).limit(200).all();bids=[b.id for b in selected]
-    people=filtered_employees(db,user,f).with_entities(Employee.id)
-    memberships=db.query(InternBatchMembership.batch_id,Employee.user_id).join(Employee,Employee.id==InternBatchMembership.employee_id).filter(InternBatchMembership.batch_id.in_(bids),InternBatchMembership.status=="Active",Employee.id.in_(people)).subquery()
+    people=filtered_employees(db,user,f).filter(Employee.status.in_(["Active","Probation"]),Employee.user_id.in_(db.query(User.id).filter(User.is_active.is_(True)))).with_entities(Employee.id)
+    memberships=db.query(InternBatchMembership.batch_id,Employee.user_id).join(Employee,Employee.id==InternBatchMembership.employee_id).filter(InternBatchMembership.batch_id.in_(bids),InternBatchMembership.status=="Active",Employee.id.in_(people)).distinct().subquery()
     members=dict(db.query(memberships.c.batch_id,func.count()).group_by(memberships.c.batch_id))
-    base=db.query(memberships.c.batch_id,PMSTaskAssignee.execution_status).join(PMSTaskAssignee,PMSTaskAssignee.user_id==memberships.c.user_id).join(PMSTask,PMSTask.id==PMSTaskAssignee.task_id).join(InternBatch,InternBatch.id==memberships.c.batch_id).filter(PMSTask.project_id==InternBatch.project_id,PMSTask.deleted_at.is_(None))
+    base=db.query(memberships.c.batch_id,PMSTaskAssignee.execution_status).join(PMSTaskAssignee,PMSTaskAssignee.user_id==memberships.c.user_id).join(PMSTask,PMSTask.id==PMSTaskAssignee.task_id).join(InternBatch,InternBatch.id==memberships.c.batch_id).filter(PMSTask.project_id==InternBatch.project_id,PMSTask.deleted_at.is_(None),PMSTaskAssignee.cancelled_at.is_(None))
     if f.get("date_from"):base=base.filter(PMSTask.due_date>=f["date_from"])
     if f.get("date_to"):base=base.filter(PMSTask.due_date<=f["date_to"])
     counts={(r[0],r[1]):r[2] for r in base.with_entities(memberships.c.batch_id,PMSTaskAssignee.execution_status,func.count()).group_by(memberships.c.batch_id,PMSTaskAssignee.execution_status)}

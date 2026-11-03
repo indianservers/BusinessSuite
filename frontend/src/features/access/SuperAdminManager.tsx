@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import { useState } from "react";
 import { api } from "@/services/api";
@@ -17,7 +18,7 @@ export default function SuperAdminManager({ companyId }: { companyId: number }) 
     <Dialog open={open} onOpenChange={value => { if (!busy) { setOpen(value); setPassword(""); setNewPassword(""); } }}>
       <DialogContent><DialogTitle>Add Super Admin</DialogTitle>
         <p className="text-sm text-muted-foreground">Grants full access to every installed module, users, and company settings. Enter an existing account email, or provide a password to create a new account.</p>
-        <form className="space-y-4" onSubmit={async event => {
+        <CompactForm className="space-y-4" onSubmit={async event => {
           event.preventDefault(); setBusy(true); setError(""); setMessage("");
           try {
             const token = (await administratorStepUp(password)).data.token;
@@ -32,7 +33,7 @@ export default function SuperAdminManager({ companyId }: { companyId: number }) 
           <AdminVerification value={password} onChange={setPassword} />
           {error && <p role="alert" className="text-destructive">{error}</p>}{message && <p role="status">{message}</p>}
           <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Grant full Super Admin access"}</Button>
-        </form>
+        </CompactForm>
       </DialogContent>
     </Dialog></>;
 }

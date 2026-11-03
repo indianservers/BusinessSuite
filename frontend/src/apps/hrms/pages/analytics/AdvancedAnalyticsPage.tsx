@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, BarChart3, Factory, Gauge, ShieldAlert, TrendingDown, TrendingUp, Users } from "lucide-react";
@@ -185,7 +186,7 @@ export default function AdvancedAnalyticsPage() {
               <table className="w-full min-w-[640px] text-sm">
                 <tbody>
                   {(drilldown.data?.rows || []).slice(0, 12).map((row, index) => (
-                    <tr key={index} className="border-b last:border-0">
+                    <tr {...recordPreviewProps(row)} key={index} className="border-b last:border-0">
                       {Object.entries(row).map(([key, value]) => (
                         <td key={key} className="px-3 py-2">
                           <span className="text-xs text-muted-foreground">{key.replace(/_/g, " ")} </span>

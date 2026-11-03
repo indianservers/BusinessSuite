@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -379,7 +380,7 @@ export default function LoginPage() {
             </p>
           )}
           {mfaToken ? (
-            <form
+            <CompactForm
               onSubmit={(event) => {
                 event.preventDefault();
                 setError("");
@@ -438,7 +439,7 @@ export default function LoginPage() {
               >
                 Back to login
               </button>
-            </form>
+            </CompactForm>
           ) : view === "sent" ? (
             <div className="suite-form">
               <button
@@ -455,7 +456,7 @@ export default function LoginPage() {
               </button>
             </div>
           ) : view === "forgot" ? (
-            <form
+            <CompactForm
               className="suite-form"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -484,9 +485,9 @@ export default function LoginPage() {
               >
                 Back to login
               </button>
-            </form>
+            </CompactForm>
           ) : view === "reset" ? (
-            <form
+            <CompactForm
               className="suite-form"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -549,10 +550,10 @@ export default function LoginPage() {
               >
                 Request a new reset link
               </button>
-            </form>
+            </CompactForm>
           ) : (
             <>
-              <form
+              <CompactForm
                 className="suite-form"
                 noValidate
                 onSubmit={handleSubmit((data) => {
@@ -648,7 +649,7 @@ export default function LoginPage() {
                 >
                   Forgot password?
                 </button>
-              </form>
+              </CompactForm>
               {hintedProvider && (
                 <p className="suite-login-context">
                   Your organization uses{" "}

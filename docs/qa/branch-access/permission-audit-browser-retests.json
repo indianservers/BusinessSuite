@@ -1,0 +1,62 @@
+[
+  {
+    "path": "/crm/companies",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/crm/companies",
+    "method": "POST",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "path": "/crm/companies",
+    "method": "GET",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "path": "/access/me",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/access/step-up",
+    "method": "POST",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/37",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/access/catalog?companyId=1",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/37",
+    "method": "PUT",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/crm/companies",
+    "method": "POST",
+    "expected": 201,
+    "status": 201
+  },
+  {
+    "path": "/crm/companies",
+    "method": "GET",
+    "expected": 403,
+    "status": 403
+  }
+]

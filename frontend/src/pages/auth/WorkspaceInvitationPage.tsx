@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
@@ -45,12 +46,12 @@ export default function WorkspaceInvitationPage() {
         <p>Join <strong>{invitation.workspace}</strong> as <strong>{invitation.role}</strong>.</p>
         <p className="break-all text-sm text-slate-600">Invited email: {invitation.email}</p>
         {activated ? <div role="status"><p className="mb-4 text-green-700">Account activated. You are now a team member. Sign in to open your workspace.</p><Link className="text-violet-700 underline" to={signIn} onClick={() => logout()}>Sign in to your workspace</Link></div>
-          : !invitation.account_exists ? <form className="space-y-4" onSubmit={e => { e.preventDefault(); void accept(); }}>
+          : !invitation.account_exists ? <CompactForm className="space-y-4" onSubmit={e => { e.preventDefault(); void accept(); }}>
             <p className="text-sm text-slate-600">Create your account using the invited email. This link can be used once.</p>
             <label className="block text-sm">Create password<input className="mt-2 w-full rounded border p-3" type="password" autoComplete="new-password" required minLength={12} maxLength={72} value={password} onChange={e => setPassword(e.target.value)} /></label>
             <p className="text-xs text-slate-500">Use at least 12 characters.</p>
             <button className="w-full rounded bg-violet-600 p-3 text-white" disabled={busy}>{busy ? "Activating…" : "Activate account and join"}</button>
-          </form> : user?.email.toLowerCase() === invitation.email.toLowerCase() ? <button className="w-full rounded bg-violet-600 p-3 text-white" disabled={busy} onClick={() => void accept()}>{busy ? "Joining…" : "Accept invitation"}</button>
+          </CompactForm> : user?.email.toLowerCase() === invitation.email.toLowerCase() ? <button className="w-full rounded bg-violet-600 p-3 text-white" disabled={busy} onClick={() => void accept()}>{busy ? "Joining…" : "Accept invitation"}</button>
             : <div><p className="mb-4 text-sm">Sign in with the invited email to accept.</p><Link className="text-violet-700 underline" to={signIn} onClick={() => logout()}>Sign in as {invitation.email}</Link></div>}
       </>}
       <Link className="block text-sm text-slate-500 underline" to="/">Back to Business Suite</Link>

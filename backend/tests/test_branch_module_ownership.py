@@ -334,6 +334,7 @@ def test_settings_discovery_uses_selected_branch_module_roles(db,matrix):
     srm={'enabled':True,'role':'admin','permissions':['srm_admin'],'actions':['view','configure'],'scope':'organization'}
     db.add(AccessPolicy(user_id=actor.id,company_id=1,status='active',grants={'crm':crm,'srm':srm}))
     db.query(BranchGrant).filter_by(user_id=actor.id,branch_id=branches[0].id).one().module_grants={'crm':crm}
+    db.query(BranchGrant).filter_by(user_id=actor.id,branch_id=branches[0].id).one().can_write=True
     db.query(BranchGrant).filter_by(user_id=actor.id,branch_id=branches[1].id).one().module_grants={'srm':{**srm,'role':'viewer','actions':['view']}}
     db.commit()
     actor._suite_branch_id=branches[1].id

@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
@@ -460,7 +462,7 @@ export default function ProfilePage() {
           <CardDescription>Employees submit sensitive changes; HR or the reporting manager approves with a diff view.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <form onSubmit={submitChange} className="space-y-4">
+          <CompactForm onSubmit={submitChange} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1.5"><Label>Phone</Label><PhoneInput value={changeDraft.phone_number || ""} countryCode={changeDraft.phone_number_country_code ?? (employee.data?.phone_number ? "" : "+91")} onChange={value=>{updateChange("phone_number",value);if(!changeDraft.phone_number_country_code&&!employee.data?.phone_number)updateChange("phone_number_country_code","+91");}} onCountryCodeChange={value=>updateChange("phone_number_country_code",value)} /></div>
               <div className="space-y-1.5"><Label>Personal email</Label><Input type="email" value={changeDraft.personal_email} onChange={(e) => updateChange("personal_email", e.target.value)} /></div>
@@ -502,7 +504,7 @@ export default function ProfilePage() {
               <Send className="mr-2 h-4 w-4" />
               Submit change request
             </Button>
-          </form>
+          </CompactForm>
         </CardContent>
       </Card>
 
@@ -513,7 +515,7 @@ export default function ProfilePage() {
             <CardDescription>Aadhaar, PAN, offer letter, study certificates, and old company certificates</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form onSubmit={submitDocument} className="grid gap-3 md:grid-cols-2">
+            <CompactForm onSubmit={submitDocument} className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Document type</Label>
                 <select
@@ -535,7 +537,7 @@ export default function ProfilePage() {
                 <FileUp className="mr-2 h-4 w-4" />
                 Upload document
               </Button>
-            </form>
+            </CompactForm>
             <div className="space-y-2">
               {documents.map((doc: any) => (
                 <div key={doc.id} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
@@ -622,7 +624,7 @@ export default function ProfilePage() {
                 <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Date/Time</th><th className="px-3 py-2 text-left">IP Address</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">MFA</th></tr></thead>
                 <tbody>
                   {(loginAttempts.data || []).slice(0, 10).map((attempt: any) => (
-                    <tr key={attempt.id} className="border-t">
+                    <tr {...recordPreviewProps(attempt)} key={attempt.id} className="border-t">
                       <td className="px-3 py-2">{formatDateTime(attempt.created_at)}</td>
                       <td className="px-3 py-2">{attempt.ip_address || "-"}</td>
                       <td className="px-3 py-2"><Badge variant={attempt.success === false || attempt.status === "Failed" ? "destructive" : "secondary"}>{attempt.status}</Badge></td>
@@ -652,7 +654,7 @@ export default function ProfilePage() {
               <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Device</th><th className="px-3 py-2 text-left">IP</th><th className="px-3 py-2 text-left">Trusted</th><th className="px-3 py-2 text-left">Last Seen</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
               <tbody>
                 {(sessions.data || []).map((session: any) => (
-                  <tr key={session.id} className="border-t">
+                  <tr {...recordPreviewProps(session)} key={session.id} className="border-t">
                     <td className="px-3 py-2">{session.device_name || "Unknown device"}</td>
                     <td className="px-3 py-2">{session.ip_address || "-"}</td>
                     <td className="px-3 py-2">{session.trusted_device ? <Badge variant="outline">Trusted</Badge> : "-"}</td>

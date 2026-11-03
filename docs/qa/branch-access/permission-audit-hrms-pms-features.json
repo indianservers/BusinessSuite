@@ -1,0 +1,134 @@
+[
+  {
+    "path": "/access/step-up",
+    "method": "POST",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "PUT",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/employees/",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/attendance/today-summary",
+    "method": "GET",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "PUT",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/attendance/today-summary",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "PUT",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/attendance/today-summary",
+    "method": "GET",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "PUT",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/project-management/projects",
+    "method": "POST",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "path": "/project-management/projects/7/tasks",
+    "method": "POST",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/project-management/projects/8/tasks",
+    "method": "POST",
+    "expected": 404,
+    "status": 404
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "PUT",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/project-management/projects/7/tasks",
+    "method": "POST",
+    "expected": 403,
+    "status": 403
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "GET",
+    "expected": 200,
+    "status": 200
+  },
+  {
+    "path": "/branches/access/38",
+    "method": "PUT",
+    "expected": 200,
+    "status": 200
+  }
+]

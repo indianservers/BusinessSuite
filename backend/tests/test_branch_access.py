@@ -37,7 +37,10 @@ def test_same_person_crm_in_one_branch_srm_in_another_and_company_revocation(db)
     row.module_grants = {}; db.commit()
     assert not any(g['enabled'] for g in effective_grants(db, user, 1, str(b.id), base).values())
     row.module_grants = None; db.commit()
-    assert effective_grants(db, user, 1, str(b.id), base) == base
+    inherited = effective_grants(db, user, 1, str(b.id), base)
+    assert inherited['crm'] == {**crm, 'actions':['view']}
+    assert inherited['srm'] == srm
+    assert base['crm']['actions'] == ['view','create']  # No mutation of the company ceiling.
 
 
 def setup(db):

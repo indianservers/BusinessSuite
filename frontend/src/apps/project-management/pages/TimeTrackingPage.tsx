@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import RunningTimer from "../components/RunningTimer";
@@ -171,7 +172,7 @@ export default function TimeTrackingPage() {
         <CardHeader><CardTitle className="flex items-center gap-2"><Timer className="h-5 w-5" />{editingId ? "Edit time log" : "Log time"}</CardTitle></CardHeader>
         <CardContent>
           {error ? <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-          <form onSubmit={submit} className="space-y-4">
+          <CompactForm onSubmit={submit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Field label="Project">
                 <select value={form.projectId} onChange={(event) => updateForm({ projectId: event.target.value, taskId: "" })} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
@@ -201,7 +202,7 @@ export default function TimeTrackingPage() {
               {editingId ? <Button type="button" variant="outline" onClick={cancelEdit}>Cancel</Button> : null}
               <Button type="submit" disabled={saving}>{saving ? "Saving..." : editingId ? "Save time log" : "Log time"}</Button>
             </div>
-          </form>
+          </CompactForm>
         </CardContent>
       </Card>
 

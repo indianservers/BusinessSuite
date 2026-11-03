@@ -1,3 +1,5 @@
+import { api } from "@/services/api";
+import { ScheduleFields, defaultSchedule, type Schedule } from "@/shared/follow-ups/ScheduleFields";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,6 +52,9 @@ type Product = {
   stock: number;
   reorderLevel: number;
   trackInventory: boolean;
+  followUp?: Schedule;
+  kind: string;
+  duration?: string;
   active?: boolean;
   batchTracking?: boolean;
   serialTracking?: boolean;
@@ -209,6 +214,9 @@ function productFromRecord(item: SRMRecord): Product {
     id: recordNumber(item.id),
     name: String(item.item_name || item.name || "Unnamed product"),
     image: ((item.metadata_json as { images?: string[] } | undefined)?.images || [])[0],
+    followUp: (item.metadata_json as {follow_up?:Schedule} | undefined)?.follow_up,
+    kind: String(item.product_type === "service" ? "Services" : item.product_type === "package" ? "Packages" : "Products"),
+    duration: String((item.metadata_json as Record<string, unknown> | undefined)?.duration || ""),
     active: item.active !== false,
     sku: String(item.sku || ""),
     barcode: String(item.barcode || item.sku || ""),
@@ -302,18 +310,26 @@ export default function SRMPOSPage() {
   const [closingCash, setClosingCash] = useState("");
   const [cashMovements, setCashMovements] = usePersistedState<{ id: string; type: string; amount: number; reason: string; createdAt: string }[]>("business-suite-srm-pos-cash", []);
   const searchRef = useRef<HTMLInputElement>(null);
-  const productsQuery = useQuery({ queryKey: ["srm", "inventoryItems", "pos"], queryFn: () => srmApi.inventoryItems(), refetchInterval: 3000, refetchIntervalInBackground: true, refetchOnWindowFocus: true });
+  const productsQuery = useQuery({ queryKey: ["srm", "inventoryItems", "pos"], queryFn: async () => {
+    const items:SRMRecord[]=[];let page=1,total=Infinity;
+    while(items.length<total){const response=await api.get("/srm/inventory/items",{params:{page,per_page:200},progress:false});items.push(...response.data.items);total=response.data.total;if(!response.data.items.length)break;page++;}
+    return {items,total};
+  }, refetchInterval: 30000, refetchIntervalInBackground: true, refetchOnWindowFocus: true });
   const heldBillsQuery = useQuery({ queryKey: ["srm", "posHeldBills"], queryFn: () => srmApi.posHeldBills(), refetchInterval: 5000, refetchIntervalInBackground: true, refetchOnWindowFocus: true });
 
+  const followUpOptions = useQuery({queryKey:["follow-up-options"],queryFn:()=>api.get("/follow-ups/options").then(r=>r.data)});
+  const [followUpCustomer, setFollowUpCustomer] = useState("");
+  const [checkoutKey, setCheckoutKey] = useState(() => crypto.randomUUID());
+  const checkoutBusy = useRef(false);
   const customer = customers.find((item) => item.id === customerId) || customers[0];
   const serverHeldBills = useMemo(() => listItems(heldBillsQuery.data).map(heldBillFromRecord), [heldBillsQuery.data]);
   const heldBills = useMemo(() => [...serverHeldBills, ...localHeldBills], [localHeldBills, serverHeldBills]);
   const dbProducts = useMemo(() => listItems(productsQuery.data).map(productFromRecord).filter((item) => item.active !== false), [productsQuery.data]);
   const productSource = dbProducts;
-  const storeProducts = useMemo(() => {
-    const templateProducts = productSource.filter((item) => activeStoreProfile.categories.includes(item.category));
-    return templateProducts.length ? templateProducts : productSource;
-  }, [activeStoreProfile, productSource]);
+  const storeProducts = productSource;
+  const [catalogTab, setCatalogTab] = useState("All");
+  const [catalogSort, setCatalogSort] = useState("name");
+  const [recentIds, setRecentIds] = usePersistedState<number[]>("pos-recent-catalog", []);
   const categories = useMemo(() => ["All", ...Array.from(new Set(storeProducts.map((item) => item.category)))], [storeProducts]);
   const couponDiscount = coupon.trim().toUpperCase() === "WELCOME10" ? Math.min(250, Math.max(0, cart.reduce((sum, item) => sum + lineTaxable(item), 0) * 0.1)) : 0;
 
@@ -345,9 +361,9 @@ export default function SRMPOSPage() {
     return storeProducts.filter((product) => {
       const categoryMatch = category === "All" || product.category === category;
       const textMatch = !text || [product.name, product.sku, product.barcode, product.category, product.batch || "", ...(product.serials || [])].join(" ").toLowerCase().includes(text);
-      return categoryMatch && textMatch;
-    });
-  }, [category, query, storeProducts]);
+      return categoryMatch && textMatch && (catalogTab === "All" || (catalogTab === "Recently Used" ? recentIds.includes(product.id) : product.kind === catalogTab));
+    }).sort((a,b) => catalogSort === "price" ? a.rate-b.rate : a.name.localeCompare(b.name));
+  }, [category, query, storeProducts, catalogTab, catalogSort, recentIds]);
 
   const received = paymentRows.reduce((sum, row) => row.mode === "Credit" ? sum : sum + row.amount, 0);
   const balanceDue = Math.max(totals.grandTotal - received, 0);
@@ -356,6 +372,7 @@ export default function SRMPOSPage() {
   const lowStockCount = storeProducts.filter((product) => product.trackInventory && product.stock <= product.reorderLevel).length;
 
   function addProduct(product: Product) {
+    setRecentIds(current => [product.id, ...current.filter(id => id !== product.id)].slice(0, 50));
     if (product.trackInventory && product.stock <= 0) {
       toast({ title: "Out of stock", description: `${product.name} cannot be added.` });
       return;
@@ -363,7 +380,7 @@ export default function SRMPOSPage() {
     setCart((current) => {
       const existing = current.find((line) => line.id === product.id && !line.serialTracking);
       if (!existing) return [...current, buildCartLine(product)];
-      return current.map((line) => line.lineId === existing.lineId ? { ...line, qty: Math.min(line.stock, line.qty + 1) } : line);
+      return current.map((line) => line.lineId === existing.lineId ? { ...line, qty: line.trackInventory ? Math.min(line.stock, line.qty + 1) : line.qty + 1 } : line);
     });
   }
 
@@ -422,8 +439,11 @@ export default function SRMPOSPage() {
         return;
       }
     }
+    if (checkoutBusy.current) return;
+    if (cart.some(line=>line.followUp?.required) && !followUpCustomer) {toast({title:"Select a registered follow-up customer",variant:"destructive"});return;}
+    checkoutBusy.current = true;
     const sale: Sale = {
-      id: uid("sale"),
+      id: checkoutKey,
       invoiceNo: `POS-${String(sales.length + 1).padStart(5, "0")}`,
       customer: customer.name,
       amount: totals.grandTotal,
@@ -435,9 +455,9 @@ export default function SRMPOSPage() {
       const activeSession = await srmApi.activePosSession();
       const posSession = (activeSession as { session?: { id?: number } | null })?.session || null;
       const postedOrder = await srmApi.createSalesOrder({
-        order_number: sale.invoiceNo,
+        order_number: `POS-${checkoutKey}`,
         title: `POS sale - ${customer.name}`,
-        customer_id: customer.id,
+        customer_id: Number(followUpCustomer) || customer.id,
         currency: "INR",
         subtotal: totals.subtotal,
         discount_amount: totals.lineDiscount + totals.billDiscount + totals.couponDiscount,
@@ -469,6 +489,7 @@ export default function SRMPOSPage() {
             batch_no: line.batchNo,
             serial_no: line.serialNo,
             note: line.note,
+            follow_up: line.followUp,
           },
         })),
       });
@@ -478,6 +499,7 @@ export default function SRMPOSPage() {
         ids: { sales_order_id: Number((postedOrder as SRMRecord).id || 0) || undefined },
       });
     } catch (error) {
+      checkoutBusy.current = false;
       toast({
         title: "Sale not completed",
         description: "Could not post the sale to SRM. Stock, session, or permissions may need attention.",
@@ -485,6 +507,8 @@ export default function SRMPOSPage() {
       });
       return;
     }
+    checkoutBusy.current = false;
+    setCheckoutKey(crypto.randomUUID());
     await Promise.all([productsQuery.refetch(), heldBillsQuery.refetch()]);
     setSales((current) => [sale, ...current].slice(0, 25));
     setLastSale(sale);
@@ -493,7 +517,7 @@ export default function SRMPOSPage() {
     setCoupon("");
     setNote("");
     setActiveModal("success");
-    toast({ title: "Sale completed", description: `${sale.invoiceNo} posted for ${shortCurrency(sale.amount)}.` });
+    toast({ title: "Sale completed", description: `${sale.invoiceNo} posted for ${shortCurrency(sale.amount)}.${cart.some(line=>line.followUp?.required)?" Customer follow-ups scheduled.":""}` });
     if (after === "print") setTimeout(() => window.print(), 150);
     if (after === "whatsapp" || after === "email") {
       toast({ title: "Receipt queued", description: `${after} provider will send after integration credentials are configured.` });
@@ -726,7 +750,7 @@ export default function SRMPOSPage() {
           <div className="flex flex-col gap-3 rounded-2xl border border-white bg-white p-3 shadow-sm md:flex-row md:items-center md:justify-between">
             <div>
               <strong className="text-sm text-slate-950">Products</strong>
-              <p className="text-xs text-slate-500">{filteredProducts.length} visible in {activeStoreProfile.name}</p>
+              <p className="text-xs text-slate-500">{filteredProducts.length} eligible products & services</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline"><Link to="/srm/inventory/products">Manage products & services</Link></Button>
@@ -736,7 +760,11 @@ export default function SRMPOSPage() {
             </div>
           </div>
 
-          {productsQuery.isLoading && <p role="status">Loading products and servicesâ€¦</p>}
+          <div className="flex flex-wrap items-center gap-2" aria-label="Catalogue filters">
+            {["All", "Products", "Services", "Packages", "Recently Used"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : p.kind === tab)).length})</Button>)}
+            <select aria-label="Sort catalogue" className="rounded border p-2 text-sm" value={catalogSort} onChange={e => setCatalogSort(e.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option></select>
+          </div>
+          {productsQuery.isLoading && <div role="status" aria-label="Loading products and services" aria-busy="true"><span className="sr-only">Loading products and services</span><div aria-hidden="true" className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 motion-safe:animate-pulse">{Array.from({length:10},(_,i)=><div key={i} className="overflow-hidden rounded-xl border bg-white"><div className="h-20 bg-slate-100"/><div className="space-y-3 p-3"><div className="h-3 w-4/5 rounded bg-slate-100"/><div className="h-3 w-1/2 rounded bg-slate-100"/><div className="h-4 w-1/3 rounded bg-slate-100"/></div></div>)}</div></div>}
           {productsQuery.isError && <p role="alert">Unable to load the catalog. <button type="button" className="underline" onClick={() => void productsQuery.refetch()}>Retry</button></p>}
           {!productsQuery.isLoading && !productsQuery.isError && !filteredProducts.length && <p className="rounded-lg border border-dashed p-6 text-sm text-slate-600">No active products or services match this view. Add an item in the shared catalog or change your filters.</p>}
           {productView === "details" ? (
@@ -761,7 +789,7 @@ export default function SRMPOSPage() {
                         <span className="block truncate text-xs text-slate-400">{product.barcode}</span>
                       </span>
                     </button>
-                    <span className="truncate text-slate-500">{product.sku}</span>
+                    <span className="truncate text-slate-500">{product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
                     <span className="truncate text-slate-500">{product.category}</span>
                     <span className={lowStock ? "font-medium text-red-600" : "text-slate-600"}>{product.trackInventory ? product.stock : "Service"}</span>
                     <strong className="text-[#3157d8]">{currency(product.rate)}</strong>
@@ -781,7 +809,7 @@ export default function SRMPOSPage() {
                       <ProductMark product={product} lowStock={lowStock} />
                       <span className="min-w-0 flex-1">
                         <strong className="block truncate text-sm text-slate-950">{product.name}</strong>
-                        <span className="block truncate text-xs text-slate-400">{product.sku} / {product.barcode}</span>
+                        <span className="block truncate text-xs text-slate-400">{product.sku} / {product.category} · Tax {product.taxRate}% {product.duration && `· ${product.duration}`}</span>
                       </span>
                       <span className={`hidden rounded-full px-2 py-1 text-xs md:inline-flex ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>Stock {product.trackInventory ? product.stock : "Service"}</span>
                       <strong className="w-24 text-right text-[#3157d8]">{currency(product.rate)}</strong>
@@ -801,7 +829,7 @@ export default function SRMPOSPage() {
                     <button type="button" className="block w-full text-left" onClick={() => addProduct(product)}>
                       <ProductVisual product={product} lowStock={lowStock} density={tileDensity} />
                       <span className="mt-2 block truncate px-2 text-xs font-semibold text-slate-950">{product.name}</span>
-                      <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{product.sku}</span>
+                      <span className="mt-1 block truncate px-2 text-[11px] text-slate-400">{product.sku} · {product.category} · Tax {product.taxRate}% {product.duration}</span>
                       <span className="mt-2 flex items-center justify-between gap-2 px-2 pb-2">
                         <strong className="text-sm text-[#3157d8]">{shortCurrency(product.rate)}</strong>
                         <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${lowStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{product.trackInventory ? product.stock : "Svc"}</span>
@@ -898,6 +926,10 @@ export default function SRMPOSPage() {
         <Overlay title="Complete Payment" onClose={() => setActiveModal(null)} wide>
           <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
             <div className="space-y-4">
+              <div className="space-y-3 rounded-lg bg-background p-3 text-foreground">
+                <label className="text-xs">Registered customer for follow-ups<select aria-label="Follow-up customer" className="block w-full rounded border bg-background p-2" value={followUpCustomer} onChange={e=>setFollowUpCustomer(e.target.value)}><option value="">Choose customer when scheduling</option>{followUpOptions.data?.customers.map((c:{id:number;name:string})=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+                {cart.map(line=><details key={line.lineId}><summary className="cursor-pointer text-sm">{line.name} · {line.followUp?.required?`${line.followUp.interval_days} day follow-up`:"Configure follow-up"}</summary><ScheduleFields value={line.followUp||defaultSchedule} employees={followUpOptions.data?.employees} teams={followUpOptions.data?.teams} onChange={value=>setCart(current=>current.map(l=>l.lineId===line.lineId?{...l,followUp:value}:l))}/></details>)}
+              </div>
               <div className="rounded-lg bg-slate-950 p-4">
                 <span className="text-xs uppercase text-slate-400">Grand total</span>
                 <strong className="block text-3xl text-amber-300">{currency(totals.grandTotal)}</strong>

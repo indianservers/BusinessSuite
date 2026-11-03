@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields } from "@/lib/validation";
@@ -280,7 +282,7 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
                   </thead>
                   <tbody>
                     {filteredRows.map((row) => (
-                      <tr key={row.id} className="border-t hover:bg-muted/30">
+                      <tr {...recordPreviewProps(row)} key={row.id} className="border-t hover:bg-muted/30">
                         <td className="px-4 py-3 text-muted-foreground"><GripVertical className="h-4 w-4" /></td>
                         <td className="px-4 py-3 font-medium">{row.name}</td>
                         <td className="px-4 py-3">{row.code || row.holiday_type || row.grade || "-"}</td>
@@ -316,13 +318,13 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
 
       {modal && (
         <Modal title={`${editing ? "Edit" : "Add"} ${sections.find((s) => s.key === modal)?.title.slice(0, -1)}`} onClose={() => setModal(null)}>
-          <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
+          <CompactForm onSubmit={save} className="grid gap-4 sm:grid-cols-2">
             {renderFields(modal, form, setForm, dataByKey, permissions.data || [])}
             <div className="flex justify-end gap-2 sm:col-span-2">
               <Button type="button" variant="outline" onClick={() => setModal(null)}>Cancel</Button>
               <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? "Saving..." : "Save"}</Button>
             </div>
-          </form>
+          </CompactForm>
         </Modal>
       )}
     </div>

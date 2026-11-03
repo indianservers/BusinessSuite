@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { displayed, type Answer, type Definition } from "./formsTypes";
@@ -43,7 +44,7 @@ export default function FormResponse({
         <div className="form-intro-art" aria-hidden="true"><span>✦</span><span>↗</span><span>◎</span></div>
         <small>One step closer to something great.</small>
       </aside>}
-    <form
+    <CompactForm compactTabs={false}
       className={"form-live " + (mobile ? "form-device-mobile" : "")}
       style={
         {
@@ -255,7 +256,7 @@ export default function FormResponse({
           ? "Protected form · Your response is shared with the form owner"
           : "Preview · No response is stored"}
       </small>
-    </form>
+    </CompactForm>
     </div>
   );
 }

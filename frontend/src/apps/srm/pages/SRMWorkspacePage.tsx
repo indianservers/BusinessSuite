@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import ConnectedCollectionsPage from "./ConnectedCollectionsPage";
 import { InvoiceList, SharedCustomerSelect } from "@/apps/project-management/pages/ProjectBillingPage";
@@ -1015,7 +1017,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
         <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
+        <CompactForm className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
           <div className="grid gap-3 md:grid-cols-4">
             <label className="space-y-2 text-sm">
               <span className="font-medium">Template</span>
@@ -1095,7 +1097,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
                 </thead>
                 <tbody>
                   {preparedLines.length ? preparedLines.map((line, index) => (
-                    <tr key={`${line.description}-${index}`} className="border-t">
+                    <tr {...recordPreviewProps(line)} key={`${line.description}-${index}`} className="border-t">
                       <td className="py-2">{line.description}</td>
                       <td>{line.quantity}</td>
                       <td>{money(line.unit_price)}</td>
@@ -1119,7 +1121,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
             {savedInvoice && <><Link className="text-primary underline" to={`/srm/invoices/${savedInvoice.id}`}>Open {String(savedInvoice.invoice_number)}</Link><Button type="button" variant="outline" onClick={() => { setSavedInvoice(null); setRequestId(crypto.randomUUID()); setLines([createInvoiceLineDraft()]); setMessage(""); }}>Create another invoice</Button></>}
             <ActionMessage message={message} />
           </div>
-        </form>
+        </CompactForm>
       </CardContent>
     </Card>
   );
@@ -1157,7 +1159,7 @@ function InvoiceLineEditor({ invoiceId, onSaved }: { invoiceId: number; onSaved?
   });
 
   return (
-    <form className="space-y-3 rounded-lg border p-3" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
+    <CompactForm className="space-y-3 rounded-lg border p-3" onSubmit={(event: FormEvent) => { event.preventDefault(); save.mutate(); }}>
       <div className="grid gap-2 md:grid-cols-[minmax(180px,1fr)_110px_130px_130px_auto]">
         <Input placeholder="Line description" value={line.description} onChange={(event) => setLine((current) => ({ ...current, description: event.target.value }))} />
         <Input aria-label="Quantity" inputMode="decimal" value={line.quantity} onChange={(event) => setLine((current) => ({ ...current, quantity: event.target.value }))} />
@@ -1169,7 +1171,7 @@ function InvoiceLineEditor({ invoiceId, onSaved }: { invoiceId: number; onSaved?
         <span className="text-muted-foreground">Line preview total: {money(invoiceLineAmount(line))}</span>
         <ActionMessage message={message} />
       </div>
-    </form>
+    </CompactForm>
   );
 }
 
@@ -1442,7 +1444,7 @@ function ReportsView() {
                   {query.isLoading ? (
                     <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">Loading report preview...</td></tr>
                   ) : rows.length ? rows.map((row, index) => (
-                    <tr key={`${selected}-${index}`} className="border-t">
+                    <tr {...recordPreviewProps(row)} key={`${selected}-${index}`} className="border-t">
                       <td className="px-3 py-2">{formatValue(row.invoice_number || row.order_number || row.contract_number || row.engagement_number || row.customer_id || row.id || selectedDefinition.title)}</td>
                       <td className="px-3 py-2">{formatValue(row.status || row.collection_status || row.margin_status || "available")}</td>
                       <td className="px-3 py-2 text-right">{formatValue(row.total || row.total_amount || row.total_outstanding || row.gross_margin || row.cash_margin_total || row.count || row.value || "-")}</td>
@@ -1634,7 +1636,7 @@ function POSSessionView() {
                     const session = (row.session || {}) as SRMRecord;
                     const closing = (row.closing || {}) as SRMRecord;
                     return (
-                      <tr key={String(session.id || index)} className="border-b last:border-0">
+                      <tr {...recordPreviewProps(row)} key={String(session.id || index)} className="border-b last:border-0">
                         <td className="px-4 py-3 font-medium">{formatValue(session.session_number)}</td>
                         <td className="px-4 py-3"><Badge variant={statusTone(session.status)}>{formatValue(session.status)}</Badge></td>
                         <td className="px-4 py-3">{formatValue(session.register_name)}</td>
@@ -1777,7 +1779,7 @@ function POSReturnsView() {
                   </thead>
                   <tbody>
                     {rows.map((row) => (
-                      <tr key={String(row.id)} className="border-t">
+                      <tr {...recordPreviewProps(row)} key={String(row.id)} className="border-t">
                         <td className="px-3 py-2 font-medium">{formatValue(row.return_number)}</td>
                         <td className="px-3 py-2"><Badge variant={statusTone(row.status)}>{formatValue(row.status)}</Badge></td>
                         <td className="px-3 py-2">{formatValue(row.refund_method)} / {formatValue(row.refund_status)}</td>
@@ -1948,7 +1950,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
         <CardTitle className="text-base">Create {viewMeta[kind].title.slice(0, -1)}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
+        <CompactForm className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
           {kind === "salesOrders" ? (
             <>
               <div className="grid gap-3 md:grid-cols-4">
@@ -2023,7 +2025,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
             <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Saving..." : `Create ${viewMeta[kind].title.slice(0, -1)}`}</Button>
             <ActionMessage message={message} />
           </div>
-        </form>
+        </CompactForm>
       </CardContent>
     </Card>
   );
@@ -2099,7 +2101,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                     const metadata = (record.metadata_json || {}) as SRMRecord;
                     const isPosSale = metadata.source === "pos";
                     return (
-                      <tr key={`${kind}-${id || index}`} className="border-b last:border-0">
+                      <tr {...recordPreviewProps(record)} key={`${kind}-${id || index}`} className="border-b last:border-0">
                         <td className="px-4 py-3 font-medium">{formatValue(name)}</td>
                         <td className="px-4 py-3">
                           <Badge variant={statusTone(record.status)}>{formatValue(record.status || "live")}</Badge>

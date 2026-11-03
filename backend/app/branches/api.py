@@ -114,7 +114,12 @@ def users(db: Session = Depends(get_db), user: User = Depends(get_current_user))
     from app.models.employee import Employee
     from app.access.models import AccessMembership
     c = user.organization_id
-    ids = select(CommonPerson.user_id).where(CommonPerson.organization_id == c).union(select(Employee.user_id).join(Branch, Branch.id == Employee.branch_id).where(Branch.company_id == c), select(AccessMembership.user_id).where(AccessMembership.company_id == c, AccessMembership.active.is_(True)))
+    # Use the same company roster as Users & Permissions, including legacy
+    # default-company accounts. This only exposes administration metadata;
+    # assigning access still requires verified company membership below.
+    from app.services.metrics.queries import registered_users
+    ids = registered_users(db, None, include_invited=True, organization_id=c).with_entities(User.id).statement
+
     allowed, _, all_access, _ = access(db, user, c)
     if not user.is_superuser:
         from app.branches.lifecycle import management_scope
@@ -152,7 +157,7 @@ def save_policy(user_id: int, data: PolicyInput, request: Request, db: Session =
     before['grants'] = [dict(g) for g in db.connection().execute(select(BranchGrant.branch_id, BranchGrant.can_write, BranchGrant.module_grants).where(BranchGrant.user_id == user_id, BranchGrant.company_id == user.organization_id)).mappings()]
     from app.access.service import validate_grants
     old_roles = {g['branch_id']: g.get('module_grants') for g in before['grants']}
-    roles_changed = any(g.module_grants != old_roles.get(g.branch_id) for g in data.grants)
+    roles_changed = {g.branch_id: g.module_grants for g in data.grants if g.module_grants is not None} != {branch: roles for branch, roles in old_roles.items() if roles is not None}
     if roles_changed:
         from app.access.api import company_access, authority, check_step
         company_access(db, user, user.organization_id)
@@ -183,8 +188,26 @@ def save_policy(user_id: int, data: PolicyInput, request: Request, db: Session =
     actual = set(db.connection().execute(select(Branch.id).where(Branch.company_id == user.organization_id, Branch.is_active.is_(True), Branch.id.in_(branch_ids))).scalars())
     if (actual - inactive_ids) | preserved_inactive != set(branch_ids):
         raise HTTPException(422, "Every branch must be active and belong to this company")
+    if not user.is_superuser and data.use_home_branch != before["use_home_branch"]:
+        from app.models.employee import Employee
+        home = db.connection().execute(select(Employee.branch_id).join(Branch, Branch.id == Employee.branch_id).where(Employee.user_id == user_id, Employee.deleted_at.is_(None), Branch.company_id == user.organization_id)).scalars().first()
+        if home is not None and (home not in allowed or home not in writable):
+            raise HTTPException(403, "Cannot change home-branch access outside your authority")
     if before["version"] != data.expected_version:
         raise HTTPException(409, "Branch access changed; reload before saving")
+    from app.core.tenant_boundary import company_ids
+    from types import SimpleNamespace
+    if user.organization_id not in company_ids(db, SimpleNamespace(id=user_id)):
+        from app.access.api import company_access, check_step
+        from app.access.models import AccessMembership
+        company_access(db, user, user.organization_id)
+        check_step(request, user)
+        member = db.query(AccessMembership).filter_by(user_id=user_id, company_id=user.organization_id).first()
+        if member is not None:
+            raise HTTPException(403, "Company membership was revoked. Restore it in Organization membership before assigning branches")
+        db.add(AccessMembership(user_id=user_id, company_id=user.organization_id, active=True, is_admin=False))
+        db.flush()
+        audit(db, user, user.organization_id, "branch.legacy-membership.link", data.reason, {"user_id":user_id,"is_admin":False})
     table = BranchPolicy.__table__
     values = {"all_branches": data.all_branches, "manage_access": data.manage_access, "use_home_branch": data.use_home_branch, "version": before["version"] + 1}
     if before["version"]:

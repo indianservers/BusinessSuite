@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/ui/state";
 import { Suspense, useContext, useEffect, useState } from "react";
 import { Navigate, UNSAFE_LocationContext as LocationContext, useLocation, useNavigate } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
@@ -67,7 +68,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
     </div>}
     {pages.filter(page => visited.includes(page.path) || page.path === selected).map(page => <div key={page.path}
       role="tabpanel" hidden={selected !== page.path} id={`operation-panel-${page.path}`} aria-labelledby={`operation-tab-${page.path}`}>
-      <ErrorBoundary><Suspense fallback={<p role="status">Loading {page.label}…</p>}>
+      <ErrorBoundary><Suspense fallback={<LoadingState label={`Loading ${page.label}`} />}>
         <LocationContext.Provider value={{ ...locationContext, location: { ...location, pathname: page.path } }}>
           {page.element}
         </LocationContext.Provider>

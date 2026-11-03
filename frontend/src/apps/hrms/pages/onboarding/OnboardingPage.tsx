@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import TemplateSteps from "./TemplateSteps";
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -77,10 +78,10 @@ export default function OnboardingPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Template</CardTitle><CardDescription>Create reusable onboarding plans.</CardDescription></CardHeader>
             <CardContent>
-              <form onSubmit={submitTemplate} className="flex gap-2">
+              <CompactForm onSubmit={submitTemplate} className="flex gap-2">
                 <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Engineering joining checklist" required />
                 <Button type="submit"><Plus className="h-4 w-4" />Add</Button>
-              </form>
+              </CompactForm>
               <div className="mt-4 space-y-2">
                 {templates.data?.map((t: any) => <TemplateSteps key={t.id} template={t} refresh={() => templates.refetch()} />)}
               </div>

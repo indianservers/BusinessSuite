@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useState } from "react";
@@ -434,7 +435,7 @@ export function FollowUpDialog({
     >
       <DialogContent className="lm-root lm-dialog">
         <DialogTitle>Schedule follow-up · {lead.full_name}</DialogTitle>
-        <form
+        <CompactForm
           onSubmit={async (e) => {
             e.preventDefault();
             if (!detail) return;
@@ -595,7 +596,7 @@ export function FollowUpDialog({
           <Button type="submit" disabled={busy || !detail || !title.trim()}>
             {busy ? "Saving…" : "Save follow-up"}
           </Button>
-        </form>
+        </CompactForm>
       </DialogContent>
     </Dialog>
   );
@@ -678,7 +679,7 @@ export function LeadTeamPanel({
         ))}
       </div>
       {canManage && (
-        <form
+        <CompactForm
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -728,7 +729,7 @@ export function LeadTeamPanel({
           <Button type="submit" disabled={busy || disabled || !body.trim()}>
             Post team update
           </Button>
-        </form>
+        </CompactForm>
       )}
       <div className="lm-team-thread">
         {lead.timeline

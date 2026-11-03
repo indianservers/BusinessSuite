@@ -39,7 +39,9 @@ def apply_employee_directory_filters(query, values):
             query = query.filter(getattr(Employee, key) == values[key])
     for key, column in (("city", Employee.present_city), ("state", Employee.present_state)):
         if values.get(key):
-            query = query.filter(func.lower(func.trim(column)) == values[key].strip().lower())
+            normalized = func.trim(column)
+            for _ in range(5): normalized = func.replace(normalized, "  ", " ")
+            query = query.filter(func.lower(normalized) == " ".join(values[key].split()).lower())
     if values.get("search"):
         term = "%" + values["search"].strip() + "%"
         query = query.filter(or_(*[column.ilike(term) for column in (

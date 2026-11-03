@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -1064,7 +1065,7 @@ export default function TaskStudioPage() {
           administrator for editing access.
         </p>
       )}
-      <form
+      <CompactForm
         ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
@@ -2182,7 +2183,7 @@ export default function TaskStudioPage() {
             ))}
           </section>
         </aside>
-      </form>
+      </CompactForm>
       <AddExistingPeopleDialog
         open={adding}
         onClose={() => setAdding(false)}

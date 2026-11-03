@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import EmployeeActions from "../../workbench/EmployeeActions";
 import { Link as AccountAdminLink } from "react-router-dom";
 import { ConversationLauncher } from "@/shared/communication";
@@ -424,7 +425,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         </div>
 
         {canChangeRole && !emp.user_id && (
-          <form
+          <CompactForm
             className="rounded-lg border p-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -470,7 +471,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
             <p className="mt-2 text-xs text-muted-foreground">
               Creates an active employee user account and links it to this employee.
             </p>
-          </form>
+          </CompactForm>
         )}
 
         {userOptions.isError && <p role="alert" className="text-sm text-destructive">Could not load login accounts. <button type="button" className="underline" onClick={() => { void userOptions.refetch(); }}>Retry accounts</button></p>}
@@ -625,7 +626,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
           <CardHeader><CardTitle>Edit {TABS.find((tab) => tab.id === activeTab)?.label || "Employee"}</CardTitle></CardHeader>
           <CardContent>
             {EDIT_FIELDS[activeTab] && (
-              <form
+              <CompactForm
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -677,7 +678,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                     {updateMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
-              </form>
+              </CompactForm>
             )}
 
             {activeTab === "education" && (
@@ -966,7 +967,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
           <Card>
             <CardHeader><CardTitle>Assign Salary</CardTitle></CardHeader>
             <CardContent>
-              <form
+              <CompactForm
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -1049,7 +1050,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                     {salaryMutation.isPending ? "Saving..." : "Save Salary"}
                   </Button>
                 </div>
-              </form>
+              </CompactForm>
             </CardContent>
           </Card>
 
@@ -1124,7 +1125,7 @@ function AddRecordForm({
   requiredFields?: string[];
 }) {
   return (
-    <form
+    <CompactForm
       className="grid gap-4 sm:grid-cols-2"
       onSubmit={(event) => {
         event.preventDefault();
@@ -1182,6 +1183,6 @@ function AddRecordForm({
           {saving ? "Saving..." : submitLabel}
         </Button>
       </div>
-    </form>
+    </CompactForm>
   );
 }

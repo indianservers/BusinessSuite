@@ -28,10 +28,11 @@ const categories: Record<string, readonly Category[]> = {
     { name: "AI tools", paths: ["/ai-agents", "/hrms/ai-assistant"] },
   ],
   crm: [
+    { name: "Customer growth", paths: ["/crm/product-customers", "/crm/customer-follow-ups", "/crm/greetings"] },
     { name: "Overview", paths: ["/crm"] },
     { name: "Customers & leads", paths: ["/crm/leads", "/crm/contacts", "/crm/companies", "/crm/customer-360", "/crm/lead-scoring", "/crm/duplicates", "/crm/territories"] },
     { name: "Sales & pipeline", paths: ["/crm/deals", "/crm/pipeline", "/crm/templates", "/crm/lead-to-cash", "/crm/products-services", "/crm/products", "/crm/services", "/crm/quotations", "/crm/my-approvals"] },
-    { name: "Activities & planning", paths: ["/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"] },
+    { name: "Activities & planning", paths: ["/crm/follow-ups", "/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"] },
     { name: "Marketing & campaigns", paths: ["/crm/campaigns", "/crm/webforms", "/crm/forms", "/crm/consents"] },
     { name: "Communication", paths: ["/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/whatsapp", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline", "/crm/messages"] },
     { name: "Support & files", paths: ["/crm/tickets", "/crm/files"] },
@@ -41,7 +42,7 @@ const categories: Record<string, readonly Category[]> = {
   ],
   srm: [
     { name: "Overview", paths: ["/srm/dashboard", "/srm"] },
-    { name: "Sales & contracts", paths: ["/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/customer-360", "/srm/gantt"] },
+    { name: "Sales & contracts", paths: ["/srm/follow-ups", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/customer-360", "/srm/gantt"] },
     { name: "Point of sale", paths: ["/srm/pos"] },
     { name: "Products & pricing", paths: ["/srm/inventory/items", "/srm/inventory/products", "/srm/inventory/price-lists", "/srm/inventory/batches"] },
     { name: "Inventory & warehouses", paths: ["/srm/inventory/dashboard", "/srm/inventory/warehouses", "/srm/inventory/stock-summary", "/srm/inventory/opening-stock", "/srm/inventory/delivery-notes", "/srm/inventory/stock-transfers", "/srm/inventory/reconciliation"] },

@@ -106,6 +106,8 @@ from app.apps.crm.lead_management import router as lead_management_router
 router.include_router(lead_management_router)
 from app.apps.crm.productivity import router as productivity_router
 router.include_router(productivity_router)
+from app.apps.crm.growth import router as growth_router
+router.include_router(growth_router)
 from app.apps.crm.deal_workspace import router as deal_workspace_router
 router.include_router(deal_workspace_router)
 
@@ -161,6 +163,7 @@ class CRMEmailSendPayload(BaseModel):
 
     entityType: str
     entityId: int
+
     to: str
     cc: str | None = None
     bcc: str | None = None
@@ -188,6 +191,9 @@ class CRMMessageSendPayload(BaseModel):
     body: str
     entityType: str
     entityId: int
+    whatsappTemplateName: str | None = None
+    whatsappTemplateLanguage: str = "en_US"
+    whatsappTemplateComponents: list[dict[str, Any]] | None = None
 
 
 class CRMMessageTemplatePayload(BaseModel):
@@ -307,6 +313,7 @@ class CRMDuplicateMergePayload(BaseModel):
     winnerId: int
     loserIds: list[int]
     fieldValues: dict[str, Any] | None = None
+    allowUndetected: bool = False
 
 
 class CRMQuotationPdfEmailPayload(BaseModel):
@@ -834,6 +841,9 @@ def _message_provider(channel: str) -> CRMMessageProvider:
         configured = bool(settings.CRM_SMS_API_KEY and settings.CRM_SMS_API_SECRET)
     elif channel == "whatsapp":
         configured = bool(settings.CRM_WHATSAPP_ACCESS_TOKEN and settings.CRM_WHATSAPP_PHONE_NUMBER_ID)
+        if provider_name in {"meta", "meta_cloud", "cloud_api"}:
+            from app.services.whatsapp import MetaWhatsAppProvider
+            return MetaWhatsAppProvider()
     return ConfiguredCRMMessageProvider(provider_name, configured)
 
 
@@ -4508,33 +4518,34 @@ def _merge_related_records(db: Session, organization_id: int, resource_name: str
         if count:
             counts[label] = counts.get(label, 0) + count
 
-    def update_values(model: type, values: dict[str, Any]) -> dict[str, Any]:
-        output = dict(values)
+    def move_related(query, model: type, values: dict[str, Any]) -> int:
+        # Relationship changes must pass the tenant/branch unit-of-work checks.
+        rows = query.all()
         columns = _columns(model)
-        if "updated_by_user_id" in columns:
-            output["updated_by_user_id"] = user_id
-        if "updated_at" in columns:
-            output["updated_at"] = now
-        return output
+        for row in rows:
+            for key, value in values.items():
+                setattr(row, key, value)
+            if "updated_by_user_id" in columns:
+                row.updated_by_user_id = user_id
+            if "updated_at" in columns:
+                row.updated_at = now
+        return len(rows)
 
     if linked_field:
-        for model, label in ((CRMActivity, "activities"), (CRMNote, "notes"), (CRMTask, "tasks"), (CRMCallLog, "calls"), (CRMEmailLog, "emails"), (CRMMeeting, "meetings")):
+        for model, label in ((CRMActivity, "activities"), (CRMNote, "notes"), (CRMTask, "tasks"), (CRMCallLog, "calls"), (CRMEmailLog, "emails"), (CRMMeeting, "meetings"), (CRMFileAsset, "files")):
             if hasattr(model, linked_field):
                 update_count(
                     label,
-                    db.query(model)
+                    move_related(db.query(model)
                     .filter(model.organization_id == organization_id, getattr(model, linked_field).in_(loser_ids))
-                    .update(update_values(model, {linked_field: winner_id}), synchronize_session=False),
+                    , model, {linked_field: winner_id}),
                 )
-        update_count(
-            "activities",
-            db.query(CRMActivity)
-            .filter(CRMActivity.organization_id == organization_id, CRMActivity.entity_type == entity_type, CRMActivity.entity_id.in_(loser_ids))
-            .update(update_values(CRMActivity, {"entity_id": winner_id}), synchronize_session=False),
-        )
+        for model, label in ((CRMActivity, "activities"), (CRMEmailLog, "emails"), (CRMMessage, "messages"), (CRMNoteMention, "mentions"), (CRMEnrichmentLog, "enrichment"), (CRMApprovalRequest, "approvals")):
+            update_count(label, move_related(db.query(model).filter(model.organization_id == organization_id, model.entity_type == entity_type, model.entity_id.in_(loser_ids)), model, {"entity_id": winner_id}))
+        update_count("timeline", move_related(db.query(CRMTimelineEvent).filter(CRMTimelineEvent.organization_id == organization_id, CRMTimelineEvent.record_type == entity_type, CRMTimelineEvent.record_id.in_(loser_ids)), CRMTimelineEvent, {"record_id": winner_id}))
     if resource_name == "contacts":
-        update_count("deals", db.query(CRMDeal).filter(CRMDeal.organization_id == organization_id, CRMDeal.contact_id.in_(loser_ids)).update(update_values(CRMDeal, {"contact_id": winner_id}), synchronize_session=False))
-        update_count("quotations", db.query(CRMQuotation).filter(CRMQuotation.organization_id == organization_id, CRMQuotation.contact_id.in_(loser_ids)).update(update_values(CRMQuotation, {"contact_id": winner_id}), synchronize_session=False))
+        update_count("deals", move_related(db.query(CRMDeal).filter(CRMDeal.organization_id == organization_id, CRMDeal.contact_id.in_(loser_ids)), CRMDeal, {"contact_id": winner_id}))
+        update_count("quotations", move_related(db.query(CRMQuotation).filter(CRMQuotation.organization_id == organization_id, CRMQuotation.contact_id.in_(loser_ids)), CRMQuotation, {"contact_id": winner_id}))
         moved_links = 0
         for link in db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.contact_id.in_(loser_ids)).all():
             duplicate = db.query(CRMDealContact).filter(
@@ -4558,17 +4569,17 @@ def _merge_related_records(db: Session, organization_id: int, resource_name: str
             moved_links += 1
         update_count("deal_contacts", moved_links)
     if resource_name == "companies":
-        update_count("contacts", db.query(CRMContact).filter(CRMContact.organization_id == organization_id, CRMContact.company_id.in_(loser_ids)).update(update_values(CRMContact, {"company_id": winner_id}), synchronize_session=False))
-        update_count("deals", db.query(CRMDeal).filter(CRMDeal.organization_id == organization_id, CRMDeal.company_id.in_(loser_ids)).update(update_values(CRMDeal, {"company_id": winner_id}), synchronize_session=False))
-        update_count("quotations", db.query(CRMQuotation).filter(CRMQuotation.organization_id == organization_id, CRMQuotation.company_id.in_(loser_ids)).update(update_values(CRMQuotation, {"company_id": winner_id}), synchronize_session=False))
+        update_count("contacts", move_related(db.query(CRMContact).filter(CRMContact.organization_id == organization_id, CRMContact.company_id.in_(loser_ids)), CRMContact, {"company_id": winner_id}))
+        update_count("deals", move_related(db.query(CRMDeal).filter(CRMDeal.organization_id == organization_id, CRMDeal.company_id.in_(loser_ids)), CRMDeal, {"company_id": winner_id}))
+        update_count("quotations", move_related(db.query(CRMQuotation).filter(CRMQuotation.organization_id == organization_id, CRMQuotation.company_id.in_(loser_ids)), CRMQuotation, {"company_id": winner_id}))
 
     entity_names = {resource_name, resource_name.rstrip("s"), entity_type}
     if resource_name == "companies":
         entity_names.update({"account", "accounts", "company"})
     existing_custom_values = {
-        (row.custom_field_id, row.entity)
-        for row in _base_query(db, _get_resource("custom-field-values"), organization_id)
-        .filter(CRMCustomFieldValue.entity.in_(entity_names), CRMCustomFieldValue.record_id == winner_id)
+        (row.custom_field_id, row.entity): row
+        for row in db.query(CRMCustomFieldValue)
+        .filter(CRMCustomFieldValue.organization_id == organization_id, CRMCustomFieldValue.entity.in_(entity_names), CRMCustomFieldValue.record_id == winner_id)
         .all()
     }
     loser_custom_values = (
@@ -4580,23 +4591,93 @@ def _merge_related_records(db: Session, organization_id: int, resource_name: str
     for row in loser_custom_values:
         key = (row.custom_field_id, row.entity)
         if key in existing_custom_values:
+            survivor = existing_custom_values[key]
+            for field in ("value_text", "value_number", "value_date", "value_datetime", "value_boolean", "value_json"):
+                setattr(survivor, field, _merge_superset_value(None if survivor.deleted_at else getattr(survivor, field), getattr(row, field)))
+            survivor.deleted_at = None
+            survivor.updated_by_user_id = user_id
+            survivor.updated_at = now
             row.deleted_at = now
         else:
             row.record_id = winner_id
-            existing_custom_values.add(key)
+            existing_custom_values[key] = row
         row.updated_by_user_id = user_id
         row.updated_at = now
         custom_count += 1
     update_count("customFieldValues", custom_count)
+    if resource_name == "leads":
+        from app.apps.crm.lead_models import CRMLeadOperatingState
+        states = db.query(CRMLeadOperatingState).filter(CRMLeadOperatingState.organization_id == organization_id, CRMLeadOperatingState.lead_id.in_([winner_id, *loser_ids])).all()
+        survivor = next((row for row in states if row.lead_id == winner_id), None)
+        for row in states:
+            if row.lead_id == winner_id:
+                continue
+            if survivor is None:
+                row.lead_id = winner_id
+                row.data_json = {key: value for key, value in (row.data_json or {}).items() if key not in {"archived", "converted", "deleted"}}
+                row.version += 1
+                survivor = row
+            else:
+                # Record-specific lifecycle flags must remain those of the survivor.
+                data = {key: value for key, value in (row.data_json or {}).items() if key not in {"archived", "converted", "deleted"}}
+                survivor.data_json = _merge_superset_value(survivor.data_json or {}, data)
+                survivor.version += 1
+            update_count("leadDetails", 1)
+    # Catalog associations use polymorphic IDs rather than foreign keys.
+    from app.shared.catalog_models import CatalogLink
+    targets = {"leads": {"lead"}, "contacts": {"contact"}, "companies": {"customer", "account"}}.get(resource_name, set())
+    link_fields = ("product_id", "service_id", "pricing_id", "quantity", "unit_price", "discount", "tax_rate", "currency")
+    existing_links = {
+        (row.target_type, *(getattr(row, field) for field in link_fields))
+        for row in db.query(CatalogLink).filter(CatalogLink.organization_id == organization_id, CatalogLink.target_type.in_(targets), CatalogLink.target_id == winner_id).all()
+    }
+    for row in db.query(CatalogLink).filter(CatalogLink.organization_id == organization_id, CatalogLink.target_type.in_(targets), CatalogLink.target_id.in_(loser_ids)).all():
+        key = (row.target_type, *(getattr(row, field) for field in link_fields))
+        if key in existing_links:
+            db.delete(row)
+        else:
+            row.target_id = winner_id
+            existing_links.add(key)
+        update_count("catalogLinks", 1)
     return counts
+
+
+def _merge_superset_value(current: Any, incoming: Any) -> Any:
+    """Fill empty values without treating False or zero as missing."""
+    if current is None or (isinstance(current, str) and not current.strip()):
+        return incoming
+    if isinstance(current, dict) and isinstance(incoming, dict):
+        result = dict(current)
+        for key, value in incoming.items():
+            result[key] = _merge_superset_value(result.get(key), value)
+        return result
+    if isinstance(current, list) and isinstance(incoming, list):
+        return current + [value for value in incoming if value not in current]
+    return current
+
+
+def _fill_merge_superset(winner: Any, losers: list[Any], resource: Resource) -> None:
+    protected = {"id", "organization_id", "owner_user_id", "branch_id", "department_id", "assigned_team_id", "created_at", "updated_at", "created_by_user_id", "updated_by_user_id", "deleted_at"}
+    for loser in losers:
+        for field in _columns(resource.model):
+            if field in protected or field.startswith("converted_"):
+                continue
+            current, incoming = getattr(winner, field), getattr(loser, field)
+            if field == "notes" and current and incoming and current != incoming:
+                value = f"{current}\n\n{incoming}"
+            elif field == "tags_text" and current and incoming:
+                value = ", ".join(dict.fromkeys(tag.strip() for text in (current, incoming) for tag in text.split(",") if tag.strip()))
+            else:
+                value = _merge_superset_value(current, incoming)
+            setattr(winner, field, value)
 
 
 def _apply_merge_field_values(record: Any, resource: Resource, field_values: dict[str, Any] | None) -> None:
     if not field_values:
         return
     columns = _columns(resource.model)
-    blocked = {"id", "organization_id", "created_at", "created_by_user_id", "deleted_at"}
-    data = _normalize_payload(field_values)
+    blocked = {"id", "organization_id", "owner_user_id", "branch_id", "department_id", "assigned_team_id", "created_at", "updated_at", "created_by_user_id", "updated_by_user_id", "deleted_at"}
+    data = _validate_and_build(resource, field_values, partial=True)
     for key, value in data.items():
         if key in columns and key not in blocked:
             setattr(record, key, _coerce_value(columns[key], value))
@@ -5128,14 +5209,24 @@ def send_crm_message(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Message body is required")
 
     provider = _message_provider(channel)
+    if channel == "whatsapp" and provider.name == "meta" and settings.CRM_WHATSAPP_ORGANIZATION_ID != organization_id:
+        raise HTTPException(403, "WhatsApp sender is not assigned to this organization")
     status_value = "sent"
     provider_message_id = None
     failure_reason = None
     try:
-        status_value, provider_message_id = provider.send(channel=channel, to=to_number, body=body)
+        if channel == "whatsapp" and provider.name == "meta" and payload.whatsappTemplateName:
+            meta_template = {"name": payload.whatsappTemplateName, "language": {"code": payload.whatsappTemplateLanguage}}
+            if payload.whatsappTemplateComponents:
+                meta_template["components"] = payload.whatsappTemplateComponents
+            status_value, provider_message_id = provider.send(to=to_number, template=meta_template)
+        else:
+            status_value, provider_message_id = provider.send(channel=channel, to=to_number, body=body)
     except Exception as exc:
         status_value = "failed"
         failure_reason = str(exc)
+        if provider.name == "meta" and ("uncertain" in failure_reason or "reconcile" in failure_reason):
+            status_value = "reconciliation_required"
     sent_at = datetime.now(timezone.utc) if status_value in {"sent", "delivered"} else None
     message = CRMMessage(
         organization_id=organization_id,
@@ -5591,10 +5682,11 @@ def list_approvals(
 def list_duplicates(
     entityType: str = Query(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     organization_id = _organization_id(db, current_user)
     resource_name = _duplicate_resource_name(entityType)
+    _assert_entity_permission(resource_name, current_user, "view")
     groups = _duplicate_groups(db, organization_id, resource_name,current_user=current_user)
     return {"items": groups, "total": len(groups), "entityType": _duplicate_entity_type(resource_name)}
 
@@ -5603,12 +5695,18 @@ def list_duplicates(
 def scan_duplicates(
     payload: CRMDuplicateScanPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     organization_id = _organization_id(db, current_user)
     resource_names = [_duplicate_resource_name(payload.entityType)] if payload.entityType else ["leads", "contacts", "companies"]
     groups: list[dict[str, Any]] = []
     for resource_name in resource_names:
+        try:
+            _assert_entity_permission(resource_name, current_user, "view")
+        except HTTPException:
+            if payload.entityType:
+                raise
+            continue
         groups.extend(_duplicate_groups(db, organization_id, resource_name,current_user=current_user))
     return {"items": groups, "total": len(groups)}
 
@@ -5617,7 +5715,7 @@ def scan_duplicates(
 def merge_duplicates(
     payload: CRMDuplicateMergePayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     organization_id = _organization_id(db, current_user)
     resource_name = _duplicate_resource_name(payload.entityType)
@@ -5630,12 +5728,18 @@ def merge_duplicates(
         _assert_record_visible(db,resource,record_id,organization_id,current_user)
     winner = _get_record(db, resource, payload.winnerId, organization_id)
     losers = [_get_record(db, resource, loser_id, organization_id) for loser_id in loser_ids]
-    detected_groups = _duplicate_groups(db, organization_id, resource_name, target_id=winner.id,current_user=current_user)
-    detected_ids = {record_id for group in detected_groups for record_id in group["recordIds"]}
-    if not set(loser_ids).issubset(detected_ids):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Selected records are not in a detected duplicate group")
+    for record in sorted([winner, *losers], key=lambda row: row.id):
+        _assert_write_scope(resource, {resource.owner_field: getattr(record, resource.owner_field, None)} if resource.owner_field else {}, current_user, db)
+        db.refresh(record, with_for_update=True)
+    if not payload.allowUndetected:
+        detected_groups = _duplicate_groups(db, organization_id, resource_name, target_id=winner.id,current_user=current_user)
+        detected_ids = {record_id for group in detected_groups for record_id in group["recordIds"]}
+        if not set(loser_ids).issubset(detected_ids):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Selected records are not in a detected duplicate group")
 
+    _fill_merge_superset(winner, losers, resource)
     _apply_merge_field_values(winner, resource, payload.fieldValues)
+    _validate_related_records(db, {key: getattr(winner, key) for key in RELATED_RESOURCE_BY_FIELD if hasattr(winner, key)}, organization_id)
     now = datetime.now(timezone.utc)
     columns = _columns(resource.model)
     if "updated_by_user_id" in columns:
@@ -5659,7 +5763,7 @@ def merge_duplicates(
         title="Merged duplicate record",
         body=f"Merged duplicate record(s): {', '.join(str(item.id) for item in losers)}",
         user_id=current_user.id,
-        metadata={"winnerId": winner.id, "loserIds": loser_ids, "relatedCounts": related_counts},
+        metadata={"winnerId": winner.id, "loserIds": loser_ids, "relatedCounts": related_counts, "manualSelection": payload.allowUndetected},
     )
     for loser in losers:
         _create_timeline_activity(

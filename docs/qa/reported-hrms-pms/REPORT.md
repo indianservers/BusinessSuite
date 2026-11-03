@@ -1,0 +1,41 @@
+# Reported HRMS/PMS issues — verification and fixes
+
+Scope: the eleven issues visible in the supplied screenshot, in the same Business Suite web application at desktop and mobile widths. No Flutter or sibling-repository files were changed.
+
+## Findings
+
+1. **People city duplicates — fixed.** Filter options previously deduplicated exact strings only. City/state labels now deduplicate case and surrounding/repeated whitespace. The directory filter uses the same whitespace/case normalization, so choosing one canonical city still finds its differently formatted records.
+2. **Intern member count — fixed definition and display.** The dashboard displayed all registered people as participants, including disabled or unlinked records. It now exposes and displays Active Members: distinct authorized employed intern/employee records with an active linked account. The total registered population remains visible separately. The report's historical 147/123 values were not hardcoded or verified against a production snapshot.
+3. **Present count — fixed.** WFH and half-day values previously contributed to the Present headcount. Present now counts the actual Present status; WFH and half-day counts remain separate. The former weighted calculation is available explicitly as credited_present. Unrecorded days are Not marked, rather than being represented as recorded absences. Payroll calculations were not changed.
+4. **Present/Absent filters — fixed.** The register has a dedicated status filter, included in the request and cache key, applied by the backend to the requested date. Changing remarks, hours or selection also no longer resets an existing row to Present: that separate defaulting defect could create incorrect Present records when edited rows were saved. Existing stored attendance was not rewritten because its correctness cannot be inferred retrospectively.
+5. **Previous dates — fixed.** Calendar dates and My Attendance range defaults previously used toISOString on local midnight, shifting dates backwards in Asia/Kolkata. They now use local calendar dates. Selecting a calendar day opens that date's register and clears the previous day's unsaved register edits. Employees who had not joined, or had already exited, are excluded from that date's register. Newest stored records are selected deterministically if historical duplicates exist.
+6. **Profile name — existing supported workflow verified and clarified.** Names can be edited and saved. Employee master-name changes retain existing HR approval requirements; preferred display-name updates remain directly editable. Tests verify that an approved name is reflected in the shared identity. The interface explains pending name/master-data changes instead of implying they immediately replace the official record.
+7. **Profile progress — improved and verified.** Backend completion is calculated from actual stored fields, not a constant. The API now exposes its completion-field definition. The UI uses it for live draft progress and shows prospective submitted completion while approval is pending. Directly saved details update official completion. The browser test verifies progress rising from 11% to 22% with an additional completed field.
+8. **Profile Cancel — existing discard workflow verified and strengthened.** Cancel restores saved values after discard confirmation. Drafts now use independent structured copies on load, save and cancellation, protecting nested education/experience values as well. Desktop/mobile tests verify that a changed name is discarded and restored when editing resumes.
+9. **Open Tasks mismatch — fixed shared definitions.** PMS analytics calculated open as total minus completed, counting cancelled/rejected terminal tasks as open. It now excludes the canonical terminal statuses. Personal HRMS and PMS assignment summaries reuse one execution-count helper; the regression fixture returns the same two open assignments in both modules. Counts still depend on matching person/project/workspace scope; organization-wide tasks and a person's own assignments are intentionally different populations.
+10. **Empty batch — hidden by default.** The authorized batch listing now supports hide_empty and defaults it on. The UI provides Show empty batches for administrators who need to populate or inspect an empty batch. No batch or history is deleted. Member counts use distinct employees rather than historical membership-row counts.
+11. **Intern batch status/reactivation — exposed and verified.** Reactivation already existed in the membership API. Membership History now has an explicit Reactivate membership action, opening the existing authorized workflow with that employee selected. Capacity, account, tenant and closed-batch rules remain active. Deactivation handles every legacy duplicate active membership row; reactivation creates a new active history entry without deleting earlier entries.
+
+## Verification
+
+- `backend/tests/test_reported_hrms_pms_issues.py`: **6 passed**. Covers normalized city filtering, exact attendance totals and date/status filters, equal HRMS/PMS open-task counts, empty batches, duplicate-safe membership reactivation, active versus registered member counts, profile completion and approved name changes.
+- `qa/reported_hrms_pms_browser.cjs`: **passed**, at 1440px and 390px with Asia/Kolkata timezone. Covers name editing/saving, Cancel restoration, draft/saved completion, selecting November 2 from a November calendar, Present/Absent filtering, and preserving Absent while editing remarks and selection.
+- Browser screenshots and machine-readable results are in this directory. These browser checks use controlled API fixtures; backend tests exercise persisted test records separately.
+- TypeScript checking passed. Vite production build passed with existing large-chunk/mixed-import warnings.
+- Broader employee-directory and PMS analytics suites were attempted. Seven older tests failed during fixture authorization/setup under current branch/module-access requirements, so those suites are not reported as passing.
+
+No production data cleanup, production deployment, or hardcoded member-count correction was performed. Existing role, tenant and branch authorization remains in place. Restart/reload the backend and frontend through the usual development/deployment process to use the updated code.
+
+
+## Follow-up screenshot: remaining PMS checks
+
+Rechecked the eight items shown in the follow-up screenshot. The profile completion, Cancel, open-task definition, hidden empty batches and reactivation regressions continue to pass.
+
+Additional fixes:
+
+- Batch list and batch analytics now count the same distinct active participants with active linked accounts. Disabled accounts, inactive employees and duplicate legacy active membership rows do not inflate these member counts. Signup registrations can include pending/rejected applications and must be compared using the same cohort/status; neither 144 nor 122 was hardcoded.
+- All four workspace dashboard cards are interactive. Completed was disabled because it lacked a click handler. Completed, Open tasks and Need an owner now show their corresponding task subset; Projects opens the workspace's project directory. The selection can be cleared with Show all tasks.
+- Workspace reads no longer discard a successful project/task response because an ancillary invitation or member request failed. Those failures produce a specific warning. Core failure shows the retry state without fabricated zero counters. Request sequence checks prevent a late workspace response from replacing newer data.
+- The real authorized workspace overview and members endpoints passed an HTTP test with persisted project/task/member records and branch scope. A database error was not reproduced in the current test schema. A production/legacy database was not inspected or modified, so an unknown deployed schema error is not claimed as fixed.
+
+Current focused backend result: **7 passed**. Both `qa/reported_hrms_pms_browser.cjs` and `qa/workspace_reported_issues_browser.cjs` pass at desktop/mobile sizes. The latter exercises a failing invitation API with a successful overview, a failed overview without false zero counts, recovery via Retry, and enabled/filtering dashboard cards.

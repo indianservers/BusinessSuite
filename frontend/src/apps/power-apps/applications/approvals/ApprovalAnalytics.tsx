@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useState } from "react";
 import {
   approvalApi as api,
@@ -55,7 +56,7 @@ export function ApprovalAnalytics({
     n == null ? "—" : `${(n * 100).toFixed(1)}%`;
   return (
     <>
-      <form
+      <CompactForm
         className="ap-panel ap-actions"
         onSubmit={async (e) => {
           e.preventDefault();
@@ -134,7 +135,7 @@ export function ApprovalAnalytics({
           </select>
         </label>
         <button className="ap-primary">Apply filters</button>
-      </form>
+      </CompactForm>
       {error && (
         <p className="ap-error" role="alert">
           {error}

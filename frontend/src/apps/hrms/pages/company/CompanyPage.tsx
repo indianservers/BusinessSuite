@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields } from "@/lib/validation";
 import { useEffect, useMemo, useState } from "react";
@@ -226,7 +227,7 @@ export default function CompanyPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <form
+              <CompactForm
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -285,7 +286,7 @@ export default function CompanyPage() {
                     {saveCompany.isPending ? "Saving..." : "Save Company"}
                   </Button>
                 </div>
-              </form>
+              </CompactForm>
             </CardContent>
           </Card>
 
@@ -416,7 +417,7 @@ function OrgPanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form
+        <CompactForm
           className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
@@ -450,7 +451,7 @@ function OrgPanel({
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : form.id ? "Update" : "Add"}
           </Button>
-        </form>
+        </CompactForm>
 
         <div className="space-y-2">
           {loading && <LoadingState label={`Loading ${title.toLowerCase()}`} />}

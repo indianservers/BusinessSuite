@@ -133,9 +133,13 @@ class Settings(BaseSettings):
     CRM_SMS_API_KEY: str = ""
     CRM_SMS_API_SECRET: str = ""
     CRM_SMS_SENDER_ID: str = ""
-    CRM_WHATSAPP_ACCESS_TOKEN: str = ""
+    CRM_WHATSAPP_ACCESS_TOKEN: str = Field(default="", repr=False)
     CRM_WHATSAPP_PHONE_NUMBER_ID: str = ""
     CRM_WHATSAPP_BUSINESS_ACCOUNT_ID: str = ""
+    CRM_WHATSAPP_API_VERSION: str = "v26.0"
+    CRM_WHATSAPP_APP_SECRET: str = Field(default="", repr=False)
+    CRM_WHATSAPP_VERIFY_TOKEN: str = Field(default="", repr=False)
+    CRM_WHATSAPP_ORGANIZATION_ID: int | None = None
     CRM_GOOGLE_CALENDAR_CLIENT_ID: str = ""
     CRM_GOOGLE_CALENDAR_CLIENT_SECRET: str = ""
     CRM_GOOGLE_CALENDAR_REDIRECT_URI: str = ""

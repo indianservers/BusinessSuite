@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import {
   FormEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -666,7 +667,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
             </Dialog.Description>
 
             <div>
-              <form onSubmit={submit} className="border-b p-3">
+              <CompactForm onSubmit={submit} className="border-b p-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
@@ -689,7 +690,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
                     className="border-0 pl-9 text-base focus-visible:ring-0"
                   />
                 </div>
-              </form>
+              </CompactForm>
 
               {recordSearch.isFetching && (
                 <p

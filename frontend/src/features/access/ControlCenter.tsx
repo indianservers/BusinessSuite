@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -116,7 +118,7 @@ function Events({ rows }: { rows: any[] }) {
         </thead>
         <tbody>
           {rows.map((e: any) => (
-            <tr key={e.id}>
+            <tr {...recordPreviewProps(e)} key={e.id}>
               <td>{date(e.created_at)}</td>
               <td>{e.operation}</td>
               <td>#{e.actor_id}</td>
@@ -518,7 +520,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                       </thead>
                       <tbody>
                         {b.departments.map((d: any) => (
-                          <tr key={d.id}>
+                          <tr {...recordPreviewProps(d)} key={d.id}>
                             <td>{d.name}</td>
                             <td>
                               {activeOrg.employees.find(
@@ -601,7 +603,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
               </thead>
               <tbody>
                 {data.map((m: any) => (
-                  <tr key={m.key}>
+                  <tr {...recordPreviewProps(m)} key={m.key}>
                     <td>
                       <Boxes size={16} />
                       <strong>{m.label}</strong>
@@ -699,7 +701,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                 </thead>
                 <tbody>
                   {data.sessions.map((s: any) => (
-                    <tr key={s.id}>
+                    <tr {...recordPreviewProps(s)} key={s.id}>
                       <td>#{s.userId}</td>
                       <td>{s.device || "Browser"}</td>
                       <td>{s.ip || "Unavailable"}</td>
@@ -865,7 +867,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
       >
         <DialogContent className="ua-root cc-dialog">
           <DialogTitle>{dialog?.title || "Administrative change"}</DialogTitle>
-          <form onSubmit={save}>
+          <CompactForm onSubmit={save}>
             {dialog?.type === "company" && (
               <div className="cc-form-grid">
                 {Object.entries(baseCompany)
@@ -1024,7 +1026,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
             <Button disabled={busy} type="submit">
               {busy ? "Saving…" : "Verify & Save"}
             </Button>
-          </form>
+          </CompactForm>
         </DialogContent>
       </Dialog>
       <Dialog
@@ -1245,7 +1247,7 @@ export function UserAccess360() {
       >
         <DialogContent className="ua-root cc-dialog">
           <DialogTitle>Edit identity</DialogTitle>
-          <form onSubmit={save}>
+          <CompactForm onSubmit={save}>
             <label className="cc-field">
               Full name
               <input
@@ -1281,7 +1283,7 @@ export function UserAccess360() {
             </p>
             {error && <p role="alert">{error}</p>}
             <Button type="submit">Verify & Save</Button>
-          </form>
+          </CompactForm>
         </DialogContent>
       </Dialog>
     </main>

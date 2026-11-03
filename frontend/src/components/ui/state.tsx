@@ -1,4 +1,4 @@
-import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
+import { AlertTriangle, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ProgressRing({
@@ -80,17 +80,14 @@ export function ErrorState({
   );
 }
 
-export function LoadingState({
-  label = "Loading data",
-  className,
-}: {
-  label?: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex items-center justify-center gap-2 rounded-lg border bg-muted/20 px-4 py-8 text-sm text-muted-foreground", className)}>
-      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-      <span>{label}</span>
+/** Reserve the data area's shape while its first response is pending. */
+export function LoadingState({ label = "Loading data", className }: {label?:string;className?:string}) {
+  return <div role="status" aria-label={label} aria-busy="true" className={cn("space-y-4 rounded-lg border bg-card p-4",className)}>
+    <span className="sr-only">{label}</span>
+    <div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse">
+      <div className="h-4 w-1/3 rounded bg-muted"/>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{[0,1,2].map(i=><div key={i} className="h-20 rounded-lg bg-muted/70"/>)}</div>
+      {[0,1,2].map(i=><div key={i} className="flex gap-3 border-t pt-3"><div className="h-8 w-8 rounded bg-muted"/><div className="flex-1 space-y-2"><div className="h-3 w-2/3 rounded bg-muted"/><div className="h-3 w-1/3 rounded bg-muted/60"/></div></div>)}
     </div>
-  );
+  </div>;
 }

@@ -863,6 +863,7 @@ def serialize_profile(db, user, actor):
             employee.profile_photo_url if employee else profile.profile_photo_url
         ),
         "completeness": round((len(required) - len(missing)) / len(required) * 100),
+        "completionFields": required,
         "missingFields": missing,
         "canEdit": actor.id == user.id or can_manage(actor),
         "canManage": can_manage(actor),

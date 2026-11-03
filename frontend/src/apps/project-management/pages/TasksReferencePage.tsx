@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import Sidebar from "@/components/layout/Sidebar";
 import TaskThemeSwitcher from "../components/TaskThemeSwitcher";
 import MoveBoard from "@/components/interaction/MoveBoard";
@@ -1378,7 +1379,7 @@ export default function TasksReferencePage() {
             <Dialog.Description>
               Keep the current filters in your personal saved views.
             </Dialog.Description>
-            <form
+            <CompactForm
               onSubmit={async (e) => {
                 e.preventDefault();
                 setBusy(true);
@@ -1416,7 +1417,7 @@ export default function TasksReferencePage() {
               <Dialog.Close className="tr-button" type="button">
                 Cancel
               </Dialog.Close>
-            </form>
+            </CompactForm>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

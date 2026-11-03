@@ -1,3 +1,5 @@
+import FollowUpSummary from "@/shared/follow-ups/FollowUpSummary";
+import FollowUpsPage from "@/shared/follow-ups/FollowUpsPage";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import Deal360Page from "./deals/Deal360Page";
 import { CommunicationWorkspace } from "@/shared/communication";
@@ -14,16 +16,23 @@ const LeadManagementPage = React.lazy(() => import("./leads/LeadManagementPage")
 const CommunicationHubPage = React.lazy(() => import("@/apps/communication/CommunicationHubPage"));
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
+const GrowthWorkspace = React.lazy(() => import("./GrowthWorkspace"));
 const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
 export const crmRoutes: FrontendRoute[] = [
+  {path:"crm/product-customers",element:<GrowthWorkspace key="audience" mode="audience"/>},
+  {path:"crm/customer-follow-ups",element:<GrowthWorkspace key="followups" mode="followups"/>},
+  {path:"crm/greetings",element:<GrowthWorkspace key="greetings" mode="greetings"/>},
+ {path:"crm/follow-ups/directory",element:<FollowUpsPage/>},
+ {path:"crm/follow-ups/calendar",element:<FollowUpsPage/>},
+ {path:"crm/follow-ups/:id",element:<FollowUpsPage/>},
   {path:"crm/products-services",element:<SharedCatalogPage source="crm"/>},
   {path:"crm/statistics/:kind",element:<CRMStatisticsWorklist/>},
  { path: "crm/messages", element: <CommunicationWorkspace module="CRM" /> },
   { path: "crm/gantt", element: <ModuleGanttPage key="crm" module="crm" /> },
   { path: "crm", element: <CRMSalesHome /> },
   { path: "crm/sales-home", element: <CRMSalesHome /> },
-  { path: "crm/follow-ups", element: <CRMSalesHome initialView="today" /> },
-  { path: "crm/dashboard", element: <CRMWorkspacePage kind="dashboard" /> },
+  { path: "crm/follow-ups", element: <FollowUpsPage /> },
+  { path: "crm/dashboard", element: <><FollowUpSummary base="/crm/follow-ups"/><CRMWorkspacePage kind="dashboard" /></> },
   { path: "crm/profile", element: <ModuleProfilePage /> },
   { path: "crm/leads", element: <LeadManagementPage /> },
   { path: "crm/leads/classic", element: <CRMWorkspacePage kind="leads" /> },

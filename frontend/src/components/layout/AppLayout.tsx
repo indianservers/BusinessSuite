@@ -1,7 +1,8 @@
+import { LoadingState } from "@/components/ui/state";
 import SuiteContextBar from "@/components/suite/SuiteContextBar";
 import PageContextMenu from "@/components/app/PageContextMenu";
 import PMSAssistant from "@/apps/project-management/components/PMSAssistant";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -65,7 +66,7 @@ export default function AppLayout() {
           {isPosTerminal || isMessaging || isPeopleDirectory ? null : <Breadcrumbs />}
           {!isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <ErrorBoundary>
-            <Outlet />
+            <Suspense fallback={<LoadingState label="Loading page data" />}><Outlet /></Suspense>
           </ErrorBoundary>
         </main>
         <BackToTop />

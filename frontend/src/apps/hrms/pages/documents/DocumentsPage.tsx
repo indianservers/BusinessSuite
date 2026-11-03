@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { ImportWizard } from "@/shared/data-transfer";
 import { certificateImportFields } from "@/shared/data-transfer/fields";
 import { FormEvent, useMemo, useState } from "react";
@@ -202,7 +203,7 @@ export default function DocumentsPage() {
             <CardDescription>Allowed files: PDF, DOC, DOCX, JPG, JPEG, PNG</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" onSubmit={submitUpload}>
+            <CompactForm className="space-y-4" onSubmit={submitUpload}>
               {canChooseEmployee && (
                 <div className="space-y-2">
                   <Label>Employee</Label>
@@ -376,7 +377,7 @@ export default function DocumentsPage() {
                 <Upload className="h-4 w-4" />
                 {uploadMutation.isPending ? "Uploading..." : "Upload document"}
               </Button>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
 

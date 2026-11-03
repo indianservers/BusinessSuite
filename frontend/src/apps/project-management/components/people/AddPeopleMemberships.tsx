@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -38,11 +40,11 @@ export default function AddPeopleMemberships({ mode, personIds, onClose, onAdded
     {result ? <div role="status" className="space-y-3">
       <p>{result.added.length} memberships added. {result.already_present} memberships already existed.</p>
       {!!result.warnings.length && <p>{result.warnings.length} {result.warnings.length === 1 ? "person needs" : "people need"} an organization access review. See the account-specific messages below.</p>}
-      <div className="max-h-64 overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th>Person</th><th>Destination</th><th>Result</th></tr></thead><tbody>{result.results?.map((row,index) => <tr key={index} className="border-t"><td className="p-2">{row.email}</td><td className="p-2">{row.destination_name} ({row.destination_type})</td><td className="p-2">{row.status === "added" ? "Added" : "Already a member"}</td></tr>)}</tbody></table></div>
+      <div className="max-h-64 overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th>Person</th><th>Destination</th><th>Result</th></tr></thead><tbody>{result.results?.map((row,index) => <tr {...recordPreviewProps(row)} key={index} className="border-t"><td className="p-2">{row.email}</td><td className="p-2">{row.destination_name} ({row.destination_type})</td><td className="p-2">{row.status === "added" ? "Added" : "Already a member"}</td></tr>)}</tbody></table></div>
       {result.warnings.map((warning, index) => <p key={index} className="pd-error">{warning}</p>)}
       {!!result.warnings.length && (user?.is_superuser || user?.access?.isAccessAdmin) && <Link className="pd-button" to="/admin/access">Review organization access</Link>}
       <button type="button" className="pd-button primary" onClick={onClose}>Done</button>
-    </div> : <form onSubmit={async event => {
+    </div> : <CompactForm onSubmit={async event => {
       event.preventDefault();
       if (!destinations.length || !personIds.length || tooMany) return;
       setBusy(true); setError(""); setSubmittedCount(personIds.length);
@@ -89,6 +91,6 @@ export default function AddPeopleMemberships({ mode, personIds, onClose, onAdded
           <button type="submit" className="pd-button primary" disabled={busy || !destinations.length || !personIds.length || tooMany || reason.trim().length < 3}>{busy ? "Adding…" : `Add to ${mode}`}</button>
         </div>
       </fieldset>
-    </form>}
+    </CompactForm>}
   </PeopleDialog>;
 }

@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -40,7 +41,7 @@ export default function BranchLifecycleSettings() {
     {!visible.length && <p role="status">{tab==="active"?"No active branches available.":tab==="trash"?"Trash is empty.":"No branches in protected recovery."}</p>}
     <Dialog open={!!pending} onOpenChange={value=>{if(!value&&!busy){setPending(null);setError("");}}}><DialogContent className="settings-branch-dialog">
       <DialogTitle className="text-lg font-semibold">{pending?titles[pending.action]:"Branch action"}</DialogTitle>
-      {pending && <form onSubmit={async e=>{e.preventDefault();setBusy(true);setError("");const {branch,action}=pending;
+      {pending && <CompactForm onSubmit={async e=>{e.preventDefault();setBusy(true);setError("");const {branch,action}=pending;
         try{
           const body={reason:reason.trim(),expected_version:branch.version};
           if(action==="rename")await api.patch(`/branches/${branch.id}`,{...body,name:name.trim()});else await api.post(`/branches/${branch.id}/${action}`,body);
@@ -58,7 +59,7 @@ export default function BranchLifecycleSettings() {
         <label>Reason<input required minLength={5} maxLength={1000} value={reason} disabled={busy} onChange={e=>setReason(e.target.value)}/></label>
         {error && <p role="alert">{error}</p>}
         <div className="settings-branch-actions"><button type="button" disabled={busy} onClick={()=>setPending(null)}>Cancel</button><button className="settings-primary" disabled={busy||reason.trim().length<5||(pending.action==="rename"&&!name.trim())}>{busy?"Saving…":titles[pending.action]}</button></div>
-      </form>}
+      </CompactForm>}
     </DialogContent></Dialog>
   </section>;
 }

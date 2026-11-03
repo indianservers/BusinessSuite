@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -269,7 +270,7 @@ export function ProductWorkflowCenter({ product }: { product: ProductKey }) {
               </thead>
               <tbody>
                 {visibleItems.map((item, index) => (
-                  <tr key={item.change} className="border-t hover:bg-muted/30">
+                  <tr {...recordPreviewProps(item)} key={item.change} className="border-t hover:bg-muted/30">
                     <td className="px-4 py-3 text-muted-foreground">{index + 1}</td>
                     <td className="px-4 py-3 font-medium">{item.area}</td>
                     <td className="px-4 py-3">{item.change}</td>

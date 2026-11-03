@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-03",
+  "environment": "local only",
+  "backend_tests": {
+    "passed": 134,
+    "skipped": 1
+  },
+  "live_request_counts": {
+    "permission-audit-live-checks.json": 143,
+    "permission-audit-browser-retests.json": 10,
+    "permission-audit-hrms-pms-features.json": 22,
+    "expanded-live-api.json": 89,
+    "permission-audit-company-revocation.json": 11
+  },
+  "live_requests_total": 275,
+  "count_note": "Includes setup and repeated successful requests; not a count of unique endpoints.",
+  "users": {
+    "crm_admin": {
+      "id": 37,
+      "name": "Permission Audit crm_admin 3685474",
+      "email": "permission.audit.crm_admin.3685474@example.org"
+    },
+    "mixed": {
+      "id": 38,
+      "name": "Permission Audit mixed 3685474",
+      "email": "permission.audit.mixed.3685474@example.org"
+    },
+    "reader": {
+      "id": 39,
+      "name": "Permission Audit reader 3685474",
+      "email": "permission.audit.reader.3685474@example.org"
+    },
+    "none": {
+      "id": 40,
+      "name": "Permission Audit none 3685474",
+      "email": "permission.audit.none.3685474@example.org"
+    }
+  },
+  "outcomes": [
+    "Legacy user branch editor loads",
+    "Branch-specific module roles and custom features are editable",
+    "CRM branch admin cannot access unassigned branches",
+    "Feature and branch revocations affect existing sessions",
+    "Readonly explicit home-branch grant prevents writes",
+    "Explicit company revocation overrides inferred membership",
+    "HRMS attendance and PMS task feature grants and revocations verified",
+    "Employee identifier allocation works across branches"
+  ],
+  "limits": "Focused local audit; not certification of every suite business workflow."
+}

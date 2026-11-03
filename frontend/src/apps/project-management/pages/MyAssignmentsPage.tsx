@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
   RichTextField,
   RichTextContent,
@@ -77,7 +78,7 @@ export default function MyAssignmentsPage() {
           </thead>
           <tbody>
             {data?.items.map((r: Row) => (
-              <tr className="border-t" key={r.id}>
+              <tr {...recordPreviewProps(r)} className="border-t" key={r.id}>
                 <td className="p-3">{r.title}</td>
                 <td>{r.status}</td>
                 <td>{r.due_date}</td>

@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +67,7 @@ export default function ModuleShell({
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item.title} className="border-b last:border-0">
+                  <tr {...recordPreviewProps(item)} key={item.title} className="border-b last:border-0">
                     <td className="py-3 font-medium">{item.title}</td>
                     <td className="py-3 text-muted-foreground">{item.description}</td>
                     <td className="py-3">

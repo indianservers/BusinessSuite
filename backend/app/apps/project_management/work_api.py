@@ -97,7 +97,8 @@ def my_assignments(page:int=Query(1,ge=1),per_page:int=Query(50,ge=1,le=200),use
     q=db.query(PMSTaskAssignee,PMSTask).join(PMSTask,PMSTask.id==PMSTaskAssignee.task_id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(PMSTaskAssignee.user_id==user.id,PMSTask.deleted_at.is_(None),PMSProject.deleted_at.is_(None),func.coalesce(PMSProject.organization_id,1)==tenant(user))
     rows=q.order_by(PMSTask.id.desc()).offset((page-1)*per_page).limit(per_page).all()
     details=work.plan_details_many(db,[(t.id,a.user_id) for a,t in rows])
-    return {'items':[{'id':t.id,'title':t.title,'description':t.description,'project_id':t.project_id,'status':'Cancelled' if a.cancelled_at else a.execution_status,'due_date':a.due_date or t.due_date,'start_date':t.start_date,'progress':a.progress_percent,'notes':a.work_notes,'reviewer_user_id':a.reviewer_user_id,'maximum_score':a.maximum_score,**details[(t.id,a.user_id)]} for a,t in rows],'total':q.count()}
+    from app.services.metrics.queries import execution_counts
+    return {'summary':execution_counts(q),'items':[{'id':t.id,'title':t.title,'description':t.description,'project_id':t.project_id,'status':'Cancelled' if a.cancelled_at else a.execution_status,'due_date':a.due_date or t.due_date,'start_date':t.start_date,'progress':a.progress_percent,'notes':a.work_notes,'reviewer_user_id':a.reviewer_user_id,'maximum_score':a.maximum_score,**details[(t.id,a.user_id)]} for a,t in rows],'total':q.count()}
 
 class ProgressInput(BaseModel):
     progress_percent:int=Field(ge=0,le=99)

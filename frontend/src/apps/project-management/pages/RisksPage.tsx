@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { Fragment, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
@@ -217,7 +219,7 @@ export default function RisksPage() {
             <Button variant="ghost" size="sm" onClick={resetForm}><X className="h-4 w-4" /></Button>
           </CardHeader>
           <CardContent>
-            <form className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
+            <CompactForm className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
               <Field label="Project">
                 <select className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
                   <option value="">Select project</option>
@@ -280,7 +282,7 @@ export default function RisksPage() {
                 <Button type="submit" disabled={saving || !form.title.trim() || !form.project_id}>{saving ? "Saving..." : editing ? "Update risk" : "Create risk"}</Button>
                 <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
               </div>
-            </form>
+            </CompactForm>
           </CardContent>
         </Card>
       ) : null}
@@ -326,7 +328,7 @@ export default function RisksPage() {
                   </thead>
                   <tbody>
                     {risks.map((risk) => (
-                      <tr key={risk.id} className="border-b align-top hover:bg-muted/40">
+                      <tr {...recordPreviewProps(risk)} key={risk.id} className="border-b align-top hover:bg-muted/40">
                         <td className="max-w-sm p-3">
                           <p className="font-semibold">{risk.title}</p>
                           <div className="line-clamp-2 text-xs text-muted-foreground"><RichTextContent value={risk.description || risk.category || "No description"}/></div>

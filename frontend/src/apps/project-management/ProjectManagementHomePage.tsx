@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { FormEvent, useEffect, useState } from "react";
@@ -156,7 +157,7 @@ const ProjectManagementHomePage: React.FC = () => {
         <details className="mb-8 rounded-xl border bg-card p-5 shadow-sm">
           <summary className="cursor-pointer text-sm font-semibold text-foreground">Project intake - Submit or review requests</summary>
           <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
-          <form onSubmit={handleSubmitIntake} className="rounded-xl border bg-card p-5 shadow-sm">
+          <CompactForm onSubmit={handleSubmitIntake} className="rounded-xl border bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-bold text-foreground">Project Intake</h2>
@@ -196,7 +197,7 @@ const ProjectManagementHomePage: React.FC = () => {
               <Send className="h-4 w-4" />
               {intakeSaving ? "Submitting..." : "Submit Intake"}
             </button>
-          </form>
+          </CompactForm>
           <div className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="text-lg font-bold text-foreground">Recent Intakes</h2>
             <div className="mt-3 space-y-3">

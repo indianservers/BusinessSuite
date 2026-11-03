@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -100,7 +102,7 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
         <button onClick={refresh}>Refresh</button></div>
       <div className="wf-table wf-people"><table><thead><tr><th><input aria-label="Select this page" type="checkbox" checked={rows.length > 0 && rows.every(e => selected.includes(e.id))} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? Array.from(new Set([...prev, ...rows.map(r => r.id)])) : prev.filter(id => !rows.some(r => r.id === id)))} /></th>
         {["Person", "Department / Supervisor", "Status", "Work", "Follow up", "Profile"].map(h => <th key={h}>{h}</th>)}</tr></thead>
-        <tbody>{rows.map(person => <tr key={person.id}><td><input type="checkbox" aria-label={`Select ${person.name}`} checked={allFiltered || selected.includes(person.id)} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? [...prev, person.id] : prev.filter(id => id !== person.id))} /></td>
+        <tbody>{rows.map(person => <tr {...recordPreviewProps(person)} key={person.id}><td><input type="checkbox" aria-label={`Select ${person.name}`} checked={allFiltered || selected.includes(person.id)} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? [...prev, person.id] : prev.filter(id => id !== person.id))} /></td>
           <td><strong>{person.name}</strong><small>{person.employee_id} · {person.employment_type}</small><small>{person.email || "No email"}</small></td>
           <td>{person.department || "No department"}<small>{person.manager || "No supervisor assigned"}</small></td>
           <td><span className="wf-pill">{person.status}</span><small>{person.account_active ? "Account active" : "No active account"}</small></td>
@@ -124,7 +126,7 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
       <div className="wf-actions"><button disabled={jobPage === 1} onClick={() => setJobPage(p => p - 1)}>Previous operations</button><button disabled={!jobs || jobPage * 25 >= jobs.total} onClick={() => setJobPage(p => p + 1)}>More operations</button></div>
     </section>
     <Dialog open={!!modal} onOpenChange={open => { if (!open && !busy) setModal(null); }}><DialogContent><DialogHeader><DialogTitle>{modal === "reassign" ? "Change reporting supervisor" : modal === "warning" ? "Send a warning" : "Send a notice"}</DialogTitle></DialogHeader>
-      <form className="wf-space wf-dialog" onSubmit={async e => {
+      <CompactForm className="wf-space wf-dialog" onSubmit={async e => {
         e.preventDefault(); setBusy(true); setError("");
         try { const response = await api.post(root + "/jobs", { ...selection, operation: modal, ...form, reporting_manager_id: Number(form.reporting_manager_id) || null, request_key: requestKey.current, expected_total: preview?.total });
           setResult(`Operation #${response.data.id}: ${response.data.status} (${response.data.cursor}/${response.data.total}).`); setModal(null); setSelected([]); setAllFiltered(false); refresh(); }
@@ -140,14 +142,14 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
         </>}
         {error && <p role="alert" className="wf-error">{error}</p>}
         <div className="wf-row"><button type="button" disabled={busy} onClick={() => setModal(null)}>Cancel</button><button className="wf-primary" disabled={busy || !preview?.total}>{busy ? "Starting…" : `Confirm for ${preview?.total || 0} people`}</button></div>
-      </form>
+      </CompactForm>
     </DialogContent></Dialog>
     <Dialog open={!!profile} onOpenChange={open => { if (!open) setProfile(undefined); }}><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{profile?.name}</DialogTitle></DialogHeader>
       {profile && <div className="wf-space max-h-[78vh] overflow-y-auto"><dl className="wf-profile">{[["Employee ID", profile.employee_id], ["Email", profile.email], ["Department", profile.department], ["Supervisor", profile.manager], ["Employment", profile.employment_type], ["Status", profile.status]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not assigned"}</dd></div>)}</dl>
         <div className="wf-actions"><Link className="wf-button" to={`/hrms/employees/${profile.id}`}>Full HRMS profile</Link><Link className="wf-button" to={taskPath} state={{ employee_ids: [profile.id] }}>Assign work</Link>
           <button onClick={() => { setSelected([profile.id]); setAllFiltered(false); setProfile(undefined); }}>Select for follow-up</button></div>
         <h2>Work & progress</h2>{workError && <p role="alert" className="wf-error">{errorMessage(workError)}</p>}
-        <div className="wf-table"><table><thead><tr><th>Assignment</th><th>Status</th><th>Due</th></tr></thead><tbody>{personWork?.items.map((task: Row) => <tr key={task.id}><td><Link to={`/pms/projects/${task.project_id}/tasks/${task.id}`}>{task.title}</Link><small>{task.progress}% progress</small></td><td>{task.status}</td><td>{task.due_date || "No deadline"}{task.overdue && <small className="wf-error">Overdue</small>}</td></tr>)}</tbody></table>{personWork?.total === 0 && <p>No assignments in projects you can access.</p>}</div>
+        <div className="wf-table"><table><thead><tr><th>Assignment</th><th>Status</th><th>Due</th></tr></thead><tbody>{personWork?.items.map((task: Row) => <tr {...recordPreviewProps(task)} key={task.id}><td><Link to={`/pms/projects/${task.project_id}/tasks/${task.id}`}>{task.title}</Link><small>{task.progress}% progress</small></td><td>{task.status}</td><td>{task.due_date || "No deadline"}{task.overdue && <small className="wf-error">Overdue</small>}</td></tr>)}</tbody></table>{personWork?.total === 0 && <p>No assignments in projects you can access.</p>}</div>
         <div className="wf-actions"><button disabled={profilePage === 1} onClick={() => setProfilePage(p => p - 1)}>Previous work</button><button disabled={!personWork || profilePage * 20 >= personWork.total} onClick={() => setProfilePage(p => p + 1)}>More work</button></div>
         <h2>Notices & warning history</h2>{historyError && <p role="alert" className="wf-error">{errorMessage(historyError)}</p>}<div className="wf-history">{history?.items.map((message: Row) => <article key={message.id} className={`wf-card ${message.kind === "warning" ? "wf-warning" : ""}`}>
           <strong>{message.title}</strong><small className="wf-muted"> · {message.kind} · {new Date(message.created_at).toLocaleString()}</small><p className="wf-message">{message.message}</p>

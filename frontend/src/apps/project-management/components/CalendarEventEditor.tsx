@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -160,7 +161,7 @@ export default function CalendarEventEditor({
               {error}
             </p>
           )}
-          <form
+          <CompactForm
             onSubmit={(e) => {
               e.preventDefault();
               void save();
@@ -386,7 +387,7 @@ export default function CalendarEventEditor({
                 </button>
               )}
             </footer>
-          </form>
+          </CompactForm>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

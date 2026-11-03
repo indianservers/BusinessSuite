@@ -9,7 +9,7 @@ from app.core.rich_text import PREFIX, sanitize_tree
 class RichTextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         # Signed Power Apps ingress authenticates the exact raw bytes before schema validation.
-        signed_ingress = request.url.path.startswith("/api/v1/power-apps/hooks/")
+        signed_ingress = request.url.path.startswith("/api/v1/power-apps/hooks/") or request.url.path == "/api/v1/integrations/whatsapp/webhook"
         if not signed_ingress and "application/json" in request.headers.get("content-type", ""):
             body = await request.body()
             if PREFIX.encode() in body:

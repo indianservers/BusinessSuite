@@ -1,3 +1,5 @@
+import CompactForm from "@/components/forms/CompactForm";
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useQuery} from "@tanstack/react-query";
 import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
 import SuperAdminManager from "./SuperAdminManager";
@@ -289,7 +291,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
         1,
     ),
   );
-  const branchChoices = useQuery({queryKey:["user-management-branches",company], queryFn:()=>api.get<{branches:{id:number;name:string}[]}>("/branches/context",{headers:{"X-Suite-Organization":String(company)}}).then(r=>r.data)});
+  const branchChoices = useQuery({queryKey:["user-management-branches",company], queryFn:()=>api.get<{manage_access:boolean;branches:{id:number;name:string}[]}>("/branches/context",{headers:{"X-Suite-Organization":String(company)}}).then(r=>r.data)});
   const [catalog, setCatalog] = useState<Catalog>();
   const [data, setData] = useState<any>();
   const [templates, setTemplates] = useState<any[]>([]);
@@ -934,7 +936,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                   </tr>
                 )}
                 {virtualUsers.map((u) => (
-                  <tr key={u.id} className={drafts[u.id] ? "ua-row-dirty" : ""}>
+                  <tr {...recordPreviewProps(u)} key={u.id} className={drafts[u.id] ? "ua-row-dirty" : ""}>
                     <td className="ua-sticky">
                       <div className="ua-user-cell">
                         <input
@@ -1386,7 +1388,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
         >
           <DialogContent className="ua-root ua-drawer">
             <DialogTitle>{opened.name} · Access</DialogTitle>
-            {actor?.is_superuser && !opened.isSuperuser && opened.id !== actor.id && <BranchRoleAssignments key={`${company}-${opened.id}`} userId={opened.id} companyId={company} enabledModules={Object.entries(opened.grants).filter(([,g]) => g.enabled).map(([key]) => key)} />}
+            {(actor?.is_superuser || (actor?.access?.isAccessAdmin && branchChoices.data?.manage_access)) && !opened.isSuperuser && opened.id !== actor.id && <BranchRoleAssignments key={`${company}-${opened.id}`} userId={opened.id} companyId={company} companyGrants={opened.grants} />}
             <p>
               {opened.email} · {opened.department || "No department"} ·{" "}
               {opened.status}
@@ -1505,6 +1507,8 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 Reset assigned roles
               </Button>
             </div>
+            <h3 id="company-module-permissions" className="font-semibold">Company module permissions (maximum access)</h3>
+            <p className="ua-hint">These roles do not grant access to every branch. Assign branches and branch-specific module roles above.</p>
             <ModuleEditor
               modules={modules}
               catalog={catalog}
@@ -1661,7 +1665,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             <p>
               Verify your administrator identity to apply this change.
             </p>
-            <form
+            <CompactForm
               onSubmit={async (e) => {
                 e.preventDefault();
                 setBusy(true);
@@ -1685,7 +1689,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 </p>
               )}
               <Button disabled={busy || (!password && !usesSocialVerification(password))}>Verify & continue</Button>
-            </form>
+            </CompactForm>
           </DialogContent>
         </Dialog>
       )}
@@ -1700,7 +1704,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             <DialogTitle>
               {createMode === "invite" ? "Invite User" : "Add User"}
             </DialogTitle>
-            <form
+            <CompactForm
               onSubmit={(e) => {
                 e.preventDefault();
                 secure(async (token) => {
@@ -1769,7 +1773,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 manual.
               </p>
               <Button>Continue</Button>
-            </form>
+            </CompactForm>
           </DialogContent>
         </Dialog>
       )}
@@ -1981,6 +1985,8 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 }
               />
             </label>
+            <h3 id="company-module-permissions" className="font-semibold">Company module permissions (maximum access)</h3>
+            <p className="ua-hint">These roles do not grant access to every branch. Assign branches and branch-specific module roles above.</p>
             <ModuleEditor
               modules={modules}
               catalog={catalog}
@@ -2149,7 +2155,7 @@ export function AccessInvitationPage() {
       <h1>Welcome to Business Suite</h1>
       <p>Choose your password to accept your invitation.</p>
       {!done && (
-        <form
+        <CompactForm
           onSubmit={async (e) => {
             e.preventDefault();
             try {
@@ -2180,7 +2186,7 @@ export function AccessInvitationPage() {
             />
           </label>
           <Button>Accept invitation</Button>
-        </form>
+        </CompactForm>
       )}
       {message && <p role="status">{message}</p>}
       {done && <a href="/login">Go to sign in</a>}

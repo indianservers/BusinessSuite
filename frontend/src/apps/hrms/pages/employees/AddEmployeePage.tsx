@@ -1,3 +1,4 @@
+import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneError, textError } from "@/lib/validation";
@@ -304,7 +305,7 @@ export default function AddEmployeePage() {
         ))}
       </div>
 
-      <form
+      <CompactForm compactTabs={false}
         onSubmit={handleSubmit(onSubmit, (formErrors) => {
           jumpToFirstInvalidStep(formErrors);
           const firstError = Object.values(formErrors)[0]?.message;
@@ -599,7 +600,7 @@ export default function AddEmployeePage() {
             </Button>
           )}
         </div>
-      </form>
+      </CompactForm>
       {quickType && (
         <QuickCreateModal
           type={quickType}
@@ -703,7 +704,7 @@ function QuickCreateModal({
   );
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-xl rounded-t-lg border bg-background shadow-xl sm:rounded-lg">
+      <CompactForm compactTabs={false} onSubmit={onSubmit} className="w-full max-w-xl rounded-t-lg border bg-background shadow-xl sm:rounded-lg">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-semibold">Add {type}</h2>
           <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
@@ -723,7 +724,7 @@ function QuickCreateModal({
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
         </div>
-      </form>
+      </CompactForm>
     </div>
   );
 }

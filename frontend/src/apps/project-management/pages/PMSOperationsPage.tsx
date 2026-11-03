@@ -1,3 +1,4 @@
+import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import {
   AlertTriangle,
@@ -276,7 +277,7 @@ function DataCard({ title, rows, headers }: { title: string; rows: Array<Array<s
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={index} className="border-t">
+              <tr {...recordPreviewProps(row)} key={index} className="border-t">
                 {row.map((cell, cellIndex) => (
                   <td key={`${index}-${cellIndex}`} className="px-4 py-3">
                     {cellIndex === row.length - 1 ? <Badge variant="outline">{cell}</Badge> : cell}

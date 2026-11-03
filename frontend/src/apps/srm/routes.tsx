@@ -1,3 +1,5 @@
+import FollowUpSummary from "@/shared/follow-ups/FollowUpSummary";
+import FollowUpsPage from "@/shared/follow-ups/FollowUpsPage";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
@@ -18,7 +20,7 @@ const CatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
 
 const route = (path: string, kind: SRMViewKind): FrontendRoute => ({
   path,
-  element: <SRMWorkspacePage kind={kind} />,
+  element: <>{kind === "dashboard" && <FollowUpSummary base="/srm/follow-ups"/>}<SRMWorkspacePage kind={kind} /></>,
 });
 
 const inventoryRoute = (path: string, kind: FAMViewKind): FrontendRoute => ({
@@ -32,6 +34,10 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 });
 
 export const srmRoutes: FrontendRoute[] = [
+ {path:"srm/follow-ups/directory",element:<FollowUpsPage/>},
+ {path:"srm/follow-ups/calendar",element:<FollowUpsPage/>},
+ {path:"srm/follow-ups/:id",element:<FollowUpsPage/>},
+ {path:"srm/follow-ups",element:<FollowUpsPage/>},
  { path: "srm/messages", element: <CommunicationWorkspace module="Sales" /> },
   { path: "srm/gantt", element: <ModuleGanttPage key="srm" module="srm" /> },
   { path: "srm/inventory/gantt", element: <ModuleGanttPage key="inventory" module="inventory" /> },
