@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
@@ -85,7 +85,8 @@ def save_profile(db, actor, contact, data):
 
 
 @router.get("/{ident}/financial-data")
-def get_financial_data(ident: int, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+def get_financial_data(ident: int, response: Response, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    response.headers["Cache-Control"] = "private, no-store"
     from .contact_directory import get_contact, allowed
     get_contact(db, actor, ident)
     try:
@@ -125,7 +126,8 @@ def transaction_data(row):
 
 
 @router.get("/{ident}/financial-transactions")
-def list_transactions(ident: int, page: int = Query(1, ge=1), db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+def list_transactions(ident: int, response: Response, page: int = Query(1, ge=1), db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    response.headers["Cache-Control"] = "private, no-store"
     from .contact_directory import get_contact
     contact = get_contact(db, actor, ident)
     q = db.query(ContactFinancialTransaction).filter_by(contact_id=ident, organization_id=contact.organization_id)
@@ -162,6 +164,17 @@ def parse_and_save_profile(db, actor, contact, value):
 class TransactionEdit(TransactionInput):
     version: int = Field(ge=1)
     reason: str = Field(min_length=3, max_length=500)
+
+
+@router.get("/{ident}/financial-transactions/{transaction_id}")
+def get_transaction(ident: int, transaction_id: int, response: Response, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from .contact_directory import get_contact
+    contact = get_contact(db, actor, ident)
+    row = db.query(ContactFinancialTransaction).filter_by(contact_id=ident, organization_id=contact.organization_id, id=transaction_id).first()
+    if row is None:
+        raise HTTPException(404, "Transaction is unavailable in your scope")
+    response.headers["Cache-Control"] = "private, no-store"
+    return transaction_data(row)
 
 
 class TransactionVoid(BaseModel):

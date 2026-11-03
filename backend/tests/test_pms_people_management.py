@@ -37,7 +37,11 @@ def project_fixture(client, db):
         db.add(PMSWorkspaceMember(workspace_id=wid, user_id=user.id, role="Member"))
         db.add(PMSProjectMember(project_id=pid, user_id=user.id, role="Member"))
     db.commit()
-    task = client.post(f"{BASE}/projects/{pid}/tasks", headers=oh, json={"title": "Hand over delivery", "task_key": "PEO-1", "assignee_user_ids": [target.id]}).json()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1); db.commit()
+    response = client.post(f"{BASE}/projects/{pid}/tasks", headers=oh, json={"title": "Hand over delivery", "task_key": "PEO-1", "assignee_user_ids": [target.id]})
+    assert response.status_code in {200, 201}, response.text
+    task = response.json()
     return owner, oh, target, th, replacement, rh, wid, pid, task["id"]
 
 
@@ -130,7 +134,10 @@ def test_profile_field_permissions_and_organization_audit(client, db):
     assert client.post(ROOT + f"/{owner.id}/actions", headers=ah, json={"action":"suspend", "reason":"Cannot suspend protected administrator"}).status_code == 403
     from app.apps.admin_security.models import AdminProfile, AdminFieldSecurity
     rules = AdminProfile(name="hr", active=True); db.add(rules); db.flush()
-    db.add(AdminFieldSecurity(profile_id=rules.id, module_name="employees", field_name="preferred_display_name", can_view=True, can_edit=False)); db.commit()
+    field_rule=AdminFieldSecurity(profile_id=rules.id, module_name="employees", field_name="preferred_display_name", can_view=True, can_edit=False)
+    db.add(field_rule)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,rules,field_rule);db.commit()
     detail = client.get(ROOT + f"/{target.id}", headers=ah).json()
     assert not detail["profile"]["field_permissions"]["preferred_display_name"]["can_edit"]
     assert client.patch(ROOT + f"/{target.id}/profile", headers=ah, json={**patch, "version": detail["profile"]["version"]}).status_code == 403
@@ -142,7 +149,9 @@ def test_offboarding_transfers_ownership_and_approvals(client, db):
     member = db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, user_id=replacement.id).one(); member.role="Admin"
     project = db.get(PMSProject, pid); project.owner_user_id=target.id; project.manager_user_id=target.id
     approval = ApprovalRequest(organization_id=1, source_module="pms", approval_type="delivery", entity_type="project", entity_id=pid, title="Approve launch", assigned_to_user_id=target.id, status="Pending")
-    db.add(approval); db.commit()
+    db.add(approval)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,approval);db.commit()
     preview = client.get(ROOT + f"/{target.id}/preview", headers=oh).json()
     assert preview["projects"][0]["id"] == pid
     assert preview["approvals"][0]["id"] == approval.id
@@ -161,7 +170,11 @@ def test_termination_and_reactivation_are_distinct(client, db):
     owner, oh = account(db, "terminate-owner@test.com", True)
     target, _ = account(db, "terminate-person@test.com")
     employee = Employee(user_id=target.id, employee_id="PMS-LIFECYCLE-1", first_name="Delivery", last_name="Person", date_of_joining=date(2026,1,1), status="Active")
-    db.add(employee); db.commit()
+    db.add(employee)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,employee);db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1); db.commit()
     detail = client.get(ROOT + f"/{target.id}", headers=oh).json()
     assert detail["permissions"]["terminate"]
     preview = client.get(ROOT + f"/{target.id}/preview", headers=oh).json()

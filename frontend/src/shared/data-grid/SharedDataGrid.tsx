@@ -403,6 +403,13 @@ function Header<T>({
   );
 }
 
+function validateGridResult<T>(result: GridResult<T>): GridResult<T> {
+  if (!result || !Array.isArray(result.rows) || !Number.isFinite(result.total)) {
+    throw new Error("The table response was incomplete. Refresh to try again.");
+  }
+  return result;
+}
+
 export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const {
     columns,
@@ -579,7 +586,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       query,
       props.refreshKey,
     ],
-    queryFn: ({ signal }) => dataSource.load(query, signal),
+    queryFn: async ({ signal }) => validateGridResult(await dataSource.load(query, signal)),
     staleTime: 15000,
     gcTime: 60000,
     refetchOnWindowFocus: true,
@@ -896,7 +903,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
           branchQuery,
           props.refreshKey,
         ],
-        queryFn: ({ signal }) => dataSource.load(branchQuery, signal),
+        queryFn: async ({ signal }) => validateGridResult(await dataSource.load(branchQuery, signal)),
         staleTime: 15000,
       });
       if (originalSignature !== currentQuery.current) return;

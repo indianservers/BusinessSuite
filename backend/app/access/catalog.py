@@ -165,7 +165,7 @@ def request_module(request):
         source = request.query_params.get("source", "crm")
         return source if source in {"crm", "srm", "project_management", "hrms"} else None
     if request.url.path.startswith("/api/v1/catalog/"):
-        return "project_management" if request.query_params.get("source", "crm") == "pms" else "crm"
+        return {"pms": "project_management", "crm": "crm", "srm": "srm"}.get(request.query_params.get("source", "crm"))
     route = request.scope.get("route")
     if not route:
         return None

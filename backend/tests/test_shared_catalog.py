@@ -63,7 +63,9 @@ def test_links_pricing_tax_and_tenant_isolation(client, db, headers):
     customer = CRMCompany(organization_id=1, name="Customer")
     lead = CRMLead(organization_id=1, full_name="Lead", first_name="Lead", status="New")
     project = PMSProject(organization_id=1, name="Delivery", project_key="DEL")
-    db.add_all([customer, lead, project]); db.commit()
+    db.add_all([customer, lead, project])
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,customer,lead,project);db.commit()
     line = {"kind": "product", "item_id": product["id"], "pricing_id": "monthly", "quantity": 3, "discount": 10}
     for target, ident, source in (("customer", customer.id, "crm"), ("lead", lead.id, "crm"), ("project", project.id, "pms")):
         r = client.put(f"{ROOT}/links/{target}/{ident}?source={source}", headers=headers, json={"lines": [line]})
@@ -105,10 +107,12 @@ def scoped_headers(client, db, name, permissions, organization=1):
         if not permission: permission = Permission(name=name, module="crm" if name.startswith("crm") else "project_management"); db.add(permission); db.flush()
         role.permissions.append(permission)
     user = User(email=f"{role.name}@example.com", is_active=True, hashed_password=get_password_hash("Catalog@12345"), role_id=role.id)
-    db.add(user); attach_test_identity(db, user, company_id=organization); db.commit()
+    db.add(user); attach_test_identity(db, user, company_id=organization)
+    from test_identity_utils import attach_workflow_branch
+    branch=attach_workflow_branch(db,user,organization);db.commit()
     result = client.post("/api/v1/auth/login", json={"email": user.email, "password": "Catalog@12345"})
     assert result.status_code == 200, result.text
-    return {"Authorization": "Bearer " + result.json()["access_token"]}
+    return {"Authorization": "Bearer " + result.json()["access_token"], "X-Suite-Branch":str(branch.id)}
 
 
 def test_read_only_permissions_and_cross_module_access(client, db, headers):

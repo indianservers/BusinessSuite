@@ -3,6 +3,8 @@ import { expect, type Page } from "../frontend/node_modules/playwright/test";
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 export async function authenticateCrm(page: Page) {
+  page.on("pageerror", error => console.error("CRM runtime error:", error.message));
+  page.on("console", message => {if(message.type() === "error") console.error("CRM console:",message.text());});
   const user = { id: 100, email: "admin@example.com", role: "admin", is_superuser: true, employee_id: null };
   await page.addInitScript((authUser) => {
     sessionStorage.setItem("hrms-auth", JSON.stringify({
@@ -22,6 +24,7 @@ export async function authenticateCrm(page: Page) {
     if (path.endsWith("/access/me")) data = {managed: false, companyId: 1, companyName: "CRM test company", grants: {}, modules: [{key: "crm", route: "/crm", label: "CRM"}], isAccessAdmin: true, isGlobalAdmin: true, memberships: [1], organizations: [{id: 1, name: "CRM test company"}]};
     if (path.endsWith("/branches/context")) data = {company_id: 1, selected: 1, all_branches: false, manage_access: true, branches: [{id: 1, name: "CRM test branch", code: "QA", can_write: true}]};
     if (/\/srm\/business\/customers\/\d+\/history$/.test(path)) data = {invoices: [], projects: []};
+    if (path.endsWith("/master-data/company-directory/query")) data = {rows:[{id:1,name:"Acme India",industry:"Software",status:"Active",roles:["Customer"],tags:[]}],total:1,pageTotal:1,page:1,pageSize:30,context:{canCreate:true},permissions:{edit:true,export:true,archive:true}};
     if (path.includes("/branding")) data = {values: {}};
     await route.fulfill({json: data});
   });

@@ -17,6 +17,9 @@ export default function CompaniesPage({source="crm",role="",entityKind="companie
     {id:"name",title:role||"Company",width:260,editable:true,render:row=><button className="font-semibold text-left" onClick={()=>setProfile(row.id)}>{row.name}{role&&<small className="block text-xs font-normal text-muted-foreground">{row.entityKind==="Individual"?"Individual":"Business / company"}</small>}</button>},
     {id:"account_type",title:"Business roles",accessor:row=>row.roles?.join(", "),render:row=><div className="md-role-badges">{row.roles?.map(x=><span key={x} data-role={x.toLowerCase()}>{x}</span>)}</div>},
     {id:"email",title:"Primary email",width:240}, {id:"phone",title:"Primary phone",render:row=><span>{row.phone_country_code} {row.phone||"—"}</span>},
+    {id:"gstNumber",title:"Company GST number",sortable:false,filterable:false,groupable:false},
+    {id:"bankAccountCount",title:"Bank accounts",type:"number",sortable:false,filterable:false,groupable:false},
+    {id:"upiCount",title:"UPI IDs",type:"number",sortable:false,filterable:false,groupable:false},
     {id:"industry",title:"Industry",editable:true}, {id:"status",title:"Status",type:"status",editable:true,editor:"select",options:["Active","Inactive","Blocked"].map(x=>({value:x,label:x}))},
     {id:"tags_text",title:"Tags",accessor:row=>row.tags?.join(", "),render:row=><span>{row.tags?.join(", ")||"—"}</span>}
   ],[role]);

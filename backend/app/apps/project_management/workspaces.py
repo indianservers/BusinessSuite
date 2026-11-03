@@ -207,7 +207,8 @@ def add_workspace_member(workspace_id: int, data: AddMemberInput, db: Session = 
     db.add(member)
     from .people_management import record
     record(db, user, target.id, "PMS_WORKSPACE_ADDED", "Added existing person directly", after={"role": data.role}, workspace_id=workspace_id)
-    db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=target.email.lower(), status="pending").update({"status": "accepted"})
+    for invitation in db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=target.email.lower(), status="pending").all():
+        invitation.status = "accepted"
     db.add(Notification(user_id=target.id, title="Added to workspace", message=f"You were added to {workspace.name} as {data.role}.", module="project_management", event_type="workspace.member_added", action_url=f"/pms/workspaces?workspace={workspace_id}"))
     db.commit()
     return {"id": member.id, "user_id": target.id, "email": target.email, "role": member.role}
@@ -254,7 +255,8 @@ def remove_member(workspace_id: int, member_id: int, db: Session = Depends(get_d
     _unassign_workspace_member(db, workspace_id, removed_user_id)
     from .models import PMSProjectMember
     project_ids = db.query(PMSProject.id).filter_by(workspace_id=workspace_id)
-    db.query(PMSProjectMember).filter(PMSProjectMember.user_id == removed_user_id, PMSProjectMember.project_id.in_(project_ids)).delete(synchronize_session=False)
+    for membership in db.query(PMSProjectMember).filter(PMSProjectMember.user_id == removed_user_id, PMSProjectMember.project_id.in_(project_ids)).all():
+        db.delete(membership)
     db.delete(target)
     db.commit()
     from .realtime import pms_realtime_manager
@@ -288,7 +290,8 @@ def invite(workspace_id: int, data: InviteInput, db: Session = Depends(get_db), 
     recipient = db.query(User).filter(func.lower(User.email) == email).first()
     if recipient and db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace_id, user_id=recipient.id).first():
         raise HTTPException(409, "User is already a member")
-    db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=email, status="pending").update({"status": "revoked"})
+    for invitation in db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id, email=email, status="pending").all():
+        invitation.status = "revoked"
     token = secrets.token_urlsafe(32)
     invitation = PMSWorkspaceInvitation(workspace_id=workspace_id, email=email, role=data.role, token_hash=hashlib.sha256(token.encode()).hexdigest(), expires_at=datetime.utcnow() + timedelta(days=7))
     db.add(invitation)

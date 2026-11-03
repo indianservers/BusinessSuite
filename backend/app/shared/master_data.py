@@ -31,6 +31,9 @@ def authorize(actor, source, write=False, entity="companies", action=None):
     names = permission_names(actor)
     read = {"crm": {"crm_view", "crm_manage", "crm_admin", f"crm_{entity}_view", f"crm_{entity}_manage"}, "srm": {"srm_view", "srm_manage", "srm_admin", "srm_invoice_view", "srm_invoice_create"}, "project_management": {"pms_view", "pms_manage_projects", "pms_admin"}, "hrms": {"employee_view", "employee_update", "employee_create"}}
     edit = {"crm": {"crm_manage", "crm_admin", f"crm_{entity}_manage"}, "srm": {"srm_manage", "srm_admin"}, "project_management": {"pms_manage_projects", "pms_admin"}, "hrms": {"employee_update", "employee_create"}}
+    if entity == "companies":
+        read["crm"].update({"crm_accounts_view", "crm_accounts_manage"})
+        edit["crm"].add("crm_accounts_manage")
     if not actor.is_superuser and not names.intersection((edit if write else read)[source]):
         raise HTTPException(403, "This module does not grant access to the requested master data")
     grants = getattr(actor, "_suite_grants", None)
@@ -549,6 +552,7 @@ def company_profile(ident: int, source: Source = "crm", db: Session = Depends(ge
         except HTTPException:
             q = q.filter(False)
     result = company_output(db, row)
+    result.update(company_financial_summaries(db, actor, [ident]).get(ident, {}))
     result["contacts"] = [{"id": x.id, "name": x.full_name, "email": x.email, "phone": x.phone} for x in q.limit(100)]
     result["relationships"] = [{"role": x.role, "status": x.status, "category": x.category, "paymentTerms": x.payment_terms, "creditLimit": x.credit_limit, "nextFollowUp": x.follow_up_at, "notes": x.notes} for x in db.query(BusinessRelationship).filter(BusinessRelationship.account_id == ident)]
     result["channels"] = effective_channels(db, row, "company")
@@ -563,9 +567,10 @@ def company_profile(ident: int, source: Source = "crm", db: Session = Depends(ge
     accounting_access = actor.is_superuser or (grant.get("enabled") and "view" in grant.get("actions", []) and grant.get("scope") in {"organization", "all"})
     if accounting_access and is_app_enabled("fam") and is_app_enabled("srm"):
         from app.apps.srm.commercial_models import CustomerLink
-        from app.apps.fam.models import FAMParty, FAMPurchaseBill, FAMBillReference
+        from app.apps.fam.models import FAMParty, FAMPurchaseBill, FAMBillReference, FAMSRMMapping
         account_ids = select(CustomerLink.source_id).where(CustomerLink.organization_id == actor.organization_id, CustomerLink.customer_id == ident, CustomerLink.source_type == "crm_account")
-        party_ids = select(FAMParty.id).where(FAMParty.company_id == actor.organization_id, FAMParty.crm_account_id.in_(account_ids))
+        mapped_parties = select(FAMSRMMapping.fam_record_id).where(FAMSRMMapping.company_id == actor.organization_id, FAMSRMMapping.srm_record_type == "customer", FAMSRMMapping.srm_record_id == ident, FAMSRMMapping.fam_record_type == "party", FAMSRMMapping.mapping_status == "active")
+        party_ids = select(FAMParty.id).where(FAMParty.company_id == actor.organization_id, or_(FAMParty.crm_account_id.in_(account_ids), FAMParty.id.in_(mapped_parties)))
         if db.query(FAMParty.id).filter(FAMParty.id.in_(party_ids)).first():
             result["financialNote"] = "Verified accounting records in your authorized branch."
             if actor.is_superuser or permissions.intersection({"fam_admin", "fam_purchase_view", "fam_purchase_manage"}):
@@ -866,6 +871,9 @@ def company_grid(state: str = Query("{}", max_length=16000), source: Source = "c
             result["groups"].append({"field": name, "value": value, "label": str(value or "Not set"), "count": count, "aggregates": [], "path": [x.model_dump() for x in parsed.path] + [{"field": name, "value": value}]})
     else:
         result["rows"] = [company_output(db, x) for x in apply_sort(branch, parsed, fields, CRMCompany.id).offset((parsed.page - 1) * parsed.pageSize).limit(parsed.pageSize)]
+    summaries = company_financial_summaries(db, actor, [row["id"] for row in result["rows"]])
+    for row in result["rows"]:
+        row.update(summaries.get(row["id"], {}))
     return result
 
 
@@ -917,7 +925,7 @@ def export_companies(data: CompanyExport, source: Source = "crm", role: str = ""
     from app.shared.data_grid import parse_query, safe_cell
     authorize(actor, source, action="export")
     columns = data.columns
-    if not columns or set(columns) - {"name", "email", "phone", "industry", "status", "roles", "tags", "account_type", "tags_text"}:
+    if not columns or set(columns) - {"name", "email", "phone", "industry", "status", "roles", "tags", "account_type", "tags_text", "gstNumber", "bankAccountCount", "upiCount"}:
         raise HTTPException(422, "Unsupported export columns")
     parsed = parse_query(data.state)
     parsed.grouping, parsed.path, parsed.page, parsed.pageSize = [], [], 1, 200
@@ -941,3 +949,18 @@ def export_companies(data: CompanyExport, source: Source = "crm", role: str = ""
     audit(db, actor, "COMPANY_EXPORT", "company", None, {"count": count})
     db.commit()
     return Response(output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=companies.csv"})
+
+
+def company_financial_summaries(db, actor, account_ids):
+    """Reuse verified company contact identities without duplicating bank data."""
+    if not account_ids:
+        return {}
+    from app.apps.crm.contact_directory import base
+    from app.apps.crm.contact_identity import ContactIdentityLink
+    from app.apps.crm.financial_models import ContactFinancialProfile
+    try:
+        contacts = base(db, actor).with_entities(CRMContact.id).subquery()
+    except HTTPException:
+        return {}
+    rows = db.query(ContactIdentityLink.account_id, ContactIdentityLink.contact_id, ContactFinancialProfile).join(contacts, contacts.c.id == ContactIdentityLink.contact_id).outerjoin(ContactFinancialProfile, ContactFinancialProfile.contact_id == ContactIdentityLink.contact_id).filter(ContactIdentityLink.account_id.in_(account_ids), ContactIdentityLink.organization_id == actor.organization_id).all()
+    return {account: {"financialContactId": contact, "gstNumber": profile.gst_number or "" if profile else "", "bankAccountCount": len(profile.bank_accounts) if profile else 0, "upiCount": len(profile.upi_ids) if profile else 0} for account, contact, profile in rows}

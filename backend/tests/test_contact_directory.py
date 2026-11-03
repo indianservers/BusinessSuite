@@ -355,6 +355,11 @@ def test_financial_crud_corrections_voiding_and_clear(client, superuser_headers)
     assert client.patch(endpoint, headers=superuser_headers, json=update).status_code == 409
     void = client.request("DELETE", endpoint, headers=superuser_headers, json={"version":corrected.json()["version"], "reason":"Duplicate cash entry"})
     assert void.status_code == 200 and void.json()["status"] == "void", void.text
+    detail = client.get(endpoint, headers=superuser_headers)
+    assert detail.status_code == 200 and detail.json()["status"] == "void"
+    assert "no-store" in detail.headers["cache-control"]
+    other = new_contact(client, superuser_headers, name="Other payer", email="other-payer@example.com")
+    assert client.get(f"{ROOT}/{other['id']}/financial-transactions/{tx['id']}", headers=superuser_headers).status_code == 404
     assert client.patch(endpoint, headers=superuser_headers, json={**update, "version":void.json()["version"]}).status_code == 409
     clear = client.delete(root + "/financial-data", headers=superuser_headers, params={"version":1})
     assert clear.status_code == 200 and clear.json()["bankAccounts"] == []
@@ -376,11 +381,30 @@ def test_financial_columns_sort_export_and_duplicate_bank_identity(client, super
 
 
 def test_crm_new_menu_customer_and_reminder_contracts(client, superuser_headers):
-    created = client.post(ROOT, headers=superuser_headers, json={"name":"Quick customer", "tags":["Customer"], "status":"Active"})
-    assert created.status_code == 200 and "Customer" in created.json()["tags"]
+    created = client.post("/api/v1/master-data/companies", headers=superuser_headers, json={"name":"Quick customer", "roles":["Customer"], "entityKind":"Individual", "status":"Active"})
+    assert created.status_code == 201 and "Customer" in created.json()["roles"], created.text
     due = "2026-12-01T04:30:00Z"
     reminder = client.post("/api/v1/crm/tasks", headers=superuser_headers, json={"title":"Call customer", "due_date":due, "reminder_at":due, "status":"To Do"})
     assert reminder.status_code == 201, reminder.text
     ident = reminder.json()["id"]
     saved = client.get(f"/api/v1/crm/tasks/{ident}", headers=superuser_headers)
     assert saved.status_code == 200 and saved.json()["reminder_at"] is not None
+
+
+def test_shared_customer_vendor_financial_identity_and_columns(client, superuser_headers):
+    company = client.post("/api/v1/master-data/companies", headers=superuser_headers, json={"name":"Financial shared customer", "roles":["Customer","Vendor"], "entityKind":"Individual"})
+    assert company.status_code == 201, company.text
+    ident = company.json()["id"]
+    detail = client.get(f"/api/v1/master-data/companies/{ident}", headers=superuser_headers)
+    assert detail.status_code == 200, detail.text
+    contact = detail.json()["financialContactId"]
+    assert client.put(f"{ROOT}/{contact}/financial-data", headers=superuser_headers, json=financial_details()).status_code == 200
+    for role in ["Customer","Vendor"]:
+        grid = client.get("/api/v1/master-data/company-directory/query", headers=superuser_headers, params={"source":"crm","role":role})
+        assert grid.status_code == 200, grid.text
+        saved = next(x for x in grid.json()["rows"] if x["id"] == ident)
+        assert saved["financialContactId"] == contact and saved["bankAccountCount"] == 2 and saved["upiCount"] == 2
+        assert saved["gstNumber"] == "27ABCDE1234F1Z5"
+
+    exported = client.post("/api/v1/master-data/company-directory/export", headers=superuser_headers, params={"source":"crm","role":"Customer"}, json={"columns":["name","gstNumber","bankAccountCount","upiCount"]})
+    assert exported.status_code == 200 and "27ABCDE1234F1Z5" in exported.text, exported.text

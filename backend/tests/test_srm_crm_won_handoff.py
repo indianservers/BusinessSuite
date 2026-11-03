@@ -31,7 +31,10 @@ def create_won_deal_with_quote(db, name: str = "Won ERP rollout"):
     db.flush()
     db.add(CRMQuotationItem(quotation_id=quote.id, name="Implementation", quantity=1, unit_price=200000, total_amount=200000))
     db.add(CRMQuotationItem(quotation_id=quote.id, name="Training", quantity=1, unit_price=95000, total_amount=95000))
-    db.commit()
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,pipeline,stage,deal,quote)
+    from app.branches.migration import backfill
+    backfill(db.connection(),1);db.commit()
     return deal, quote
 
 

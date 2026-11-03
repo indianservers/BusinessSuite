@@ -290,7 +290,8 @@ def bulk_add(data: BulkAdd, db: Session = Depends(get_db), actor: User = Depends
                 existing += 1
             else:
                 db.add(PMSWorkspaceMember(workspace_id=wid, user_id=target.id, role=data.role))
-                db.query(PMSWorkspaceInvitation).filter_by(workspace_id=wid, email=target.email.lower(), status="pending").update({"status": "accepted"})
+                for invitation in db.query(PMSWorkspaceInvitation).filter_by(workspace_id=wid, email=target.email.lower(), status="pending").all():
+                    invitation.status = "accepted"
                 record(db, actor, target.id, "PMS_WORKSPACE_ADDED", data.reason, after={"workspace": workspace.name, "role": data.role}, workspace_id=wid)
                 added.append({"user_id": target.id, "workspace_id": wid})
         for project in projects:
@@ -560,13 +561,16 @@ def apply_action(user_id: int, data: PersonAction, db: Session = Depends(get_db)
             raise HTTPException(404, "Workspace membership not found")
         editable_member(db, workspace_id, member.id, actor)
         pids = [p[0] for p in db.query(PMSProject.id).filter_by(workspace_id=workspace_id)]
-        db.query(PMSProjectMember).filter(PMSProjectMember.user_id == target.id, PMSProjectMember.project_id.in_(pids)).delete(synchronize_session=False)
+        for membership in db.query(PMSProjectMember).filter(PMSProjectMember.user_id == target.id, PMSProjectMember.project_id.in_(pids)).all():
+            db.delete(membership)
         db.delete(member)
     if data.action in {"offboard", "terminate"}:
         scoped_workspaces = [w.id for w in db.query(PMSWorkspace).filter_by(organization_id=organization_id_for(actor))]
-        db.query(PMSWorkspaceMember).filter(PMSWorkspaceMember.user_id == target.id, PMSWorkspaceMember.workspace_id.in_(scoped_workspaces)).delete(synchronize_session=False)
+        for membership in db.query(PMSWorkspaceMember).filter(PMSWorkspaceMember.user_id == target.id, PMSWorkspaceMember.workspace_id.in_(scoped_workspaces)).all():
+            db.delete(membership)
         scoped_projects = [p.id for p in db.query(PMSProject).filter_by(organization_id=organization_id_for(actor))]
-        db.query(PMSProjectMember).filter(PMSProjectMember.user_id == target.id, PMSProjectMember.project_id.in_(scoped_projects)).delete(synchronize_session=False)
+        for membership in db.query(PMSProjectMember).filter(PMSProjectMember.user_id == target.id, PMSProjectMember.project_id.in_(scoped_projects)).all():
+            db.delete(membership)
     if data.action in {"suspend", "offboard", "terminate"}:
         from app.common.services.identity import SharedIdentityService
         person = target.person or SharedIdentityService.ensure_person_for_user(db, target, organization_id=organization_id_for(actor))

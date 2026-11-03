@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck, Headphones, UsersRound, Layers, Mail, LockKeyhole, LogIn, ExternalLink } from "lucide-react";
 import { type FirebaseOptions } from "firebase/app";
 import { setRememberSession, useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api";
@@ -331,13 +331,19 @@ export default function LoginPage() {
       </a>
       <header>
         <SuiteBrand />
-        <Link to="/help">Help & support</Link>
+        <Link to="/help"><Headphones size={21} />Help & support</Link>
       </header>
       <main id="login-main" className="suite-login-main">
-        <Link className="suite-back" to="/">
-          <ArrowLeft size={16} />
-          Explore applications
-        </Link>
+        <section className="suite-login-intro" aria-labelledby="workspace-title">
+          <h2 id="workspace-title">A connected workspace<br/>for your growing business</h2>
+          <p>Unify your teams, customers, and workflows with<br className="suite-desktop-break"/> Business Suite &mdash; a secure, enterprise-grade platform<br className="suite-desktop-break"/> for sales, CRM, and business operations.</p>
+          <ul className="suite-login-benefits">
+            <li><span><UsersRound/></span><div><strong>Manage customers &amp; leads</strong><small>Build stronger relationships and pipeline</small></div></li>
+            <li><span><Layers/></span><div><strong>Streamline business workflows</strong><small>From conversations to closed deals</small></div></li>
+            <li><span><ShieldCheck/></span><div><strong>Enterprise-grade security</strong><small>Your data, your controls, always protected</small></div></li>
+          </ul>
+          <img className="suite-login-illustration" src="/images/suite-login-workspace.png" alt="" aria-hidden="true"/>
+        </section>
         <section className="suite-login-card" aria-labelledby="login-title">
           <p className="suite-login-company">
             {branding.data?.company_name || "Your connected business workspace"}
@@ -563,7 +569,7 @@ export default function LoginPage() {
                 })}
               >
                 <label htmlFor="email">Email address</label>
-                <input
+                <div className="suite-email-field"><Mail size={20} aria-hidden="true"/><input
                   id="email"
                   type="email"
                   autoComplete="username"
@@ -571,7 +577,7 @@ export default function LoginPage() {
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? "email-error" : undefined}
                   {...register("email")}
-                />
+                /></div>
                 {errors.email && (
                   <p
                     id="email-error"
@@ -582,11 +588,12 @@ export default function LoginPage() {
                   </p>
                 )}
                 <label htmlFor="password">Password</label>
-                <div className="suite-password-field">
+                <div className="suite-password-field"><LockKeyhole size={20} aria-hidden="true"/>
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
+                    placeholder="Enter your password"
                     aria-invalid={!!errors.password || !!error}
                     aria-describedby={
                       errors.password
@@ -630,11 +637,11 @@ export default function LoginPage() {
                   Keep me signed in
                 </label>
                 <small id="remember-help">
-                  Use only on a device you trust. Leave unchecked on shared
+                  Use only on a trusted device. Leave unchecked on shared
                   devices.
                 </small>
                 <button className="suite-primary" disabled={busy}>
-                  {busy && <Loader2 size={17} className="animate-spin" />}
+                  {busy ? <Loader2 size={20} className="animate-spin" /> : <LogIn size={22} />}
                   {busy ? "Signing in…" : "Sign in"}
                 </button>
                 <button
@@ -660,7 +667,7 @@ export default function LoginPage() {
                 (firebase.data?.enabled &&
                   firebase.data.modules.length > 0)) && (
                 <div className="suite-login-providers">
-                  <p>Or continue with your organization</p>
+                  <p>Or continue with</p>
                   {sortedProviders.map((provider) => (
                     <button
                       key={provider.id}
@@ -673,7 +680,7 @@ export default function LoginPage() {
                         );
                       }}
                     >
-                      {provider.button_label ||
+                      <ProviderMark provider={provider.provider_type}/>{provider.button_label ||
                         `Continue with ${provider.name}`}
                     </button>
                   ))}
@@ -696,14 +703,15 @@ export default function LoginPage() {
                           disabled={busy}
                           onClick={() => void socialSignIn(provider)}
                         >
-                          Continue with{" "}
+                          <ProviderMark provider={provider}/>Continue with{" "}
                           {provider === "google" ? "Google" : "Microsoft"}
                         </button>
                       ))}
                 </div>
               )}
               {firebase.data?.enabled && firebase.data.firebase_config && firebase.data.modules.length > 0 && (
-                <button type="button" className="suite-secondary" disabled={busy} onClick={() => void googleSameTab()}>
+                <button type="button" className="suite-secondary suite-same-tab" disabled={busy} onClick={() => void googleSameTab()}>
+                  <ExternalLink size={19}/>
                   Continue with Google in this tab
                 </button>
               )}
@@ -742,4 +750,10 @@ export default function LoginPage() {
       </main>
     </div>
   );
+}
+
+function ProviderMark({provider}:{provider:string}) {
+  if(provider==="google")return <svg className="suite-provider-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.06.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.49H3.07a10 10 0 0 0 0 9.02l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.96c1.47 0 2.79.51 3.83 1.51l2.87-2.87A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59C7.2 7.72 9.4 5.96 12 5.96Z"/></svg>;
+  if(["microsoft","azure_ad"].includes(provider))return <svg className="suite-provider-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#f25022" d="M1 1h10v10H1z"/><path fill="#7fba00" d="M13 1h10v10H13z"/><path fill="#00a4ef" d="M1 13h10v10H1z"/><path fill="#ffb900" d="M13 13h10v10H13z"/></svg>;
+  return <ShieldCheck size={20}/>;
 }

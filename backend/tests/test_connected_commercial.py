@@ -62,6 +62,8 @@ def setup_business(db):
     )
     db.commit()
     from app.branches.migration import backfill
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,buyer,contact,p,team)
     backfill(db.connection(), 1); db.commit()
     return buyer, contact, p, team
 
@@ -326,9 +328,10 @@ def test_crm_account_customer_projection_and_reviewed_legacy_mapping(
         ).json()["items"][0]["id"]
         == shared_id
     )
-    legacy = PMSClient(organization_id=None, name="Old client spelling")
+    legacy = PMSClient(organization_id=1, name="Old client spelling")
     db.add(legacy)
-    db.commit()
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,legacy); db.commit()
     linked = client.put(
         f"/api/v1/project-management/clients/{legacy.id}/shared-customer",
         headers=superuser_headers,

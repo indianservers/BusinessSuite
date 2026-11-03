@@ -66,7 +66,10 @@ def seed_invoice_parties(db, customer_ids=(101,)):
     from app.apps.crm.models import CRMCompany
     if not db.get(Company, 1):
         db.add(Company(id=1, name="Synthetic seller", legal_name="Synthetic seller Ltd", address="Test seller address"))
+    from test_identity_utils import own_workflow_records
     for ident in customer_ids:
         if not db.get(CRMCompany, ident):
-            db.add(CRMCompany(id=ident, organization_id=1, name=f"Synthetic customer {ident}", email="billing@example.com", address="Test customer address"))
+            buyer=CRMCompany(id=ident, organization_id=1, name=f"Synthetic customer {ident}", email="billing@example.com", address="Test customer address")
+            db.add(buyer)
+            own_workflow_records(db,buyer)
     db.commit()

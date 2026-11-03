@@ -2441,7 +2441,8 @@ def add_project_member(
             workspace_member(db, project.workspace_id, current_user, True)
             db.add(PMSWorkspaceMember(workspace_id=project.workspace_id, user_id=target.id, role="Member"))
             from ..models import PMSWorkspaceInvitation
-            db.query(PMSWorkspaceInvitation).filter_by(workspace_id=project.workspace_id, email=target.email.lower(), status="pending").update({"status": "accepted"})
+            for invitation in db.query(PMSWorkspaceInvitation).filter_by(workspace_id=project.workspace_id, email=target.email.lower(), status="pending").all():
+                invitation.status = "accepted"
     elif tenant(target) != (project.organization_id or 1):
         raise HTTPException(404, "Eligible project user not found")
     existing = db.query(PMSProjectMember).filter(

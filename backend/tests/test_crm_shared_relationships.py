@@ -65,3 +65,11 @@ def test_lead_conversion_becomes_same_sales_customer(client, db, superuser_heade
     db.expire_all()
     assert db.get(CRMLead, lead.id).converted_company_id == ident
     assert db.query(CRMCompany).count() == 1
+
+def test_shared_companies_available_from_main_settings(client, db, superuser_headers, directory_identity):
+    response = client.get("/api/v1/access/settings", headers=superuser_headers)
+    assert response.status_code == 200, response.text
+    option = next(x for x in response.json()["options"] if x["id"] == "shared-companies")
+    assert option["title"] == "Shared companies"
+    assert option["destination"] is None
+    assert client.get("/api/v1/access/settings/shared-companies", headers=superuser_headers).status_code == 200
